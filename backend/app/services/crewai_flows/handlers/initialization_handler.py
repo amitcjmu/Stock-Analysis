@@ -228,7 +228,7 @@ class InitializationHandler:
                 },
                 {
                     "name": "data_cleansing",
-                    "crew": "DataCleansingCrew",
+                    "crew": "PersistentAgent",  # CC: Now uses persistent agents via DataCleansingExecutor
                     "manager": "Data Quality Manager",
                     "dependencies": ["field_mapping"],
                     "success_criteria": [

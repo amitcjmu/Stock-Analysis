@@ -60,6 +60,10 @@ class RawRecordOperationsMixin:
             )
 
             if extracted_records:
+                logger.info(
+                    f"💾 Creating {len(extracted_records)} RawImportRecord entries..."
+                )
+
                 # Store the raw records
                 for idx, record in enumerate(extracted_records):
                     # SECURITY FIX: Validate record type before storing
@@ -68,6 +72,10 @@ class RawRecordOperationsMixin:
                             f"🚨 Skipping non-dict record at index {idx}: {type(record)}"
                         )
                         continue
+
+                    logger.debug(
+                        f"💾 Creating RawImportRecord {idx+1} with fields: {list(record.keys())}"
+                    )
 
                     raw_record = RawImportRecord(
                         id=uuid.uuid4(),
@@ -85,8 +93,17 @@ class RawRecordOperationsMixin:
                 # CRITICAL FIX: Add proper commit after adding records
                 await self.db.flush()  # Ensure all operations are written to DB
                 logger.info(
-                    f"✅ Stored {records_stored} raw records for import {data_import.id}"
+                    f"✅ Successfully added {records_stored} RawImportRecord entries "
+                    f"to database session for import {data_import.id}"
                 )
+                logger.info(
+                    "✅ Database flush completed - records should now be visible in raw_import_records table"
+                )
+            else:
+                logger.error(
+                    f"🚨 CRITICAL: No extracted records to process for import {data_import.id}"
+                )
+                logger.error("🚨 This means 0 raw_import_records will be created!")
 
             return records_stored
 

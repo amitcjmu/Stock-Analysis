@@ -291,51 +291,9 @@ async def asset_creation_completion(
         }
 
 
-async def asset_inventory(
-    flow_id: str, phase_input: Dict[str, Any], context: Any, **kwargs
-) -> Dict[str, Any]:
-    """
-    Execute asset inventory phase
-
-    Performs:
-    - Asset classification
-    - Server identification
-    - Application discovery
-    - Device categorization
-    
-    Note: This is a simplified handler that returns success to allow
-    phase progression. The actual asset creation happens through
-    the crew execution in execution_engine_crew.py
-    """
-    try:
-        logger.info(f"Executing asset inventory handler for flow {flow_id}")
-
-        # Extract relevant data from phase_input
-        raw_data = phase_input.get("raw_data", [])
-        field_mappings = phase_input.get("field_mappings", {})
-        
-        # Log what we're processing
-        logger.info(f"Processing {len(raw_data) if isinstance(raw_data, list) else 0} records for asset inventory")
-        
-        # Return success to allow phase progression
-        # The actual asset creation logic is handled by the crew execution
-        return {
-            "phase": "asset_inventory",
-            "status": "completed",
-            "flow_id": flow_id,
-            "records_processed": len(raw_data) if isinstance(raw_data, list) else 0,
-            "message": "Asset inventory phase completed successfully",
-            "next_phase": "dependency_analysis",
-        }
-
-    except Exception as e:
-        logger.error(f"Asset inventory handler error for flow {flow_id}: {e}")
-        return {
-            "phase": "asset_inventory",
-            "status": "failed",
-            "error": str(e),
-            "flow_id": flow_id,
-        }
+# REMOVED: asset_inventory handler - using persistent agent implementation instead (ADR-022)
+# The asset_inventory phase is now handled exclusively through the persistent agent
+# architecture in execution_engine_crew_discovery.py
 
 
 async def data_import_preparation(

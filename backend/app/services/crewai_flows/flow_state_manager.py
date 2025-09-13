@@ -177,7 +177,7 @@ class FlowStateManager:
                             or False,
                         },
                         "errors": child_flow.error_details or [],
-                        "raw_data": child_flow.imported_data or [],
+                        "raw_data": [],  # Raw data is in flow_persistence_data, not child_flow
                         "field_mappings": child_flow.field_mappings or {},
                         "validation_results": child_flow.validation_results or {},
                         "created_at": (

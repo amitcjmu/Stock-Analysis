@@ -7,6 +7,7 @@ by composing the modular services into a cohesive API for the endpoints.
 
 import json
 from typing import Any, Dict, Optional
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -16,7 +17,8 @@ from app.models.data_import import DataImport
 from app.schemas.data_import_schemas import StoreImportRequest
 
 from .storage_manager import ImportStorageManager
-from .import_service import DataImportService
+
+# from .import_service import DataImportService  # Currently unused
 from .transaction_manager import ImportTransactionManager
 from .response_builder import ImportResponseBuilder
 
@@ -258,13 +260,119 @@ class ImportStorageHandler:
             transaction_manager = ImportTransactionManager(self.db)
 
             async with transaction_manager.transaction():
-                import_service = DataImportService(self.db, context)
+                # CRITICAL FIX: For CSV uploads, use direct storage operations to ensure raw_import_records are created
+                from .storage_manager.operations import ImportStorageOperations
 
-                data_import = await import_service.process_import_and_trigger_flow(
+                storage_ops = ImportStorageOperations(
+                    self.db, context.client_account_id
+                )
+
+                # Create data_import record and store raw_import_records directly
+                data_import = await storage_ops.store_import_data(
                     file_content=json.dumps(store_request.file_data).encode("utf-8"),
                     filename=store_request.metadata.filename,
                     file_content_type="application/json",
                     import_type=store_request.upload_context.intended_type,
+                    status="processing",
+                    engagement_id=context.engagement_id,
+                    imported_by=context.user_id,
+                )
+                logger.info(
+                    f"🗳️ Data import record created with raw records: {data_import.id}"
+                )
+
+                # Now trigger the master flow using existing service
+                # import_service = DataImportService(self.db, context)  # Currently unused
+
+                # Create the master flow and link it to the data import
+                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+                orchestrator = MasterFlowOrchestrator(self.db, context)
+                configuration = {
+                    "source": "data_import",
+                    "import_id": str(data_import.id),
+                    "filename": store_request.metadata.filename,
+                    "import_timestamp": datetime.utcnow().isoformat(),
+                }
+                initial_state = {
+                    "raw_data": store_request.file_data,  # Pass actual CSV data, not metadata wrapper
+                    "data_import_id": str(data_import.id),
+                }
+
+                # Convert any UUID objects to strings for JSON serialization
+                def convert_uuids_to_str(obj):
+                    import uuid
+
+                    if isinstance(obj, uuid.UUID):
+                        return str(obj)
+                    elif isinstance(obj, dict):
+                        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
+                    elif isinstance(obj, (list, tuple, set)):
+                        return type(obj)(convert_uuids_to_str(item) for item in obj)
+                    return obj
+
+                flow_result = await orchestrator.create_flow(
+                    flow_type="discovery",
+                    flow_name=f"Discovery Import {data_import.id}",
+                    configuration=convert_uuids_to_str(configuration),
+                    initial_state=convert_uuids_to_str(initial_state),
+                    atomic=True,
+                )
+
+                master_flow_id = (
+                    flow_result[0] if isinstance(flow_result, tuple) else flow_result
+                )
+                if not master_flow_id:
+                    raise Exception(
+                        "Failed to create master flow - no flow ID returned"
+                    )
+
+                # Create the linked DiscoveryFlow record
+                from app.services.discovery_flow_service import DiscoveryFlowService
+
+                discovery_service = DiscoveryFlowService(self.db, context)
+                metadata = {
+                    "source": "data_import",
+                    "import_id": str(data_import.id),
+                    "master_flow_id": str(master_flow_id),
+                    "import_timestamp": datetime.utcnow().isoformat(),
+                }
+
+                # Derive detected columns from CSV data to avoid timing/race conditions
+                detected_columns = []
+                if (
+                    isinstance(store_request.file_data, list)
+                    and store_request.file_data
+                ):
+                    sample_row = store_request.file_data[0]
+                    if isinstance(sample_row, dict):
+                        detected_columns = sorted(list(sample_row.keys()))
+                        metadata["detected_columns"] = detected_columns
+
+                await discovery_service.create_discovery_flow(
+                    flow_id=str(master_flow_id),
+                    raw_data=store_request.file_data,  # Store actual CSV records
+                    metadata=convert_uuids_to_str(metadata),
+                    data_import_id=str(data_import.id),
+                    user_id=str(context.user_id),
+                    master_flow_id=str(master_flow_id),
+                )
+
+                # Update the DataImport record with the flow_id
+                await storage_ops.update_import_with_flow_id(
+                    data_import_id=data_import.id, flow_id=str(master_flow_id)
+                )
+
+                # Set flow data for background execution
+                data_import.master_flow_id = master_flow_id
+                data_import.flow_execution_data = {
+                    "flow_id": str(master_flow_id),
+                    "file_data": store_request.file_data,
+                }
+
+                logger.info(
+                    f"🗳️ Transaction completed - data_import {data_import.id} with "
+                    f"{data_import.total_records} raw records committed to database"
                 )
 
             # Start background flow execution AFTER transaction commits

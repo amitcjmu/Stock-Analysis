@@ -2,7 +2,7 @@
 Data Cleansing API Endpoints
 
 Provides endpoints for data cleansing analysis and results.
-Integrates with the DataCleansingCrew for processing field mappings and providing insights.
+Integrates with persistent agents via DataCleansingExecutor for processing field mappings and providing insights.
 """
 
 import logging
@@ -625,7 +625,7 @@ async def _perform_data_cleansing_analysis(
     Perform data cleansing analysis on the imported data and field mappings.
 
     This function analyzes the data quality and provides recommendations.
-    In the future, this should integrate with the DataCleansingCrew.
+    Data cleansing is now handled by persistent agents via DataCleansingExecutor.
     """
     import uuid
     from datetime import datetime

@@ -24,45 +24,33 @@ router = APIRouter()
 def _determine_next_phase(discovery_flow: DiscoveryFlow) -> str:
     """
     Determine the next phase to execute based on the current flow state.
-
-    This is a simplified phase determination - in production, this logic
-    would be more sophisticated and potentially moved to a service.
+    Check completion flags first to determine next phase.
     """
-    current_phase = discovery_flow.current_phase or "initialization"
-
-    # Updated phase sequence to include all discovery flow phases
-    phase_sequence = [
-        "initialization",
-        "field_mapping",  # Added field mapping phase
-        "data_collection",
-        "data_cleansing",  # Added data cleansing phase
-        "asset_inventory",  # Added asset inventory phase
-        "analysis",
-        "dependency_mapping",
-        "recommendations",
-        "completed",
-    ]
-
-    # Map variations of phase names to standard names
-    phase_mapping = {
-        "field_mapping_suggestions": "field_mapping",
-        "data_cleaning": "data_cleansing",
-        "assets": "asset_inventory",
-    }
-
-    # Normalize the current phase name
-    normalized_phase = phase_mapping.get(current_phase, current_phase)
-
-    try:
-        current_index = phase_sequence.index(normalized_phase)
-        if current_index < len(phase_sequence) - 1:
-            return phase_sequence[current_index + 1]
-    except ValueError:
-        # Current phase not in sequence, start from field_mapping
-        logger.warning(f"Unknown phase '{current_phase}', defaulting to field_mapping")
+    # Check completion flags first to determine next phase
+    if not discovery_flow.data_import_completed:
         return "field_mapping"
-
-    return None  # Flow is completed
+    if (
+        discovery_flow.data_import_completed
+        and not discovery_flow.field_mapping_completed
+    ):
+        return "field_mapping"
+    if (
+        discovery_flow.field_mapping_completed
+        and not discovery_flow.data_cleansing_completed
+    ):
+        return "data_cleansing"
+    if (
+        discovery_flow.data_cleansing_completed
+        and not discovery_flow.asset_inventory_completed
+    ):
+        return "asset_inventory"
+    if discovery_flow.asset_inventory_completed:
+        # Continue with remaining phases
+        if not discovery_flow.dependency_analysis_completed:
+            return "dependency_mapping"
+        if discovery_flow.dependency_analysis_completed:
+            return "recommendations"
+    return "completed"
 
 
 @router.post("/flows/{flow_id}/execute")
@@ -86,6 +74,10 @@ async def execute_flow(
         if not discovery_flow:
             raise HTTPException(status_code=404, detail="Discovery flow not found")
 
+        # Guard against deleted flows
+        if discovery_flow.status == "archived":
+            raise HTTPException(status_code=400, detail="Cannot process deleted flow")
+
         # Determine the next phase to execute
         next_phase = _determine_next_phase(discovery_flow)
 
@@ -107,6 +99,50 @@ async def execute_flow(
                 success=result.get("success", False),
             )
         )
+
+        # Check for specific error codes that should trigger HTTP exceptions
+        if result.get("error_code") == "CLEANSING_REQUIRED":
+            # Return 422 for missing cleansed data
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error_code": "CLEANSING_REQUIRED",
+                    "message": result.get(
+                        "message",
+                        "No cleansed data available. Run data cleansing first.",
+                    ),
+                    "counts": result.get("counts", {}),
+                    "requires_cleansing": True,
+                    "flow_id": flow_id,
+                    "phase": next_phase,
+                },
+            )
+
+        # Check if result indicates an HTTP status code should be returned
+        if not result.get("success") and result.get("http_status"):
+            http_status = result.get("http_status")
+            if http_status == 422:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error_code": result.get("error_code", "VALIDATION_ERROR"),
+                        "message": result.get("message", "Request validation failed"),
+                        "flow_id": flow_id,
+                        "phase": next_phase,
+                        **{
+                            k: v
+                            for k, v in result.items()
+                            if k
+                            not in [
+                                "success",
+                                "http_status",
+                                "flow_id",
+                                "message",
+                                "error_code",
+                            ]
+                        },
+                    },
+                )
 
         return result
 

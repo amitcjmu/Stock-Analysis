@@ -165,7 +165,7 @@ class AgentToolManager:
                     context_info,
                 )
 
-            elif agent_type == "asset_inventory_agent":
+            elif agent_type == "asset_inventory":
                 # Asset inventory-specific tools for database asset creation
                 tools_added += cls._safe_extend_tools(
                     tools, create_asset_creation_tools, "asset creation", context_info
@@ -379,7 +379,7 @@ class AgentToolManager:
                 "discovery",
                 "field_mapper",
                 "data_cleansing",
-                "asset_inventory_agent",
+                "asset_inventory",
             ]:
                 cls.add_data_analysis_tools(context_info, tools)
 

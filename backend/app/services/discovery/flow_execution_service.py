@@ -328,6 +328,28 @@ async def execute_flow_phase(
                 flow_id, "asset_inventory", phase_input
             )
 
+            # Check for CLEANSING_REQUIRED error
+            if result.get("error_code") == "CLEANSING_REQUIRED":
+                logger.warning(
+                    safe_log_format(
+                        "⚠️ Asset inventory phase requires cleansed data for flow {flow_id}",
+                        flow_id=flow_id,
+                    )
+                )
+                # Return a result that indicates the need for data cleansing
+                return {
+                    "success": False,
+                    "flow_id": flow_id,
+                    "error_code": "CLEANSING_REQUIRED",
+                    "message": result.get(
+                        "message",
+                        "No cleansed data available. Run data cleansing first.",
+                    ),
+                    "counts": result.get("counts", {}),
+                    "requires_cleansing": True,
+                    "http_status": 422,  # Indicate that this should be a 422 response
+                }
+
             if result.get("success"):
                 # Update flow state after successful asset inventory
                 discovery_flow.current_phase = "asset_inventory"

@@ -3,7 +3,9 @@ Flow Execution Engine Discovery Crew
 Discovery-specific CrewAI execution methods and phase handlers.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import select
 
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
@@ -49,6 +51,213 @@ class ExecutionEngineDiscoveryCrews:
         self.service_registry = service_registry
 
     async def execute_discovery_phase(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        phase_config,
+        phase_input: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Main entry point for discovery phase execution.
+
+        Routes to appropriate phase method based on phase name.
+        """
+        phase_name = phase_config.name
+        logger.info(f"🎯 Executing discovery phase: {phase_name}")
+
+        # Define phase-to-method mapping
+        phase_methods = {
+            "asset_creation": self._execute_discovery_asset_inventory,  # Asset creation is part of inventory (ADR-022)
+            "asset_inventory": self._execute_discovery_asset_inventory,
+            # Add other phases as needed
+        }
+
+        # Map phase to execution method
+        execution_method = phase_methods.get(phase_name)
+
+        if execution_method:
+            logger.info(
+                f"📍 Mapped phase '{phase_name}' to method: {execution_method.__name__}"
+            )
+            return await execution_method(
+                None, phase_input
+            )  # agent_pool not used in persistent agent pattern
+        else:
+            # Use generic phase handler for unmapped phases
+            logger.warning(f"⚠️ Phase '{phase_name}' not mapped, using generic handler")
+            return await self._execute_discovery_generic_phase(None, phase_input)
+
+    async def _get_approved_field_mappings(self, phase_input: Dict[str, Any]) -> Dict:
+        """Get approved field mappings from database with correct model and filters"""
+        try:
+            # CORRECTED: Use correct import path
+            from app.models.data_import.mapping import ImportFieldMapping
+
+            data_import_id = phase_input.get("data_import_id")
+            if not data_import_id:
+                logger.warning("No data_import_id in phase_input")
+                return {}
+
+            # CORRECTED: Use provided session, not open new one
+            session = self.db_session if hasattr(self, "db_session") else self.db
+
+            # CORRECTED: Use status='approved' and add multi-tenant scoping
+            result = await session.execute(
+                select(ImportFieldMapping).where(
+                    ImportFieldMapping.data_import_id == data_import_id,
+                    ImportFieldMapping.status == "approved",  # CORRECTED field
+                    ImportFieldMapping.client_account_id
+                    == self.context.client_account_id,
+                    ImportFieldMapping.engagement_id == self.context.engagement_id,
+                )
+            )
+            mappings = result.scalars().all()
+
+            # Convert to dict, exclude UNMAPPED targets
+            # CRITICAL FIX: Reverse mapping - we need target -> source to look up CSV fields
+            field_mappings = {
+                m.target_field: m.source_field
+                for m in mappings
+                if m.target_field and m.target_field != "UNMAPPED"
+            }
+
+            logger.info(f"📋 Retrieved {len(field_mappings)} approved field mappings")
+            return field_mappings
+
+        except Exception as e:
+            logger.warning(f"⚠️ Could not retrieve field mappings: {e}")
+            return {}
+
+    async def _get_discovery_flow_id(self, master_flow_id: str) -> Optional[str]:
+        """Get internal discovery flow ID from master flow ID"""
+        if not master_flow_id:
+            return None
+
+        try:
+            from app.models.discovery_flow import DiscoveryFlow
+
+            session = self.db_session if hasattr(self, "db_session") else self.db
+            result = await session.execute(
+                select(DiscoveryFlow.id).where(
+                    DiscoveryFlow.master_flow_id == master_flow_id
+                )
+            )
+            discovery_flow = result.scalar_one_or_none()
+            return str(discovery_flow) if discovery_flow else None
+        except Exception as e:
+            logger.warning(f"Could not get discovery_flow_id: {e}")
+            return None
+
+    async def _normalize_assets_for_creation(
+        self,
+        raw_data: List[Dict],
+        field_mappings: Dict,
+        master_flow_id: str,
+        discovery_flow_id: str,
+    ) -> List[Dict]:
+        """Normalize raw data for asset creation with proper linking"""
+        normalized = []
+
+        # Get raw_import_records if we need to link them
+        raw_import_records_map = {}
+        if hasattr(self, "db_session"):
+            try:
+                from app.models.raw_import_record import RawImportRecord
+
+                result = await self.db_session.execute(
+                    select(RawImportRecord)
+                    .where(RawImportRecord.master_flow_id == master_flow_id)
+                    .order_by(RawImportRecord.row_number)
+                )
+                raw_records = result.scalars().all()
+                # Map by row number for correlation
+                raw_import_records_map = {r.row_number - 1: r.id for r in raw_records}
+                logger.info(
+                    f"📋 Found {len(raw_import_records_map)} raw_import_records to link"
+                )
+            except Exception as e:
+                logger.warning(f"Could not load raw_import_records for linking: {e}")
+
+        # Process each record
+        for idx, record in enumerate(raw_data):
+            # Helper functions extracted from database_operations.py
+            def get_mapped_value(record, field, mappings):
+                """Get value using field mapping or direct field"""
+                if field in mappings:
+                    source_field = mappings[field]
+                    return record.get(source_field)
+                return record.get(field)
+
+            def determine_asset_type(record, mappings):
+                """Determine asset type from record - respect mapped value"""
+                asset_type = get_mapped_value(record, "asset_type", mappings)
+                if asset_type:
+                    # Map common variations to standard types
+                    type_lower = asset_type.lower()
+                    if "application" in type_lower or "app" in type_lower:
+                        return "application"
+                    elif "server" in type_lower:
+                        return "server"
+                    elif "database" in type_lower or "db" in type_lower:
+                        return "database"
+                    elif "device" in type_lower or "network" in type_lower:
+                        return "device"
+                    else:
+                        return type_lower
+
+                # Only use fallback if no asset_type mapping exists
+                return "device"  # Default
+
+            # Get mapped values - CRITICAL FIX: Use "name" not "asset_name"
+            asset_name = get_mapped_value(record, "name", field_mappings)
+            hostname = get_mapped_value(record, "hostname", field_mappings)
+            ip_address = get_mapped_value(record, "ip_address", field_mappings)
+
+            # CRITICAL FIX: Don't generate names - use actual mapped value or skip
+            if not asset_name:
+                # Log warning but still try to use hostname/ip as fallback
+                logger.warning(
+                    f"No name found for record {idx+1}, using fallback: {hostname or ip_address or 'unnamed'}"
+                )
+                asset_name = hostname or ip_address or f"unnamed_asset_{idx+1}"
+
+            # Build asset data with explicit flow IDs and raw_import_record linking
+            asset_data = {
+                "name": asset_name,
+                "asset_type": determine_asset_type(record, field_mappings),
+                "hostname": hostname,
+                "ip_address": ip_address,
+                "operating_system": get_mapped_value(
+                    record, "operating_system", field_mappings
+                ),
+                "environment": get_mapped_value(record, "environment", field_mappings)
+                or "production",
+                "status": get_mapped_value(record, "status", field_mappings),
+                "location": get_mapped_value(record, "location", field_mappings),
+                # Explicit flow IDs
+                "master_flow_id": master_flow_id,
+                "discovery_flow_id": discovery_flow_id,
+                "flow_id": discovery_flow_id,  # Some code expects flow_id
+                # Link to raw_import_record if available
+                "raw_import_records_id": raw_import_records_map.get(idx),
+                # Unmapped fields to custom_attributes
+                "custom_attributes": {
+                    k: v
+                    for k, v in record.items()
+                    if k not in field_mappings.values()  # Check against source fields
+                },
+                "raw_data": record,
+            }
+
+            normalized.append(asset_data)
+
+        logger.info(f"✅ Normalized {len(normalized)}/{len(raw_data)} records")
+        if normalized:
+            # Log sample without sensitive data
+            sample = {k: type(v).__name__ for k, v in normalized[0].items()}
+            logger.debug(f"📊 Sample asset structure: {sample}")
+
+        return normalized
+
+    async def execute_discovery_phase_with_persistent_agents(
         self,
         master_flow: CrewAIFlowStateExtensions,
         phase_config,
@@ -224,7 +433,7 @@ class ExecutionEngineDiscoveryCrews:
             "data_import_validation": self.phase_handlers.execute_data_import_validation,
             "field_mapping": self._execute_discovery_field_mapping,
             "data_cleansing": self.phase_handlers.execute_data_cleansing,
-            "asset_creation": self._execute_discovery_asset_creation,
+            "asset_creation": self._execute_discovery_asset_inventory,  # Asset creation is part of inventory (ADR-022)
             "asset_inventory": self._execute_discovery_asset_inventory,
             "analysis": self.phase_handlers.execute_analysis,
         }
@@ -240,107 +449,130 @@ class ExecutionEngineDiscoveryCrews:
             agent_pool, phase_input, self.db_session
         )
 
-    async def _execute_discovery_asset_creation(
-        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Execute asset creation phase"""
-        logger.info("🏗️ Executing discovery asset creation")
-
-        # Placeholder implementation for asset creation
-        return {
-            "phase": "asset_creation",
-            "status": "completed",
-            "assets_created": 0,
-            "agent": "asset_creation_agent",
-        }
+    # REMOVED: _execute_discovery_asset_creation placeholder
+    # Asset creation is now part of asset_inventory phase per ADR-022
+    # The asset_inventory phase handles both creation and inventory
 
     async def _execute_discovery_asset_inventory(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute asset inventory phase using persistent agent"""
-        logger.info("📦 Executing discovery asset inventory using persistent agent")
-        logger.info(f"📋 Phase input keys: {list(phase_input.keys())}")
-        logger.info(f"🔍 Raw data present in phase_input: {'raw_data' in phase_input}")
+        logger.info("📦 Entry: Processing asset inventory phase")
 
-        # Log raw_data details if present
-        if "raw_data" in phase_input:
-            raw_data = phase_input["raw_data"]
-            try:
-                record_count = (
-                    len(raw_data) if hasattr(raw_data, "__len__") else "unknown"
-                )
-                logger.info(
-                    f"📊 Raw data type: {type(raw_data)}, count: {record_count}"
-                )
-            except Exception as e:
-                logger.warning(f"⚠️ Could not analyze raw_data: {e}")
+        data_import_id = phase_input.get("data_import_id")
+        if not data_import_id:
+            raise ValueError("No data_import_id provided")
 
+        # CORRECT IMPORTS
+        from sqlalchemy import func
+        from app.models.data_import.core import RawImportRecord  # CORRECT PATH
+
+        # Query for cleansed data WITH TENANT SCOPING using self.db_session
+        result = await self.db_session.execute(  # USE db_session
+            select(RawImportRecord).where(
+                RawImportRecord.data_import_id == data_import_id,
+                RawImportRecord.cleansed_data.isnot(None),
+                RawImportRecord.client_account_id
+                == self.context.client_account_id,  # TENANT
+                RawImportRecord.engagement_id == self.context.engagement_id,  # TENANT
+            )
+        )
+        records = result.scalars().all()
+
+        cleansed_count = len(records)
+
+        # Count raw records for comparison
+        raw_result = await self.db_session.execute(
+            select(func.count(RawImportRecord.id)).where(
+                RawImportRecord.data_import_id == data_import_id,
+                RawImportRecord.client_account_id == self.context.client_account_id,
+                RawImportRecord.engagement_id == self.context.engagement_id,
+            )
+        )
+        raw_count = raw_result.scalar()
+
+        logger.info(
+            f"📊 Using cleansed rows: {cleansed_count}; raw fallback: 0 (blocked)"
+        )
+
+        # NO FALLBACK - fail if no cleansed data
+        if cleansed_count == 0:
+            return {
+                "status": "error",
+                "error_code": "CLEANSING_REQUIRED",
+                "message": "No cleansed data available. Run data cleansing first.",
+                "counts": {"raw": raw_count, "cleansed": 0},
+            }
+
+        # Extract cleansed data
+        cleansed_data = [r.cleansed_data for r in records]
+
+        # Get field mappings
+        field_mappings = await self._get_approved_field_mappings(phase_input)
+
+        # Get flow IDs
+        master_flow_id = phase_input.get("master_flow_id") or phase_input.get("flow_id")
+        discovery_flow_id = await self._get_discovery_flow_id(master_flow_id)
+
+        # Normalize using cleansed data
+        normalized_assets = await self._normalize_assets_for_creation(
+            cleansed_data,  # USE CLEANSED DATA
+            field_mappings,
+            master_flow_id,
+            discovery_flow_id,
+        )
+
+        logger.info(f"📋 Normalized {len(normalized_assets)}/{cleansed_count} records")
+
+        # Get persistent agent for asset creation (use same pattern as cleansing)
+        # Build context from self.context (ExecutionEngineDiscoveryCrews has it)
+        request_context = self.context  # Already a RequestContext
+
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
+        )
+
+        inventory_agent = await TenantScopedAgentPool.get_agent(
+            context=request_context,
+            agent_type="asset_inventory",
+            service_registry=self.service_registry,  # Pass existing service_registry
+        )
+
+        logger.info("🔧 Retrieved agent: asset_inventory")
+
+        # Continue with asset creation using the inventory agent
         try:
-            # Ensure all inputs are JSON-serializable (convert UUIDs to strings)
-            serializable_input = {}
-            for key, value in phase_input.items():
-                if hasattr(value, "__str__") and hasattr(
-                    value, "hex"
-                ):  # UUID-like object
-                    serializable_input[key] = str(value)
-                elif (
-                    isinstance(value, (str, int, float, bool, list, dict))
-                    or value is None
-                ):
-                    serializable_input[key] = value
-                else:
-                    serializable_input[key] = str(
-                        value
-                    )  # Convert unknown types to string
-
-            # Use persistent agent pattern instead of crew pattern
-            from app.services.persistent_agents.tenant_scoped_agent_pool import (
-                TenantScopedAgentPool,
-            )
-
-            # Ensure context has required attributes from phase_input
-            context_for_agent = self.context
-            if (
-                not hasattr(context_for_agent, "client_account_id")
-                or context_for_agent.client_account_id is None
-            ):
-                # Create a context object with the required attributes from phase_input
-                from app.core.context import RequestContext
-
-                context_for_agent = RequestContext(
-                    client_account_id=phase_input.get("client_account_id"),
-                    engagement_id=phase_input.get("engagement_id"),
-                    request_id=(
-                        getattr(self.context, "request_id", None)
-                        if self.context
-                        else None
-                    ),
-                )
-                logger.info(
-                    f"Created context for agent: client_id={context_for_agent.client_account_id}, "
-                    f"engagement_id={context_for_agent.engagement_id}"
-                )
-
-            # Get the persistent agent
-            agent = await TenantScopedAgentPool.get_agent(
-                context=context_for_agent,
-                agent_type="asset_inventory_agent",
-                service_registry=self.service_registry,
-            )
-
+            # Use the persistent agent to create assets from normalized data
             # Prepare task description for the agent
             task_description = "Create database asset records from cleaned CMDB data"
 
-            # Execute asset creation using agent's tools (extracted to separate class)
+            # Execute asset creation with the persistent agent
+            # AssetCreationToolsExecutor already imported at module level
+
             result = await AssetCreationToolsExecutor.execute_asset_creation_with_tools(
-                agent, serializable_input, task_description
+                inventory_agent, {"raw_data": normalized_assets}, task_description
+            )
+
+            # Extract actual counts from result
+            assets_created = 0
+            assets_failed = 0
+
+            if isinstance(result, dict):
+                assets_created = result.get("assets_created", 0)
+                # Calculate failed count: total normalized - created
+                total_normalized = len(normalized_assets)
+                assets_failed = max(0, total_normalized - assets_created)
+
+            # 5. Log asset creation results as specified
+            logger.info(
+                f"🔨 Asset creation result: created={assets_created}, failed={assets_failed}"
             )
 
             # Maintain backward compatibility with asset_inventory field
             asset_inventory = (
                 result.get(
                     "asset_inventory",
-                    {"total_assets": 0, "classification_complete": False},
+                    {"total_assets": assets_created, "classification_complete": True},
                 )
                 if isinstance(result, dict)
                 else {"total_assets": 0, "classification_complete": False}
@@ -353,6 +585,8 @@ class ExecutionEngineDiscoveryCrews:
                 "asset_inventory": asset_inventory,  # Backward compatibility
                 "agent": "asset_inventory_agent",
                 "method": "persistent_agent_execution",
+                "assets_created": assets_created,  # Return actual counts
+                "assets_failed": assets_failed,
             }
         except Exception as e:
             logger.error(f"Asset inventory failed: {str(e)}")
@@ -365,6 +599,8 @@ class ExecutionEngineDiscoveryCrews:
                     "classification_complete": False,
                 },
                 "agent": "asset_inventory_agent",
+                "assets_created": 0,
+                "assets_failed": 0,
             }
 
     async def _execute_discovery_generic_phase(

@@ -4,7 +4,6 @@ Handles data cleansing phase execution for the Unified Discovery Flow.
 Now integrates agentic intelligence for comprehensive asset enrichment.
 """
 
-import asyncio
 import logging
 import uuid
 from typing import Any, Dict, List
@@ -27,101 +26,74 @@ class DataCleansingExecutor(BasePhaseExecutor):
         return 33.3  # 2/6 phases
 
     async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute data cleansing with agentic intelligence instead of basic crew processing"""
+        """Execute data cleansing with persistent multi-tenant agents instead of crew-based processing"""
+        logger.info("🧠 Starting data cleansing with persistent multi-tenant agent")
 
-        logger.info(
-            "🧠 Starting agentic asset enrichment instead of basic data cleansing"
+        # Get raw records WITH tenant scoping
+        raw_import_records = await self._get_raw_import_records_with_ids()
+        logger.info(f"📋 Prepared {len(raw_import_records)} assets for cleansing")
+
+        if not raw_import_records:
+            raise RuntimeError("No raw import records found for data cleansing")
+
+        # BUILD RequestContext from state (DataCleansingExecutor doesn't have self.context)
+        from app.core.context import RequestContext
+
+        request_context = RequestContext(
+            client_account_id=self.state.client_account_id,
+            engagement_id=self.state.engagement_id,
+            user_id=getattr(self.state, "user_id", None),
+            flow_id=self.state.flow_id,
         )
 
-        try:
-            # Import agentic intelligence
-            from app.services.agentic_intelligence.agentic_asset_enrichment import (
-                enrich_assets_with_agentic_intelligence,
-            )
+        # Get service registry if available
+        service_registry = getattr(self, "service_registry", None)
 
-            # Get raw import records from database with their IDs for proper linkage
-            raw_import_records = await self._get_raw_import_records_with_ids()
-            logger.info(
-                f"🔄 Converting {len(raw_import_records)} raw import records to asset profiles for agentic analysis"
-            )
+        # Use TenantScopedAgentPool CLASSMETHOD (not instance)
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
+        )
 
-            # Transform raw import records into structured assets with ID preservation
-            assets_for_analysis = self._prepare_assets_for_agentic_analysis(
-                raw_import_records
-            )
+        cleansing_agent = await TenantScopedAgentPool.get_agent(
+            context=request_context,
+            agent_type="data_cleansing",
+            service_registry=service_registry,  # Pass if available
+        )
 
-            if not assets_for_analysis:
-                logger.error(
-                    "❌ No assets prepared for agentic analysis - this is a critical error"
-                )
-                raise RuntimeError(
-                    "No assets prepared for agentic analysis - check raw data preparation"
-                )
+        logger.info("🔧 Retrieved agent: data_cleansing")
 
-            # Extract multi-tenant context from state
-            client_account_id = (
-                uuid.UUID(self.state.client_account_id)
-                if self.state.client_account_id
-                else None
-            )
-            engagement_id = (
-                uuid.UUID(self.state.engagement_id)
-                if self.state.engagement_id
-                else None
-            )
-            flow_id = uuid.UUID(self.state.flow_id) if self.state.flow_id else None
+        # Process with persistent agent (structured results, no JSON parsing)
+        cleaned_data = await cleansing_agent.process(raw_import_records)
 
-            if not client_account_id or not engagement_id:
-                logger.error("Missing multi-tenant context for agentic analysis")
-                # NO FALLBACK - Multi-tenant context is required
-                raise RuntimeError(
-                    "Missing multi-tenant context for agentic analysis. This is required."
-                )
+        # CRITICAL: Fix ID mapping before storage
+        for record in cleaned_data:
+            if "raw_import_record_id" in record and "id" not in record:
+                record["id"] = record["raw_import_record_id"]
 
-            # Perform agentic asset enrichment
-            enriched_assets = await enrich_assets_with_agentic_intelligence(
-                assets=assets_for_analysis,
-                crewai_service=self.crew_manager.crewai_service,
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                flow_id=flow_id,
-                batch_size=3,  # Process 3 assets at a time
-                enable_parallel_agents=True,  # Enable parallel agent execution
-            )
+        # CRITICAL: Await the update (no fire-and-forget)
+        await self._update_cleansed_data_sync(cleaned_data)
 
-            logger.info(
-                f"✅ Agentic enrichment completed for {len(enriched_assets)} assets"
-            )
+        # Set phase completion flag
+        await self._mark_phase_complete("data_cleansing")
 
-            # Return results in expected format
-            return {
-                "cleaned_data": enriched_assets,  # Now enriched with agentic intelligence
-                "enrichment_summary": self._generate_enrichment_summary(
-                    enriched_assets
-                ),
-                "quality_metrics": self._calculate_agentic_quality_metrics(
-                    enriched_assets
-                ),
-                "agentic_analysis": True,
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Agentic enrichment failed: {e}")
-            logger.error(
-                "❌ This indicates a real issue with agent execution that must be fixed"
-            )
-            raise
+        return {
+            "cleaned_data": cleaned_data,
+            "cleansing_summary": self._generate_cleansing_summary(cleaned_data),
+            "quality_metrics": self._calculate_cleansing_quality_metrics(cleaned_data),
+            "persistent_agent_used": True,
+            "crew_based": False,
+        }
 
     async def execute_fallback(self) -> Dict[str, Any]:
-        """NO FALLBACK ALLOWED - FAIL FAST TO EXPOSE REAL ISSUES"""
+        """NO FALLBACK ALLOWED - Data cleansing is required per ADR-025"""
         logger.error(
             "❌ execute_fallback called for data_cleansing - FALLBACK DISABLED"
         )
         logger.error(
-            "❌ If you see this error, fix the actual agentic intelligence execution issues"
+            "❌ Data cleansing is mandatory - cannot use raw data for asset creation"
         )
         raise RuntimeError(
-            "Data cleansing fallback disabled - agentic intelligence must work properly"
+            "Data cleansing fallback disabled - cleansed data is required for asset creation (ADR-025)"
         )
 
     def _prepare_crew_input(self) -> Dict[str, Any]:
@@ -156,120 +128,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
         )
 
         # Update raw_import_records with cleansed data
-        self._update_raw_records_with_cleansed_data(cleaned_data)
-
-    def _process_crew_result(self, crew_result) -> Dict[str, Any]:
-        """Process data cleansing crew result and extract cleaned data - NO FALLBACKS"""
-        logger.info(f"🔍 Processing data cleansing crew result: {type(crew_result)}")
-
-        if hasattr(crew_result, "raw") and crew_result.raw:
-            logger.info(f"📄 Crew raw output: {crew_result.raw}")
-
-            # Try to parse JSON from crew output if it contains structured data
-            import json
-
-            try:
-                if "{" in crew_result.raw and "}" in crew_result.raw:
-                    # Try to extract JSON from the output
-                    start = crew_result.raw.find("{")
-                    end = crew_result.raw.rfind("}") + 1
-                    json_str = crew_result.raw[start:end]
-                    parsed_result = json.loads(json_str)
-
-                    if (
-                        "cleaned_data" in parsed_result
-                        or "standardized_data" in parsed_result
-                    ):
-                        logger.info("✅ Found structured data in crew output")
-                        return {
-                            "cleaned_data": parsed_result.get(
-                                "cleaned_data",
-                                parsed_result.get("standardized_data", []),
-                            ),
-                            "quality_metrics": parsed_result.get("quality_metrics", {}),
-                            "raw_result": crew_result.raw,
-                        }
-                    else:
-                        logger.error(
-                            f"❌ Crew JSON missing required keys. Got: {list(parsed_result.keys())}"
-                        )
-                        raise ValueError(
-                            "Data cleansing crew returned JSON without cleaned_data or standardized_data"
-                        )
-                else:
-                    logger.error(
-                        f"❌ Crew output does not contain valid JSON: {crew_result.raw}"
-                    )
-                    raise ValueError("Data cleansing crew did not return JSON output")
-            except (json.JSONDecodeError, ValueError) as e:
-                logger.error(f"❌ Failed to parse JSON from crew output: {e}")
-                logger.error(f"❌ Raw crew output: {crew_result.raw}")
-                raise RuntimeError(f"Data cleansing crew output parsing failed: {e}")
-
-        # If crew_result is already a dict, validate it
-        elif isinstance(crew_result, dict):
-            if "cleaned_data" in crew_result or "standardized_data" in crew_result:
-                logger.info("✅ Crew returned valid dict with cleaned data")
-                return crew_result
-            else:
-                logger.error(
-                    f"❌ Crew dict missing required keys. Got: {list(crew_result.keys())}"
-                )
-                raise ValueError(
-                    "Data cleansing crew returned dict without cleaned_data"
-                )
-
-        # No fallback allowed
-        else:
-            logger.error(f"❌ Unexpected crew result format: {type(crew_result)}")
-            logger.error(f"❌ Crew result: {crew_result}")
-            raise RuntimeError(
-                f"Data cleansing crew returned unexpected result type: {type(crew_result)}"
-            )
-
-    async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
-        """Get raw import records from database with their IDs preserved"""
-        from sqlalchemy import select
-
-        from app.core.database import AsyncSessionLocal
-        from app.models.data_import.core import RawImportRecord
-
-        records = []
-        try:
-            async with AsyncSessionLocal() as session:
-                # Get data_import_id from state
-                data_import_id = getattr(self.state, "data_import_id", None)
-                if not data_import_id:
-                    logger.error("❌ No data_import_id found in state")
-                    return []
-
-                # Query raw import records
-                query = (
-                    select(RawImportRecord)
-                    .where(RawImportRecord.data_import_id == data_import_id)
-                    .where(RawImportRecord.is_valid is True)
-                )
-
-                result = await session.execute(query)
-                raw_records = result.scalars().all()
-
-                for record in raw_records:
-                    # Preserve the raw import record ID for linkage
-                    record_data = {
-                        "raw_import_record_id": str(record.id),
-                        "row_number": record.row_number,
-                        "raw_data": record.raw_data,
-                        "cleansed_data": record.cleansed_data,
-                        **record.raw_data,  # Flatten raw data for easy access
-                    }
-                    records.append(record_data)
-
-                logger.info(f"✅ Retrieved {len(records)} raw import records with IDs")
-                return records
-
-        except Exception as e:
-            logger.error(f"❌ Failed to get raw import records: {e}")
-            return []
+        # Now handled synchronously in execute_with_crew via _update_cleansed_data_sync
 
     def _prepare_assets_for_agentic_analysis(
         self, raw_import_records: List[Dict[str, Any]]
@@ -486,61 +345,98 @@ class DataCleansingExecutor(BasePhaseExecutor):
         except (ValueError, TypeError):
             return 0.0
 
-    def _update_raw_records_with_cleansed_data(
-        self, cleaned_data: List[Dict[str, Any]]
-    ):
-        """Update raw_import_records in the database with cleansed data"""
+    async def _update_cleansed_data_sync(self, cleaned_data: List[Dict[str, Any]]):
+        """Update raw records with cleansed data - SYNCHRONOUS, no fire-and-forget"""
+        # Use existing session if available, otherwise create new one
+        if hasattr(self, "db_session") and self.db_session:
+            db = self.db_session
+            should_commit = False  # Don't commit if using provided session
+        else:
+            from app.core.database import AsyncSessionLocal
+
+            db = AsyncSessionLocal()
+            should_commit = True  # Commit if we created the session
+
         try:
-            # Get data_import_id from state
+            from app.services.data_import.storage_manager import ImportStorageManager
+
+            storage_manager = ImportStorageManager(
+                db, str(self.state.client_account_id)
+            )
+
+            data_import_id = uuid.UUID(self.state.data_import_id)
+
+            updated_count = await storage_manager.update_raw_records_with_cleansed_data(
+                data_import_id=data_import_id,
+                cleansed_data=cleaned_data,
+                validation_results=getattr(self.state, "data_validation_results", None),
+            )
+
+            if should_commit:
+                await db.commit()
+
+            logger.info(f"✅ Updated {updated_count} raw records with cleansed data")
+
+        finally:
+            if should_commit and db:
+                await db.close()
+
+    async def _mark_phase_complete(self, phase_name: str):
+        """Mark phase as complete for progression tracking"""
+        # For now, just log the phase completion
+        # The actual phase tracking is handled by the master flow orchestrator
+        logger.info(f"✅ Phase {phase_name} completed for flow {self.state.flow_id}")
+
+        # Update state to indicate phase completion
+        if phase_name == "data_cleansing":
+            self.state.data_cleansing_completed = True
+            logger.info("✅ Set data_cleansing_completed flag in state")
+
+    async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
+        """Get raw import records with IDs and tenant scoping"""
+        from sqlalchemy import select
+        from app.models.data_import.core import RawImportRecord  # CORRECT IMPORT
+
+        # Use existing session if available
+        if hasattr(self, "db_session") and self.db_session:
+            session = self.db_session
+        else:
+            from app.core.database import AsyncSessionLocal
+
+            session = AsyncSessionLocal()
+
+        try:
             data_import_id = getattr(self.state, "data_import_id", None)
             if not data_import_id:
-                logger.warning("No data_import_id in state - cannot update raw records")
-                return
+                logger.error("❌ No data_import_id found in state")
+                return []
 
-            # Get validation results from state if available
-            validation_results = getattr(self.state, "data_validation_results", None)
+            # WITH TENANT SCOPING
+            query = select(RawImportRecord).where(
+                RawImportRecord.data_import_id == data_import_id,
+                RawImportRecord.client_account_id == self.state.client_account_id,
+                RawImportRecord.engagement_id == self.state.engagement_id,
+            )
 
-            # Create async task to update database
-            async def update_records():
-                try:
-                    from app.core.database import AsyncSessionLocal
-                    from app.services.data_import.storage_manager import (
-                        ImportStorageManager,
-                    )
+            result = await session.execute(query)
+            raw_records = result.scalars().all()
 
-                    async with AsyncSessionLocal() as db:
-                        storage_manager = ImportStorageManager(
-                            db, str(self.state.client_account_id)
-                        )
+            logger.info(f"📊 Found {len(raw_records)} raw import records")
 
-                        # Convert data_import_id to UUID if it's a string
-                        import uuid as uuid_pkg
+            # Convert to dict format with ID preservation
+            records = []
+            for record in raw_records:
+                record_data = {
+                    "raw_import_record_id": str(record.id),  # Preserve for ID mapping
+                    "row_number": record.row_number,
+                    "raw_data": record.raw_data,
+                    "cleansed_data": record.cleansed_data,
+                    **record.raw_data,  # Flatten for easy access
+                }
+                records.append(record_data)
 
-                        if isinstance(data_import_id, str):
-                            import_uuid = uuid_pkg.UUID(data_import_id)
-                        else:
-                            import_uuid = data_import_id
+            return records
 
-                        updated_count = (
-                            await storage_manager.update_raw_records_with_cleansed_data(
-                                data_import_id=import_uuid,
-                                cleansed_data=cleaned_data,
-                                validation_results=validation_results,
-                            )
-                        )
-
-                        await db.commit()
-                        logger.info(
-                            f"✅ Updated {updated_count} raw records with cleansed data"
-                        )
-
-                except Exception as e:
-                    logger.error(
-                        f"Failed to update raw records with cleansed data: {e}"
-                    )
-
-            # Run the async update in the background
-            asyncio.create_task(update_records())
-
-        except Exception as e:
-            logger.error(f"Error setting up raw records update: {e}")
+        finally:
+            if not hasattr(self, "db_session"):
+                await session.close()

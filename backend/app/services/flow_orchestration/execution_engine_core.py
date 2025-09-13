@@ -183,8 +183,11 @@ class FlowExecutionCore:
             # Execute the phase based on executor type
             phase_result = {}
             # Determine executor type based on phase configuration
-            has_crew_config = bool(
-                phase_config.crew_config and len(phase_config.crew_config) > 0
+            # Discovery flows use persistent agents via crew executor (ADR-015, ADR-022)
+            is_discovery_flow = master_flow.flow_type == "discovery"
+            has_crew_config = (
+                bool(phase_config.crew_config and len(phase_config.crew_config) > 0)
+                or is_discovery_flow
             )
 
             if has_crew_config:

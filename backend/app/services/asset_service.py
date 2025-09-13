@@ -69,12 +69,15 @@ class AssetService:
             db, client_account_id=client_account_id, engagement_id=engagement_id
         )
 
-    async def create_asset(self, asset_data: Dict[str, Any]) -> Optional[Asset]:
+    async def create_asset(
+        self, asset_data: Dict[str, Any], flow_id: str = None
+    ) -> Optional[Asset]:
         """
         Create an asset with proper validation and idempotency
 
         Args:
             asset_data: Asset information to create
+            flow_id: Optional flow ID for backward compatibility
 
         Returns:
             Created asset or existing asset if duplicate
@@ -173,12 +176,43 @@ class AssetService:
                     )
                     return default
 
-            # CRITICAL FIX: Extract flow_id from context for proper asset association
-            flow_id = self._get_uuid(
-                asset_data.get("flow_id") or self.context_info.get("flow_id")
+            # Honor explicit flow IDs if provided, fallback to flow_id parameter
+            master_flow_id = asset_data.pop("master_flow_id", None) or flow_id
+            discovery_flow_id = asset_data.pop("discovery_flow_id", None)
+
+            # Extract raw_import_records_id for linking
+            raw_import_records_id = self._get_uuid(
+                asset_data.pop("raw_import_records_id", None)
             )
 
-            logger.info(f"🔗 Associating asset with flow_id: {flow_id}")
+            # If no discovery_flow_id, lookup from master_flow_id
+            if not discovery_flow_id and master_flow_id:
+                # Try to find discovery_flow_id from master_flow_id
+                try:
+                    from app.models.discovery_flow import DiscoveryFlow
+
+                    result = await self.db.execute(
+                        select(DiscoveryFlow.id).where(
+                            DiscoveryFlow.master_flow_id == master_flow_id
+                        )
+                    )
+                    discovery_flow = result.scalar_one_or_none()
+                    if discovery_flow:
+                        discovery_flow_id = str(discovery_flow)
+                except Exception as e:
+                    logger.warning(f"Could not lookup discovery_flow_id: {e}")
+
+            # Use provided flow IDs or fallback to context
+            effective_flow_id = self._get_uuid(
+                master_flow_id
+                or flow_id
+                or asset_data.get("flow_id")
+                or self.context_info.get("flow_id")
+            )
+
+            logger.info(
+                f"🔗 Associating asset with master_flow_id: {master_flow_id}, discovery_flow_id: {discovery_flow_id}"
+            )
 
             # Convert ALL numeric fields with proper error handling
             # INTEGER fields
@@ -231,9 +265,14 @@ class AssetService:
                 client_account_id=client_id,
                 engagement_id=engagement_id,
                 # CRITICAL FIX: Flow association fields for proper asset tracking
-                flow_id=flow_id,  # Legacy field for backward compatibility
-                master_flow_id=flow_id,  # Master flow coordination
-                discovery_flow_id=flow_id,  # Specific discovery flow that created this asset
+                flow_id=effective_flow_id,  # Legacy field for backward compatibility
+                master_flow_id=(
+                    master_flow_id if master_flow_id else effective_flow_id
+                ),  # Master flow coordination
+                discovery_flow_id=(
+                    discovery_flow_id if discovery_flow_id else effective_flow_id
+                ),  # Specific discovery flow that created this asset
+                raw_import_records_id=raw_import_records_id,  # Link to source data
                 # Basic information - use smart name for both fields
                 name=smart_name,
                 asset_name=smart_name,

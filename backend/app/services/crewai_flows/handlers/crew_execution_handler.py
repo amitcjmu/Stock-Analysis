@@ -9,7 +9,6 @@ from typing import Any, Dict
 
 # Import all modularized components
 from .crew_execution import (
-    DataCleansingExecutor,
     DependencyAnalysisExecutor,
     DiscoveryIntegrationExecutor,
     FieldMappingExecutor,
@@ -33,7 +32,6 @@ class CrewExecutionHandler:
 
         # Initialize all executors
         self.field_mapping_executor = FieldMappingExecutor(crewai_service)
-        self.data_cleansing_executor = DataCleansingExecutor(crewai_service)
         self.inventory_building_executor = InventoryBuildingExecutor(crewai_service)
         self.dependency_analysis_executor = DependencyAnalysisExecutor(crewai_service)
         self.technical_debt_executor = TechnicalDebtExecutor(crewai_service)
@@ -46,10 +44,6 @@ class CrewExecutionHandler:
         return self.field_mapping_executor.execute_field_mapping_crew(
             state, crewai_service
         )
-
-    def execute_data_cleansing_crew(self, state) -> Dict[str, Any]:
-        """Execute Data Cleansing Crew with enhanced CrewAI features"""
-        return self.data_cleansing_executor.execute_data_cleansing_crew(state)
 
     def execute_inventory_building_crew(self, state) -> Dict[str, Any]:
         """Execute Inventory Building Crew with enhanced CrewAI features"""

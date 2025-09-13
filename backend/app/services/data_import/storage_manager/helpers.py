@@ -21,9 +21,8 @@ def extract_records_from_data(data: Any) -> List[Dict[str, Any]]:
     - [{"field1": "value1"}, {"field2": "value2"}] (direct list)
     - {"data": [{"field1": "value1"}, {"field2": "value2"}]} (nested structure)
 
-    CRITICAL FIX: Filters out CrewAI JSON response structures that contain
-    metadata fields like "mappings", "skipped_fields", "synthesis_required"
-    which should not be treated as CSV field names.
+    CRITICAL FIX: Only filters out obvious CrewAI JSON response structures.
+    Legitimate CSV columns like "Name", "Type", "Status" should NOT be filtered.
 
     Args:
         data: Parsed JSON data that could be a list or dict with nested data
@@ -32,125 +31,150 @@ def extract_records_from_data(data: Any) -> List[Dict[str, Any]]:
         List[Dict[str, Any]]: The actual data records to process
     """
     try:
-        # CRITICAL FIX: Define CrewAI metadata detection patterns
-        crewai_metadata_keys = {
+        logger.info(f"📥 extract_records_from_data called with data type: {type(data)}")
+
+        # CRITICAL FIX: Be much more specific about CrewAI metadata detection
+        # Only filter objects that have OBVIOUS CrewAI response patterns
+        highly_specific_crewai_keys = {
             "mappings",
             "skipped_fields",
             "synthesis_required",
-            "confidence_scores",
             "agent_reasoning",
             "transformations",
             "validation_results",
             "agent_insights",
             "unmapped_fields",
             "clarifications",
-            "next_phase",
-            "timestamp",
             "execution_metadata",
             "raw_response",
-            "success",
-            "error",
             "phase_name",
         }
 
-        # Additional safety check for common JSON parsing artifacts
-        artifact_patterns = [
-            "{",
-            "}",
-            "[",
-            "]",
-            "[]",
-            "{}",
-            "null",
-            "undefined",
-            "true",
-            "false",
-        ]
+        # CRITICAL FIX: Remove common CSV column names from filtering
+        # These are legitimate field names that should NOT be filtered:
+        # "success", "error", "timestamp" could be CSV columns!
 
-        # If data is already a list, check each item for metadata contamination
+        # Only filter obvious JSON parsing artifacts (not field names)
+        artifact_patterns = ["{", "}", "[", "]", "[]", "{}", "null", "undefined"]
+
+        # If data is already a list, process each item
         if isinstance(data, list):
-            # If the list contains dict items that look like CrewAI responses, filter them out
+            logger.info(f"📊 Processing list with {len(data)} items")
             clean_records = []
-            for item in data:
+
+            for idx, item in enumerate(data):
                 if isinstance(item, dict):
                     item_keys = set(item.keys())
-                    # Skip records that contain CrewAI metadata fields
-                    if not crewai_metadata_keys.intersection(item_keys):
-                        # Also skip records with JSON artifact field names
-                        if not any(str(key) in artifact_patterns for key in item_keys):
-                            clean_records.append(item)
-                        else:
-                            logger.warning(
-                                f"🚨 Skipping record with JSON artifact field names: {list(item_keys)}"
-                            )
-                    else:
-                        logger.warning(
-                            f"🚨 Skipping CrewAI metadata record with keys: {list(item_keys)}"
+
+                    # CRITICAL FIX: Only filter if the record has MULTIPLE highly specific CrewAI keys
+                    # AND no common CSV-style field names
+                    metadata_intersection = highly_specific_crewai_keys.intersection(
+                        item_keys
+                    )
+                    # total_keys = len(item_keys)  # Currently unused
+
+                    # CRITICAL FIX: Much stricter filtering - only skip if:
+                    # 1. Record has 3+ highly specific CrewAI metadata keys
+                    # 2. AND record has no typical CSV field values (strings/numbers in values)
+                    if len(metadata_intersection) >= 3:
+                        # Check if values look like metadata (complex objects) vs CSV data (simple strings/numbers)
+                        values_look_like_metadata = any(
+                            isinstance(v, (dict, list)) and v for v in item.values()
                         )
+
+                        if values_look_like_metadata:
+                            logger.warning(
+                                f"🚨 Skipping likely CrewAI metadata record {idx} with "
+                                f"{len(metadata_intersection)} metadata keys: {list(metadata_intersection)}"
+                            )
+                            continue
+
+                    # Skip records with obvious JSON artifact field names
+                    if any(str(key) in artifact_patterns for key in item_keys):
+                        logger.warning(
+                            f"🚨 Skipping record {idx} with JSON artifact field names: {list(item_keys)}"
+                        )
+                        continue
+
+                    # This looks like legitimate CSV data
+                    clean_records.append(item)
+                    logger.debug(
+                        f"✅ Keeping CSV record {idx} with fields: {list(item.keys())}"
+                    )
                 else:
+                    # Non-dict items in the list - keep them as-is
                     clean_records.append(item)
 
-            logger.debug(
-                f"Cleaned data list: {len(clean_records)} valid records out of {len(data)} total"
+            logger.info(
+                f"📊 Filtered to {len(clean_records)} valid records out of {len(data)} total"
             )
             return clean_records
 
-        # If data is a dict, check for CrewAI response structures first
+        # If data is a dict, check for nested structures or treat as single record
         if isinstance(data, dict):
             data_keys = set(data.keys())
+            logger.info(f"📊 Processing dict with keys: {list(data_keys)}")
 
-            # If the dict contains any CrewAI metadata keys, it's not actual CSV data
-            if crewai_metadata_keys.intersection(data_keys):
-                logger.warning(
-                    f"🚨 CRITICAL FIX: Detected CrewAI JSON response structure with keys: {list(data_keys)}. "
-                    f"This is metadata, not CSV data. Returning empty list to prevent JSON artifacts "
-                    f"from being treated as field names."
-                )
-                return []
-
-            # Additional safety check for common JSON parsing artifacts
-            suspicious_fields = [
-                key for key in data_keys if str(key) in artifact_patterns
-            ]
-            if suspicious_fields:
-                logger.warning(
-                    f"🚨 CRITICAL FIX: Detected JSON parsing artifacts as field names: {suspicious_fields}. "
-                    f"This indicates malformed data. Returning empty list."
-                )
-                return []
-
-            # Check for {"data": [...]} structure
+            # CRITICAL FIX: Only skip dicts that are OBVIOUSLY CrewAI responses
+            # Check for nested data structures first (common pattern)
             if "data" in data and isinstance(data["data"], list):
                 records = data["data"]
-                logger.debug(f"Extracted {len(records)} records from nested 'data' key")
-                # Recursively clean the extracted records
+                logger.info(f"📊 Found nested data array with {len(records)} records")
                 return extract_records_from_data(records)
 
             # Check for other possible keys that might contain the records
             for key in ["records", "items", "results", "rows"]:
                 if key in data and isinstance(data[key], list):
                     records = data[key]
-                    logger.debug(
-                        f"Extracted {len(records)} records from nested '{key}' key"
+                    logger.info(
+                        f"📊 Found nested {key} array with {len(records)} records"
                     )
-                    # Recursively clean the extracted records
                     return extract_records_from_data(records)
 
-            # If it's a dict but no recognizable structure, treat as single record
-            # but only if it doesn't contain metadata fields
-            logger.debug("Data is a single dictionary record, wrapping in list")
+            # CRITICAL FIX: Only filter if this dict has MANY highly specific CrewAI keys
+            # AND the values look like complex metadata rather than simple CSV values
+            metadata_intersection = highly_specific_crewai_keys.intersection(data_keys)
+
+            if len(metadata_intersection) >= 3:
+                # Check if this looks like a metadata response vs a single CSV record
+                values_look_like_metadata = any(
+                    isinstance(v, (dict, list)) and v for v in data.values()
+                )
+
+                if values_look_like_metadata:
+                    logger.warning(
+                        f"🚨 Skipping dict that appears to be CrewAI metadata with keys: {list(data_keys)}"
+                    )
+                    return []
+
+            # Additional safety check for obvious JSON parsing artifacts
+            if any(str(key) in artifact_patterns for key in data_keys):
+                logger.warning(
+                    f"🚨 Skipping dict with JSON artifact field names: {list(data_keys)}"
+                )
+                return []
+
+            # This appears to be a single legitimate CSV record
+            logger.info(
+                f"✅ Treating dict as single CSV record with fields: {list(data_keys)}"
+            )
             return [data]
 
         # For any other type, wrap in list if not None/empty
         if data is not None and data != "":
-            logger.debug(f"Data is {type(data)}, wrapping in list")
+            logger.info(f"📊 Wrapping {type(data)} data in list")
             return [data]
 
         # Empty or None data
-        logger.debug("Data is empty or None")
+        logger.info("📊 Data is empty or None, returning empty list")
         return []
 
     except Exception as e:
-        logger.error(f"Error extracting records from data: {e}")
-        # Fallback: if we can't process it, return empty list
+        logger.error(f"❌ Error extracting records from data: {e}")
+        # CRITICAL FIX: In case of error, try to return the data as-is if it's a list
+        if isinstance(data, list):
+            logger.warning(
+                "🔄 Falling back to returning original list data due to extraction error"
+            )
+            return data
         return []

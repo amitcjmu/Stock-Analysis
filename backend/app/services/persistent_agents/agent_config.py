@@ -160,6 +160,8 @@ class AgentConfigManager:
 
             # Get tools for this agent type
             tools = AgentToolManager.get_agent_tools(agent_type, context_info)
+            tool_names = [getattr(t, "name", "unnamed") for t in tools]
+            logger.info(f"🔧 Agent {agent_type} tools: {tool_names}")
 
             # Create the agent with configuration
             agent = Agent(
@@ -402,7 +404,7 @@ class AgentConfigManager:
                 "max_iter": 6,
                 "max_execution_time": 400,
             },
-            "asset_inventory_agent": {
+            "asset_inventory": {
                 "role": "Asset Inventory Specialist",
                 "goal": "Create database asset records efficiently from cleaned CMDB data",
                 "backstory": (

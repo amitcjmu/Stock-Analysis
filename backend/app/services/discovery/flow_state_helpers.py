@@ -36,7 +36,7 @@ async def load_flow_state_for_phase(
         state_manager = FlowStateManager(db, context)
 
         # Load the flow state
-        flow_state = await state_manager.load_state(flow_id)
+        flow_state = await state_manager.get_flow_state(flow_id)
 
         if not flow_state:
             logger.warning(f"No flow state found for {flow_id}, using empty state")

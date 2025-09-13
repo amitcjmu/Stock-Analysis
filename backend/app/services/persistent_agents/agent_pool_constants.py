@@ -12,7 +12,8 @@ AGENT_TYPE_CONFIGS = {
     "discovery_specialist": {
         "role": "Discovery Specialist Agent",
         "goal": "Intelligent asset discovery and mapping for migration planning",
-        "backstory": "Expert in cloud and on-premises infrastructure discovery, with deep knowledge of asset identification and dependency mapping.",
+        "backstory": "Expert in cloud and on-premises infrastructure discovery, "
+        "with deep knowledge of asset identification and dependency mapping.",
         "tools": ["asset_creation", "data_validation", "critical_attributes"],
         "max_retries": 3,
         "memory_enabled": True,
@@ -20,7 +21,8 @@ AGENT_TYPE_CONFIGS = {
     "gap_analysis_specialist": {
         "role": "Gap Analysis Specialist Agent",
         "goal": "Comprehensive analysis of data gaps in collected migration assets",
-        "backstory": "Expert in identifying missing critical attributes required for successful cloud migration planning and 6R strategy development.",
+        "backstory": "Expert in identifying missing critical attributes required "
+        "for successful cloud migration planning and 6R strategy development.",
         "tools": ["data_validation", "critical_attributes"],
         "max_retries": 3,
         "memory_enabled": True,

@@ -93,6 +93,24 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
 
             # Parse and store the file data as raw records
             parsed_data = json.loads(file_content.decode("utf-8"))
+            logger.info(
+                f"📥 Received CSV data with {len(file_content)} bytes of JSON content"
+            )
+            logger.info(f"📊 Parsed data type: {type(parsed_data)}")
+
+            if isinstance(parsed_data, list):
+                logger.info(f"📊 Parsed data is list with {len(parsed_data)} items")
+                if len(parsed_data) > 0:
+                    logger.info(f"📊 First item type: {type(parsed_data[0])}")
+                    if isinstance(parsed_data[0], dict):
+                        logger.info(
+                            f"📊 First item keys: {list(parsed_data[0].keys())}"
+                        )
+            elif isinstance(parsed_data, dict):
+                logger.info(
+                    f"📊 Parsed data is dict with keys: {list(parsed_data.keys())}"
+                )
+
             if parsed_data:
                 # Extract actual records from potentially nested structure
                 extracted_records = extract_records_from_data(parsed_data)
@@ -100,6 +118,10 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
                     f"📊 Extracted {len(extracted_records)} records from JSON data "
                     f"for import {data_import.id}"
                 )
+                logger.info(
+                    f"📊 Original data length: {len(parsed_data) if isinstance(parsed_data, list) else 1}"
+                )
+                logger.info(f"📊 Extracted records length: {len(extracted_records)}")
 
                 # CRITICAL FIX: Validate extracted records and add fallback for empty extraction
                 if not extracted_records and parsed_data:
@@ -123,6 +145,11 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
 
                 # Store raw records within transaction
                 if extracted_records:
+                    logger.info(f"📥 Parsed {len(extracted_records)} CSV rows")
+                    logger.info(
+                        f"💾 About to store {len(extracted_records)} records to database for import {data_import.id}"
+                    )
+
                     records_stored = await self.store_raw_records(
                         data_import=data_import,
                         file_data=extracted_records,
@@ -132,12 +159,27 @@ class ImportStorageOperations(RawRecordOperationsMixin, FieldMappingOperationsMi
                     # Update total records count
                     data_import.total_records = records_stored
 
+                    # Add explicit commit logging
+                    await self.db.commit()
                     logger.info(
-                        f"✅ Stored {records_stored} raw records for import {data_import.id}"
+                        f"✅ Stored {records_stored} raw_import_records for import {data_import.id}; committing..."
+                    )
+
+                    logger.info(
+                        f"✅ Successfully stored {records_stored} raw_import_records for import {data_import.id}"
+                    )
+                    logger.info(
+                        f"✅ DataImport.total_records updated to: {data_import.total_records}"
                     )
                 else:
-                    logger.warning(
-                        f"🚨 No valid records to store for import {data_import.id}"
+                    logger.error(
+                        f"🚨 CRITICAL: No valid records to store for import {data_import.id} - "
+                        "this will cause 0 raw_import_records!"
+                    )
+                    logger.error(f"🚨 Original parsed_data type: {type(parsed_data)}")
+                    logger.error(
+                        f"🚨 Original parsed_data length/content: "
+                        f"{len(parsed_data) if isinstance(parsed_data, list) else parsed_data}"
                     )
                     data_import.total_records = 0
 
