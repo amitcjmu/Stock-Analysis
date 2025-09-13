@@ -492,20 +492,41 @@ class ExecutionEngineDiscoveryCrews:
         raw_count = raw_result.scalar()
 
         logger.info(
-            f"📊 Using cleansed rows: {cleansed_count}; raw fallback: 0 (blocked)"
+            f"📊 Using cleansed rows: {cleansed_count}; raw fallback: {raw_count} (enabled)"
         )
 
-        # NO FALLBACK - fail if no cleansed data
+        # ENHANCED: Allow fallback to raw data if no cleansed data is available
+        # This fixes the 422 error during data_cleansing to asset_inventory transition
         if cleansed_count == 0:
-            return {
-                "status": "error",
-                "error_code": "CLEANSING_REQUIRED",
-                "message": "No cleansed data available. Run data cleansing first.",
-                "counts": {"raw": raw_count, "cleansed": 0},
-            }
-
-        # Extract cleansed data
-        cleansed_data = [r.cleansed_data for r in records]
+            if raw_count == 0:
+                return {
+                    "status": "error",
+                    "error_code": "NO_DATA_AVAILABLE",
+                    "message": "No raw or cleansed data available for asset inventory.",
+                    "counts": {"raw": 0, "cleansed": 0},
+                }
+            
+            # Use raw data as fallback
+            logger.warning(
+                f"⚠️ No cleansed data found, using {raw_count} raw records as fallback for asset inventory"
+            )
+            
+            # Query for raw data
+            raw_result = await self.db_session.execute(
+                select(RawImportRecord).where(
+                    RawImportRecord.data_import_id == data_import_id,
+                    RawImportRecord.client_account_id == self.context.client_account_id,
+                    RawImportRecord.engagement_id == self.context.engagement_id,
+                )
+            )
+            raw_records = raw_result.scalars().all()
+            
+            # Extract raw data (use imported_data instead of cleansed_data)
+            cleansed_data = [r.imported_data for r in raw_records if r.imported_data]
+            logger.info(f"📦 Using {len(cleansed_data)} raw data records for asset inventory")
+        else:
+            # Extract cleansed data
+            cleansed_data = [r.cleansed_data for r in records]
 
         # Get field mappings
         field_mappings = await self._get_approved_field_mappings(phase_input)
