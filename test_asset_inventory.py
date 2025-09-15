@@ -21,12 +21,12 @@ from app.services.flow_configs.discovery_handlers import asset_inventory
 async def test_asset_inventory_handler():
     """Test the asset inventory handler with mock data"""
     print("🧪 Testing Asset Inventory Handler")
-    
+
     # Create test flow context
     test_flow_id = str(uuid.uuid4())
-    test_client_id = str(uuid.uuid4()) 
+    test_client_id = str(uuid.uuid4())
     test_engagement_id = str(uuid.uuid4())
-    
+
     async with AsyncSessionLocal() as db:
         try:
             # Create a test raw import record
@@ -49,11 +49,11 @@ async def test_asset_inventory_handler():
                     "business_owner": "IT Team"
                 }
             )
-            
+
             db.add(test_raw_record)
             await db.commit()
             print(f"✅ Created test raw record: {test_raw_record.id}")
-            
+
             # Create mock context
             class MockContext:
                 def __init__(self, client_id, engagement_id):
@@ -61,16 +61,16 @@ async def test_asset_inventory_handler():
                     self.engagement_id = engagement_id
                     self.user_id = "test-user"
                     self.db_session = db
-            
+
             context = MockContext(test_client_id, test_engagement_id)
-            
+
             # Prepare phase input
             phase_input = {
                 "master_flow_id": test_flow_id,
                 "client_account_id": test_client_id,
                 "engagement_id": test_engagement_id,
             }
-            
+
             # Execute the asset inventory handler
             print(f"🔄 Executing asset inventory for flow: {test_flow_id}")
             result = await asset_inventory(
@@ -79,36 +79,36 @@ async def test_asset_inventory_handler():
                 context=context,
                 db_session=db
             )
-            
+
             print(f"📊 Handler result: {result}")
-            
+
             # Check if assets were created
             assets_query = await db.execute(
                 "SELECT COUNT(*) FROM migration.assets WHERE master_flow_id = %s",
                 (test_flow_id,)
             )
             assets_count = assets_query.scalar()
-            
+
             print(f"🎯 Assets created: {assets_count}")
-            
+
             if result.get('assets_created', 0) > 0:
                 print("✅ SUCCESS: Asset inventory handler created assets!")
             else:
                 print("❌ FAILURE: No assets were created")
                 print(f"   Error: {result.get('error', 'Unknown')}")
-            
+
             # Cleanup test data
             await db.execute(
                 "DELETE FROM migration.assets WHERE master_flow_id = %s",
                 (test_flow_id,)
             )
             await db.execute(
-                "DELETE FROM migration.raw_import_records WHERE master_flow_id = %s", 
+                "DELETE FROM migration.raw_import_records WHERE master_flow_id = %s",
                 (test_flow_id,)
             )
             await db.commit()
             print("🧹 Cleaned up test data")
-            
+
         except Exception as e:
             print(f"❌ Test failed: {e}")
             import traceback

@@ -43,11 +43,11 @@ class BasePhaseExecutor(ABC):
         pass
 
     @abstractmethod
-    def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute phase using CrewAI crew"""
         pass
 
-    def execute_fallback(self) -> Dict[str, Any]:
+    async def execute_fallback(self) -> Dict[str, Any]:
         """NO FALLBACK - This method should never be called"""
         phase_name = self.get_phase_name()
         logger.error(

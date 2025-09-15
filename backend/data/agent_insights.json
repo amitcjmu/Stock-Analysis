@@ -25649,9 +25649,9 @@
     },
     "page": "flow_9390e1a4-579e-46b1-bdbd-66a96cc29617",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "9390e1a4-579e-46b1-bdbd-66a96cc29617",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-09-13T09:51:36.884271",
     "user_feedback": null,
     "is_validated": false
@@ -25672,10 +25672,469 @@
     },
     "page": "flow_9390e1a4-579e-46b1-bdbd-66a96cc29617",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-09-13T09:51:36.954629",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "917caafb-deb7-411e-86fb-e31de8be73d0": {
+    "id": "917caafb-deb7-411e-86fb-e31de8be73d0",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca"
+    },
+    "page": "flow_85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "actionable": true,
     "client_account_id": "11111111-1111-1111-1111-111111111111",
     "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "9390e1a4-579e-46b1-bdbd-66a96cc29617",
-    "created_at": "2025-09-13T09:51:36.954629",
+    "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "created_at": "2025-09-15T15:36:28.203767",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e66266be-4bba-44d8-97fc-d1b017abeb74": {
+    "id": "e66266be-4bba-44d8-97fc-d1b017abeb74",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "created_at": "2025-09-15T15:36:28.345265",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "bde233eb-3ecc-46cf-a5c2-bcbd8c62470e": {
+    "id": "bde233eb-3ecc-46cf-a5c2-bcbd8c62470e",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "created_at": "2025-09-15T15:36:28.394844",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "eceb5af0-264b-466f-a3eb-4194b4d1b156": {
+    "id": "eceb5af0-264b-466f-a3eb-4194b4d1b156",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-09-15T15:36:28.391577",
+      "total_records": 5,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": true,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 5,
+        "field_count": 6,
+        "sample_fields": [
+          "owner",
+          "os_type",
+          "hostname",
+          "department",
+          "ip_address",
+          "environment"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": true,
+        "pii_types": [
+          "email"
+        ],
+        "confidence": 0.8,
+        "recommendation": "Review data handling procedures"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 5,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "owner": {
+            "type": "str",
+            "valid": true
+          },
+          "os_type": {
+            "type": "str",
+            "valid": true
+          },
+          "hostname": {
+            "type": "str",
+            "valid": true
+          },
+          "department": {
+            "type": "str",
+            "valid": true
+          },
+          "ip_address": {
+            "type": "str",
+            "valid": true
+          },
+          "environment": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "owner": "john.smith@company.com",
+          "os_type": "Windows Server 2019",
+          "hostname": "server01",
+          "department": "IT",
+          "ip_address": "192.168.1.10",
+          "environment": "Production"
+        },
+        {
+          "owner": "jane.doe@company.com",
+          "os_type": "Ubuntu 20.04",
+          "hostname": "server02",
+          "department": "Finance",
+          "ip_address": "192.168.1.11",
+          "environment": "Production"
+        },
+        {
+          "owner": "bob.wilson@company.com",
+          "os_type": "CentOS 7",
+          "hostname": "server03",
+          "department": "IT",
+          "ip_address": "192.168.1.12",
+          "environment": "Development"
+        },
+        {
+          "owner": "alice.brown@company.com",
+          "os_type": "Windows Server 2022",
+          "hostname": "server04",
+          "department": "HR",
+          "ip_address": "192.168.1.13",
+          "environment": "Staging"
+        },
+        {
+          "owner": "charlie.davis@company.com",
+          "os_type": "Ubuntu 22.04",
+          "hostname": "server05",
+          "department": "Marketing",
+          "ip_address": "192.168.1.14",
+          "environment": "Production"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "server_inventory",
+        "confidence": 0.5571428571428572,
+        "recommended_agent": "Server_Classification_Expert",
+        "analysis_details": {
+          "field_count": 6,
+          "record_count": 5,
+          "type_scores": {
+            "server_inventory": 0.5571428571428572,
+            "application_inventory": 0.0,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.08333333333333333,
+            "cmdb_export": 0.4727272727272727
+          },
+          "field_analysis": {
+            "total_fields": 6,
+            "sample_fields": [
+              "owner",
+              "os_type",
+              "hostname",
+              "department",
+              "ip_address",
+              "environment"
+            ]
+          },
+          "detection_confidence": 0.5571428571428572,
+          "alternative_types": [
+            {
+              "type": "server_inventory",
+              "score": 0.5571428571428572
+            },
+            {
+              "type": "cmdb_export",
+              "score": 0.4727272727272727
+            },
+            {
+              "type": "asset_management",
+              "score": 0.08333333333333333
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20250915_153628",
+        "timestamp": "2025-09-15T15:36:28.393249",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 5,
+          "quality_score": "87.5%",
+          "file_type": "server_inventory",
+          "confidence": "56%",
+          "recommended_agent": "Server_Classification_Expert"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 5 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 5,
+              "field_count": 6,
+              "sample_fields": [
+                "owner",
+                "os_type",
+                "hostname",
+                "department",
+                "ip_address",
+                "environment"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "WARNING",
+            "message": "PII detected: email",
+            "details": {
+              "pii_detected": true,
+              "pii_types": [
+                "email"
+              ],
+              "confidence": 0.8,
+              "recommendation": "Review data handling procedures"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 5,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "owner": {
+                  "type": "str",
+                  "valid": true
+                },
+                "os_type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "hostname": {
+                  "type": "str",
+                  "valid": true
+                },
+                "department": {
+                  "type": "str",
+                  "valid": true
+                },
+                "ip_address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "environment": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "HIGH",
+            "category": "Privacy & Compliance",
+            "title": "PII Handling Required",
+            "description": "Personally identifiable information detected in data",
+            "action": "Implement appropriate data protection measures and review compliance requirements"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 3,
+          "failed_checks": 0,
+          "warning_checks": 2
+        }
+      }
+    },
+    "page": "flow_85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "created_at": "2025-09-15T15:36:28.425828",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "8ea0fbea-c234-4437-9629-791b1f1e6396": {
+    "id": "8ea0fbea-c234-4437-9629-791b1f1e6396",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "owner",
+            "target_field": "owner",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "os_type",
+            "target_field": "os_type",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "hostname",
+            "target_field": "hostname",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "department",
+            "target_field": "department",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "ip_address",
+            "target_field": "ip_address",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          },
+          {
+            "source_field": "environment",
+            "target_field": "environment",
+            "confidence": 0.7,
+            "mapping_type": "crew_generated",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 6,
+        "execution_method": "direct_crew_execution",
+        "timestamp": "2025-09-15T15:36:28.497506"
+      }
+    },
+    "page": "flow_85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "85ae3c4e-94b0-4216-a8f2-95c8cbcd38ca",
+    "created_at": "2025-09-15T15:36:28.567842",
     "user_feedback": null,
     "is_validated": false
   }

@@ -13,6 +13,40 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
+def _is_crewai_metadata_record(item_keys: set, crewai_keys: set, item_values) -> bool:
+    """Check if a record appears to be CrewAI metadata rather than CSV data."""
+    metadata_intersection = crewai_keys.intersection(item_keys)
+
+    # Only skip if record has 3+ highly specific CrewAI metadata keys
+    # AND record has no typical CSV field values (strings/numbers in values)
+    if len(metadata_intersection) >= 3:
+        # Check if values look like metadata (complex objects) vs CSV data (simple strings/numbers)
+        values_look_like_metadata = any(
+            isinstance(v, (dict, list)) and v for v in item_values
+        )
+        return values_look_like_metadata
+
+    return False
+
+
+def _check_for_nested_data_arrays(data: dict) -> List[Dict[str, Any]]:
+    """Check for nested data arrays in common patterns."""
+    # Check for nested data structures first (common pattern)
+    if "data" in data and isinstance(data["data"], list):
+        records = data["data"]
+        logger.info(f"📊 Found nested data array with {len(records)} records")
+        return extract_records_from_data(records)
+
+    # Check for other possible keys that might contain the records
+    for key in ["records", "items", "results", "rows"]:
+        if key in data and isinstance(data[key], list):
+            records = data[key]
+            logger.info(f"📊 Found nested {key} array with {len(records)} records")
+            return extract_records_from_data(records)
+
+    return None
+
+
 def extract_records_from_data(data: Any) -> List[Dict[str, Any]]:
     """
     Extract actual data records from potentially nested JSON structures.
@@ -66,28 +100,14 @@ def extract_records_from_data(data: Any) -> List[Dict[str, Any]]:
                 if isinstance(item, dict):
                     item_keys = set(item.keys())
 
-                    # CRITICAL FIX: Only filter if the record has MULTIPLE highly specific CrewAI keys
-                    # AND no common CSV-style field names
-                    metadata_intersection = highly_specific_crewai_keys.intersection(
-                        item_keys
-                    )
-                    # total_keys = len(item_keys)  # Currently unused
-
-                    # CRITICAL FIX: Much stricter filtering - only skip if:
-                    # 1. Record has 3+ highly specific CrewAI metadata keys
-                    # 2. AND record has no typical CSV field values (strings/numbers in values)
-                    if len(metadata_intersection) >= 3:
-                        # Check if values look like metadata (complex objects) vs CSV data (simple strings/numbers)
-                        values_look_like_metadata = any(
-                            isinstance(v, (dict, list)) and v for v in item.values()
+                    # Check if this appears to be CrewAI metadata
+                    if _is_crewai_metadata_record(
+                        item_keys, highly_specific_crewai_keys, item.values()
+                    ):
+                        logger.warning(
+                            f"🚨 Skipping likely CrewAI metadata record {idx}"
                         )
-
-                        if values_look_like_metadata:
-                            logger.warning(
-                                f"🚨 Skipping likely CrewAI metadata record {idx} with "
-                                f"{len(metadata_intersection)} metadata keys: {list(metadata_intersection)}"
-                            )
-                            continue
+                        continue
 
                     # Skip records with obvious JSON artifact field names
                     if any(str(key) in artifact_patterns for key in item_keys):
@@ -115,21 +135,10 @@ def extract_records_from_data(data: Any) -> List[Dict[str, Any]]:
             data_keys = set(data.keys())
             logger.info(f"📊 Processing dict with keys: {list(data_keys)}")
 
-            # CRITICAL FIX: Only skip dicts that are OBVIOUSLY CrewAI responses
-            # Check for nested data structures first (common pattern)
-            if "data" in data and isinstance(data["data"], list):
-                records = data["data"]
-                logger.info(f"📊 Found nested data array with {len(records)} records")
-                return extract_records_from_data(records)
-
-            # Check for other possible keys that might contain the records
-            for key in ["records", "items", "results", "rows"]:
-                if key in data and isinstance(data[key], list):
-                    records = data[key]
-                    logger.info(
-                        f"📊 Found nested {key} array with {len(records)} records"
-                    )
-                    return extract_records_from_data(records)
+            # Check for nested data structures first
+            nested_result = _check_for_nested_data_arrays(data)
+            if nested_result is not None:
+                return nested_result
 
             # CRITICAL FIX: Only filter if this dict has MANY highly specific CrewAI keys
             # AND the values look like complex metadata rather than simple CSV values

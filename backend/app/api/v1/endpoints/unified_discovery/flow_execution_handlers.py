@@ -14,7 +14,6 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.security.secure_logging import mask_id, safe_log_format
 from app.models.discovery_flow import DiscoveryFlow
-from app.services.discovery.flow_execution_service import execute_flow_phase
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +55,11 @@ def _determine_next_phase(discovery_flow: DiscoveryFlow) -> str:
 @router.post("/flows/{flow_id}/execute")
 async def execute_flow(
     flow_id: str,
+    request: dict = {},  # Accept request body with phase and phase_input
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):
-    """Execute the next phase of a discovery flow."""
+    """Execute a specific phase of a discovery flow or the next phase."""
     try:
         # Query the flow with proper tenant scoping
         stmt = select(DiscoveryFlow).where(
@@ -78,18 +78,94 @@ async def execute_flow(
         if discovery_flow.status == "archived":
             raise HTTPException(status_code=400, detail="Cannot process deleted flow")
 
-        # Determine the next phase to execute
-        next_phase = _determine_next_phase(discovery_flow)
+        # Check if a specific phase was requested
+        requested_phase = request.get("phase")
+        phase_input = request.get("phase_input", {})
 
-        if not next_phase:
-            return {
-                "success": True,
-                "message": "Flow execution completed - no more phases to execute",
-                "status": "completed",
-            }
+        # If a specific phase is requested, execute it
+        if requested_phase:
+            logger.info(
+                safe_log_format(
+                    "Executing requested phase '{phase}' for flow {flow_id}",
+                    phase=requested_phase,
+                    flow_id=mask_id(str(flow_id)),
+                )
+            )
 
-        # Execute the phase with correct signature
-        result = await execute_flow_phase(flow_id, discovery_flow, context, db)
+            # Special handling for data_cleansing phase
+            if requested_phase == "data_cleansing":
+                # Check if it's just marking complete or actually executing
+                if phase_input.get("complete"):
+                    logger.info(
+                        "Executing data_cleansing phase before marking complete"
+                    )
+                    # Force execution of data_cleansing phase
+                    from app.services.master_flow_orchestrator import (
+                        MasterFlowOrchestrator,
+                    )
+
+                    orchestrator = MasterFlowOrchestrator(db, context)
+
+                    # Execute the data_cleansing phase
+                    exec_result = await orchestrator.execute_phase(
+                        flow_id=flow_id,
+                        phase_name="data_cleansing",
+                        phase_input={},  # Don't pass complete:true to the executor
+                    )
+
+                    # Update the discovery flow state
+                    if exec_result.get("status") in ("success", "completed"):
+                        discovery_flow.data_cleansing_completed = True
+                        discovery_flow.current_phase = "asset_inventory"
+                        await db.commit()
+
+                        return {
+                            "success": True,
+                            "phase": "data_cleansing",
+                            "status": "completed",
+                            "message": "Data cleansing phase executed and completed",
+                            "data": exec_result.get("data", {}),
+                        }
+                    else:
+                        return exec_result
+                else:
+                    # Regular execution of data_cleansing
+                    from app.services.master_flow_orchestrator import (
+                        MasterFlowOrchestrator,
+                    )
+
+                    orchestrator = MasterFlowOrchestrator(db, context)
+                    return await orchestrator.execute_phase(
+                        flow_id=flow_id,
+                        phase_name=requested_phase,
+                        phase_input=phase_input,
+                    )
+            else:
+                # For other phases, use existing flow execution logic
+                from app.services.discovery.flow_execution_service import (
+                    execute_flow_phase as exec_phase,
+                )
+
+                # Override the phase determination to use requested phase
+                discovery_flow.current_phase = requested_phase
+                result = await exec_phase(flow_id, discovery_flow, context, db)
+        else:
+            # No specific phase requested, determine next phase
+            next_phase = _determine_next_phase(discovery_flow)
+
+            if not next_phase:
+                return {
+                    "success": True,
+                    "message": "Flow execution completed - no more phases to execute",
+                    "status": "completed",
+                }
+
+            # Execute the phase with correct signature
+            from app.services.discovery.flow_execution_service import (
+                execute_flow_phase as exec_phase,
+            )
+
+            result = await exec_phase(flow_id, discovery_flow, context, db)
 
         logger.info(
             safe_log_format(

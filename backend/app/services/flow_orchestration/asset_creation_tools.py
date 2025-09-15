@@ -16,6 +16,43 @@ class AssetCreationToolsExecutor:
     """Handles asset creation using agent tools."""
 
     @staticmethod
+    def _find_asset_creation_tools(agent):
+        """Find asset creation tools in agent's toolset."""
+        asset_creation_tools = []
+        bulk_creation_tools = []
+
+        for tool in agent.tools:
+            if hasattr(tool, "name"):
+                if tool.name == "asset_creator":
+                    asset_creation_tools.append(tool)
+                elif tool.name == "bulk_asset_creator":
+                    bulk_creation_tools.append(tool)
+
+        return asset_creation_tools, bulk_creation_tools
+
+    @staticmethod
+    def _validate_raw_data(input_data: Dict[str, Any]) -> tuple[bool, list]:
+        """Validate and extract raw data from input."""
+        raw_data = input_data.get("raw_data", [])
+        logger.info(
+            f"📊 Raw data present: {raw_data is not None}, Type: {type(raw_data)}"
+        )
+
+        if not raw_data:
+            logger.warning("⚠️ No raw data available for asset creation")
+            logger.info(f"📋 Available input data keys: {list(input_data.keys())}")
+            # Check if raw_data might be nested or under a different key
+            for key, value in input_data.items():
+                if isinstance(value, (list, dict)) and len(str(value)) > 100:
+                    logger.info(
+                        f"🔍 Large data found under key '{key}': {type(value)}, "
+                        f"size: {len(value) if hasattr(value, '__len__') else 'N/A'}"
+                    )
+            return False, []
+
+        return True, raw_data
+
+    @staticmethod
     async def execute_asset_creation_with_tools(
         agent, input_data: Dict[str, Any], task_description: str
     ) -> Dict[str, Any]:
@@ -36,15 +73,9 @@ class AssetCreationToolsExecutor:
             logger.info(f"🔧 Agent has {len(agent.tools)} tools available")
 
             # Find asset creation tools
-            asset_creation_tools = []
-            bulk_creation_tools = []
-
-            for tool in agent.tools:
-                if hasattr(tool, "name"):
-                    if tool.name == "asset_creator":
-                        asset_creation_tools.append(tool)
-                    elif tool.name == "bulk_asset_creator":
-                        bulk_creation_tools.append(tool)
+            asset_creation_tools, bulk_creation_tools = (
+                AssetCreationToolsExecutor._find_asset_creation_tools(agent)
+            )
 
             logger.info(
                 f"🔍 Found {len(asset_creation_tools)} asset_creator tools and "
@@ -63,23 +94,12 @@ class AssetCreationToolsExecutor:
                     "assets_created": 0,
                 }
 
-            # Get raw data for asset creation
-            raw_data = input_data.get("raw_data", [])
-            logger.info(
-                f"📊 Raw data present: {raw_data is not None}, Type: {type(raw_data)}"
+            # Validate and get raw data for asset creation
+            data_valid, raw_data = AssetCreationToolsExecutor._validate_raw_data(
+                input_data
             )
 
-            if not raw_data:
-                logger.warning("⚠️ No raw data available for asset creation")
-                logger.info(f"📋 Available input data keys: {list(input_data.keys())}")
-                # Check if raw_data might be nested or under a different key
-                for key, value in input_data.items():
-                    if isinstance(value, (list, dict)) and len(str(value)) > 100:
-                        logger.info(
-                            f"🔍 Large data found under key '{key}': {type(value)}, "
-                            f"size: {len(value) if hasattr(value, '__len__') else 'N/A'}"
-                        )
-
+            if not data_valid:
                 return {
                     "status": "completed",
                     "message": "No raw data to process",

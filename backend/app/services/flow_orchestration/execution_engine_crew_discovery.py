@@ -65,6 +65,7 @@ class ExecutionEngineDiscoveryCrews:
 
         # Define phase-to-method mapping
         phase_methods = {
+            "data_cleansing": self._execute_discovery_data_cleansing,  # Data cleansing phase
             "asset_creation": self._execute_discovery_asset_inventory,  # Asset creation is part of inventory (ADR-022)
             "asset_inventory": self._execute_discovery_asset_inventory,
             # Add other phases as needed
@@ -97,7 +98,14 @@ class ExecutionEngineDiscoveryCrews:
                 return {}
 
             # CORRECTED: Use provided session, not open new one
-            session = self.db_session if hasattr(self, "db_session") else self.db
+            session = (
+                self.db_session
+                if hasattr(self, "db_session") and self.db_session
+                else None
+            )
+            if session is None:
+                logger.error("No database session available for field mappings query")
+                return {}
 
             # CORRECTED: Use status='approved' and add multi-tenant scoping
             result = await session.execute(
@@ -134,7 +142,16 @@ class ExecutionEngineDiscoveryCrews:
         try:
             from app.models.discovery_flow import DiscoveryFlow
 
-            session = self.db_session if hasattr(self, "db_session") else self.db
+            session = (
+                self.db_session
+                if hasattr(self, "db_session") and self.db_session
+                else None
+            )
+            if session is None:
+                logger.error(
+                    "No database session available for discovery flow ID query"
+                )
+                return None
             result = await session.execute(
                 select(DiscoveryFlow.id).where(
                     DiscoveryFlow.master_flow_id == master_flow_id
@@ -268,150 +285,181 @@ class ExecutionEngineDiscoveryCrews:
         # ADR-015: Use ONLY persistent agents - no fallback to service pattern
         logger.info(f"🔄 Executing phase '{phase_config.name}' with persistent agents")
 
-        # Add flow context to phase_input for proper persistence
+        # Prepare phase input with flow context
+        self._prepare_phase_input(master_flow, phase_input)
+
+        # Load raw data from persistence if available
+        self._load_raw_data_from_persistence(master_flow, phase_input)
+
+        try:
+            # Initialize persistent agent pool
+            agent_pool = await self._initialize_discovery_agent_pool(master_flow)
+        except ValueError as e:
+            return self._handle_pydantic_validation_error(e, phase_config, master_flow)
+        except Exception as e:
+            return self._handle_general_agent_error(e, phase_config, master_flow)
+
+        try:
+            # Execute the phase
+            return await self._execute_phase_with_agent_pool(
+                phase_config, agent_pool, phase_input
+            )
+        except Exception as e:
+            logger.error(f"❌ Discovery phase failed: {e}")
+            return self.crew_utils.build_error_response(phase_config.name, str(e))
+
+    def _prepare_phase_input(
+        self, master_flow: CrewAIFlowStateExtensions, phase_input: Dict[str, Any]
+    ) -> None:
+        """Prepare phase input with flow context data"""
         phase_input["flow_id"] = master_flow.id
         phase_input["client_account_id"] = master_flow.client_account_id
         phase_input["engagement_id"] = master_flow.engagement_id
 
         # Get data_import_id from flow_metadata if available
         if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
-            # flow_metadata is a JSONB column, accessed directly
             if isinstance(master_flow.flow_metadata, dict):
                 phase_input["data_import_id"] = master_flow.flow_metadata.get(
                     "data_import_id"
                 )
 
-        # Retrieve flow data from persistence to ensure raw_data is available
+    def _load_raw_data_from_persistence(
+        self, master_flow: CrewAIFlowStateExtensions, phase_input: Dict[str, Any]
+    ) -> None:
+        """Load raw data from flow persistence data"""
         logger.info(
             f"🔍 Flow persistence data exists: {master_flow.flow_persistence_data is not None}"
         )
 
-        if master_flow.flow_persistence_data:
-            logger.info(
-                f"🔍 Flow persistence keys: {list(master_flow.flow_persistence_data.keys())}"
-            )
+        if not master_flow.flow_persistence_data:
+            logger.warning("⚠️ No flow_persistence_data available on master_flow")
+            return
 
-            # Always ensure raw_data is transferred from flow persistence
-            # Check both direct raw_data and nested structures
+        logger.info(
+            f"🔍 Flow persistence keys: {list(master_flow.flow_persistence_data.keys())}"
+        )
+
+        # Type check to ensure we have a dict before calling extract
+        if isinstance(master_flow.flow_persistence_data, dict):
+            raw_data = self._extract_raw_data(master_flow.flow_persistence_data)
+        else:
             raw_data = None
 
-            if "raw_data" in master_flow.flow_persistence_data:
-                raw_data = master_flow.flow_persistence_data["raw_data"]
-                logger.info("✅ Found raw_data in flow_persistence_data")
-            elif "initial_state" in master_flow.flow_persistence_data:
-                # Check if raw_data is nested in initial_state
-                initial_state = master_flow.flow_persistence_data["initial_state"]
-                if isinstance(initial_state, dict) and "raw_data" in initial_state:
-                    raw_data = initial_state["raw_data"]
-                    logger.info(
-                        "✅ Found raw_data in flow_persistence_data.initial_state"
-                    )
-
-            if raw_data is not None:
-                # Always set raw_data in phase_input, even if it already exists (ensure latest data)
-                phase_input["raw_data"] = raw_data
-
-                # Safely get the count of records
-                try:
-                    record_count = len(raw_data) if raw_data is not None else 0
-                except (TypeError, AttributeError):
-                    # Handle cases where raw_data is not a sized iterable
-                    record_count = 1 if raw_data is not None else 0
-
-                logger.info(
-                    f"📊 Retrieved {record_count} records from flow persistence for phase execution"
-                )
-            else:
-                logger.warning("⚠️ No raw_data found in flow_persistence_data structure")
+        if raw_data is not None:
+            phase_input["raw_data"] = raw_data
+            record_count = self._get_safe_record_count(raw_data)
+            logger.info(
+                f"📊 Retrieved {record_count} records from flow persistence for phase execution"
+            )
         else:
-            logger.warning("⚠️ No flow_persistence_data available on master_flow")
+            logger.warning("⚠️ No raw_data found in flow_persistence_data structure")
 
+    def _extract_raw_data(self, flow_persistence_data: Dict[str, Any]) -> Any:
+        """Extract raw data from flow persistence data"""
+        if "raw_data" in flow_persistence_data:
+            logger.info("✅ Found raw_data in flow_persistence_data")
+            return flow_persistence_data["raw_data"]
+
+        if "initial_state" in flow_persistence_data:
+            initial_state = flow_persistence_data["initial_state"]
+            if isinstance(initial_state, dict) and "raw_data" in initial_state:
+                logger.info("✅ Found raw_data in flow_persistence_data.initial_state")
+                return initial_state["raw_data"]
+
+        return None
+
+    def _get_safe_record_count(self, raw_data: Any) -> int:
+        """Safely get count of records from raw data"""
         try:
-            # Initialize persistent agent pool
-            agent_pool = await self._initialize_discovery_agent_pool(master_flow)
+            return len(raw_data) if raw_data is not None else 0
+        except (TypeError, AttributeError):
+            return 1 if raw_data is not None else 0
 
-        except ValueError as e:
-            if "object has no field" in str(e):
-                logger.error(
-                    f"❌ Pydantic field validation error in agent creation: {e}"
-                )
-                logger.error(
-                    "🔧 Hint: This is likely a CrewAI/Pydantic v2 compatibility issue"
-                )
-                logger.error("🔧 Check AgentWrapper implementation in agent_config.py")
-                return self.crew_utils.build_error_response(
-                    phase_config.name,
-                    f"Agent creation failed due to Pydantic v2 compatibility: {str(e)}",
-                    master_flow,
-                )
-            else:
-                logger.error(
-                    f"❌ ValueError in discovery phase '{phase_config.name}': {e}"
-                )
-                return self.crew_utils.build_error_response(
-                    phase_config.name, str(e), master_flow
-                )
-        except Exception as e:
-            logger.error(f"❌ Discovery phase '{phase_config.name}' failed: {e}")
-            logger.error(f"❌ Exception type: {type(e).__name__}")
-            import traceback
-
-            logger.error(f"❌ Full traceback:\n{traceback.format_exc()}")
+    def _handle_pydantic_validation_error(
+        self, error: ValueError, phase_config, master_flow: CrewAIFlowStateExtensions
+    ) -> Dict[str, Any]:
+        """Handle Pydantic validation errors during agent initialization"""
+        if "object has no field" in str(error):
+            logger.error(
+                f"❌ Pydantic field validation error in agent creation: {error}"
+            )
+            logger.error(
+                "🔧 Hint: This is likely a CrewAI/Pydantic v2 compatibility issue"
+            )
+            logger.error("🔧 Check AgentWrapper implementation in agent_config.py")
             return self.crew_utils.build_error_response(
-                phase_config.name, str(e), master_flow
+                phase_config.name,
+                f"Agent creation failed due to Pydantic v2 compatibility: {str(error)}",
+                master_flow,
+            )
+        else:
+            logger.error(
+                f"❌ ValueError in discovery phase '{phase_config.name}': {error}"
+            )
+            return self.crew_utils.build_error_response(
+                phase_config.name, str(error), master_flow
             )
 
-        try:
-            # Map and execute phase
-            mapped_phase = self._map_discovery_phase_name(phase_config.name)
-            logger.info(
-                f"🗺️ Mapped phase '{phase_config.name}' to '{mapped_phase}' for agent execution"
-            )
+    def _handle_general_agent_error(
+        self, error: Exception, phase_config, master_flow: CrewAIFlowStateExtensions
+    ) -> Dict[str, Any]:
+        """Handle general errors during agent initialization"""
+        logger.error(f"❌ Discovery phase '{phase_config.name}' failed: {error}")
+        logger.error(f"❌ Exception type: {type(error).__name__}")
+        import traceback
 
-            # Execute the specific phase
-            result = await self._execute_discovery_mapped_phase(
-                mapped_phase, agent_pool, phase_input
-            )
+        logger.error(f"❌ Full traceback:\n{traceback.format_exc()}")
+        return self.crew_utils.build_error_response(
+            phase_config.name, str(error), master_flow
+        )
 
-            logger.info(
-                f"✅ Discovery phase '{mapped_phase}' completed using persistent agents"
-            )
+    async def _execute_phase_with_agent_pool(
+        self, phase_config, agent_pool: Any, phase_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute the specific phase using the agent pool"""
+        mapped_phase = self._map_discovery_phase_name(phase_config.name)
+        logger.info(
+            f"🗺️ Mapped phase '{phase_config.name}' to '{mapped_phase}' for agent execution"
+        )
 
-            return {
-                "phase": phase_config.name,
-                "status": "completed",
-                "crew_results": result,
-                "method": "persistent_agent_execution",
-                "agents_used": result.get("agents", [result.get("agent")]),
-            }
+        result = await self._execute_discovery_mapped_phase(
+            mapped_phase, agent_pool, phase_input
+        )
 
-        except Exception as e:
-            logger.error(f"❌ Discovery phase failed: {e}")
-            return self.crew_utils.build_error_response(phase_config.name, str(e))
+        logger.info(
+            f"✅ Discovery phase '{mapped_phase}' completed using persistent agents"
+        )
+
+        return {
+            "phase": phase_config.name,
+            "status": "completed",
+            "crew_results": result,
+            "method": "persistent_agent_execution",
+            "agents_used": result.get("agents", [result.get("agent")]),
+        }
 
     async def _initialize_discovery_agent_pool(
         self, master_flow: CrewAIFlowStateExtensions
-    ) -> Dict[str, Any]:
+    ) -> Any:
         """Initialize persistent agent pool for the tenant with ServiceRegistry support"""
-        try:
-            # Import here to avoid circular dependencies
-            from app.services.persistent_agents.tenant_scoped_agent_pool import (
-                TenantScopedAgentPool,
-            )
+        # Import here to avoid circular dependencies
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
+        )
 
-            agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
-                client_id=master_flow.client_account_id,
-                engagement_id=master_flow.engagement_id,
-            )
+        agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+            client_id=str(master_flow.client_account_id),
+            engagement_id=str(master_flow.engagement_id),
+        )
 
+        if agent_pool is not None:
             logger.info(
                 f"🏊 Initialized agent pool for tenant {master_flow.client_account_id}"
             )
             return agent_pool
-
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize agent pool: {e}")
-            raise
+        else:
+            logger.error("❌ Agent pool initialization returned None")
+            raise RuntimeError("Failed to initialize agent pool")
 
     def _map_discovery_phase_name(self, phase_name: str) -> str:
         """Map flow phase names to discovery service methods"""
@@ -471,18 +519,62 @@ class ExecutionEngineDiscoveryCrews:
             state.flow_id = phase_input.get("master_flow_id") or phase_input.get(
                 "flow_id"
             )
-            state.data_import_id = phase_input.get("data_import_id")
+            # Ensure data_import_id is available - add it as an attribute dynamically
+            if not hasattr(state, "data_import_id"):
+                setattr(state, "data_import_id", phase_input.get("data_import_id"))
+            else:
+                state.data_import_id = phase_input.get("data_import_id")
             state.client_account_id = self.context.client_account_id
             state.engagement_id = self.context.engagement_id
             state.raw_data = phase_input.get("raw_data", [])
 
-            # Initialize the executor with state and session
-            executor = DataCleansingExecutor(state)
-            executor.db_session = self.db_session
-            executor.service_registry = self.service_registry
+            # Initialize the executor with state and session - providing required crew_manager parameter
+            # DataCleansingExecutor expects (state, crew_manager, flow_bridge=None)
+            executor = DataCleansingExecutor(state, crew_manager=None, flow_bridge=None)
+            # Set additional attributes that the executor uses
+            if hasattr(executor, "db_session"):
+                executor.db_session = self.db_session
+            else:
+                setattr(executor, "db_session", self.db_session)
+            if hasattr(executor, "service_registry"):
+                executor.service_registry = self.service_registry
+            else:
+                setattr(executor, "service_registry", self.service_registry)
 
             # Execute with crew
             result = await executor.execute_with_crew(phase_input)
+
+            # Check if cleansing was successful
+            if result.get("status") == "error":
+                logger.error(f"❌ Data cleansing failed: {result.get('message')}")
+                return result  # Return error result without marking complete
+
+            # Only persist phase completion if successful
+            try:
+                from sqlalchemy import update
+                from app.models.discovery_flow import DiscoveryFlow
+
+                master_flow_id = phase_input.get("master_flow_id") or phase_input.get(
+                    "flow_id"
+                )
+                if (
+                    master_flow_id
+                    and self.db_session
+                    and result.get("status") == "success"
+                ):
+                    await self.db_session.execute(
+                        update(DiscoveryFlow)
+                        .where(DiscoveryFlow.master_flow_id == master_flow_id)
+                        .values(data_cleansing_completed=True)
+                    )
+                    await self.db_session.commit()
+                    logger.info(
+                        "✅ Persisted data_cleansing_completed=True on discovery flow"
+                    )
+            except Exception as persist_err:
+                logger.warning(
+                    f"⚠️ Failed to persist data_cleansing_completed flag: {persist_err}"
+                )
 
             logger.info("✅ Data cleansing completed using DataCleansingExecutor")
 
@@ -557,7 +649,7 @@ class ExecutionEngineDiscoveryCrews:
         if cleansed_count == 0:
             return {
                 "status": "error",
-                "error_code": "NO_CLEANSED_DATA",
+                "error_code": "CLEANSING_REQUIRED",  # Unified error code
                 "message": "No cleansed data available for asset inventory. "
                 "Data cleansing phase must be completed first.",
                 "details": {

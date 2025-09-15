@@ -75,7 +75,7 @@ class ExecutionEngineAgentHandlers:
     async def log_agent_decision(
         self, flow_id: str, phase_name: str, decision: AgentDecision
     ):
-        """Log agent decision for audit purposes"""
+        """Log agent decision for audit purposes - best effort, don't fail phase on logging errors"""
         try:
             decision_log = {
                 "flow_id": flow_id,
@@ -88,12 +88,19 @@ class ExecutionEngineAgentHandlers:
                 "timestamp": datetime.utcnow().isoformat(),
             }
 
-            # Store in flow phase data
-            await self.master_repo.update_flow_status(
-                flow_id=flow_id,
-                status="running",  # Keep current status
-                phase_data={"agent_decisions": [decision_log]},
-            )
+            # Store in flow phase data - best effort
+            try:
+                await self.master_repo.update_flow_status(
+                    flow_id=flow_id,
+                    status="running",  # Keep current status
+                    phase_data={"agent_decisions": [decision_log]},
+                )
+            except Exception as update_err:
+                # OCC conflicts and other update errors should not fail the phase
+                logger.warning(
+                    f"⚠️ Non-critical: Failed to persist agent decision due to concurrent update: {update_err}"
+                )
+                # Continue without raising - logging is not critical to phase execution
 
             logger.info(
                 f"🤖 Agent Decision for {phase_name}: {decision.action.value} -> "
@@ -101,7 +108,8 @@ class ExecutionEngineAgentHandlers:
             )
 
         except Exception as e:
-            logger.warning(f"⚠️ Failed to log agent decision: {e}")
+            # Catch all exceptions to ensure logging never fails a phase
+            logger.warning(f"⚠️ Non-critical: Failed to log agent decision: {e}")
 
     async def handle_agent_pause(
         self, flow_id: str, phase_name: str, decision: AgentDecision

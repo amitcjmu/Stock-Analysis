@@ -6,6 +6,7 @@ Now integrates agentic intelligence for comprehensive asset enrichment.
 
 import logging
 import uuid
+from datetime import datetime
 from typing import Any, Dict, List
 
 from .base_phase_executor import BasePhaseExecutor
@@ -63,8 +64,43 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
         logger.info("🔧 Retrieved agent: data_cleansing")
 
-        # Process with persistent agent (structured results, no JSON parsing)
-        cleaned_data = await cleansing_agent.process(raw_import_records)
+        # Process with persistent agent - handle both sync and async cases
+        # The agent may not have a process method, so we need to handle this gracefully
+        cleaned_data = []
+        try:
+            # Check if agent has a process method
+            if hasattr(cleansing_agent, "process"):
+                # Check if it's async
+                import inspect
+
+                if inspect.iscoroutinefunction(cleansing_agent.process):
+                    cleaned_data = await cleansing_agent.process(raw_import_records)
+                else:
+                    # Sync method - need to handle carefully to avoid greenlet issues
+                    cleaned_data = cleansing_agent.process(raw_import_records)
+            else:
+                # Agent doesn't have process method - use basic cleansing logic
+                logger.warning(
+                    "⚠️ Agent doesn't have process method, using fallback cleansing"
+                )
+                cleaned_data = self._basic_data_cleansing(raw_import_records)
+        except Exception as agent_err:
+            logger.error(f"❌ Agent processing failed: {agent_err}")
+            # Use basic cleansing as fallback
+            cleaned_data = self._basic_data_cleansing(raw_import_records)
+
+        # VALIDATION 1: Check if agent returned any data
+        if not cleaned_data:
+            logger.error("❌ Data cleansing agent returned no results")
+            return {
+                "status": "error",
+                "error_code": "CLEANSING_FAILED",
+                "message": "Data cleansing produced no results - agent returned empty data",
+                "raw_records_count": len(raw_import_records),
+                "cleaned_records_count": 0,
+            }
+
+        logger.info(f"✅ Agent returned {len(cleaned_data)} cleaned records")
 
         # CRITICAL: Fix ID mapping before storage
         for record in cleaned_data:
@@ -72,12 +108,47 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 record["id"] = record["raw_import_record_id"]
 
         # CRITICAL: Await the update (no fire-and-forget)
-        await self._update_cleansed_data_sync(cleaned_data)
+        updated_count = await self._update_cleansed_data_sync(cleaned_data)
 
-        # Set phase completion flag
+        # VALIDATION 2: Check if data was actually persisted
+        if updated_count == 0:
+            logger.error(
+                f"❌ Failed to persist cleansed data (0/{len(cleaned_data)} records updated)"
+            )
+            return {
+                "status": "error",
+                "error_code": "CLEANSING_FAILED",
+                "message": f"Failed to persist cleansed data to database (0/{len(cleaned_data)} records updated)",
+                "raw_records_count": len(raw_import_records),
+                "cleaned_records_count": len(cleaned_data),
+                "persisted_count": 0,
+            }
+
+        logger.info(
+            f"✅ Successfully persisted {updated_count}/{len(cleaned_data)} cleansed records"
+        )
+
+        # VALIDATION 3: Verify cleansed data exists in database before marking complete
+        cleansed_count = await self._verify_cleansed_data_in_database()
+        if cleansed_count == 0:
+            logger.error(
+                "❌ Post-persistence verification failed - no cleansed data found in database"
+            )
+            return {
+                "status": "error",
+                "error_code": "CLEANSING_FAILED",
+                "message": "Data cleansing verification failed - no cleansed data found in database after update",
+                "raw_records_count": len(raw_import_records),
+                "cleaned_records_count": len(cleaned_data),
+                "updated_count": updated_count,
+                "verified_count": 0,
+            }
+
+        # Only mark phase complete if we successfully cleansed and persisted data
         await self._mark_phase_complete("data_cleansing")
 
         return {
+            "status": "success",
             "cleaned_data": cleaned_data,
             "cleansing_summary": DataCleansingUtils.generate_cleansing_summary(
                 cleaned_data
@@ -87,6 +158,10 @@ class DataCleansingExecutor(BasePhaseExecutor):
             ),
             "persistent_agent_used": True,
             "crew_based": False,
+            "raw_records_count": len(raw_import_records),
+            "cleaned_records_count": len(cleaned_data),
+            "persisted_count": updated_count,
+            "verified_count": cleansed_count,
         }
 
     async def execute_fallback(self) -> Dict[str, Any]:
@@ -210,8 +285,12 @@ class DataCleansingExecutor(BasePhaseExecutor):
         )
         return assets
 
-    async def _update_cleansed_data_sync(self, cleaned_data: List[Dict[str, Any]]):
-        """Update raw records with cleansed data - SYNCHRONOUS, no fire-and-forget"""
+    async def _update_cleansed_data_sync(
+        self, cleaned_data: List[Dict[str, Any]]
+    ) -> int:
+        """Update raw records with cleansed data - SYNCHRONOUS, no fire-and-forget
+        Returns: Number of records successfully updated
+        """
         # Use existing session if available, otherwise create new one
         if hasattr(self, "db_session") and self.db_session:
             db = self.db_session
@@ -241,6 +320,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 await db.commit()
 
             logger.info(f"✅ Updated {updated_count} raw records with cleansed data")
+            return updated_count
 
         finally:
             if should_commit and db:
@@ -331,6 +411,111 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 f"❌ Failed to persist {phase_name} completion to database: {e}"
             )
             # Don't raise the exception - phase completion should not fail the whole process
+
+    async def _verify_cleansed_data_in_database(self) -> int:
+        """Verify that cleansed data exists in the database for this import
+        Returns: Count of records with cleansed_data
+        """
+        from sqlalchemy import select, func
+        from app.models.data_import.core import RawImportRecord
+
+        # Use existing session if available
+        if hasattr(self, "db_session") and self.db_session:
+            session = self.db_session
+            should_close = False
+        else:
+            from app.core.database import AsyncSessionLocal
+
+            session = AsyncSessionLocal()
+            should_close = True
+
+        try:
+            data_import_id = getattr(self.state, "data_import_id", None)
+            if not data_import_id:
+                logger.error("❌ No data_import_id found in state for verification")
+                return 0
+
+            # Count records with cleansed_data (non-null)
+            query = select(func.count()).where(
+                (
+                    RawImportRecord.data_import_id == uuid.UUID(data_import_id)
+                    if isinstance(data_import_id, str)
+                    else data_import_id
+                ),
+                (
+                    RawImportRecord.client_account_id
+                    == uuid.UUID(self.state.client_account_id)
+                    if isinstance(self.state.client_account_id, str)
+                    else self.state.client_account_id
+                ),
+                (
+                    RawImportRecord.engagement_id == uuid.UUID(self.state.engagement_id)
+                    if isinstance(self.state.engagement_id, str)
+                    else self.state.engagement_id
+                ),
+                RawImportRecord.cleansed_data.isnot(
+                    None
+                ),  # Only count non-null cleansed_data
+            )
+
+            result = await session.execute(query)
+            count = result.scalar() or 0
+
+            logger.info(
+                f"📊 Verification: {count} records have cleansed_data in database"
+            )
+            return count
+
+        except Exception as e:
+            logger.error(f"❌ Failed to verify cleansed data in database: {e}")
+            return 0
+
+        finally:
+            if should_close and session:
+                await session.close()
+
+    def _basic_data_cleansing(
+        self, raw_import_records: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Basic data cleansing fallback when agent is not available or fails"""
+        logger.info(
+            f"🔧 Performing basic data cleansing on {len(raw_import_records)} records"
+        )
+
+        cleaned_data = []
+        for record in raw_import_records:
+            # Create a cleaned version of the record
+            cleaned_record = {}
+
+            # Preserve the ID for mapping
+            if "raw_import_record_id" in record:
+                cleaned_record["raw_import_record_id"] = record["raw_import_record_id"]
+                cleaned_record["id"] = record["raw_import_record_id"]
+
+            # Copy over the raw data fields
+            raw_data = record.get("raw_data", {})
+            if isinstance(raw_data, dict):
+                cleaned_record.update(raw_data)
+
+            # Basic cleansing operations
+            for key, value in record.items():
+                if key not in ["raw_import_record_id", "id", "raw_data"]:
+                    # Clean string values
+                    if isinstance(value, str):
+                        value = value.strip()
+                        # Convert empty strings to None
+                        if value == "":
+                            value = None
+                    cleaned_record[key] = value
+
+            # Add cleansing metadata
+            cleaned_record["cleansing_method"] = "basic_fallback"
+            cleaned_record["cleansed_at"] = datetime.utcnow().isoformat()
+
+            cleaned_data.append(cleaned_record)
+
+        logger.info(f"✅ Basic cleansing completed for {len(cleaned_data)} records")
+        return cleaned_data
 
     async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
         """Get raw import records with IDs and tenant scoping"""

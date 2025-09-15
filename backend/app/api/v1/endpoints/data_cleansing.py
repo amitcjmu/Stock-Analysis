@@ -187,9 +187,23 @@ async def get_data_cleansing_analysis(
                     )
 
         if not data_import:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No data import found for flow {flow_id}",
+            # Return empty analysis when no data import exists
+            logger.warning(
+                f"No data import found for flow {flow_id}, returning empty analysis"
+            )
+            return DataCleansingAnalysis(
+                flow_id=flow_id,
+                analysis_timestamp="",
+                total_records=0,
+                total_fields=0,
+                quality_score=0.0,
+                issues_count=0,
+                recommendations_count=0,
+                quality_issues=[],
+                recommendations=[],
+                field_quality_scores={},
+                processing_status="no_data",
+                source="empty",
             )
 
         data_imports = [
@@ -494,7 +508,7 @@ async def trigger_data_cleansing_analysis(
             )
 
             # If execution was successful, get the updated analysis
-            if execution_result.get("status") == "success":
+            if execution_result.get("status") in ("success", "completed"):
                 data_import = await _get_data_import_for_flow(flow_id, flow, db)
 
                 if not data_import:
@@ -517,14 +531,13 @@ async def trigger_data_cleansing_analysis(
                     flow_id=flow_id,
                     data_imports=data_imports,
                     field_mappings=field_mappings,
-                    include_details=True,
-                    execution_result=execution_result,
-                    db_session=db,
                 )
 
                 logger.info(
-                    f"✅ Data cleansing analysis triggered and completed for flow {flow_id}"
+                    f"✅ Data cleansing analysis completed for flow {flow_id}: "
+                    f"found {len(analysis_result.cleaned_records)} cleaned records"
                 )
+
                 return analysis_result
             else:
                 # Execution failed, but still return analysis with error status

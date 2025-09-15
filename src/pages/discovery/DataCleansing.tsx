@@ -361,10 +361,18 @@ const DataCleansing: React.FC = () => {
   }, [client, engagement]);
 
   // Get data cleansing specific data from V2 flow (keep for compatibility)
-  const isDataCleansingComplete = completedPhases.includes('data_cleansing');
+  const isDataCleansingComplete = completedPhases.includes('data_cleansing') ||
+    flow?.phase_completion?.data_cleansing === true;
   const allQuestionsAnswered = pendingQuestions === 0;
   const hasMinimumProgress = cleansingProgress.completion_percentage >= 50 || cleansingProgress.total_records > 0;
-  const canContinueToInventory = isDataCleansingComplete || (allQuestionsAnswered && hasMinimumProgress);
+  // Allow continuing if:
+  // 1. Phase is already marked complete OR
+  // 2. All questions answered and has progress OR
+  // 3. No data to cleanse (total_records === 0) and phase is current
+  const noDataToProcess = cleansingProgress.total_records === 0 && currentPhase === 'data_cleansing';
+  const canContinueToInventory = isDataCleansingComplete ||
+    (allQuestionsAnswered && hasMinimumProgress) ||
+    (noDataToProcess && allQuestionsAnswered);
 
   // Enhanced data samples for display - extract from flow state with proper type casting
   const rawDataSample = flow?.raw_data?.slice(0, 3) || [];

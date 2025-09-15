@@ -33,6 +33,33 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# Compatibility shim for frontend calls like /api/v1/field-mapping/learned/approve/{mapping_id}
+@router.post("/field-mapping/learned/approve/{mapping_id}")
+async def approve_field_mapping_compat(
+    mapping_id: str,
+    approved: bool = Query(
+        default=True, description="Approve (true) or reject (false)"
+    ),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+):
+    """Compatibility endpoint that forwards to the standard approval endpoint."""
+    try:
+        return await approve_field_mapping(
+            mapping_id=mapping_id,
+            approved=approved,
+            db=db,
+            context=context,
+            current_user=current_user,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(safe_log_format("Compat approve failed: {e}", e=e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def _get_discovery_flow(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> DiscoveryFlow:
