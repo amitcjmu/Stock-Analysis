@@ -503,7 +503,9 @@ async def trigger_data_cleansing_analysis(
             # Add data_import_id if available
             if flow.data_import_id:
                 phase_input["data_import_id"] = str(flow.data_import_id)
-                logger.info(f"📋 Adding data_import_id to phase_input: {flow.data_import_id}")
+                logger.info(
+                    f"📋 Adding data_import_id to phase_input: {flow.data_import_id}"
+                )
 
             execution_result = await flow_orchestrator.execute_phase(
                 flow_id=flow_id,

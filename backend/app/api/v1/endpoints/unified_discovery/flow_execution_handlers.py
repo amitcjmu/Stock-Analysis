@@ -20,6 +20,74 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _execute_data_cleansing_with_complete(
+    flow_id: str,
+    discovery_flow: DiscoveryFlow,
+    db: AsyncSession,
+    context: RequestContext,
+) -> dict:
+    """Execute data cleansing phase and mark as complete."""
+    from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+    orchestrator = MasterFlowOrchestrator(db, context)
+
+    # Prepare phase_input with data_import_id
+    cleansing_input = {}
+    if discovery_flow.data_import_id:
+        cleansing_input["data_import_id"] = str(discovery_flow.data_import_id)
+        logger.info(
+            f"Passing data_import_id: {discovery_flow.data_import_id} to data_cleansing executor"
+        )
+
+    # Execute the data_cleansing phase
+    exec_result = await orchestrator.execute_phase(
+        flow_id=flow_id,
+        phase_name="data_cleansing",
+        phase_input=cleansing_input,
+    )
+
+    # Update the discovery flow state
+    if exec_result.get("status") in ("success", "completed"):
+        discovery_flow.data_cleansing_completed = True
+        discovery_flow.current_phase = "asset_inventory"
+        await db.commit()
+
+        return {
+            "success": True,
+            "phase": "data_cleansing",
+            "status": "completed",
+            "message": "Data cleansing phase executed and completed",
+            "data": exec_result.get("data", {}),
+        }
+    else:
+        return exec_result
+
+
+async def _execute_data_cleansing_regular(
+    flow_id: str,
+    discovery_flow: DiscoveryFlow,
+    phase_input: dict,
+    db: AsyncSession,
+    context: RequestContext,
+) -> dict:
+    """Execute data cleansing phase with regular flow."""
+    from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+    # Ensure data_import_id is in phase_input
+    if discovery_flow.data_import_id and "data_import_id" not in phase_input:
+        phase_input["data_import_id"] = str(discovery_flow.data_import_id)
+        logger.info(
+            f"Adding data_import_id: {discovery_flow.data_import_id} to phase_input"
+        )
+
+    orchestrator = MasterFlowOrchestrator(db, context)
+    return await orchestrator.execute_phase(
+        flow_id=flow_id,
+        phase_name="data_cleansing",
+        phase_input=phase_input,
+    )
+
+
 def _determine_next_phase(discovery_flow: DiscoveryFlow) -> str:
     """
     Determine the next phase to execute based on the current flow state.
@@ -99,57 +167,13 @@ async def execute_flow(
                     logger.info(
                         "Executing data_cleansing phase before marking complete"
                     )
-                    # Force execution of data_cleansing phase
-                    from app.services.master_flow_orchestrator import (
-                        MasterFlowOrchestrator,
+                    return await _execute_data_cleansing_with_complete(
+                        flow_id, discovery_flow, db, context
                     )
-
-                    orchestrator = MasterFlowOrchestrator(db, context)
-
-                    # Prepare phase_input with data_import_id
-                    cleansing_input = {}
-                    if discovery_flow.data_import_id:
-                        cleansing_input["data_import_id"] = str(discovery_flow.data_import_id)
-                        logger.info(f"Passing data_import_id: {discovery_flow.data_import_id} to data_cleansing executor")
-
-                    # Execute the data_cleansing phase
-                    exec_result = await orchestrator.execute_phase(
-                        flow_id=flow_id,
-                        phase_name="data_cleansing",
-                        phase_input=cleansing_input,  # Pass data_import_id to the executor
-                    )
-
-                    # Update the discovery flow state
-                    if exec_result.get("status") in ("success", "completed"):
-                        discovery_flow.data_cleansing_completed = True
-                        discovery_flow.current_phase = "asset_inventory"
-                        await db.commit()
-
-                        return {
-                            "success": True,
-                            "phase": "data_cleansing",
-                            "status": "completed",
-                            "message": "Data cleansing phase executed and completed",
-                            "data": exec_result.get("data", {}),
-                        }
-                    else:
-                        return exec_result
                 else:
                     # Regular execution of data_cleansing
-                    from app.services.master_flow_orchestrator import (
-                        MasterFlowOrchestrator,
-                    )
-
-                    # Ensure data_import_id is in phase_input
-                    if discovery_flow.data_import_id and "data_import_id" not in phase_input:
-                        phase_input["data_import_id"] = str(discovery_flow.data_import_id)
-                        logger.info(f"Adding data_import_id: {discovery_flow.data_import_id} to phase_input")
-
-                    orchestrator = MasterFlowOrchestrator(db, context)
-                    return await orchestrator.execute_phase(
-                        flow_id=flow_id,
-                        phase_name=requested_phase,
-                        phase_input=phase_input,
+                    return await _execute_data_cleansing_regular(
+                        flow_id, discovery_flow, phase_input, db, context
                     )
             else:
                 # For other phases, use existing flow execution logic
