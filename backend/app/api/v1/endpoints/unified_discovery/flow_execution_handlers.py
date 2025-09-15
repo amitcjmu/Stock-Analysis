@@ -106,11 +106,17 @@ async def execute_flow(
 
                     orchestrator = MasterFlowOrchestrator(db, context)
 
+                    # Prepare phase_input with data_import_id
+                    cleansing_input = {}
+                    if discovery_flow.data_import_id:
+                        cleansing_input["data_import_id"] = str(discovery_flow.data_import_id)
+                        logger.info(f"Passing data_import_id: {discovery_flow.data_import_id} to data_cleansing executor")
+
                     # Execute the data_cleansing phase
                     exec_result = await orchestrator.execute_phase(
                         flow_id=flow_id,
                         phase_name="data_cleansing",
-                        phase_input={},  # Don't pass complete:true to the executor
+                        phase_input=cleansing_input,  # Pass data_import_id to the executor
                     )
 
                     # Update the discovery flow state
@@ -133,6 +139,11 @@ async def execute_flow(
                     from app.services.master_flow_orchestrator import (
                         MasterFlowOrchestrator,
                     )
+
+                    # Ensure data_import_id is in phase_input
+                    if discovery_flow.data_import_id and "data_import_id" not in phase_input:
+                        phase_input["data_import_id"] = str(discovery_flow.data_import_id)
+                        logger.info(f"Adding data_import_id: {discovery_flow.data_import_id} to phase_input")
 
                     orchestrator = MasterFlowOrchestrator(db, context)
                     return await orchestrator.execute_phase(

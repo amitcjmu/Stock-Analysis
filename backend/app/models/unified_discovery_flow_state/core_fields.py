@@ -20,6 +20,8 @@ class CoreFieldsMixin(BaseModel):
     engagement_id: str = ""
     user_id: str = ""
     master_flow_id: Optional[str] = None  # Links to master flow orchestrator record
+    # Data import identifier associated to this discovery flow (CMDB upload)
+    data_import_id: Optional[str] = None
 
     # ========================================
     # CREWAI FLOW STATE MANAGEMENT
