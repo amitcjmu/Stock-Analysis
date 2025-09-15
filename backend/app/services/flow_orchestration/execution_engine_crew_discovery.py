@@ -516,9 +516,26 @@ class ExecutionEngineDiscoveryCrews:
             state = UnifiedDiscoveryFlowState()
 
             # Set required state attributes from phase_input
-            state.flow_id = phase_input.get("master_flow_id") or phase_input.get(
-                "flow_id"
+            # Debug logging to understand what's in phase_input
+            logger.info(f"📋 phase_input keys: {list(phase_input.keys())}")
+            logger.info(f"📋 flow_id from phase_input: {phase_input.get('flow_id')}")
+            logger.info(f"📋 master_flow_id from phase_input: {phase_input.get('master_flow_id')}")
+
+            state.flow_id = phase_input.get("flow_id") or phase_input.get(
+                "master_flow_id"
             )
+
+            # If flow_id is still None, log error but continue
+            if not state.flow_id:
+                logger.error("❌ CRITICAL: flow_id is None in phase_input!")
+                logger.error(f"❌ phase_input contents: {phase_input}")
+                # Try to get flow_id from context or other sources
+                if hasattr(self, 'context') and hasattr(self.context, 'flow_id'):
+                    state.flow_id = self.context.flow_id
+                    logger.info(f"✅ Retrieved flow_id from context: {state.flow_id}")
+            else:
+                logger.info(f"✅ flow_id set to: {state.flow_id}")
+
             # Ensure data_import_id is available - add it as an attribute dynamically
             if not hasattr(state, "data_import_id"):
                 setattr(state, "data_import_id", phase_input.get("data_import_id"))
