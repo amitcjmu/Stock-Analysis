@@ -202,11 +202,16 @@ async def execute_flow(
 
             result = await exec_phase(flow_id, discovery_flow, context, db)
 
+        # FIX: Use requested_phase if provided, otherwise use next_phase
+        phase_for_log = requested_phase or result.get(
+            "next_phase", next_phase if "next_phase" in locals() else None
+        )
+
         logger.info(
             safe_log_format(
                 "Flow phase executed: flow_id={flow_id}, phase={phase}, success={success}",
                 flow_id=mask_id(str(flow_id)),
-                phase=next_phase,
+                phase=phase_for_log,
                 success=result.get("success", False),
             )
         )
@@ -225,7 +230,7 @@ async def execute_flow(
                     "counts": result.get("counts", {}),
                     "requires_cleansing": True,
                     "flow_id": flow_id,
-                    "phase": next_phase,
+                    "phase": phase_for_log,
                 },
             )
 
@@ -239,7 +244,7 @@ async def execute_flow(
                         "error_code": result.get("error_code", "VALIDATION_ERROR"),
                         "message": result.get("message", "Request validation failed"),
                         "flow_id": flow_id,
-                        "phase": next_phase,
+                        "phase": phase_for_log,
                         **{
                             k: v
                             for k, v in result.items()

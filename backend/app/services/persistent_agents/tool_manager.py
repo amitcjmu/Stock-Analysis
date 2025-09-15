@@ -330,10 +330,16 @@ class AgentToolManager:
                 service_registry = (
                     context_info.get("service_registry") if context_info else None
                 )
+                # Debug logging for ServiceRegistry
+                logger.debug(
+                    f"Tool {tool_name} requires registry. "
+                    f"ServiceRegistry available: {service_registry is not None}"
+                )
                 # Skip tools that require ServiceRegistry when none is available
                 if service_registry is None:
                     logger.warning(
-                        f"Skipping {tool_name} - ServiceRegistry not available"
+                        f"Skipping {tool_name} - ServiceRegistry not available. "
+                        f"Context info keys: {list(context_info.keys()) if context_info else 'None'}"
                     )
                     return 0
 
@@ -366,6 +372,13 @@ class AgentToolManager:
             # Extract context information
             client_account_id, engagement_id, service_registry = (
                 cls.extract_context_info(context_info)
+            )
+
+            # Debug logging for service registry
+            logger.debug(
+                f"Getting tools for {agent_type}. "
+                f"ServiceRegistry available: {service_registry is not None}, "
+                f"Context keys: {list(context_info.keys()) if context_info else 'None'}"
             )
 
             # Add registry-based tools

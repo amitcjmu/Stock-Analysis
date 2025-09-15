@@ -176,6 +176,25 @@ class FlowExecutionCore:
         if phase_input is None:
             phase_input = {}
 
+        # Add essential flow context to phase_input
+        # CRITICAL FIX: Use master_flow.flow_id (not master_flow.id) per GPT5 recommendation
+        phase_input["flow_id"] = str(master_flow.flow_id)
+        phase_input["master_flow_id"] = str(master_flow.flow_id)
+        phase_input["client_account_id"] = master_flow.client_account_id
+        phase_input["engagement_id"] = master_flow.engagement_id
+
+        # Add data_import_id from flow_metadata if available
+        if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
+            if isinstance(master_flow.flow_metadata, dict):
+                data_import_id = master_flow.flow_metadata.get("data_import_id")
+                if data_import_id:
+                    phase_input["data_import_id"] = data_import_id
+                    logger.info(
+                        f"✅ Added data_import_id to phase_input: {data_import_id}"
+                    )
+
+        logger.debug(f"📋 Prepared phase_input with keys: {list(phase_input.keys())}")
+
         # Run pre-phase validations (if not overridden)
         if not validation_overrides or validation_overrides.get(
             "run_pre_validations", True

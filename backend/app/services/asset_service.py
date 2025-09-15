@@ -157,20 +157,33 @@ class AssetService:
         )
 
         # If no discovery_flow_id, lookup from master_flow_id
+        # CC: Fix - discovery_flows have flow_id == master_flow_id, not a separate master_flow_id column
         if not discovery_flow_id and master_flow_id:
             try:
                 from app.models.discovery_flow import DiscoveryFlow
 
+                # Try looking up by flow_id first (which should equal master_flow_id)
                 result = await self.db.execute(
-                    select(DiscoveryFlow.id).where(
-                        DiscoveryFlow.master_flow_id == master_flow_id
+                    select(DiscoveryFlow.flow_id).where(
+                        DiscoveryFlow.flow_id == master_flow_id
                     )
                 )
                 discovery_flow = result.scalar_one_or_none()
                 if discovery_flow:
                     discovery_flow_id = str(discovery_flow)
+                    logger.info(
+                        f"✅ Found discovery_flow_id {discovery_flow_id} for master_flow_id {master_flow_id}"
+                    )
+                else:
+                    # If master_flow_id is the discovery flow ID itself, use it
+                    discovery_flow_id = master_flow_id
+                    logger.info(
+                        f"📌 Using master_flow_id as discovery_flow_id: {discovery_flow_id}"
+                    )
             except Exception as e:
                 logger.warning(f"Could not lookup discovery_flow_id: {e}")
+                # Fallback to using master_flow_id as discovery_flow_id
+                discovery_flow_id = master_flow_id
 
         # Use provided flow IDs or fallback to context
         effective_flow_id = self._get_uuid(

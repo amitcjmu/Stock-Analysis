@@ -173,13 +173,16 @@ async def initialize_discovery_flow(
 
 
 def _get_common_field_mappings() -> Dict[str, Tuple[str, float]]:
-    """Get common field mappings with confidence scores."""
+    """Get common field mappings with confidence scores.
+
+    Maps source fields to valid Asset model columns only.
+    """
     return {
         # Identity mappings
         "name": ("name", 0.95),
         "hostname": ("hostname", 0.95),
         "host_name": ("hostname", 0.90),
-        "server_name": ("hostname", 0.85),
+        "server_name": ("hostname", 0.85),  # Maps to hostname, not server_name
         "fqdn": ("fqdn", 0.95),
         "asset_name": ("asset_name", 0.90),
         "display_name": ("asset_name", 0.85),
@@ -188,6 +191,7 @@ def _get_common_field_mappings() -> Dict[str, Tuple[str, float]]:
         "ip": ("ip_address", 0.90),
         "ipaddress": ("ip_address", 0.90),
         "primary_ip": ("ip_address", 0.85),
+        "mac_address": ("mac_address", 0.95),
         # Type mappings
         "asset_type": ("asset_type", 0.95),
         "type": ("asset_type", 0.85),
@@ -202,20 +206,80 @@ def _get_common_field_mappings() -> Dict[str, Tuple[str, float]]:
         "os": ("operating_system", 0.90),
         "os_name": ("operating_system", 0.90),
         "platform": ("operating_system", 0.80),
+        "os_version": ("os_version", 0.95),
         # Location mappings
         "location": ("location", 0.95),
-        "datacenter": ("location", 0.85),
-        "data_center": ("location", 0.85),
+        "datacenter": ("datacenter", 0.95),
+        "data_center": ("datacenter", 0.90),
         "site": ("location", 0.80),
+        "rack_location": ("rack_location", 0.95),
+        "availability_zone": ("availability_zone", 0.95),
         # Owner mappings
-        "owner": ("owner", 0.95),
-        "owner_email": ("owner", 0.90),
-        "business_owner": ("owner", 0.85),
-        "technical_owner": ("owner", 0.85),
+        "owner": ("business_owner", 0.85),  # Map to business_owner field
+        "owner_email": ("business_owner", 0.80),
+        "business_owner": ("business_owner", 0.95),
+        "technical_owner": ("technical_owner", 0.95),
+        "department": ("department", 0.95),
         # Description mappings
         "description": ("description", 0.95),
         "notes": ("description", 0.80),
         "comments": ("description", 0.75),
+        # Resource spec mappings
+        "cpu_cores": ("cpu_cores", 0.95),
+        "cpu": ("cpu_cores", 0.85),
+        "vcpu": ("cpu_cores", 0.85),
+        "memory_gb": ("memory_gb", 0.95),
+        "memory": ("memory_gb", 0.85),
+        "ram": ("memory_gb", 0.85),
+        "storage_gb": ("storage_gb", 0.95),
+        "storage": ("storage_gb", 0.85),
+        "disk": ("storage_gb", 0.80),
+        # Application mappings
+        "application_name": ("application_name", 0.95),
+        "app_name": ("application_name", 0.90),
+        "application": ("application_name", 0.85),
+        "technology_stack": ("technology_stack", 0.95),
+        "tech_stack": ("technology_stack", 0.90),
+        # Business criticality mappings
+        "criticality": ("criticality", 0.95),
+        "business_criticality": ("business_criticality", 0.95),
+        "priority": ("migration_priority", 0.85),
+        # Migration mappings
+        "migration_priority": ("migration_priority", 0.95),
+        "migration_wave": ("migration_wave", 0.95),
+        "migration_complexity": ("migration_complexity", 0.95),
+        "six_r_strategy": ("six_r_strategy", 0.95),
+        "sixr_strategy": ("six_r_strategy", 0.90),
+        "migration_strategy": ("six_r_strategy", 0.85),
+        # Cost mappings
+        "current_monthly_cost": ("current_monthly_cost", 0.95),
+        "current_cost": ("current_monthly_cost", 0.85),
+        "estimated_cloud_cost": ("estimated_cloud_cost", 0.95),
+        "cloud_cost": ("estimated_cloud_cost", 0.85),
+        "azure_cost": ("estimated_cloud_cost", 0.80),
+        "monthly_azure_cost_estimate_usd": ("estimated_cloud_cost", 0.75),
+        # Status mappings
+        "status": ("status", 0.95),
+        "migration_status": ("migration_status", 0.95),
+        # Readiness mappings
+        "azure_readiness": ("sixr_ready", 0.70),  # Map to closest available field
+        "cloud_readiness": ("sixr_ready", 0.70),
+        "readiness": ("sixr_ready", 0.65),
+        # VM Size mappings - store in custom_attributes since no direct field
+        "recommended_azure_vm_size": ("UNMAPPED", 0.0),  # Will go to custom_attributes
+        "recommended_vm_size": ("UNMAPPED", 0.0),
+        "target_vm_size": ("UNMAPPED", 0.0),
+        # Performance metrics
+        "cpu_utilization_percent": ("cpu_utilization_percent", 0.95),
+        "cpu_utilization": ("cpu_utilization_percent", 0.90),
+        "memory_utilization_percent": ("memory_utilization_percent", 0.95),
+        "memory_utilization": ("memory_utilization_percent", 0.90),
+        "disk_iops": ("disk_iops", 0.95),
+        "network_throughput_mbps": ("network_throughput_mbps", 0.95),
+        # Quality scores
+        "completeness_score": ("completeness_score", 0.95),
+        "quality_score": ("quality_score", 0.95),
+        "confidence_score": ("confidence_score", 0.95),
     }
 
 
@@ -243,20 +307,28 @@ def _extract_source_fields(raw_data: Any) -> Set[str]:
 def _find_field_mapping(
     source_field: str, common_mappings: Dict[str, Tuple[str, float]]
 ) -> Tuple[str, float]:
-    """Find target field and confidence score for source field."""
+    """Find target field and confidence score for source field.
+
+    Returns UNMAPPED for fields that don't have a valid Asset model target.
+    """
     source_field_lower = source_field.lower()
 
     # Check for exact mappings first
     if source_field_lower in common_mappings:
         return common_mappings[source_field_lower]
 
-    # Try fuzzy matching for similar fields
+    # Try fuzzy matching for similar fields - but be more conservative
     for common_field, (target, conf) in common_mappings.items():
-        if common_field in source_field_lower or source_field_lower in common_field:
-            return target, conf * 0.8  # Reduce confidence for fuzzy match
+        # Only do fuzzy match if there's significant overlap
+        if len(common_field) > 3 and len(source_field_lower) > 3:
+            if common_field in source_field_lower or source_field_lower in common_field:
+                # Only accept fuzzy match if target is not UNMAPPED
+                if target != "UNMAPPED":
+                    return target, conf * 0.8  # Reduce confidence for fuzzy match
 
-    # If no match found, map to same name with low confidence
-    return source_field.lower().replace(" ", "_"), 0.3
+    # If no match found, mark as UNMAPPED instead of creating invalid mapping
+    # This prevents creating target fields that don't exist in Asset model
+    return "UNMAPPED", 0.0
 
 
 def _should_skip_field(source_field: str) -> bool:

@@ -23,9 +23,10 @@ class AssetCreationToolsExecutor:
 
         for tool in agent.tools:
             if hasattr(tool, "name"):
-                if tool.name == "asset_creator":
+                # Check for both naming conventions to support backward compatibility
+                if tool.name in ["asset_creator", "asset_creation"]:
                     asset_creation_tools.append(tool)
-                elif tool.name == "bulk_asset_creator":
+                elif tool.name in ["bulk_asset_creator", "bulk_asset_creation"]:
                     bulk_creation_tools.append(tool)
 
         return asset_creation_tools, bulk_creation_tools
@@ -71,6 +72,10 @@ class AssetCreationToolsExecutor:
                 }
 
             logger.info(f"🔧 Agent has {len(agent.tools)} tools available")
+            # Debug: log all tool names
+            for tool in agent.tools:
+                tool_name = getattr(tool, "name", "unnamed")
+                logger.info(f"  - Tool: {tool_name}")
 
             # Find asset creation tools
             asset_creation_tools, bulk_creation_tools = (

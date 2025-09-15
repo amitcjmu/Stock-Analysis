@@ -322,10 +322,14 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
             data_import_id = uuid.UUID(self.state.data_import_id)
 
+            # Get the master_flow_id from state (it should be the same as flow_id)
+            master_flow_id = getattr(self.state, "master_flow_id", self.state.flow_id)
+
             updated_count = await storage_manager.update_raw_records_with_cleansed_data(
                 data_import_id=data_import_id,
                 cleansed_data=cleaned_data,
                 validation_results=getattr(self.state, "data_validation_results", None),
+                master_flow_id=master_flow_id,  # Pass master_flow_id for proper asset association
             )
 
             if should_commit:
@@ -504,10 +508,15 @@ class DataCleansingExecutor(BasePhaseExecutor):
             # Create a cleaned version of the record
             cleaned_record = {}
 
-            # Preserve the ID for mapping
+            # CRITICAL: Preserve ALL ID fields for mapping
             if "raw_import_record_id" in record:
                 cleaned_record["raw_import_record_id"] = record["raw_import_record_id"]
                 cleaned_record["id"] = record["raw_import_record_id"]
+
+            # CRITICAL: Preserve row_number for fallback updating
+            if "row_number" in record:
+                cleaned_record["row_number"] = record["row_number"]
+                logger.debug(f"Preserved row_number: {record['row_number']} for record")
 
             # Copy over the raw data fields
             raw_data = record.get("raw_data", {})
@@ -516,7 +525,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
             # Basic cleansing operations
             for key, value in record.items():
-                if key not in ["raw_import_record_id", "id", "raw_data"]:
+                if key not in ["raw_import_record_id", "id", "raw_data", "row_number"]:
                     # Clean string values
                     if isinstance(value, str):
                         value = value.strip()

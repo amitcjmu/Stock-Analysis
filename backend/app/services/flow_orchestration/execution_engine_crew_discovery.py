@@ -253,6 +253,9 @@ class ExecutionEngineDiscoveryCrews:
                 "master_flow_id": master_flow_id,
                 "discovery_flow_id": discovery_flow_id,
                 "flow_id": discovery_flow_id,  # Some code expects flow_id
+                # CRITICAL: Add tenant context for asset creation
+                "client_account_id": str(self.context.client_account_id),
+                "engagement_id": str(self.context.engagement_id),
                 # Link to raw_import_record if available
                 "raw_import_records_id": raw_import_records_map.get(idx),
                 # Unmapped fields to custom_attributes
@@ -312,16 +315,21 @@ class ExecutionEngineDiscoveryCrews:
         self, master_flow: CrewAIFlowStateExtensions, phase_input: Dict[str, Any]
     ) -> None:
         """Prepare phase input with flow context data"""
-        phase_input["flow_id"] = master_flow.id
-        phase_input["client_account_id"] = master_flow.client_account_id
-        phase_input["engagement_id"] = master_flow.engagement_id
+        # Ensure flow_id is set (may already be set by execution_engine_core)
+        if "flow_id" not in phase_input:
+            phase_input["flow_id"] = master_flow.id
+        if "client_account_id" not in phase_input:
+            phase_input["client_account_id"] = master_flow.client_account_id
+        if "engagement_id" not in phase_input:
+            phase_input["engagement_id"] = master_flow.engagement_id
 
         # Get data_import_id from flow_metadata if available
-        if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
-            if isinstance(master_flow.flow_metadata, dict):
-                phase_input["data_import_id"] = master_flow.flow_metadata.get(
-                    "data_import_id"
-                )
+        if "data_import_id" not in phase_input:
+            if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
+                if isinstance(master_flow.flow_metadata, dict):
+                    phase_input["data_import_id"] = master_flow.flow_metadata.get(
+                        "data_import_id"
+                    )
 
     def _load_raw_data_from_persistence(
         self, master_flow: CrewAIFlowStateExtensions, phase_input: Dict[str, Any]
@@ -519,7 +527,9 @@ class ExecutionEngineDiscoveryCrews:
             # Debug logging to understand what's in phase_input
             logger.info(f"📋 phase_input keys: {list(phase_input.keys())}")
             logger.info(f"📋 flow_id from phase_input: {phase_input.get('flow_id')}")
-            logger.info(f"📋 master_flow_id from phase_input: {phase_input.get('master_flow_id')}")
+            logger.info(
+                f"📋 master_flow_id from phase_input: {phase_input.get('master_flow_id')}"
+            )
 
             state.flow_id = phase_input.get("flow_id") or phase_input.get(
                 "master_flow_id"
@@ -530,7 +540,7 @@ class ExecutionEngineDiscoveryCrews:
                 logger.error("❌ CRITICAL: flow_id is None in phase_input!")
                 logger.error(f"❌ phase_input contents: {phase_input}")
                 # Try to get flow_id from context or other sources
-                if hasattr(self, 'context') and hasattr(self.context, 'flow_id'):
+                if hasattr(self, "context") and hasattr(self.context, "flow_id"):
                     state.flow_id = self.context.flow_id
                     logger.info(f"✅ Retrieved flow_id from context: {state.flow_id}")
             else:

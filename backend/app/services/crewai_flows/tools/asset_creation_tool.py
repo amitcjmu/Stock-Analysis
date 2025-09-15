@@ -37,10 +37,23 @@ def create_asset_creation_tools(
         List of asset creation tools
     """
     logger.info("🔧 Creating asset creation tools for persistent agents")
+    logger.debug(
+        f"Context info keys: {list(context_info.keys()) if context_info else 'None'}, "
+        f"Registry provided: {registry is not None}"
+    )
 
     if registry is None:
-        logger.error("ServiceRegistry instance is required")
-        raise ValueError("ServiceRegistry instance is required")
+        # Try to get ServiceRegistry from context_info as fallback
+        registry = context_info.get("service_registry") if context_info else None
+        if registry is not None:
+            logger.info("✅ Found ServiceRegistry in context_info")
+        else:
+            logger.error("ServiceRegistry instance is required but not found")
+            # Return empty list instead of raising error to allow graceful degradation
+            logger.warning(
+                "⚠️ Returning empty tools list - no ServiceRegistry available"
+            )
+            return []
 
     # Always create ServiceRegistry-based tools (work with/without CrewAI)
     tools = []

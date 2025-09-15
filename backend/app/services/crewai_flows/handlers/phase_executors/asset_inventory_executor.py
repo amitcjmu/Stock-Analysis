@@ -70,6 +70,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Extract context information
             flow_id = flow_context.get("flow_id")
             master_flow_id = flow_context.get("master_flow_id") or flow_id
+            discovery_flow_id = flow_context.get(
+                "discovery_flow_id"
+            )  # The actual discovery flow ID
             client_account_id = flow_context.get("client_account_id")
             engagement_id = flow_context.get("engagement_id")
 
@@ -78,7 +81,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     "Missing required context: master_flow_id, client_account_id, engagement_id"
                 )
 
-            logger.info(f"📋 Processing flow: {master_flow_id}")
+            logger.info(
+                f"📋 Processing flow: master_flow_id={master_flow_id}, discovery_flow_id={discovery_flow_id}"
+            )
 
             # Get database session from context
             db_session = flow_context.get("db_session")
@@ -118,7 +123,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Transform raw records to asset data
             assets_data = []
             for record in raw_records:
-                asset_data = self._transform_raw_record_to_asset(record, master_flow_id)
+                asset_data = self._transform_raw_record_to_asset(
+                    record, master_flow_id, discovery_flow_id
+                )
                 if asset_data:
                     assets_data.append(asset_data)
 
@@ -213,7 +220,10 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             raise
 
     def _transform_raw_record_to_asset(
-        self, record: RawImportRecord, master_flow_id: str
+        self,
+        record: RawImportRecord,
+        master_flow_id: str,
+        discovery_flow_id: str = None,
     ) -> Dict[str, Any]:
         """Transform a raw import record to asset data format."""
         try:
@@ -278,6 +288,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 # Flow association
                 "master_flow_id": master_flow_id,
                 "flow_id": master_flow_id,  # Backward compatibility
+                "discovery_flow_id": discovery_flow_id,  # The actual discovery flow ID for proper association
                 # Store complete raw data
                 "custom_attributes": raw_data,
                 "raw_data": raw_data,

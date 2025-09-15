@@ -318,6 +318,142 @@ async def _handle_simple_logic_processing(
     # Determine next phase using simple logic
     next_phase = _get_next_phase_simple(flow_type, current_phase)
 
+    # CRITICAL FIX: Execute asset_inventory phase when transitioning TO or FROM it
+    # This ensures assets are actually created, not just phase advancement
+    # Handle both cases: moving TO asset_inventory OR already IN asset_inventory
+    if flow_type == "discovery" and (
+        next_phase == "asset_inventory"
+        or current_phase == "asset_inventory"
+        or (
+            current_phase == "data_cleansing"
+            and next_phase in ["asset_creation", "dependency_analysis"]
+        )
+    ):
+        # Check if we need to execute asset_inventory
+        execute_asset_phase = False
+        asset_phase_name = "asset_inventory"
+
+        if current_phase == "asset_inventory":
+            # We're IN asset_inventory, check if it's completed
+            asset_inventory_completed = flow_data.get("phases_completed", {}).get(
+                "asset_inventory", False
+            )
+            if not asset_inventory_completed:
+                logger.info(
+                    f"🏭 Currently in asset_inventory (not completed), executing before advancing to {next_phase}"
+                )
+                execute_asset_phase = True
+            else:
+                logger.info("✅ Asset inventory already completed, skipping execution")
+        elif next_phase == "asset_inventory":
+            # Moving TO asset_inventory
+            logger.info(f"🏭 Moving to asset_inventory phase for {flow_id}")
+            execute_asset_phase = True
+        elif current_phase == "data_cleansing":
+            # Just completed data_cleansing, ensure asset_inventory runs
+            logger.info(
+                f"🏭 Post-data_cleansing: ensuring asset_inventory executes for {flow_id}"
+            )
+            execute_asset_phase = True
+            # Override next phase to ensure proper sequence
+            if next_phase == "dependency_analysis":
+                # This means asset_inventory was skipped, force it
+                asset_phase_name = "asset_inventory"
+
+        if execute_asset_phase:
+            try:
+                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+                from app.repositories.discovery_flow_repository import (
+                    DiscoveryFlowRepository,
+                )
+
+                # CRITICAL: Get discovery flow first to access both data_import_id and master_flow_id
+                flow_repo = DiscoveryFlowRepository(
+                    db, context.client_account_id, context.engagement_id
+                )
+                discovery_flow = await flow_repo.get_flow(flow_id)
+
+                # Get data_import_id from flow_data or discovery flow
+                data_import_id = flow_data.get("data_import_id")
+
+                if not data_import_id and discovery_flow:
+                    data_import_id = discovery_flow.data_import_id
+                    if data_import_id:
+                        logger.info(
+                            f"📦 Found data_import_id from discovery flow: {data_import_id}"
+                        )
+
+                if not data_import_id:
+                    logger.warning(
+                        f"⚠️ No data_import_id found for flow {flow_id}, cannot execute asset_inventory"
+                    )
+                    # Skip asset inventory if no data import
+                else:
+                    # CRITICAL FIX: Get the actual master_flow_id from discovery flow
+                    # The flow_id here is the discovery flow ID, but we need the master flow ID
+                    master_flow_id = (
+                        discovery_flow.master_flow_id
+                        if discovery_flow and discovery_flow.master_flow_id
+                        else flow_id
+                    )
+
+                    logger.info(
+                        f"🏭 Executing asset_inventory with data_import_id: {data_import_id}"
+                    )
+                    logger.info(
+                        f"📋 Using master_flow_id: {master_flow_id} (discovery_flow_id: {flow_id})"
+                    )
+
+                    orchestrator = MasterFlowOrchestrator(db, context)
+                    exec_result = await orchestrator.execute_phase(
+                        flow_id=str(
+                            master_flow_id
+                        ),  # Use master_flow_id for orchestrator
+                        phase_name=asset_phase_name,
+                        phase_input={
+                            "data_import_id": str(
+                                data_import_id
+                            ),  # CRITICAL: Include data_import_id
+                            "flow_id": str(
+                                master_flow_id
+                            ),  # Use master_flow_id in phase_input
+                            "master_flow_id": str(
+                                master_flow_id
+                            ),  # Consistent master_flow_id
+                            "discovery_flow_id": flow_id,  # Include discovery_flow_id for asset association
+                            "client_account_id": str(context.client_account_id),
+                            "engagement_id": str(context.engagement_id),
+                        },
+                    )
+
+                    logger.info(f"✅ Asset inventory executed: {exec_result}")
+                    if exec_result.get("status") not in ("success", "completed"):
+                        logger.warning(
+                            f"⚠️ Asset inventory execution had issues: {exec_result}"
+                        )
+                    else:
+                        # Mark asset_inventory as completed in discovery flow
+                        from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
+                            FlowPhaseManagementCommands,
+                        )
+
+                        phase_mgmt = FlowPhaseManagementCommands(
+                            db, context.client_account_id, context.engagement_id
+                        )
+                        await phase_mgmt.update_phase_completion(
+                            flow_id=flow_id,  # Use discovery flow ID
+                            phase="asset_inventory",
+                            completed=True,
+                            data=exec_result,
+                            agent_insights=exec_result.get("agent_insights"),
+                        )
+                        logger.info(
+                            f"✅ Marked asset_inventory_completed=true for flow {flow_id}"
+                        )
+            except Exception as e:
+                logger.error(f"❌ Failed to execute asset_inventory phase: {e}")
+                # Continue anyway - don't block flow progression
+
     # Update current_phase in database if transitioning to next phase
     await _update_phase_if_needed(flow_id, next_phase, current_phase, db, context)
 

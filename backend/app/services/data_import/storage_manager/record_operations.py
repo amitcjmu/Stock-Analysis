@@ -149,6 +149,7 @@ class RawRecordOperationsMixin:
         data_import_id: uuid.UUID,
         cleansed_data: List[Dict[str, Any]],
         validation_results: Optional[Dict[str, Any]] = None,
+        master_flow_id: Optional[str] = None,
     ) -> int:
         """
         Update raw records with cleansed data and validation results.
@@ -157,6 +158,7 @@ class RawRecordOperationsMixin:
             data_import_id: The ID of the import
             cleansed_data: List of cleansed data records
             validation_results: Validation results (optional)
+            master_flow_id: The master flow ID for proper asset association
 
         Returns:
             int: Number of records updated
@@ -189,6 +191,21 @@ class RawRecordOperationsMixin:
                     }
 
                     # Update by row_number instead of ID
+                    update_values = {
+                        "cleansed_data": cleansed_record,  # Save without internal fields
+                        "is_processed": True,
+                        "is_valid": record.get("is_valid", True),
+                        "validation_errors": record.get("validation_errors"),
+                    }
+
+                    # Add master_flow_id if provided
+                    if master_flow_id:
+                        update_values["master_flow_id"] = (
+                            uuid.UUID(master_flow_id)
+                            if isinstance(master_flow_id, str)
+                            else master_flow_id
+                        )
+
                     update_stmt = (
                         update(RawImportRecord)
                         .where(
@@ -197,12 +214,7 @@ class RawRecordOperationsMixin:
                             RawImportRecord.client_account_id
                             == uuid.UUID(self.client_account_id),
                         )
-                        .values(
-                            cleansed_data=cleansed_record,  # Save without internal fields
-                            is_processed=True,
-                            is_valid=record.get("is_valid", True),
-                            validation_errors=record.get("validation_errors"),
-                        )
+                        .values(**update_values)
                     )
                     result = await self.db.execute(update_stmt)
 
@@ -244,6 +256,21 @@ class RawRecordOperationsMixin:
                 }
 
                 # CRITICAL FIX: Add tenant scoping for safety
+                update_values = {
+                    "cleansed_data": cleansed_record,  # Save without internal fields
+                    "is_processed": True,
+                    "is_valid": record.get("is_valid", True),
+                    "validation_errors": record.get("validation_errors"),
+                }
+
+                # Add master_flow_id if provided
+                if master_flow_id:
+                    update_values["master_flow_id"] = (
+                        uuid.UUID(master_flow_id)
+                        if isinstance(master_flow_id, str)
+                        else master_flow_id
+                    )
+
                 update_stmt = (
                     update(RawImportRecord)
                     .where(
@@ -252,12 +279,7 @@ class RawRecordOperationsMixin:
                         RawImportRecord.client_account_id
                         == uuid.UUID(self.client_account_id),  # Tenant scoping
                     )
-                    .values(
-                        cleansed_data=cleansed_record,  # Save without internal fields
-                        is_processed=True,
-                        is_valid=record.get("is_valid", True),
-                        validation_errors=record.get("validation_errors"),
-                    )
+                    .values(**update_values)
                 )
                 result = await self.db.execute(update_stmt)
 

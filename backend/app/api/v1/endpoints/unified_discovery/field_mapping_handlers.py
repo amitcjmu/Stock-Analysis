@@ -164,17 +164,27 @@ def _convert_mapping_type(mapping_type: str) -> FieldMappingType:
 
 
 def _create_field_mapping_item(mapping) -> Optional[FieldMappingItem]:
-    """Create a FieldMappingItem from SQLAlchemy model."""
+    """Create a FieldMappingItem from SQLAlchemy model.
+    
+    UNMAPPED fields are shown to allow users to manually map them.
+    """
     try:
         # Ensure confidence score is valid
         confidence_score = getattr(mapping, "confidence_score", None)
         if confidence_score is None:
             confidence_score = 0.5
 
+        # For UNMAPPED fields, show them with empty target to indicate they need mapping
+        # This allows users to manually select appropriate target fields
+        target_field = mapping.target_field
+        if target_field == "UNMAPPED":
+            target_field = ""  # Show empty target for unmapped fields
+            confidence_score = 0.0  # Zero confidence for unmapped
+
         return FieldMappingItem(
             id=str(mapping.id),
             source_field=mapping.source_field,
-            target_field=mapping.target_field,
+            target_field=target_field,
             confidence_score=confidence_score,
             field_type=getattr(mapping, "field_type", None),
             status=getattr(mapping, "status", "suggested"),
