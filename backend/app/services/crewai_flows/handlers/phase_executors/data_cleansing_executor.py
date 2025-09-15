@@ -102,10 +102,22 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
         logger.info(f"✅ Agent returned {len(cleaned_data)} cleaned records")
 
+        # Log sample of cleaned data to debug ID mapping
+        if cleaned_data:
+            sample_record = cleaned_data[0]
+            logger.info(f"📋 Sample cleaned record keys: {list(sample_record.keys())}")
+            has_id = sum(1 for r in cleaned_data if "id" in r)
+            has_raw_id = sum(1 for r in cleaned_data if "raw_import_record_id" in r)
+            has_row_num = sum(1 for r in cleaned_data if "row_number" in r)
+            logger.info(
+                f"📊 ID mapping stats - id: {has_id}, raw_import_record_id: {has_raw_id}, row_number: {has_row_num}"
+            )
+
         # CRITICAL: Fix ID mapping before storage
         for record in cleaned_data:
             if "raw_import_record_id" in record and "id" not in record:
                 record["id"] = record["raw_import_record_id"]
+                logger.debug("Mapped raw_import_record_id to id for record")
 
         # CRITICAL: Await the update (no fire-and-forget)
         updated_count = await self._update_cleansed_data_sync(cleaned_data)

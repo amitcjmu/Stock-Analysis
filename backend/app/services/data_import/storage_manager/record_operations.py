@@ -172,10 +172,55 @@ class RawRecordOperationsMixin:
             skipped_count = 0
 
             for record in cleansed_data:
-                # Assuming 'id' in the cleansed data corresponds to RawImportRecord.id
+                # Try to get record ID first (RawImportRecord.id)
                 record_id = record.get("id")
+                row_number = record.get("row_number")
+
+                # CRITICAL FIX: Add row_number fallback when ID is missing
+                if not record_id and row_number:
+                    logger.info(
+                        f"🔄 Using row_number fallback for record with row_number={row_number}"
+                    )
+                    # Create a copy without internal fields for storage
+                    cleansed_record = {
+                        k: v
+                        for k, v in record.items()
+                        if k not in ["id", "raw_import_record_id", "row_number"]
+                    }
+
+                    # Update by row_number instead of ID
+                    update_stmt = (
+                        update(RawImportRecord)
+                        .where(
+                            RawImportRecord.data_import_id == data_import_id,
+                            RawImportRecord.row_number == row_number,
+                            RawImportRecord.client_account_id
+                            == uuid.UUID(self.client_account_id),
+                        )
+                        .values(
+                            cleansed_data=cleansed_record,  # Save without internal fields
+                            is_processed=True,
+                            is_valid=record.get("is_valid", True),
+                            validation_errors=record.get("validation_errors"),
+                        )
+                    )
+                    result = await self.db.execute(update_stmt)
+
+                    if result.rowcount > 0:
+                        records_updated += 1
+                        logger.debug(
+                            f"✅ Updated record with row_number={row_number} successfully"
+                        )
+                    else:
+                        logger.warning(
+                            f"🚨 No rows updated for row_number={row_number} with data_import_id {data_import_id}"
+                        )
+                    continue
+
                 if not record_id:
-                    logger.warning(f"🚨 Skipping record with no ID: {record}")
+                    logger.warning(
+                        f"🚨 Skipping record with no ID or row_number: {list(record.keys())}"
+                    )
                     skipped_count += 1
                     continue
 
@@ -191,6 +236,13 @@ class RawRecordOperationsMixin:
                     skipped_count += 1
                     continue
 
+                # Create a copy without internal fields for storage
+                cleansed_record = {
+                    k: v
+                    for k, v in record.items()
+                    if k not in ["id", "raw_import_record_id", "row_number"]
+                }
+
                 # CRITICAL FIX: Add tenant scoping for safety
                 update_stmt = (
                     update(RawImportRecord)
@@ -201,7 +253,7 @@ class RawRecordOperationsMixin:
                         == uuid.UUID(self.client_account_id),  # Tenant scoping
                     )
                     .values(
-                        cleansed_data=record,
+                        cleansed_data=cleansed_record,  # Save without internal fields
                         is_processed=True,
                         is_valid=record.get("is_valid", True),
                         validation_errors=record.get("validation_errors"),
