@@ -344,8 +344,12 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
         # Update state to indicate phase completion
         if phase_name == "data_cleansing":
-            self.state.data_cleansing_completed = True
-            logger.info("✅ Set data_cleansing_completed flag in state")
+            # Use the phase_completion dict instead of non-existent field
+            if hasattr(self.state, "phase_completion"):
+                self.state.phase_completion["data_cleansing"] = True
+                logger.info("✅ Set phase_completion['data_cleansing'] = True in state")
+            else:
+                logger.warning("⚠️ State does not have phase_completion dict")
 
             # Persist data_cleansing_completed flag to database
             await self._persist_phase_completion_to_database(phase_name)
@@ -367,8 +371,8 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 should_commit = True  # Commit if we created the session
 
             try:
-                # Find the child discovery flow by master_flow_id
-                master_flow_id = (
+                # Find the discovery flow by flow_id (not master_flow_id)
+                flow_id = (
                     uuid.UUID(self.state.flow_id)
                     if isinstance(self.state.flow_id, str)
                     else self.state.flow_id
@@ -376,7 +380,8 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
                 result = await db.execute(
                     select(DiscoveryFlow).where(
-                        DiscoveryFlow.master_flow_id == master_flow_id,
+                        DiscoveryFlow.flow_id
+                        == flow_id,  # Use flow_id, not master_flow_id
                         (
                             DiscoveryFlow.client_account_id
                             == uuid.UUID(self.state.client_account_id)
