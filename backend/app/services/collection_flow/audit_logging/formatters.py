@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .base import AuditEvent, AuditEventType, AuditSeverity
+from .base import AuditEvent, AuditEventType
 
 
 class AuditLogFormatter:

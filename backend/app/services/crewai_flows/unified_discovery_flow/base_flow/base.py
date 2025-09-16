@@ -6,26 +6,29 @@ Contains the core UnifiedDiscoveryFlow class with initialization and property de
 
 import logging
 import uuid
-from datetime import datetime
-from typing import Any, Dict, Optional
 
 from app.core.context import RequestContext
 from app.core.security.cache_encryption import secure_setattr
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 # CrewAI Flow imports - REAL AGENTS ONLY
-logger = logging.getLogger(__name__)
-
 try:
     from crewai import Flow
-    from crewai.flow.flow import listen, start
 
     CREWAI_FLOW_AVAILABLE = True
-    logger.info("✅ CrewAI Flow imports successful - REAL AGENTS ENABLED")
 except ImportError as e:
+    logger = logging.getLogger(__name__)
     logger.error(f"❌ CrewAI Flow not available: {e}")
     logger.error("❌ CRITICAL: Cannot proceed without real CrewAI agents")
     raise ImportError(f"CrewAI is required for real agent execution: {e}")
+
+# Import mixins
+from .flow_initialization import FlowInitializationMethods
+from .flow_execution import FlowExecutionMethods
+from .phase_handlers import PhaseHandlerMethods
+from .state_management import StateManagementMethods
+
+logger = logging.getLogger(__name__)
 
 # Verify we're not using pseudo-agents
 if not CREWAI_FLOW_AVAILABLE:
@@ -33,12 +36,7 @@ if not CREWAI_FLOW_AVAILABLE:
         "❌ CRITICAL: Pseudo-agent fallback detected - real CrewAI required"
     )
 
-
-# Import mixins
-from .flow_initialization import FlowInitializationMethods
-from .flow_execution import FlowExecutionMethods
-from .phase_handlers import PhaseHandlerMethods
-from .state_management import StateManagementMethods
+logger.info("✅ CrewAI Flow imports successful - REAL AGENTS ENABLED")
 
 
 class UnifiedDiscoveryFlow(

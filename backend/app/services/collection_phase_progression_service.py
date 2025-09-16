@@ -9,7 +9,7 @@ and automatically advances them to the next phase (automated_collection).
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from uuid import UUID
 
 from sqlalchemy import select
@@ -22,7 +22,6 @@ from app.models.collection_flow import (
     CollectionPhase,
 )
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.api.v1.endpoints.collection_mfo_utils import (
     execute_mfo_phase,
     sync_collection_child_flow_state,

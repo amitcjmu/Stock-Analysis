@@ -139,7 +139,7 @@ class ErrorHandlerUtils:
 
             # Check service dependencies
             try:
-                health_manager = get_service_health_manager()
+                get_service_health_manager()
                 config_status["services"] = {
                     "health_manager": "available",
                 }

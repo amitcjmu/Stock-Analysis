@@ -5,7 +5,7 @@ Provides pre-built Prometheus query configurations for different metric types.
 Contains query builders for authentication, cache, system, and performance metrics.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 class MetricQueryBuilder:

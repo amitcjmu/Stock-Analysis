@@ -6,7 +6,6 @@ Contains the @start method and early phase execution methods.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

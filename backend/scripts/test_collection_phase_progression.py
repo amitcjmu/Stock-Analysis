@@ -19,7 +19,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.core.context import RequestContext
@@ -78,7 +77,7 @@ async def test_phase_progression():
 
                 if platform_complete:
                     logger.info(
-                        f"  -> This flow can be advanced to automated_collection"
+                        "  -> This flow can be advanced to automated_collection"
                     )
 
                     # Uncomment the next line to actually advance the flow
@@ -86,7 +85,7 @@ async def test_phase_progression():
                     # logger.info(f"  -> Advancement result: {result}")
                 else:
                     logger.info(
-                        f"  -> This flow is still waiting for platform detection to complete"
+                        "  -> This flow is still waiting for platform detection to complete"
                     )
 
             # Test the batch processing

@@ -32,11 +32,12 @@ from typing import Protocol
 class ToolAuditLogger(Protocol):
     """Protocol for tool audit logger interface"""
 
-    async def log_tool_execution(self, *args, **kwargs):  # noqa: E704
-        ...
+    async def log_tool_execution(self, *args, **kwargs):
+        """Log tool execution"""
+        pass
 
 
-from app.services.base_service import ServiceBase
+from app.services.base_service import ServiceBase  # noqa: E402
 
 
 class TestToolAuditLogger:

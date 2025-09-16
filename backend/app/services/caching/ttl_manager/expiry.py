@@ -11,7 +11,7 @@ import asyncio
 import time
 from collections import deque
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Optional
 
 from app.core.logging import get_logger
 from .base import RefreshTask, RefreshPriority, CacheAccessPattern, TTLMetrics

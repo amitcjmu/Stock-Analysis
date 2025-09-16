@@ -17,14 +17,14 @@ sys.modules["crewai.agent"] = MagicMock()
 sys.modules["crewai.task"] = MagicMock()
 sys.modules["crewai.crew"] = MagicMock()
 
-from app.api.v1.endpoints.data_cleansing import (
+from app.api.v1.endpoints.data_cleansing import (  # noqa: E402
     DataQualityIssue,
     DataCleansingRecommendation,
 )
-from app.core.context import RequestContext
-from app.models.client_account import User
-from app.models.data_import.core import DataImport
-from app.models.data_import.mapping import ImportFieldMapping
+from app.core.context import RequestContext  # noqa: E402
+from app.models.client_account import User  # noqa: E402
+from app.models.data_import.core import DataImport  # noqa: E402
+from app.models.data_import.mapping import ImportFieldMapping  # noqa: E402
 
 
 class DataCleansingTestFixtures:

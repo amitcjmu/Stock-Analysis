@@ -7,10 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     # Try relative imports first (when used as module)
-    from .base import logger
+    # Create logger locally since we don't use it from base
+    from app.core.logging import get_logger
+
+    logger = get_logger(__name__)
 except ImportError:
     # Fall back to absolute imports (when used as script)
-    from base import logger
+    import logging
+
+    logger = logging.getLogger(__name__)
 
 
 async def check_mock_data_exists(session: AsyncSession) -> bool:

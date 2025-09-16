@@ -13,7 +13,7 @@ import bcrypt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.asset import Asset, AssetStatus, AssetType, MigrationWave, SixRStrategy
+from app.models.asset import Asset, AssetStatus, MigrationWave, SixRStrategy
 from app.models.client_account import (
     ClientAccount,
     Engagement,

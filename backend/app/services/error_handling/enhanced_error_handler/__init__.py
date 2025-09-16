@@ -90,11 +90,4 @@ __all__ = [
 # This maintains compatibility with imports like:
 # from app.services.error_handling.enhanced_error_handler import ErrorSeverity
 
-# Re-export OperationType from the auth fallback orchestrator for backward compatibility
-# (This was originally imported in the main file)
-try:
-    from app.services.auth.fallback_orchestrator import OperationType
-
-    __all__.append("OperationType")
-except ImportError:
-    pass
+# OperationType import removed as it's not used

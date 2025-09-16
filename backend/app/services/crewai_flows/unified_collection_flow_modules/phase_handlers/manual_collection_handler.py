@@ -178,7 +178,7 @@ class ManualCollectionHandler:
                         )
                     else:
                         logger.warning(
-                            f"Collection flow ID not found or no responses collected - skipping manual inventory population"
+                            "Collection flow ID not found or no responses collected - skipping manual inventory population"
                         )
                 else:
                     logger.warning(

@@ -18,7 +18,6 @@ from .base import (
     FallbackConfig,
     FallbackLevel,
     FallbackResult,
-    OperationType,
 )
 
 logger = get_logger(__name__)

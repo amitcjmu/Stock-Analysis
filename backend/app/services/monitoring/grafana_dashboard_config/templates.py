@@ -5,7 +5,7 @@ Provides complete dashboard templates for different monitoring scenarios.
 Contains pre-configured dashboard layouts and panel arrangements.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from .base import GrafanaDashboardBase
 from .panels import PanelConfigBuilder

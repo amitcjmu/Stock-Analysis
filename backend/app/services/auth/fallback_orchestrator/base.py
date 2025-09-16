@@ -5,12 +5,10 @@ This module contains the core enums, dataclasses, and type definitions
 used throughout the fallback orchestrator system.
 """
 
-import asyncio
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 from app.services.monitoring.service_health_manager import ServiceType
 

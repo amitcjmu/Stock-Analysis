@@ -21,7 +21,6 @@ from .base import (
     FallbackConfig,
     FallbackLevel,
     FallbackResult,
-    FallbackStrategy,
     OperationType,
     ServiceLevelMapping,
 )
@@ -175,7 +174,7 @@ class FallbackOrchestrator:
                             mapping.emergency_handler, args, kwargs, context_data
                         )
                     )
-                    emergency_time = (time.time() - emergency_start) * 1000
+                    (time.time() - emergency_start) * 1000
 
                     if emergency_value is not None:
                         result.success = True

@@ -97,7 +97,7 @@ class CollectedDataInventory(Base, TimestampMixin):
     @server_name.expression
     def server_name(cls):
         """Enable SQL usage against the JSONB column."""
-        from sqlalchemy import func, case
+        from sqlalchemy import case
 
         return case(
             [
@@ -123,7 +123,7 @@ class CollectedDataInventory(Base, TimestampMixin):
     @os.expression
     def os(cls):
         """Enable SQL usage against the JSONB column."""
-        from sqlalchemy import func, case
+        from sqlalchemy import case
 
         return case(
             [
@@ -151,7 +151,7 @@ class CollectedDataInventory(Base, TimestampMixin):
     @hostname.expression
     def hostname(cls):
         """Enable SQL usage against the JSONB column."""
-        from sqlalchemy import func, case
+        from sqlalchemy import case
 
         return case(
             [
