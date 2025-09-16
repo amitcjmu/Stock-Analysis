@@ -6,13 +6,12 @@ Contains the middle and later phase execution methods.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 # Import necessary decorators
 try:
-    from crewai.flow.flow import listen, start
+    from crewai.flow.flow import listen
 except ImportError as e:
     logger.error(f"❌ CrewAI Flow decorators not available: {e}")
     raise ImportError(f"CrewAI flow decorators required: {e}")
@@ -22,7 +21,9 @@ class FlowExecutionMethods:
     """Mixin class containing main flow execution methods"""
 
     @listen("execute_data_import_validation_agent")
-    async def generate_field_mapping_suggestions(self, data_validation_agent_result):
+    async def generate_field_mapping_suggestions(  # noqa: C901
+        self, data_validation_agent_result
+    ):
         """Generate field mapping suggestions with defensive programming"""
         logger.info(f"🗺️ [ECHO] Field mapping phase triggered for flow {self._flow_id}")
 

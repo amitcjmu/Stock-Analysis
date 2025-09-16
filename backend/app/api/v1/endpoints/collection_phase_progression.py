@@ -6,7 +6,7 @@ phase progression when automatic mechanisms fail.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -13,7 +13,6 @@ CC: Final migration chain reconstruction
 
 import re
 from pathlib import Path
-from typing import Dict, List
 
 
 def fix_020_missing_revision():

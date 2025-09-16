@@ -10,11 +10,9 @@ This script will:
 CC: Automatic migration fixer for critical issues
 """
 
-import os
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
 
 
 def create_backup():
@@ -58,7 +56,7 @@ def fix_duplicate_017():
 
         # Remove old file
         asset_file.unlink()
-        print(f"✅ Fixed duplicate 017: renamed asset questionnaire migration to 017a")
+        print("✅ Fixed duplicate 017: renamed asset questionnaire migration to 017a")
 
 
 def fix_032_duplicate():
@@ -95,7 +93,7 @@ def fix_032_duplicate():
 
         # Remove old file
         old_file.unlink()
-        print(f"✅ Fixed 032 duplicate: renamed 032b to 036")
+        print("✅ Fixed 032 duplicate: renamed 032b to 036")
 
 
 def fix_major_hash_named():
@@ -246,7 +244,7 @@ def main():
     print("3. Add proper downgrade functions to remaining files")
     print("4. Test the migration chain thoroughly")
 
-    print(f"\n💾 Backup available at: alembic/versions_backup_pre_fix")
+    print("\n💾 Backup available at: alembic/versions_backup_pre_fix")
 
 
 if __name__ == "__main__":

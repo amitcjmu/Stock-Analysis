@@ -1,397 +1,63 @@
 """
-Database initialization script for AI Modernize Migration Platform.
-Populates the database with mock data for demo purposes.
+Database schema creation functions for initialization.
 """
 
-import argparse
-import asyncio
 import json
-import logging
 import os
-import sys
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List
 
-from sqlalchemy import select, text
+import bcrypt
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Add the parent directory to the path so we can import our app modules
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+from app.models.asset import Asset, AssetStatus, MigrationWave, SixRStrategy
+from app.models.client_account import (
+    ClientAccount,
+    Engagement,
+    User,
+    UserAccountAssociation,
+)
+from app.models.rbac import (
+    AccessLevel,
+    ClientAccess,
+    EngagementAccess,
+    RoleType,
+    UserProfile,
+    UserRole,
+    UserStatus,
+)
+from app.models.sixr_analysis import AnalysisStatus, SixRAnalysis
+from app.models.tags import AssetEmbedding, AssetTag, Tag
 
 try:
-    import bcrypt
-    import numpy as np
-
-    from app.core.database import AsyncSessionLocal, init_db
-    from app.models.asset import (
-        Asset,
-        AssetStatus,
-        AssetType,
-        MigrationWave,
-        SixRStrategy,
+    # Try relative imports first (when used as module)
+    from .base import (
+        DEMO_CLIENT_ID,
+        DEMO_ENGAGEMENT_ID,
+        DEMO_USER_ID,
+        generate_mock_embedding,
+        logger,
     )
-    from app.models.client_account import (
-        ClientAccount,
-        Engagement,
-        User,
-        UserAccountAssociation,
+    from .seed_data import MOCK_DATA
+except ImportError:
+    # Fall back to absolute imports (when used as script)
+    from base import (
+        DEMO_CLIENT_ID,
+        DEMO_ENGAGEMENT_ID,
+        DEMO_USER_ID,
+        generate_mock_embedding,
+        logger,
     )
-    from app.models.rbac import (
-        AccessLevel,
-        ClientAccess,
-        EngagementAccess,
-        RoleType,
-        UserProfile,
-        UserRole,
-        UserStatus,
-    )
-    from app.models.sixr_analysis import AnalysisStatus, SixRAnalysis
-    from app.models.tags import AssetEmbedding, AssetTag, Tag
-
-    DEPENDENCIES_AVAILABLE = True
-except ImportError as e:
-    print(f"Missing dependencies: {e}")
-    print("Please install required packages and set up the database connection.")
-    DEPENDENCIES_AVAILABLE = False
-    sys.exit(1)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# --- Static UUIDs for Demo Mode ---
-DEMO_CLIENT_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
-DEMO_ENGAGEMENT_ID = uuid.UUID("22222222-2222-2222-2222-222222222222")
-DEMO_SESSION_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
-DEMO_USER_ID = uuid.UUID("44444444-4444-4444-4444-444444444444")
-ADMIN_USER_ID = uuid.UUID("55555555-5555-5555-5555-555555555555")
-
-# Mock data based on Azure Migrate metadata and common migration scenarios
-MOCK_DATA = {
-    "client_accounts": [
-        {
-            "name": "Demo Corporation",
-            "slug": "demo-corp",
-            "description": "Sample enterprise client for platform demonstration",
-            "industry": "Technology",
-            "company_size": "Large (1000-5000 employees)",
-            "subscription_tier": "enterprise",
-            "billing_contact_email": "billing@democorp.com",
-        }
-    ],
-    "users": [
-        {
-            "email": "demo@democorp.com",
-            "password": "password123",  # Will be hashed
-            "first_name": "Demo",
-            "last_name": "User",
-            "is_verified": True,
-        }
-        # SECURITY: ALL ADMIN DEMO ACCOUNTS REMOVED - no demo accounts with admin privileges
-        # Platform admin (chocka@gmail.com) will be set up manually, not via scripts
-    ],
-    "engagements": [
-        {
-            "name": "Cloud Migration 2024",
-            "slug": "cloud-migration-2024",
-            "description": "Migration of on-premises infrastructure to AWS cloud",
-            "engagement_type": "migration",
-            "status": "active",
-            "priority": "high",
-            "client_contact_name": "John Smith",
-            "client_contact_email": "john.smith@democorp.com",
-        }
-    ],
-    # Tags based on Azure Migrate metadata categories
-    "tags": [
-        # Technology Tags
-        {
-            "name": "Windows Server",
-            "category": "technology",
-            "description": "Windows Server operating system",
-        },
-        {
-            "name": "Linux",
-            "category": "technology",
-            "description": "Linux operating system",
-        },
-        {
-            "name": "Database Server",
-            "category": "technology",
-            "description": "Database server workload",
-        },
-        {
-            "name": "Web Server",
-            "category": "technology",
-            "description": "Web server workload",
-        },
-        {
-            "name": "Application Server",
-            "category": "technology",
-            "description": "Application server workload",
-        },
-        {
-            "name": "Domain Controller",
-            "category": "technology",
-            "description": "Active Directory domain controller",
-        },
-        {
-            "name": "File Server",
-            "category": "technology",
-            "description": "File server workload",
-        },
-        {
-            "name": "Mail Server",
-            "category": "technology",
-            "description": "Email server workload",
-        },
-        # Business Function Tags
-        {
-            "name": "Customer Facing",
-            "category": "business",
-            "description": "Customer-facing applications",
-        },
-        {
-            "name": "Internal Tools",
-            "category": "business",
-            "description": "Internal business tools",
-        },
-        {
-            "name": "Backup System",
-            "category": "business",
-            "description": "Backup and recovery systems",
-        },
-        {
-            "name": "Monitoring",
-            "category": "business",
-            "description": "Monitoring and observability",
-        },
-        {
-            "name": "Security",
-            "category": "business",
-            "description": "Security-related systems",
-        },
-        # Infrastructure Tags
-        {
-            "name": "Virtual Machine",
-            "category": "infrastructure",
-            "description": "Virtual machine workload",
-        },
-        {
-            "name": "Physical Server",
-            "category": "infrastructure",
-            "description": "Physical server hardware",
-        },
-        {
-            "name": "Network Device",
-            "category": "infrastructure",
-            "description": "Network infrastructure",
-        },
-        {
-            "name": "Storage System",
-            "category": "infrastructure",
-            "description": "Storage infrastructure",
-        },
-        # Migration Readiness Tags
-        {
-            "name": "Cloud Ready",
-            "category": "migration",
-            "description": "Ready for cloud migration",
-        },
-        {
-            "name": "Legacy System",
-            "category": "migration",
-            "description": "Legacy system requiring modernization",
-        },
-        {
-            "name": "High Availability",
-            "category": "migration",
-            "description": "High availability requirements",
-        },
-        {
-            "name": "Compliance Required",
-            "category": "migration",
-            "description": "Regulatory compliance requirements",
-        },
-    ],
-    # Assets based on typical enterprise infrastructure
-    "assets": [
-        # Servers
-        {
-            "name": "DC-WEB-01",
-            "hostname": "dc-web-01.democorp.local",
-            "asset_type": AssetType.SERVER,
-            "description": "Primary web server hosting customer portal",
-            "ip_address": "192.168.1.10",
-            "fqdn": "dc-web-01.democorp.local",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "datacenter": "DC1-EAST",
-            "operating_system": "Windows Server 2019",
-            "os_version": "Standard",
-            "cpu_cores": 8,
-            "memory_gb": 32,
-            "storage_gb": 500,
-            "business_owner": "IT Operations",
-            "department": "Infrastructure",
-            "application_name": "Customer Portal",
-            "technology_stack": "IIS, ASP.NET, SQL Server",
-            "criticality": "High",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REHOST.value,
-            "migration_complexity": "Medium",
-            "migration_wave": 1,
-            "sixr_ready": "Ready",
-            "cpu_utilization_percent": 65.5,
-            "memory_utilization_percent": 78.2,
-            "current_monthly_cost": 1200.0,
-            "estimated_cloud_cost": 950.0,
-            "discovery_method": "agent_scan",
-            "discovery_source": "Azure Migrate",
-        },
-        {
-            "name": "DC-DB-01",
-            "hostname": "dc-db-01.democorp.local",
-            "asset_type": AssetType.DATABASE,
-            "description": "Primary SQL Server database for customer data",
-            "ip_address": "192.168.1.20",
-            "fqdn": "dc-db-01.democorp.local",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "datacenter": "DC1-EAST",
-            "operating_system": "Windows Server 2016",
-            "os_version": "Standard",
-            "cpu_cores": 16,
-            "memory_gb": 64,
-            "storage_gb": 2000,
-            "business_owner": "Database Team",
-            "department": "IT",
-            "application_name": "Customer Database",
-            "technology_stack": "SQL Server 2016, Always On",
-            "criticality": "Critical",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REPLATFORM.value,
-            "migration_complexity": "High",
-            "migration_wave": 2,
-            "sixr_ready": "Needs Analysis",
-            "dependencies": ["DC-WEB-01"],
-            "cpu_utilization_percent": 45.3,
-            "memory_utilization_percent": 82.1,
-            "current_monthly_cost": 2500.0,
-            "estimated_cloud_cost": 1800.0,
-            "discovery_method": "agent_scan",
-            "discovery_source": "Azure Migrate",
-        },
-        {
-            "name": "DC-APP-01",
-            "hostname": "dc-app-01.democorp.local",
-            "asset_type": AssetType.APPLICATION,
-            "description": "Internal CRM application server",
-            "ip_address": "192.168.1.30",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "operating_system": "Linux Red Hat 8",
-            "cpu_cores": 4,
-            "memory_gb": 16,
-            "storage_gb": 200,
-            "business_owner": "Sales Team",
-            "department": "Sales",
-            "application_name": "CRM System",
-            "technology_stack": "Java Spring Boot, PostgreSQL",
-            "criticality": "Medium",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REFACTOR.value,
-            "migration_complexity": "Medium",
-            "migration_wave": 3,
-            "sixr_ready": "Ready",
-            "cpu_utilization_percent": 35.8,
-            "memory_utilization_percent": 68.4,
-            "current_monthly_cost": 800.0,
-            "estimated_cloud_cost": 650.0,
-            "discovery_method": "network_scan",
-            "discovery_source": "Custom Discovery Tool",
-        },
-        # Network Devices
-        {
-            "name": "CORE-SW-01",
-            "hostname": "core-sw-01",
-            "asset_type": AssetType.NETWORK,
-            "description": "Core network switch for data center connectivity",
-            "ip_address": "192.168.1.1",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "operating_system": "Cisco IOS",
-            "business_owner": "Network Team",
-            "department": "Infrastructure",
-            "technology_stack": "Cisco Catalyst 9500",
-            "criticality": "Critical",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.RETAIN.value,
-            "migration_complexity": "Low",
-            "sixr_ready": "Not Applicable",
-            "discovery_method": "snmp_scan",
-            "discovery_source": "Network Discovery",
-        },
-        {
-            "name": "FIREWALL-01",
-            "hostname": "fw-01",
-            "asset_type": AssetType.NETWORK,
-            "description": "Perimeter firewall for network security",
-            "ip_address": "192.168.1.2",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "operating_system": "Palo Alto PAN-OS",
-            "business_owner": "Security Team",
-            "department": "Security",
-            "technology_stack": "Palo Alto PA-5220",
-            "criticality": "Critical",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REPLATFORM.value,
-            "migration_complexity": "Medium",
-            "migration_wave": 1,
-            "sixr_ready": "Needs Analysis",
-            "discovery_method": "manual_entry",
-            "discovery_source": "Manual Entry",
-        },
-        # Storage
-        {
-            "name": "SAN-STORAGE-01",
-            "hostname": "san-01",
-            "asset_type": AssetType.STORAGE,
-            "description": "Primary storage area network for VMs",
-            "ip_address": "192.168.1.5",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "operating_system": "Dell EMC PowerStoreOS",
-            "business_owner": "Storage Team",
-            "department": "Infrastructure",
-            "technology_stack": "Dell EMC PowerStore 9200T",
-            "criticality": "High",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REPLATFORM.value,
-            "migration_complexity": "High",
-            "migration_wave": 2,
-            "sixr_ready": "Needs Analysis",
-            "discovery_method": "api_integration",
-            "discovery_source": "Dell EMC CloudIQ",
-        },
-    ],
-}
-
-
-def generate_mock_embedding(text: str) -> List[float]:
-    """Generates a consistent, fake vector embedding for mock data."""
-    # Use a simple hashing method to create a deterministic "random" vector
-    np.random.seed(abs(hash(text)) % (2**32 - 1))
-    return np.random.rand(1536).tolist()
+    from seed_data import MOCK_DATA
 
 
 async def create_mock_client_account(session: AsyncSession) -> uuid.UUID:
     """Creates mock client account if it doesn't exist."""
     client_data = MOCK_DATA["client_accounts"][0]
-    client = ClientAccount(id=DEMO_CLIENT_ID, **client_data, is_mock=True)
+    client = ClientAccount(id=DEMO_CLIENT_ID, **client_data)
     await session.merge(client)  # Use merge to handle potential pre-existence
     await session.flush()
     logger.info(f"Created mock client account: {client.name}")
@@ -435,7 +101,6 @@ async def create_mock_users(
                 last_name=user_data["last_name"],
                 is_active=True,
                 is_verified=user_data.get("is_verified", True),
-                is_mock=True,
             )
             session.add(user)
             await session.flush()
@@ -572,7 +237,6 @@ async def create_mock_engagement(
             target_completion_date=datetime.utcnow() + timedelta(days=120),
             client_contact_name=engagement_data["client_contact_name"],
             client_contact_email=engagement_data["client_contact_email"],
-            is_mock=True,
             created_by=user_ids["demo@democorp.com"],
         )
         session.add(engagement)
@@ -636,7 +300,6 @@ async def create_mock_tags(
             name=tag_data["name"],
             category=tag_data["category"],
             description=tag_data["description"],
-            is_mock=True,
             reference_embedding=generate_mock_embedding(tag_data["name"]),
         )
         session.add(tag)
@@ -659,7 +322,7 @@ async def create_mock_assets(
 
     # This path seems unused in the loop below, but we'll leave the loading logic for now.
     mock_data_path = os.path.join(
-        os.path.dirname(__file__), "..", "data", "mock_cmdb_data.json"
+        os.path.dirname(__file__), "..", "..", "data", "mock_cmdb_data.json"
     )
     try:
         with open(mock_data_path, "r") as f:
@@ -697,7 +360,6 @@ async def create_mock_assets(
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             created_by=user_id,
-            is_mock=True,
         )
         session.add(asset)
         await session.flush()
@@ -715,7 +377,6 @@ async def create_mock_assets(
             embedding_model="text-embedding-ada-002",
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            is_mock=True,
         )
         session.add(embedding)
 
@@ -724,7 +385,7 @@ async def create_mock_assets(
             for tag_name in data["tags"]:
                 tag_id = tag_ids.get(tag_name)
                 if tag_id:
-                    asset_tag = AssetTag(asset_id=asset.id, tag_id=tag_id, is_mock=True)
+                    asset_tag = AssetTag(asset_id=asset.id, tag_id=tag_id)
                     session.add(asset_tag)
 
     logger.info(f"Successfully created {len(asset_ids)} assets.")
@@ -839,89 +500,8 @@ async def create_mock_migration_waves(
             planned_end_date=end_date,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            is_mock=True,
             created_by=user_id,
         )
         session.add(wave)
 
     logger.info("Successfully created mock migration waves.")
-
-
-async def initialize_mock_data(force: bool = False):
-    """
-    Initializes the database with mock data for the demo.
-    Creates a client account, users, engagement, assets, tags, and analysis.
-    """
-    async with AsyncSessionLocal() as session:
-        if not force and await check_mock_data_exists(session):
-            logger.info("Mock data already exists. Skipping initialization.")
-            return
-
-        logger.info("--- Starting Mock Data Initialization ---")
-
-        client_account_id = await create_mock_client_account(session)
-        user_ids = await create_mock_users(session, client_account_id)
-        engagement_id = await create_mock_engagement(
-            session, client_account_id, user_ids
-        )
-        tag_ids = await create_mock_tags(session, client_account_id)
-
-        demo_user_id = user_ids.get("demo@democorp.com")
-        if not demo_user_id:
-            logger.error("Could not find demo user ID after user creation.")
-            # Fallback to a static ID if needed, though this indicates an issue
-            demo_user_id_result = await session.execute(
-                select(User.id).where(User.email == "demo@democorp.com")
-            )
-            demo_user_id = demo_user_id_result.scalar_one_or_none() or DEMO_USER_ID
-
-        asset_ids = await create_mock_assets(
-            session, client_account_id, engagement_id, demo_user_id, tag_ids
-        )
-
-        if asset_ids:
-            # Pass correct UUID types
-            await create_mock_sixr_analysis(
-                session, client_account_id, engagement_id, demo_user_id, asset_ids
-            )
-
-        await create_mock_migration_waves(
-            session, client_account_id, engagement_id, demo_user_id
-        )
-
-        logger.info("--- Mock Data Initialization Complete ---")
-
-
-async def check_mock_data_exists(session: AsyncSession) -> bool:
-    """Checks if mock data has already been populated."""
-    result = await session.execute(
-        text("SELECT 1 FROM client_accounts WHERE is_mock = TRUE LIMIT 1")
-    )
-    return result.scalar_one_or_none() is not None
-
-
-async def main():
-    """Main function to run the initialization."""
-    parser = argparse.ArgumentParser(
-        description="Initialize the database with mock data."
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force re-creation of mock data if it already exists.",
-    )
-    args = parser.parse_args()
-
-    try:
-        await init_db()
-        await initialize_mock_data(force=args.force)
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        import traceback
-
-        traceback.print_exc()
-
-
-if __name__ == "__main__":
-    if DEPENDENCIES_AVAILABLE:
-        asyncio.run(main())

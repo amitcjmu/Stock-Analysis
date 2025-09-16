@@ -12,11 +12,10 @@ This script will:
 CC: Critical migration chain fixer
 """
 
-import os
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import List
 from dataclasses import dataclass
 
 
@@ -31,11 +30,10 @@ class MigrationFix:
 
 def fix_duplicate_017_migrations():
     """Fix the duplicate 017 migrations by renaming one to 017a."""
-    versions_dir = Path("alembic/versions")
+    Path("alembic/versions")
 
     # The two 017 files
     asset_file = "017_add_asset_id_to_questionnaire_responses.py"
-    vector_file = "017_add_vector_search_to_agent_patterns.py"
 
     # Keep asset file as 017a, vector file becomes 042 (after all numbered ones)
     fixes = []
@@ -57,7 +55,7 @@ def fix_duplicate_017_migrations():
 
 def get_hash_named_migrations_renaming():
     """Get renaming plan for hash-named migrations starting from 042."""
-    versions_dir = Path("alembic/versions")
+    Path("alembic/versions")
 
     # Hash-named files that need renumbering (starting from 042)
     hash_files = [

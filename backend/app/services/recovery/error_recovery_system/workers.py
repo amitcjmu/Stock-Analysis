@@ -114,9 +114,9 @@ class RecoveryWorkerMixin:
 
         return True
 
-    async def _execute_recovery_operation(
+    async def _execute_recovery_operation(  # noqa: C901
         self, operation: RecoveryOperation
-    ):  # noqa: C901
+    ):
         """Execute a recovery operation"""
         start_time = time.time()
         operation.retry_count += 1

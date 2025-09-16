@@ -187,7 +187,7 @@ class AutomatedCollectionHandler:
                         )
                     else:
                         logger.warning(
-                            f"Collection flow ID not found or no data collected - skipping inventory population"
+                            "Collection flow ID not found or no data collected - skipping inventory population"
                         )
                 else:
                     logger.warning(

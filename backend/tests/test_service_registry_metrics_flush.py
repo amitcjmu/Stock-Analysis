@@ -31,7 +31,7 @@ sys.modules["langchain_community"] = MagicMock()
 sys.modules["langchain_openai"] = MagicMock()
 sys.modules["openai"] = MagicMock()
 
-from app.core.context import RequestContext
+from app.core.context import RequestContext  # noqa: E402
 
 # Import with mocked dependencies
 with patch.dict(sys.modules, {"crewai": mock_crewai}):
