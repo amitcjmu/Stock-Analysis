@@ -220,15 +220,18 @@ class RecoveryWorkerMixin:
     async def _process_sync_batch(self):
         """Process a batch of sync jobs"""
         jobs_to_process = []
-        sync_queue_size = min(len(self.sync_queue), self.sync_batch_size)
+        # Get sync jobs from sync manager
+        sync_jobs = self.sync_manager.get_pending_jobs()
+        sync_queue_size = min(len(sync_jobs), self.sync_batch_size)
 
-        for _ in range(sync_queue_size):
-            if self.sync_queue:
-                job = self.sync_queue.popleft()
+        for i in range(sync_queue_size):
+            if i < len(sync_jobs):
+                job = sync_jobs[i]
                 if self._should_process_sync_job(job):
                     jobs_to_process.append(job)
-                else:
-                    self.sync_queue.append(job)  # Put back for later
+                    # Remove from sync manager pending jobs
+                    self.sync_manager.mark_job_processing(job.job_id)
+                # Note: Jobs that shouldn't be processed yet remain in pending state
 
         # Process sync jobs
         for job in jobs_to_process:
@@ -272,9 +275,8 @@ class RecoveryWorkerMixin:
             job.completed_at = datetime.utcnow()
             logger.error(f"Sync job {job.job_id} failed: {e}")
 
-        # Remove from active jobs
-        if job.job_id in self.sync_jobs:
-            del self.sync_jobs[job.job_id]
+        # Remove from active jobs in sync manager
+        self.sync_manager.complete_job(job.job_id)
 
     async def _check_service_recoveries(self):
         """Check for service recoveries and trigger sync operations"""

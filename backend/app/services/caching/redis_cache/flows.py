@@ -46,7 +46,7 @@ class RedisFlowMixin:
                 # Upstash doesn't support pattern deletion, delete known keys
                 for key in keys_to_delete:
                     if "*" not in key:
-                        self.client.delete(key)
+                        await self.client.delete(key)
             else:
                 # For Redis with SCAN support, find and delete pattern keys
                 pipeline = self.client.pipeline()
@@ -101,7 +101,7 @@ class RedisFlowMixin:
 
                 # Check if flow already exists (prevent duplicate registration)
                 exists_key = f"flow:exists:{flow_id}"
-                if self.client.get(exists_key):
+                if await self.client.get(exists_key):
                     logger.warning(f"Flow {flow_id} already registered")
                     return False
 
@@ -109,11 +109,11 @@ class RedisFlowMixin:
                 success = True
 
                 # 1. Mark flow as existing
-                self.client.setex(exists_key, ttl, "1")
+                await self.client.setex(exists_key, ttl, "1")
 
                 # 2. Store flow metadata
                 metadata_key = f"flow:metadata:{flow_id}"
-                self.client.setex(
+                await self.client.setex(
                     metadata_key,
                     ttl,
                     json.dumps(
@@ -131,7 +131,7 @@ class RedisFlowMixin:
 
                 # 3. Initialize flow state
                 state_key = f"flow:state:{flow_id}"
-                self.client.setex(
+                await self.client.setex(
                     state_key,
                     ttl,
                     json.dumps(
@@ -142,14 +142,14 @@ class RedisFlowMixin:
                 # 4. Add to active flows set
                 active_key = f"flows:active:{flow_type}"
                 # Upstash doesn't have SADD with TTL, use regular key
-                active_flows = self.client.get(active_key)
+                active_flows = await self.client.get(active_key)
                 if active_flows:
                     active_list = json.loads(active_flows)
                     if flow_id not in active_list:
                         active_list.append(flow_id)
                 else:
                     active_list = [flow_id]
-                self.client.setex(active_key, ttl, json.dumps(active_list))
+                await self.client.setex(active_key, ttl, json.dumps(active_list))
 
                 return success
 
@@ -214,19 +214,19 @@ class RedisFlowMixin:
         try:
             if self.client_type == "upstash":
                 # Manual cleanup for Upstash
-                self.client.delete(f"flow:exists:{flow_id}")
-                self.client.delete(f"flow:metadata:{flow_id}")
-                self.client.delete(f"flow:state:{flow_id}")
-                self.client.delete(f"lock:flow:{flow_id}")
+                await self.client.delete(f"flow:exists:{flow_id}")
+                await self.client.delete(f"flow:metadata:{flow_id}")
+                await self.client.delete(f"flow:state:{flow_id}")
+                await self.client.delete(f"lock:flow:{flow_id}")
 
                 # Remove from active flows
                 active_key = f"flows:active:{flow_type}"
-                active_flows = self.client.get(active_key)
+                active_flows = await self.client.get(active_key)
                 if active_flows:
                     active_list = json.loads(active_flows)
                     if flow_id in active_list:
                         active_list.remove(flow_id)
-                        self.client.set(active_key, json.dumps(active_list))
+                        await self.client.set(active_key, json.dumps(active_list))
 
                 return True
 
@@ -258,7 +258,7 @@ class RedisFlowMixin:
 
             if self.client_type == "upstash":
                 # Upstash uses JSON list
-                active_flows = self.client.get(active_key)
+                active_flows = await self.client.get(active_key)
                 return json.loads(active_flows) if active_flows else []
             else:
                 # Redis uses SET

@@ -25,8 +25,11 @@ class CrewPlanningUtilsMixin:
 
         def visit(node):
             if node in temp_visited:
-                # Circular dependency detected, handle gracefully
-                return
+                # Circular dependency detected - raise descriptive error
+                raise ValueError(
+                    f"Circular dependency detected in crew execution graph involving node '{node}'. "
+                    f"Cannot proceed with execution order generation."
+                )
             if node in visited:
                 return
 

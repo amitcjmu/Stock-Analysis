@@ -5,6 +5,7 @@ This module handles resource allocation optimization for crew coordination.
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
@@ -118,7 +119,7 @@ class ResourceAllocationMixin:
             # Record allocation history
             self.resource_allocation["allocation_history"].append(
                 {
-                    "timestamp": "current",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "allocations": optimization_result["allocations"],
                     "efficiency_score": optimization_result["efficiency_score"],
                 }

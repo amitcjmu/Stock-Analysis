@@ -87,6 +87,9 @@ class ErrorRecoverySystem(RecoveryWorkerMixin):
         self.sync_worker_task: Optional[asyncio.Task] = None
         self.health_monitor_task: Optional[asyncio.Task] = None
 
+        # Operation function registry for dead letter queue recovery
+        self.operation_registry: Dict[str, Callable] = {}
+
         # Configuration
         self.max_queue_size = getattr(settings, "RECOVERY_MAX_QUEUE_SIZE", 10000)
         self.worker_batch_size = getattr(settings, "RECOVERY_WORKER_BATCH_SIZE", 10)
@@ -104,6 +107,15 @@ class ErrorRecoverySystem(RecoveryWorkerMixin):
         if self.enabled:
             self._start_background_workers()
 
+    def register_operation_function(self, operation_name: str, func: Callable):
+        """Register an operation function for dead letter queue recovery"""
+        self.operation_registry[operation_name] = func
+        logger.debug(f"Registered operation function: {operation_name}")
+
+    def _get_operation_function(self, operation_name: str) -> Optional[Callable]:
+        """Get operation function from registry"""
+        return self.operation_registry.get(operation_name)
+
     async def schedule_recovery_operation(
         self,
         operation_func: Callable,
@@ -117,6 +129,7 @@ class ErrorRecoverySystem(RecoveryWorkerMixin):
         context_data: Optional[Dict[str, Any]] = None,
         success_callback: Optional[Callable] = None,
         failure_callback: Optional[Callable] = None,
+        operation_name: Optional[str] = None,
         **recovery_config,
     ) -> str:
         """
@@ -134,6 +147,7 @@ class ErrorRecoverySystem(RecoveryWorkerMixin):
             context_data: Additional context for the operation
             success_callback: Callback for successful recovery
             failure_callback: Callback for failed recovery
+            operation_name: Name for operation function registry (for DLQ recovery)
             **recovery_config: Additional recovery configuration
 
         Returns:
@@ -141,6 +155,10 @@ class ErrorRecoverySystem(RecoveryWorkerMixin):
         """
         operation_kwargs = operation_kwargs or {}
         context_data = context_data or {}
+
+        # Register operation function if name provided
+        if operation_name and operation_func:
+            self.register_operation_function(operation_name, operation_func)
 
         # Create recovery operation
         recovery_op = RecoveryOperation(
@@ -155,6 +173,7 @@ class ErrorRecoverySystem(RecoveryWorkerMixin):
             context_data=context_data,
             success_callback=success_callback,
             failure_callback=failure_callback,
+            operation_name=operation_name,
             **recovery_config,
         )
 
@@ -308,14 +327,31 @@ class ErrorRecoverySystem(RecoveryWorkerMixin):
                     op_data["retry_count"] = 0
                     op_data["next_retry_at"] = None
 
-                    # Create new recovery operation (simplified)
+                    # Reconstruct operation function from registry
+                    operation_func = None
+                    operation_name = op_data.get("operation_name")
+                    if operation_name:
+                        operation_func = self._get_operation_function(operation_name)
+
+                    if not operation_func:
+                        logger.error(
+                            f"Cannot retry dead letter item {operation_id}: "
+                            f"Operation function '{operation_name}' not found in registry"
+                        )
+                        return False
+
+                    # Create new recovery operation with reconstructed function
                     await self.schedule_recovery_operation(
-                        operation_func=None,  # Would need to reconstruct
+                        operation_func=operation_func,
+                        operation_args=op_data.get("operation_args", ()),
+                        operation_kwargs=op_data.get("operation_kwargs", {}),
                         recovery_type=RecoveryType(op_data["recovery_type"]),
                         failure_category=FailureCategory(op_data["failure_category"]),
                         priority=RecoveryPriority(op_data["priority"]),
                         operation_type=OperationType(op_data["operation_type"]),
                         service_type=ServiceType(op_data["service_type"]),
+                        context_data=op_data.get("context_data", {}),
+                        operation_name=operation_name,
                     )
 
                     logger.info(

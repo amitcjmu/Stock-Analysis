@@ -4,7 +4,7 @@ Optimization module for Performance Analytics Engine
 Generates optimization recommendations based on performance trends and bottlenecks.
 """
 
-import time
+import uuid
 from typing import List
 
 from .base import (
@@ -66,7 +66,7 @@ class OptimizationService:
             and trend.direction == TrendDirection.DEGRADING
         ):
             rec = OptimizationRecommendation(
-                id=f"login_trend_opt_{int(time.time())}",
+                id=f"login_trend_opt_{uuid.uuid4()}",
                 title="Optimize Login Performance",
                 description=f"Login performance has degraded by {trend.change_percentage:.1f}% over the last 24 hours",
                 priority="high",
@@ -86,7 +86,7 @@ class OptimizationService:
             and trend.direction == TrendDirection.DEGRADING
         ):
             rec = OptimizationRecommendation(
-                id=f"cache_trend_opt_{int(time.time())}",
+                id=f"cache_trend_opt_{uuid.uuid4()}",
                 title="Improve Cache Efficiency",
                 description=(
                     f"Cache hit rate has declined by {abs(trend.change_percentage):.1f}% "
@@ -144,7 +144,7 @@ class OptimizationService:
 
         # Recommend Redis optimization
         rec = OptimizationRecommendation(
-            id=f"proactive_redis_{int(time.time())}",
+            id=f"proactive_redis_{uuid.uuid4()}",
             title="Proactive Redis Optimization",
             description="Implement advanced Redis optimization techniques for better cache performance",
             priority="medium",
@@ -161,7 +161,7 @@ class OptimizationService:
 
         # Recommend monitoring enhancement
         rec = OptimizationRecommendation(
-            id=f"proactive_monitoring_{int(time.time())}",
+            id=f"proactive_monitoring_{uuid.uuid4()}",
             title="Enhanced Performance Monitoring",
             description="Implement additional performance monitoring for deeper insights",
             priority="low",
