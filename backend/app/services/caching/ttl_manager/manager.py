@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.caching.redis_cache import RedisCache
+from app.services.shared_state_manager import SharedStateManager, get_ttl_state_manager
 
 from .base import (
     TTLStrategy,
@@ -41,13 +42,18 @@ class TTLManager:
     - Comprehensive metrics and monitoring
     """
 
-    def __init__(self, redis_cache: RedisCache):
+    def __init__(
+        self,
+        redis_cache: RedisCache,
+        shared_state_manager: Optional[SharedStateManager] = None,
+    ):
         self.redis_cache = redis_cache
         self.metrics = TTLMetrics()
 
-        # Access pattern tracking
+        # Access pattern tracking with shared state support
         self.access_patterns: Dict[str, CacheAccessPattern] = {}
         self.max_tracked_patterns = settings.get("CACHE_MAX_TRACKED_PATTERNS", 10000)
+        self._shared_state = shared_state_manager or get_ttl_state_manager()
 
         # Initialize components
         self.strategies = TTLStrategies(self.access_patterns)
@@ -61,6 +67,79 @@ class TTLManager:
         self.default_strategy = TTLStrategy.HYBRID
 
         logger.info("TTLManager initialized")
+
+    async def _get_access_pattern(self, cache_key: str) -> Optional[CacheAccessPattern]:
+        """Get access pattern from shared storage or in-memory fallback"""
+        if self._shared_state:
+            try:
+                pattern_data = await self._shared_state.get(
+                    f"access_pattern:{cache_key}"
+                )
+                if pattern_data:
+                    # Deserialize access pattern data
+                    from collections import deque
+                    from datetime import datetime
+
+                    pattern = CacheAccessPattern(cache_key=cache_key)
+                    pattern.total_accesses = pattern_data.get("total_accesses", 0)
+                    pattern.hits = pattern_data.get("hits", 0)
+                    pattern.misses = pattern_data.get("misses", 0)
+                    pattern.last_access = (
+                        datetime.fromisoformat(pattern_data["last_access"])
+                        if pattern_data.get("last_access")
+                        else None
+                    )
+                    pattern.creation_time = (
+                        datetime.fromisoformat(pattern_data["creation_time"])
+                        if pattern_data.get("creation_time")
+                        else datetime.utcnow()
+                    )
+                    pattern.average_access_interval_seconds = pattern_data.get(
+                        "average_access_interval_seconds", 0
+                    )
+
+                    # Restore access times (limited to recent ones)
+                    access_times_iso = pattern_data.get("access_times", [])
+                    pattern.access_times = deque(
+                        [
+                            datetime.fromisoformat(t) for t in access_times_iso[-50:]
+                        ],  # Keep last 50 for performance
+                        maxlen=100,
+                    )
+
+                    return pattern
+            except Exception as e:
+                logger.warning(f"Failed to get access pattern from shared storage: {e}")
+
+        # Fallback to in-memory storage
+        return self.access_patterns.get(cache_key)
+
+    async def _set_access_pattern(self, cache_key: str, pattern: CacheAccessPattern):
+        """Set access pattern in shared storage and in-memory fallback"""
+        # Always update in-memory fallback
+        self.access_patterns[cache_key] = pattern
+
+        if self._shared_state:
+            try:
+                # Serialize access pattern data
+                pattern_data = {
+                    "total_accesses": pattern.total_accesses,
+                    "hits": pattern.hits,
+                    "misses": pattern.misses,
+                    "last_access": (
+                        pattern.last_access.isoformat() if pattern.last_access else None
+                    ),
+                    "creation_time": pattern.creation_time.isoformat(),
+                    "average_access_interval_seconds": pattern.average_access_interval_seconds,
+                    "access_times": [
+                        t.isoformat() for t in list(pattern.access_times)[-20:]
+                    ],  # Keep last 20 for storage efficiency
+                }
+                await self._shared_state.set(
+                    f"access_pattern:{cache_key}", pattern_data, ttl=86400
+                )  # 24 hour TTL
+            except Exception as e:
+                logger.warning(f"Failed to set access pattern in shared storage: {e}")
 
     async def start(self) -> None:
         """Start the TTL manager background processing"""
@@ -140,15 +219,18 @@ class TTLManager:
             # Return safe default
             return self._get_fallback_recommendation(cache_key)
 
-    def record_cache_access(self, cache_key: str, was_hit: bool) -> None:
+    async def record_cache_access(self, cache_key: str, was_hit: bool) -> None:
         """Record cache access for pattern tracking"""
-        if cache_key not in self.access_patterns:
+        pattern = await self._get_access_pattern(cache_key)
+
+        if pattern is None:
             # Check if we need to evict old patterns to save memory
             if len(self.access_patterns) >= self.max_tracked_patterns:
                 evict_old_patterns(self.access_patterns, self.max_tracked_patterns)
-            self.access_patterns[cache_key] = CacheAccessPattern(cache_key=cache_key)
+            pattern = CacheAccessPattern(cache_key=cache_key)
 
-        self.access_patterns[cache_key].record_access(was_hit)
+        pattern.record_access(was_hit)
+        await self._set_access_pattern(cache_key, pattern)
 
     def schedule_background_refresh(
         self,
@@ -187,9 +269,9 @@ class TTLManager:
         """Warm cache for frequently accessed keys"""
         warm_cache_keys(cache_keys, self.access_patterns, warm_callback)
 
-    def get_access_pattern(self, cache_key: str) -> Optional[CacheAccessPattern]:
+    async def get_access_pattern(self, cache_key: str) -> Optional[CacheAccessPattern]:
         """Get access pattern for a cache key"""
-        return self.access_patterns.get(cache_key)
+        return await self._get_access_pattern(cache_key)
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get TTL management metrics"""
@@ -275,9 +357,11 @@ class TTLManager:
 
 
 # Factory function for dependency injection
-def create_ttl_manager(redis_cache: RedisCache) -> TTLManager:
+def create_ttl_manager(
+    redis_cache: RedisCache, shared_state_manager: Optional[SharedStateManager] = None
+) -> TTLManager:
     """Create TTLManager with dependencies"""
-    return TTLManager(redis_cache)
+    return TTLManager(redis_cache, shared_state_manager)
 
 
 # Singleton instance for global access

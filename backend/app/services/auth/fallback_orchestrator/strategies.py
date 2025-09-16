@@ -120,10 +120,16 @@ class FallbackStrategyManager:
             if level_performance[level_item] <= config.performance_threshold_ms:
                 reordered_sequence.append((level_item, services))
 
-        # Add remaining levels as fallback
+        # Add remaining levels as fallback, sorted by performance
+        remaining_levels = []
         for level, services in sequence:
             if not any(level_item == level for level_item, _ in reordered_sequence):
-                reordered_sequence.append((level, services))
+                remaining_levels.append((level, services, level_performance[level]))
+
+        # Sort remaining levels by performance and add them
+        remaining_levels.sort(key=lambda x: x[2])  # Sort by performance score
+        for level, services, _ in remaining_levels:
+            reordered_sequence.append((level, services))
 
         return reordered_sequence
 
@@ -166,10 +172,18 @@ class FallbackStrategyManager:
             if level_reliability[level_item] >= config.reliability_threshold_percent:
                 reordered_sequence.append((level_item, services))
 
-        # Add remaining levels as fallback
+        # Add remaining levels as fallback, sorted by reliability
+        remaining_levels = []
         for level, services in sequence:
             if not any(level_item == level for level_item, _ in reordered_sequence):
-                reordered_sequence.append((level, services))
+                remaining_levels.append((level, services, level_reliability[level]))
+
+        # Sort remaining levels by reliability (higher is better) and add them
+        remaining_levels.sort(
+            key=lambda x: x[2], reverse=True
+        )  # Sort by reliability score
+        for level, services, _ in remaining_levels:
+            reordered_sequence.append((level, services))
 
         return reordered_sequence
 

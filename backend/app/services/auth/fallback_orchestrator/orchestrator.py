@@ -16,6 +16,10 @@ from app.services.monitoring.service_health_manager import (
     ServiceType,
     get_service_health_manager,
 )
+from app.services.shared_state_manager import (
+    SharedStateManager,
+    get_fallback_state_manager,
+)
 
 from .base import (
     FallbackConfig,
@@ -39,7 +43,11 @@ class FallbackOrchestrator:
     metrics, and operation context to ensure optimal user experience during failures.
     """
 
-    def __init__(self, health_manager: Optional[ServiceHealthManager] = None):
+    def __init__(
+        self,
+        health_manager: Optional[ServiceHealthManager] = None,
+        shared_state_manager: Optional[SharedStateManager] = None,
+    ):
         self.health_manager = health_manager or get_service_health_manager()
 
         # Fallback configurations by operation type
@@ -48,7 +56,7 @@ class FallbackOrchestrator:
         # Service level mappings
         self.service_mappings: Dict[OperationType, ServiceLevelMapping] = {}
 
-        # Performance tracking
+        # Performance tracking with shared state support
         self.performance_history: Dict[str, List[float]] = defaultdict(list)
         self.fallback_stats: Dict[FallbackLevel, Dict[str, int]] = defaultdict(
             lambda: {"attempts": 0, "successes": 0, "failures": 0}
@@ -57,6 +65,9 @@ class FallbackOrchestrator:
         # Recovery tracking
         self.service_recovery_times: Dict[ServiceType, datetime] = {}
         self.last_successful_levels: Dict[OperationType, FallbackLevel] = {}
+
+        # Shared state manager for multi-process environments
+        self._shared_state = shared_state_manager or get_fallback_state_manager()
 
         # Component managers
         self.strategy_manager = FallbackStrategyManager(self.health_manager)
@@ -168,13 +179,11 @@ class FallbackOrchestrator:
             # If all levels failed, try emergency handler
             if not result.success and mapping.emergency_handler:
                 try:
-                    emergency_start = time.time()
                     emergency_value = (
                         await self.emergency_handler_manager.execute_emergency_handler(
                             mapping.emergency_handler, args, kwargs, context_data
                         )
                     )
-                    (time.time() - emergency_start) * 1000
 
                     if emergency_value is not None:
                         result.success = True

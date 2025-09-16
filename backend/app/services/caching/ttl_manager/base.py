@@ -66,7 +66,11 @@ class CacheAccessPattern:
         newest_access = self.access_times[-1]
         time_span_hours = (newest_access - oldest_access).total_seconds() / 3600
 
-        return len(self.access_times) / max(time_span_hours, 1.0)
+        # Don't artificially cap at 1 hour - allow accurate extrapolation for short intervals
+        if time_span_hours <= 0:
+            return 0.0
+
+        return len(self.access_times) / time_span_hours
 
     @property
     def is_hot_data(self) -> bool:

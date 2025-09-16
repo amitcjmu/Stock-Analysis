@@ -11,6 +11,10 @@ from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
+from app.services.shared_state_manager import (
+    SharedStateManager,
+    get_retry_state_manager,
+)
 
 from .backoff import BackoffCalculator
 from .base import (
@@ -28,12 +32,88 @@ T = TypeVar("T")
 class RetryHandler:
     """Handles retry logic with various strategies and circuit breaking"""
 
-    def __init__(self, config: Optional[RetryConfig] = None):
+    def __init__(
+        self,
+        config: Optional[RetryConfig] = None,
+        shared_state_manager: Optional[SharedStateManager] = None,
+    ):
         self.config = config or RetryConfig()
         self.logger = logging.getLogger(f"{__name__}.RetryHandler")
         self._error_classifier = ErrorClassifier()
         self._error_history: List[ErrorRecord] = []
+        # Use shared state manager for multi-process environments
+        self._shared_state = shared_state_manager or get_retry_state_manager()
+        # Keep in-memory as fallback when shared state is not available
         self._circuit_breakers: Dict[str, CircuitBreakerState] = {}
+
+    async def _get_circuit_breaker_state(self, circuit_key: str) -> CircuitBreakerState:
+        """Get circuit breaker state from shared storage or in-memory fallback"""
+        if self._shared_state:
+            try:
+                state_data = await self._shared_state.get(
+                    f"circuit_breaker:{circuit_key}"
+                )
+                if state_data:
+                    # Deserialize state data
+                    return CircuitBreakerState(
+                        is_open=state_data.get("is_open", False),
+                        failure_count=state_data.get("failure_count", 0),
+                        consecutive_successes=state_data.get(
+                            "consecutive_successes", 0
+                        ),
+                        last_failure_time=(
+                            datetime.fromisoformat(state_data["last_failure_time"])
+                            if state_data.get("last_failure_time")
+                            else None
+                        ),
+                        next_attempt_time=(
+                            datetime.fromisoformat(state_data["next_attempt_time"])
+                            if state_data.get("next_attempt_time")
+                            else None
+                        ),
+                    )
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to get circuit breaker state from shared storage: {e}"
+                )
+
+        # Fallback to in-memory storage
+        if circuit_key not in self._circuit_breakers:
+            self._circuit_breakers[circuit_key] = CircuitBreakerState()
+        return self._circuit_breakers[circuit_key]
+
+    async def _set_circuit_breaker_state(
+        self, circuit_key: str, state: CircuitBreakerState
+    ):
+        """Set circuit breaker state in shared storage and in-memory fallback"""
+        # Always update in-memory fallback
+        self._circuit_breakers[circuit_key] = state
+
+        if self._shared_state:
+            try:
+                # Serialize state data
+                state_data = {
+                    "is_open": state.is_open,
+                    "failure_count": state.failure_count,
+                    "consecutive_successes": state.consecutive_successes,
+                    "last_failure_time": (
+                        state.last_failure_time.isoformat()
+                        if state.last_failure_time
+                        else None
+                    ),
+                    "next_attempt_time": (
+                        state.next_attempt_time.isoformat()
+                        if state.next_attempt_time
+                        else None
+                    ),
+                }
+                await self._shared_state.set(
+                    f"circuit_breaker:{circuit_key}", state_data, ttl=86400
+                )  # 24 hour TTL
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to set circuit breaker state in shared storage: {e}"
+                )
 
     async def execute_with_retry(
         self,
@@ -155,11 +235,7 @@ class RetryHandler:
 
     async def _check_circuit_breaker(self, circuit_key: str):
         """Check if circuit breaker allows execution"""
-        if circuit_key not in self._circuit_breakers:
-            self._circuit_breakers[circuit_key] = CircuitBreakerState()
-            return
-
-        state = self._circuit_breakers[circuit_key]
+        state = await self._get_circuit_breaker_state(circuit_key)
 
         if not state.is_open:
             return
@@ -168,6 +244,7 @@ class RetryHandler:
         if state.next_attempt_time and datetime.utcnow() >= state.next_attempt_time:
             # Half-open state - allow one attempt
             state.is_open = False
+            await self._set_circuit_breaker_state(circuit_key, state)
             self.logger.info(
                 f"Circuit breaker for {circuit_key} entering half-open state"
             )
@@ -181,10 +258,7 @@ class RetryHandler:
 
     async def _record_success(self, circuit_key: str):
         """Record successful execution for circuit breaker"""
-        if circuit_key not in self._circuit_breakers:
-            return
-
-        state = self._circuit_breakers[circuit_key]
+        state = await self._get_circuit_breaker_state(circuit_key)
         state.consecutive_successes += 1
 
         if state.is_open:
@@ -196,13 +270,15 @@ class RetryHandler:
             self.logger.info(
                 f"Circuit breaker for {circuit_key} closed after successful execution"
             )
+        else:
+            # Reset failure count on any successful execution when closed
+            state.failure_count = 0
+
+        await self._set_circuit_breaker_state(circuit_key, state)
 
     async def _record_failure(self, circuit_key: str):
         """Record failed execution for circuit breaker"""
-        if circuit_key not in self._circuit_breakers:
-            self._circuit_breakers[circuit_key] = CircuitBreakerState()
-
-        state = self._circuit_breakers[circuit_key]
+        state = await self._get_circuit_breaker_state(circuit_key)
         state.failure_count += 1
         state.last_failure_time = datetime.utcnow()
         state.consecutive_successes = 0
@@ -217,6 +293,8 @@ class RetryHandler:
                 f"Circuit breaker opened for {circuit_key} after {state.failure_count} failures. "
                 f"Next attempt allowed at {state.next_attempt_time}"
             )
+
+        await self._set_circuit_breaker_state(circuit_key, state)
 
     def get_error_history(
         self,
@@ -297,13 +375,12 @@ class RetryHandler:
                 }
             }
 
-    def reset_circuit_breaker(self, circuit_key: str) -> bool:
+    async def reset_circuit_breaker(self, circuit_key: str) -> bool:
         """Manually reset a circuit breaker"""
-        if circuit_key in self._circuit_breakers:
-            self._circuit_breakers[circuit_key] = CircuitBreakerState()
-            self.logger.info(f"Circuit breaker for {circuit_key} manually reset")
-            return True
-        return False
+        new_state = CircuitBreakerState()
+        await self._set_circuit_breaker_state(circuit_key, new_state)
+        self.logger.info(f"Circuit breaker for {circuit_key} manually reset")
+        return True
 
     def get_error_summary(self, hours: int = 24) -> Dict[str, Any]:
         """Get summary of errors in the specified time period"""
