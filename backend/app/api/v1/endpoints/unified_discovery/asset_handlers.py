@@ -138,6 +138,7 @@ async def list_assets(
     context, following the established modular handler pattern.
 
     Features:
+    - Auto-executes asset_inventory phase if not yet completed
     - Tenant-scoped queries (client_account_id, engagement_id)
     - Pagination with configurable page sizes
     - Optional filtering by asset type, status, and flow ID
@@ -150,6 +151,104 @@ async def list_assets(
         validation_error = _validate_context_with_fallback(context, "read")
         if validation_error:
             raise validation_error
+
+        # CRITICAL FIX: Auto-execute asset_inventory phase if needed
+        if flow_id:
+            from sqlalchemy import select, and_
+            from app.models.discovery_flow import DiscoveryFlow
+
+            logger.info(
+                f"🔍 Checking asset_inventory auto-execution for flow_id: {flow_id}"
+            )
+
+            # Check if asset_inventory phase has been completed
+            stmt = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == context.client_account_id,
+                    DiscoveryFlow.engagement_id == context.engagement_id,
+                )
+            )
+            flow_result = await db.execute(stmt)
+            discovery_flow = flow_result.scalar_one_or_none()
+
+            if discovery_flow:
+                logger.info(
+                    f"📊 Flow found - current_phase: {discovery_flow.current_phase}, "
+                    f"asset_inventory_completed: {discovery_flow.asset_inventory_completed}"
+                )
+            else:
+                logger.warning(f"⚠️ No discovery flow found for flow_id: {flow_id}")
+
+            if discovery_flow and discovery_flow.current_phase == "asset_inventory":
+                # Check if asset_inventory has been executed
+                if not discovery_flow.asset_inventory_completed:
+                    logger.info(
+                        f"🏗️ Auto-executing asset_inventory phase for flow {flow_id}"
+                    )
+
+                    # Execute the asset_inventory phase
+                    from app.services.master_flow_orchestrator.core import (
+                        MasterFlowOrchestrator,
+                    )
+
+                    try:
+                        orchestrator = MasterFlowOrchestrator(db, context)
+
+                        # Get master_flow_id if available
+                        master_flow_id = discovery_flow.master_flow_id or flow_id
+
+                        logger.info(
+                            f"🎯 Preparing to execute asset_inventory with "
+                            f"master_flow_id: {master_flow_id}, data_import_id: {discovery_flow.data_import_id}"
+                        )
+
+                        # Prepare phase input with necessary IDs
+                        phase_input = {
+                            "flow_id": str(master_flow_id),
+                            "master_flow_id": str(master_flow_id),
+                            "discovery_flow_id": str(flow_id),
+                            "data_import_id": (
+                                str(discovery_flow.data_import_id)
+                                if discovery_flow.data_import_id
+                                else None
+                            ),
+                            "client_account_id": str(context.client_account_id),
+                            "engagement_id": str(context.engagement_id),
+                        }
+
+                        logger.info(
+                            f"🚀 Executing asset_inventory phase with input: {phase_input}"
+                        )
+
+                        # Execute the phase
+                        exec_result = await orchestrator.execute_phase(
+                            flow_id=str(master_flow_id),
+                            phase_name="asset_inventory",
+                            phase_input=phase_input,
+                        )
+
+                        logger.info(
+                            f"📋 Asset inventory execution result: {exec_result}"
+                        )
+
+                        if exec_result.get("status") in ("success", "completed"):
+                            # Mark phase as completed
+                            discovery_flow.asset_inventory_completed = True
+                            await db.commit()
+                            logger.info(
+                                f"✅ Asset inventory phase executed successfully for flow {flow_id}"
+                            )
+                        else:
+                            logger.warning(
+                                f"⚠️ Asset inventory phase execution had issues: {exec_result}"
+                            )
+
+                    except Exception as exec_error:
+                        logger.error(
+                            f"❌ Failed to execute asset_inventory phase: {exec_error}",
+                            exc_info=True,
+                        )
 
         # Create asset list handler following the modular pattern
         asset_handler = await create_asset_list_handler(db, context)

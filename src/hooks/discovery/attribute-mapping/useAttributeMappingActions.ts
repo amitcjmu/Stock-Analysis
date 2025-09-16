@@ -1,3 +1,25 @@
+/**
+ * ⚠️ CRITICAL API PATTERN - DO NOT MODIFY WITHOUT READING:
+ * ================================================================
+ * ALL POST/PUT/DELETE endpoints in this file MUST use REQUEST BODY, not query parameters!
+ *
+ * ❌ WRONG (causes 422 errors):
+ * const url = `/api/endpoint?param1=value1&param2=value2`;
+ * await apiCall(url, { method: 'POST' });
+ *
+ * ✅ CORRECT:
+ * const url = `/api/endpoint`;
+ * await apiCall(url, {
+ *   method: 'POST',
+ *   body: JSON.stringify({ param1: 'value1', param2: 'value2' })
+ * });
+ *
+ * BACKEND EXPECTS: Request bodies matching Pydantic schemas
+ * NEVER use URLSearchParams for POST/PUT/DELETE - only for GET requests
+ * This has been fixed multiple times (Sep 2024, Oct 2024, Nov 2024)
+ * ================================================================
+ */
+
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -179,13 +201,19 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // Create URL with proper query parameters using URLSearchParams to avoid double-encoding
-      const baseApprovalUrl = `/api/v1/unified-discovery/field-mapping/approve/${mappingId}`;
-      const params = new URLSearchParams({
-        approved: 'true',
+      // IMPORTANT: Use REQUEST BODY, not query params (see file header for details)
+      const approvalUrl = `/api/v1/data-import/field-mappings/${mappingId}/approve`;
+
+      // Create request body according to backend's LearningApprovalRequest Pydantic schema
+      // DO NOT use query parameters - will cause 422 error
+      const requestBody = {
         approval_note: 'User approved mapping from UI',
-      });
-      const approvalUrl = `${baseApprovalUrl}?${params.toString()}`;
+        learn_from_approval: true,
+        metadata: {
+          approved_via: 'UI',
+          flow_id: flow?.flow_id || flow?.id
+        }
+      };
 
       // Make API call to approve the specific mapping
       const approvalResult = await apiCall(approvalUrl, {
@@ -195,7 +223,8 @@ export const useAttributeMappingActions = (
           ...getAuthHeaders(),
           // Add flow ID header for discovery operations
           'X-Flow-ID': flow?.flow_id || ''
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       console.log('✅ Mapping approved successfully:', approvalResult);
@@ -236,13 +265,18 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // Create URL with proper query parameters using URLSearchParams to avoid double-encoding
-      const baseApprovalUrl = `/api/v1/unified-discovery/field-mapping/approve/${mappingId}`;
-      const params = new URLSearchParams({
-        approved: 'false',
-        approval_note: rejectionReason || 'User rejected mapping from UI',
-      });
-      const rejectUrl = `${baseApprovalUrl}?${params.toString()}`;
+      // IMPORTANT: Use REQUEST BODY, not query params (see file header for details)
+      const rejectUrl = `/api/v1/data-import/field-mappings/${mappingId}/reject`;
+
+      // Create request body according to backend's LearningRejectionRequest Pydantic schema
+      // DO NOT use query parameters - will cause 422 error
+      const requestBody = {
+        rejection_reason: rejectionReason || 'User rejected mapping from UI',
+        metadata: {
+          rejected_via: 'UI',
+          flow_id: flow?.flow_id || flow?.id
+        }
+      };
 
       // Make API call to reject the specific mapping
       const rejectResult = await apiCall(rejectUrl, {
@@ -252,7 +286,8 @@ export const useAttributeMappingActions = (
           ...getAuthHeaders(),
           // Add flow ID header for discovery operations
           'X-Flow-ID': flow?.flow_id || ''
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       console.log('✅ Mapping rejected successfully:', rejectResult);
@@ -293,8 +328,9 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // Make API call to update the target field immediately
-      const updateUrl = `/api/v1/field-mapping/update/${mappingId}`;
+      // IMPORTANT: Use REQUEST BODY for PUT request (see file header for details)
+      const updateUrl = `/api/v1/data-import/field-mappings/mappings/${mappingId}`;
+      // DO NOT use query parameters - will cause 422 error
       const updatePayload = {
         target_field: newTarget,
         source_field: mapping.source_field,

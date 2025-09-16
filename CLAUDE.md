@@ -164,6 +164,29 @@ When invoking ANY subagent (qa-playwright-tester, python-crewai-fastapi-expert, 
 
 ## Development Best Practices
 
+### CRITICAL: API Request Body vs Query Parameters (MUST READ - Prevents 422 Errors)
+
+**⚠️ THIS IS THE #1 RECURRING BUG - FIXED MULTIPLE TIMES**
+
+#### The Rule
+- **POST/PUT/DELETE**: ALWAYS use request body, NEVER query parameters
+- **GET**: Use query parameters
+- **See**: `/docs/guidelines/API_REQUEST_PATTERNS.md` for full details
+
+#### Quick Reference
+```typescript
+// ❌ WRONG - Causes 422 errors
+await apiCall(`/api/endpoint?param=value`, { method: 'POST' })
+
+// ✅ CORRECT
+await apiCall(`/api/endpoint`, {
+  method: 'POST',
+  body: JSON.stringify({ param: 'value' })
+})
+```
+
+**Backend uses FastAPI with Pydantic models that ONLY accept request bodies for POST/PUT/DELETE**
+
 ### CRITICAL: API Field Naming Convention (MUST READ - Prevents Recurring Bugs)
 
 #### The Problem

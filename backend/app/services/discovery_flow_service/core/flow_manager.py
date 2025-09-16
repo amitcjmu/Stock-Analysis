@@ -263,12 +263,15 @@ class FlowManager:
                     f"Invalid phase: {phase}. Valid phases: {valid_phases}"
                 )
 
+            # Extract completed flag from phase_data if present
+            completed = phase_data.get("completed", False)
+
             # Update phase completion
             flow = await self.flow_repo.update_phase_completion(
                 flow_id=flow_id,
                 phase=phase,
                 data=phase_data,
-                crew_status=crew_status,
+                completed=completed,
                 agent_insights=agent_insights,
             )
 

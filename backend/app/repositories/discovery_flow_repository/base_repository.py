@@ -161,8 +161,14 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         agent_insights: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[DiscoveryFlow]:
         """Update phase completion status"""
+        # crew_status is not used in FlowPhaseManagementCommands, merge it into data if provided
+        if crew_status and data:
+            data["crew_status"] = crew_status
+        elif crew_status:
+            data = {"crew_status": crew_status}
+
         return await self.flow_commands.update_phase_completion(
-            flow_id, phase, data, crew_status, completed, agent_insights
+            flow_id, phase, data, completed, agent_insights
         )
 
     async def complete_discovery_flow(self, flow_id: str) -> DiscoveryFlow:

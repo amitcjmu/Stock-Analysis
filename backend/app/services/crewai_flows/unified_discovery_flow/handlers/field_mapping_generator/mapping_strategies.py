@@ -101,7 +101,7 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
                     # Create basic mapping
                     mapping = {
                         "source_field": field_name,
-                        "target_field": self._normalize_field_name(field_name),
+                        "target_field": self._map_common_field_names(field_name),
                         "confidence": 0.5,
                         "mapping_type": "basic_extraction",
                         "status": "suggested",
@@ -167,7 +167,7 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
                                 field_name, {"sample_value": field_value}
                             )
                         else:
-                            target_field = self._normalize_field_name(field_name)
+                            target_field = self._map_common_field_names(field_name)
 
                         mapping = {
                             "source_field": field_name,
