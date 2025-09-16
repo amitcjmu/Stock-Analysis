@@ -13,6 +13,16 @@ from typing import Any, Dict
 
 from .base import FieldMappingGeneratorBase
 
+# Import persistent field mapping to use actual AI agent
+try:
+    from app.services.crewai_flows.crews.persistent_field_mapping import (
+        PersistentFieldMapping,
+    )
+
+    PERSISTENT_FIELD_MAPPING_AVAILABLE = True
+except ImportError:
+    PERSISTENT_FIELD_MAPPING_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,11 +32,51 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
     async def try_direct_crew_execution(
         self, input_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Try direct crew execution for field mapping"""
+        """Try direct crew execution for field mapping using actual persistent AI agent"""
         try:
-            self.logger.info("🚀 Attempting direct crew execution for field mapping")
+            self.logger.info(
+                "🚀 Attempting direct crew execution for field mapping using persistent agent"
+            )
 
-            # Mock crew execution - in real implementation this would call CrewAI
+            # Debug logging
+            self.logger.info(
+                f"📊 PERSISTENT_FIELD_MAPPING_AVAILABLE: {PERSISTENT_FIELD_MAPPING_AVAILABLE}"
+            )
+            self.logger.info(f"📊 Flow has context: {hasattr(self.flow, 'context')}")
+            if hasattr(self.flow, "context"):
+                context = self.flow.context
+                self.logger.info(f"📊 Context type: {type(context)}")
+                self.logger.info(
+                    f"📊 Context has client_account_id: {hasattr(context, 'client_account_id')}"
+                )
+                self.logger.info(
+                    f"📊 Context client_account_id: {getattr(context, 'client_account_id', 'None')}"
+                )
+                self.logger.info(
+                    f"📊 Context has engagement_id: {hasattr(context, 'engagement_id')}"
+                )
+                self.logger.info(
+                    f"📊 Context engagement_id: {getattr(context, 'engagement_id', 'None')}"
+                )
+
+            # Use actual persistent AI agent if available
+            if PERSISTENT_FIELD_MAPPING_AVAILABLE and hasattr(self.flow, "context"):
+                try:
+                    self.logger.info("✅ Conditions met for persistent agent execution")
+                    return await self._use_persistent_field_mapping_agent(input_data)
+                except Exception as e:
+                    self.logger.error(
+                        f"❌ Persistent agent execution failed: {e}", exc_info=True
+                    )
+                    # Fall through to fallback logic
+            else:
+                self.logger.warning(
+                    f"⚠️ Conditions not met for persistent agent - "
+                    f"PERSISTENT_FIELD_MAPPING_AVAILABLE={PERSISTENT_FIELD_MAPPING_AVAILABLE}, "
+                    f"has context={hasattr(self.flow, 'context')}"
+                )
+
+            # Fallback: Use basic field mapping logic
             field_mappings = []
 
             # Extract field information from input data
@@ -52,7 +102,7 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
                             field_name, analysis
                         ),
                         "confidence": 0.7,
-                        "mapping_type": "crew_generated",
+                        "mapping_type": "crew_generated_fallback",
                         "status": "suggested",
                     }
                     field_mappings.append(mapping)
@@ -61,12 +111,12 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
                 result = {
                     "field_mappings": field_mappings,
                     "suggestions": [],
-                    "execution_method": "direct_crew_execution",
+                    "execution_method": "direct_crew_execution_fallback",
                     "status": "success",
                 }
 
                 self.logger.info(
-                    f"✅ Direct crew execution generated {len(field_mappings)} mappings"
+                    f"✅ Direct crew execution fallback generated {len(field_mappings)} mappings"
                 )
                 return result
 
@@ -183,3 +233,82 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
             )
 
         return mappings
+
+    async def _use_persistent_field_mapping_agent(
+        self, input_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Use the actual persistent field_mapper agent for intelligent field mapping"""
+        try:
+            self.logger.info(
+                "🤖 Using persistent field_mapper agent for intelligent mapping"
+            )
+
+            # Get raw data from input_data for agent processing
+            validated_data = input_data.get("validated_data", [])
+
+            if not validated_data:
+                self.logger.warning(
+                    "⚠️ No validated_data available for persistent agent"
+                )
+                self.logger.warning(f"📊 Input data keys: {list(input_data.keys())}")
+                return {}
+
+            self.logger.info(f"📊 Validated data has {len(validated_data)} records")
+
+            # Log context details before creating persistent mapper
+            context = self.flow.context
+            client_id = getattr(context, "client_account_id", "None")
+            engagement_id = getattr(context, "engagement_id", "None")
+            self.logger.info(
+                f"📊 Creating PersistentFieldMapping with context - "
+                f"client_id: {client_id}, engagement_id: {engagement_id}"
+            )
+
+            # Create persistent field mapping instance
+            persistent_mapper = PersistentFieldMapping(
+                crewai_service=self.flow,  # Pass the flow instance as crewai_service
+                context=self.flow.context,
+            )
+
+            self.logger.info("✅ PersistentFieldMapping instance created successfully")
+
+            # Execute field mapping with the persistent agent
+            agent_result = await persistent_mapper.map_fields(validated_data)
+
+            if not agent_result or "mappings" not in agent_result:
+                self.logger.warning("⚠️ Persistent agent returned invalid result")
+                return {}
+
+            # Convert persistent mapping result to expected format
+            field_mappings = []
+            agent_mappings = agent_result.get("mappings", {})
+
+            for source_field, mapping_info in agent_mappings.items():
+                mapping = {
+                    "source_field": source_field,
+                    "target_field": mapping_info.get("target_field", "UNMAPPED"),
+                    "confidence": mapping_info.get("confidence", 0.7),
+                    "mapping_type": "persistent_agent_generated",
+                    "status": "suggested",
+                    "reasoning": mapping_info.get("reasoning", "AI agent analysis"),
+                }
+                field_mappings.append(mapping)
+
+            result = {
+                "field_mappings": field_mappings,
+                "suggestions": [],
+                "execution_method": "persistent_agent_execution",
+                "status": "success",
+                "critical_attributes_assessment": agent_result.get(
+                    "critical_attributes_assessment", {}
+                ),
+            }
+
+            self.logger.info(
+                f"✅ Persistent agent generated {len(field_mappings)} intelligent mappings"
+            )
+            return result
+
+        except Exception as e:
+            self.logger.error(f"❌ Persistent field mapping agent failed: {e}")
+            raise

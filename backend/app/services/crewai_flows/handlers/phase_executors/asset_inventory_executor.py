@@ -35,7 +35,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         """Get the progress percentage when this phase completes"""
         return 70.0  # Asset inventory is 70% through discovery
 
-    def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute phase using CrewAI crew - not used, we implement direct execution"""
         # This method is required by the base class but not used in our implementation
         logger.warning(

@@ -62,12 +62,16 @@ async def check_asset_pipeline_health(
         .where(DataImport.client_account_id == context.client_account_id)
     )
 
-    # Count raw import records
+    # Count raw import records with proper tenant scoping
     raw_count = (
         await db.scalar(
             select(func.count())
             .select_from(RawImportRecord)
-            .where(RawImportRecord.master_flow_id == flow_id)
+            .where(
+                RawImportRecord.master_flow_id == flow_id,
+                RawImportRecord.client_account_id == context.client_account_id,
+                RawImportRecord.engagement_id == context.engagement_id,
+            )
         )
         or 0
     )
