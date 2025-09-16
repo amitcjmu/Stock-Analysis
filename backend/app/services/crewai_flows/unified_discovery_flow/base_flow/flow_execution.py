@@ -274,7 +274,7 @@ class FlowExecutionMethods:
             asset_promotion_result = {
                 "status": "success",
                 "promoted_assets": asset_creation_result.get("assets_created", []),
-                "promotion_timestamp": datetime.now().isoformat(),
+                "promotion_timestamp": datetime.utcnow().isoformat(),
             }
 
             await self.notification_utils.send_progress_update(

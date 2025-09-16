@@ -195,6 +195,8 @@ class EnhancedErrorHandler:
         self, error_category: str, service_type: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get recovery recommendations for an error category"""
+        from datetime import datetime
+
         recommendations = self.recovery_manager.get_recovery_recommendations(
             error_category, service_type
         )
@@ -203,9 +205,7 @@ class EnhancedErrorHandler:
             "category": error_category,
             "service_type": service_type,
             "recommendations": recommendations,
-            "timestamp": (
-                context.timestamp.isoformat() if hasattr(self, "context") else None
-            ),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     def format_user_message(

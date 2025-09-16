@@ -104,14 +104,17 @@ class AuditLogStorage:
             List of audit events
         """
         try:
-            query = select(SecurityAuditLog).where(
-                and_(
-                    SecurityAuditLog.resource_id == str(flow_id),
-                    SecurityAuditLog.resource_type == "collection_flow",
-                    SecurityAuditLog.client_account_id
-                    == uuid.UUID(self.client_account_id),
-                )
-            )
+            # Build base query conditions
+            conditions = [
+                SecurityAuditLog.resource_type == "collection_flow",
+                SecurityAuditLog.client_account_id == uuid.UUID(self.client_account_id),
+            ]
+
+            # Only filter by resource_id if flow_id is provided
+            if flow_id:
+                conditions.append(SecurityAuditLog.resource_id == str(flow_id))
+
+            query = select(SecurityAuditLog).where(and_(*conditions))
 
             if start_date:
                 query = query.where(SecurityAuditLog.performed_at >= start_date)
