@@ -240,6 +240,7 @@ class ImportStorageManager:
         data_import_id: uuid.UUID,
         cleansed_data: List[Dict[str, Any]],
         validation_results: Optional[Dict[str, Any]] = None,
+        master_flow_id: Optional[str] = None,
     ) -> int:
         """
         Update raw records with cleansed data and validation results.
@@ -248,6 +249,7 @@ class ImportStorageManager:
             data_import_id: The ID of the import
             cleansed_data: List of cleansed data records
             validation_results: Validation results (optional)
+            master_flow_id: The master flow ID for proper asset association
 
         Returns:
             int: Number of records updated
@@ -256,6 +258,7 @@ class ImportStorageManager:
             data_import_id=data_import_id,
             cleansed_data=cleansed_data,
             validation_results=validation_results,
+            master_flow_id=master_flow_id,
         )
 
     async def link_master_flow_to_import(

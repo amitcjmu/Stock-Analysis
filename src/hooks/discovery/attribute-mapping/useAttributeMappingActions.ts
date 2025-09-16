@@ -1,3 +1,25 @@
+/**
+ * ⚠️ CRITICAL API PATTERN - DO NOT MODIFY WITHOUT READING:
+ * ================================================================
+ * ALL POST/PUT/DELETE endpoints in this file MUST use REQUEST BODY, not query parameters!
+ *
+ * ❌ WRONG (causes 422 errors):
+ * const url = `/api/endpoint?param1=value1&param2=value2`;
+ * await apiCall(url, { method: 'POST' });
+ *
+ * ✅ CORRECT:
+ * const url = `/api/endpoint`;
+ * await apiCall(url, {
+ *   method: 'POST',
+ *   body: JSON.stringify({ param1: 'value1', param2: 'value2' })
+ * });
+ *
+ * BACKEND EXPECTS: Request bodies matching Pydantic schemas
+ * NEVER use URLSearchParams for POST/PUT/DELETE - only for GET requests
+ * This has been fixed multiple times (Sep 2024, Oct 2024, Nov 2024)
+ * ================================================================
+ */
+
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -47,7 +69,7 @@ export interface AttributeMappingActionsResult {
 /**
  * Hook for attribute mapping user actions and workflow operations
  * Handles approval, rejection, mapping changes, and navigation
- * NOW REACTIVE TO AGENT DECISIONS VIA SSE
+ * Uses practical field validation for flow continuation (not agent-dependent)
  */
 export const useAttributeMappingActions = (
   flow: {
@@ -179,13 +201,19 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // Create URL with proper query parameters using URLSearchParams to avoid double-encoding
-      const baseApprovalUrl = `/api/v1/unified-discovery/field-mapping/approve/${mappingId}`;
-      const params = new URLSearchParams({
-        approved: 'true',
+      // IMPORTANT: Use REQUEST BODY, not query params (see file header for details)
+      const approvalUrl = `/api/v1/data-import/field-mappings/${mappingId}/approve`;
+
+      // Create request body according to backend's LearningApprovalRequest Pydantic schema
+      // DO NOT use query parameters - will cause 422 error
+      const requestBody = {
         approval_note: 'User approved mapping from UI',
-      });
-      const approvalUrl = `${baseApprovalUrl}?${params.toString()}`;
+        learn_from_approval: true,
+        metadata: {
+          approved_via: 'UI',
+          flow_id: flow?.flow_id || flow?.id
+        }
+      };
 
       // Make API call to approve the specific mapping
       const approvalResult = await apiCall(approvalUrl, {
@@ -195,7 +223,8 @@ export const useAttributeMappingActions = (
           ...getAuthHeaders(),
           // Add flow ID header for discovery operations
           'X-Flow-ID': flow?.flow_id || ''
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       console.log('✅ Mapping approved successfully:', approvalResult);
@@ -236,13 +265,18 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // Create URL with proper query parameters using URLSearchParams to avoid double-encoding
-      const baseApprovalUrl = `/api/v1/unified-discovery/field-mapping/approve/${mappingId}`;
-      const params = new URLSearchParams({
-        approved: 'false',
-        approval_note: rejectionReason || 'User rejected mapping from UI',
-      });
-      const rejectUrl = `${baseApprovalUrl}?${params.toString()}`;
+      // IMPORTANT: Use REQUEST BODY, not query params (see file header for details)
+      const rejectUrl = `/api/v1/data-import/field-mappings/${mappingId}/reject`;
+
+      // Create request body according to backend's LearningRejectionRequest Pydantic schema
+      // DO NOT use query parameters - will cause 422 error
+      const requestBody = {
+        rejection_reason: rejectionReason || 'User rejected mapping from UI',
+        metadata: {
+          rejected_via: 'UI',
+          flow_id: flow?.flow_id || flow?.id
+        }
+      };
 
       // Make API call to reject the specific mapping
       const rejectResult = await apiCall(rejectUrl, {
@@ -252,7 +286,8 @@ export const useAttributeMappingActions = (
           ...getAuthHeaders(),
           // Add flow ID header for discovery operations
           'X-Flow-ID': flow?.flow_id || ''
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       console.log('✅ Mapping rejected successfully:', rejectResult);
@@ -293,15 +328,41 @@ export const useAttributeMappingActions = (
         return;
       }
 
-      // For discovery flow, field mapping changes are stored locally
-      // and applied when the user clicks "Continue to Data Cleansing"
-      console.log('ℹ️ Field mapping change will be applied when continuing to data cleansing phase');
+      // IMPORTANT: Use REQUEST BODY for PUT request (see file header for details)
+      const updateUrl = `/api/v1/data-import/field-mappings/mappings/${mappingId}`;
+      // DO NOT use query parameters - will cause 422 error
+      const updatePayload = {
+        target_field: newTarget,
+        source_field: mapping.source_field,
+        confidence_score: mapping.confidence_score || 0.7
+      };
 
-      // Update local state to reflect the change
-      // The parent component should handle this state update
-      // For now, just show feedback
-      if (typeof window !== 'undefined' && (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast) {
-        (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast(`Field mapping updated: ${mapping.source_field} → ${newTarget}`);
+      console.log('📤 Updating field mapping:', updatePayload);
+
+      const updateResult = await apiCall(updateUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+          // Add flow ID header for discovery operations
+          'X-Flow-ID': flow?.flow_id || ''
+        },
+        body: JSON.stringify(updatePayload)
+      });
+
+      console.log('✅ Field mapping updated successfully:', updateResult);
+
+      // Show success feedback
+      if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Field mapping updated: ${mapping.source_field} → ${newTarget}`);
+      }
+
+      // Refetch field mappings to ensure UI is in sync
+      try {
+        console.log('🔄 Refetching field mappings after update...');
+        await refetchFieldMappings();
+      } catch (refetchError) {
+        console.error('⚠️ Failed to refetch mappings after update:', refetchError);
       }
 
     } catch (error) {
@@ -316,7 +377,7 @@ export const useAttributeMappingActions = (
       // Re-throw for component error handling
       throw error;
     }
-  }, [fieldMappings]);
+  }, [fieldMappings, getAuthHeaders, flow, refetchFieldMappings]);
 
   const handleAttributeUpdate = useCallback(async (attributeId: string, updates: Record<string, unknown>) => {
     try {
@@ -355,73 +416,64 @@ export const useAttributeMappingActions = (
     }
   }, [getAuthHeaders]);
 
-  // Agent-driven decision for continuing to data cleansing
+  // Practical validation for continuing to data cleansing - no dependency on agent decisions
   const canContinueToDataCleansing = useCallback(() => {
     // Check if flow phase is already complete
     if (flow?.phases?.attribute_mapping === true) {
+      console.log('✅ Flow phase already complete - can continue');
       return true;
     }
 
-    // NO MORE HARDCODED RULES - Check agent decision
-    if (!agentDecision) {
-      console.log('⏳ Waiting for agent decision on field mappings...');
+    // Ensure we have field mappings
+    if (!fieldMappings || fieldMappings.length === 0) {
+      console.log('❌ No field mappings available - cannot continue');
       return false;
     }
 
-    // Agent says we can proceed
-    if (agentDecision.action === 'proceed') {
-      console.log(`✅ Agent recommends proceeding: ${agentDecision.reasoning}`);
-      return true;
-    }
+    // Get approved mappings
+    const approvedMappings = fieldMappings.filter(m => m.status === 'approved');
 
-    // Agent says we need user review
-    if (agentDecision.action === 'pause') {
-      console.log(`⏸️ Agent requires user review: ${agentDecision.reasoning}`);
-
-      // Check if user has met agent's requirements
-      if (agentDecision.metadata?.approval_requirements && fieldMappings.length > 0) {
-        const approvedMappings = fieldMappings.filter(m => m.status === 'approved').length;
-        const totalMappings = fieldMappings.length;
-        const approvalPercentage = (approvedMappings / totalMappings) * 100;
-
-        // Check against agent-specified threshold (not hardcoded 90%)
-        const requiredPercentage = agentDecision.metadata.approval_requirements.minimum_approval_percentage || 0;
-
-        // Check critical fields if required
-        if (agentDecision.metadata.approval_requirements.critical_fields_required) {
-          const criticalFields = agentDecision.metadata.critical_fields || [];
-          const allCriticalFieldsMapped = criticalFields.every(field =>
-            fieldMappings.some(m => m.source_field === field && m.status === 'approved')
-          );
-
-          if (!allCriticalFieldsMapped) {
-            console.log('❌ Not all critical fields are mapped and approved');
-            return false;
-          }
-        }
-
-        const meetsRequirements = approvalPercentage >= requiredPercentage;
-        console.log(`📊 Approval status: ${approvalPercentage.toFixed(1)}% (agent requires ${requiredPercentage}%)`);
-
-        return meetsRequirements;
-      }
-
+    // Must have at least some approved mappings
+    if (approvedMappings.length === 0) {
+      console.log('❌ No approved mappings - need at least some fields approved');
       return false;
     }
 
-    // Agent says to skip or fail
-    if (agentDecision.action === 'skip') {
-      console.log(`⏭️ Agent recommends skipping field mapping: ${agentDecision.reasoning}`);
-      return true; // Allow proceeding if agent says to skip
-    }
+    // Check for minimum required fields: name and asset_type
+    const hasNameField = approvedMappings.some(m => {
+      const targetField = m.target_field?.toLowerCase() || '';
+      return targetField.includes('name') || targetField.includes('asset_name');
+    });
 
-    if (agentDecision.action === 'fail') {
-      console.log(`❌ Agent detected critical issue: ${agentDecision.reasoning}`);
+    const hasTypeField = approvedMappings.some(m => {
+      const targetField = m.target_field?.toLowerCase() || '';
+      return targetField.includes('type') || targetField.includes('asset_type');
+    });
+
+    if (!hasNameField || !hasTypeField) {
+      console.log(`❌ Missing required fields: name=${hasNameField}, type=${hasTypeField}`);
+      console.log('   Required fields: at least one field containing "name" and one containing "type"');
       return false;
     }
 
-    // Default to false if no clear decision
-    return false;
+    // Check for minimum approval percentage (at least 30% should be approved)
+    const approvalPercentage = (approvedMappings.length / fieldMappings.length) * 100;
+    const minimumPercentage = 30;
+
+    if (approvalPercentage < minimumPercentage) {
+      console.log(`❌ Only ${approvalPercentage.toFixed(1)}% approved, need at least ${minimumPercentage}%`);
+      return false;
+    }
+
+    console.log(`✅ Can continue: ${approvedMappings.length}/${fieldMappings.length} fields approved (${approvalPercentage.toFixed(1)}%)`);
+    console.log(`   Required fields present: name=${hasNameField}, type=${hasTypeField}`);
+
+    // Optional: If agent decision is available and supports our decision, log it
+    if (agentDecision) {
+      console.log(`ℹ️ Agent recommendation: ${agentDecision.action} - ${agentDecision.reasoning}`);
+    }
+
+    return true;
   }, [flow, fieldMappings, agentDecision]);
 
   return {

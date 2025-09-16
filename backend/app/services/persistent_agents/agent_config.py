@@ -160,6 +160,8 @@ class AgentConfigManager:
 
             # Get tools for this agent type
             tools = AgentToolManager.get_agent_tools(agent_type, context_info)
+            tool_names = [getattr(t, "name", "unnamed") for t in tools]
+            logger.info(f"🔧 Agent {agent_type} tools: {tool_names}")
 
             # Create the agent with configuration
             agent = Agent(
@@ -344,10 +346,24 @@ class AgentConfigManager:
             },
             "field_mapper": {
                 "role": "Data Field Mapping Specialist",
-                "goal": "Create accurate mappings between source data fields and target schema fields",
+                "goal": "Create accurate mappings between source data fields and target Asset model schema fields",
                 "backstory": (
                     "You are a data mapping expert who understands various data formats and can create "
-                    "accurate field-to-field mappings for data migration."
+                    "accurate field-to-field mappings for data migration. You have deep knowledge of the "
+                    "target Asset model with these valid fields:\n"
+                    "- Basic: name, asset_name, hostname, asset_type, description\n"
+                    "- Network: ip_address, fqdn, mac_address\n"
+                    "- Location: environment, location, datacenter, rack_location, availability_zone\n"
+                    "- Technical: operating_system, os_version, cpu_cores, memory_gb, storage_gb\n"
+                    "- Business: business_owner, technical_owner, department, application_name, "
+                    "technology_stack, criticality, business_criticality\n"
+                    "- Migration: six_r_strategy, migration_priority, migration_complexity, "
+                    "migration_wave, migration_status\n"
+                    "- Status: status\n"
+                    "- JSON fields: custom_attributes, technical_details, dependencies, related_assets\n\n"
+                    "When mapping fields, you MUST use these exact field names. For fields that don't "
+                    "match any valid Asset field, map them to 'UNMAPPED'. Common mappings include: "
+                    "Device_Name->name, IP->ip_address, CPU->cpu_cores, Memory->memory_gb, OS->operating_system."
                 ),
                 "verbose": True,
                 "allow_delegation": False,
@@ -402,7 +418,7 @@ class AgentConfigManager:
                 "max_iter": 6,
                 "max_execution_time": 400,
             },
-            "asset_inventory_agent": {
+            "asset_inventory": {
                 "role": "Asset Inventory Specialist",
                 "goal": "Create database asset records efficiently from cleaned CMDB data",
                 "backstory": (

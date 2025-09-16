@@ -46,11 +46,6 @@ class AgentOperations:
     ) -> str:
         """Execute the field mapping CrewAI agent."""
         try:
-            # If no agent pool, return a mock response for testing
-            if not self.agent_pool:
-                logger.warning("No agent pool available, using mock response")
-                return self._get_mock_agent_response(state)
-
             # Check if TenantScopedAgentPool is available
             if not TENANT_AGENT_POOL_AVAILABLE:
                 logger.warning(
@@ -58,24 +53,34 @@ class AgentOperations:
                 )
                 return self._get_mock_agent_response(state)
 
+            # If agent_pool is None, try to use TenantScopedAgentPool directly
+            if not self.agent_pool:
+                # Try to use TenantScopedAgentPool directly as it's a class method
+                if TenantScopedAgentPool:
+                    logger.info(
+                        "Using TenantScopedAgentPool directly for agent creation"
+                    )
+                    self.agent_pool = TenantScopedAgentPool
+                else:
+                    logger.warning("No agent pool available, using mock response")
+                    return self._get_mock_agent_response(state)
+
+            # Initialize tenant pool if needed
+            await TenantScopedAgentPool.initialize_tenant_pool(
+                client_id=str(self.client_account_id),
+                engagement_id=str(self.engagement_id),
+            )
+
             # Get field mapping agent from the pool
-            # Use the imported TenantScopedAgentPool directly, not self.agent_pool
-            # since self.agent_pool might be set to the class itself
-            if hasattr(self.agent_pool, "get_or_create_agent"):
-                agent = await self.agent_pool.get_or_create_agent(
-                    client_id=str(self.client_account_id),
-                    engagement_id=str(self.engagement_id),
-                    agent_type="field_mapper",
-                    context_info={"flow_id": str(state.flow_id)},
-                )
-            else:
-                # If agent_pool is the class itself, call it directly
-                agent = await TenantScopedAgentPool.get_or_create_agent(
-                    client_id=str(self.client_account_id),
-                    engagement_id=str(self.engagement_id),
-                    agent_type="field_mapper",
-                    context_info={"flow_id": str(state.flow_id)},
-                )
+            logger.info(
+                f"Creating field_mapper agent for client {self.client_account_id}"
+            )
+            agent = await TenantScopedAgentPool.get_or_create_agent(
+                client_id=str(self.client_account_id),
+                engagement_id=str(self.engagement_id),
+                agent_type="field_mapper",
+                context_info={"flow_id": str(state.flow_id)},
+            )
 
             # Prepare input for agent
             agent_input = self._prepare_agent_input(state)
@@ -92,22 +97,67 @@ class AgentOperations:
 
     def _get_mock_agent_response(self, state: UnifiedDiscoveryFlowState) -> str:
         """Generate a mock response for testing when no agent is available."""
+        # Import the field mapping base to use proper validation
+        try:
+            from app.services.crewai_flows.unified_discovery_flow.handlers.field_mapping_generator.base import (
+                FieldMappingGeneratorBase,
+            )
+
+            # Create a mock flow instance
+            class MockFlow:
+                pass
+
+            mapper = FieldMappingGeneratorBase(MockFlow())
+        except ImportError:
+            mapper = None
+            logger.warning("Could not import FieldMappingGeneratorBase for validation")
+
         # Get sample data for mock response
-        sample_data = state.raw_data or {}
+        raw_data = state.raw_data or []
+        # If raw_data is a list, get the first record as sample
+        if isinstance(raw_data, list) and len(raw_data) > 0:
+            sample_data = raw_data[0] if isinstance(raw_data[0], dict) else {}
+        elif isinstance(raw_data, dict):
+            sample_data = raw_data
+        else:
+            sample_data = {}
+
         detected_columns = state.metadata.get("detected_columns", [])
 
         # Generate mock mappings based on detected columns
         mock_mappings = []
-        for i, column in enumerate(detected_columns[:5]):  # Limit to first 5 columns
-            # Map to common target fields for demonstration
-            target_fields = ["hostname", "ip", "os", "owner", "environment"]
-            target_field = target_fields[i % len(target_fields)]
+        for i, column in enumerate(detected_columns[:10]):  # Process up to 10 columns
+            # Use proper field mapping validation if available
+            if mapper:
+                target_field = mapper._map_common_field_names(column)
+                # Calculate confidence based on mapping result
+                if target_field == "UNMAPPED":
+                    confidence = 0.0  # No confidence for unmapped fields
+                elif target_field == mapper._normalize_field_name(column):
+                    confidence = 0.75  # Lower confidence for direct normalization
+                else:
+                    confidence = 0.90  # High confidence for recognized mappings
+            else:
+                # Fallback to simple mapping if mapper not available
+                target_fields = [
+                    "name",
+                    "ip_address",
+                    "operating_system",
+                    "business_owner",
+                    "environment",
+                ]
+                target_field = (
+                    target_fields[i % len(target_fields)]
+                    if i < len(target_fields)
+                    else "UNMAPPED"
+                )
+                confidence = 0.70 if target_field != "UNMAPPED" else 0.0
 
             mock_mappings.append(
                 {
                     "source_field": column,
                     "target_field": target_field,
-                    "confidence": 0.85 + (i * 0.02),  # Vary confidence scores
+                    "confidence": confidence,
                     "mapping_context": {
                         "detected_patterns": f"Pattern analysis for {column}",
                         "sample_values": [

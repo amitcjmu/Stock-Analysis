@@ -40,11 +40,11 @@ class DiscoveryPhaseTransitionService:
                 select(DiscoveryFlow).where(DiscoveryFlow.id == flow_id)
             )
             flow = flow_result.scalar_one_or_none()
-            
+
             if not flow:
                 logger.error(f"Flow {flow_id} not found")
                 return None
-            
+
             # Check if all required field mappings are approved
             approved_mappings = await self.db.execute(
                 select(ImportFieldMapping)
@@ -82,11 +82,9 @@ class DiscoveryPhaseTransitionService:
 
             # Create phase management with proper context from the flow
             phase_mgmt = FlowPhaseManagementCommands(
-                self.db, 
-                flow.client_account_id, 
-                flow.engagement_id
+                self.db, flow.client_account_id, flow.engagement_id
             )
-            
+
             # Update phase completion status
             await phase_mgmt.update_phase_completion(
                 flow_id=flow_id,

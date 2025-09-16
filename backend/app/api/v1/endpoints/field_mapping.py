@@ -14,6 +14,8 @@ from app.api.v1.endpoints.data_import.field_mapping.models.mapping_schemas impor
 from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
     MappingService,
 )
+from pydantic import BaseModel
+from typing import Optional
 from app.core.context import RequestContext, get_current_context
 from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
@@ -21,6 +23,14 @@ from app.core.database import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/field-mapping")
+
+
+class FieldMappingUpdateRequest(BaseModel):
+    """Request model for updating field mappings."""
+
+    target_field: str
+    source_field: Optional[str] = None
+    confidence_score: Optional[float] = None
 
 
 def get_mapping_service(
@@ -76,6 +86,52 @@ async def approve_field_mapping(
         raise HTTPException(status_code=500, detail="Failed to approve field mapping")
 
 
+@router.put("/update/{mapping_id}")
+async def update_field_mapping(
+    mapping_id: str,
+    request: FieldMappingUpdateRequest,
+    service: MappingService = Depends(get_mapping_service),
+):
+    """
+    Update a field mapping's target field.
+    Frontend endpoint for updating field mappings before approval.
+    """
+    try:
+        logger.info(
+            f"Field mapping update request: mapping_id={mapping_id}, target_field={request.target_field}"
+        )
+
+        # Create update data with the new target field
+        update_data = FieldMappingUpdate(target_field=request.target_field)
+
+        # Update the mapping
+        updated_mapping = await service.update_field_mapping(mapping_id, update_data)
+
+        return {
+            "mapping_id": mapping_id,
+            "target_field": request.target_field,
+            "updated_mapping": updated_mapping,
+            "success": True,
+        }
+
+    except ValueError as e:
+        logger.warning(
+            safe_log_format(
+                "Mapping {mapping_id} not found: {e}", mapping_id=mapping_id, e=e
+            )
+        )
+        raise HTTPException(
+            status_code=404, detail=f"Field mapping not found: {mapping_id}"
+        )
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Error updating mapping {mapping_id}: {e}", mapping_id=mapping_id, e=e
+            )
+        )
+        raise HTTPException(status_code=500, detail="Failed to update field mapping")
+
+
 @router.get("/health")
 async def health_check():
     """Health check for top-level field mapping endpoints."""
@@ -83,5 +139,5 @@ async def health_check():
         "status": "healthy",
         "service": "field_mapping_top_level",
         "delegates_to": "data_import.field_mapping_modular",
-        "endpoints": ["/approve/{mapping_id}"],
+        "endpoints": ["/approve/{mapping_id}", "/update/{mapping_id}"],
     }

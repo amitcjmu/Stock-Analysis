@@ -52,6 +52,24 @@ async def pause_flow(
     try:
         logger.info(safe_log_format("Pausing flow: {flow_id}", flow_id=flow_id))
 
+        # Check if flow is archived before pausing
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        flow = result.scalar_one_or_none()
+
+        if not flow:
+            raise HTTPException(status_code=404, detail="Flow not found")
+
+        # Guard against deleted flows
+        if flow.status == "archived":
+            raise HTTPException(status_code=400, detail="Cannot process deleted flow")
+
         orchestrator = MasterFlowOrchestrator(db, context)
         result = await orchestrator.pause_flow(flow_id)
 
@@ -94,6 +112,10 @@ async def resume_flow(
 
         if not flow:
             raise HTTPException(status_code=404, detail="Flow not found")
+
+        # Guard against deleted flows
+        if flow.status == "archived":
+            raise HTTPException(status_code=400, detail="Cannot process deleted flow")
 
         if flow.status not in ["paused", "waiting_for_approval", "failed"]:
             raise HTTPException(
@@ -212,6 +234,10 @@ async def retry_flow(
 
         if not flow:
             raise HTTPException(status_code=404, detail="Flow not found")
+
+        # Guard against deleted flows
+        if flow.status == "archived":
+            raise HTTPException(status_code=400, detail="Cannot process deleted flow")
 
         if flow.status not in ["failed", "error"]:
             raise HTTPException(

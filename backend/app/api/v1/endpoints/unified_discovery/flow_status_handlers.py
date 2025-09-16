@@ -87,6 +87,12 @@ async def get_flow_status(
                     status_code=404,
                     detail=f"Flow {flow_id} not found",
                 )
+
+            # Guard against deleted flows
+            if flow.status == "archived":
+                raise HTTPException(
+                    status_code=400, detail="Cannot process deleted flow"
+                )
         except HTTPException:
             raise
         except Exception as e:

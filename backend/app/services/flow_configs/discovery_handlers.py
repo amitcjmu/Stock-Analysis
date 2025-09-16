@@ -294,47 +294,66 @@ async def asset_creation_completion(
 async def asset_inventory(
     flow_id: str, phase_input: Dict[str, Any], context: Any, **kwargs
 ) -> Dict[str, Any]:
-    """
-    Execute asset inventory phase
+    """Execute asset inventory phase - creates assets from raw data using AssetInventoryExecutor"""
+    logger.info(f"Executing asset inventory handler for flow {flow_id}")
 
-    Performs:
-    - Asset classification
-    - Server identification
-    - Application discovery
-    - Device categorization
-    
-    Note: This is a simplified handler that returns success to allow
-    phase progression. The actual asset creation happens through
-    the crew execution in execution_engine_crew.py
-    """
     try:
-        logger.info(f"Executing asset inventory handler for flow {flow_id}")
+        # Import the executor here to avoid circular imports
+        from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor import (
+            AssetInventoryExecutor,
+        )
 
-        # Extract relevant data from phase_input
-        raw_data = phase_input.get("raw_data", [])
-        field_mappings = phase_input.get("field_mappings", {})
-        
-        # Log what we're processing
-        logger.info(f"Processing {len(raw_data) if isinstance(raw_data, list) else 0} records for asset inventory")
-        
-        # Return success to allow phase progression
-        # The actual asset creation logic is handled by the crew execution
-        return {
-            "phase": "asset_inventory",
-            "status": "completed",
+        # Create flow context for the executor
+        flow_context = {
             "flow_id": flow_id,
-            "records_processed": len(raw_data) if isinstance(raw_data, list) else 0,
-            "message": "Asset inventory phase completed successfully",
-            "next_phase": "dependency_analysis",
+            "master_flow_id": phase_input.get("master_flow_id", flow_id),
+            "client_account_id": phase_input.get("client_account_id")
+            or getattr(context, "client_account_id", None),
+            "engagement_id": phase_input.get("engagement_id")
+            or getattr(context, "engagement_id", None),
+            "user_id": getattr(context, "user_id", None),
+            "db_session": kwargs.get("db_session")
+            or getattr(context, "db_session", None),
         }
 
+        # Validate required context
+        if not all([flow_context["client_account_id"], flow_context["engagement_id"]]):
+            logger.error(
+                f"Missing required context for asset inventory: {flow_context}"
+            )
+            return {
+                "phase": "asset_inventory",
+                "status": "failed",
+                "flow_id": flow_id,
+                "error": "Missing required tenant context (client_account_id, engagement_id)",
+                "assets_created": 0,
+            }
+
+        # Create executor instance (no base class dependencies needed)
+        executor = AssetInventoryExecutor(state=None, crew_manager=None)
+
+        # Execute asset creation
+        result = await executor.execute_asset_creation(flow_context)
+
+        # Ensure proper return format
+        result.update(
+            {
+                "phase": "asset_inventory",
+                "flow_id": flow_id,
+                "next_phase": "dependency_analysis",
+            }
+        )
+
+        return result
+
     except Exception as e:
-        logger.error(f"Asset inventory handler error for flow {flow_id}: {e}")
+        logger.error(f"Asset inventory handler failed: {e}")
         return {
             "phase": "asset_inventory",
             "status": "failed",
-            "error": str(e),
             "flow_id": flow_id,
+            "error": str(e),
+            "assets_created": 0,
         }
 
 

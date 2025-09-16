@@ -1,11 +1,26 @@
-// API service for attribute mapping operations
+/**
+ * API service for attribute mapping operations
+ *
+ * ⚠️ CRITICAL API PATTERN - DO NOT MODIFY WITHOUT READING:
+ * ================================================================
+ * ALL POST/PUT/DELETE endpoints MUST use REQUEST BODY, not query parameters!
+ *
+ * ❌ WRONG: apiCall(`/endpoint?param=value`, { method: 'POST' })
+ * ✅ CORRECT: apiCall(`/endpoint`, { method: 'POST', body: JSON.stringify({param: 'value'}) })
+ *
+ * The backend uses FastAPI with Pydantic models that expect request bodies.
+ * Query parameters on POST/PUT/DELETE will cause 422 Unprocessable Entity errors.
+ *
+ * This pattern has been incorrectly changed multiple times. DO NOT REVERT TO QUERY PARAMS.
+ * ================================================================
+ */
 import { apiCall } from '@/config/api';
 
 export class MappingService {
 
   static async approveMapping(mappingId: string, flowId: string): Promise<unknown> {
     try {
-      const response = await apiCall(`/field-mapping/approve/${mappingId}`, {
+      const response = await apiCall(`/data-import/field-mappings/${mappingId}/approve`, {
         method: 'POST',
         body: JSON.stringify({ flowId })
       });
@@ -19,7 +34,7 @@ export class MappingService {
 
   static async rejectMapping(mappingId: string, flowId: string, reason?: string): Promise<unknown> {
     try {
-      const response = await apiCall(`/field-mapping/reject/${mappingId}`, {
+      const response = await apiCall(`/data-import/field-mappings/${mappingId}/reject`, {
         method: 'POST',
         body: JSON.stringify({ flowId, reason })
       });
@@ -33,7 +48,7 @@ export class MappingService {
 
   static async updateMapping(mappingId: string, updates: unknown, flowId: string): Promise<unknown> {
     try {
-      const response = await apiCall(`/field-mapping/update/${mappingId}`, {
+      const response = await apiCall(`/data-import/field-mappings/mappings/${mappingId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...updates, flowId })
       });
@@ -61,7 +76,7 @@ export class MappingService {
 
   static async triggerFieldMappingAnalysis(flowId: string): Promise<unknown> {
     try {
-      const response = await apiCall(`/field-mapping/trigger/${flowId}`, {
+      const response = await apiCall(`/data-import/field-mappings/imports/${flowId}/generate`, {
         method: 'POST'
       });
 
@@ -74,7 +89,7 @@ export class MappingService {
 
   static async getMappingProgress(flowId: string): Promise<unknown> {
     try {
-      const response = await apiCall(`/field-mapping/progress/${flowId}`);
+      const response = await apiCall(`/data-import/field-mappings/imports/${flowId}/summary`);
 
       return response;
     } catch (error) {

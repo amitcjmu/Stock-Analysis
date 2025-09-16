@@ -49,9 +49,6 @@ class FieldMappingLogic:
                 }
 
             # Use the actual field mapping executor with AI agents
-            from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import (  # noqa: E501
-                FieldMappingExecutor,
-            )
             from app.schemas.unified_discovery_flow_state import (
                 UnifiedDiscoveryFlowState,
             )
@@ -73,17 +70,29 @@ class FieldMappingLogic:
             )
 
             # Initialize field mapping executor with proper context
-            # Using positional arguments as expected by the constructor
-            executor = FieldMappingExecutor(
-                flow_state, None, None  # state, crew_manager, flow_bridge
+            # Import and use TenantScopedAgentPool for agent operations
+            from app.services.persistent_agents.tenant_scoped_agent_pool import (
+                TenantScopedAgentPool,
+            )
+
+            # Create the modular executor from field_mapping_executor module
+            from app.services.field_mapping_executor import (
+                FieldMappingExecutor as ModularFieldMappingExecutor,
+            )
+
+            # Initialize with agent pool to enable AI agent execution (not fallback)
+            executor = ModularFieldMappingExecutor(
+                storage_manager=None,  # Storage manager not needed for this flow
+                agent_pool=TenantScopedAgentPool,  # Pass the agent pool class for AI execution
+                client_account_id=str(phase_input.get("client_account_id", "")),
+                engagement_id=str(phase_input.get("engagement_id", "")),
             )
 
             # Use provided session or get one from outside
             if db_session:
-                # Execute field mapping with AI - guard against None result
-                result = (
-                    await executor.execute_field_mapping(flow_state, db_session)
-                ) or {}
+                # Execute field mapping phase with AI - guard against None result
+                # The modular executor expects execute_phase method
+                result = (await executor.execute_phase(flow_state, db_session)) or {}
 
                 # Normalize mappings into dict keyed by source_field
                 mappings_dict: Dict[str, Any] = {}

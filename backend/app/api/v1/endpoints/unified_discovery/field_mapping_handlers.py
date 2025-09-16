@@ -33,6 +33,33 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# Compatibility shim for frontend calls like /api/v1/field-mapping/learned/approve/{mapping_id}
+@router.post("/field-mapping/learned/approve/{mapping_id}")
+async def approve_field_mapping_compat(
+    mapping_id: str,
+    approved: bool = Query(
+        default=True, description="Approve (true) or reject (false)"
+    ),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+):
+    """Compatibility endpoint that forwards to the standard approval endpoint."""
+    try:
+        return await approve_field_mapping(
+            mapping_id=mapping_id,
+            approved=approved,
+            db=db,
+            context=context,
+            current_user=current_user,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(safe_log_format("Compat approve failed: {e}", e=e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def _get_discovery_flow(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> DiscoveryFlow:
@@ -137,17 +164,27 @@ def _convert_mapping_type(mapping_type: str) -> FieldMappingType:
 
 
 def _create_field_mapping_item(mapping) -> Optional[FieldMappingItem]:
-    """Create a FieldMappingItem from SQLAlchemy model."""
+    """Create a FieldMappingItem from SQLAlchemy model.
+
+    UNMAPPED fields are shown to allow users to manually map them.
+    """
     try:
         # Ensure confidence score is valid
         confidence_score = getattr(mapping, "confidence_score", None)
         if confidence_score is None:
             confidence_score = 0.5
 
+        # For UNMAPPED fields, show them with empty target to indicate they need mapping
+        # This allows users to manually select appropriate target fields
+        target_field = mapping.target_field
+        if target_field == "UNMAPPED":
+            target_field = ""  # Show empty target for unmapped fields
+            confidence_score = 0.0  # Zero confidence for unmapped
+
         return FieldMappingItem(
             id=str(mapping.id),
             source_field=mapping.source_field,
-            target_field=mapping.target_field,
+            target_field=target_field,
             confidence_score=confidence_score,
             field_type=getattr(mapping, "field_type", None),
             status=getattr(mapping, "status", "suggested"),

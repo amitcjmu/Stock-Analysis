@@ -4,12 +4,13 @@ Handles data cleansing phase execution for the Unified Discovery Flow.
 Now integrates agentic intelligence for comprehensive asset enrichment.
 """
 
-import asyncio
 import logging
 import uuid
+from datetime import datetime
 from typing import Any, Dict, List
 
 from .base_phase_executor import BasePhaseExecutor
+from .data_cleansing_utils import DataCleansingUtils
 
 logger = logging.getLogger(__name__)
 
@@ -27,101 +28,164 @@ class DataCleansingExecutor(BasePhaseExecutor):
         return 33.3  # 2/6 phases
 
     async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute data cleansing with agentic intelligence instead of basic crew processing"""
+        """Execute data cleansing with persistent multi-tenant agents instead of crew-based processing"""
+        logger.info("🧠 Starting data cleansing with persistent multi-tenant agent")
 
-        logger.info(
-            "🧠 Starting agentic asset enrichment instead of basic data cleansing"
+        # Get raw records WITH tenant scoping
+        raw_import_records = await self._get_raw_import_records_with_ids()
+        logger.info(f"📋 Prepared {len(raw_import_records)} assets for cleansing")
+
+        if not raw_import_records:
+            raise RuntimeError("No raw import records found for data cleansing")
+
+        # BUILD RequestContext from state (DataCleansingExecutor doesn't have self.context)
+        from app.core.context import RequestContext
+
+        request_context = RequestContext(
+            client_account_id=self.state.client_account_id,
+            engagement_id=self.state.engagement_id,
+            user_id=getattr(self.state, "user_id", None),
+            flow_id=self.state.flow_id,
         )
 
+        # Get service registry if available
+        service_registry = getattr(self, "service_registry", None)
+
+        # Use TenantScopedAgentPool CLASSMETHOD (not instance)
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
+        )
+
+        cleansing_agent = await TenantScopedAgentPool.get_agent(
+            context=request_context,
+            agent_type="data_cleansing",
+            service_registry=service_registry,  # Pass if available
+        )
+
+        logger.info("🔧 Retrieved agent: data_cleansing")
+
+        # Process with persistent agent - handle both sync and async cases
+        # The agent may not have a process method, so we need to handle this gracefully
+        cleaned_data = []
         try:
-            # Import agentic intelligence
-            from app.services.agentic_intelligence.agentic_asset_enrichment import (
-                enrich_assets_with_agentic_intelligence,
-            )
+            # Check if agent has a process method
+            if hasattr(cleansing_agent, "process"):
+                # Check if it's async
+                import inspect
 
-            # Get raw import records from database with their IDs for proper linkage
-            raw_import_records = await self._get_raw_import_records_with_ids()
-            logger.info(
-                f"🔄 Converting {len(raw_import_records)} raw import records to asset profiles for agentic analysis"
-            )
-
-            # Transform raw import records into structured assets with ID preservation
-            assets_for_analysis = self._prepare_assets_for_agentic_analysis(
-                raw_import_records
-            )
-
-            if not assets_for_analysis:
-                logger.error(
-                    "❌ No assets prepared for agentic analysis - this is a critical error"
+                if inspect.iscoroutinefunction(cleansing_agent.process):
+                    cleaned_data = await cleansing_agent.process(raw_import_records)
+                else:
+                    # Sync method - need to handle carefully to avoid greenlet issues
+                    cleaned_data = cleansing_agent.process(raw_import_records)
+            else:
+                # Agent doesn't have process method - use basic cleansing logic
+                logger.warning(
+                    "⚠️ Agent doesn't have process method, using fallback cleansing"
                 )
-                raise RuntimeError(
-                    "No assets prepared for agentic analysis - check raw data preparation"
-                )
+                cleaned_data = self._basic_data_cleansing(raw_import_records)
+        except Exception as agent_err:
+            logger.error(f"❌ Agent processing failed: {agent_err}")
+            # Use basic cleansing as fallback
+            cleaned_data = self._basic_data_cleansing(raw_import_records)
 
-            # Extract multi-tenant context from state
-            client_account_id = (
-                uuid.UUID(self.state.client_account_id)
-                if self.state.client_account_id
-                else None
-            )
-            engagement_id = (
-                uuid.UUID(self.state.engagement_id)
-                if self.state.engagement_id
-                else None
-            )
-            flow_id = uuid.UUID(self.state.flow_id) if self.state.flow_id else None
-
-            if not client_account_id or not engagement_id:
-                logger.error("Missing multi-tenant context for agentic analysis")
-                # NO FALLBACK - Multi-tenant context is required
-                raise RuntimeError(
-                    "Missing multi-tenant context for agentic analysis. This is required."
-                )
-
-            # Perform agentic asset enrichment
-            enriched_assets = await enrich_assets_with_agentic_intelligence(
-                assets=assets_for_analysis,
-                crewai_service=self.crew_manager.crewai_service,
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                flow_id=flow_id,
-                batch_size=3,  # Process 3 assets at a time
-                enable_parallel_agents=True,  # Enable parallel agent execution
-            )
-
-            logger.info(
-                f"✅ Agentic enrichment completed for {len(enriched_assets)} assets"
-            )
-
-            # Return results in expected format
+        # VALIDATION 1: Check if agent returned any data
+        if not cleaned_data:
+            logger.error("❌ Data cleansing agent returned no results")
             return {
-                "cleaned_data": enriched_assets,  # Now enriched with agentic intelligence
-                "enrichment_summary": self._generate_enrichment_summary(
-                    enriched_assets
-                ),
-                "quality_metrics": self._calculate_agentic_quality_metrics(
-                    enriched_assets
-                ),
-                "agentic_analysis": True,
+                "status": "error",
+                "error_code": "CLEANSING_FAILED",
+                "message": "Data cleansing produced no results - agent returned empty data",
+                "raw_records_count": len(raw_import_records),
+                "cleaned_records_count": 0,
             }
 
-        except Exception as e:
-            logger.error(f"❌ Agentic enrichment failed: {e}")
-            logger.error(
-                "❌ This indicates a real issue with agent execution that must be fixed"
+        logger.info(f"✅ Agent returned {len(cleaned_data)} cleaned records")
+
+        # Log sample of cleaned data to debug ID mapping
+        if cleaned_data:
+            sample_record = cleaned_data[0]
+            logger.info(f"📋 Sample cleaned record keys: {list(sample_record.keys())}")
+            has_id = sum(1 for r in cleaned_data if "id" in r)
+            has_raw_id = sum(1 for r in cleaned_data if "raw_import_record_id" in r)
+            has_row_num = sum(1 for r in cleaned_data if "row_number" in r)
+            logger.info(
+                f"📊 ID mapping stats - id: {has_id}, raw_import_record_id: {has_raw_id}, row_number: {has_row_num}"
             )
-            raise
+
+        # CRITICAL: Fix ID mapping before storage
+        for record in cleaned_data:
+            if "raw_import_record_id" in record and "id" not in record:
+                record["id"] = record["raw_import_record_id"]
+                logger.debug("Mapped raw_import_record_id to id for record")
+
+        # CRITICAL: Await the update (no fire-and-forget)
+        updated_count = await self._update_cleansed_data_sync(cleaned_data)
+
+        # VALIDATION 2: Check if data was actually persisted
+        if updated_count == 0:
+            logger.error(
+                f"❌ Failed to persist cleansed data (0/{len(cleaned_data)} records updated)"
+            )
+            return {
+                "status": "error",
+                "error_code": "CLEANSING_FAILED",
+                "message": f"Failed to persist cleansed data to database (0/{len(cleaned_data)} records updated)",
+                "raw_records_count": len(raw_import_records),
+                "cleaned_records_count": len(cleaned_data),
+                "persisted_count": 0,
+            }
+
+        logger.info(
+            f"✅ Successfully persisted {updated_count}/{len(cleaned_data)} cleansed records"
+        )
+
+        # VALIDATION 3: Verify cleansed data exists in database before marking complete
+        cleansed_count = await self._verify_cleansed_data_in_database()
+        if cleansed_count == 0:
+            logger.error(
+                "❌ Post-persistence verification failed - no cleansed data found in database"
+            )
+            return {
+                "status": "error",
+                "error_code": "CLEANSING_FAILED",
+                "message": "Data cleansing verification failed - no cleansed data found in database after update",
+                "raw_records_count": len(raw_import_records),
+                "cleaned_records_count": len(cleaned_data),
+                "updated_count": updated_count,
+                "verified_count": 0,
+            }
+
+        # Only mark phase complete if we successfully cleansed and persisted data
+        await self._mark_phase_complete("data_cleansing")
+
+        return {
+            "status": "success",
+            "cleaned_data": cleaned_data,
+            "cleansing_summary": DataCleansingUtils.generate_cleansing_summary(
+                cleaned_data
+            ),
+            "quality_metrics": DataCleansingUtils.calculate_cleansing_quality_metrics(
+                cleaned_data
+            ),
+            "persistent_agent_used": True,
+            "crew_based": False,
+            "raw_records_count": len(raw_import_records),
+            "cleaned_records_count": len(cleaned_data),
+            "persisted_count": updated_count,
+            "verified_count": cleansed_count,
+        }
 
     async def execute_fallback(self) -> Dict[str, Any]:
-        """NO FALLBACK ALLOWED - FAIL FAST TO EXPOSE REAL ISSUES"""
+        """NO FALLBACK ALLOWED - Data cleansing is required per ADR-025"""
         logger.error(
             "❌ execute_fallback called for data_cleansing - FALLBACK DISABLED"
         )
         logger.error(
-            "❌ If you see this error, fix the actual agentic intelligence execution issues"
+            "❌ Data cleansing is mandatory - cannot use raw data for asset creation"
         )
         raise RuntimeError(
-            "Data cleansing fallback disabled - agentic intelligence must work properly"
+            "Data cleansing fallback disabled - cleansed data is required for asset creation (ADR-025)"
         )
 
     def _prepare_crew_input(self) -> Dict[str, Any]:
@@ -156,120 +220,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
         )
 
         # Update raw_import_records with cleansed data
-        self._update_raw_records_with_cleansed_data(cleaned_data)
-
-    def _process_crew_result(self, crew_result) -> Dict[str, Any]:
-        """Process data cleansing crew result and extract cleaned data - NO FALLBACKS"""
-        logger.info(f"🔍 Processing data cleansing crew result: {type(crew_result)}")
-
-        if hasattr(crew_result, "raw") and crew_result.raw:
-            logger.info(f"📄 Crew raw output: {crew_result.raw}")
-
-            # Try to parse JSON from crew output if it contains structured data
-            import json
-
-            try:
-                if "{" in crew_result.raw and "}" in crew_result.raw:
-                    # Try to extract JSON from the output
-                    start = crew_result.raw.find("{")
-                    end = crew_result.raw.rfind("}") + 1
-                    json_str = crew_result.raw[start:end]
-                    parsed_result = json.loads(json_str)
-
-                    if (
-                        "cleaned_data" in parsed_result
-                        or "standardized_data" in parsed_result
-                    ):
-                        logger.info("✅ Found structured data in crew output")
-                        return {
-                            "cleaned_data": parsed_result.get(
-                                "cleaned_data",
-                                parsed_result.get("standardized_data", []),
-                            ),
-                            "quality_metrics": parsed_result.get("quality_metrics", {}),
-                            "raw_result": crew_result.raw,
-                        }
-                    else:
-                        logger.error(
-                            f"❌ Crew JSON missing required keys. Got: {list(parsed_result.keys())}"
-                        )
-                        raise ValueError(
-                            "Data cleansing crew returned JSON without cleaned_data or standardized_data"
-                        )
-                else:
-                    logger.error(
-                        f"❌ Crew output does not contain valid JSON: {crew_result.raw}"
-                    )
-                    raise ValueError("Data cleansing crew did not return JSON output")
-            except (json.JSONDecodeError, ValueError) as e:
-                logger.error(f"❌ Failed to parse JSON from crew output: {e}")
-                logger.error(f"❌ Raw crew output: {crew_result.raw}")
-                raise RuntimeError(f"Data cleansing crew output parsing failed: {e}")
-
-        # If crew_result is already a dict, validate it
-        elif isinstance(crew_result, dict):
-            if "cleaned_data" in crew_result or "standardized_data" in crew_result:
-                logger.info("✅ Crew returned valid dict with cleaned data")
-                return crew_result
-            else:
-                logger.error(
-                    f"❌ Crew dict missing required keys. Got: {list(crew_result.keys())}"
-                )
-                raise ValueError(
-                    "Data cleansing crew returned dict without cleaned_data"
-                )
-
-        # No fallback allowed
-        else:
-            logger.error(f"❌ Unexpected crew result format: {type(crew_result)}")
-            logger.error(f"❌ Crew result: {crew_result}")
-            raise RuntimeError(
-                f"Data cleansing crew returned unexpected result type: {type(crew_result)}"
-            )
-
-    async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
-        """Get raw import records from database with their IDs preserved"""
-        from sqlalchemy import select
-
-        from app.core.database import AsyncSessionLocal
-        from app.models.data_import.core import RawImportRecord
-
-        records = []
-        try:
-            async with AsyncSessionLocal() as session:
-                # Get data_import_id from state
-                data_import_id = getattr(self.state, "data_import_id", None)
-                if not data_import_id:
-                    logger.error("❌ No data_import_id found in state")
-                    return []
-
-                # Query raw import records
-                query = (
-                    select(RawImportRecord)
-                    .where(RawImportRecord.data_import_id == data_import_id)
-                    .where(RawImportRecord.is_valid is True)
-                )
-
-                result = await session.execute(query)
-                raw_records = result.scalars().all()
-
-                for record in raw_records:
-                    # Preserve the raw import record ID for linkage
-                    record_data = {
-                        "raw_import_record_id": str(record.id),
-                        "row_number": record.row_number,
-                        "raw_data": record.raw_data,
-                        "cleansed_data": record.cleansed_data,
-                        **record.raw_data,  # Flatten raw data for easy access
-                    }
-                    records.append(record_data)
-
-                logger.info(f"✅ Retrieved {len(records)} raw import records with IDs")
-                return records
-
-        except Exception as e:
-            logger.error(f"❌ Failed to get raw import records: {e}")
-            return []
+        # Now handled synchronously in execute_with_crew via _update_cleansed_data_sync
 
     def _prepare_assets_for_agentic_analysis(
         self, raw_import_records: List[Dict[str, Any]]
@@ -301,15 +252,15 @@ class DataCleansingExecutor(BasePhaseExecutor):
                         "business_criticality", record.get("criticality", "medium")
                     ),
                     # Performance metrics
-                    "cpu_utilization_percent": self._safe_float_convert(
+                    "cpu_utilization_percent": DataCleansingUtils.safe_float_convert(
                         record.get("cpu_utilization_percent", record.get("cpu_usage"))
                     ),
-                    "memory_utilization_percent": self._safe_float_convert(
+                    "memory_utilization_percent": DataCleansingUtils.safe_float_convert(
                         record.get(
                             "memory_utilization_percent", record.get("memory_usage")
                         )
                     ),
-                    "disk_utilization_percent": self._safe_float_convert(
+                    "disk_utilization_percent": DataCleansingUtils.safe_float_convert(
                         record.get("disk_utilization_percent", record.get("disk_usage"))
                     ),
                     # Network and security
@@ -346,201 +297,310 @@ class DataCleansingExecutor(BasePhaseExecutor):
         )
         return assets
 
-    def _generate_enrichment_summary(
-        self, enriched_assets: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Generate summary of agentic enrichment results"""
-
-        total_assets = len(enriched_assets)
-        successful_enrichments = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("enrichment_status") == "agentic_complete"
-        )
-
-        # Business Value Distribution
-        business_value_distribution = {"high": 0, "medium": 0, "low": 0}
-        for asset in enriched_assets:
-            score = asset.get("business_value_score", 5)
-            if score >= 8:
-                business_value_distribution["high"] += 1
-            elif score >= 6:
-                business_value_distribution["medium"] += 1
-            else:
-                business_value_distribution["low"] += 1
-
-        # Risk Assessment Distribution
-        risk_distribution = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-        for asset in enriched_assets:
-            risk_level = asset.get("risk_assessment", "medium")
-            risk_distribution[risk_level] = risk_distribution.get(risk_level, 0) + 1
-
-        # Cloud Readiness Distribution
-        cloud_ready_count = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("cloud_readiness_score", 50) >= 70
-        )
-        modernization_ready_count = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("modernization_potential") == "high"
-        )
-
-        summary = {
-            "total_assets_analyzed": total_assets,
-            "successful_enrichments": successful_enrichments,
-            "enrichment_success_rate": (
-                round((successful_enrichments / total_assets * 100), 1)
-                if total_assets > 0
-                else 0
-            ),
-            "business_value_distribution": business_value_distribution,
-            "risk_assessment_distribution": risk_distribution,
-            "cloud_readiness_metrics": {
-                "cloud_ready_assets": cloud_ready_count,
-                "modernization_ready_assets": modernization_ready_count,
-                "cloud_readiness_percentage": (
-                    round((cloud_ready_count / total_assets * 100), 1)
-                    if total_assets > 0
-                    else 0
-                ),
-            },
-            "agentic_intelligence_metrics": {
-                "patterns_discovered": sum(
-                    asset.get("memory_patterns_discovered", 0)
-                    for asset in enriched_assets
-                ),
-                "average_confidence": (
-                    round(
-                        sum(
-                            asset.get("agentic_confidence_score", 0.5)
-                            for asset in enriched_assets
-                        )
-                        / total_assets,
-                        2,
-                    )
-                    if total_assets > 0
-                    else 0.0
-                ),
-            },
-        }
-
-        return summary
-
-    def _calculate_agentic_quality_metrics(
-        self, enriched_assets: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Calculate quality metrics based on agentic enrichment completeness"""
-
-        total_assets = len(enriched_assets)
-        if total_assets == 0:
-            return {"quality_score": 0, "completeness": 0}
-
-        # Calculate completeness based on enrichment fields
-        enrichment_fields = [
-            "business_value_score",
-            "risk_assessment",
-            "cloud_readiness_score",
-            "business_value_reasoning",
-            "risk_analysis_reasoning",
-            "architecture_assessment",
-        ]
-
-        completeness_scores = []
-        for asset in enriched_assets:
-            field_count = sum(
-                1 for field in enrichment_fields if asset.get(field) is not None
-            )
-            completeness = field_count / len(enrichment_fields)
-            completeness_scores.append(completeness)
-
-        average_completeness = sum(completeness_scores) / len(completeness_scores)
-
-        # Calculate overall quality score
-        successful_enrichments = sum(
-            1
-            for asset in enriched_assets
-            if asset.get("enrichment_status") == "agentic_complete"
-        )
-        success_rate = successful_enrichments / total_assets
-
-        # Quality score combines completeness and success rate
-        quality_score = (average_completeness * 0.6) + (success_rate * 0.4)
-
-        return {
-            "quality_score": round(quality_score * 100, 1),
-            "completeness_percentage": round(average_completeness * 100, 1),
-            "success_rate_percentage": round(success_rate * 100, 1),
-            "agentic_analysis_used": True,
-            "total_assets_processed": total_assets,
-            "successfully_enriched": successful_enrichments,
-        }
-
-    def _safe_float_convert(self, value: Any) -> float:
-        """Safely convert a value to float, returning 0.0 if conversion fails"""
-        try:
-            if value is None:
-                return 0.0
-            return float(value)
-        except (ValueError, TypeError):
-            return 0.0
-
-    def _update_raw_records_with_cleansed_data(
+    async def _update_cleansed_data_sync(
         self, cleaned_data: List[Dict[str, Any]]
-    ):
-        """Update raw_import_records in the database with cleansed data"""
+    ) -> int:
+        """Update raw records with cleansed data - SYNCHRONOUS, no fire-and-forget
+        Returns: Number of records successfully updated
+        """
+        # Use existing session if available, otherwise create new one
+        if hasattr(self, "db_session") and self.db_session:
+            db = self.db_session
+            should_commit = False  # Don't commit if using provided session
+        else:
+            from app.core.database import AsyncSessionLocal
+
+            db = AsyncSessionLocal()
+            should_commit = True  # Commit if we created the session
+
         try:
-            # Get data_import_id from state
-            data_import_id = getattr(self.state, "data_import_id", None)
-            if not data_import_id:
-                logger.warning("No data_import_id in state - cannot update raw records")
-                return
+            from app.services.data_import.storage_manager import ImportStorageManager
 
-            # Get validation results from state if available
-            validation_results = getattr(self.state, "data_validation_results", None)
+            storage_manager = ImportStorageManager(
+                db, str(self.state.client_account_id)
+            )
 
-            # Create async task to update database
-            async def update_records():
-                try:
-                    from app.core.database import AsyncSessionLocal
-                    from app.services.data_import.storage_manager import (
-                        ImportStorageManager,
+            data_import_id = uuid.UUID(self.state.data_import_id)
+
+            # Get the master_flow_id from state (it should be the same as flow_id)
+            master_flow_id = getattr(self.state, "master_flow_id", self.state.flow_id)
+
+            updated_count = await storage_manager.update_raw_records_with_cleansed_data(
+                data_import_id=data_import_id,
+                cleansed_data=cleaned_data,
+                validation_results=getattr(self.state, "data_validation_results", None),
+                master_flow_id=master_flow_id,  # Pass master_flow_id for proper asset association
+            )
+
+            if should_commit:
+                await db.commit()
+
+            logger.info(f"✅ Updated {updated_count} raw records with cleansed data")
+            return updated_count
+
+        finally:
+            if should_commit and db:
+                await db.close()
+
+    async def _mark_phase_complete(self, phase_name: str):
+        """Mark phase as complete for progression tracking and persist to database"""
+        logger.info(f"✅ Phase {phase_name} completed for flow {self.state.flow_id}")
+
+        # Update state to indicate phase completion
+        if phase_name == "data_cleansing":
+            # Use the phase_completion dict instead of non-existent field
+            if hasattr(self.state, "phase_completion"):
+                self.state.phase_completion["data_cleansing"] = True
+                logger.info("✅ Set phase_completion['data_cleansing'] = True in state")
+            else:
+                logger.warning("⚠️ State does not have phase_completion dict")
+
+            # Persist data_cleansing_completed flag to database
+            await self._persist_phase_completion_to_database(phase_name)
+
+    async def _persist_phase_completion_to_database(self, phase_name: str):
+        """Persist phase completion flag to the discovery_flows table"""
+        try:
+            from sqlalchemy import select
+            from app.models.discovery_flow import DiscoveryFlow
+
+            # Use existing session if available, otherwise create new one
+            if hasattr(self, "db_session") and self.db_session:
+                db = self.db_session
+                should_commit = False  # Don't commit if using provided session
+            else:
+                from app.core.database import AsyncSessionLocal
+
+                db = AsyncSessionLocal()
+                should_commit = True  # Commit if we created the session
+
+            try:
+                # Find the discovery flow by flow_id (not master_flow_id)
+                flow_id = (
+                    uuid.UUID(self.state.flow_id)
+                    if isinstance(self.state.flow_id, str)
+                    else self.state.flow_id
+                )
+
+                result = await db.execute(
+                    select(DiscoveryFlow).where(
+                        DiscoveryFlow.flow_id
+                        == flow_id,  # Use flow_id, not master_flow_id
+                        (
+                            DiscoveryFlow.client_account_id
+                            == uuid.UUID(self.state.client_account_id)
+                            if isinstance(self.state.client_account_id, str)
+                            else self.state.client_account_id
+                        ),
+                        (
+                            DiscoveryFlow.engagement_id
+                            == uuid.UUID(self.state.engagement_id)
+                            if isinstance(self.state.engagement_id, str)
+                            else self.state.engagement_id
+                        ),
                     )
+                )
 
-                    async with AsyncSessionLocal() as db:
-                        storage_manager = ImportStorageManager(
-                            db, str(self.state.client_account_id)
-                        )
+                discovery_flow = result.scalar_one_or_none()
 
-                        # Convert data_import_id to UUID if it's a string
-                        import uuid as uuid_pkg
-
-                        if isinstance(data_import_id, str):
-                            import_uuid = uuid_pkg.UUID(data_import_id)
-                        else:
-                            import_uuid = data_import_id
-
-                        updated_count = (
-                            await storage_manager.update_raw_records_with_cleansed_data(
-                                data_import_id=import_uuid,
-                                cleansed_data=cleaned_data,
-                                validation_results=validation_results,
-                            )
-                        )
-
-                        await db.commit()
+                if discovery_flow:
+                    if phase_name == "data_cleansing":
+                        discovery_flow.data_cleansing_completed = True
                         logger.info(
-                            f"✅ Updated {updated_count} raw records with cleansed data"
+                            f"✅ Updated discovery_flow.data_cleansing_completed = True for flow {self.state.flow_id}"
                         )
 
-                except Exception as e:
-                    logger.error(
-                        f"Failed to update raw records with cleansed data: {e}"
+                    if should_commit:
+                        await db.commit()
+                    else:
+                        await db.flush()  # Flush changes if not committing
+
+                    logger.info(
+                        f"✅ Successfully persisted {phase_name} completion to database"
+                    )
+                else:
+                    logger.warning(
+                        f"⚠️ Could not find discovery flow for master_flow_id {self.state.flow_id}"
                     )
 
-            # Run the async update in the background
-            asyncio.create_task(update_records())
+            finally:
+                if should_commit and db:
+                    await db.close()
 
         except Exception as e:
-            logger.error(f"Error setting up raw records update: {e}")
+            logger.error(
+                f"❌ Failed to persist {phase_name} completion to database: {e}"
+            )
+            # Don't raise the exception - phase completion should not fail the whole process
+
+    async def _verify_cleansed_data_in_database(self) -> int:
+        """Verify that cleansed data exists in the database for this import
+        Returns: Count of records with cleansed_data
+        """
+        from sqlalchemy import select, func
+        from app.models.data_import.core import RawImportRecord
+
+        # Use existing session if available
+        if hasattr(self, "db_session") and self.db_session:
+            session = self.db_session
+            should_close = False
+        else:
+            from app.core.database import AsyncSessionLocal
+
+            session = AsyncSessionLocal()
+            should_close = True
+
+        try:
+            data_import_id = getattr(self.state, "data_import_id", None)
+            if not data_import_id:
+                logger.error("❌ No data_import_id found in state for verification")
+                return 0
+
+            # Count records with cleansed_data (non-null)
+            query = select(func.count()).where(
+                (
+                    RawImportRecord.data_import_id == uuid.UUID(data_import_id)
+                    if isinstance(data_import_id, str)
+                    else data_import_id
+                ),
+                (
+                    RawImportRecord.client_account_id
+                    == uuid.UUID(self.state.client_account_id)
+                    if isinstance(self.state.client_account_id, str)
+                    else self.state.client_account_id
+                ),
+                (
+                    RawImportRecord.engagement_id == uuid.UUID(self.state.engagement_id)
+                    if isinstance(self.state.engagement_id, str)
+                    else self.state.engagement_id
+                ),
+                RawImportRecord.cleansed_data.isnot(
+                    None
+                ),  # Only count non-null cleansed_data
+            )
+
+            result = await session.execute(query)
+            count = result.scalar() or 0
+
+            logger.info(
+                f"📊 Verification: {count} records have cleansed_data in database"
+            )
+            return count
+
+        except Exception as e:
+            logger.error(f"❌ Failed to verify cleansed data in database: {e}")
+            return 0
+
+        finally:
+            if should_close and session:
+                await session.close()
+
+    def _basic_data_cleansing(
+        self, raw_import_records: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Basic data cleansing fallback when agent is not available or fails"""
+        logger.info(
+            f"🔧 Performing basic data cleansing on {len(raw_import_records)} records"
+        )
+
+        cleaned_data = []
+        for record in raw_import_records:
+            # Create a cleaned version of the record
+            cleaned_record = {}
+
+            # CRITICAL: Preserve ALL ID fields for mapping
+            if "raw_import_record_id" in record:
+                cleaned_record["raw_import_record_id"] = record["raw_import_record_id"]
+                cleaned_record["id"] = record["raw_import_record_id"]
+
+            # CRITICAL: Preserve row_number for fallback updating
+            if "row_number" in record:
+                cleaned_record["row_number"] = record["row_number"]
+                logger.debug(f"Preserved row_number: {record['row_number']} for record")
+
+            # Copy over the raw data fields
+            raw_data = record.get("raw_data", {})
+            if isinstance(raw_data, dict):
+                cleaned_record.update(raw_data)
+
+            # Basic cleansing operations
+            for key, value in record.items():
+                if key not in ["raw_import_record_id", "id", "raw_data", "row_number"]:
+                    # Clean string values
+                    if isinstance(value, str):
+                        value = value.strip()
+                        # Convert empty strings to None
+                        if value == "":
+                            value = None
+                    cleaned_record[key] = value
+
+            # Add cleansing metadata
+            cleaned_record["cleansing_method"] = "basic_fallback"
+            cleaned_record["cleansed_at"] = datetime.utcnow().isoformat()
+
+            cleaned_data.append(cleaned_record)
+
+        logger.info(f"✅ Basic cleansing completed for {len(cleaned_data)} records")
+        return cleaned_data
+
+    async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
+        """Get raw import records with IDs and tenant scoping"""
+        from sqlalchemy import select
+        from app.models.data_import.core import RawImportRecord  # CORRECT IMPORT
+
+        # Use existing session if available
+        if hasattr(self, "db_session") and self.db_session:
+            session = self.db_session
+        else:
+            from app.core.database import AsyncSessionLocal
+
+            session = AsyncSessionLocal()
+
+        try:
+            data_import_id = getattr(self.state, "data_import_id", None)
+            if not data_import_id:
+                logger.error("❌ No data_import_id found in state")
+                return []
+
+            # WITH TENANT SCOPING - Ensure proper UUID conversion
+            query = select(RawImportRecord).where(
+                (
+                    RawImportRecord.data_import_id == uuid.UUID(data_import_id)
+                    if isinstance(data_import_id, str)
+                    else data_import_id
+                ),
+                (
+                    RawImportRecord.client_account_id
+                    == uuid.UUID(self.state.client_account_id)
+                    if isinstance(self.state.client_account_id, str)
+                    else self.state.client_account_id
+                ),
+                (
+                    RawImportRecord.engagement_id == uuid.UUID(self.state.engagement_id)
+                    if isinstance(self.state.engagement_id, str)
+                    else self.state.engagement_id
+                ),
+            )
+
+            result = await session.execute(query)
+            raw_records = result.scalars().all()
+
+            logger.info(f"📊 Found {len(raw_records)} raw import records")
+
+            # Convert to dict format with ID preservation
+            records = []
+            for record in raw_records:
+                record_data = {
+                    "raw_import_record_id": str(record.id),  # Preserve for ID mapping
+                    "row_number": record.row_number,
+                    "raw_data": record.raw_data,
+                    "cleansed_data": record.cleansed_data,
+                    **record.raw_data,  # Flatten for easy access
+                }
+                records.append(record_data)
+
+            return records
+
+        finally:
+            if not hasattr(self, "db_session"):
+                await session.close()

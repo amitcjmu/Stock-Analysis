@@ -80,9 +80,7 @@ class UnifiedFlowCrewManager:
 
                 field_mapping_factory = create_field_mapping_crew
                 logger.info("⚠️ Falling back to STANDARD field mapping crew")
-            from app.services.crewai_flows.crews.data_cleansing_crew import (
-                create_data_cleansing_crew,
-            )
+            # NOTE: data_cleansing_crew removed - now uses persistent agents via DataCleansingExecutor
             from app.services.crewai_flows.crews.data_import_validation_crew import (
                 create_data_import_validation_crew,
             )
@@ -103,7 +101,8 @@ class UnifiedFlowCrewManager:
                 "data_import_validation": create_data_import_validation_crew,  # NEW: Focused data validation crew
                 "data_import": create_data_import_validation_crew,  # Alias for phase executor compatibility
                 "attribute_mapping": field_mapping_factory,  # Dynamic based on CREWAI_FAST_MODE setting
-                "data_cleansing": create_data_cleansing_crew,
+                # "data_cleansing": create_data_cleansing_crew,  # REMOVED: Persistent agents
+                # via DataCleansingExecutor
                 # "inventory": create_inventory_building_crew,  # REMOVED: Now uses persistent agents
                 "dependencies": create_dependency_analysis_crew,  # Fixed: Use dependencies to match DB schema
                 "tech_debt": create_technical_debt_crew,  # Fixed: Use tech_debt to match DB schema

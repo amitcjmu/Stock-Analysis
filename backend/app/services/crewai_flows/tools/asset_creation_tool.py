@@ -37,39 +37,37 @@ def create_asset_creation_tools(
         List of asset creation tools
     """
     logger.info("🔧 Creating asset creation tools for persistent agents")
+    logger.debug(
+        f"Context info keys: {list(context_info.keys()) if context_info else 'None'}, "
+        f"Registry provided: {registry is not None}"
+    )
 
-    if not CREWAI_TOOLS_AVAILABLE:
-        logger.warning("⚠️ CrewAI tools not available - returning empty list")
-        return []
-
-    try:
-        # Legacy asset creation tools have been removed as of 2025-01-09
-        # ServiceRegistry is now the only supported pattern
-        if registry is None:
-            logger.error(
-                "ServiceRegistry instance is required. Legacy asset creation tools have been removed."
+    if registry is None:
+        # Try to get ServiceRegistry from context_info as fallback
+        registry = context_info.get("service_registry") if context_info else None
+        if registry is not None:
+            logger.info("✅ Found ServiceRegistry in context_info")
+        else:
+            logger.error("ServiceRegistry instance is required but not found")
+            # Return empty list instead of raising error to allow graceful degradation
+            logger.warning(
+                "⚠️ Returning empty tools list - no ServiceRegistry available"
             )
-            raise ValueError(
-                "ServiceRegistry instance is required. The legacy asset creation tools "
-                "have been removed as they were deprecated for removal on 2025-02-01. "
-                "Please provide a ServiceRegistry instance to use the new pattern."
-            )
+            return []
 
-        # Use ServiceRegistry pattern (now the only option)
-        logger.info("✅ Using ServiceRegistry pattern for asset creation tools")
-        tools = []
+    # Always create ServiceRegistry-based tools (work with/without CrewAI)
+    tools = []
 
-        asset_creator = AssetCreationToolWithService(registry)
-        tools.append(asset_creator)
+    asset_creator = AssetCreationToolWithService(registry)
+    tools.append(asset_creator)
 
-        bulk_creator = BulkAssetCreationToolWithService(registry)
-        tools.append(bulk_creator)
+    bulk_creator = BulkAssetCreationToolWithService(registry)
+    tools.append(bulk_creator)
 
-        logger.info(f"✅ Created {len(tools)} asset creation tools")
-        return tools
-    except Exception as e:
-        logger.error(f"❌ Failed to create asset creation tools: {e}")
-        return []
+    logger.info(
+        f"✅ Created {len(tools)} asset creation tools (CrewAI: {CREWAI_TOOLS_AVAILABLE})"
+    )
+    return tools
 
 
 # ServiceRegistry-based tool implementations (no direct database access)

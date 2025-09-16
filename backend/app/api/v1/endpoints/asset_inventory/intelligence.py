@@ -272,7 +272,7 @@ async def auto_classify_assets(
         try:
             # Get the persistent asset inventory agent
             agent = await TenantScopedAgentPool.get_agent(
-                context=context, agent_type="asset_inventory_agent"
+                context=context, agent_type="asset_inventory"
             )
 
             # Create task description for the agent
@@ -311,7 +311,7 @@ Please analyze each asset and provide classification recommendations with confid
             "classification_results": classification_result,
             "assets_processed": len(assets),
             "agentic_classification": True,
-            "agent_used": "asset_inventory_agent",
+            "agent_used": "asset_inventory",
             "persistent_agent": True,
             "method": "persistent_agent_execution",
             "parameters": {

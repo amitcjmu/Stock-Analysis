@@ -165,7 +165,7 @@ class AgentToolManager:
                     context_info,
                 )
 
-            elif agent_type == "asset_inventory_agent":
+            elif agent_type == "asset_inventory":
                 # Asset inventory-specific tools for database asset creation
                 tools_added += cls._safe_extend_tools(
                     tools, create_asset_creation_tools, "asset creation", context_info
@@ -330,10 +330,16 @@ class AgentToolManager:
                 service_registry = (
                     context_info.get("service_registry") if context_info else None
                 )
+                # Debug logging for ServiceRegistry
+                logger.debug(
+                    f"Tool {tool_name} requires registry. "
+                    f"ServiceRegistry available: {service_registry is not None}"
+                )
                 # Skip tools that require ServiceRegistry when none is available
                 if service_registry is None:
                     logger.warning(
-                        f"Skipping {tool_name} - ServiceRegistry not available"
+                        f"Skipping {tool_name} - ServiceRegistry not available. "
+                        f"Context info keys: {list(context_info.keys()) if context_info else 'None'}"
                     )
                     return 0
 
@@ -368,6 +374,13 @@ class AgentToolManager:
                 cls.extract_context_info(context_info)
             )
 
+            # Debug logging for service registry
+            logger.debug(
+                f"Getting tools for {agent_type}. "
+                f"ServiceRegistry available: {service_registry is not None}, "
+                f"Context keys: {list(context_info.keys()) if context_info else 'None'}"
+            )
+
             # Add registry-based tools
             cls.add_tools_with_registry(context_info, tools, service_registry)
 
@@ -379,7 +392,7 @@ class AgentToolManager:
                 "discovery",
                 "field_mapper",
                 "data_cleansing",
-                "asset_inventory_agent",
+                "asset_inventory",
             ]:
                 cls.add_data_analysis_tools(context_info, tools)
 

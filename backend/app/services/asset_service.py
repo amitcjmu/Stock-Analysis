@@ -69,67 +69,204 @@ class AssetService:
             db, client_account_id=client_account_id, engagement_id=engagement_id
         )
 
-    async def create_asset(self, asset_data: Dict[str, Any]) -> Optional[Asset]:
+    def _get_smart_asset_name(self, data: Dict[str, Any]) -> str:
+        """Generate unique asset name from available data with intelligent fallbacks"""
+        # Try explicit name field first
+        if data.get("name"):
+            return str(data["name"]).strip()
+
+        # Try asset_name field
+        if data.get("asset_name"):
+            return str(data["asset_name"]).strip()
+
+        # Try hostname (most common for servers/infrastructure)
+        if data.get("hostname"):
+            return str(data["hostname"]).strip()
+
+        # Try application_name (for applications)
+        if data.get("application_name"):
+            return str(data["application_name"]).strip()
+
+        # Try primary_application
+        if data.get("primary_application"):
+            return str(data["primary_application"]).strip()
+
+        # Try IP address as identifier
+        if data.get("ip_address"):
+            return f"Asset-{data['ip_address']}"
+
+        # Last resort: generate unique name based on asset type and UUID
+        asset_type = data.get("asset_type", "Asset").replace(" ", "-")
+        unique_id = str(uuid.uuid4())[:8]  # Short UUID for readability
+        return f"{asset_type}-{unique_id}"
+
+    def _safe_int_convert(self, value, default=None):
+        """Convert value to integer with safe error handling"""
+        if value is None or value == "":
+            return default
+        try:
+            return int(float(str(value)))  # Handle both int and float strings
+        except (ValueError, TypeError):
+            logger.warning(
+                f"Failed to convert '{value}' to integer, using default {default}"
+            )
+            return default
+
+    def _safe_float_convert(self, value, default=None):
+        """Convert value to float with safe error handling"""
+        if value is None or value == "":
+            return default
+        try:
+            return float(str(value))
+        except (ValueError, TypeError):
+            logger.warning(
+                f"Failed to convert '{value}' to float, using default {default}"
+            )
+            return default
+
+    async def _extract_context_ids(
+        self, asset_data: Dict[str, Any]
+    ) -> tuple[uuid.UUID, uuid.UUID]:
+        """Extract and validate context IDs from asset data."""
+        client_id = self._get_uuid(
+            asset_data.get("client_account_id")
+            or self.context_info.get("client_account_id")
+        )
+        engagement_id = self._get_uuid(
+            asset_data.get("engagement_id") or self.context_info.get("engagement_id")
+        )
+
+        if not client_id or not engagement_id:
+            raise ValueError(
+                "Missing required tenant context (client_id, engagement_id)"
+            )
+
+        return client_id, engagement_id
+
+    async def _resolve_flow_ids(
+        self, asset_data: Dict[str, Any], flow_id: str
+    ) -> tuple[str, str, uuid.UUID, uuid.UUID]:
+        """Resolve various flow IDs from asset data and parameters."""
+        # Honor explicit flow IDs if provided, fallback to flow_id parameter
+        master_flow_id = asset_data.pop("master_flow_id", None) or flow_id
+        discovery_flow_id = asset_data.pop("discovery_flow_id", None)
+
+        # Extract raw_import_records_id for linking
+        raw_import_records_id = self._get_uuid(
+            asset_data.pop("raw_import_records_id", None)
+        )
+
+        # If no discovery_flow_id, lookup from master_flow_id
+        # CC: Fix - discovery_flows have flow_id == master_flow_id, not a separate master_flow_id column
+        if not discovery_flow_id and master_flow_id:
+            try:
+                from app.models.discovery_flow import DiscoveryFlow
+
+                # Try looking up by flow_id first (which should equal master_flow_id)
+                result = await self.db.execute(
+                    select(DiscoveryFlow.flow_id).where(
+                        DiscoveryFlow.flow_id == master_flow_id
+                    )
+                )
+                discovery_flow = result.scalar_one_or_none()
+                if discovery_flow:
+                    discovery_flow_id = str(discovery_flow)
+                    logger.info(
+                        f"✅ Found discovery_flow_id {discovery_flow_id} for master_flow_id {master_flow_id}"
+                    )
+                else:
+                    # If master_flow_id is the discovery flow ID itself, use it
+                    discovery_flow_id = master_flow_id
+                    logger.info(
+                        f"📌 Using master_flow_id as discovery_flow_id: {discovery_flow_id}"
+                    )
+            except Exception as e:
+                logger.warning(f"Could not lookup discovery_flow_id: {e}")
+                # Fallback to using master_flow_id as discovery_flow_id
+                discovery_flow_id = master_flow_id
+
+        # Use provided flow IDs or fallback to context
+        effective_flow_id = self._get_uuid(
+            master_flow_id
+            or flow_id
+            or asset_data.get("flow_id")
+            or self.context_info.get("flow_id")
+        )
+
+        logger.info(
+            f"🔗 Associating asset with master_flow_id: {master_flow_id}, discovery_flow_id: {discovery_flow_id}"
+        )
+
+        return (
+            master_flow_id,
+            discovery_flow_id,
+            raw_import_records_id,
+            effective_flow_id,
+        )
+
+    def _convert_numeric_fields(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert all numeric fields with proper error handling."""
+        return {
+            # INTEGER fields
+            "cpu_cores": self._safe_int_convert(asset_data.get("cpu_cores"), None),
+            "migration_priority": self._safe_int_convert(
+                asset_data.get("migration_priority"), 5
+            ),
+            "migration_wave": self._safe_int_convert(
+                asset_data.get("migration_wave"), None
+            ),
+            # FLOAT fields
+            "memory_gb": self._safe_float_convert(asset_data.get("memory_gb"), None),
+            "storage_gb": self._safe_float_convert(asset_data.get("storage_gb"), None),
+            "cpu_utilization_percent": self._safe_float_convert(
+                asset_data.get("cpu_utilization_percent"), None
+            ),
+            "memory_utilization_percent": self._safe_float_convert(
+                asset_data.get("memory_utilization_percent"), None
+            ),
+            "disk_iops": self._safe_float_convert(asset_data.get("disk_iops"), None),
+            "network_throughput_mbps": self._safe_float_convert(
+                asset_data.get("network_throughput_mbps"), None
+            ),
+            "completeness_score": self._safe_float_convert(
+                asset_data.get("completeness_score"), None
+            ),
+            "quality_score": self._safe_float_convert(
+                asset_data.get("quality_score"), None
+            ),
+            "confidence_score": self._safe_float_convert(
+                asset_data.get("confidence_score"), None
+            ),
+            "current_monthly_cost": self._safe_float_convert(
+                asset_data.get("current_monthly_cost"), None
+            ),
+            "estimated_cloud_cost": self._safe_float_convert(
+                asset_data.get("estimated_cloud_cost"), None
+            ),
+            "assessment_readiness_score": self._safe_float_convert(
+                asset_data.get("assessment_readiness_score"), None
+            ),
+        }
+
+    async def create_asset(
+        self, asset_data: Dict[str, Any], flow_id: str = None
+    ) -> Optional[Asset]:
         """
         Create an asset with proper validation and idempotency
 
         Args:
             asset_data: Asset information to create
+            flow_id: Optional flow ID for backward compatibility
 
         Returns:
             Created asset or existing asset if duplicate
         """
         try:
             # Extract context IDs - handle both string and UUID types
-            client_id = self._get_uuid(
-                asset_data.get("client_account_id")
-                or self.context_info.get("client_account_id")
-            )
-            engagement_id = self._get_uuid(
-                asset_data.get("engagement_id")
-                or self.context_info.get("engagement_id")
-            )
-
-            if not client_id or not engagement_id:
-                raise ValueError(
-                    "Missing required tenant context (client_id, engagement_id)"
-                )
-
-            # CRITICAL FIX: Smart asset name resolution with proper fallback hierarchy
-            # Priority: explicit name -> asset_name -> hostname -> IP -> unique identifier
-            def get_smart_asset_name(data: Dict[str, Any]) -> str:
-                """Generate unique asset name from available data with intelligent fallbacks"""
-                # Try explicit name field first
-                if data.get("name"):
-                    return str(data["name"]).strip()
-
-                # Try asset_name field
-                if data.get("asset_name"):
-                    return str(data["asset_name"]).strip()
-
-                # Try hostname (most common for servers/infrastructure)
-                if data.get("hostname"):
-                    return str(data["hostname"]).strip()
-
-                # Try application_name (for applications)
-                if data.get("application_name"):
-                    return str(data["application_name"]).strip()
-
-                # Try primary_application
-                if data.get("primary_application"):
-                    return str(data["primary_application"]).strip()
-
-                # Try IP address as identifier
-                if data.get("ip_address"):
-                    return f"Asset-{data['ip_address']}"
-
-                # Last resort: generate unique name based on asset type and UUID
-                asset_type = data.get("asset_type", "Asset").replace(" ", "-")
-                unique_id = str(uuid.uuid4())[:8]  # Short UUID for readability
-                return f"{asset_type}-{unique_id}"
+            client_id, engagement_id = await self._extract_context_ids(asset_data)
 
             # Generate smart asset name
-            smart_name = get_smart_asset_name(asset_data)
+            smart_name = self._get_smart_asset_name(asset_data)
 
             logger.info(
                 f"🏷️ Generating asset name: '{smart_name}' from data keys: {list(asset_data.keys())}"
@@ -148,81 +285,35 @@ class AssetService:
                 )
                 return existing
 
-            # CRITICAL FIX: Convert string values to proper numeric types for database
-            def safe_int_convert(value, default=None):
-                """Convert value to integer with safe error handling"""
-                if value is None or value == "":
-                    return default
-                try:
-                    return int(float(str(value)))  # Handle both int and float strings
-                except (ValueError, TypeError):
-                    logger.warning(
-                        f"Failed to convert '{value}' to integer, using default {default}"
-                    )
-                    return default
+            # Resolve flow IDs
+            (
+                master_flow_id,
+                discovery_flow_id,
+                raw_import_records_id,
+                effective_flow_id,
+            ) = await self._resolve_flow_ids(asset_data, flow_id)
 
-            def safe_float_convert(value, default=None):
-                """Convert value to float with safe error handling"""
-                if value is None or value == "":
-                    return default
-                try:
-                    return float(str(value))
-                except (ValueError, TypeError):
-                    logger.warning(
-                        f"Failed to convert '{value}' to float, using default {default}"
-                    )
-                    return default
+            # Convert numeric fields
+            numeric_fields = self._convert_numeric_fields(asset_data)
 
-            # Convert ALL numeric fields with proper error handling
-            # INTEGER fields
-            cpu_cores = safe_int_convert(asset_data.get("cpu_cores"), None)
-            migration_priority = safe_int_convert(
-                asset_data.get("migration_priority"), 5
-            )  # Default priority 5
-            migration_wave = safe_int_convert(asset_data.get("migration_wave"), None)
-
-            # FLOAT fields
-            memory_gb = safe_float_convert(asset_data.get("memory_gb"), None)
-            storage_gb = safe_float_convert(asset_data.get("storage_gb"), None)
-            cpu_utilization_percent = safe_float_convert(
-                asset_data.get("cpu_utilization_percent"), None
-            )
-            memory_utilization_percent = safe_float_convert(
-                asset_data.get("memory_utilization_percent"), None
-            )
-            disk_iops = safe_float_convert(asset_data.get("disk_iops"), None)
-            network_throughput_mbps = safe_float_convert(
-                asset_data.get("network_throughput_mbps"), None
-            )
-            completeness_score = safe_float_convert(
-                asset_data.get("completeness_score"), None
-            )
-            quality_score = safe_float_convert(asset_data.get("quality_score"), None)
-            confidence_score = safe_float_convert(
-                asset_data.get("confidence_score"), None
-            )
-            current_monthly_cost = safe_float_convert(
-                asset_data.get("current_monthly_cost"), None
-            )
-            estimated_cloud_cost = safe_float_convert(
-                asset_data.get("estimated_cloud_cost"), None
-            )
-            assessment_readiness_score = safe_float_convert(
-                asset_data.get("assessment_readiness_score"), None
-            )
-
-            # CRITICAL FIX: Use repository's keyword-based create method
-            # Repository.create expects keyword fields, not a model instance
-            # When in ServiceRegistry mode, use create_no_commit to avoid transaction ownership violation
+            # Use repository's keyword-based create method
             create_method = (
                 self.repository.create_no_commit
                 if self._request_context
                 else self.repository.create
             )
+
             created_asset = await create_method(
                 # Multi-tenant context will be applied by repository
                 client_account_id=client_id,
                 engagement_id=engagement_id,
+                # Flow association fields for proper asset tracking
+                flow_id=effective_flow_id,  # Legacy field for backward compatibility
+                master_flow_id=master_flow_id if master_flow_id else effective_flow_id,
+                discovery_flow_id=(
+                    discovery_flow_id if discovery_flow_id else effective_flow_id
+                ),
+                raw_import_records_id=raw_import_records_id,  # Link to source data
                 # Basic information - use smart name for both fields
                 name=smart_name,
                 asset_name=smart_name,
@@ -235,26 +326,7 @@ class AssetService:
                 environment=asset_data.get("environment", "Unknown"),
                 # Technical specifications - ALL CONVERTED NUMERIC VALUES
                 operating_system=asset_data.get("operating_system"),
-                cpu_cores=cpu_cores,
-                memory_gb=memory_gb,
-                storage_gb=storage_gb,
-                # Performance metrics - CONVERTED FLOAT VALUES
-                cpu_utilization_percent=cpu_utilization_percent,
-                memory_utilization_percent=memory_utilization_percent,
-                disk_iops=disk_iops,
-                network_throughput_mbps=network_throughput_mbps,
-                # Data quality metrics - CONVERTED FLOAT VALUES
-                completeness_score=completeness_score,
-                quality_score=quality_score,
-                confidence_score=confidence_score,
-                # Cost information - CONVERTED FLOAT VALUES
-                current_monthly_cost=current_monthly_cost,
-                estimated_cloud_cost=estimated_cloud_cost,
-                # Migration fields - CONVERTED INTEGER VALUES
-                migration_priority=migration_priority,
-                migration_wave=migration_wave,
-                # Assessment fields - CONVERTED FLOAT VALUES
-                assessment_readiness_score=assessment_readiness_score,
+                **numeric_fields,
                 # Business information - map fields to correct Asset model fields
                 business_owner=asset_data.get("business_unit")
                 or asset_data.get("owner")

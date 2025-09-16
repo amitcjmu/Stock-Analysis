@@ -212,20 +212,32 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   const validatedFlowId = useMemo(() => {
     const candidateFlowId = urlFlowId || autoDetectedFlowId;
 
-    if (!candidateFlowId || !flowList) {
+    if (!candidateFlowId) {
       return candidateFlowId;
     }
 
-    // Check if the flow ID exists in the user's flow list
+    // IMPORTANT: Trust URL flow ID even if not in current flow list
+    // The flow list might be filtered (only "active" flows) or not loaded yet
+    // URL flow IDs are explicitly provided by navigation and should be trusted
+    if (urlFlowId) {
+      console.log(`✅ Using URL flow ID: ${urlFlowId}`);
+      return urlFlowId;
+    }
+
+    // For auto-detected flows, validate against flow list
+    if (!flowList) {
+      return candidateFlowId;
+    }
+
+    // Check if the auto-detected flow ID exists in the user's flow list
     const flowExists = flowList.some((flow: DiscoveryFlow) => {
       const flowId = flow.flow_id || flow.id;
       return flowId === candidateFlowId;
     });
 
-    if (!flowExists) {
-      console.warn(`⚠️ Flow ID ${candidateFlowId} not found in user's active flows. Rejecting.`);
-      // Return null to trigger auto-detection fallback
-      return autoDetectedFlowId || null;
+    if (!flowExists && autoDetectedFlowId) {
+      console.warn(`⚠️ Auto-detected flow ID ${autoDetectedFlowId} not found in user's active flows. Using anyway.`);
+      // Still use it - the flow list might be incomplete
     }
 
     return candidateFlowId;

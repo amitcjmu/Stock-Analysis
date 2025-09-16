@@ -423,7 +423,8 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                     flow_id=str(flow_id),
                     phase=phase,
                     phase_data=phase_data,
-                    completed=completed,
+                    crew_status=None,
+                    agent_insights=None,
                 )
 
                 await db.commit()

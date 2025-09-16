@@ -12,8 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.discovery_flow import DiscoveryFlow
 from app.core.context import RequestContext
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from app.core.security.secure_logging import safe_log_format, mask_id
+from app.core.security.secure_logging import safe_log_format
 from app.utils.flow_constants.flow_states import FlowType, PHASE_SEQUENCES
+from .flow_state_helpers import load_flow_state_for_phase
+from .phase_persistence_helpers import (
+    persist_phase_completion,
+    persist_field_mapping_completion,
+)
+from .field_mapping_helpers import (
+    check_existing_field_mappings,
+    auto_generate_field_mappings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -159,33 +168,10 @@ async def execute_field_mapping_phase(
     """Execute field mapping phase directly."""
     logger.info(f"🎯 Attempting direct field mapping execution for flow {flow_id}")
 
-    # Check if field mapping has already been completed to prevent duplicates
-    # CC: Only skip if mappings actually exist, not just if the flag is set
-    if discovery_flow.field_mapping_completed and discovery_flow.data_import_id:
-        # Check if mappings actually exist for this import
-        from sqlalchemy import select, func
-        from app.models.data_import.mapping import ImportFieldMapping
-
-        count_stmt = select(func.count(ImportFieldMapping.id)).where(
-            ImportFieldMapping.data_import_id == discovery_flow.data_import_id
-        )
-        mapping_count = await db.scalar(count_stmt)
-
-        if mapping_count and mapping_count > 0:
-            logger.info(
-                f"✅ Field mapping already completed for flow {flow_id} with {mapping_count} mappings"
-            )
-            return {
-                "success": True,
-                "status": "already_completed",
-                "phase": "field_mapping_suggestions",
-                "message": f"Field mapping already completed with {mapping_count} mappings",
-                "mapping_count": mapping_count,
-            }
-        else:
-            logger.warning(
-                "⚠️ Field mapping marked as completed but no mappings found, regenerating..."
-            )
+    # Check if field mapping has already been completed
+    existing_mappings = await check_existing_field_mappings(db, discovery_flow, flow_id)
+    if existing_mappings:
+        return existing_mappings
 
     try:
         from app.services.crewai_flow_service import CrewAIFlowService
@@ -237,78 +223,15 @@ async def execute_field_mapping_phase(
         logger.info(f"✅ Field mapping phase executed successfully for flow {flow_id}")
 
         # Auto-generate field mappings if data_import_id exists
-        if discovery_flow.data_import_id:
-            logger.info(
-                f"🔄 Auto-generating field mappings for import {discovery_flow.data_import_id}"
-            )
-            try:
-                from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
-                    MappingService,
-                )
-
-                # Create mapping service with context
-                mapping_service = MappingService(db, context)
-
-                # Generate mappings for the import
-                mapping_result = await mapping_service.generate_mappings_for_import(
-                    str(discovery_flow.data_import_id)
-                )
-
-                logger.info(
-                    f"✅ Auto-generated {mapping_result.get('mappings_created', 0)} field mappings"
-                )
-
-            except Exception as mapping_error:
-                logger.warning(
-                    f"⚠️ Failed to auto-generate field mappings: {mapping_error}"
-                )
-                # Don't fail the phase if mapping generation fails
+        await auto_generate_field_mappings(db, context, discovery_flow)
 
         # Update discovery flow status
         discovery_flow.status = "processing"
         discovery_flow.current_phase = "field_mapping_suggestions"
         await db.commit()
 
-        # CC FIX: Call update_phase_completion for field mapping phase
-        try:
-            from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
-                FlowPhaseManagementCommands,
-            )
-
-            phase_mgmt = FlowPhaseManagementCommands(
-                db, context.client_account_id, context.engagement_id
-            )
-
-            # Call update_phase_completion to persist field mapping completion
-            await phase_mgmt.update_phase_completion(
-                flow_id=flow_id,
-                phase="field_mapping",
-                data=result.data if hasattr(result, "data") else {},
-                completed=True,
-                agent_insights=[
-                    {
-                        "type": "completion",
-                        "content": "Field mapping phase completed successfully",
-                    }
-                ],
-            )
-
-            logger.info(
-                safe_log_format(
-                    "✅ Field mapping completion persisted: flow_id={flow_id}",
-                    flow_id=mask_id(str(flow_id)),
-                )
-            )
-
-        except Exception as persistence_error:
-            logger.error(
-                safe_log_format(
-                    "❌ Failed to persist field mapping completion: flow_id={flow_id}, error={error}",
-                    flow_id=mask_id(str(flow_id)),
-                    error=str(persistence_error),
-                )
-            )
-            # Don't fail the main execution if persistence fails
+        # Persist field mapping completion
+        await persist_field_mapping_completion(db, context, flow_id, result)
 
         return {
             "success": True,
@@ -387,8 +310,45 @@ async def execute_flow_phase(
         )
         try:
             orchestrator = MasterFlowOrchestrator(db, context)
-            # Pass asset_inventory as the phase to execute
-            result = await orchestrator.execute_phase(flow_id, "asset_inventory", {})
+
+            # Load flow state data for asset_inventory phase
+            phase_input = await load_flow_state_for_phase(
+                db, context, flow_id, "asset_inventory"
+            )
+
+            logger.info(
+                safe_log_format(
+                    "📦 Passing {record_count} records to asset_inventory phase",
+                    record_count=len(phase_input.get("raw_data", [])),
+                )
+            )
+
+            # Pass asset_inventory as the phase to execute with populated data
+            result = await orchestrator.execute_phase(
+                flow_id, "asset_inventory", phase_input
+            )
+
+            # Check for CLEANSING_REQUIRED error
+            if result.get("error_code") == "CLEANSING_REQUIRED":
+                logger.warning(
+                    safe_log_format(
+                        "⚠️ Asset inventory phase requires cleansed data for flow {flow_id}",
+                        flow_id=flow_id,
+                    )
+                )
+                # Return a result that indicates the need for data cleansing
+                return {
+                    "success": False,
+                    "flow_id": flow_id,
+                    "error_code": "CLEANSING_REQUIRED",
+                    "message": result.get(
+                        "message",
+                        "No cleansed data available. Run data cleansing first.",
+                    ),
+                    "counts": result.get("counts", {}),
+                    "requires_cleansing": True,
+                    "http_status": 422,  # Indicate that this should be a 422 response
+                }
 
             if result.get("success"):
                 # Update flow state after successful asset inventory
@@ -422,108 +382,28 @@ async def execute_flow_phase(
     # Try Master Flow Orchestrator as fallback or for other phases
     try:
         orchestrator = MasterFlowOrchestrator(db, context)
-        result = await orchestrator.execute_phase(flow_id, phase_to_execute, {})
 
-        # CC FIX: Call update_phase_completion after successful phase execution
+        # Load flow state data for the phase
+        phase_input = await load_flow_state_for_phase(
+            db, context, flow_id, phase_to_execute
+        )
+
+        logger.debug(
+            safe_log_format(
+                "📦 Passing flow state data to {phase} phase",
+                phase=phase_to_execute,
+            )
+        )
+
+        result = await orchestrator.execute_phase(
+            flow_id, phase_to_execute, phase_input
+        )
+
+        # Persist phase completion after successful execution
         if result.get("status") != "failed":
-            try:
-                from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
-                    FlowPhaseManagementCommands,
-                )
-
-                phase_mgmt = FlowPhaseManagementCommands(
-                    db, context.client_account_id, context.engagement_id
-                )
-
-                # Extract phase data and agent insights from the result
-                phase_data = result.get("result", {}).get("crew_results", {}) or {}
-                agent_insights = []
-
-                # Extract agent insights if present in the result
-                if "agent_insights" in phase_data:
-                    agent_insights = phase_data["agent_insights"]
-                elif "crew_results" in result.get("result", {}) and isinstance(
-                    result["result"]["crew_results"], dict
-                ):
-                    crew_results = result["result"]["crew_results"]
-                    if "message" in crew_results:
-                        agent_insights = [
-                            {"type": "completion", "content": crew_results["message"]}
-                        ]
-
-                # Call update_phase_completion to persist phase completion
-                await phase_mgmt.update_phase_completion(
-                    flow_id=flow_id,
-                    phase=phase_to_execute,
-                    data=phase_data,
-                    completed=True,
-                    agent_insights=agent_insights,
-                )
-
-                # CC FIX: Update current_phase to next_phase if provided by MFO
-                next_phase = result.get("result", {}).get("next_phase") or result.get(
-                    "next_phase"
-                )
-                if next_phase:
-                    try:
-                        # Use direct SQL update to set current_phase to next phase
-                        from sqlalchemy import update, and_
-                        from app.models.discovery_flow import DiscoveryFlow
-
-                        stmt = (
-                            update(DiscoveryFlow)
-                            .where(
-                                and_(
-                                    DiscoveryFlow.flow_id == flow_id,
-                                    DiscoveryFlow.client_account_id
-                                    == context.client_account_id,
-                                    DiscoveryFlow.engagement_id
-                                    == context.engagement_id,
-                                )
-                            )
-                            .values(current_phase=next_phase)
-                        )
-
-                        await db.execute(stmt)
-                        await db.commit()
-
-                        logger.info(
-                            safe_log_format(
-                                "✅ Flow phase advanced: flow_id={flow_id}, from={from_phase} to={to_phase}",
-                                flow_id=mask_id(str(flow_id)),
-                                from_phase=phase_to_execute,
-                                to_phase=next_phase,
-                            )
-                        )
-
-                    except Exception as phase_update_error:
-                        logger.error(
-                            safe_log_format(
-                                "❌ Failed to advance flow phase: flow_id={flow_id}, error={error}",
-                                flow_id=mask_id(str(flow_id)),
-                                error=str(phase_update_error),
-                            )
-                        )
-                        # Don't fail the main execution if phase update fails
-
-                logger.info(
-                    safe_log_format(
-                        "✅ Phase completion persisted: flow_id={flow_id}, phase={phase}",
-                        flow_id=mask_id(str(flow_id)),
-                        phase=phase_to_execute,
-                    )
-                )
-
-            except Exception as persistence_error:
-                logger.error(
-                    safe_log_format(
-                        "❌ Failed to persist phase completion: flow_id={flow_id}, phase={phase}, error={error}",
-                        flow_id=mask_id(str(flow_id)),
-                        phase=phase_to_execute,
-                        error=str(persistence_error),
-                    )
-                )
-                # Don't fail the main execution if persistence fails
+            await persist_phase_completion(
+                db, context, flow_id, phase_to_execute, result
+            )
 
         return {
             "success": True,

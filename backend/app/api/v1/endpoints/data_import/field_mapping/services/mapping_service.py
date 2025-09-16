@@ -180,16 +180,10 @@ class MappingService:
         for mapping in mappings:
             # Check for test data patterns that should never appear in production
             is_test_data = mapping.source_field and (
-                "Device_" in str(mapping.source_field)
+                str(mapping.source_field).startswith("__test_")
+                or str(mapping.source_field).startswith("_test_")
                 or str(mapping.source_field)
-                in [
-                    "Device_ID",
-                    "Device_Name",
-                    "Device_Type",
-                    "IP_Address",
-                    "Status_Code",
-                    "Location",
-                ]
+                in ["_mock_data", "test_field", "sample_data"]
             )
 
             if is_test_data:

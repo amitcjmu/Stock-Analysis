@@ -2,7 +2,7 @@
 Data Cleansing API Endpoints
 
 Provides endpoints for data cleansing analysis and results.
-Integrates with the DataCleansingCrew for processing field mappings and providing insights.
+Integrates with persistent agents via DataCleansingExecutor for processing field mappings and providing insights.
 """
 
 import logging
@@ -187,9 +187,23 @@ async def get_data_cleansing_analysis(
                     )
 
         if not data_import:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No data import found for flow {flow_id}",
+            # Return empty analysis when no data import exists
+            logger.warning(
+                f"No data import found for flow {flow_id}, returning empty analysis"
+            )
+            return DataCleansingAnalysis(
+                flow_id=flow_id,
+                analysis_timestamp="",
+                total_records=0,
+                total_fields=0,
+                quality_score=0.0,
+                issues_count=0,
+                recommendations_count=0,
+                quality_issues=[],
+                recommendations=[],
+                field_quality_scores={},
+                processing_status="no_data",
+                source="empty",
             )
 
         data_imports = [
@@ -480,13 +494,23 @@ async def trigger_data_cleansing_analysis(
             # Execute the data cleansing phase using the orchestrator
             logger.info(f"🤖 Executing data cleansing phase for flow {flow_id}")
 
+            # Get data_import_id from the flow
+            phase_input = {
+                "force_refresh": request.force_refresh,
+                "include_agent_analysis": request.include_agent_analysis,
+            }
+
+            # Add data_import_id if available
+            if flow.data_import_id:
+                phase_input["data_import_id"] = str(flow.data_import_id)
+                logger.info(
+                    f"📋 Adding data_import_id to phase_input: {flow.data_import_id}"
+                )
+
             execution_result = await flow_orchestrator.execute_phase(
                 flow_id=flow_id,
                 phase_name="data_cleansing",
-                phase_input={
-                    "force_refresh": request.force_refresh,
-                    "include_agent_analysis": request.include_agent_analysis,
-                },
+                phase_input=phase_input,
             )
 
             logger.info(
@@ -494,7 +518,7 @@ async def trigger_data_cleansing_analysis(
             )
 
             # If execution was successful, get the updated analysis
-            if execution_result.get("status") == "success":
+            if execution_result.get("status") in ("success", "completed"):
                 data_import = await _get_data_import_for_flow(flow_id, flow, db)
 
                 if not data_import:
@@ -517,14 +541,13 @@ async def trigger_data_cleansing_analysis(
                     flow_id=flow_id,
                     data_imports=data_imports,
                     field_mappings=field_mappings,
-                    include_details=True,
-                    execution_result=execution_result,
-                    db_session=db,
                 )
 
                 logger.info(
-                    f"✅ Data cleansing analysis triggered and completed for flow {flow_id}"
+                    f"✅ Data cleansing analysis completed for flow {flow_id}: "
+                    f"found {len(analysis_result.cleaned_records)} cleaned records"
                 )
+
                 return analysis_result
             else:
                 # Execution failed, but still return analysis with error status
@@ -625,7 +648,7 @@ async def _perform_data_cleansing_analysis(
     Perform data cleansing analysis on the imported data and field mappings.
 
     This function analyzes the data quality and provides recommendations.
-    In the future, this should integrate with the DataCleansingCrew.
+    Data cleansing is now handled by persistent agents via DataCleansingExecutor.
     """
     import uuid
     from datetime import datetime

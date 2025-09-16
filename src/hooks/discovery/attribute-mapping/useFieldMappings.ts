@@ -79,10 +79,6 @@ export interface FieldMappingsResult {
  * Hook for field mappings data fetching and management
  * Handles both API field mappings and flow state fallbacks
  */
-// SECURITY FIX: Server-controlled test data filtering configuration
-const STRICT_TEST_DATA_BLOCK = process.env.NEXT_PUBLIC_STRICT_TEST_DATA_BLOCK === 'true';
-const ENABLE_TEST_DATA_FILTERING = process.env.NEXT_PUBLIC_ENABLE_TEST_DATA_FILTERING !== 'false';
-
 // Debug logging flag - disable in production
 const DEBUG_LOGS = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true';
 
@@ -90,51 +86,6 @@ const DEBUG_LOGS = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUB
 const debugLog = (...args: unknown[]) => {
   if (DEBUG_LOGS) {
     console.log(...args);
-  }
-};
-
-// SECURITY FIX: Check if test data filtering should be applied
-const shouldFilterTestData = (response: unknown): boolean => {
-  // Only filter if enabled via environment variable
-  if (!ENABLE_TEST_DATA_FILTERING) {
-    return false;
-  }
-
-  // Check for server-provided filtering flag in API response metadata
-  if (response?.metadata?.filter_test_data === true) {
-    console.log('🔒 Server explicitly requested test data filtering');
-    return true;
-  }
-
-  if (response?.metadata?.filter_test_data === false) {
-    console.log('🔒 Server explicitly disabled test data filtering');
-    return false;
-  }
-
-  // Check legacy field for backward compatibility
-  if (response?.filter_test_data === true) {
-    console.log('🔒 Legacy server flag requested test data filtering');
-    return true;
-  }
-
-  // Default behavior: only filter if environment variable is set
-  return ENABLE_TEST_DATA_FILTERING;
-};
-
-// SECURITY FIX: Show user notification when test data is filtered
-const showTestDataFilterNotification = (filteredCount: number) => {
-  if (filteredCount > 0) {
-    console.warn(`⚠️ Test data filtering: ${filteredCount} Device_* fields have been filtered out for security.`);
-
-    // TODO: Show user-facing notification
-    // This should be implemented with your app's notification system
-    if (typeof window !== 'undefined' && window.postMessage) {
-      window.postMessage({
-        type: 'TEST_DATA_FILTERED',
-        count: filteredCount,
-        message: `${filteredCount} test data fields were filtered for security`
-      }, window.location.origin);
-    }
   }
 };
 
@@ -181,19 +132,16 @@ export const useFieldMappings = (
             // Use proper transformation utility for type safety
             const frontendResult = transformToFrontendResponse(response);
 
-            // Convert to legacy format for backward compatibility
+            // Convert to legacy format for backward compatibility - use snake_case as primary
             const legacyMappings = frontendResult.field_mappings.map(mapping => ({
               id: mapping.id,
-              // Include both camelCase and snake_case for compatibility
-              sourceField: mapping.source_field,
               source_field: mapping.source_field,
-              targetAttribute: mapping.target_field,
               target_field: mapping.target_field,
-              target_attribute: mapping.target_field,
-              confidence: mapping.confidence_score,
+              confidence_score: mapping.confidence_score,
+              confidence: mapping.confidence_score, // Legacy compatibility
               is_approved: mapping.status === 'approved',
               status: mapping.status,
-              mapping_type: mapping.mapping_type,
+              mapping_type: mapping.mapping_type || 'auto',
               transformation_rule: mapping.transformation,
               validation_rule: mapping.validation_rules,
               // Legacy fields for compatibility
@@ -223,12 +171,10 @@ export const useFieldMappings = (
 
               return {
                 id: mapping.id || `${mapping.source_field}_${mapping.target_field || 'unmapped'}`,
-                sourceField: mapping.source_field,
                 source_field: mapping.source_field,
-                targetAttribute: mapping.target_field,
                 target_field: mapping.target_field,
-                target_attribute: mapping.target_field,
-                confidence: confidenceScore,
+                confidence_score: confidenceScore,
+                confidence: confidenceScore, // Legacy compatibility
                 is_approved: mapping.status === 'approved',
                 status: mapping.status || (mapping.target_field ? 'pending' : 'unmapped'),
                 mapping_type: mapping.mapping_type || 'auto',
@@ -277,50 +223,7 @@ export const useFieldMappings = (
           mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
         });
 
-        // SECURITY FIX: Server-controlled test data filtering
-        if (Array.isArray(mappings) && mappings.length > 0) {
-          const testDataFields = mappings.filter(mapping =>
-            mapping.source_field && (
-              mapping.source_field.includes('Device_') ||
-              mapping.source_field === 'Device_ID' ||
-              mapping.source_field === 'Device_Name' ||
-              mapping.source_field === 'Device_Type'
-            )
-          );
-
-          if (testDataFields.length > 0) {
-            console.warn('⚠️ WARNING: Test data detected in field mappings', {
-              import_id: importId,
-              test_fields_found: testDataFields.map(m => m.source_field),
-              total_test_fields: testDataFields.length,
-              should_filter: shouldFilterTestData(mappings)
-            });
-
-            // Check if filtering should be applied based on server configuration
-            if (shouldFilterTestData(mappings)) {
-              if (STRICT_TEST_DATA_BLOCK) {
-                // Strict mode: throw error (legacy behavior)
-                throw new Error(`Test data contamination detected: Found Device_* fields in production. Import ID: ${importId}`);
-              } else {
-                // Filter out test data and continue
-                const originalCount = mappings.length;
-                mappings = mappings.filter(mapping =>
-                  !mapping.source_field || (
-                    !mapping.source_field.includes('Device_') &&
-                    mapping.source_field !== 'Device_ID' &&
-                    mapping.source_field !== 'Device_Name' &&
-                    mapping.source_field !== 'Device_Type'
-                  )
-                );
-
-                const filteredCount = originalCount - mappings.length;
-                showTestDataFilterNotification(filteredCount);
-              }
-            } else {
-              console.log('🔒 Test data filtering disabled by server configuration - preserving Device_* fields');
-            }
-          }
-        }
+        // No filtering - show all fields from backend
 
         // Now try to get the raw import data to see all original CSV fields
         try {
@@ -347,27 +250,7 @@ export const useFieldMappings = (
             const sampleRecord = rawImportData.sample_record || rawImportData.raw_data;
             const actualCsvFields = Object.keys(sampleRecord);
 
-            // SECURITY FIX: Server-controlled test data detection in raw import data
-            const testFieldsInRaw = actualCsvFields.filter(field =>
-              field.includes('Device_') || field === 'Device_ID' || field === 'Device_Name' || field === 'Device_Type'
-            );
-
-            if (testFieldsInRaw.length > 0) {
-              console.warn('⚠️ WARNING: Test data detected in raw import data', {
-                import_id: importId,
-                test_fields: testFieldsInRaw,
-                total_test_fields: testFieldsInRaw.length,
-                should_filter: shouldFilterTestData(rawImportData)
-              });
-
-              if (shouldFilterTestData(rawImportData)) {
-                console.log('🔒 Test data filtering enabled - fields will be filtered during mapping transformation');
-              } else {
-                console.log('🔒 Test data filtering disabled - preserving test fields');
-              }
-            }
-
-            debugLog('✅ Raw import data validation passed - no test data contamination detected:', {
+            debugLog('✅ Raw import data retrieved:', {
               actual_csv_fields: actualCsvFields,
               field_count: actualCsvFields.length
             });
@@ -391,43 +274,12 @@ export const useFieldMappings = (
           console.warn('⚠️ Could not fetch raw import data:', rawDataError);
         }
 
-        // SECURITY FIX: Final validation with server-controlled filtering
+        // Return all mappings without filtering
         if (Array.isArray(mappings) && mappings.length > 0) {
-          if (shouldFilterTestData(mappings)) {
-            const validMappings = mappings.filter(mapping => {
-              const isTestData = mapping.source_field && (
-                mapping.source_field.includes('Device_') ||
-                mapping.source_field === 'Device_ID' ||
-                mapping.source_field === 'Device_Name' ||
-                mapping.source_field === 'Device_Type'
-              );
-
-              if (isTestData) {
-                console.warn('⚠️ Final filter: Removing test data mapping:', mapping.source_field);
-              }
-
-              return !isTestData;
-            });
-
-            const filteredCount = mappings.length - validMappings.length;
-            if (filteredCount > 0) {
-              showTestDataFilterNotification(filteredCount);
-            }
-
-            console.log('✅ Returning validated field mappings from API (test data filtered):', {
-              original_count: mappings.length,
-              validated_count: validMappings.length,
-              filtered_out: filteredCount,
-              sample_valid_mappings: validMappings.slice(0, 3)
-            });
-
-            return validMappings;
-          } else {
-            console.log('✅ Returning field mappings from API (test data filtering disabled):', {
-              count: mappings.length,
-              sample_mappings: mappings.slice(0, 3)
-            });
-          }
+          console.log('✅ Returning all field mappings from API:', {
+            count: mappings.length,
+            sample_mappings: mappings.slice(0, 3)
+          });
         }
 
         // Return the raw mappings directly from the API if no validation needed
@@ -492,52 +344,22 @@ export const useFieldMappings = (
       fieldMappingData_keys: fieldMappingData ? Object.keys(fieldMappingData) : []
     });
 
-    // Use the API field mappings data
+    // Use the API field mappings data without any filtering
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
-      // SECURITY FIX: Frontend validation with server-controlled filtering
-      let productionMappings = realFieldMappings;
+      console.log('🔍 [DEBUG] Using all field mappings from API:', {
+        count: realFieldMappings.length
+      });
 
-      if (shouldFilterTestData(realFieldMappings)) {
-        productionMappings = realFieldMappings.filter(mapping => {
-          const sourceField = String(mapping.sourceField || mapping.source_field || '');
-          const isTestData = sourceField.includes('Device_') ||
-                            sourceField === 'Device_ID' ||
-                            sourceField === 'Device_Name' ||
-                            sourceField === 'Device_Type';
-
-          if (isTestData) {
-            console.warn('🚫 Frontend filter: Removing test data field mapping:', sourceField);
-          }
-
-          return !isTestData;
-        });
-
-        const filteredCount = realFieldMappings.length - productionMappings.length;
-        if (filteredCount > 0) {
-          showTestDataFilterNotification(filteredCount);
-        }
-
-        console.log('🔍 [DEBUG] Frontend validation completed (filtering enabled):', {
-          original_count: realFieldMappings.length,
-          production_count: productionMappings.length,
-          filtered_test_data: filteredCount
-        });
-      } else {
-        console.log('🔍 [DEBUG] Frontend validation completed (filtering disabled):', {
-          count: realFieldMappings.length
-        });
-      }
-
-      const mappedData = productionMappings.map((mapping, index) => {
+      const mappedData = realFieldMappings.map((mapping, index) => {
         // Enhanced type validation for each mapping
-        const sourceField = String(mapping.sourceField || mapping.source_field || 'Unknown Field');
-        const targetField = mapping.targetAttribute || mapping.target_field || mapping.target_attribute;
+        const sourceField = String(mapping.source_field || 'Unknown Field');
+        const targetField = mapping.target_field;
         const isUnmapped = targetField === 'UNMAPPED' || targetField === null || targetField === undefined;
 
         // Validate confidence score using type guard
-        const confidenceScore = isValidConfidenceScore(mapping.confidence)
-          ? mapping.confidence
-          : 0.5;
+        const confidenceScore = isValidConfidenceScore(mapping.confidence_score)
+          ? mapping.confidence_score
+          : (isValidConfidenceScore(mapping.confidence) ? mapping.confidence : 0.5);
 
         // Validate mapping type
         const mappingType = mapping.mapping_type as FieldMappingType ||

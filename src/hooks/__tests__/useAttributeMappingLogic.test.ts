@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { MockedFunction } from 'vitest'
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest'
-import { useAttributeMappingLogic } from '../discovery/useAttributeMappingLogic';
+import { useAttributeMappingActions } from '../discovery/attribute-mapping/useAttributeMappingActions';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { useAttributeMappingFlowDetection } from '../discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '../../contexts/AuthContext';
@@ -331,22 +331,46 @@ describe('useAttributeMappingLogic', () => {
     const { result } = renderHook(() => useAttributeMappingLogic());
 
     // With 50% completion (1 approved out of 2 mappings), should not allow continuation
+    // because we don't have required name and type fields
     expect(result.current.canContinueToDataCleansing()).toBe(false);
 
-    // Mock higher completion rate
-    const highCompletionMappings = [
-      ...mockFieldMappings,
-      { ...mockFieldMappings[0], id: 'mapping-3', status: 'approved' },
-      { ...mockFieldMappings[0], id: 'mapping-4', status: 'approved' },
-      { ...mockFieldMappings[0], id: 'mapping-5', status: 'approved' }
+    // Mock mappings with required name and type fields approved
+    const requiredFieldsMappings = [
+      {
+        id: 'mapping-1',
+        sourceField: 'server_name',
+        targetAttribute: 'asset_name', // Has 'name' in target
+        confidence: 0.85,
+        mapping_type: 'ai_suggested',
+        status: 'approved',
+        ai_reasoning: 'Mapped to asset name'
+      },
+      {
+        id: 'mapping-2',
+        sourceField: 'device_type',
+        targetAttribute: 'asset_type', // Has 'type' in target
+        confidence: 0.90,
+        mapping_type: 'ai_suggested',
+        status: 'approved',
+        ai_reasoning: 'Mapped to asset type'
+      },
+      {
+        id: 'mapping-3',
+        sourceField: 'cpu_cores',
+        targetAttribute: 'cpu_cores',
+        confidence: 0.95,
+        mapping_type: 'ai_suggested',
+        status: 'pending',
+        ai_reasoning: 'CPU mapping'
+      }
     ];
 
     mockApiCall.mockResolvedValue({
       success: true,
-      mappings: highCompletionMappings
+      mappings: requiredFieldsMappings
     });
 
-    // Should allow continuation with 80%+ completion
+    // Should allow continuation with required fields (67% approval > 30% threshold)
     expect(result.current.canContinueToDataCleansing()).toBe(true);
   });
 
