@@ -165,7 +165,7 @@ def _convert_mapping_type(mapping_type: str) -> FieldMappingType:
 
 def _create_field_mapping_item(mapping) -> Optional[FieldMappingItem]:
     """Create a FieldMappingItem from SQLAlchemy model.
-    
+
     UNMAPPED fields are shown to allow users to manually map them.
     """
     try:
