@@ -154,18 +154,24 @@ class DependencyAnalyzer:
                     config_text = str(asset[field])
                     # Simple pattern matching for IP addresses
                     import re
+                    import ipaddress
 
                     ip_pattern = r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"
-                    ips = re.findall(ip_pattern, config_text)
-                    for ip in ips:
-                        connections.append(
-                            {
-                                "type": "inferred",
-                                "field": field,
-                                "value": ip,
-                                "confidence": 0.6,
-                            }
-                        )
+                    potential_ips = re.findall(ip_pattern, config_text)
+                    for ip in potential_ips:
+                        try:
+                            # Validate that the found string is a valid IP address
+                            ipaddress.ip_address(ip)
+                            connections.append(
+                                {
+                                    "type": "inferred",
+                                    "field": field,
+                                    "value": ip,
+                                    "confidence": 0.6,
+                                }
+                            )
+                        except ValueError:
+                            continue  # Not a valid IP, skip it
 
             if connections:
                 dependencies.append(
