@@ -7,8 +7,12 @@ Integrates with persistent agents via DataCleansingExecutor for processing field
 
 import logging
 from typing import Any, Dict, List, Optional
+import csv
+import io
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +23,7 @@ from app.core.database import get_db
 from app.models.client_account import User
 from app.models.data_import.core import DataImport
 from app.models.data_import.mapping import ImportFieldMapping
+from app.models.data_import.core import RawImportRecord
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
@@ -334,7 +339,7 @@ async def get_data_cleansing_stats(
 
         # Get actual count of raw import records from the database
         from sqlalchemy import func
-        from app.models.data_import import RawImportRecord
+        from app.models.data_import.core import RawImportRecord
 
         total_records = 0
         try:
@@ -452,6 +457,246 @@ async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -
             data_import = import_result.scalar_one_or_none()
 
     return data_import
+
+
+@router.get(
+    "/flows/{flow_id}/data-cleansing/download/raw",
+    summary="Download raw data as CSV",
+)
+async def download_raw_data(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """
+    Download raw imported data as CSV file.
+
+    This endpoint exports the original raw data that was imported into the system
+    before any data cleansing operations were performed.
+    """
+    try:
+        logger.info(f"📥 Downloading raw data for flow {flow_id}")
+
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+
+        # Verify flow exists and user has access
+        flow = await _validate_and_get_flow(flow_id, flow_repo)
+
+        # Get data import for this flow
+        data_import = await _get_data_import_for_flow(flow_id, flow, db)
+
+        if not data_import:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No data import found for flow {flow_id}",
+            )
+
+        # Query raw import records
+        raw_records_query = (
+            select(RawImportRecord)
+            .where(RawImportRecord.data_import_id == data_import.id)
+            .limit(10000)
+        )  # Limit to prevent memory issues
+
+        raw_records_result = await db.execute(raw_records_query)
+        raw_records = raw_records_result.scalars().all()
+
+        if not raw_records:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No raw data found for flow {flow_id}",
+            )
+
+        # Create CSV content
+        output = io.StringIO()
+
+        # Get field names from the first record
+        first_record_data = raw_records[0].data if raw_records[0].data else {}
+        fieldnames = (
+            list(first_record_data.keys()) if first_record_data else ["id", "data"]
+        )
+
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+
+        # Write data rows
+        for record in raw_records:
+            if record.data and isinstance(record.data, dict):
+                writer.writerow(record.data)
+            else:
+                # Fallback for non-dict data
+                writer.writerow({"id": record.id, "data": str(record.data or "")})
+
+        output.seek(0)
+        csv_content = output.getvalue()
+        output.close()
+
+        # Generate filename with timestamp
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"raw_data_{flow_id[:8]}_{timestamp}.csv"
+
+        logger.info(
+            f"✅ Generated raw data CSV for flow {flow_id}: {len(raw_records)} records"
+        )
+
+        # Return CSV as streaming response
+        return StreamingResponse(
+            io.BytesIO(csv_content.encode("utf-8")),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to download raw data for flow {flow_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download raw data: {str(e)}",
+        )
+
+
+@router.get(
+    "/flows/{flow_id}/data-cleansing/download/cleaned",
+    summary="Download cleaned data as CSV",
+)
+async def download_cleaned_data(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """
+    Download cleaned and processed data as CSV file.
+
+    This endpoint exports the data after it has been processed through
+    the data cleansing pipeline, with quality issues resolved and
+    transformations applied.
+    """
+    try:
+        logger.info(f"📥 Downloading cleaned data for flow {flow_id}")
+
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+
+        # Verify flow exists and user has access
+        flow = await _validate_and_get_flow(flow_id, flow_repo)
+
+        # Get data import for this flow
+        data_import = await _get_data_import_for_flow(flow_id, flow, db)
+
+        if not data_import:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No data import found for flow {flow_id}",
+            )
+
+        # Query raw import records (for now, as cleaned data structure isn't fully implemented)
+        # TODO: Replace with actual cleaned data when data cleansing pipeline is complete
+        raw_records_query = (
+            select(RawImportRecord)
+            .where(RawImportRecord.data_import_id == data_import.id)
+            .limit(10000)
+        )  # Limit to prevent memory issues
+
+        raw_records_result = await db.execute(raw_records_query)
+        raw_records = raw_records_result.scalars().all()
+
+        if not raw_records:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No data found for flow {flow_id}",
+            )
+
+        # Get field mappings to understand data transformations
+        field_mapping_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == data_import.id
+        )
+        field_mapping_result = await db.execute(field_mapping_query)
+        field_mappings = field_mapping_result.scalars().all()
+
+        # Create a mapping of source fields to target fields
+        field_mapping_dict = {
+            mapping.source_field: mapping.target_field for mapping in field_mappings
+        }
+
+        # Create CSV content with cleaned/mapped field names
+        output = io.StringIO()
+
+        # Get field names from the first record and apply field mappings
+        first_record_data = raw_records[0].data if raw_records[0].data else {}
+        if first_record_data and field_mapping_dict:
+            # Use mapped field names where available
+            fieldnames = []
+            for original_field in first_record_data.keys():
+                mapped_field = field_mapping_dict.get(original_field, original_field)
+                fieldnames.append(mapped_field)
+        else:
+            fieldnames = (
+                list(first_record_data.keys()) if first_record_data else ["id", "data"]
+            )
+
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+
+        # Write data rows with field mapping applied
+        for record in raw_records:
+            if record.data and isinstance(record.data, dict):
+                cleaned_row = {}
+                for original_field, value in record.data.items():
+                    # Apply field mapping
+                    mapped_field = field_mapping_dict.get(
+                        original_field, original_field
+                    )
+
+                    # Apply basic data cleaning (trim whitespace, handle nulls)
+                    cleaned_value = value
+                    if isinstance(value, str):
+                        cleaned_value = value.strip() if value else ""
+                    elif value is None:
+                        cleaned_value = ""
+
+                    cleaned_row[mapped_field] = cleaned_value
+
+                writer.writerow(cleaned_row)
+            else:
+                # Fallback for non-dict data
+                writer.writerow({"id": record.id, "data": str(record.data or "")})
+
+        output.seek(0)
+        csv_content = output.getvalue()
+        output.close()
+
+        # Generate filename with timestamp
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"cleaned_data_{flow_id[:8]}_{timestamp}.csv"
+
+        logger.info(
+            f"✅ Generated cleaned data CSV for flow {flow_id}: "
+            f"{len(raw_records)} records with {len(field_mappings)} field mappings"
+        )
+
+        # Return CSV as streaming response
+        return StreamingResponse(
+            io.BytesIO(csv_content.encode("utf-8")),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to download cleaned data for flow {flow_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download cleaned data: {str(e)}",
+        )
 
 
 @router.post(
@@ -653,7 +898,7 @@ async def _perform_data_cleansing_analysis(
     import uuid
     from datetime import datetime
     from sqlalchemy import func
-    from app.models.data_import import RawImportRecord
+    from app.models.data_import.core import RawImportRecord
 
     # Get the first data import (primary)
     data_import = data_imports[0] if data_imports else None

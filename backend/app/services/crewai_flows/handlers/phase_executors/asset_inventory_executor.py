@@ -143,31 +143,41 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     "execution_time": "0.001s",
                 }
 
-            # Create assets via service
+            # Create assets via service with atomic transaction for data integrity
             created_assets = []
             failed_count = 0
 
-            for asset_data in assets_data:
-                try:
-                    asset = await asset_service.create_asset(
-                        asset_data, flow_id=master_flow_id
-                    )
-                    if asset:
-                        created_assets.append(asset)
-                        logger.debug(f"✅ Created asset: {asset.name}")
-                    else:
-                        failed_count += 1
-                        logger.warning(
-                            f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
+            # Use atomic transaction to ensure data consistency
+            async with db_session.begin():
+                for asset_data in assets_data:
+                    try:
+                        asset = await asset_service.create_asset(
+                            asset_data, flow_id=master_flow_id
                         )
-                except Exception as e:
-                    failed_count += 1
-                    logger.error(
-                        f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
-                    )
+                        if asset:
+                            created_assets.append(asset)
+                            logger.debug(f"✅ Created asset: {asset.name}")
+                        else:
+                            failed_count += 1
+                            logger.warning(
+                                f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
+                            )
+                    except Exception as e:
+                        failed_count += 1
+                        logger.error(
+                            f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
+                        )
+                        # Continue processing other assets in case of individual failures
 
-            # Update raw_import_records as processed
-            await self._mark_records_processed(db_session, raw_records, created_assets)
+                # Flush to make asset IDs available for foreign key relationships
+                await db_session.flush()
+
+                # Update raw_import_records as processed within the same transaction
+                await self._mark_records_processed(
+                    db_session, raw_records, created_assets
+                )
+
+                # Transaction will be committed automatically when exiting the context
 
             total_created = len(created_assets)
             logger.info(
@@ -347,67 +357,102 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         app_name = str(asset_data_source.get("application_name", "")).lower()
         asset_type = str(asset_data_source.get("type", "")).lower()
 
+        # Check CI Type field which is common in CMDB imports
+        ci_type = str(asset_data_source.get("CI Type", "")).lower()
+
         # Combine all name fields for comprehensive checking
         all_names = f"{resolved_name} {name} {hostname} {server_name} {asset_name} {app_name}".lower()
 
-        # Database detection
-        if any(
-            keyword in all_names
-            for keyword in [
-                "db",
-                "database",
-                "sql",
-                "oracle",
-                "mysql",
-                "postgres",
-                "mongodb",
-                "cassandra",
-                "redis",
-            ]
-        ):
+        # Priority 1: Check explicit CI Type first (most reliable for CMDB data)
+        if ci_type:
+            if ci_type in ["application", "app"]:
+                return "Application"
+            elif ci_type in ["server", "srv"]:
+                return "Server"
+            elif ci_type in ["database", "db"]:
+                return "Database"
+            elif ci_type in ["network", "switch", "router", "firewall"]:
+                return "Network Device"
+
+        # Priority 2: Database detection (specific patterns)
+        database_keywords = [
+            "db",
+            "database",
+            "sql",
+            "oracle",
+            "mysql",
+            "postgres",
+            "mongodb",
+            "cassandra",
+            "redis",
+            "mariadb",
+            "mssql",
+            "sqlite",
+        ]
+        if any(keyword in all_names for keyword in database_keywords):
             return "Database"
         if any(keyword in asset_type for keyword in ["db", "database"]):
             return "Database"
 
-        # Network device detection
-        if any(
-            keyword in all_names
-            for keyword in [
-                "switch",
-                "router",
-                "firewall",
-                "gateway",
-                "loadbalancer",
-                "lb",
-                "proxy",
-            ]
+        # Priority 3: Application detection (enhanced patterns)
+        application_keywords = [
+            "app",
+            "application",
+            "service",
+            "api",
+            "web",
+            "portal",
+            "system",
+            "platform",
+            "tool",
+            "suite",
+            "software",
+            "crm",
+            "erp",
+            "hr",
+            "analytics",
+            "email",
+            "backup",
+            "monitoring",
+            "pipeline",
+        ]
+        if any(keyword in all_names for keyword in application_keywords):
+            return "Application"
+        if asset_data_source.get("application_name") or asset_data_source.get(
+            "app_name"
         ):
+            return "Application"
+
+        # Priority 4: Network device detection
+        network_keywords = [
+            "switch",
+            "router",
+            "firewall",
+            "gateway",
+            "loadbalancer",
+            "lb",
+            "proxy",
+            "vpn",
+            "wifi",
+            "access point",
+            "hub",
+        ]
+        if any(keyword in all_names for keyword in network_keywords):
             return "Network Device"
         if any(keyword in asset_type for keyword in ["network", "switch", "router"]):
             return "Network Device"
 
-        # Application detection
-        if any(
-            keyword in all_names
-            for keyword in ["app", "application", "service", "api", "web", "portal"]
-        ):
-            return "Application"
-        if asset_data_source.get("app_name") or asset_data_source.get(
-            "application_name"
-        ):
-            return "Application"
-
-        # Server detection - check all name variants
-        if (
-            any(
-                keyword in all_names
-                for keyword in ["server", "srv", "host", "vm", "virtual"]
-            )
-            or hostname
-        ):
+        # Priority 5: Server detection (most conservative)
+        server_keywords = ["server", "srv", "host", "vm", "virtual", "node"]
+        if any(keyword in all_names for keyword in server_keywords) or hostname:
             return "Server"
         if asset_data_source.get("os") or asset_data_source.get("operating_system"):
             return "Server"
+
+        # Priority 6: Storage detection
+        storage_keywords = ["storage", "san", "nas", "disk", "volume"]
+        if any(keyword in all_names for keyword in storage_keywords):
+            return "Storage"
 
         return "Infrastructure"  # Default fallback
 

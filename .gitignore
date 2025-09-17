@@ -70,6 +70,9 @@ backend/env.example
 *.sqlite3
 *.duckdb
 
+# Redis
+dump.rdb
+
 # AI and Vector Database
 # Keep directory structure but exclude database contents
 backend/data/chroma_db/*

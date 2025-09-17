@@ -300,6 +300,128 @@ class PhaseExecutorsMixin:
                 "assets_failed": 0,
             }
 
+    async def _execute_discovery_dependency_analysis(
+        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute dependency analysis phase using DependencyAnalysisExecutor"""
+        logger.info(
+            "🔍 Executing discovery dependency analysis using DependencyAnalysisExecutor"
+        )
+
+        try:
+            # Import the DependencyAnalysisExecutor
+            from app.services.crewai_flows.handlers.phase_executors.dependency_analysis_executor import (
+                DependencyAnalysisExecutor,
+            )
+            from app.models.unified_discovery_flow_state import (
+                UnifiedDiscoveryFlowState,
+            )
+
+            # Create state object from phase_input
+            state = UnifiedDiscoveryFlowState()
+
+            # Set required state attributes from phase_input
+            logger.info(f"📋 phase_input keys: {list(phase_input.keys())}")
+            logger.info(f"📋 flow_id from phase_input: {phase_input.get('flow_id')}")
+            logger.info(
+                f"📋 master_flow_id from phase_input: {phase_input.get('master_flow_id')}"
+            )
+
+            state.flow_id = phase_input.get("flow_id") or phase_input.get(
+                "master_flow_id"
+            )
+
+            # If flow_id is still None, log error but continue
+            if not state.flow_id:
+                logger.error("❌ CRITICAL: flow_id is None in phase_input!")
+                logger.error(f"❌ phase_input contents: {phase_input}")
+                # Try to get flow_id from context or other sources
+                if hasattr(self, "context") and hasattr(self.context, "flow_id"):
+                    state.flow_id = self.context.flow_id
+                    logger.info(f"✅ Retrieved flow_id from context: {state.flow_id}")
+            else:
+                logger.info(f"✅ flow_id set to: {state.flow_id}")
+
+            # Set required context attributes
+            state.client_account_id = self.context.client_account_id
+            state.engagement_id = self.context.engagement_id
+
+            # Set asset inventory from phase_input if available
+            state.asset_inventory = phase_input.get("asset_inventory", {})
+
+            # Initialize the executor with state and crew_manager
+            # DependencyAnalysisExecutor expects (state, crew_manager, flow_bridge=None)
+            executor = DependencyAnalysisExecutor(
+                state, crew_manager=None, flow_bridge=None
+            )
+            # Set additional attributes that the executor uses
+            if hasattr(executor, "db_session"):
+                executor.db_session = self.db_session
+            else:
+                setattr(executor, "db_session", self.db_session)
+            if hasattr(executor, "service_registry"):
+                executor.service_registry = self.service_registry
+            else:
+                setattr(executor, "service_registry", self.service_registry)
+
+            # Execute with crew
+            result = await executor.execute_with_crew(phase_input)
+
+            # Check if dependency analysis was successful
+            if result.get("status") == "error":
+                logger.error(f"❌ Dependency analysis failed: {result.get('message')}")
+                return result  # Return error result without marking complete
+
+            # Only persist phase completion if successful
+            try:
+                from app.models.discovery_flow import DiscoveryFlow
+
+                master_flow_id = phase_input.get("master_flow_id") or phase_input.get(
+                    "flow_id"
+                )
+                if master_flow_id and self.db_session and result.get("success"):
+                    await self.db_session.execute(
+                        update(DiscoveryFlow)
+                        .where(DiscoveryFlow.master_flow_id == master_flow_id)
+                        .values(dependency_analysis_completed=True)
+                    )
+                    await self.db_session.commit()
+                    logger.info(
+                        "✅ Persisted dependency_analysis_completed=True on discovery flow"
+                    )
+            except Exception as persist_err:
+                logger.warning(
+                    f"⚠️ Failed to persist dependency_analysis_completed flag: {persist_err}"
+                )
+
+            logger.info(
+                "✅ Dependency analysis completed using DependencyAnalysisExecutor"
+            )
+
+            return {
+                "phase": "dependency_analysis",
+                "status": "completed",
+                "crew_results": result,
+                "dependency_analysis": result,  # Make available as dependency_analysis for backward compatibility
+                "agent": "dependency_analysis_agent",
+                "method": "dependency_analysis_executor",
+                "total_dependencies": result.get("mapped_dependencies", 0),
+                "complexity_score": result.get("complexity_score", 0.0),
+            }
+
+        except Exception as e:
+            logger.error(
+                f"❌ Dependency analysis failed with DependencyAnalysisExecutor: {e}"
+            )
+            return {
+                "phase": "dependency_analysis",
+                "status": "error",
+                "error": str(e),
+                "dependency_analysis": {},
+                "agent": "dependency_analysis_agent",
+                "method": "dependency_analysis_executor",
+            }
+
     async def _execute_discovery_generic_phase(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:

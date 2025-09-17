@@ -7,15 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Running the Application (Docker Only)
 ```bash
 # Start all services (frontend on :8081, backend on :8000, DB on :5433)
-cd config/docker && docker-compose -f docker-compose.dev.yml up -d
+cd config/docker && docker-compose up -d
 
 # View logs
-docker logs migration_backend_dev -f
-docker logs migration_frontend_dev -f
+docker logs migration_backend -f
+docker logs migration_frontend -f
 
 # Access containers
-docker exec -it migration_backend_dev bash
-docker exec -it migration_postgres_dev psql -U postgres -d migration_db
+docker exec -it migration_backend bash
+docker exec -it migration_postgres psql -U postgres -d migration_db
 ```
 
 ### Testing Commands
@@ -46,7 +46,7 @@ cd backend && alembic upgrade head
 cd backend && alembic revision --autogenerate -m "Description"
 
 # Check database
-docker exec -it migration_postgres_dev psql -U postgres -d migration_db -c "SELECT * FROM migration.discovery_flows;"
+docker exec -it migration_postgres psql -U postgres -d migration_db -c "SELECT * FROM migration.discovery_flows;"
 ```
 
 ## High-Level Architecture

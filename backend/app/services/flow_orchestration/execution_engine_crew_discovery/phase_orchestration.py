@@ -32,6 +32,8 @@ class PhaseOrchestrationMixin:
             "data_cleansing": self._execute_discovery_data_cleansing,  # Data cleansing phase
             "asset_creation": self._execute_discovery_asset_inventory,  # Asset creation is part of inventory (ADR-022)
             "asset_inventory": self._execute_discovery_asset_inventory,
+            "dependency_analysis": self._execute_discovery_dependency_analysis,  # Dependency analysis phase
+            "dependencies": self._execute_discovery_dependency_analysis,  # Alternative phase name
             # Add other phases as needed
         }
 
@@ -164,6 +166,8 @@ class PhaseOrchestrationMixin:
             "data_cleansing": "data_cleansing",
             "asset_creation": "asset_creation",
             "asset_inventory": "asset_inventory",
+            "dependency_analysis": "dependency_analysis",
+            "dependencies": "dependency_analysis",  # Map dependencies to dependency_analysis
             "analysis": "analysis",
         }
         return phase_mapping.get(phase_name, phase_name)
@@ -178,6 +182,8 @@ class PhaseOrchestrationMixin:
             "data_cleansing": self._execute_discovery_data_cleansing,
             "asset_creation": self._execute_discovery_asset_inventory,  # Asset creation is part of inventory (ADR-022)
             "asset_inventory": self._execute_discovery_asset_inventory,
+            "dependency_analysis": self._execute_discovery_dependency_analysis,  # Dependency analysis phase
+            "dependencies": self._execute_discovery_dependency_analysis,  # Alternative phase name
             "analysis": self.phase_handlers.execute_analysis,
         }
 

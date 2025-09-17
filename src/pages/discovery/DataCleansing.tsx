@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
 import { useLatestImport, useAssets, useDataCleansingStats, useDataCleansingAnalysis, useTriggerDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingQueries';
+import { downloadRawData, downloadCleanedData } from '../../services/dataCleansingService';
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
 import SecureLogger from '../../utils/secureLogger';
@@ -191,6 +192,41 @@ const DataCleansing: React.FC = () => {
       await Promise.all([refetchStats(), refetchAnalysis(), refresh()]);
     } catch (error) {
       SecureLogger.error('Failed to refresh data cleansing data', error);
+    }
+  };
+
+  // Download handlers
+  const handleDownloadRawData = async (): Promise<void> => {
+    if (!effectiveFlowId) {
+      SecureLogger.error('No flow ID available for download');
+      return;
+    }
+
+    try {
+      SecureLogger.info('Downloading raw data', { flowId: effectiveFlowId });
+      await downloadRawData(effectiveFlowId);
+      SecureLogger.info('Raw data download completed');
+    } catch (error) {
+      SecureLogger.error('Failed to download raw data', error);
+      // Show user-friendly error message (could be enhanced with toast notifications)
+      alert('Failed to download raw data. Please try again.');
+    }
+  };
+
+  const handleDownloadCleanedData = async (): Promise<void> => {
+    if (!effectiveFlowId) {
+      SecureLogger.error('No flow ID available for download');
+      return;
+    }
+
+    try {
+      SecureLogger.info('Downloading cleaned data', { flowId: effectiveFlowId });
+      await downloadCleanedData(effectiveFlowId);
+      SecureLogger.info('Cleaned data download completed');
+    } catch (error) {
+      SecureLogger.error('Failed to download cleaned data', error);
+      // Show user-friendly error message (could be enhanced with toast notifications)
+      alert('Failed to download cleaned data. Please try again.');
     }
   };
 
@@ -629,11 +665,21 @@ const DataCleansing: React.FC = () => {
 
                       {/* Download Actions */}
                       <div className="flex gap-2 mt-4">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadRawData}
+                          disabled={!effectiveFlowId || isLoadingData}
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Download Raw Data
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadCleanedData}
+                          disabled={!effectiveFlowId || isLoadingData}
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Download Cleaned Data
                         </Button>
