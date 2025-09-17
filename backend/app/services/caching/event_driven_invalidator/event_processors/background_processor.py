@@ -128,7 +128,6 @@ class BackgroundEventProcessor:
     async def _process_single_event(self, event: CacheInvalidationEvent) -> None:
         """Process a single cache invalidation event"""
         start_time = time.time()
-        success = True
 
         try:
             # Convert to InvalidationEvent and submit to manager
@@ -155,7 +154,6 @@ class BackgroundEventProcessor:
             logger.error(
                 f"Failed to process event {event.entity_type}:{event.entity_id}: {e}"
             )
-            success = False
 
         # Update statistics
         processing_time_ms = (time.time() - start_time) * 1000

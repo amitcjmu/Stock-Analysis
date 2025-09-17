@@ -17,7 +17,8 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Filter } from 'lucide-react'
 import { Activity, XCircle, Clock, PauseCircle, PlayCircle, RefreshCw, Plus, Search } from 'lucide-react'
-import { useFlows } from '../../hooks/useFlow';
+import { useQuery } from '@tanstack/react-query'
+import { masterFlowService } from '@/services/api/masterFlowService'
 import type { FlowStatus, FlowType } from '../../types/flow';
 import { flowToast } from '../../utils/toast';
 import { getFlowPhaseRoute } from '@/config/flowRoutes';
@@ -51,21 +52,58 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   const [selectedType, setSelectedType] = useState<FlowType | 'all'>(filterByType || 'all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Use the unified flows hook with production-optimized polling
-  const [state, actions] = useFlows(
-    selectedType === 'all' ? undefined : selectedType,
-    {
-      autoRefresh: true,
-      refreshInterval: 30000, // 30 seconds for production performance
-      onError: (error) => flowToast.error(error)
-    }
-  );
+  // Fetch active flows via Master Flow Service (MFO)
+  type DashboardFlow = {
+    flow_id: string
+    flow_name: string
+    flow_type: string
+    status: string
+    progress_percentage: number
+    current_phase?: string
+    created_at?: string
+    can_pause?: boolean
+    can_resume?: boolean
+    can_cancel?: boolean
+  }
+
+  const {
+    data: activeFlows,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery<DashboardFlow[], Error>({
+    queryKey: ['master-flows', client?.id, engagement?.id, selectedType],
+    enabled: !!client?.id && !!engagement?.id,
+    queryFn: async () => {
+      if (!client?.id) return []
+      const flows = await masterFlowService.getActiveFlows(
+        client.id,
+        engagement?.id,
+        selectedType === 'all' ? undefined : (selectedType as string)
+      )
+      return flows.map((f) => ({
+        flow_id: f.flowId,
+        flow_name: f.flowName,
+        flow_type: f.flowType,
+        status: f.status,
+        progress_percentage: f.progress ?? 0,
+        current_phase: f.currentPhase,
+        created_at: f.startTime,
+        can_pause: f.status === 'running',
+        can_resume: f.status === 'paused',
+        can_cancel: true,
+      }))
+    },
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+  })
 
   // Use the flow deletion hook with modal confirmation
   const [deletionState, deletionActions] = useFlowDeletion(
     async (result) => {
       // Refresh flows after successful deletion
-      await actions.refreshFlows();
+      await refetch();
     },
     (error) => {
       flowToast.error(error);
@@ -73,7 +111,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   );
 
   // Filter flows based on search query
-  const filteredFlows = state.flows.filter(flow =>
+  const filteredFlows = (activeFlows ?? []).filter(flow =>
     flow.flow_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     flow.flow_id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -133,8 +171,9 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
       return;
     }
     try {
-      await actions.pauseFlow(flow.flow_id);
-      await actions.refreshFlows();
+      if (!client?.id) throw new Error('Missing client context');
+      await masterFlowService.pauseFlow(flow.flow_id, client.id, engagement?.id);
+      await refetch();
     } catch (error) {
       flowToast.error(error as Error);
     }
@@ -146,8 +185,9 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
       return;
     }
     try {
-      await actions.resumeFlow(flow.flow_id);
-      await actions.refreshFlows();
+      if (!client?.id) throw new Error('Missing client context');
+      await masterFlowService.resumeFlow(flow.flow_id, client.id, engagement?.id);
+      await refetch();
     } catch (error) {
       flowToast.error(error as Error);
     }
@@ -334,8 +374,8 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
             />
           </div>
         </div>
-        <Button variant="outline" size="icon" onClick={() => actions.refreshFlows()}>
-          <RefreshCw className={`w-4 h-4 ${state.isRefreshing ? 'animate-spin' : ''}`} />
+        <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
@@ -354,7 +394,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
         </TabsList>
 
         <TabsContent value={selectedType} className="mt-6">
-          {state.isLoading ? (
+          {isLoading ? (
             <div className="text-center py-12">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
               <p className="text-muted-foreground">Loading flows...</p>
@@ -376,10 +416,10 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
       </Tabs>
 
       {/* Error Display */}
-      {state.error && (
+      {error && (
         <Alert variant="destructive">
           <AlertDescription>
-            Error loading flows: {state.error.message}
+            Error loading flows: {error.message}
           </AlertDescription>
         </Alert>
       )}

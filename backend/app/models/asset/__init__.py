@@ -64,6 +64,9 @@ __all__ = [
     "WorkflowProgress",
     "CMDBSixRAnalysis",
     "MigrationWave",
+    # Mixins
+    "AssetPropertiesMixin",
+    "AssetBusinessLogicMixin",
     # Constants and utilities
     "SQLALCHEMY_AVAILABLE",
     "SMALL_STRING_LENGTH",

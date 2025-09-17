@@ -5,11 +5,7 @@ This module contains the core infrastructure and constants used across
 all dependency analysis functionality.
 """
 
-import json
 import logging
-from typing import Any, Dict, List
-from datetime import datetime
-import uuid
 
 logger = logging.getLogger(__name__)
 

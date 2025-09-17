@@ -20,7 +20,6 @@ from .base import (
     func,
     uuid,
     SMALL_STRING_LENGTH,
-    MEDIUM_STRING_LENGTH,
     LARGE_STRING_LENGTH,
 )
 

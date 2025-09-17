@@ -9,7 +9,7 @@ import re
 from typing import Any, Dict, List, Set, Tuple
 from difflib import SequenceMatcher
 
-from .base import BASE_MAPPINGS, REQUIRED_FIELDS, logger
+from .base import BASE_MAPPINGS, REQUIRED_FIELDS
 
 
 def calculate_field_similarity(field1: str, field2: str) -> float:
@@ -185,7 +185,6 @@ def analyze_field_patterns(fields: List[str]) -> Dict[str, Any]:
     normalized_fields = [normalize_field_name(f) for f in fields]
 
     # Find common patterns
-    patterns = []
     common_prefixes = set()
     common_suffixes = set()
 

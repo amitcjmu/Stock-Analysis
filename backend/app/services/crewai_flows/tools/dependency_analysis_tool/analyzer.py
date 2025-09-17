@@ -14,10 +14,7 @@ from .base import (
     ASSET_TYPE_APPLICATION,
     ASSET_TYPE_LOAD_BALANCER,
     ASSET_TYPE_SECURITY_GROUP,
-    PRODUCTION_ENVIRONMENTS,
     FLOW_TYPE_READ_WRITE,
-    DEPENDENCY_TYPE_DATA_FLOW,
-    DEPENDENCY_TYPE_NETWORK,
 )
 from .graph_builders import DependencyGraphBuilder
 from .wave_planners import CriticalPathAnalyzer, MigrationInsightsGenerator

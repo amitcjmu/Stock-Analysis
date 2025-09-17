@@ -7,14 +7,12 @@ and finding the best field mappings between source and target fields.
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
-from uuid import UUID
 
 from .base import (
     MappingAnalysis,
     MappingRule,
     BASE_MAPPINGS,
     REQUIRED_FIELDS,
-    CONFIDENCE_THRESHOLDS,
     MAX_SUGGESTIONS,
     logger,
 )

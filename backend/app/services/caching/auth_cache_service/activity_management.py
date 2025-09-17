@@ -5,7 +5,6 @@ Handles user activity buffering for batched operations, activity retrieval,
 and buffer maintenance for efficient activity tracking and storage.
 """
 
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 

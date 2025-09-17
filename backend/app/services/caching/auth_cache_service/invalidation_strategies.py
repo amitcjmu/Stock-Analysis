@@ -5,8 +5,6 @@ Provides various cache invalidation patterns including user-specific invalidatio
 client-specific invalidation, and pattern-based bulk invalidation operations.
 """
 
-from typing import List
-
 from app.core.logging import get_logger
 
 from .base import CacheKeys

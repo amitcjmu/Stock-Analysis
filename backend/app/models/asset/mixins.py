@@ -15,7 +15,7 @@ from .base import (
 from .enums import AssetStatus, AssetType
 
 if TYPE_CHECKING:
-    from .models import Asset
+    pass
 
 
 class AssetPropertiesMixin:

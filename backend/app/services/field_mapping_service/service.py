@@ -18,13 +18,11 @@ from .base import (
     MappingRule,
     BASE_MAPPINGS,
     REQUIRED_FIELDS,
-    logger,
 )
 from .business_logic import FieldMappingBusinessLogic
 from .business_logic_extended import get_field_mappings, validate_mapping
 from .mappers import FieldMappingAnalyzer
 from .repository import FieldMappingRepository
-from .validators import FieldMappingValidator
 
 
 class FieldMappingService(ServiceBase):

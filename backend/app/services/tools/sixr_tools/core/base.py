@@ -5,7 +5,6 @@ Contains shared functionality and fallback implementations.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
 
 # Common logger for all sixr tools
 logger = logging.getLogger(__name__)

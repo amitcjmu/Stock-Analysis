@@ -13,7 +13,6 @@ from .base import (
     VALIDATION_PATTERNS,
     MAX_VALIDATION_SAMPLES,
     MAX_ISSUES_REPORTED,
-    logger,
 )
 
 

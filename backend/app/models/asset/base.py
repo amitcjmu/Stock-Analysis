@@ -5,8 +5,6 @@ This module contains the core imports, base classes, and utility
 functions used across all asset model modules.
 """
 
-import uuid
-
 try:
     from sqlalchemy import (
         JSON,
@@ -20,7 +18,6 @@ try:
         String,
         Text,
     )
-    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
 

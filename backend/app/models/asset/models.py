@@ -30,7 +30,6 @@ from .base import (
     DEFAULT_CURRENT_PHASE,
     DEFAULT_SOURCE_PHASE,
 )
-from .enums import AssetStatus, AssetType
 from .mixins import AssetPropertiesMixin, AssetBusinessLogicMixin
 
 

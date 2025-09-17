@@ -395,4 +395,7 @@ class CacheKeys:
         TTL: varies by agent type (see AgentCacheStrategy)
         Invalidation: on agent re-execution, flow reset
         """
-        return f"{CACHE_VERSION}:client:{client_account_id}:engagement:{engagement_id}:agent:{agent_name}:flow:{flow_id}:result:{agent_id}"
+        return (
+            f"{CACHE_VERSION}:client:{client_account_id}:engagement:{engagement_id}:"
+            f"agent:{agent_name}:flow:{flow_id}:result:{agent_id}"
+        )

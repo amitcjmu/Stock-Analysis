@@ -115,7 +115,7 @@ class MigrationInsightsGenerator:
         }
 
         node_count = dependency_graph.get("node_count", 0)
-        edge_count = dependency_graph.get("edge_count", 0)
+        dependency_graph.get("edge_count", 0)
         density = dependency_graph.get("density", 0)
 
         # Determine wave strategy based on complexity

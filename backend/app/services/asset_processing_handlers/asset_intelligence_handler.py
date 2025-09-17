@@ -42,10 +42,22 @@ class AssetIntelligenceHandler:
         self, asset_data: Dict[str, Any], client_account_id: str
     ) -> Dict[str, Any]:
         """Enriches a single asset with AI-driven intelligence."""
+        # CC: Return structured error instead of placeholder data to prevent production issues
+        if not self.crewai_service_available:
+            return {
+                "status": "not_ready",
+                "error_code": "ENRICHMENT_UNAVAILABLE",
+                "details": {
+                    "reason": "CrewAI service not available",
+                    "asset_name": asset_data.get("name", "unknown"),
+                    "message": "Asset enrichment service is currently unavailable",
+                },
+            }
+
+        # When CrewAI service is available, implement actual enrichment logic
         # This is a placeholder for the more complex enrichment logic
         # that would be ported from the original service.
-        asset_data["enrichment_status"] = "enriched"
-        asset_data["predicted_os"] = "Linux"  # Dummy enrichment
+        # For now, return the asset data unchanged until enrichment is implemented
         return asset_data
 
     async def analyze_inventory(self, assets: List[Dict[str, Any]]) -> Dict[str, Any]:

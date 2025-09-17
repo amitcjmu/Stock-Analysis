@@ -6,7 +6,6 @@ that are used as building blocks by all other cache service functionality.
 """
 
 import time
-from collections import deque
 from typing import Any, Optional
 
 from app.core.logging import get_logger
