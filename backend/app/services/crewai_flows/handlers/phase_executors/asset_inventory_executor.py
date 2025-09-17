@@ -143,31 +143,41 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     "execution_time": "0.001s",
                 }
 
-            # Create assets via service
+            # Create assets via service with atomic transaction for data integrity
             created_assets = []
             failed_count = 0
 
-            for asset_data in assets_data:
-                try:
-                    asset = await asset_service.create_asset(
-                        asset_data, flow_id=master_flow_id
-                    )
-                    if asset:
-                        created_assets.append(asset)
-                        logger.debug(f"✅ Created asset: {asset.name}")
-                    else:
-                        failed_count += 1
-                        logger.warning(
-                            f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
+            # Use atomic transaction to ensure data consistency
+            async with db_session.begin():
+                for asset_data in assets_data:
+                    try:
+                        asset = await asset_service.create_asset(
+                            asset_data, flow_id=master_flow_id
                         )
-                except Exception as e:
-                    failed_count += 1
-                    logger.error(
-                        f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
-                    )
+                        if asset:
+                            created_assets.append(asset)
+                            logger.debug(f"✅ Created asset: {asset.name}")
+                        else:
+                            failed_count += 1
+                            logger.warning(
+                                f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
+                            )
+                    except Exception as e:
+                        failed_count += 1
+                        logger.error(
+                            f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
+                        )
+                        # Continue processing other assets in case of individual failures
 
-            # Update raw_import_records as processed
-            await self._mark_records_processed(db_session, raw_records, created_assets)
+                # Flush to make asset IDs available for foreign key relationships
+                await db_session.flush()
+
+                # Update raw_import_records as processed within the same transaction
+                await self._mark_records_processed(
+                    db_session, raw_records, created_assets
+                )
+
+                # Transaction will be committed automatically when exiting the context
 
             total_created = len(created_assets)
             logger.info(

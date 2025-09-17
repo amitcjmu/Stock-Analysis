@@ -231,6 +231,50 @@ class AuditLoggingService:
 
         await self.log_event(event)
 
+    async def log_data_export(
+        self,
+        flow_id: uuid.UUID,
+        export_type: str,
+        record_count: int,
+        file_size_bytes: Optional[int] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Log a data export event for security audit trail.
+
+        Args:
+            flow_id: Flow ID that data was exported from
+            export_type: Type of export (raw, cleaned, etc.)
+            record_count: Number of records exported
+            file_size_bytes: Optional file size in bytes
+            details: Optional additional details
+        """
+        event_details = {
+            "export_type": export_type,
+            "record_count": record_count,
+            "timestamp": datetime.utcnow().isoformat(),
+            **(details or {}),
+        }
+
+        if file_size_bytes is not None:
+            event_details["file_size_bytes"] = file_size_bytes
+
+        event = AuditEvent(
+            event_type=AuditEventType.DATA_EXPORT,
+            severity=AuditSeverity.INFO,
+            flow_id=flow_id,
+            user_id=uuid.UUID(str(self.context.user_id)),
+            description=f"Data export: {export_type} ({record_count} records)",
+            details=event_details,
+            metadata={
+                "category": "data_export",
+                "sensitive_operation": True,
+                "compliance_relevant": True,
+            },
+        )
+
+        await self.log_event(event)
+
     async def get_flow_audit_trail(
         self,
         flow_id: uuid.UUID,

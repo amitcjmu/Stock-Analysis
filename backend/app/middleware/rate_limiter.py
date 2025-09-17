@@ -14,6 +14,8 @@ from fastapi import Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,6 +84,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 "limit": 60,
                 "window": 60,
             },  # 60 requests per minute
+            # CRITICAL: Rate limiting for data export endpoints (security requirement)
+            "/api/v1/flows": {
+                "limit": 30,
+                "window": 60,
+            },  # 30 requests per minute for general flow operations
+            "/api/v1/flows/data-cleansing/download": {
+                "limit": settings.EXPORT_RATE_LIMIT_PER_HOUR,
+                "window": 3600,
+            },  # Configurable data exports per hour (stricter for sensitive data)
             "default": {"limit": 100, "window": 60},  # Default: 100 requests per minute
         }
 
@@ -169,6 +180,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Check for exact match first, as it's the most specific
         if path in self.rate_limits:
             return self.rate_limits[path]
+
+        # Special handling for data export endpoints (security critical)
+        if "/data-cleansing/download" in path:
+            return self.rate_limits["/api/v1/flows/data-cleansing/download"]
 
         # Find all patterns that the path starts with
         matching_patterns = [

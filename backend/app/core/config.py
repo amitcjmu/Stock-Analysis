@@ -170,6 +170,27 @@ class Settings(BaseSettings):
         default=90, env="DEFAULT_MIGRATION_TIMELINE_DAYS"
     )
 
+    # Data export security settings
+    MAX_EXPORT_RECORDS: int = Field(
+        default=10000,
+        ge=100,
+        le=100000,
+        env="MAX_EXPORT_RECORDS",
+        description="Maximum number of records allowed per data export for security",
+    )
+    EXPORT_RATE_LIMIT_PER_HOUR: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        env="EXPORT_RATE_LIMIT_PER_HOUR",
+        description="Maximum number of data exports allowed per hour per user",
+    )
+    ENABLE_PII_REDACTION: bool = Field(
+        default=True,
+        env="ENABLE_PII_REDACTION",
+        description="Enable PII field redaction in data exports",
+    )
+
     # Asset processing configuration (wiring implementation plan v3.3-final)
     ASSET_BATCH_CHUNK_SIZE: int = Field(
         default=500,

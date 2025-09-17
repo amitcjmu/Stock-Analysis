@@ -284,7 +284,7 @@ export const applyFix = async (issueId: string, fixData: QualityFixData): Promis
  */
 export const downloadRawData = async (flowId: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/flows/${flowId}/data-cleansing/download/raw`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/flows/${flowId}/data-cleansing/download/raw`, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -320,7 +320,7 @@ export const downloadRawData = async (flowId: string): Promise<void> => {
  */
 export const downloadCleanedData = async (flowId: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/flows/${flowId}/data-cleansing/download/cleaned`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/flows/${flowId}/data-cleansing/download/cleaned`, {
       method: 'GET',
       headers: getAuthHeaders()
     });

@@ -8,7 +8,7 @@
 # Transform: original_file.py → original_file/
 original_file/
 ├── __init__.py       # Backward compatibility imports
-├── base.py          # Base classes/shared utilities  
+├── base.py          # Base classes/shared utilities
 ├── config.py        # Configuration
 ├── service.py       # Main service logic
 └── domain_modules/  # Domain-specific logic

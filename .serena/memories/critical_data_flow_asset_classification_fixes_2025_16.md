@@ -36,27 +36,27 @@ def _classify_asset_type(self, asset_data_source: Dict[str, Any]) -> str:
     hostname = str(asset_data_source.get("hostname", "")).lower()
     server_name = str(asset_data_source.get("server_name", "")).lower()
     all_names = f"{resolved_name} {name} {hostname} {server_name}".lower()
-    
+
     # Database detection
-    if any(keyword in all_names for keyword in 
+    if any(keyword in all_names for keyword in
            ["db", "database", "sql", "oracle", "mysql", "postgres"]):
         return "Database"
-    
+
     # Server detection
-    if any(keyword in all_names for keyword in 
+    if any(keyword in all_names for keyword in
            ["server", "srv", "host", "vm"]) or hostname:
         return "Server"
-    
+
     # Application detection
-    if any(keyword in all_names for keyword in 
+    if any(keyword in all_names for keyword in
            ["app", "application", "service", "api"]):
         return "Application"
-    
+
     # Network device detection
-    if any(keyword in all_names for keyword in 
+    if any(keyword in all_names for keyword in
            ["switch", "router", "firewall", "gateway"]):
         return "Network Device"
-        
+
     return "Infrastructure"  # Default
 ```
 

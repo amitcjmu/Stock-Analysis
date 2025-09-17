@@ -6,7 +6,7 @@
 **Workflow**:
 ```
 1. python-crewai-fastapi-expert → Modularize
-2. code-review-analyzer → Validate 
+2. code-review-analyzer → Validate
 3. python-crewai-fastapi-expert → Fix issues
 4. qa-playwright-tester → Test functionality
 5. Pre-commit hooks → Final validation
@@ -19,9 +19,9 @@ IMPORTANT: First read these files:
 1. /docs/analysis/Notes/coding-agent-guide.md
 2. /.claude/agent_instructions.md
 
-After completing your task, provide a detailed summary following 
+After completing your task, provide a detailed summary following
 the template in agent_instructions.md, not just "Done".
-Include: what was requested, what was accomplished, technical 
+Include: what was requested, what was accomplished, technical
 details, and verification steps.
 ```
 

@@ -84,7 +84,7 @@ export interface MultiTenantContext {
 }
 
 export interface MultiTenantHeaders {
-  'X-Client-Account-Id'?: string;
+  'X-Client-Account-ID'?: string;
   'X-Engagement-ID'?: string;
   'X-User-ID'?: string;
   'X-User-Role'?: string;
