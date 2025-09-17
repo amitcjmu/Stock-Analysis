@@ -227,61 +227,59 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     ) -> Dict[str, Any]:
         """Transform a raw import record to asset data format."""
         try:
-            raw_data = record.raw_data or {}
+            # CC: CRITICAL FIX - Use cleansed_data instead of raw_data to leverage data cleansing phase
+            # This ensures assets are created from processed, validated data rather than raw imports
+            cleansed_data = record.cleansed_data or record.raw_data or {}
+            # Use cleansed data for asset creation, fallback to raw_data if cleansing hasn't occurred
+            asset_data_source = cleansed_data
 
             # Extract basic asset information with smart name resolution
             name = (
-                raw_data.get("name")
-                or raw_data.get("hostname")
-                or raw_data.get("server_name")
-                or raw_data.get("asset_name")
-                or raw_data.get("application_name")
+                asset_data_source.get("name")
+                or asset_data_source.get("hostname")
+                or asset_data_source.get("server_name")
+                or asset_data_source.get("asset_name")
+                or asset_data_source.get("application_name")
                 or f"Asset-{record.row_number}"
             )
 
-            # Determine asset type
-            asset_type = raw_data.get("asset_type", "Unknown")
-            if not asset_type or asset_type == "Unknown":
-                # Intelligent asset type detection
-                if raw_data.get("operating_system") or raw_data.get("hostname"):
-                    asset_type = "Server"
-                elif raw_data.get("application_name"):
-                    asset_type = "Application"
-                else:
-                    asset_type = "Infrastructure"
+            # Determine asset type with intelligent classification
+            # Pass the actual resolved name to ensure proper classification
+            asset_data_for_classification = {**asset_data_source, "resolved_name": name}
+            asset_type = self._classify_asset_type(asset_data_for_classification)
 
             # Build comprehensive asset data
             asset_data = {
                 "name": str(name).strip(),
                 "asset_type": asset_type,
-                "description": raw_data.get(
+                "description": asset_data_source.get(
                     "description",
                     f"Discovered asset from import row {record.row_number}",
                 ),
                 # Network information
-                "hostname": raw_data.get("hostname"),
-                "ip_address": raw_data.get("ip_address"),
-                "fqdn": raw_data.get("fqdn"),
+                "hostname": asset_data_source.get("hostname"),
+                "ip_address": asset_data_source.get("ip_address"),
+                "fqdn": asset_data_source.get("fqdn"),
                 # System information
-                "operating_system": raw_data.get("operating_system"),
-                "os_version": raw_data.get("os_version"),
-                "environment": raw_data.get("environment", "Unknown"),
+                "operating_system": asset_data_source.get("operating_system"),
+                "os_version": asset_data_source.get("os_version"),
+                "environment": asset_data_source.get("environment", "Unknown"),
                 # Physical/Virtual specifications
-                "cpu_cores": raw_data.get("cpu_cores"),
-                "memory_gb": raw_data.get("memory_gb"),
-                "storage_gb": raw_data.get("storage_gb"),
+                "cpu_cores": asset_data_source.get("cpu_cores"),
+                "memory_gb": asset_data_source.get("memory_gb"),
+                "storage_gb": asset_data_source.get("storage_gb"),
                 # Business context
-                "business_owner": raw_data.get("business_owner")
-                or raw_data.get("owner"),
-                "technical_owner": raw_data.get("technical_owner"),
-                "department": raw_data.get("department"),
-                "criticality": raw_data.get("criticality", "Medium"),
+                "business_owner": asset_data_source.get("business_owner")
+                or asset_data_source.get("owner"),
+                "technical_owner": asset_data_source.get("technical_owner"),
+                "department": asset_data_source.get("department"),
+                "criticality": asset_data_source.get("criticality", "Medium"),
                 # Application information
-                "application_name": raw_data.get("application_name"),
-                "technology_stack": raw_data.get("technology_stack"),
+                "application_name": asset_data_source.get("application_name"),
+                "technology_stack": asset_data_source.get("technology_stack"),
                 # Location information
-                "location": raw_data.get("location"),
-                "datacenter": raw_data.get("datacenter"),
+                "location": asset_data_source.get("location"),
+                "datacenter": asset_data_source.get("datacenter"),
                 # Discovery metadata
                 "discovery_source": "Discovery Flow Import",
                 "raw_import_records_id": record.id,
@@ -289,9 +287,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 "master_flow_id": master_flow_id,
                 "flow_id": master_flow_id,  # Backward compatibility
                 "discovery_flow_id": discovery_flow_id,  # The actual discovery flow ID for proper association
-                # Store complete raw data
-                "custom_attributes": raw_data,
-                "raw_data": raw_data,
+                # Store complete raw data (preserve original for audit)
+                "custom_attributes": asset_data_source,
+                "raw_data": record.raw_data,  # Keep original raw data for audit trail
             }
 
             # Remove None values to avoid database issues
@@ -329,6 +327,89 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         except Exception as e:
             logger.error(f"❌ Failed to mark records as processed: {e}")
             # Don't raise - asset creation succeeded even if we can't mark records
+
+    def _classify_asset_type(self, asset_data_source: Dict[str, Any]) -> str:
+        """
+        Intelligently classify asset type based on available data.
+
+        Args:
+            asset_data_source: Dictionary containing asset data (cleansed or raw)
+
+        Returns:
+            String representing the asset type classification
+        """
+        # Use resolved_name if available, otherwise check multiple name fields
+        resolved_name = str(asset_data_source.get("resolved_name", "")).lower()
+        name = str(asset_data_source.get("name", "")).lower()
+        hostname = str(asset_data_source.get("hostname", "")).lower()
+        server_name = str(asset_data_source.get("server_name", "")).lower()
+        asset_name = str(asset_data_source.get("asset_name", "")).lower()
+        app_name = str(asset_data_source.get("application_name", "")).lower()
+        asset_type = str(asset_data_source.get("type", "")).lower()
+
+        # Combine all name fields for comprehensive checking
+        all_names = f"{resolved_name} {name} {hostname} {server_name} {asset_name} {app_name}".lower()
+
+        # Database detection
+        if any(
+            keyword in all_names
+            for keyword in [
+                "db",
+                "database",
+                "sql",
+                "oracle",
+                "mysql",
+                "postgres",
+                "mongodb",
+                "cassandra",
+                "redis",
+            ]
+        ):
+            return "Database"
+        if any(keyword in asset_type for keyword in ["db", "database"]):
+            return "Database"
+
+        # Network device detection
+        if any(
+            keyword in all_names
+            for keyword in [
+                "switch",
+                "router",
+                "firewall",
+                "gateway",
+                "loadbalancer",
+                "lb",
+                "proxy",
+            ]
+        ):
+            return "Network Device"
+        if any(keyword in asset_type for keyword in ["network", "switch", "router"]):
+            return "Network Device"
+
+        # Application detection
+        if any(
+            keyword in all_names
+            for keyword in ["app", "application", "service", "api", "web", "portal"]
+        ):
+            return "Application"
+        if asset_data_source.get("app_name") or asset_data_source.get(
+            "application_name"
+        ):
+            return "Application"
+
+        # Server detection - check all name variants
+        if (
+            any(
+                keyword in all_names
+                for keyword in ["server", "srv", "host", "vm", "virtual"]
+            )
+            or hostname
+        ):
+            return "Server"
+        if asset_data_source.get("os") or asset_data_source.get("operating_system"):
+            return "Server"
+
+        return "Infrastructure"  # Default fallback
 
 
 __all__ = ["AssetInventoryExecutor"]
