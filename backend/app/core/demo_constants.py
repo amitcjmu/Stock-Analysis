@@ -10,12 +10,14 @@ DEMO_USER_ID = "44444444-4444-4444-4444-444444444444"
 DEMO_CLIENT_ID = "11111111-1111-1111-1111-111111111111"
 DEMO_ENGAGEMENT_ID = "22222222-2222-2222-2222-222222222222"
 DEMO_FLOW_ID = "33333333-3333-3333-3333-333333333333"
+DEMO_SESSION_ID = "55555555-5555-5555-5555-555555555555"
 
 # Demo Data Identifiers
 DEMO_USER_EMAIL = "demo@democorp.com"
 DEMO_CLIENT_NAME = "Democorp"
 DEMO_ENGAGEMENT_NAME = "Cloud Migration 2024"
 DEMO_FLOW_NAME = "Demo Flow"
+DEMO_SESSION_NAME = "Demo Session"
 
 
 def is_demo_user_id(user_id: str) -> bool:
@@ -38,6 +40,11 @@ def is_demo_flow_id(flow_id: str) -> bool:
     return str(flow_id) == DEMO_FLOW_ID
 
 
+def is_demo_session_id(session_id: str) -> bool:
+    """Check if a session ID is the demo session."""
+    return str(session_id) == DEMO_SESSION_ID
+
+
 def is_demo_data(entity_id: str) -> bool:
     """Check if any entity ID is demo data."""
     return (
@@ -45,4 +52,5 @@ def is_demo_data(entity_id: str) -> bool:
         or is_demo_client_id(entity_id)
         or is_demo_engagement_id(entity_id)
         or is_demo_flow_id(entity_id)
+        or is_demo_session_id(entity_id)
     )

@@ -157,27 +157,27 @@ class CriticalPathAnalyzer:
 
         # Memoization for longest path from each node
         memo = {}
-        
+
         def find_longest_path_from(node_id):
             """Find the longest path starting from node_id using DP"""
             if node_id in memo:
                 return memo[node_id]
-            
+
             # If no predecessors, this is a root node
             if node_id not in reverse_adj or not reverse_adj[node_id]:
                 memo[node_id] = [node_id]
                 return [node_id]
-            
+
             # Find the longest path among all predecessors
             longest = []
             for pred in reverse_adj[node_id]:
                 pred_path = find_longest_path_from(pred)
                 if len(pred_path) > len(longest):
                     longest = pred_path.copy()
-            
+
             # Add current node to the path
             longest.append(node_id)
             memo[node_id] = longest
             return longest
-        
+
         return find_longest_path_from(start_node)

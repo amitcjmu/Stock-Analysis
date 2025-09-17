@@ -18,6 +18,7 @@ try:
         String,
         Text,
     )
+    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
 
@@ -26,7 +27,7 @@ except ImportError:
     SQLALCHEMY_AVAILABLE = False
     Column = Integer = String = DateTime = Text = JSON = Enum = Boolean = ForeignKey = (
         Float
-    ) = object
+    ) = PostgresUUID = object
 
     def relationship(*args, **kwargs):
         return None
@@ -41,6 +42,15 @@ try:
     from app.core.database import Base
 except ImportError:
     Base = object
+
+try:
+    import uuid
+except ImportError:
+
+    class uuid:
+        @staticmethod
+        def uuid4():
+            return None
 
 
 # Common field lengths

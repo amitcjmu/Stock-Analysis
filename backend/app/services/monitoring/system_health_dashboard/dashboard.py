@@ -105,7 +105,7 @@ class SystemHealthDashboard:
             # No running event loop, create one in a thread
             def run_async_updater():
                 asyncio.run(background_updater())
-            
+
             self.executor.submit(run_async_updater)
 
     async def _update_dashboard_data(self) -> None:

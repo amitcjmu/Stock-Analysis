@@ -16,7 +16,7 @@ from .base import (
 
 class AssessmentFieldsMixin:
     """Mixin providing assessment-related fields for the Asset model"""
-    
+
     # Assessment-related fields
     assessment_readiness = Column(
         String(SMALL_STRING_LENGTH),
@@ -25,27 +25,27 @@ class AssessmentFieldsMixin:
         server_default=_sql_text(f"'{DEFAULT_ASSESSMENT_READINESS}'"),
         comment="Assessment readiness status for this asset (e.g., 'ready', 'not_ready').",
     )
-    
+
     assessment_readiness_score = Column(
         Float,
         comment="Optional readiness score (0-100 or 0-1 depending on configuration).",
     )
-    
+
     assessment_blockers = Column(
         JSON, comment="List of identified blockers preventing assessment readiness."
     )
-    
+
     assessment_recommendations = Column(
         JSON, comment="List of recommendations to achieve assessment readiness."
     )
-    
+
     # Discovery timestamps
     discovered_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
         comment="Timestamp when the asset was first discovered.",
     )
-    
+
     discovery_completed_at = Column(
         DateTime(timezone=True),
         comment="Timestamp when discovery completed for this asset.",

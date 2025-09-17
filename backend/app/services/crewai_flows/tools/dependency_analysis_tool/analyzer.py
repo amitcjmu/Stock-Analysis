@@ -301,19 +301,24 @@ class DependencyAnalyzer:
                 # Security groups protect assets that explicitly reference them
                 sg_name = asset.get("name", "")
                 sg_id = asset.get("id", "")
-                
+
                 for other_asset in assets:
                     # Check if the other asset explicitly references this security group
                     references_sg = False
-                    
+
                     # Check various fields where security groups might be referenced
-                    for field in ["security_group", "security_groups", "sg_id", "network_config"]:
+                    for field in [
+                        "security_group",
+                        "security_groups",
+                        "sg_id",
+                        "network_config",
+                    ]:
                         if field in other_asset:
                             field_value = str(other_asset[field])
                             if sg_name in field_value or str(sg_id) in field_value:
                                 references_sg = True
                                 break
-                    
+
                     if references_sg:
                         services.append(
                             {

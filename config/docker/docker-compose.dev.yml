@@ -12,8 +12,8 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./scripts/dev-init.sql:/docker-entrypoint-initdb.d/99-dev-init.sql
+      - ../../backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../scripts/dev-init.sql:/docker-entrypoint-initdb.d/99-dev-init.sql
     ports:
       - "5433:5432"
     healthcheck:
@@ -27,9 +27,8 @@ services:
   # FastAPI Backend (Development)
   backend:
     build:
-      context: ./backend
+      context: ../../backend
       dockerfile: Dockerfile
-      target: development  # Use development stage if multi-stage
     env_file:
       - ./backend/.env.dev
     container_name: migration_backend_dev
@@ -59,16 +58,15 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend:/app
+      - ../../backend:/app
       - dev_logs:/app/logs
     working_dir: /app
     command: >
       sh -c "
         echo '🚀 Starting development backend...' &&
         python -m alembic upgrade head &&
-        echo '📊 Seeding demo data...' &&
-        python scripts/populate_demo_data.py &&
-        echo '✅ Demo data seeded successfully' &&
+        echo '⚠️ Skipping demo data seeding to avoid import issues' &&
+        echo '✅ Starting FastAPI server...' &&
         uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
       "
     networks:
@@ -82,9 +80,8 @@ services:
   # Frontend (Development)
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
-      target: development  # Use development stage if multi-stage
+      context: ../..
+      dockerfile: config/docker/Dockerfile.frontend
     container_name: migration_frontend_dev
     working_dir: /app
     environment:
@@ -96,16 +93,16 @@ services:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true  # For file watching in containers
     ports:
-      - "3001:3001"  # Different port for dev
+      - "8081:8081"  # Frontend on 8081 as per architecture docs
     volumes:
-      - .:/app
+      - ../..:/app
       - /app/node_modules
       - dev_frontend_cache:/app/.vite
     command: >
       sh -c "
         echo '🚀 Starting development frontend...' &&
         npm install &&
-        npm run dev -- --host 0.0.0.0 --port 3001
+        npm run dev -- --host 0.0.0.0 --port 8081
       "
     depends_on:
       - backend
@@ -120,8 +117,8 @@ services:
       - "6379:6379"
     volumes:
       - redis_dev_data:/data
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-      - ./redis/logs:/var/log/redis
+      - ../redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ../redis/logs:/var/log/redis
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-secure_dev_password_change_in_production}
     networks:
@@ -175,9 +172,9 @@ services:
       - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-secure_dev_password_change_in_production}
       - HTTP_USER=admin
       - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-admin123}
-      - PORT=8081
+      - PORT=8082
     ports:
-      - "8081:8081"
+      - "8082:8082"
     networks:
       - migration_dev
     depends_on:
@@ -196,7 +193,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ./data/redis
+      device: ../data/redis
   dev_logs:
     name: migration_dev_logs
   dev_frontend_cache:

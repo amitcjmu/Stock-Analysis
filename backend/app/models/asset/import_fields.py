@@ -17,7 +17,7 @@ from .base import (
 
 class ImportFieldsMixin:
     """Mixin providing import and processing related fields for the Asset model"""
-    
+
     # Import and processing metadata
     imported_by = Column(
         PostgresUUID(as_uuid=True),
@@ -25,34 +25,33 @@ class ImportFieldsMixin:
         nullable=True,
         comment="The user who imported the data that created this asset.",
     )
-    
+
     imported_at = Column(
-        DateTime(timezone=True), 
-        comment="Timestamp of when the asset was imported."
+        DateTime(timezone=True), comment="Timestamp of when the asset was imported."
     )
-    
+
     source_filename = Column(
         String(LARGE_STRING_LENGTH),
         comment="The original filename from which this asset was imported.",
     )
-    
+
     raw_data = Column(
         JSON,
         comment="A JSON blob of the original, raw data for this asset from the import source.",
     )
-    
+
     field_mappings_used = Column(
         JSON,
         comment="The specific field mappings that were applied to create this asset record.",
     )
-    
+
     raw_import_records_id = Column(
         PostgresUUID(as_uuid=True),
         ForeignKey("raw_import_records.id"),
         nullable=True,
         comment="The raw import record this asset was created from.",
     )
-    
+
     # Discovery status field
     discovery_status = Column(
         String(SMALL_STRING_LENGTH),

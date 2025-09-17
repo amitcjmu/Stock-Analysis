@@ -34,7 +34,13 @@ from .assessment_fields import AssessmentFieldsMixin
 from .import_fields import ImportFieldsMixin
 
 
-class Asset(Base, AssetPropertiesMixin, AssetBusinessLogicMixin, AssessmentFieldsMixin, ImportFieldsMixin):
+class Asset(
+    Base,
+    AssetPropertiesMixin,
+    AssetBusinessLogicMixin,
+    AssessmentFieldsMixin,
+    ImportFieldsMixin,
+):
     """
     Represents a single Configuration Item (CI) or asset within the CMDB.
     This is the central table for all discovered and managed assets, enriched
