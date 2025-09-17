@@ -1,0 +1,621 @@
+"""
+Core dependency analysis logic.
+
+This module contains the DependencyAnalyzer class which provides
+comprehensive dependency analysis capabilities for asset migration.
+"""
+
+import uuid
+from typing import Any, Dict, List
+from datetime import datetime
+
+from .base import (
+    logger,
+    ASSET_TYPE_DATABASE,
+    ASSET_TYPE_APPLICATION,
+    ASSET_TYPE_LOAD_BALANCER,
+    ASSET_TYPE_SECURITY_GROUP,
+    PRODUCTION_ENVIRONMENTS,
+    BOTTLENECK_THRESHOLD,
+    HIGH_CONNECTIVITY_THRESHOLD,
+    LOW_COUPLING_THRESHOLD,
+    HIGH_COUPLING_THRESHOLD,
+    RISK_HIGH,
+    RISK_MEDIUM,
+    RISK_LOW,
+    FLOW_TYPE_READ_WRITE,
+    DEPENDENCY_TYPE_DATA_FLOW,
+    DEPENDENCY_TYPE_NETWORK,
+)
+
+
+class DependencyAnalyzer:
+    """Core dependency analysis logic"""
+
+    @staticmethod
+    def analyze_dependencies(
+        assets: List[Dict[str, Any]], context_info: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Analyze dependencies between assets based on various indicators
+
+        Args:
+            assets: List of asset records with potential dependency information
+            context_info: Optional context with client/engagement info
+
+        Returns:
+            Comprehensive dependency analysis results
+        """
+        try:
+            logger.info(f"🔍 Analyzing dependencies for {len(assets)} assets")
+
+            if not assets:
+                return DependencyAnalyzer._create_empty_analysis()
+
+            # Extract different types of dependencies
+            network_deps = DependencyAnalyzer._analyze_network_dependencies(assets)
+            config_deps = DependencyAnalyzer._analyze_configuration_dependencies(assets)
+            data_deps = DependencyAnalyzer._analyze_data_dependencies(assets)
+            service_deps = DependencyAnalyzer._analyze_service_dependencies(assets)
+
+            # Build comprehensive dependency graph
+            dependency_graph = DependencyAnalyzer._build_dependency_graph(
+                assets, network_deps, config_deps, data_deps, service_deps
+            )
+
+            # Identify critical paths and bottlenecks
+            critical_analysis = DependencyAnalyzer._analyze_critical_paths(
+                dependency_graph
+            )
+
+            # Generate migration insights
+            migration_insights = DependencyAnalyzer._generate_migration_insights(
+                dependency_graph, critical_analysis
+            )
+
+            return {
+                "total_assets": len(assets),
+                "dependency_graph": dependency_graph,
+                "network_dependencies": network_deps,
+                "configuration_dependencies": config_deps,
+                "data_dependencies": data_deps,
+                "service_dependencies": service_deps,
+                "critical_paths": critical_analysis["critical_paths"],
+                "bottlenecks": critical_analysis["bottlenecks"],
+                "circular_dependencies": critical_analysis["circular_dependencies"],
+                "migration_insights": migration_insights,
+                "analysis_timestamp": datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Dependency analysis failed: {e}")
+            return DependencyAnalyzer._create_empty_analysis(error=str(e))
+
+    @staticmethod
+    def _create_empty_analysis(error: str = None) -> Dict[str, Any]:
+        """Create empty analysis result"""
+        return {
+            "total_assets": 0,
+            "dependency_graph": {"nodes": [], "edges": []},
+            "network_dependencies": [],
+            "configuration_dependencies": [],
+            "data_dependencies": [],
+            "service_dependencies": [],
+            "critical_paths": [],
+            "bottlenecks": [],
+            "circular_dependencies": [],
+            "migration_insights": [],
+            "error": error,
+        }
+
+    @staticmethod
+    def _analyze_network_dependencies(
+        assets: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Analyze network-based dependencies (IP, ports, URLs)"""
+        dependencies = []
+
+        for asset in assets:
+            # Check for network connections in various fields
+            connections = []
+
+            # Check IP addresses
+            if asset.get("ip_address"):
+                connections.append(
+                    {"type": "ip", "value": asset["ip_address"], "protocol": "tcp/ip"}
+                )
+
+            # Check for connection strings in custom attributes
+            custom_attrs = asset.get("custom_attributes", {})
+            if isinstance(custom_attrs, dict):
+                for key, value in custom_attrs.items():
+                    if "connection" in key.lower() or "endpoint" in key.lower():
+                        connections.append(
+                            {
+                                "type": "endpoint",
+                                "value": str(value),
+                                "protocol": "unknown",
+                            }
+                        )
+
+            # Check dependencies field
+            deps = asset.get("dependencies", [])
+            if isinstance(deps, list):
+                for dep in deps:
+                    connections.append(
+                        {"type": "explicit", "value": str(dep), "protocol": "unknown"}
+                    )
+
+            if connections:
+                dependencies.append(
+                    {
+                        "asset_id": str(asset.get("id", uuid.uuid4())),
+                        "asset_name": asset.get("name", "Unknown"),
+                        "connections": connections,
+                        "connection_count": len(connections),
+                    }
+                )
+
+        return dependencies
+
+    @staticmethod
+    def _analyze_configuration_dependencies(
+        assets: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Analyze configuration-based dependencies"""
+        dependencies = []
+
+        for asset in assets:
+            config_deps = []
+
+            # Check for database connections
+            if asset.get("asset_type") == ASSET_TYPE_DATABASE:
+                config_deps.append(
+                    {
+                        "type": "database",
+                        "role": "provider",
+                        "service": asset.get("name", "Unknown DB"),
+                    }
+                )
+            elif asset.get("asset_type") == ASSET_TYPE_APPLICATION:
+                # Applications depend on databases
+                tech_stack = asset.get("technology_stack", "")
+                if (
+                    "sql" in str(tech_stack).lower()
+                    or "database" in str(tech_stack).lower()
+                ):
+                    config_deps.append(
+                        {
+                            "type": "database",
+                            "role": "consumer",
+                            "requirement": "database_connection",
+                        }
+                    )
+
+            # Check for API dependencies
+            if "api" in str(asset.get("name", "")).lower():
+                config_deps.append(
+                    {
+                        "type": "api",
+                        "role": (
+                            "provider"
+                            if "server" in str(asset.get("asset_type", "")).lower()
+                            else "consumer"
+                        ),
+                    }
+                )
+
+            if config_deps:
+                dependencies.append(
+                    {
+                        "asset_id": str(asset.get("id", uuid.uuid4())),
+                        "asset_name": asset.get("name", "Unknown"),
+                        "configuration_dependencies": config_deps,
+                    }
+                )
+
+        return dependencies
+
+    @staticmethod
+    def _analyze_data_dependencies(
+        assets: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Analyze data flow dependencies"""
+        dependencies = []
+
+        # Group assets by type
+        databases = [a for a in assets if a.get("asset_type") == ASSET_TYPE_DATABASE]
+        applications = [a for a in assets if a.get("asset_type") == ASSET_TYPE_APPLICATION]
+
+        # Analyze data flow patterns
+        for app in applications:
+            data_flows = []
+
+            # Check if app reads/writes to databases
+            for db in databases:
+                if DependencyAnalyzer._is_likely_connected(app, db):
+                    data_flows.append(
+                        {
+                            "source": db.get("name", "Unknown DB"),
+                            "target": app.get("name", "Unknown App"),
+                            "flow_type": FLOW_TYPE_READ_WRITE,
+                            "confidence": 0.7,
+                        }
+                    )
+
+            if data_flows:
+                dependencies.append(
+                    {
+                        "asset_id": str(app.get("id", uuid.uuid4())),
+                        "asset_name": app.get("name", "Unknown"),
+                        "data_flows": data_flows,
+                    }
+                )
+
+        return dependencies
+
+    @staticmethod
+    def _analyze_service_dependencies(
+        assets: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Analyze service-level dependencies"""
+        dependencies = []
+
+        for asset in assets:
+            services = []
+
+            # Check for load balancer dependencies
+            if asset.get("asset_type") == ASSET_TYPE_LOAD_BALANCER:
+                services.append(
+                    {
+                        "type": "load_balancer",
+                        "role": "traffic_distributor",
+                        "criticality": RISK_HIGH,
+                    }
+                )
+
+            # Check for security group dependencies
+            if asset.get("asset_type") == ASSET_TYPE_SECURITY_GROUP:
+                services.append(
+                    {
+                        "type": "security",
+                        "role": "access_control",
+                        "criticality": RISK_HIGH,
+                    }
+                )
+
+            # Check environment-based dependencies
+            env = asset.get("environment", "").lower()
+            if env in PRODUCTION_ENVIRONMENTS:
+                services.append(
+                    {
+                        "type": "environment",
+                        "role": "production_service",
+                        "criticality": "critical",
+                    }
+                )
+
+            if services:
+                dependencies.append(
+                    {
+                        "asset_id": str(asset.get("id", uuid.uuid4())),
+                        "asset_name": asset.get("name", "Unknown"),
+                        "service_dependencies": services,
+                    }
+                )
+
+        return dependencies
+
+    @staticmethod
+    def _is_likely_connected(app: Dict[str, Any], db: Dict[str, Any]) -> bool:
+        """Determine if an application is likely connected to a database"""
+        # Check explicit dependencies
+        app_deps = app.get("dependencies", [])
+        if isinstance(app_deps, list):
+            for dep in app_deps:
+                if db.get("name") in str(dep) or db.get("id") in str(dep):
+                    return True
+
+        # Check by environment
+        if app.get("environment") == db.get("environment"):
+            return True
+
+        # Check by department/owner
+        if app.get("department") == db.get("department") and app.get("department"):
+            return True
+
+        return False
+
+    @staticmethod
+    def _build_dependency_graph(
+        assets: List[Dict[str, Any]],
+        network_deps: List[Dict[str, Any]],
+        config_deps: List[Dict[str, Any]],
+        data_deps: List[Dict[str, Any]],
+        service_deps: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Build comprehensive dependency graph"""
+        nodes = []
+        edges = []
+        edge_id = 0
+
+        # Create nodes for all assets
+        for asset in assets:
+            nodes.append(
+                {
+                    "id": str(asset.get("id", uuid.uuid4())),
+                    "label": asset.get("name", "Unknown"),
+                    "type": asset.get("asset_type", "unknown"),
+                    "environment": asset.get("environment", "unknown"),
+                    "criticality": asset.get("business_criticality", RISK_MEDIUM),
+                    "metadata": {
+                        "department": asset.get("department"),
+                        "owner": asset.get("business_owner"),
+                        "technology": asset.get("technology_stack"),
+                    },
+                }
+            )
+
+        # Create edges from dependencies
+
+        # Process data dependencies (most reliable)
+        for dep in data_deps:
+            source_id = dep["asset_id"]
+            for flow in dep.get("data_flows", []):
+                # Find target asset by name
+                target_asset = next(
+                    (a for a in assets if a.get("name") == flow["source"]), None
+                )
+                if target_asset:
+                    edge_id += 1
+                    edges.append(
+                        {
+                            "id": f"edge_{edge_id}",
+                            "source": str(target_asset.get("id", uuid.uuid4())),
+                            "target": source_id,
+                            "type": DEPENDENCY_TYPE_DATA_FLOW,
+                            "label": flow["flow_type"],
+                            "confidence": flow["confidence"],
+                        }
+                    )
+
+        # Process network dependencies
+        for dep in network_deps:
+            source_id = dep["asset_id"]
+            for conn in dep.get("connections", []):
+                if conn["type"] == "explicit":
+                    # Try to find target asset
+                    target_name = conn["value"]
+                    target_asset = next(
+                        (a for a in assets if target_name in a.get("name", "")), None
+                    )
+                    if target_asset:
+                        edge_id += 1
+                        edges.append(
+                            {
+                                "id": f"edge_{edge_id}",
+                                "source": source_id,
+                                "target": str(target_asset.get("id", uuid.uuid4())),
+                                "type": DEPENDENCY_TYPE_NETWORK,
+                                "label": "network_connection",
+                                "confidence": 0.8,
+                            }
+                        )
+
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+            "density": (
+                len(edges) / (len(nodes) * (len(nodes) - 1)) if len(nodes) > 1 else 0
+            ),
+        }
+
+    @staticmethod
+    def _analyze_critical_paths(dependency_graph: Dict[str, Any]) -> Dict[str, Any]:
+        """Identify critical paths and bottlenecks in the dependency graph"""
+        nodes = dependency_graph.get("nodes", [])
+        edges = dependency_graph.get("edges", [])
+
+        # Count incoming and outgoing edges for each node
+        edge_counts = {}
+        for node in nodes:
+            node_id = node["id"]
+            incoming = sum(1 for e in edges if e["target"] == node_id)
+            outgoing = sum(1 for e in edges if e["source"] == node_id)
+            edge_counts[node_id] = {
+                "incoming": incoming,
+                "outgoing": outgoing,
+                "total": incoming + outgoing,
+                "node": node,
+            }
+
+        # Identify bottlenecks (nodes with high connectivity)
+        bottlenecks = []
+        for node_id, counts in edge_counts.items():
+            if counts["total"] > BOTTLENECK_THRESHOLD:  # Threshold for bottleneck
+                bottlenecks.append(
+                    {
+                        "node_id": node_id,
+                        "node_name": counts["node"]["label"],
+                        "incoming_connections": counts["incoming"],
+                        "outgoing_connections": counts["outgoing"],
+                        "total_connections": counts["total"],
+                        "risk_level": RISK_HIGH if counts["total"] > HIGH_CONNECTIVITY_THRESHOLD else RISK_MEDIUM,
+                    }
+                )
+
+        # Detect circular dependencies
+        circular_deps = DependencyAnalyzer._detect_circular_dependencies(edges)
+
+        # Identify critical paths (chains of dependencies)
+        critical_paths = DependencyAnalyzer._find_critical_paths(nodes, edges)
+
+        return {
+            "bottlenecks": sorted(
+                bottlenecks, key=lambda x: x["total_connections"], reverse=True
+            ),
+            "circular_dependencies": circular_deps,
+            "critical_paths": critical_paths,
+        }
+
+    @staticmethod
+    def _detect_circular_dependencies(
+        edges: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Detect circular dependencies in the graph"""
+        circular = []
+        adjacency = {}
+
+        # Build adjacency list
+        for edge in edges:
+            source = edge["source"]
+            target = edge["target"]
+            if source not in adjacency:
+                adjacency[source] = []
+            adjacency[source].append(target)
+
+        # Simple cycle detection (for pairs)
+        for source, targets in adjacency.items():
+            for target in targets:
+                if target in adjacency and source in adjacency[target]:
+                    cycle = sorted([source, target])
+                    cycle_key = f"{cycle[0]}-{cycle[1]}"
+                    if not any(c["cycle_id"] == cycle_key for c in circular):
+                        circular.append(
+                            {
+                                "cycle_id": cycle_key,
+                                "nodes": cycle,
+                                "type": "bidirectional",
+                                "severity": RISK_HIGH,
+                            }
+                        )
+
+        return circular
+
+    @staticmethod
+    def _find_critical_paths(
+        nodes: List[Dict[str, Any]], edges: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Find critical dependency paths"""
+        from .utils import find_path  # Import here to avoid circular dependency
+
+        paths = []
+
+        # Find nodes with no incoming edges (potential start points)
+        node_ids = {n["id"] for n in nodes}
+        targets = {e["target"] for e in edges}
+        sources = {e["source"] for e in edges}
+
+        start_nodes = node_ids - targets  # Nodes with no incoming edges
+        end_nodes = node_ids - sources  # Nodes with no outgoing edges
+
+        # Build simple paths from start to end nodes
+        for start in start_nodes:
+            for end in end_nodes:
+                if start != end:
+                    path = find_path(start, end, edges)
+                    if path and len(path) > 2:  # Only include paths with 3+ nodes
+                        start_node = next((n for n in nodes if n["id"] == start), {})
+                        end_node = next((n for n in nodes if n["id"] == end), {})
+                        paths.append(
+                            {
+                                "path_id": f"path_{len(paths) + 1}",
+                                "start": start_node.get("label", "Unknown"),
+                                "end": end_node.get("label", "Unknown"),
+                                "length": len(path),
+                                "nodes": path,
+                                "criticality": RISK_HIGH if len(path) > 4 else RISK_MEDIUM,
+                            }
+                        )
+
+        from .base import MAX_CRITICAL_PATHS
+        return paths[:MAX_CRITICAL_PATHS]  # Return top 5 critical paths
+
+    @staticmethod
+    def _generate_migration_insights(
+        dependency_graph: Dict[str, Any], critical_analysis: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Generate migration insights based on dependency analysis"""
+        from .base import (
+            ANALYSIS_TYPE_BOTTLENECK,
+            ANALYSIS_TYPE_CIRCULAR_DEPENDENCY,
+            ANALYSIS_TYPE_LOW_COUPLING,
+            ANALYSIS_TYPE_HIGH_COUPLING,
+            ANALYSIS_TYPE_CRITICAL_PATH,
+        )
+
+        insights = []
+
+        # Insight about bottlenecks
+        bottlenecks = critical_analysis.get("bottlenecks", [])
+        if bottlenecks:
+            top_bottleneck = bottlenecks[0]
+            insights.append(
+                {
+                    "type": ANALYSIS_TYPE_BOTTLENECK,
+                    "severity": RISK_HIGH,
+                    "message": (
+                        f"{top_bottleneck['node_name']} is a critical bottleneck with "
+                        f"{top_bottleneck['total_connections']} dependencies"
+                    ),
+                    "recommendation": "Consider migrating this component early with careful planning",
+                    "affected_assets": [top_bottleneck["node_name"]],
+                }
+            )
+
+        # Insight about circular dependencies
+        circular = critical_analysis.get("circular_dependencies", [])
+        if circular:
+            insights.append(
+                {
+                    "type": ANALYSIS_TYPE_CIRCULAR_DEPENDENCY,
+                    "severity": RISK_HIGH,
+                    "message": f"Found {len(circular)} circular dependencies that need resolution",
+                    "recommendation": "Migrate circular dependent components together as a unit",
+                    "affected_assets": [c["nodes"] for c in circular],
+                }
+            )
+
+        # Insight about isolated components
+        node_count = dependency_graph.get("node_count", 0)
+        if node_count > 0:
+            density = dependency_graph.get("density", 0)
+            if density < LOW_COUPLING_THRESHOLD:
+                insights.append(
+                    {
+                        "type": ANALYSIS_TYPE_LOW_COUPLING,
+                        "severity": RISK_LOW,
+                        "message": "System has low coupling, which is good for migration",
+                        "recommendation": "Components can be migrated independently",
+                        "affected_assets": [],
+                    }
+                )
+            elif density > HIGH_COUPLING_THRESHOLD:
+                insights.append(
+                    {
+                        "type": ANALYSIS_TYPE_HIGH_COUPLING,
+                        "severity": RISK_HIGH,
+                        "message": "System has high coupling, requiring careful migration planning",
+                        "recommendation": "Consider wave-based migration with dependency groups",
+                        "affected_assets": [],
+                    }
+                )
+
+        # Insight about critical paths
+        paths = critical_analysis.get("critical_paths", [])
+        if paths:
+            longest_path = max(paths, key=lambda x: x["length"]) if paths else None
+            if longest_path:
+                insights.append(
+                    {
+                        "type": ANALYSIS_TYPE_CRITICAL_PATH,
+                        "severity": RISK_MEDIUM,
+                        "message": f"Longest dependency chain has {longest_path['length']} components",
+                        "recommendation": "Test end-to-end functionality after each migration step",
+                        "affected_assets": [longest_path["start"], longest_path["end"]],
+                    }
+                )
+
+        return insights

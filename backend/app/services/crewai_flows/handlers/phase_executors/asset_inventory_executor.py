@@ -227,7 +227,11 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     ) -> Dict[str, Any]:
         """Transform a raw import record to asset data format."""
         try:
-            raw_data = record.raw_data or {}
+            # CC: CRITICAL FIX - Use cleansed_data instead of raw_data to leverage data cleansing phase
+            # This ensures assets are created from processed, validated data rather than raw imports
+            cleansed_data = record.cleansed_data or record.raw_data or {}
+            # Use cleansed data for asset creation, fallback to raw_data if cleansing hasn't occurred
+            asset_data_source = cleansed_data
 
             # Extract basic asset information with smart name resolution
             name = (
