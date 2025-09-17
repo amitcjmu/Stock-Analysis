@@ -7,8 +7,12 @@ Integrates with persistent agents via DataCleansingExecutor for processing field
 
 import logging
 from typing import Any, Dict, List, Optional
+import csv
+import io
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +23,7 @@ from app.core.database import get_db
 from app.models.client_account import User
 from app.models.data_import.core import DataImport
 from app.models.data_import.mapping import ImportFieldMapping
+from app.models.data_import.core import RawImportRecord
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
@@ -95,9 +100,7 @@ class DataCleansingStats(BaseModel):
 )
 async def get_data_cleansing_analysis(
     flow_id: str,
-    include_details: bool = Query(
-        True, description="Include detailed issues and recommendations"
-    ),
+    include_details: bool = Query(True, description="Include detailed issues and recommendations"),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
     current_user: User = Depends(get_current_user),
@@ -110,14 +113,10 @@ async def get_data_cleansing_analysis(
     or modify flow status.
     """
     try:
-        logger.info(
-            f"📊 READ-ONLY: Getting data cleansing analysis for flow {flow_id} (should not modify flow status)"
-        )
+        logger.info(f"📊 READ-ONLY: Getting data cleansing analysis for flow {flow_id} (should not modify flow status)")
 
         # Get flow repository with proper context
-        flow_repo = DiscoveryFlowRepository(
-            db, context.client_account_id, context.engagement_id
-        )
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
 
         # Verify flow exists and user has access (READ-ONLY check)
         try:
@@ -137,9 +136,7 @@ async def get_data_cleansing_analysis(
             )
 
         # Log current flow status for debugging
-        logger.info(
-            f"🔍 Flow {flow_id} current status: {flow.status} (before data lookup)"
-        )
+        logger.info(f"🔍 Flow {flow_id} current status: {flow.status} (before data lookup)")
 
         # Important: We are only READING data, not executing any agents
         # This endpoint should never modify flow status or trigger execution
@@ -150,22 +147,16 @@ async def get_data_cleansing_analysis(
         # First try to get data import via discovery flow's data_import_id
         data_import = None
         if flow.data_import_id:
-            data_import_query = select(DataImport).where(
-                DataImport.id == flow.data_import_id
-            )
+            data_import_query = select(DataImport).where(DataImport.id == flow.data_import_id)
             data_import_result = await db.execute(data_import_query)
             data_import = data_import_result.scalar_one_or_none()
 
         # If not found, try master flow ID lookup (same as import storage handler)
         if not data_import:
-            logger.info(
-                f"Flow {flow_id} has no data_import_id, trying master flow ID lookup"
-            )
+            logger.info(f"Flow {flow_id} has no data_import_id, trying master flow ID lookup")
 
             # Get the database ID for this flow_id (FK references id, not flow_id)
-            db_id_query = select(CrewAIFlowStateExtensions.id).where(
-                CrewAIFlowStateExtensions.flow_id == flow_id
-            )
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(CrewAIFlowStateExtensions.flow_id == flow_id)
             db_id_result = await db.execute(db_id_query)
             flow_db_id = db_id_result.scalar_one_or_none()
 
@@ -182,15 +173,11 @@ async def get_data_cleansing_analysis(
                 data_import = import_result.scalar_one_or_none()
 
                 if data_import:
-                    logger.info(
-                        f"✅ Found data import via master flow ID lookup: {data_import.id}"
-                    )
+                    logger.info(f"✅ Found data import via master flow ID lookup: {data_import.id}")
 
         if not data_import:
             # Return empty analysis when no data import exists
-            logger.warning(
-                f"No data import found for flow {flow_id}, returning empty analysis"
-            )
+            logger.warning(f"No data import found for flow {flow_id}, returning empty analysis")
             return DataCleansingAnalysis(
                 flow_id=flow_id,
                 analysis_timestamp="",
@@ -206,14 +193,10 @@ async def get_data_cleansing_analysis(
                 source="empty",
             )
 
-        data_imports = [
-            data_import
-        ]  # Convert to list for compatibility with existing code
+        data_imports = [data_import]  # Convert to list for compatibility with existing code
 
         # Get field mappings
-        field_mapping_query = select(ImportFieldMapping).where(
-            ImportFieldMapping.data_import_id == data_imports[0].id
-        )
+        field_mapping_query = select(ImportFieldMapping).where(ImportFieldMapping.data_import_id == data_imports[0].id)
         field_mapping_result = await db.execute(field_mapping_query)
         field_mappings = field_mapping_result.scalars().all()
 
@@ -232,9 +215,7 @@ async def get_data_cleansing_analysis(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"❌ Failed to get data cleansing analysis for flow {flow_id}: {str(e)}"
-        )
+        logger.error(f"❌ Failed to get data cleansing analysis for flow {flow_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get data cleansing analysis: {str(e)}",
@@ -257,9 +238,7 @@ async def get_data_cleansing_stats(
         logger.info(f"Getting data cleansing stats for flow {flow_id}")
 
         # Get flow repository with proper context
-        flow_repo = DiscoveryFlowRepository(
-            db, context.client_account_id, context.engagement_id
-        )
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
 
         # Verify flow exists
         try:
@@ -284,22 +263,16 @@ async def get_data_cleansing_stats(
         # First try to get data import via discovery flow's data_import_id
         data_import = None
         if flow.data_import_id:
-            data_import_query = select(DataImport).where(
-                DataImport.id == flow.data_import_id
-            )
+            data_import_query = select(DataImport).where(DataImport.id == flow.data_import_id)
             data_import_result = await db.execute(data_import_query)
             data_import = data_import_result.scalar_one_or_none()
 
         # If not found, try master flow ID lookup (same as import storage handler)
         if not data_import:
-            logger.info(
-                f"Flow {flow_id} has no data_import_id, trying master flow ID lookup"
-            )
+            logger.info(f"Flow {flow_id} has no data_import_id, trying master flow ID lookup")
 
             # Get the database ID for this flow_id (FK references id, not flow_id)
-            db_id_query = select(CrewAIFlowStateExtensions.id).where(
-                CrewAIFlowStateExtensions.flow_id == flow_id
-            )
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(CrewAIFlowStateExtensions.flow_id == flow_id)
             db_id_result = await db.execute(db_id_query)
             flow_db_id = db_id_result.scalar_one_or_none()
 
@@ -325,41 +298,31 @@ async def get_data_cleansing_stats(
                 completion_percentage=0.0,
             )
 
-        data_imports = [
-            data_import
-        ]  # Convert to list for compatibility with existing code
+        data_imports = [data_import]  # Convert to list for compatibility with existing code
 
         # Calculate stats from first data import
         data_import = data_imports[0]
 
         # Get actual count of raw import records from the database
         from sqlalchemy import func
-        from app.models.data_import import RawImportRecord
+        from app.models.data_import.core import RawImportRecord
 
         total_records = 0
         try:
-            count_query = select(func.count(RawImportRecord.id)).where(
-                RawImportRecord.data_import_id == data_import.id
-            )
+            count_query = select(func.count(RawImportRecord.id)).where(RawImportRecord.data_import_id == data_import.id)
             count_result = await db.execute(count_query)
             actual_count = count_result.scalar() or 0
 
             # Use the actual count if available, otherwise fall back to total_records field
-            total_records = (
-                actual_count if actual_count > 0 else (data_import.total_records or 0)
-            )
+            total_records = actual_count if actual_count > 0 else (data_import.total_records or 0)
 
             logger.info(
                 f"📊 Stats - Data import {data_import.id}: actual_count={actual_count}, "
                 f"total_records field={data_import.total_records}, using={total_records}"
             )
         except Exception as e:
-            logger.warning(
-                f"Failed to get actual record count: {e}, using total_records field"
-            )
-            total_records = (
-                data_import.total_records if data_import.total_records else 0
-            )
+            logger.warning(f"Failed to get actual record count: {e}, using total_records field")
+            total_records = data_import.total_records if data_import.total_records else 0
 
         # For now, return basic calculated stats
         # TODO: Integrate with actual data cleansing crew results
@@ -382,18 +345,14 @@ async def get_data_cleansing_stats(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"❌ Failed to get data cleansing stats for flow {flow_id}: {str(e)}"
-        )
+        logger.error(f"❌ Failed to get data cleansing stats for flow {flow_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get data cleansing stats: {str(e)}",
         )
 
 
-async def _validate_and_get_flow(
-    flow_id: str, flow_repo: DiscoveryFlowRepository
-) -> Any:
+async def _validate_and_get_flow(flow_id: str, flow_repo: DiscoveryFlowRepository) -> Any:
     """Validate flow exists and user has access."""
     try:
         flow = await flow_repo.get_by_flow_id(flow_id)
@@ -420,22 +379,16 @@ async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -
     # First try to get data import via discovery flow's data_import_id
     data_import = None
     if flow.data_import_id:
-        data_import_query = select(DataImport).where(
-            DataImport.id == flow.data_import_id
-        )
+        data_import_query = select(DataImport).where(DataImport.id == flow.data_import_id)
         data_import_result = await db.execute(data_import_query)
         data_import = data_import_result.scalar_one_or_none()
 
     # If not found, try master flow ID lookup
     if not data_import:
-        logger.info(
-            f"Flow {flow_id} has no data_import_id, trying master flow ID lookup"
-        )
+        logger.info(f"Flow {flow_id} has no data_import_id, trying master flow ID lookup")
 
         # Get the database ID for this flow_id (FK references id, not flow_id)
-        db_id_query = select(CrewAIFlowStateExtensions.id).where(
-            CrewAIFlowStateExtensions.flow_id == flow_id
-        )
+        db_id_query = select(CrewAIFlowStateExtensions.id).where(CrewAIFlowStateExtensions.flow_id == flow_id)
         db_id_result = await db.execute(db_id_query)
         flow_db_id = db_id_result.scalar_one_or_none()
 
@@ -452,6 +405,226 @@ async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -
             data_import = import_result.scalar_one_or_none()
 
     return data_import
+
+
+@router.get(
+    "/flows/{flow_id}/data-cleansing/download/raw",
+    summary="Download raw data as CSV",
+)
+async def download_raw_data(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """
+    Download raw imported data as CSV file.
+
+    This endpoint exports the original raw data that was imported into the system
+    before any data cleansing operations were performed.
+    """
+    try:
+        logger.info(f"📥 Downloading raw data for flow {flow_id}")
+
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
+
+        # Verify flow exists and user has access
+        flow = await _validate_and_get_flow(flow_id, flow_repo)
+
+        # Get data import for this flow
+        data_import = await _get_data_import_for_flow(flow_id, flow, db)
+
+        if not data_import:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No data import found for flow {flow_id}",
+            )
+
+        # Query raw import records
+        raw_records_query = (
+            select(RawImportRecord).where(RawImportRecord.data_import_id == data_import.id).limit(10000)
+        )  # Limit to prevent memory issues
+
+        raw_records_result = await db.execute(raw_records_query)
+        raw_records = raw_records_result.scalars().all()
+
+        if not raw_records:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No raw data found for flow {flow_id}",
+            )
+
+        # Create CSV content
+        output = io.StringIO()
+
+        # Get field names from the first record
+        first_record_data = raw_records[0].data if raw_records[0].data else {}
+        fieldnames = list(first_record_data.keys()) if first_record_data else ["id", "data"]
+
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+
+        # Write data rows
+        for record in raw_records:
+            if record.data and isinstance(record.data, dict):
+                writer.writerow(record.data)
+            else:
+                # Fallback for non-dict data
+                writer.writerow({"id": record.id, "data": str(record.data or "")})
+
+        output.seek(0)
+        csv_content = output.getvalue()
+        output.close()
+
+        # Generate filename with timestamp
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"raw_data_{flow_id[:8]}_{timestamp}.csv"
+
+        logger.info(f"✅ Generated raw data CSV for flow {flow_id}: {len(raw_records)} records")
+
+        # Return CSV as streaming response
+        return StreamingResponse(
+            io.BytesIO(csv_content.encode("utf-8")),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to download raw data for flow {flow_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download raw data: {str(e)}",
+        )
+
+
+@router.get(
+    "/flows/{flow_id}/data-cleansing/download/cleaned",
+    summary="Download cleaned data as CSV",
+)
+async def download_cleaned_data(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """
+    Download cleaned and processed data as CSV file.
+
+    This endpoint exports the data after it has been processed through
+    the data cleansing pipeline, with quality issues resolved and
+    transformations applied.
+    """
+    try:
+        logger.info(f"📥 Downloading cleaned data for flow {flow_id}")
+
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
+
+        # Verify flow exists and user has access
+        flow = await _validate_and_get_flow(flow_id, flow_repo)
+
+        # Get data import for this flow
+        data_import = await _get_data_import_for_flow(flow_id, flow, db)
+
+        if not data_import:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No data import found for flow {flow_id}",
+            )
+
+        # Query raw import records (for now, as cleaned data structure isn't fully implemented)
+        # TODO: Replace with actual cleaned data when data cleansing pipeline is complete
+        raw_records_query = (
+            select(RawImportRecord).where(RawImportRecord.data_import_id == data_import.id).limit(10000)
+        )  # Limit to prevent memory issues
+
+        raw_records_result = await db.execute(raw_records_query)
+        raw_records = raw_records_result.scalars().all()
+
+        if not raw_records:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No data found for flow {flow_id}",
+            )
+
+        # Get field mappings to understand data transformations
+        field_mapping_query = select(ImportFieldMapping).where(ImportFieldMapping.data_import_id == data_import.id)
+        field_mapping_result = await db.execute(field_mapping_query)
+        field_mappings = field_mapping_result.scalars().all()
+
+        # Create a mapping of source fields to target fields
+        field_mapping_dict = {mapping.source_field: mapping.target_field for mapping in field_mappings}
+
+        # Create CSV content with cleaned/mapped field names
+        output = io.StringIO()
+
+        # Get field names from the first record and apply field mappings
+        first_record_data = raw_records[0].data if raw_records[0].data else {}
+        if first_record_data and field_mapping_dict:
+            # Use mapped field names where available
+            fieldnames = []
+            for original_field in first_record_data.keys():
+                mapped_field = field_mapping_dict.get(original_field, original_field)
+                fieldnames.append(mapped_field)
+        else:
+            fieldnames = list(first_record_data.keys()) if first_record_data else ["id", "data"]
+
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+
+        # Write data rows with field mapping applied
+        for record in raw_records:
+            if record.data and isinstance(record.data, dict):
+                cleaned_row = {}
+                for original_field, value in record.data.items():
+                    # Apply field mapping
+                    mapped_field = field_mapping_dict.get(original_field, original_field)
+
+                    # Apply basic data cleaning (trim whitespace, handle nulls)
+                    cleaned_value = value
+                    if isinstance(value, str):
+                        cleaned_value = value.strip() if value else ""
+                    elif value is None:
+                        cleaned_value = ""
+
+                    cleaned_row[mapped_field] = cleaned_value
+
+                writer.writerow(cleaned_row)
+            else:
+                # Fallback for non-dict data
+                writer.writerow({"id": record.id, "data": str(record.data or "")})
+
+        output.seek(0)
+        csv_content = output.getvalue()
+        output.close()
+
+        # Generate filename with timestamp
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"cleaned_data_{flow_id[:8]}_{timestamp}.csv"
+
+        logger.info(
+            f"✅ Generated cleaned data CSV for flow {flow_id}: "
+            f"{len(raw_records)} records with {len(field_mappings)} field mappings"
+        )
+
+        # Return CSV as streaming response
+        return StreamingResponse(
+            io.BytesIO(csv_content.encode("utf-8")),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to download cleaned data for flow {flow_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download cleaned data: {str(e)}",
+        )
 
 
 @router.post(
@@ -476,9 +649,7 @@ async def trigger_data_cleansing_analysis(
         logger.info(f"🚀 TRIGGERING data cleansing analysis for flow {flow_id}")
 
         # Get flow repository with proper context
-        flow_repo = DiscoveryFlowRepository(
-            db, context.client_account_id, context.engagement_id
-        )
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
 
         # Verify flow exists and user has access
         flow = await _validate_and_get_flow(flow_id, flow_repo)
@@ -503,9 +674,7 @@ async def trigger_data_cleansing_analysis(
             # Add data_import_id if available
             if flow.data_import_id:
                 phase_input["data_import_id"] = str(flow.data_import_id)
-                logger.info(
-                    f"📋 Adding data_import_id to phase_input: {flow.data_import_id}"
-                )
+                logger.info(f"📋 Adding data_import_id to phase_input: {flow.data_import_id}")
 
             execution_result = await flow_orchestrator.execute_phase(
                 flow_id=flow_id,
@@ -513,9 +682,7 @@ async def trigger_data_cleansing_analysis(
                 phase_input=phase_input,
             )
 
-            logger.info(
-                f"✅ Data cleansing phase execution completed: {execution_result.get('status', 'unknown')}"
-            )
+            logger.info(f"✅ Data cleansing phase execution completed: {execution_result.get('status', 'unknown')}")
 
             # If execution was successful, get the updated analysis
             if execution_result.get("status") in ("success", "completed"):
@@ -551,9 +718,7 @@ async def trigger_data_cleansing_analysis(
                 return analysis_result
             else:
                 # Execution failed, but still return analysis with error status
-                logger.warning(
-                    f"⚠️ Data cleansing execution failed: {execution_result.get('error', 'Unknown error')}"
-                )
+                logger.warning(f"⚠️ Data cleansing execution failed: {execution_result.get('error', 'Unknown error')}")
 
                 # Return a basic analysis indicating the execution failed
                 from datetime import datetime
@@ -627,9 +792,7 @@ async def trigger_data_cleansing_analysis(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"❌ Failed to trigger data cleansing analysis for flow {flow_id}: {str(e)}"
-        )
+        logger.error(f"❌ Failed to trigger data cleansing analysis for flow {flow_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to trigger data cleansing analysis: {str(e)}",
@@ -653,7 +816,7 @@ async def _perform_data_cleansing_analysis(
     import uuid
     from datetime import datetime
     from sqlalchemy import func
-    from app.models.data_import import RawImportRecord
+    from app.models.data_import.core import RawImportRecord
 
     # Get the first data import (primary)
     data_import = data_imports[0] if data_imports else None
@@ -671,11 +834,7 @@ async def _perform_data_cleansing_analysis(
                 actual_count = count_result.scalar() or 0
 
                 # Use the actual count if available, otherwise fall back to total_records field
-                total_records = (
-                    actual_count
-                    if actual_count > 0
-                    else (data_import.total_records or 0)
-                )
+                total_records = actual_count if actual_count > 0 else (data_import.total_records or 0)
 
                 logger.info(
                     f"📊 Data import {data_import.id}: actual_count={actual_count}, "
@@ -684,13 +843,9 @@ async def _perform_data_cleansing_analysis(
             else:
                 # Fallback to total_records field if no session available
                 total_records = data_import.total_records or 0
-                logger.warning(
-                    f"No database session provided, using total_records field: {total_records}"
-                )
+                logger.warning(f"No database session provided, using total_records field: {total_records}")
         except Exception as e:
-            logger.warning(
-                f"Failed to get actual record count: {e}, using total_records field"
-            )
+            logger.warning(f"Failed to get actual record count: {e}, using total_records field")
             total_records = data_import.total_records if data_import else 0
 
     total_fields = len(field_mappings)
@@ -757,11 +912,7 @@ async def _perform_data_cleansing_analysis(
         quality_score = sum(field_quality_scores.values()) / len(field_quality_scores)
 
     # Determine source based on execution result
-    source = (
-        "agent"
-        if execution_result and execution_result.get("status") == "success"
-        else "fallback"
-    )
+    source = "agent" if execution_result and execution_result.get("status") == "success" else "fallback"
     processing_status = "completed" if source == "agent" else "completed_without_agents"
 
     return DataCleansingAnalysis(

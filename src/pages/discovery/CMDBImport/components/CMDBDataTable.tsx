@@ -114,16 +114,24 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   // Analysis is complete when agents have actually run and provided insights, flow is truly completed,
   // or when field mappings are available (indicating successful upload processing)
   // Also consider analysis complete when we have flow summary data or raw data (indicating file has been processed)
+  // ENHANCED: Also check if we have validation results or if the file has been processed successfully
+  const hasValidationResults = flowState?.data_validation_results ||
+                              flowState?.phase_data?.data_import ||
+                              (flowSummary.total_assets > 0);
+
   const isAnalysisComplete = flowState?.status === 'completed' ||
                             currentStatus === 'approved' ||
                             hasFieldMappings ||
                             currentStatus === 'waiting_for_approval' ||
-                            hasUploadedData;
+                            hasUploadedData ||
+                            hasValidationResults;
 
+  // ENHANCED: Improved security status logic to handle validation completion without insights
   const securityStatus = securityInsights.length > 0 ?
     (securityInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) :
     (isAnalysisComplete ? true : undefined); // Default to secure if analysis complete
 
+  // ENHANCED: Improved privacy status logic
   const privacyStatus = privacyInsights.length > 0 ?
     (privacyInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) :
     (isAnalysisComplete ? true : undefined); // Default to compliant if analysis complete
@@ -208,7 +216,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                   <p className="text-sm font-medium text-gray-900">
                     {securityStatus === false ? 'Issues Found' :
                      securityStatus === true ? 'Secure' :
-                     hasUploadedData ? 'Validated' : 'Analyzing...'}
+                     isAnalysisComplete || hasUploadedData || hasValidationResults ? 'Validated' : 'Analyzing...'}
                   </p>
                   <p className="text-xs text-gray-600">Security Status</p>
                 </div>
@@ -220,13 +228,13 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                   (flowState?.errors?.length || 0) > 0 ? 'bg-red-100' :
                   (flowState?.warnings?.length || 0) > 0 ? 'bg-yellow-100' :
                   qualityInsights.length > 0 ? 'bg-green-100' :
-                  isAnalysisComplete ? 'bg-green-100' : 'bg-yellow-100'
+                  isAnalysisComplete || hasValidationResults ? 'bg-green-100' : 'bg-yellow-100'
                 }`}>
                   <CheckCircle className={`h-4 w-4 ${
                     (flowState?.errors?.length || 0) > 0 ? 'text-red-600' :
                     (flowState?.warnings?.length || 0) > 0 ? 'text-yellow-600' :
                     qualityInsights.length > 0 ? 'text-green-600' :
-                    isAnalysisComplete ? 'text-green-600' : 'text-yellow-600'
+                    isAnalysisComplete || hasValidationResults ? 'text-green-600' : 'text-yellow-600'
                   }`} />
                 </div>
                 <div>
@@ -234,7 +242,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                     {(flowState?.errors?.length || 0) > 0 ? `${flowState.errors.length} Errors` :
                      (flowState?.warnings?.length || 0) > 0 ? `${flowState.warnings.length} Warnings` :
                      qualityInsights.length > 0 ? 'Good Quality' :
-                     isAnalysisComplete ? 'Good Quality' : 'Analyzing...'}
+                     isAnalysisComplete || hasValidationResults ? 'Good Quality' : 'Analyzing...'}
                   </p>
                   <p className="text-xs text-gray-600">Data Quality</p>
                 </div>

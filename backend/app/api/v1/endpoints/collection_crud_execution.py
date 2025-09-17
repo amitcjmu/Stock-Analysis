@@ -28,7 +28,8 @@ from app.api.v1.endpoints import collection_utils
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.api.v1.endpoints import collection_validators
 from app.api.v1.endpoints import collection_serializers
-from app.api.v1.endpoints.collection_crud_commands import create_collection_flow
+
+# Removed circular import - will import locally if needed
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,11 @@ async def ensure_collection_flow(
             return collection_serializers.build_collection_flow_response(existing)
 
         # Otherwise, create a new one (delegates to existing create logic)
+        # Import locally to avoid circular import
+        from app.api.v1.endpoints.collection_crud_create_commands import (
+            create_collection_flow,
+        )
+
         flow_data = CollectionFlowCreate(automation_tier=AutomationTier.TIER_2.value)
         return await create_collection_flow(flow_data, db, current_user, context)
 

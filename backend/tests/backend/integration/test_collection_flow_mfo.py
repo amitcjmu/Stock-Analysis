@@ -12,6 +12,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -76,15 +77,17 @@ class TestCollectionFlowMFO:
     @pytest_asyncio.fixture
     async def test_client(self, db_session: AsyncSession, test_context: RequestContext):
         """Create test client account in database"""
+        # Use unique slug based on client account ID to avoid conflicts
+        unique_slug = f"test-client-mfo-{test_context.client_account_id[:8]}"
         client = ClientAccount(
             id=uuid.UUID(test_context.client_account_id),
-            name="Test Client for Collection MFO",
-            slug="test-client-mfo",
+            name=f"Test Client for Collection MFO {test_context.client_account_id[:8]}",
+            slug=unique_slug,
             industry="Technology",
             company_size="Enterprise",
             headquarters_location="Test City",
             primary_contact_name="Test Contact",
-            primary_contact_email="test@example.com",
+            primary_contact_email=f"test-{test_context.client_account_id[:8]}@example.com",
         )
         db_session.add(client)
         await db_session.commit()
@@ -98,11 +101,13 @@ class TestCollectionFlowMFO:
         test_client: ClientAccount,
     ):
         """Create test engagement in database"""
+        # Use unique slug based on engagement ID to avoid conflicts
+        unique_slug = f"test-collection-engagement-{test_context.engagement_id[:8]}"
         engagement = Engagement(
             id=uuid.UUID(test_context.engagement_id),
             client_account_id=test_client.id,
-            name="Test Collection Engagement",
-            slug="test-collection-engagement",
+            name=f"Test Collection Engagement {test_context.engagement_id[:8]}",
+            slug=unique_slug,
             engagement_type="migration",
             start_date=datetime.utcnow(),
             status="active",
@@ -112,8 +117,10 @@ class TestCollectionFlowMFO:
         return engagement
 
     @pytest.mark.asyncio
+    @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_creates_mfo_flow(
         self,
+        mock_rbac,
         db_session: AsyncSession,
         test_context: RequestContext,
         test_user: User,
@@ -140,20 +147,17 @@ class TestCollectionFlowMFO:
 
         # Verify response
         assert response is not None
-        assert "flow_id" in response
-        assert "master_flow_id" in response
-        assert response["master_flow_id"] is not None
+        assert hasattr(response, "id")
 
         # Verify collection flow in database
         result = await db_session.execute(
             select(CollectionFlow).where(
-                CollectionFlow.flow_id == uuid.UUID(response["flow_id"])
+                CollectionFlow.flow_id == uuid.UUID(response.id)
             )
         )
         collection_flow = result.scalar_one_or_none()
         assert collection_flow is not None
         assert collection_flow.master_flow_id is not None
-        assert str(collection_flow.master_flow_id) == response["master_flow_id"]
 
         # Verify MFO flow exists
         result = await db_session.execute(
@@ -168,8 +172,10 @@ class TestCollectionFlowMFO:
         logger.info(f"✅ Collection flow created with MFO flow: {mfo_flow.flow_id}")
 
     @pytest.mark.asyncio
+    @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_background_execution(
         self,
+        mock_rbac,
         db_session: AsyncSession,
         test_context: RequestContext,
         test_user: User,
@@ -190,7 +196,14 @@ class TestCollectionFlowMFO:
             context=test_context,
         )
 
-        master_flow_id = response["master_flow_id"]
+        # Get master_flow_id from database
+        result = await db_session.execute(
+            select(CollectionFlow).where(
+                CollectionFlow.flow_id == uuid.UUID(response.id)
+            )
+        )
+        collection_flow = result.scalar_one_or_none()
+        master_flow_id = collection_flow.master_flow_id
 
         # Wait a bit for background execution to start
         await asyncio.sleep(2)
@@ -198,7 +211,7 @@ class TestCollectionFlowMFO:
         # Check MFO flow status
         result = await db_session.execute(
             select(CrewAIFlowStateExtensions).where(
-                CrewAIFlowStateExtensions.flow_id == uuid.UUID(master_flow_id)
+                CrewAIFlowStateExtensions.flow_id == master_flow_id
             )
         )
         mfo_flow = result.scalar_one_or_none()
@@ -212,8 +225,10 @@ class TestCollectionFlowMFO:
         )
 
     @pytest.mark.asyncio
+    @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_execution_uses_master_flow_id(
         self,
+        mock_rbac,
         db_session: AsyncSession,
         test_context: RequestContext,
         test_user: User,
@@ -233,7 +248,7 @@ class TestCollectionFlowMFO:
             context=test_context,
         )
 
-        flow_id = response["flow_id"]
+        flow_id = response.id
 
         # Try to execute the flow
         try:
@@ -254,8 +269,10 @@ class TestCollectionFlowMFO:
             logger.info(f"⚠️ Execution failed with: {e}")
 
     @pytest.mark.asyncio
+    @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_ensure_collection_flow_creates_mfo(
         self,
+        mock_rbac,
         db_session: AsyncSession,
         test_context: RequestContext,
         test_user: User,
@@ -271,15 +288,22 @@ class TestCollectionFlowMFO:
         )
 
         assert response is not None
-        assert "flow_id" in response
-        assert "master_flow_id" in response
-        assert response["master_flow_id"] is not None
+        assert hasattr(response, "id")
+
+        # Get master_flow_id from database
+        result = await db_session.execute(
+            select(CollectionFlow).where(
+                CollectionFlow.flow_id == uuid.UUID(response.id)
+            )
+        )
+        collection_flow = result.scalar_one_or_none()
+        assert collection_flow is not None
+        assert collection_flow.master_flow_id is not None
 
         # Verify MFO flow exists
         result = await db_session.execute(
             select(CrewAIFlowStateExtensions).where(
-                CrewAIFlowStateExtensions.flow_id
-                == uuid.UUID(response["master_flow_id"])
+                CrewAIFlowStateExtensions.flow_id == collection_flow.master_flow_id
             )
         )
         mfo_flow = result.scalar_one_or_none()
@@ -288,8 +312,10 @@ class TestCollectionFlowMFO:
         logger.info(f"✅ ensure_collection_flow created MFO flow: {mfo_flow.flow_id}")
 
     @pytest.mark.asyncio
+    @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_questionnaire_generation(
         self,
+        mock_rbac,
         db_session: AsyncSession,
         test_context: RequestContext,
         test_user: User,
@@ -313,7 +339,7 @@ class TestCollectionFlowMFO:
             context=test_context,
         )
 
-        flow_id = response["flow_id"]
+        flow_id = response.id
 
         # Wait for background processing
         max_wait = 30  # seconds

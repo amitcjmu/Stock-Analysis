@@ -279,9 +279,83 @@ export const applyFix = async (issueId: string, fixData: QualityFixData): Promis
   }
 };
 
+/**
+ * Downloads raw data as CSV file
+ */
+export const downloadRawData = async (flowId: string): Promise<void> => {
+  try {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/flows/${flowId}/data-cleansing/download/raw`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.statusText}`);
+    }
+
+    // Get filename from Content-Disposition header
+    const contentDisposition = response.headers.get('Content-Disposition');
+    const filename = contentDisposition
+      ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+      : `raw_data_${flowId.substring(0, 8)}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    // Create blob and download
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading raw data:', error);
+    throw error;
+  }
+};
+
+/**
+ * Downloads cleaned data as CSV file
+ */
+export const downloadCleanedData = async (flowId: string): Promise<void> => {
+  try {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/flows/${flowId}/data-cleansing/download/cleaned`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.statusText}`);
+    }
+
+    // Get filename from Content-Disposition header
+    const contentDisposition = response.headers.get('Content-Disposition');
+    const filename = contentDisposition
+      ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+      : `cleaned_data_${flowId.substring(0, 8)}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    // Create blob and download
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading cleaned data:', error);
+    throw error;
+  }
+};
+
 export default {
   fetchLatestImport,
   fetchAssets,
   performAgentAnalysis,
-  applyFix
+  applyFix,
+  downloadRawData,
+  downloadCleanedData
 };
