@@ -172,7 +172,7 @@ class Settings(BaseSettings):
 
     # Data export security settings
     MAX_EXPORT_RECORDS: int = Field(
-        default=10000,
+        default=100,
         ge=100,
         le=100000,
         env="MAX_EXPORT_RECORDS",
