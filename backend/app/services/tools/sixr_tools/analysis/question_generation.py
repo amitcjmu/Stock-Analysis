@@ -146,9 +146,13 @@ class QuestionGenerationTool(BaseTool):
                 gap_lower = gap.lower()
 
                 # Match gaps to question templates
+                added_templates_for_gap = set()
                 for template_key, template in question_templates.items():
-                    if template_key in gap_lower or any(
-                        keyword in gap_lower for keyword in template_key.split("_")
+                    if template_key not in added_templates_for_gap and (
+                        template_key in gap_lower
+                        or any(
+                            keyword in gap_lower for keyword in template_key.split("_")
+                        )
                     ):
                         question = {
                             "id": f"{template_key}_{len(questions)}",
@@ -161,7 +165,7 @@ class QuestionGenerationTool(BaseTool):
                             "help_text": f"This information helps address: {gap}",
                         }
                         questions.append(question)
-                        break
+                        added_templates_for_gap.add(template_key)
 
             # Add default questions if no specific gaps matched
             if not questions:
