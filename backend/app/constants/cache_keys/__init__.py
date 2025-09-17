@@ -18,7 +18,7 @@ from .base import (
     CACHE_TYPE_PATTERNS,
 )
 
-# Import the main patterns class
+# Import the main patterns class (now modularized)
 from .patterns import CacheKeys
 
 # Import utility generators and add them to CacheKeys for backward compatibility
