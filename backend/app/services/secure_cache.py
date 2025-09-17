@@ -34,8 +34,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.caching.redis_cache import RedisCache
-
-# from app.constants.cache_keys import CacheKeys  # Unused
+from app.constants.cache_keys.validators import SensitiveDataMarkers
 
 logger = get_logger(__name__)
 
@@ -502,9 +501,10 @@ class SecureCacheService:
         try:
             self.cache_ops["secure_sets"] += 1
 
-            # Determine if encryption is needed
+            # Determine if encryption is needed using validators
             should_encrypt = (
                 force_encrypt
+                or SensitiveDataMarkers.requires_encryption(cache_key)
                 or tenant_id in self.secure_tenants
                 or self.encrypt_by_default
                 or self._contains_sensitive_data(data)
@@ -512,7 +512,12 @@ class SecureCacheService:
 
             # Encrypt data if needed
             if should_encrypt and isinstance(data, dict):
+                # Get encryption context from validators
+                encryption_context = SensitiveDataMarkers.get_encryption_context(cache_key)
                 encrypted_data = self.encoder.encrypt_data(data, tenant_id)
+                # Add context to metadata if available
+                if encryption_context and "__encryption_metadata" in encrypted_data:
+                    encrypted_data["__encryption_metadata"]["context"] = encryption_context
                 cache_data = encrypted_data
             else:
                 # Store plaintext

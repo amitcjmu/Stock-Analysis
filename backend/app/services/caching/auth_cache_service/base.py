@@ -6,7 +6,6 @@ that are used across all cache service modules.
 """
 
 import asyncio
-from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -106,7 +105,9 @@ class InMemoryFallbackCache:
         self.max_size = max_size
         self.default_ttl = default_ttl
         self.cache: Dict[str, Tuple[Any, datetime]] = {}
-        self.access_order = deque()
+        # Use dict to track access order with O(1) operations
+        self.access_order: Dict[str, None] = {}
+        self.access_counter = 0
         self._lock = asyncio.Lock()
 
     async def get(self, key: str) -> Optional[Any]:
@@ -115,16 +116,16 @@ class InMemoryFallbackCache:
             if key in self.cache:
                 value, expires_at = self.cache[key]
                 if datetime.utcnow() < expires_at:
-                    # Move to end of access order (most recently used)
-                    if key in self.access_order:
-                        self.access_order.remove(key)
-                    self.access_order.append(key)
+                    # Update access order with O(1) complexity
+                    del self.access_order[key]
+                    self.access_counter += 1
+                    self.access_order[key] = self.access_counter
                     return value
                 else:
                     # Expired, remove from cache
                     del self.cache[key]
                     if key in self.access_order:
-                        self.access_order.remove(key)
+                        del self.access_order[key]
             return None
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
@@ -133,19 +134,22 @@ class InMemoryFallbackCache:
             ttl = ttl or self.default_ttl
             expires_at = datetime.utcnow() + timedelta(seconds=ttl)
 
-            # Remove if already exists
+            # Remove if already exists (O(1))
             if key in self.cache:
                 if key in self.access_order:
-                    self.access_order.remove(key)
+                    del self.access_order[key]
 
             # Check if we need to evict items
             while len(self.cache) >= self.max_size and self.access_order:
-                oldest_key = self.access_order.popleft()
+                # Find oldest key (least recently used)
+                oldest_key = min(self.access_order, key=self.access_order.get)
+                del self.access_order[oldest_key]
                 self.cache.pop(oldest_key, None)
 
             # Add new item
             self.cache[key] = (value, expires_at)
-            self.access_order.append(key)
+            self.access_counter += 1
+            self.access_order[key] = self.access_counter
             return True
 
     async def delete(self, key: str) -> bool:
@@ -154,7 +158,7 @@ class InMemoryFallbackCache:
             if key in self.cache:
                 del self.cache[key]
                 if key in self.access_order:
-                    self.access_order.remove(key)
+                    del self.access_order[key]
                 return True
             return False
 
@@ -163,6 +167,7 @@ class InMemoryFallbackCache:
         async with self._lock:
             self.cache.clear()
             self.access_order.clear()
+            self.access_counter = 0
             return True
 
     def get_stats(self) -> Dict[str, Any]:

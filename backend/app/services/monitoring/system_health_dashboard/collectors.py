@@ -26,7 +26,7 @@ class SystemStatsCollector:
     """Collector for system resource statistics"""
 
     @staticmethod
-    async def collect_system_stats() -> Dict[str, Any]:
+    def collect_system_stats() -> Dict[str, Any]:
         """Collect system resource statistics"""
         if not PSUTIL_AVAILABLE:
             # Return mock data when psutil is not available

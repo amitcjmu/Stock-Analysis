@@ -145,7 +145,7 @@ class CriticalPathAnalyzer:
     def _trace_longest_path(
         start_node: str, edges: List[Dict[str, Any]], nodes: List[Dict[str, Any]]
     ) -> List[str]:
-        """Trace the longest path leading to a node"""
+        """Trace the longest path leading to a node using dynamic programming"""
         # Build reverse adjacency (incoming edges)
         reverse_adj = {}
         for edge in edges:
@@ -155,19 +155,29 @@ class CriticalPathAnalyzer:
                 reverse_adj[target] = []
             reverse_adj[target].append(source)
 
-        visited = set()
-        path = []
-
-        def dfs(node_id):
-            if node_id in visited:
-                return
-            visited.add(node_id)
-            path.append(node_id)
-
-            # Find predecessors
-            if node_id in reverse_adj:
-                for pred in reverse_adj[node_id]:
-                    dfs(pred)
-
-        dfs(start_node)
-        return list(reversed(path))  # Return path from root to leaf
+        # Memoization for longest path from each node
+        memo = {}
+        
+        def find_longest_path_from(node_id):
+            """Find the longest path starting from node_id using DP"""
+            if node_id in memo:
+                return memo[node_id]
+            
+            # If no predecessors, this is a root node
+            if node_id not in reverse_adj or not reverse_adj[node_id]:
+                memo[node_id] = [node_id]
+                return [node_id]
+            
+            # Find the longest path among all predecessors
+            longest = []
+            for pred in reverse_adj[node_id]:
+                pred_path = find_longest_path_from(pred)
+                if len(pred_path) > len(longest):
+                    longest = pred_path.copy()
+            
+            # Add current node to the path
+            longest.append(node_id)
+            memo[node_id] = longest
+            return longest
+        
+        return find_longest_path_from(start_node)

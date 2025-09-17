@@ -298,15 +298,29 @@ class DependencyAnalyzer:
 
             # Check for security group relationships
             elif asset.get("asset_type") == ASSET_TYPE_SECURITY_GROUP:
-                # Security groups typically protect other assets
+                # Security groups protect assets that explicitly reference them
+                sg_name = asset.get("name", "")
+                sg_id = asset.get("id", "")
+                
                 for other_asset in assets:
-                    if other_asset.get("environment") == asset.get("environment"):
+                    # Check if the other asset explicitly references this security group
+                    references_sg = False
+                    
+                    # Check various fields where security groups might be referenced
+                    for field in ["security_group", "security_groups", "sg_id", "network_config"]:
+                        if field in other_asset:
+                            field_value = str(other_asset[field])
+                            if sg_name in field_value or str(sg_id) in field_value:
+                                references_sg = True
+                                break
+                    
+                    if references_sg:
                         services.append(
                             {
                                 "service": other_asset.get("name", "Unknown"),
-                                "type": "inferred",
+                                "type": "explicit",
                                 "relationship": "protects",
-                                "confidence": 0.6,
+                                "confidence": 0.9,
                             }
                         )
 

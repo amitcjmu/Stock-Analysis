@@ -26,14 +26,15 @@ from .base import (
     DEFAULT_MIGRATION_PRIORITY,
     DEFAULT_STATUS,
     DEFAULT_MIGRATION_STATUS,
-    DEFAULT_ASSESSMENT_READINESS,
     DEFAULT_CURRENT_PHASE,
     DEFAULT_SOURCE_PHASE,
 )
 from .mixins import AssetPropertiesMixin, AssetBusinessLogicMixin
+from .assessment_fields import AssessmentFieldsMixin
+from .import_fields import ImportFieldsMixin
 
 
-class Asset(Base, AssetPropertiesMixin, AssetBusinessLogicMixin):
+class Asset(Base, AssetPropertiesMixin, AssetBusinessLogicMixin, AssessmentFieldsMixin, ImportFieldsMixin):
     """
     Represents a single Configuration Item (CI) or asset within the CMDB.
     This is the central table for all discovered and managed assets, enriched
@@ -350,66 +351,7 @@ class Asset(Base, AssetPropertiesMixin, AssetBusinessLogicMixin):
         Float, comment="The estimated monthly cost of running the asset in the cloud."
     )
 
-    # Import and processing metadata
-    imported_by = Column(
-        PostgresUUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=True,
-        comment="The user who imported the data that created this asset.",
-    )
-    imported_at = Column(
-        DateTime(timezone=True), comment="Timestamp of when the asset was imported."
-    )
-    source_filename = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="The original filename from which this asset was imported.",
-    )
-    raw_data = Column(
-        JSON,
-        comment="A JSON blob of the original, raw data for this asset from the import source.",
-    )
-    field_mappings_used = Column(
-        JSON,
-        comment="The specific field mappings that were applied to create this asset record.",
-    )
-    raw_import_records_id = Column(
-        PostgresUUID(as_uuid=True),
-        ForeignKey("raw_import_records.id"),
-        nullable=True,
-        comment="The raw import record this asset was created from.",
-    )
-
-    # Discovery/Assessment readiness fields (bridge between flows)
-    discovery_status = Column(
-        String(SMALL_STRING_LENGTH),
-        index=True,
-        comment="Discovery lifecycle status for this asset (e.g., 'completed').",
-    )
-    discovery_completed_at = Column(
-        DateTime(timezone=True),
-        comment="Timestamp when discovery completed for this asset.",
-    )
-
-    # Import local SQL text function to avoid affecting global namespace
-    from sqlalchemy import text as _sql_text
-
-    assessment_readiness = Column(
-        String(SMALL_STRING_LENGTH),
-        index=True,
-        default=DEFAULT_ASSESSMENT_READINESS,
-        server_default=_sql_text(f"'{DEFAULT_ASSESSMENT_READINESS}'"),
-        comment="Assessment readiness status for this asset (e.g., 'ready', 'not_ready').",
-    )
-    assessment_readiness_score = Column(
-        Float,
-        comment="Optional readiness score (0-100 or 0-1 depending on configuration).",
-    )
-    assessment_blockers = Column(
-        JSON, comment="List of identified blockers preventing assessment readiness."
-    )
-    assessment_recommendations = Column(
-        JSON, comment="List of recommendations to achieve assessment readiness."
-    )
+    # Import and assessment fields are now provided by mixins
 
     # Audit fields
     created_at = Column(

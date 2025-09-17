@@ -88,17 +88,25 @@ class SystemHealthDashboard:
     def _start_background_updates(self) -> None:
         """Start background dashboard updates"""
 
-        def background_updater():
+        async def background_updater():
             while True:
                 try:
-                    asyncio.run(self._update_dashboard_data())
-                    time.sleep(self.update_interval)
+                    await self._update_dashboard_data()
+                    await asyncio.sleep(self.update_interval)
                 except Exception as e:
                     logger.error(f"Background dashboard update failed: {e}")
-                    time.sleep(5)  # Short retry delay
+                    await asyncio.sleep(5)  # Short retry delay
 
-        # Start background thread
-        self.executor.submit(background_updater)
+        # Schedule as a task in the current event loop
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(background_updater())
+        except RuntimeError:
+            # No running event loop, create one in a thread
+            def run_async_updater():
+                asyncio.run(background_updater())
+            
+            self.executor.submit(run_async_updater)
 
     async def _update_dashboard_data(self) -> None:
         """Update dashboard data from all monitoring components"""
@@ -112,7 +120,7 @@ class SystemHealthDashboard:
             # Collect data from all monitors
             auth_stats = await self.auth_monitor.get_performance_summary()
             cache_stats = await self.cache_monitor.get_performance_summary()
-            system_stats = self.system_stats_collector.collect()
+            system_stats = self.system_stats_collector.collect_system_stats()
 
             # Calculate health scores
             health_scores = self.score_calculator.calculate_all_health_scores(

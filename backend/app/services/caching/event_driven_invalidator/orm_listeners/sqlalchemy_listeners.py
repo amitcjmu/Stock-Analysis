@@ -68,13 +68,33 @@ class SQLAlchemyEventListeners:
         logger.info("SQLAlchemy ORM event listeners unregistered")
 
     def _get_model_classes(self) -> List[Type]:
-        """Get all SQLAlchemy model classes"""
-        # Return all classes that inherit from Base
+        """Get all SQLAlchemy model classes recursively"""
         model_classes = []
-        for cls in Base.__subclasses__():
+        
+        def get_all_subclasses(cls):
+            """Recursively get all subclasses of a class"""
+            all_subclasses = []
+            
+            for subclass in cls.__subclasses__():
+                all_subclasses.append(subclass)
+                all_subclasses.extend(get_all_subclasses(subclass))
+                
+            return all_subclasses
+        
+        # Get all classes that inherit from Base (recursively)
+        for cls in get_all_subclasses(Base):
             if hasattr(cls, "__tablename__"):
                 model_classes.append(cls)
-        return model_classes
+                
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_models = []
+        for cls in model_classes:
+            if cls not in seen:
+                seen.add(cls)
+                unique_models.append(cls)
+                
+        return unique_models
 
     def _on_orm_insert(self, mapper, connection, target) -> None:
         """Handle ORM insert events"""

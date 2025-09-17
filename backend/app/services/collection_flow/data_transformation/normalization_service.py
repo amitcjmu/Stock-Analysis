@@ -342,7 +342,7 @@ class DataNormalizationService:
         """Apply database-specific normalizations."""
         # Normalize database types
         if "db_type" in data and data["db_type"]:
-            db_type = str(data["db_type"]).lower()
+            db_type = str(data["db_type"]).lower().strip()
             type_map = {
                 "oracle": ["oracle", "ora", "oracle database"],
                 "mysql": ["mysql", "mariadb"],
@@ -353,8 +353,9 @@ class DataNormalizationService:
                 "elasticsearch": ["elasticsearch", "elastic"],
             }
 
+            # Use exact matching to avoid false positives
             for standard, variations in type_map.items():
-                if any(var in db_type for var in variations):
+                if db_type in variations:
                     data["db_type"] = standard
                     break
 
