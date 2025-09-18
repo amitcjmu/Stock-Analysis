@@ -3,10 +3,7 @@ Data Cleansing API - Exports Module
 Download functionality for raw and cleaned data as CSV files.
 """
 
-import csv
-import io
 import logging
-from datetime import datetime
 
 from fastapi import Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -21,13 +18,15 @@ from app.models.client_account import User
 from app.models.data_import.core import RawImportRecord
 from app.models.data_import.mapping import ImportFieldMapping
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.services.collection_flow.audit_logging.logger import AuditLoggingService
-from app.core.security.pii_protection import (
-    redact_record,
-    PIISensitivityLevel,
-)
 
+from .audit_utils import log_raw_data_export_audit, log_cleaned_data_export_audit
 from .base import router
+from .csv_utils import (
+    generate_filename,
+    generate_raw_csv_content,
+    generate_cleaned_csv_content,
+)
+from .response_utils import create_csv_streaming_response, create_empty_csv_response
 from .validation import _validate_and_get_flow, _get_data_import_for_flow
 
 logger = logging.getLogger(__name__)
@@ -89,72 +88,11 @@ async def download_raw_data(
         if not raw_records:
             # Return empty CSV file instead of error to allow graceful download
             logger.warning(f"No raw data found for flow {flow_id}, returning empty CSV")
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(["No data available"])
-            output.seek(0)
-            csv_content = output.getvalue()
-            output.close()
-
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-            filename = f"raw_data_{flow_id[:8]}_{timestamp}_empty.csv"
-
-            csv_bytes = csv_content.encode("utf-8")
-            csv_stream = io.BytesIO(csv_bytes)
-            csv_stream.seek(0)
-
-            return StreamingResponse(
-                csv_stream,
-                media_type="text/csv",
-                headers={
-                    "Content-Disposition": f"attachment; filename={filename}",
-                    "Content-Length": str(len(csv_bytes)),
-                    "Cache-Control": "no-cache",
-                    "Content-Type": "text/csv; charset=utf-8",
-                },
-            )
+            return create_empty_csv_response(flow_id, "raw")
 
         # Create CSV content with error handling
         try:
-            output = io.StringIO()
-
-            # Get field names from the first record
-            first_record_data = raw_records[0].data if raw_records[0].data else {}
-            fieldnames = (
-                list(first_record_data.keys()) if first_record_data else ["id", "data"]
-            )
-
-            writer = csv.DictWriter(output, fieldnames=fieldnames)
-            writer.writeheader()
-
-            # Write data rows with PII protection
-            pii_redacted_count = 0
-            for record in raw_records:
-                try:
-                    if record.data and isinstance(record.data, dict):
-                        # Apply PII redaction for security compliance
-                        redacted_data = redact_record(
-                            record.data, PIISensitivityLevel.RESTRICTED
-                        )
-                        if redacted_data != record.data:
-                            pii_redacted_count += 1
-                        writer.writerow(redacted_data)
-                    else:
-                        # Fallback for non-dict data
-                        writer.writerow(
-                            {"id": record.id, "data": str(record.data or "")}
-                        )
-                except Exception as row_error:
-                    logger.warning(f"Error writing record {record.id}: {row_error}")
-                    # Write error row instead of skipping
-                    writer.writerow(
-                        {"id": record.id, "data": f"[ERROR: {str(row_error)}]"}
-                    )
-
-            output.seek(0)
-            csv_content = output.getvalue()
-            output.close()
-
+            csv_content, pii_redacted_count = generate_raw_csv_content(raw_records)
         except Exception as csv_error:
             logger.error(f"Failed to generate CSV content: {csv_error}")
             raise HTTPException(
@@ -171,57 +109,31 @@ async def download_raw_data(
             )
 
         # Generate filename with timestamp
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"raw_data_{flow_id[:8]}_{timestamp}.csv"
+        filename = generate_filename(flow_id, "raw")
 
         # Calculate file size for audit logging
         file_size_bytes = len(csv_content.encode("utf-8"))
 
         # Log data export for security audit trail
-        try:
-            audit_service = AuditLoggingService(db, context)
-            await audit_service.log_data_export(
-                flow_id=flow.flow_id,
-                export_type="raw",
-                record_count=len(raw_records),
-                file_size_bytes=file_size_bytes,
-                details={
-                    "filename": filename,
-                    "user_ip": context.ip_address,
-                    "user_agent": context.user_agent,
-                    "data_import_id": str(data_import.id),
-                    "pii_redacted_records": pii_redacted_count,
-                    "pii_protection_enabled": settings.ENABLE_PII_REDACTION,
-                },
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log data export audit: {e}")
-            # Don't fail the export if audit logging fails
+        await log_raw_data_export_audit(
+            db,
+            context,
+            flow,
+            filename,
+            raw_records,
+            file_size_bytes,
+            pii_redacted_count,
+            data_import,
+        )
 
         logger.info(
             f"✅ Generated raw data CSV for flow {flow_id}: {len(raw_records)} records, {file_size_bytes} bytes"
         )
 
-        # Create CSV stream response with proper headers
-        csv_bytes = csv_content.encode("utf-8")
-        csv_stream = io.BytesIO(csv_bytes)
+        logger.info(f"📊 Returning raw CSV response: {file_size_bytes} bytes")
 
-        # Ensure we start reading from the beginning
-        csv_stream.seek(0)
-
-        logger.info(f"📊 Returning raw CSV response: {len(csv_bytes)} bytes")
-
-        # Return CSV as streaming response with additional headers for better browser compatibility
-        return StreamingResponse(
-            csv_stream,
-            media_type="text/csv",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}",
-                "Content-Length": str(len(csv_bytes)),
-                "Cache-Control": "no-cache",
-                "Content-Type": "text/csv; charset=utf-8",
-            },
-        )
+        # Return CSV as streaming response
+        return create_csv_streaming_response(csv_content, filename)
 
     except HTTPException:
         raise
@@ -301,30 +213,7 @@ async def download_cleaned_data(
             logger.warning(
                 f"No cleaned data found for flow {flow_id}, returning empty CSV"
             )
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(["No data available"])
-            output.seek(0)
-            csv_content = output.getvalue()
-            output.close()
-
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-            filename = f"cleaned_data_{flow_id[:8]}_{timestamp}_empty.csv"
-
-            csv_bytes = csv_content.encode("utf-8")
-            csv_stream = io.BytesIO(csv_bytes)
-            csv_stream.seek(0)
-
-            return StreamingResponse(
-                csv_stream,
-                media_type="text/csv",
-                headers={
-                    "Content-Disposition": f"attachment; filename={filename}",
-                    "Content-Length": str(len(csv_bytes)),
-                    "Cache-Control": "no-cache",
-                    "Content-Type": "text/csv; charset=utf-8",
-                },
-            )
+            return create_empty_csv_response(flow_id, "cleaned")
 
         # Get field mappings to understand data transformations
         field_mapping_query = select(ImportFieldMapping).where(
@@ -340,72 +229,9 @@ async def download_cleaned_data(
 
         # Create CSV content with cleaned/mapped field names and error handling
         try:
-            output = io.StringIO()
-
-            # Get field names from the first record and apply field mappings
-            first_record_data = raw_records[0].data if raw_records[0].data else {}
-            if first_record_data and field_mapping_dict:
-                # Use mapped field names where available
-                fieldnames = []
-                for original_field in first_record_data.keys():
-                    mapped_field = field_mapping_dict.get(
-                        original_field, original_field
-                    )
-                    fieldnames.append(mapped_field)
-            else:
-                fieldnames = (
-                    list(first_record_data.keys())
-                    if first_record_data
-                    else ["id", "data"]
-                )
-
-            writer = csv.DictWriter(output, fieldnames=fieldnames)
-            writer.writeheader()
-
-            # Write data rows with field mapping applied and PII protection
-            pii_redacted_count = 0
-            for record in raw_records:
-                try:
-                    if record.data and isinstance(record.data, dict):
-                        cleaned_row = {}
-                        for original_field, value in record.data.items():
-                            # Apply field mapping
-                            mapped_field = field_mapping_dict.get(
-                                original_field, original_field
-                            )
-
-                            # Apply basic data cleaning (trim whitespace, handle nulls)
-                            cleaned_value = value
-                            if isinstance(value, str):
-                                cleaned_value = value.strip() if value else ""
-                            elif value is None:
-                                cleaned_value = ""
-
-                            cleaned_row[mapped_field] = cleaned_value
-
-                        # Apply PII redaction for security compliance
-                        redacted_row = redact_record(
-                            cleaned_row, PIISensitivityLevel.RESTRICTED
-                        )
-                        if redacted_row != cleaned_row:
-                            pii_redacted_count += 1
-                        writer.writerow(redacted_row)
-                    else:
-                        # Fallback for non-dict data
-                        writer.writerow(
-                            {"id": record.id, "data": str(record.data or "")}
-                        )
-                except Exception as row_error:
-                    logger.warning(f"Error processing record {record.id}: {row_error}")
-                    # Write error row instead of skipping
-                    writer.writerow(
-                        {"id": record.id, "data": f"[ERROR: {str(row_error)}]"}
-                    )
-
-            output.seek(0)
-            csv_content = output.getvalue()
-            output.close()
-
+            csv_content, pii_redacted_count = generate_cleaned_csv_content(
+                raw_records, field_mapping_dict
+            )
         except Exception as csv_error:
             logger.error(f"Failed to generate cleaned CSV content: {csv_error}")
             raise HTTPException(
@@ -422,59 +248,33 @@ async def download_cleaned_data(
             )
 
         # Generate filename with timestamp
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"cleaned_data_{flow_id[:8]}_{timestamp}.csv"
+        filename = generate_filename(flow_id, "cleaned")
 
         # Calculate file size for audit logging
         file_size_bytes = len(csv_content.encode("utf-8"))
 
         # Log data export for security audit trail
-        try:
-            audit_service = AuditLoggingService(db, context)
-            await audit_service.log_data_export(
-                flow_id=flow.flow_id,
-                export_type="cleaned",
-                record_count=len(raw_records),
-                file_size_bytes=file_size_bytes,
-                details={
-                    "filename": filename,
-                    "user_ip": context.ip_address,
-                    "user_agent": context.user_agent,
-                    "data_import_id": str(data_import.id),
-                    "field_mappings_count": len(field_mappings),
-                    "pii_redacted_records": pii_redacted_count,
-                    "pii_protection_enabled": settings.ENABLE_PII_REDACTION,
-                },
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log data export audit: {e}")
-            # Don't fail the export if audit logging fails
+        await log_cleaned_data_export_audit(
+            db,
+            context,
+            flow,
+            filename,
+            raw_records,
+            field_mappings,
+            file_size_bytes,
+            pii_redacted_count,
+            data_import,
+        )
 
         logger.info(
             f"✅ Generated cleaned data CSV for flow {flow_id}: "
             f"{len(raw_records)} records with {len(field_mappings)} field mappings, {file_size_bytes} bytes"
         )
 
-        # Create CSV stream response with proper headers
-        csv_bytes = csv_content.encode("utf-8")
-        csv_stream = io.BytesIO(csv_bytes)
+        logger.info(f"📊 Returning cleaned CSV response: {file_size_bytes} bytes")
 
-        # Ensure we start reading from the beginning
-        csv_stream.seek(0)
-
-        logger.info(f"📊 Returning cleaned CSV response: {len(csv_bytes)} bytes")
-
-        # Return CSV as streaming response with additional headers for better browser compatibility
-        return StreamingResponse(
-            csv_stream,
-            media_type="text/csv",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}",
-                "Content-Length": str(len(csv_bytes)),
-                "Cache-Control": "no-cache",
-                "Content-Type": "text/csv; charset=utf-8",
-            },
-        )
+        # Return CSV as streaming response
+        return create_csv_streaming_response(csv_content, filename)
 
     except HTTPException:
         raise

@@ -41,6 +41,66 @@ class CacheKeyGenerators:
         return formatted_pattern
 
     @staticmethod
+    def _extract_key_without_version(primary_key: str) -> str:
+        """Remove version prefix from cache key."""
+        if primary_key.startswith(CACHE_VERSION + ":"):
+            return primary_key[len(CACHE_VERSION) + 1 :]
+        return primary_key
+
+    @staticmethod
+    def _extract_entity_values(key_without_version: str) -> dict:
+        """Extract entity values from cache key parts."""
+        parts = key_without_version.split(":")
+        extracted_values = {}
+
+        # Entity mapping for extraction
+        entity_mappings = {
+            "user": "user_id",
+            "client": "client_id",
+            "engagement": "engagement_id",
+            "flow": "flow_id",
+            "import": "import_id",
+            "asset": "asset_id",
+        }
+
+        for entity_name, value_key in entity_mappings.items():
+            entity_key = f"{entity_name}:"
+            if entity_key in key_without_version:
+                idx = parts.index(entity_name) if entity_name in parts else -1
+                if idx >= 0 and idx + 1 < len(parts):
+                    extracted_values[value_key] = parts[idx + 1]
+
+        return extracted_values
+
+    @staticmethod
+    def _pattern_matches_key(
+        pattern_template: str, key_without_version: str, extracted_values: dict
+    ) -> bool:
+        """Check if a pattern template matches the cache key."""
+        for part in pattern_template.split(":"):
+            if part.startswith("{") and part.endswith("}"):
+                # This is a placeholder - check if we have the value
+                var_name = part[1:-1]
+                if var_name not in extracted_values:
+                    return False
+            elif part != "*" and part not in key_without_version:
+                return False
+        return True
+
+    @staticmethod
+    def _generate_invalidation_patterns(
+        invalidation_patterns: List[str], extracted_values: dict
+    ) -> List[str]:
+        """Generate invalidation patterns with substituted values."""
+        patterns = []
+        for inv_pattern in invalidation_patterns:
+            final_pattern = inv_pattern
+            for var_name, var_value in extracted_values.items():
+                final_pattern = final_pattern.replace(f"{{{var_name}}}", var_value)
+            patterns.append(f"{CACHE_VERSION}:{final_pattern}")
+        return patterns
+
+    @staticmethod
     def get_cascade_patterns(primary_key: str) -> List[str]:
         """
         Get all cache key patterns that should be invalidated when primary_key changes.
@@ -56,69 +116,26 @@ class CacheKeyGenerators:
         patterns = []
 
         # Remove version prefix to match against patterns
-        key_without_version = primary_key
-        if primary_key.startswith(CACHE_VERSION + ":"):
-            key_without_version = primary_key[len(CACHE_VERSION) + 1 :]
+        key_without_version = CacheKeyGenerators._extract_key_without_version(
+            primary_key
+        )
 
         # Extract entity values from the key
-        parts = key_without_version.split(":")
-        extracted_values = {}
-
-        # Common entity extractions
-        if "user:" in key_without_version:
-            idx = parts.index("user") if "user" in parts else -1
-            if idx >= 0 and idx + 1 < len(parts):
-                extracted_values["user_id"] = parts[idx + 1]
-
-        if "client:" in key_without_version:
-            idx = parts.index("client") if "client" in parts else -1
-            if idx >= 0 and idx + 1 < len(parts):
-                extracted_values["client_id"] = parts[idx + 1]
-
-        if "engagement:" in key_without_version:
-            idx = parts.index("engagement") if "engagement" in parts else -1
-            if idx >= 0 and idx + 1 < len(parts):
-                extracted_values["engagement_id"] = parts[idx + 1]
-
-        if "flow:" in key_without_version:
-            idx = parts.index("flow") if "flow" in parts else -1
-            if idx >= 0 and idx + 1 < len(parts):
-                extracted_values["flow_id"] = parts[idx + 1]
-
-        if "import:" in key_without_version:
-            idx = parts.index("import") if "import" in parts else -1
-            if idx >= 0 and idx + 1 < len(parts):
-                extracted_values["import_id"] = parts[idx + 1]
-
-        if "asset:" in key_without_version:
-            idx = parts.index("asset") if "asset" in parts else -1
-            if idx >= 0 and idx + 1 < len(parts):
-                extracted_values["asset_id"] = parts[idx + 1]
+        extracted_values = CacheKeyGenerators._extract_entity_values(
+            key_without_version
+        )
 
         # Check each cascade relationship pattern
         for pattern_template, invalidation_patterns in CASCADE_RELATIONSHIPS.items():
             # Check if the key matches this pattern
-            pattern_matches = True
-            for part in pattern_template.split(":"):
-                if part.startswith("{") and part.endswith("}"):
-                    # This is a placeholder - check if we have the value
-                    var_name = part[1:-1]
-                    if var_name not in extracted_values:
-                        pattern_matches = False
-                        break
-                elif part != "*" and part not in key_without_version:
-                    pattern_matches = False
-                    break
-
-            if pattern_matches:
+            if CacheKeyGenerators._pattern_matches_key(
+                pattern_template, key_without_version, extracted_values
+            ):
                 # Generate invalidation patterns with substituted values
-                for inv_pattern in invalidation_patterns:
-                    final_pattern = inv_pattern
-                    for var_name, var_value in extracted_values.items():
-                        final_pattern = final_pattern.replace(
-                            f"{{{var_name}}}", var_value
-                        )
-                    patterns.append(f"{CACHE_VERSION}:{final_pattern}")
+                generated_patterns = CacheKeyGenerators._generate_invalidation_patterns(
+                    invalidation_patterns, extracted_values
+                )
+                patterns.extend(generated_patterns)
 
         return list(set(patterns))  # Remove duplicates
 

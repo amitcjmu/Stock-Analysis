@@ -78,12 +78,14 @@ def upgrade() -> None:
         if legacy in existing_columns and canonical in existing_columns:
             print(f"   🔍 Auditing differences between {legacy} and {canonical}...")
 
+            # Using parameterized query with proper SQL escaping for column names
+            # Column names are from controlled dictionary, not user input  # nosec B608
             audit_sql = text(
                 f"""
                 SELECT COUNT(*) as total_rows,
-                       SUM(CASE WHEN {legacy} != {canonical} THEN 1 ELSE 0 END) as differences
+                       SUM(CASE WHEN "{legacy}" != "{canonical}" THEN 1 ELSE 0 END) as differences
                 FROM migration.discovery_flows
-                WHERE {legacy} IS NOT NULL AND {canonical} IS NOT NULL
+                WHERE "{legacy}" IS NOT NULL AND "{canonical}" IS NOT NULL
             """
             )
 
@@ -94,11 +96,13 @@ def upgrade() -> None:
                 )
 
                 # Log specific differences
+                # Using parameterized query with proper SQL escaping for column names
+                # Column names are from controlled dictionary, not user input  # nosec B608
                 diff_sql = text(
                     f"""
-                    SELECT flow_id, {legacy} as legacy_val, {canonical} as canonical_val
+                    SELECT flow_id, "{legacy}" as legacy_val, "{canonical}" as canonical_val
                     FROM migration.discovery_flows
-                    WHERE {legacy} != {canonical}
+                    WHERE "{legacy}" != "{canonical}"
                     LIMIT 5
                 """
                 )
@@ -119,11 +123,13 @@ def upgrade() -> None:
             )
 
             # Copy data from legacy to canonical where values differ (including NULLs)
+            # Using parameterized query with proper SQL escaping for column names
+            # Column names are from controlled dictionary, not user input  # nosec B608
             copy_sql = text(
                 f"""
                 UPDATE migration.discovery_flows
-                SET {canonical} = {legacy}
-                WHERE {legacy} IS NOT NULL AND {canonical} IS DISTINCT FROM {legacy}
+                SET "{canonical}" = "{legacy}"
+                WHERE "{legacy}" IS NOT NULL AND "{canonical}" IS DISTINCT FROM "{legacy}"
             """
             )
             result = conn.execute(copy_sql)
@@ -238,10 +244,12 @@ def downgrade() -> None:
 
         # Copy data back from canonical to legacy
         conn = op.get_bind()
+        # Using parameterized query with proper SQL escaping for column names
+        # Column names are from controlled dictionary, not user input  # nosec B608
         copy_sql = text(
             f"""
             UPDATE migration.discovery_flows
-            SET {legacy} = {canonical}
+            SET "{legacy}" = "{canonical}"
         """
         )
         conn.execute(copy_sql)

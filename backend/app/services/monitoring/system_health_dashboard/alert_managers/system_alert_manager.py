@@ -29,6 +29,152 @@ class SystemAlertManager:
         self.active_alerts: Dict[str, SystemAlert] = {}
         self.alert_history: deque[SystemAlert] = deque(maxlen=1000)
 
+    def _create_and_trigger_alert(
+        self,
+        alert_id: str,
+        title: str,
+        message: str,
+        severity: AlertSeverity,
+        current_time: float,
+        metric_value: float,
+        threshold_value: float,
+        component: str,
+    ) -> None:
+        """Create and trigger a new alert."""
+        if alert_id not in self.active_alerts:
+            alert = SystemAlert(
+                id=alert_id,
+                title=title,
+                message=message,
+                severity=severity,
+                timestamp=current_time,
+                metric_value=metric_value,
+                threshold_value=threshold_value,
+                component=component,
+            )
+            self.active_alerts[alert_id] = alert
+            self.alert_history.append(alert)
+            logger.warning(f"Alert triggered: {alert.title}")
+
+    def _clear_alert_if_exists(self, alert_id: str) -> None:
+        """Clear an alert if it exists in active alerts."""
+        if alert_id in self.active_alerts:
+            del self.active_alerts[alert_id]
+
+    def _check_authentication_alerts(
+        self, auth_stats: Dict[str, Any], current_time: float
+    ) -> None:
+        """Check and process authentication-related alerts."""
+        auth_success_rate = auth_stats.get("overall_summary", {}).get(
+            "overall_success_rate", 100
+        )
+        threshold = self.alert_thresholds.get("auth_success_rate_threshold", 95)
+        alert_id = "auth_success_rate_low"
+
+        if auth_success_rate < threshold:
+            self._create_and_trigger_alert(
+                alert_id=alert_id,
+                title="Low Authentication Success Rate",
+                message=f"Authentication success rate is {auth_success_rate:.1f}%",
+                severity=AlertSeverity.WARNING,
+                current_time=current_time,
+                metric_value=auth_success_rate,
+                threshold_value=threshold,
+                component="authentication",
+            )
+        else:
+            self._clear_alert_if_exists(alert_id)
+
+    def _check_cache_alerts(
+        self, cache_stats: Dict[str, Any], current_time: float
+    ) -> None:
+        """Check and process cache-related alerts."""
+        cache_hit_rate = cache_stats.get("overall_summary", {}).get(
+            "overall_hit_rate", 100
+        )
+        threshold = self.alert_thresholds.get("cache_hit_rate_threshold", 80)
+        alert_id = "cache_hit_rate_low"
+
+        if cache_hit_rate < threshold:
+            self._create_and_trigger_alert(
+                alert_id=alert_id,
+                title="Low Cache Hit Rate",
+                message=f"Cache hit rate is {cache_hit_rate:.1f}%",
+                severity=AlertSeverity.WARNING,
+                current_time=current_time,
+                metric_value=cache_hit_rate,
+                threshold_value=threshold,
+                component="cache",
+            )
+        else:
+            self._clear_alert_if_exists(alert_id)
+
+    def _check_resource_alerts(
+        self, system_stats: Dict[str, Any], current_time: float
+    ) -> None:
+        """Check and process system resource alerts."""
+        # CPU usage alerts
+        cpu_usage = system_stats.get("cpu_usage_percent", 0)
+        cpu_threshold = self.alert_thresholds.get("cpu_usage_threshold", 85)
+
+        if cpu_usage > cpu_threshold:
+            self._create_and_trigger_alert(
+                alert_id="cpu_usage_high",
+                title="High CPU Usage",
+                message=f"CPU usage is {cpu_usage:.1f}%",
+                severity=(
+                    AlertSeverity.CRITICAL if cpu_usage > 95 else AlertSeverity.WARNING
+                ),
+                current_time=current_time,
+                metric_value=cpu_usage,
+                threshold_value=cpu_threshold,
+                component="system",
+            )
+        else:
+            self._clear_alert_if_exists("cpu_usage_high")
+
+        # Memory usage alerts
+        memory_usage = system_stats.get("memory_usage_percent", 0)
+        memory_threshold = self.alert_thresholds.get("memory_usage_threshold", 90)
+
+        if memory_usage > memory_threshold:
+            self._create_and_trigger_alert(
+                alert_id="memory_usage_high",
+                title="High Memory Usage",
+                message=f"Memory usage is {memory_usage:.1f}%",
+                severity=(
+                    AlertSeverity.CRITICAL
+                    if memory_usage > 95
+                    else AlertSeverity.WARNING
+                ),
+                current_time=current_time,
+                metric_value=memory_usage,
+                threshold_value=memory_threshold,
+                component="system",
+            )
+        else:
+            self._clear_alert_if_exists("memory_usage_high")
+
+        # Disk usage alerts
+        disk_usage = system_stats.get("disk_usage_percent", 0)
+        disk_threshold = self.alert_thresholds.get("disk_usage_threshold", 90)
+
+        if disk_usage > disk_threshold:
+            self._create_and_trigger_alert(
+                alert_id="disk_usage_high",
+                title="High Disk Usage",
+                message=f"Disk usage is {disk_usage:.1f}%",
+                severity=(
+                    AlertSeverity.CRITICAL if disk_usage > 95 else AlertSeverity.WARNING
+                ),
+                current_time=current_time,
+                metric_value=disk_usage,
+                threshold_value=disk_threshold,
+                component="system",
+            )
+        else:
+            self._clear_alert_if_exists("disk_usage_high")
+
     def process_alerts(
         self,
         auth_stats: Dict[str, Any],
@@ -38,140 +184,10 @@ class SystemAlertManager:
         """Process and manage system alerts"""
         current_time = time.time()
 
-        # Check authentication alerts
-        auth_success_rate = auth_stats.get("overall_summary", {}).get(
-            "overall_success_rate", 100
-        )
-        if auth_success_rate < self.alert_thresholds.get(
-            "auth_success_rate_threshold", 95
-        ):
-            alert_id = "auth_success_rate_low"
-            if alert_id not in self.active_alerts:
-                alert = SystemAlert(
-                    id=alert_id,
-                    title="Low Authentication Success Rate",
-                    message=f"Authentication success rate is {auth_success_rate:.1f}%",
-                    severity=AlertSeverity.WARNING,
-                    timestamp=current_time,
-                    metric_value=auth_success_rate,
-                    threshold_value=self.alert_thresholds.get(
-                        "auth_success_rate_threshold", 95
-                    ),
-                    component="authentication",
-                )
-                self.active_alerts[alert_id] = alert
-                self.alert_history.append(alert)
-                logger.warning(f"Alert triggered: {alert.title}")
-        else:
-            # Remove alert if condition is resolved
-            if "auth_success_rate_low" in self.active_alerts:
-                del self.active_alerts["auth_success_rate_low"]
-
-        # Check cache alerts
-        cache_hit_rate = cache_stats.get("overall_summary", {}).get(
-            "overall_hit_rate", 100
-        )
-        cache_hit_threshold = self.alert_thresholds.get("cache_hit_rate_threshold", 80)
-        if cache_hit_rate < cache_hit_threshold:
-            alert_id = "cache_hit_rate_low"
-            if alert_id not in self.active_alerts:
-                alert = SystemAlert(
-                    id=alert_id,
-                    title="Low Cache Hit Rate",
-                    message=f"Cache hit rate is {cache_hit_rate:.1f}%",
-                    severity=AlertSeverity.WARNING,
-                    timestamp=current_time,
-                    metric_value=cache_hit_rate,
-                    threshold_value=cache_hit_threshold,
-                    component="cache",
-                )
-                self.active_alerts[alert_id] = alert
-                self.alert_history.append(alert)
-                logger.warning(f"Alert triggered: {alert.title}")
-        else:
-            if "cache_hit_rate_low" in self.active_alerts:
-                del self.active_alerts["cache_hit_rate_low"]
-
-        # Check system resource alerts
-        cpu_usage = system_stats.get("cpu_usage_percent", 0)
-        cpu_threshold = self.alert_thresholds.get("cpu_usage_threshold", 85)
-        if cpu_usage > cpu_threshold:
-            alert_id = "cpu_usage_high"
-            if alert_id not in self.active_alerts:
-                alert = SystemAlert(
-                    id=alert_id,
-                    title="High CPU Usage",
-                    message=f"CPU usage is {cpu_usage:.1f}%",
-                    severity=(
-                        AlertSeverity.CRITICAL
-                        if cpu_usage > 95
-                        else AlertSeverity.WARNING
-                    ),
-                    timestamp=current_time,
-                    metric_value=cpu_usage,
-                    threshold_value=cpu_threshold,
-                    component="system",
-                )
-                self.active_alerts[alert_id] = alert
-                self.alert_history.append(alert)
-                logger.warning(f"Alert triggered: {alert.title}")
-        else:
-            if "cpu_usage_high" in self.active_alerts:
-                del self.active_alerts["cpu_usage_high"]
-
-        # Check memory usage alerts
-        memory_usage = system_stats.get("memory_usage_percent", 0)
-        memory_threshold = self.alert_thresholds.get("memory_usage_threshold", 90)
-        if memory_usage > memory_threshold:
-            alert_id = "memory_usage_high"
-            if alert_id not in self.active_alerts:
-                alert = SystemAlert(
-                    id=alert_id,
-                    title="High Memory Usage",
-                    message=f"Memory usage is {memory_usage:.1f}%",
-                    severity=(
-                        AlertSeverity.CRITICAL
-                        if memory_usage > 95
-                        else AlertSeverity.WARNING
-                    ),
-                    timestamp=current_time,
-                    metric_value=memory_usage,
-                    threshold_value=memory_threshold,
-                    component="system",
-                )
-                self.active_alerts[alert_id] = alert
-                self.alert_history.append(alert)
-                logger.warning(f"Alert triggered: {alert.title}")
-        else:
-            if "memory_usage_high" in self.active_alerts:
-                del self.active_alerts["memory_usage_high"]
-
-        # Check disk usage alerts
-        disk_usage = system_stats.get("disk_usage_percent", 0)
-        disk_threshold = self.alert_thresholds.get("disk_usage_threshold", 90)
-        if disk_usage > disk_threshold:
-            alert_id = "disk_usage_high"
-            if alert_id not in self.active_alerts:
-                alert = SystemAlert(
-                    id=alert_id,
-                    title="High Disk Usage",
-                    message=f"Disk usage is {disk_usage:.1f}%",
-                    severity=(
-                        AlertSeverity.CRITICAL
-                        if disk_usage > 95
-                        else AlertSeverity.WARNING
-                    ),
-                    timestamp=current_time,
-                    metric_value=disk_usage,
-                    threshold_value=disk_threshold,
-                    component="system",
-                )
-                self.active_alerts[alert_id] = alert
-                self.alert_history.append(alert)
-                logger.warning(f"Alert triggered: {alert.title}")
-        else:
-            if "disk_usage_high" in self.active_alerts:
-                del self.active_alerts["disk_usage_high"]
+        # Check different types of alerts
+        self._check_authentication_alerts(auth_stats, current_time)
+        self._check_cache_alerts(cache_stats, current_time)
+        self._check_resource_alerts(system_stats, current_time)
 
     def get_active_alerts(self) -> Dict[str, SystemAlert]:
         """Get all active alerts"""

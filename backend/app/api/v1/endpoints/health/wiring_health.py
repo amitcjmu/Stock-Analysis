@@ -52,9 +52,10 @@ async def check_wiring_health(
             status_code=403, detail="Access denied: insufficient tenant permissions"
         )
 
-    # Cache key based on tenant + detail mode
-    cache_key = hashlib.md5(
-        f"{context.client_account_id}:{context.engagement_id}:{detail}".encode()
+    # Cache key based on tenant + detail mode (MD5 used for non-cryptographic cache key generation)
+    cache_key = hashlib.md5(  # nosec B303
+        f"{context.client_account_id}:{context.engagement_id}:{detail}".encode(),
+        usedforsecurity=False,
     ).hexdigest()
 
     # Check cache
