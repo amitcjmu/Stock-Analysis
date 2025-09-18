@@ -43,12 +43,13 @@ class FlowSyncDatabase:
             return None
 
     async def get_all_collection_flows(self) -> List[CollectionFlow]:
-        """Retrieve all collection flows for the current tenant"""
+        """Retrieve all collection flows for the current tenant with master flow IDs"""
         try:
             result = await self.db.execute(
                 select(CollectionFlow).where(
                     CollectionFlow.client_account_id == self.context.client_account_id,
                     CollectionFlow.engagement_id == self.context.engagement_id,
+                    CollectionFlow.master_flow_id.isnot(None),
                 )
             )
             return result.scalars().all()
@@ -57,12 +58,13 @@ class FlowSyncDatabase:
             return []
 
     async def get_all_assessment_flows(self) -> List[AssessmentFlow]:
-        """Retrieve all assessment flows for the current tenant"""
+        """Retrieve all assessment flows for the current tenant with master flow IDs"""
         try:
             result = await self.db.execute(
                 select(AssessmentFlow).where(
                     AssessmentFlow.client_account_id == self.context.client_account_id,
                     AssessmentFlow.engagement_id == self.context.engagement_id,
+                    AssessmentFlow.master_flow_id.isnot(None),
                 )
             )
             return result.scalars().all()
@@ -103,7 +105,7 @@ class FlowSyncDatabase:
         """Update assessment flow with given fields"""
         await self.db.execute(
             update(AssessmentFlow)
-            .where(AssessmentFlow.flow_id == assessment_flow_id)
+            .where(AssessmentFlow.id == assessment_flow_id)
             .where(AssessmentFlow.client_account_id == self.context.client_account_id)
             .where(AssessmentFlow.engagement_id == self.context.engagement_id)
             .values(**update_fields)

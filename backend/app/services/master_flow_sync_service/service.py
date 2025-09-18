@@ -13,6 +13,7 @@ from app.core.context import RequestContext
 from .models import FlowSyncStatus, SyncResult
 from .database import FlowSyncDatabase
 from .mappers import FlowStatusMapper
+from .sync_helpers import SyncHelpers
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class MasterFlowSyncService:
         self.context = context
         self.database = FlowSyncDatabase(db, context)
         self.mapper = FlowStatusMapper()
+        self.helpers = SyncHelpers(self.mapper, self.database)
 
     async def synchronize_collection_flow(
         self,
@@ -118,7 +120,7 @@ class MasterFlowSyncService:
         """Synchronize a specific assessment flow with its master flow"""
         assessment_flows = await self.database.get_all_assessment_flows()
         assessment_flow = next(
-            (af for af in assessment_flows if af.flow_id == assessment_flow_id), None
+            (af for af in assessment_flows if af.id == assessment_flow_id), None
         )
 
         if not assessment_flow:
@@ -139,23 +141,52 @@ class MasterFlowSyncService:
                 issues=["Assessment flow not found"],
             )
 
-        # Similar logic for assessment flows
-        # Implementation follows the same pattern as collection flows
-        # but uses assessment-specific mappings
+        # Get or determine master flow ID
+        if not master_flow_id:
+            master_flow_id = assessment_flow.master_flow_id
 
-        return FlowSyncStatus(
-            master_flow_id=master_flow_id or assessment_flow.master_flow_id,
-            child_flow_id=assessment_flow_id,
-            child_flow_type="assessment",
-            is_synchronized=True,
-            master_status="running",
-            child_status=assessment_flow.status,
-            status_match=True,
-            master_progress=0.0,
-            child_progress=assessment_flow.progress_percentage or 0.0,
-            progress_diff=0.0,
-            phase_match=True,
+        if not master_flow_id:
+            logger.warning(
+                f"No master flow ID for assessment flow {assessment_flow_id}"
+            )
+            return FlowSyncStatus(
+                master_flow_id=UUID("00000000-0000-0000-0000-000000000000"),
+                child_flow_id=assessment_flow_id,
+                child_flow_type="assessment",
+                is_synchronized=False,
+                master_status="unknown",
+                child_status=assessment_flow.status,
+                status_match=False,
+                master_progress=0.0,
+                child_progress=assessment_flow.progress or 0.0,
+                progress_diff=0.0,
+                phase_match=False,
+                issues=["No master flow ID available"],
+            )
+
+        # Check sync issues and create status
+        sync_status = await self.helpers._check_assessment_sync_issues(
+            assessment_flow, master_flow_id
         )
+
+        # Perform synchronization if needed
+        if not sync_status.is_synchronized or force_sync:
+            try:
+                await self.helpers._sync_master_with_assessment(
+                    assessment_flow, master_flow_id
+                )
+                sync_status.is_synchronized = True
+                sync_status.last_sync_at = datetime.utcnow()
+                logger.info(
+                    f"Successfully synchronized assessment flow {assessment_flow_id} with master {master_flow_id}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to sync assessment flow {assessment_flow_id}: {e}"
+                )
+                sync_status.issues.append(f"Synchronization failed: {str(e)}")
+
+        return sync_status
 
     async def synchronize_all_flows(self) -> SyncResult:
         """
@@ -196,14 +227,14 @@ class MasterFlowSyncService:
 
             for flow in assessment_flows:
                 try:
-                    sync_status = await self.synchronize_assessment_flow(flow.flow_id)
+                    sync_status = await self.synchronize_assessment_flow(flow.id)
                     sync_result.sync_statuses.append(sync_status)
                     if sync_status.is_synchronized:
                         sync_result.flows_synchronized += 1
                     if sync_status.issues:
                         sync_result.issues_fixed += len(sync_status.issues)
                 except Exception as e:
-                    logger.error(f"Failed to sync assessment flow {flow.flow_id}: {e}")
+                    logger.error(f"Failed to sync assessment flow {flow.id}: {e}")
                     sync_result.errors.append(str(e))
                     sync_result.success = False
 
