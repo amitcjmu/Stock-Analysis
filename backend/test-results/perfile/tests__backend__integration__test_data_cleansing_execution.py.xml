@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="3" failures="0" skipped="0" tests="3" time="4.789" timestamp="2025-09-17T16:07:02.640725+00:00" hostname="fe12c6a45410"><testcase classname="tests.backend.integration.test_data_cleansing_execution" name="test_data_cleansing_phase_execution" time="0.173"><error message="failed on setup with &quot;sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column &quot;import_name&quot; of relation &quot;data_imports&quot; violates not-null constraint&#10;DETAIL:  Failing row contains (49c397f8-57c3-4f9c-a1e4-7d7469128f2b, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 596d5ad2-aec5-427a-b243-017ddf6a18cc, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, be27a5c1-b445-47f1-b78c-d0388ec66986, null, null, 2025-09-17 16:07:06.538823+00, null, 2025-09-17 16:07:06.515166+00, null).&#10;[SQL: &#10;            INSERT INTO migration.data_imports (&#10;                id, master_flow_id, client_account_id, engagement_id,&#10;                imported_by, filename, file_size, mime_type,&#10;                total_records, processed_records, status, created_at&#10;            ) VALUES (&#10;                $1, $2, $3, $4,&#10;                $5, $6, $7, $8,&#10;                $9, $10, $11, $12&#10;            )&#10;        ]&#10;[parameters: (UUID('49c397f8-57c3-4f9c-a1e4-7d7469128f2b'), UUID('596d5ad2-aec5-427a-b243-017ddf6a18cc'), UUID('11111111-1111-1111-1111-111111111111'), UUID('22222222-2222-2222-2222-222222222222'), UUID('be27a5c1-b445-47f1-b78c-d0388ec66986'), 'test_data.csv', 1024, 'text/csv', 5, 5, 'completed', datetime.datetime(2025, 9, 17, 16, 7, 6, 515166))]&#10;(Background on this error at: https://sqlalche.me/e/20/gkpj)&quot;">/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:545: in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:176: in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:267: in __bind_execute
+    data, status, _ = await self.__do_execute(
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:256: in __do_execute
+    return await executor(protocol)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+asyncpg/protocol/protocol.pyx:206: in bind_execute
+    ???
+E   asyncpg.exceptions.NotNullViolationError: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (49c397f8-57c3-4f9c-a1e4-7d7469128f2b, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 596d5ad2-aec5-427a-b243-017ddf6a18cc, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, be27a5c1-b445-47f1-b78c-d0388ec66986, null, null, 2025-09-17 16:07:06.538823+00, null, 2025-09-17 16:07:06.515166+00, null).
+
+The above exception was the direct cause of the following exception:
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1963: in _exec_single_context
+    self.dialect.do_execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py:943: in do_execute
+    cursor.execute(statement, parameters)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:580: in execute
+    self._adapt_connection.await_(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:558: in _prepare_and_execute
+    self._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:508: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:792: in _handle_exception
+    raise translated_error from error
+E   sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.IntegrityError: &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (49c397f8-57c3-4f9c-a1e4-7d7469128f2b, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 596d5ad2-aec5-427a-b243-017ddf6a18cc, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, be27a5c1-b445-47f1-b78c-d0388ec66986, null, null, 2025-09-17 16:07:06.538823+00, null, 2025-09-17 16:07:06.515166+00, null).
+
+The above exception was the direct cause of the following exception:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/backend/integration/test_data_cleansing_execution.py:70: in test_flow_with_data
+    ???
+/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/session.py:463: in execute
+    result = await greenlet_spawn(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:201: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2365: in execute
+    return self._execute_internal(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2260: in _execute_internal
+    result = conn.execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1415: in execute
+    return meth(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py:523: in _execute_on_connection
+    return connection._execute_clauseelement(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1637: in _execute_clauseelement
+    ret = self._execute_context(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1842: in _execute_context
+    return self._exec_single_context(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1982: in _exec_single_context
+    self._handle_dbapi_exception(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2351: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1963: in _exec_single_context
+    self.dialect.do_execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py:943: in do_execute
+    cursor.execute(statement, parameters)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:580: in execute
+    self._adapt_connection.await_(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:558: in _prepare_and_execute
+    self._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:508: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:792: in _handle_exception
+    raise translated_error from error
+E   sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (49c397f8-57c3-4f9c-a1e4-7d7469128f2b, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 596d5ad2-aec5-427a-b243-017ddf6a18cc, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, be27a5c1-b445-47f1-b78c-d0388ec66986, null, null, 2025-09-17 16:07:06.538823+00, null, 2025-09-17 16:07:06.515166+00, null).
+E   [SQL:
+E               INSERT INTO migration.data_imports (
+E                   id, master_flow_id, client_account_id, engagement_id,
+E                   imported_by, filename, file_size, mime_type,
+E                   total_records, processed_records, status, created_at
+E               ) VALUES (
+E                   $1, $2, $3, $4,
+E                   $5, $6, $7, $8,
+E                   $9, $10, $11, $12
+E               )
+E           ]
+E   [parameters: (UUID('49c397f8-57c3-4f9c-a1e4-7d7469128f2b'), UUID('596d5ad2-aec5-427a-b243-017ddf6a18cc'), UUID('11111111-1111-1111-1111-111111111111'), UUID('22222222-2222-2222-2222-222222222222'), UUID('be27a5c1-b445-47f1-b78c-d0388ec66986'), 'test_data.csv', 1024, 'text/csv', 5, 5, 'completed', datetime.datetime(2025, 9, 17, 16, 7, 6, 515166))]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)</error></testcase><testcase classname="tests.backend.integration.test_data_cleansing_execution" name="test_data_cleansing_without_complete_flag" time="0.022"><error message="failed on setup with &quot;sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column &quot;import_name&quot; of relation &quot;data_imports&quot; violates not-null constraint&#10;DETAIL:  Failing row contains (e144ef7a-02bd-454c-a50e-f05b8bde78b6, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 9410fbe5-31d2-4d2c-90b0-142c54441258, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, 3a711917-71b6-417f-85bb-72307c836e93, null, null, 2025-09-17 16:07:06.944643+00, null, 2025-09-17 16:07:06.926465+00, null).&#10;[SQL: &#10;            INSERT INTO migration.data_imports (&#10;                id, master_flow_id, client_account_id, engagement_id,&#10;                imported_by, filename, file_size, mime_type,&#10;                total_records, processed_records, status, created_at&#10;            ) VALUES (&#10;                $1, $2, $3, $4,&#10;                $5, $6, $7, $8,&#10;                $9, $10, $11, $12&#10;            )&#10;        ]&#10;[parameters: (UUID('e144ef7a-02bd-454c-a50e-f05b8bde78b6'), UUID('9410fbe5-31d2-4d2c-90b0-142c54441258'), UUID('11111111-1111-1111-1111-111111111111'), UUID('22222222-2222-2222-2222-222222222222'), UUID('3a711917-71b6-417f-85bb-72307c836e93'), 'test_data.csv', 1024, 'text/csv', 5, 5, 'completed', datetime.datetime(2025, 9, 17, 16, 7, 6, 926465))]&#10;(Background on this error at: https://sqlalche.me/e/20/gkpj)&quot;">/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:545: in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:176: in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:267: in __bind_execute
+    data, status, _ = await self.__do_execute(
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:256: in __do_execute
+    return await executor(protocol)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+asyncpg/protocol/protocol.pyx:206: in bind_execute
+    ???
+E   asyncpg.exceptions.NotNullViolationError: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (e144ef7a-02bd-454c-a50e-f05b8bde78b6, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 9410fbe5-31d2-4d2c-90b0-142c54441258, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, 3a711917-71b6-417f-85bb-72307c836e93, null, null, 2025-09-17 16:07:06.944643+00, null, 2025-09-17 16:07:06.926465+00, null).
+
+The above exception was the direct cause of the following exception:
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1963: in _exec_single_context
+    self.dialect.do_execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py:943: in do_execute
+    cursor.execute(statement, parameters)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:580: in execute
+    self._adapt_connection.await_(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:558: in _prepare_and_execute
+    self._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:508: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:792: in _handle_exception
+    raise translated_error from error
+E   sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.IntegrityError: &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (e144ef7a-02bd-454c-a50e-f05b8bde78b6, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 9410fbe5-31d2-4d2c-90b0-142c54441258, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, 3a711917-71b6-417f-85bb-72307c836e93, null, null, 2025-09-17 16:07:06.944643+00, null, 2025-09-17 16:07:06.926465+00, null).
+
+The above exception was the direct cause of the following exception:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/backend/integration/test_data_cleansing_execution.py:70: in test_flow_with_data
+    ???
+/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/session.py:463: in execute
+    result = await greenlet_spawn(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:201: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2365: in execute
+    return self._execute_internal(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2260: in _execute_internal
+    result = conn.execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1415: in execute
+    return meth(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py:523: in _execute_on_connection
+    return connection._execute_clauseelement(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1637: in _execute_clauseelement
+    ret = self._execute_context(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1842: in _execute_context
+    return self._exec_single_context(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1982: in _exec_single_context
+    self._handle_dbapi_exception(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2351: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1963: in _exec_single_context
+    self.dialect.do_execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py:943: in do_execute
+    cursor.execute(statement, parameters)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:580: in execute
+    self._adapt_connection.await_(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:558: in _prepare_and_execute
+    self._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:508: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:792: in _handle_exception
+    raise translated_error from error
+E   sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (e144ef7a-02bd-454c-a50e-f05b8bde78b6, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, 9410fbe5-31d2-4d2c-90b0-142c54441258, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, 3a711917-71b6-417f-85bb-72307c836e93, null, null, 2025-09-17 16:07:06.944643+00, null, 2025-09-17 16:07:06.926465+00, null).
+E   [SQL:
+E               INSERT INTO migration.data_imports (
+E                   id, master_flow_id, client_account_id, engagement_id,
+E                   imported_by, filename, file_size, mime_type,
+E                   total_records, processed_records, status, created_at
+E               ) VALUES (
+E                   $1, $2, $3, $4,
+E                   $5, $6, $7, $8,
+E                   $9, $10, $11, $12
+E               )
+E           ]
+E   [parameters: (UUID('e144ef7a-02bd-454c-a50e-f05b8bde78b6'), UUID('9410fbe5-31d2-4d2c-90b0-142c54441258'), UUID('11111111-1111-1111-1111-111111111111'), UUID('22222222-2222-2222-2222-222222222222'), UUID('3a711917-71b6-417f-85bb-72307c836e93'), 'test_data.csv', 1024, 'text/csv', 5, 5, 'completed', datetime.datetime(2025, 9, 17, 16, 7, 6, 926465))]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)</error></testcase><testcase classname="tests.backend.integration.test_data_cleansing_execution" name="test_data_cleansing_persists_cleansed_data" time="0.022"><error message="failed on setup with &quot;sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column &quot;import_name&quot; of relation &quot;data_imports&quot; violates not-null constraint&#10;DETAIL:  Failing row contains (44f2bb2c-9e28-47a4-8290-9610f1608bb9, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, b387c24f-1516-4c69-805a-65f2b7d6e69b, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, a6b54b36-e7f8-4227-b838-533e10dab37f, null, null, 2025-09-17 16:07:07.113926+00, null, 2025-09-17 16:07:07.096692+00, null).&#10;[SQL: &#10;            INSERT INTO migration.data_imports (&#10;                id, master_flow_id, client_account_id, engagement_id,&#10;                imported_by, filename, file_size, mime_type,&#10;                total_records, processed_records, status, created_at&#10;            ) VALUES (&#10;                $1, $2, $3, $4,&#10;                $5, $6, $7, $8,&#10;                $9, $10, $11, $12&#10;            )&#10;        ]&#10;[parameters: (UUID('44f2bb2c-9e28-47a4-8290-9610f1608bb9'), UUID('b387c24f-1516-4c69-805a-65f2b7d6e69b'), UUID('11111111-1111-1111-1111-111111111111'), UUID('22222222-2222-2222-2222-222222222222'), UUID('a6b54b36-e7f8-4227-b838-533e10dab37f'), 'test_data.csv', 1024, 'text/csv', 5, 5, 'completed', datetime.datetime(2025, 9, 17, 16, 7, 7, 96692))]&#10;(Background on this error at: https://sqlalche.me/e/20/gkpj)&quot;">/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:545: in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:176: in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:267: in __bind_execute
+    data, status, _ = await self.__do_execute(
+/usr/local/lib/python3.11/site-packages/asyncpg/prepared_stmt.py:256: in __do_execute
+    return await executor(protocol)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+asyncpg/protocol/protocol.pyx:206: in bind_execute
+    ???
+E   asyncpg.exceptions.NotNullViolationError: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (44f2bb2c-9e28-47a4-8290-9610f1608bb9, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, b387c24f-1516-4c69-805a-65f2b7d6e69b, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, a6b54b36-e7f8-4227-b838-533e10dab37f, null, null, 2025-09-17 16:07:07.113926+00, null, 2025-09-17 16:07:07.096692+00, null).
+
+The above exception was the direct cause of the following exception:
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1963: in _exec_single_context
+    self.dialect.do_execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py:943: in do_execute
+    cursor.execute(statement, parameters)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:580: in execute
+    self._adapt_connection.await_(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:558: in _prepare_and_execute
+    self._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:508: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:792: in _handle_exception
+    raise translated_error from error
+E   sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.IntegrityError: &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (44f2bb2c-9e28-47a4-8290-9610f1608bb9, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, b387c24f-1516-4c69-805a-65f2b7d6e69b, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, a6b54b36-e7f8-4227-b838-533e10dab37f, null, null, 2025-09-17 16:07:07.113926+00, null, 2025-09-17 16:07:07.096692+00, null).
+
+The above exception was the direct cause of the following exception:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/backend/integration/test_data_cleansing_execution.py:70: in test_flow_with_data
+    ???
+/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/session.py:463: in execute
+    result = await greenlet_spawn(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:201: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2365: in execute
+    return self._execute_internal(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2260: in _execute_internal
+    result = conn.execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1415: in execute
+    return meth(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py:523: in _execute_on_connection
+    return connection._execute_clauseelement(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1637: in _execute_clauseelement
+    ret = self._execute_context(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1842: in _execute_context
+    return self._exec_single_context(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1982: in _exec_single_context
+    self._handle_dbapi_exception(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2351: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1963: in _exec_single_context
+    self.dialect.do_execute(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py:943: in do_execute
+    cursor.execute(statement, parameters)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:580: in execute
+    self._adapt_connection.await_(
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:558: in _prepare_and_execute
+    self._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:508: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:792: in _handle_exception
+    raise translated_error from error
+E   sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) &lt;class 'asyncpg.exceptions.NotNullViolationError'&gt;: null value in column "import_name" of relation "data_imports" violates not-null constraint
+E   DETAIL:  Failing row contains (44f2bb2c-9e28-47a4-8290-9610f1608bb9, 11111111-1111-1111-1111-111111111111, 22222222-2222-2222-2222-222222222222, b387c24f-1516-4c69-805a-65f2b7d6e69b, null, null, null, test_data.csv, 1024, text/csv, null, completed, 0, 5, 5, 0, a6b54b36-e7f8-4227-b838-533e10dab37f, null, null, 2025-09-17 16:07:07.113926+00, null, 2025-09-17 16:07:07.096692+00, null).
+E   [SQL:
+E               INSERT INTO migration.data_imports (
+E                   id, master_flow_id, client_account_id, engagement_id,
+E                   imported_by, filename, file_size, mime_type,
+E                   total_records, processed_records, status, created_at
+E               ) VALUES (
+E                   $1, $2, $3, $4,
+E                   $5, $6, $7, $8,
+E                   $9, $10, $11, $12
+E               )
+E           ]
+E   [parameters: (UUID('44f2bb2c-9e28-47a4-8290-9610f1608bb9'), UUID('b387c24f-1516-4c69-805a-65f2b7d6e69b'), UUID('11111111-1111-1111-1111-111111111111'), UUID('22222222-2222-2222-2222-222222222222'), UUID('a6b54b36-e7f8-4227-b838-533e10dab37f'), 'test_data.csv', 1024, 'text/csv', 5, 5, 'completed', datetime.datetime(2025, 9, 17, 16, 7, 7, 96692))]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)</error></testcase></testsuite></testsuites>

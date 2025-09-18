@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="14" skipped="0" tests="16" time="3.296" timestamp="2025-09-17T16:07:15.793085+00:00" hostname="fe12c6a45410"><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackBasicFunctionality" name="test_apply_resolved_gaps_updates_asset_fields" time="0.009"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:101: in test_apply_resolved_gaps_updates_asset_fields
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackBasicFunctionality" name="test_tenant_scoped_asset_updates" time="0.004"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:130: in test_tenant_scoped_asset_updates
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackBasicFunctionality" name="test_field_whitelist_enforcement" time="0.004"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:179: in test_field_whitelist_enforcement
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackBasicFunctionality" name="test_assessment_readiness_setting" time="0.005"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:222: in test_assessment_readiness_setting
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackBasicFunctionality" name="test_handles_missing_assets_gracefully" time="0.005"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:245: in test_handles_missing_assets_gracefully
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackBasicFunctionality" name="test_handles_no_resolved_gaps" time="0.004"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:267: in test_handles_no_resolved_gaps
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackErrorHandling" name="test_invalid_tenant_context_raises_error" time="0.002" /><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackErrorHandling" name="test_invalid_uuid_format_raises_error" time="0.002" /><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackErrorHandling" name="test_database_error_triggers_rollback" time="0.003"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:334: in test_database_error_triggers_rollback
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetWriteBackErrorHandling" name="test_batch_processing_continues_after_failure" time="0.005"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:374: in test_batch_processing_continues_after_failure
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetIdResolution" name="test_resolve_target_asset_ids_from_hints" time="0.005"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:404: in test_resolve_target_asset_ids_from_hints
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:174: in _resolve_target_asset_ids
+    asset_ids = [r.id for r in result.fetchall()]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetIdResolution" name="test_resolve_target_asset_ids_no_hints" time="0.003"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:426: in test_resolve_target_asset_ids_no_hints
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:190: in _resolve_target_asset_ids
+    asset_ids = [r.id for r in result.fetchall()]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestAssetIdResolution" name="test_resolve_target_asset_ids_invalid_uuid_hints" time="0.004"><failure message="ValueError: badly formed hexadecimal UUID string">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:454: in test_resolve_target_asset_ids_invalid_uuid_hints
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:169: in _resolve_target_asset_ids
+    Asset.id.in_([uuid.UUID(a) for a in hinted_asset_ids if a]),
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/asset_handlers.py:169: in &lt;listcomp&gt;
+    Asset.id.in_([uuid.UUID(a) for a in hinted_asset_ids if a]),
+                  ^^^^^^^^^^^^
+/usr/local/lib/python3.11/uuid.py:178: in __init__
+    raise ValueError('badly formed hexadecimal UUID string')
+E   ValueError: badly formed hexadecimal UUID string</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestBatchProcessing" name="test_custom_batch_size_honored" time="0.004"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:491: in test_custom_batch_size_honored
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestBatchProcessing" name="test_empty_update_payload_skipped" time="0.003"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:526: in test_empty_update_payload_skipped
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase><testcase classname="tests.services.test_asset_write_back.TestSQLInjectionPrevention" name="test_parameterized_queries_used" time="0.004"><failure message="TypeError: 'coroutine' object is not iterable">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/services/test_asset_write_back.py:555: in test_parameterized_queries_used
+    ???
+app/services/flow_configs/collection_handlers/asset_handlers.py:77: in apply_resolved_gaps_to_assets
+    field_updates = build_field_updates_from_rows(resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/services/flow_configs/collection_handlers/base.py:98: in build_field_updates_from_rows
+    for row in rows:
+E   TypeError: 'coroutine' object is not iterable</failure></testcase></testsuite></testsuites>

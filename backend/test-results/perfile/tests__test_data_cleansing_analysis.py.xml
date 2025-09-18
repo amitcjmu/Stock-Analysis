@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="3.698" timestamp="2025-09-17T16:07:25.928997+00:00" hostname="fe12c6a45410"><testcase classname="tests.test_data_cleansing_analysis.TestDataCleansingAnalysisEndpoint" name="test_get_analysis_success" time="0.228"><failure message="AttributeError: &lt;module 'app.api.v1.endpoints.data_cleansing' from '/app/app/api/v1/endpoints/data_cleansing/__init__.py'&gt; does not have the attribute 'DiscoveryFlowRepository'">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_data_cleansing_analysis.py:35: in test_get_analysis_success
+    ???
+/usr/local/lib/python3.11/unittest/mock.py:1446: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/unittest/mock.py:1419: in get_original
+    raise AttributeError(
+E   AttributeError: &lt;module 'app.api.v1.endpoints.data_cleansing' from '/app/app/api/v1/endpoints/data_cleansing/__init__.py'&gt; does not have the attribute 'DiscoveryFlowRepository'</failure></testcase><testcase classname="tests.test_data_cleansing_analysis.TestDataCleansingAnalysisEndpoint" name="test_get_analysis_flow_not_found" time="0.002"><failure message="AttributeError: &lt;module 'app.api.v1.endpoints.data_cleansing' from '/app/app/api/v1/endpoints/data_cleansing/__init__.py'&gt; does not have the attribute 'DiscoveryFlowRepository'">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_data_cleansing_analysis.py:97: in test_get_analysis_flow_not_found
+    ???
+/usr/local/lib/python3.11/unittest/mock.py:1446: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/unittest/mock.py:1419: in get_original
+    raise AttributeError(
+E   AttributeError: &lt;module 'app.api.v1.endpoints.data_cleansing' from '/app/app/api/v1/endpoints/data_cleansing/__init__.py'&gt; does not have the attribute 'DiscoveryFlowRepository'</failure></testcase><testcase classname="tests.test_data_cleansing_analysis.TestDataCleansingAnalysisEndpoint" name="test_get_analysis_no_data_import" time="0.004"><failure message="AttributeError: &lt;module 'app.api.v1.endpoints.data_cleansing' from '/app/app/api/v1/endpoints/data_cleansing/__init__.py'&gt; does not have the attribute 'DiscoveryFlowRepository'">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_data_cleansing_analysis.py:125: in test_get_analysis_no_data_import
+    ???
+/usr/local/lib/python3.11/unittest/mock.py:1446: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/unittest/mock.py:1419: in get_original
+    raise AttributeError(
+E   AttributeError: &lt;module 'app.api.v1.endpoints.data_cleansing' from '/app/app/api/v1/endpoints/data_cleansing/__init__.py'&gt; does not have the attribute 'DiscoveryFlowRepository'</failure></testcase></testsuite></testsuites>

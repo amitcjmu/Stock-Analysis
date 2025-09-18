@@ -1,0 +1,24 @@
+test_file,test_type,executed,status,tests,passed,failed,errors,skipped,cause,recommendation
+tests/api/v1/endpoints/test_collection_gap_resolution.py,backend-api,Yes,fail,9,0,9,0,0,incorrect/missing data,Fix
+tests/api/v1/endpoints/test_collection_tenant_scoping.py,backend-api,Yes,fail,11,2,9,0,0,incorrect/missing data,Fix
+tests/backend/integration/test_collection_flow_fixes.py,backend-integration,Yes,error,1,0,0,1,0,legacy/outdated code,Rewrite
+tests/backend/integration/test_collection_flow_mfo.py,backend-integration,Yes,pass,5,5,0,0,0,unknown,Investigate
+tests/backend/integration/test_data_cleansing_execution.py,backend-integration,Yes,error,3,0,0,3,0,legacy/outdated code,Rewrite
+tests/backend/integration/test_data_cleansing_simple.py,backend-integration,Yes,pass,2,2,0,0,0,unknown,Investigate
+tests/backend/test_data_cleansing.py,backend-unit,Yes,pass,5,5,0,0,0,unknown,Investigate
+tests/services/test_asset_write_back.py,backend-services,Yes,fail,16,2,14,0,0,incorrect/missing data,Fix
+tests/test_auth_cache_service.py,backend-unit,Yes,pass,32,32,0,0,0,unknown,Investigate
+tests/test_auth_performance_integration.py,backend-unit,Yes,fail,13,12,1,0,0,unknown,Investigate
+tests/test_data_cleansing_analysis.py,backend-unit,Yes,fail,3,0,3,0,0,unknown,Investigate
+tests/test_data_cleansing_endpoints.py,backend-unit,Yes,error,1,0,0,1,0,unknown,Investigate
+tests/test_data_cleansing_fixtures.py,backend-unit,Yes,error,1,0,0,1,0,unknown,Investigate
+tests/test_data_cleansing_simplified.py,backend-unit,Yes,pass,13,13,0,0,0,unknown,Investigate
+tests/test_data_cleansing_stats.py,backend-unit,Yes,fail,3,0,3,0,0,unknown,Investigate
+tests/test_field_mapping_service.py,backend-unit,Yes,fail,27,7,20,0,0,unknown,Investigate
+tests/test_field_mapping_tenant_isolation.py,backend-unit,Yes,fail,10,3,7,0,0,legacy/outdated code,Rewrite
+tests/test_idempotency_manager.py,backend-unit,Yes,pass,25,25,0,0,0,unknown,Investigate
+tests/test_performance_benchmarks.py,backend-unit,Yes,fail,9,4,5,0,0,unknown,Investigate
+tests/test_repository_no_commit.py,backend-unit,Yes,pass,11,11,0,0,0,unknown,Investigate
+tests/test_service_registry.py,backend-unit,Yes,fail,44,43,1,0,0,unknown,Investigate
+tests/test_service_registry_metrics_flush.py,backend-unit,Yes,fail,17,14,3,0,0,unknown,Investigate
+tests/test_storage_manager.py,backend-unit,Yes,fail,27,23,4,0,0,unknown,Investigate
