@@ -32,6 +32,26 @@ from .exports import (
     download_cleaned_data,
 )
 
+# Import utilities for potential external use
+from .csv_utils import (
+    create_empty_csv_content,
+    determine_fieldnames,
+    process_record_for_csv,
+    generate_raw_csv_content,
+    generate_cleaned_csv_content,
+    generate_filename,
+)
+
+from .response_utils import (
+    create_csv_streaming_response,
+    create_empty_csv_response,
+)
+
+from .audit_utils import (
+    log_raw_data_export_audit,
+    log_cleaned_data_export_audit,
+)
+
 from .validation import (
     _validate_and_get_flow,
     _get_data_import_for_flow,
@@ -57,4 +77,17 @@ __all__ = [
     "_perform_data_cleansing_analysis",
     "_validate_and_get_flow",
     "_get_data_import_for_flow",
+    # CSV utilities
+    "create_empty_csv_content",
+    "determine_fieldnames",
+    "process_record_for_csv",
+    "generate_raw_csv_content",
+    "generate_cleaned_csv_content",
+    "generate_filename",
+    # Response utilities
+    "create_csv_streaming_response",
+    "create_empty_csv_response",
+    # Audit utilities
+    "log_raw_data_export_audit",
+    "log_cleaned_data_export_audit",
 ]

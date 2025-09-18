@@ -18,19 +18,9 @@ class DependencyGraphBuilder:
     """Handles building dependency graphs from asset and dependency data."""
 
     @staticmethod
-    def build_dependency_graph(
-        assets: List[Dict[str, Any]],
-        network_deps: List[Dict[str, Any]],
-        config_deps: List[Dict[str, Any]],
-        data_deps: List[Dict[str, Any]],
-        service_deps: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        """Build comprehensive dependency graph"""
+    def _create_asset_nodes(assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Create nodes for all assets."""
         nodes = []
-        edges = []
-        edge_id = 0
-
-        # Create nodes for all assets
         for asset in assets:
             nodes.append(
                 {
@@ -46,10 +36,20 @@ class DependencyGraphBuilder:
                     },
                 }
             )
+        return nodes
 
-        # Create edges from dependencies
+    @staticmethod
+    def _find_asset_by_name(assets: List[Dict[str, Any]], name: str) -> Dict[str, Any]:
+        """Find asset by name match."""
+        return next((a for a in assets if name in a.get("name", "")), None)
 
-        # Process data dependencies (most reliable)
+    @staticmethod
+    def _process_data_dependencies(
+        data_deps: List[Dict[str, Any]], assets: List[Dict[str, Any]], edge_id: int
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """Process data dependencies and create edges."""
+        edges = []
+
         for dep in data_deps:
             source_id = dep["asset_id"]
             for flow in dep.get("data_flows", []):
@@ -70,15 +70,23 @@ class DependencyGraphBuilder:
                         }
                     )
 
-        # Process network dependencies
+        return edges, edge_id
+
+    @staticmethod
+    def _process_network_dependencies(
+        network_deps: List[Dict[str, Any]], assets: List[Dict[str, Any]], edge_id: int
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """Process network dependencies and create edges."""
+        edges = []
+
         for dep in network_deps:
             source_id = dep["asset_id"]
             for conn in dep.get("connections", []):
                 if conn["type"] == "explicit":
                     # Try to find target asset
                     target_name = conn["value"]
-                    target_asset = next(
-                        (a for a in assets if target_name in a.get("name", "")), None
+                    target_asset = DependencyGraphBuilder._find_asset_by_name(
+                        assets, target_name
                     )
                     if target_asset:
                         edge_id += 1
@@ -93,13 +101,21 @@ class DependencyGraphBuilder:
                             }
                         )
 
-        # Process configuration dependencies
+        return edges, edge_id
+
+    @staticmethod
+    def _process_config_dependencies(
+        config_deps: List[Dict[str, Any]], assets: List[Dict[str, Any]], edge_id: int
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """Process configuration dependencies and create edges."""
+        edges = []
+
         for dep in config_deps:
             source_id = dep["asset_id"]
             for ref in dep.get("references", []):
                 # Try to find referenced asset
-                target_asset = next(
-                    (a for a in assets if ref["value"] in a.get("name", "")), None
+                target_asset = DependencyGraphBuilder._find_asset_by_name(
+                    assets, ref["value"]
                 )
                 if target_asset:
                     edge_id += 1
@@ -114,14 +130,22 @@ class DependencyGraphBuilder:
                         }
                     )
 
-        # Process service dependencies
+        return edges, edge_id
+
+    @staticmethod
+    def _process_service_dependencies(
+        service_deps: List[Dict[str, Any]], assets: List[Dict[str, Any]], edge_id: int
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """Process service dependencies and create edges."""
+        edges = []
+
         for dep in service_deps:
             source_id = dep["asset_id"]
             for svc in dep.get("services", []):
                 if svc["type"] == "explicit":
                     # Try to find service provider asset
-                    target_asset = next(
-                        (a for a in assets if svc["service"] in a.get("name", "")), None
+                    target_asset = DependencyGraphBuilder._find_asset_by_name(
+                        assets, svc["service"]
                     )
                     if target_asset:
                         edge_id += 1
@@ -136,12 +160,52 @@ class DependencyGraphBuilder:
                             }
                         )
 
+        return edges, edge_id
+
+    @staticmethod
+    def build_dependency_graph(
+        assets: List[Dict[str, Any]],
+        network_deps: List[Dict[str, Any]],
+        config_deps: List[Dict[str, Any]],
+        data_deps: List[Dict[str, Any]],
+        service_deps: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Build comprehensive dependency graph"""
+        # Create nodes for all assets
+        nodes = DependencyGraphBuilder._create_asset_nodes(assets)
+
+        all_edges = []
+        edge_id = 0
+
+        # Process different types of dependencies
+        data_edges, edge_id = DependencyGraphBuilder._process_data_dependencies(
+            data_deps, assets, edge_id
+        )
+        all_edges.extend(data_edges)
+
+        network_edges, edge_id = DependencyGraphBuilder._process_network_dependencies(
+            network_deps, assets, edge_id
+        )
+        all_edges.extend(network_edges)
+
+        config_edges, edge_id = DependencyGraphBuilder._process_config_dependencies(
+            config_deps, assets, edge_id
+        )
+        all_edges.extend(config_edges)
+
+        service_edges, edge_id = DependencyGraphBuilder._process_service_dependencies(
+            service_deps, assets, edge_id
+        )
+        all_edges.extend(service_edges)
+
         return {
             "nodes": nodes,
-            "edges": edges,
+            "edges": all_edges,
             "node_count": len(nodes),
-            "edge_count": len(edges),
+            "edge_count": len(all_edges),
             "density": (
-                len(edges) / (len(nodes) * (len(nodes) - 1)) if len(nodes) > 1 else 0
+                len(all_edges) / (len(nodes) * (len(nodes) - 1))
+                if len(nodes) > 1
+                else 0
             ),
         }

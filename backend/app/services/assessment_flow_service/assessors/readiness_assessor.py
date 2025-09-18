@@ -478,9 +478,9 @@ class ReadinessAssessor:
 
         required_phases = [
             "data_import_completed",
-            "attribute_mapping_completed",
+            "field_mapping_completed",
             "data_cleansing_completed",
-            "inventory_completed",
+            "asset_inventory_completed",
         ]
 
         completed_phases = []
@@ -495,9 +495,9 @@ class ReadinessAssessor:
 
         required_phases = [
             "data_import_completed",
-            "attribute_mapping_completed",
+            "field_mapping_completed",
             "data_cleansing_completed",
-            "inventory_completed",
+            "asset_inventory_completed",
         ]
 
         completed_count = sum(

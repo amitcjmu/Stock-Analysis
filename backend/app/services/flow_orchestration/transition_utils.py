@@ -24,6 +24,7 @@ def is_simple_transition(
     2. Standard phase progression without field mapping issues
     3. No clarification requests needed
     4. No complex error states requiring AI interpretation
+    5. NOT a data processing phase that requires AI agents
 
     Args:
         flow_data: Flow status information
@@ -33,6 +34,21 @@ def is_simple_transition(
         bool: True if transition can use fast path (< 1 second)
     """
     try:
+        current_phase = flow_data.get("current_phase", "")
+
+        # CRITICAL: Never use simple transition for AI-required phases
+        ai_required_phases = [
+            "data_cleansing",
+            "asset_inventory",
+            "dependency_analysis",
+            "field_mapping",
+        ]
+        if current_phase in ai_required_phases:
+            logger.info(
+                f"❌ Simple transition blocked - {current_phase} requires AI processing"
+            )
+            return False
+
         # Check if phase is marked as valid/complete
         phase_valid = validation_data.get("phase_valid", False)
 
@@ -49,6 +65,7 @@ def is_simple_transition(
         needs_clarification = _requires_clarification(validation_data)
 
         # Simple transition criteria:
+        # - NOT an AI-required phase AND
         # - Phase is valid AND
         # - No complex issues AND
         # - No errors requiring AI interpretation AND
@@ -63,7 +80,8 @@ def is_simple_transition(
         )
 
         logger.info(
-            f"Transition analysis - phase_valid: {phase_valid}, "
+            f"Transition analysis - current_phase: {current_phase}, "
+            f"phase_valid: {phase_valid}, "
             f"has_issues: {bool(has_issues)}, has_errors: {has_errors}, "
             f"needs_field_mapping: {needs_field_mapping}, "
             f"needs_clarification: {needs_clarification}, "
@@ -85,10 +103,11 @@ def needs_ai_analysis(
     Determine when AI analysis is actually needed for flow transitions.
 
     AI is needed for:
-    1. Field mapping validation and suggestions
-    2. Complex error interpretation
-    3. Clarification request generation
-    4. Ambiguous phase completion states
+    1. Data processing phases (data_cleansing, asset_inventory, dependency_analysis)
+    2. Field mapping validation and suggestions
+    3. Complex error interpretation
+    4. Clarification request generation
+    5. Ambiguous phase completion states
 
     Args:
         flow_data: Flow status information
@@ -98,6 +117,24 @@ def needs_ai_analysis(
         Tuple[bool, str]: (needs_ai, reason)
     """
     try:
+        current_phase = flow_data.get("current_phase", "")
+
+        # CRITICAL: Always use AI for data processing phases
+        ai_required_phases = [
+            "data_cleansing",
+            "asset_inventory",
+            "dependency_analysis",
+        ]
+        if current_phase in ai_required_phases:
+            # Check if phase was already processed by AI
+            ai_processed_key = f"{current_phase}_ai_processed"
+            if flow_data.get(ai_processed_key, False):
+                logger.info(f"✅ Phase {current_phase} already processed by AI")
+                return False, "phase_already_ai_processed"
+            else:
+                logger.info(f"🤖 AI agent required for phase {current_phase}")
+                return True, f"ai_processing_required_for_{current_phase}"
+
         # Field mapping scenarios requiring AI
         if _requires_field_mapping_analysis(flow_data, validation_data):
             return True, "field_mapping_analysis_required"

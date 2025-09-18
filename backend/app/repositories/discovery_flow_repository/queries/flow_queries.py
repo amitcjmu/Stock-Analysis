@@ -141,11 +141,11 @@ class FlowQueries:
                     # Check if any phase is not completed
                     ~and_(
                         DiscoveryFlow.data_import_completed is True,
-                        DiscoveryFlow.attribute_mapping_completed is True,
+                        DiscoveryFlow.field_mapping_completed is True,
                         DiscoveryFlow.data_cleansing_completed is True,
-                        DiscoveryFlow.inventory_completed is True,
-                        DiscoveryFlow.dependencies_completed is True,
-                        DiscoveryFlow.tech_debt_completed is True,
+                        DiscoveryFlow.asset_inventory_completed is True,
+                        DiscoveryFlow.dependency_analysis_completed is True,
+                        DiscoveryFlow.tech_debt_assessment_completed is True,
                     ),
                 )
             )

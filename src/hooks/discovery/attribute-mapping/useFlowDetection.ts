@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useAttributeMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
+import { useFieldMappingFlowDetection } from '../useDiscoveryFlowAutoDetection';
 import { useSmartFlowResolver } from './useSmartFlowResolver';
 
 export interface FlowDetectionResult {
@@ -42,7 +42,7 @@ export const useFlowDetection = (): FlowDetectionResult => {
     isFlowListLoading,
     flowListError,
     hasEffectiveFlow: initialHasEffectiveFlow
-  } = useAttributeMappingFlowDetection();
+  } = useFieldMappingFlowDetection();
 
   // urlFlowId should include query param if detected (both already normalized)
   const urlFlowId = detectedUrlFlowId || queryFlowId;
@@ -95,17 +95,17 @@ export const useFlowDetection = (): FlowDetectionResult => {
       });
 
       if (flowList.length > 0) {
-        console.log('📋 Available flows for attribute mapping:', flowList.map(f => ({
+        console.log('📋 Available flows for field mapping:', flowList.map(f => ({
           flow_id: f.id,
           status: f.status,
           current_phase: f.current_phase,
           next_phase: f.next_phase,
           data_import_completed: f.data_import_completed,
-          attribute_mapping_completed: f.attribute_mapping_completed
+          field_mapping_completed: f.field_mapping_completed
         })));
       }
     }
-  }, [effectiveFlowId, hasEffectiveFlow, flowList?.length, isFlowListLoading]); // Reduced dependencies to prevent excessive re-renders
+  }, [effectiveFlowId, hasEffectiveFlow, flowList, isFlowListLoading, urlFlowId, autoDetectedFlowId, resolutionMethod, pathname]); // Include all used dependencies
 
 
   // Use unified discovery flow with effective flow ID or emergency fallback

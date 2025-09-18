@@ -128,7 +128,7 @@ export const useInventoryLogic = (flowId?: string): JSX.Element => {
   const handleCompleteInventoryAndTriggerParallelAnalysis = useCallback(async () => {
     if (flow?.flow_id) {
       // Complete inventory and automatically trigger parallel dependencies + tech debt analysis
-      await updatePhase('inventory_completed', {
+      await updatePhase('asset_inventory_completed', {
         trigger_parallel_analysis: true,
         execute_dependencies_and_tech_debt: true
       });
@@ -193,9 +193,9 @@ export const useInventoryLogic = (flowId?: string): JSX.Element => {
     handleContinueToNextPhase,
 
     // Flow progression
-    isInventoryComplete: flow?.inventory_completed || false,
-    isDependencyAnalysisComplete: flow?.dependencies_completed || false,
-    isTechDebtAnalysisComplete: flow?.tech_debt_completed || false,
+    isInventoryComplete: flow?.asset_inventory_completed || false,
+    isDependencyAnalysisComplete: flow?.dependency_analysis_completed || false,
+    isTechDebtAnalysisComplete: flow?.tech_debt_assessment_completed || false,
     nextPhase: flow?.next_phase || null
   };
 };

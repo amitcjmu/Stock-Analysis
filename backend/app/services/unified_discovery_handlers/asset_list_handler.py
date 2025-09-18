@@ -14,7 +14,7 @@ This handler follows the established architectural patterns:
 import logging
 from typing import Any, Dict, Optional
 
-from sqlalchemy import and_, select, func
+from sqlalchemy import and_, select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -83,9 +83,14 @@ class AssetListHandler:
                 # Handle both string and UUID flow_id formats defensively
                 try:
                     if isinstance(flow_id, str) and flow_id.strip():
-                        # Support both UUID and string flow IDs
+                        # CRITICAL FIX: Check multiple flow ID fields for asset visibility
+                        # Assets can be associated via discovery_flow_id, master_flow_id, or flow_id
                         base_query = base_query.where(
-                            Asset.discovery_flow_id == flow_id.strip()
+                            or_(
+                                Asset.discovery_flow_id == flow_id.strip(),
+                                Asset.master_flow_id == flow_id.strip(),
+                                Asset.flow_id == flow_id.strip(),
+                            )
                         )
                 except Exception as e:
                     logger.warning(

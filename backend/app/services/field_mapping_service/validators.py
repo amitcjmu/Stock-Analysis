@@ -20,6 +20,60 @@ class FieldMappingValidator:
     """Field mapping validation utilities"""
 
     @staticmethod
+    def _validate_ip_addresses(sample_values: List[Any]) -> List[str]:
+        """Validate IP address format for values."""
+        issues = []
+        for value in sample_values[:MAX_VALIDATION_SAMPLES]:
+            if not FieldMappingValidator._is_valid_ip(str(value)):
+                issues.append(f"Invalid IP address format: {value}")
+        return issues
+
+    @staticmethod
+    def _validate_emails(sample_values: List[Any]) -> List[str]:
+        """Validate email format for values."""
+        issues = []
+        for value in sample_values[:MAX_VALIDATION_SAMPLES]:
+            if not FieldMappingValidator._is_valid_email(str(value)):
+                issues.append(f"Invalid email format: {value}")
+        return issues
+
+    @staticmethod
+    def _validate_hostnames(sample_values: List[Any]) -> List[str]:
+        """Validate hostname format for values."""
+        issues = []
+        for value in sample_values[:MAX_VALIDATION_SAMPLES]:
+            if not FieldMappingValidator._is_valid_hostname(str(value)):
+                issues.append(f"Invalid hostname format: {value}")
+        return issues
+
+    @staticmethod
+    def _validate_numeric_fields(sample_values: List[Any]) -> List[str]:
+        """Validate numeric format for values."""
+        issues = []
+        for value in sample_values[:MAX_VALIDATION_SAMPLES]:
+            if not FieldMappingValidator._is_numeric(value):
+                issues.append(f"Expected numeric value, got: {value}")
+        return issues
+
+    @staticmethod
+    def _validate_criticality_fields(sample_values: List[Any]) -> List[str]:
+        """Validate criticality format for values."""
+        issues = []
+        for value in sample_values[:MAX_VALIDATION_SAMPLES]:
+            if not FieldMappingValidator._is_valid_criticality(str(value)):
+                issues.append(f"Invalid criticality value: {value}")
+        return issues
+
+    @staticmethod
+    def _validate_status_fields(sample_values: List[Any]) -> List[str]:
+        """Validate status format for values."""
+        issues = []
+        for value in sample_values[:MAX_VALIDATION_SAMPLES]:
+            if not FieldMappingValidator._is_valid_status(str(value)):
+                issues.append(f"Invalid status value: {value}")
+        return issues
+
+    @staticmethod
     def validate_content(target_field: str, sample_values: List[Any]) -> List[str]:
         """
         Validate content against expected patterns for target field.
@@ -31,40 +85,30 @@ class FieldMappingValidator:
         Returns:
             List of validation issues found
         """
-        issues = []
+        # Field validation mapping
+        field_validators = {
+            "ip_address": FieldMappingValidator._validate_ip_addresses,
+            "email": FieldMappingValidator._validate_emails,
+            "hostname": FieldMappingValidator._validate_hostnames,
+            "status": FieldMappingValidator._validate_status_fields,
+        }
 
-        # Field-specific validation rules
-        if target_field == "ip_address":
-            for value in sample_values[:MAX_VALIDATION_SAMPLES]:  # Check first 5 values
-                if not FieldMappingValidator._is_valid_ip(str(value)):
-                    issues.append(f"Invalid IP address format: {value}")
+        # Check for direct field match
+        if target_field in field_validators:
+            issues = field_validators[target_field](sample_values)
+            return issues[:MAX_ISSUES_REPORTED]
 
-        elif target_field == "email":
-            for value in sample_values[:MAX_VALIDATION_SAMPLES]:
-                if not FieldMappingValidator._is_valid_email(str(value)):
-                    issues.append(f"Invalid email format: {value}")
+        # Check for field groups
+        if target_field in ["cpu_cores", "memory_gb", "storage_gb"]:
+            issues = FieldMappingValidator._validate_numeric_fields(sample_values)
+            return issues[:MAX_ISSUES_REPORTED]
 
-        elif target_field == "hostname":
-            for value in sample_values[:MAX_VALIDATION_SAMPLES]:
-                if not FieldMappingValidator._is_valid_hostname(str(value)):
-                    issues.append(f"Invalid hostname format: {value}")
+        if target_field in ["criticality", "priority"]:
+            issues = FieldMappingValidator._validate_criticality_fields(sample_values)
+            return issues[:MAX_ISSUES_REPORTED]
 
-        elif target_field in ["cpu_cores", "memory_gb", "storage_gb"]:
-            for value in sample_values[:MAX_VALIDATION_SAMPLES]:
-                if not FieldMappingValidator._is_numeric(value):
-                    issues.append(f"Expected numeric value, got: {value}")
-
-        elif target_field in ["criticality", "priority"]:
-            for value in sample_values[:MAX_VALIDATION_SAMPLES]:
-                if not FieldMappingValidator._is_valid_criticality(str(value)):
-                    issues.append(f"Invalid criticality value: {value}")
-
-        elif target_field == "status":
-            for value in sample_values[:MAX_VALIDATION_SAMPLES]:
-                if not FieldMappingValidator._is_valid_status(str(value)):
-                    issues.append(f"Invalid status value: {value}")
-
-        return issues[:MAX_ISSUES_REPORTED]  # Return max 3 issues
+        # No validation rules for this field
+        return []
 
     @staticmethod
     def _is_valid_ip(value: str) -> bool:

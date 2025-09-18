@@ -201,7 +201,9 @@ class CollectionFlow(Base, TimestampMixin):
     engagement = relationship("Engagement", back_populates="collection_flows")
     user = relationship("User", back_populates="collection_flows")
     master_flow = relationship(
-        "CrewAIFlowStateExtensions", back_populates="collection_flow"
+        "CrewAIFlowStateExtensions",
+        foreign_keys=[master_flow_id],
+        back_populates="collection_flow",
     )
     discovery_flow = relationship("DiscoveryFlow", back_populates="collection_flows")
 

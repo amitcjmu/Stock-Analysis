@@ -84,7 +84,7 @@ const TechDebtAnalysis = (): JSX.Element => {
 
   // Get tech debt specific data from V2 flow - extract from flow state
   const techDebtResults = flow?.results?.tech_debt || flow?.tech_debt_analysis || flow?.results?.tech_debt_analysis || {};
-  const isTechDebtComplete = completedPhases.includes('tech_debt') || completedPhases.includes('tech_debt_completed');
+  const isTechDebtComplete = completedPhases.includes('tech_debt') || completedPhases.includes('tech_debt_assessment_completed');
 
   // Local state for UI
   const [selectedCategory, setSelectedCategory] = useState('all');

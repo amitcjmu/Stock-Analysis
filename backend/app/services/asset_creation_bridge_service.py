@@ -357,7 +357,7 @@ class AssetCreationBridgeService:
         Update discovery flow with asset creation completion data.
         """
         # Update flow progress and status
-        discovery_flow.inventory_completed = True
+        discovery_flow.asset_inventory_completed = True
         discovery_flow.update_progress()  # Recalculate progress based on completed phases
 
         # Store asset creation results in crewai_state_data

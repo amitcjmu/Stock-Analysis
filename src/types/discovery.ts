@@ -161,11 +161,11 @@ export interface DiscoveryFlowData {
   progress_percentage: number;
   phases: {
     data_import_completed: boolean;
-    attribute_mapping_completed: boolean;
+    field_mapping_completed: boolean;
     data_cleansing_completed: boolean;
-    inventory_completed: boolean;
-    dependencies_completed: boolean;
-    tech_debt_completed: boolean;
+    asset_inventory_completed: boolean;
+    dependency_analysis_completed: boolean;
+    tech_debt_assessment_completed: boolean;
   };
   current_phase: string;
   next_phase?: string;

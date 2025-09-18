@@ -79,9 +79,9 @@ class DiscoveryFlowCompletionService:
             # Check 1: All required phases completed
             required_phases = [
                 "data_import_completed",
-                "attribute_mapping_completed",
+                "field_mapping_completed",
                 "data_cleansing_completed",
-                "inventory_completed",
+                "asset_inventory_completed",
             ]
 
             completed_phases = []

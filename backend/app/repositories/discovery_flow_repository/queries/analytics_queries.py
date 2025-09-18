@@ -168,7 +168,7 @@ class AnalyticsQueries:
                     else 0
                 ),
                 "attribute_mapping": (
-                    sum(1 for f in flows if f.attribute_mapping_completed) / total_flows
+                    sum(1 for f in flows if f.field_mapping_completed) / total_flows
                     if total_flows > 0
                     else 0
                 ),
@@ -178,17 +178,19 @@ class AnalyticsQueries:
                     else 0
                 ),
                 "inventory": (
-                    sum(1 for f in flows if f.inventory_completed) / total_flows
+                    sum(1 for f in flows if f.asset_inventory_completed) / total_flows
                     if total_flows > 0
                     else 0
                 ),
                 "dependencies": (
-                    sum(1 for f in flows if f.dependencies_completed) / total_flows
+                    sum(1 for f in flows if f.dependency_analysis_completed)
+                    / total_flows
                     if total_flows > 0
                     else 0
                 ),
                 "tech_debt": (
-                    sum(1 for f in flows if f.tech_debt_completed) / total_flows
+                    sum(1 for f in flows if f.tech_debt_assessment_completed)
+                    / total_flows
                     if total_flows > 0
                     else 0
                 ),

@@ -73,11 +73,11 @@ def test_get_flow_status_success(mock_session, mock_repo, service_layer):
     mock_flow.is_complete.return_value = False
     mock_flow.created_at = None
     mock_flow.data_import_completed = True
-    mock_flow.attribute_mapping_completed = False
+    mock_flow.field_mapping_completed = False
     mock_flow.data_cleansing_completed = False
-    mock_flow.inventory_completed = False
-    mock_flow.dependencies_completed = False
-    mock_flow.tech_debt_completed = False
+    mock_flow.asset_inventory_completed = False
+    mock_flow.dependency_analysis_completed = False
+    mock_flow.tech_debt_assessment_completed = False
 
     # Mock repository
     mock_repo_instance = Mock()
@@ -137,7 +137,7 @@ def test_validate_phase_transition_success(mock_session, mock_repo, service_laye
     # Mock flow object
     mock_flow = Mock()
     mock_flow.data_import_completed = True
-    mock_flow.attribute_mapping_completed = False
+    mock_flow.field_mapping_completed = False
     mock_flow.get_current_phase.return_value = "data_import"
 
     # Mock repository
@@ -271,7 +271,7 @@ def test_get_discovered_assets(mock_session, mock_repo, service_layer):
     mock_flow.flow_id = "test-flow-id"
     mock_flow.client_account_id = "test-client"
     mock_flow.engagement_id = "test-engagement"
-    mock_flow.inventory_completed = True
+    mock_flow.asset_inventory_completed = True
 
     mock_repo_instance = Mock()
     mock_repo_instance.get_by_flow_id = AsyncMock(return_value=mock_flow)
@@ -318,7 +318,7 @@ def test_get_tech_debt_analysis(service_layer):
     ) as mock_session:
         # Mock flow with tech debt data
         mock_flow = Mock()
-        mock_flow.tech_debt_completed = True
+        mock_flow.tech_debt_assessment_completed = True
         mock_flow.crewai_state_data = {
             "tech_debt": {
                 "total_score": 85.5,
