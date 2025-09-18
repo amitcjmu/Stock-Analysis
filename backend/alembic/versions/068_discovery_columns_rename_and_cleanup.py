@@ -19,7 +19,8 @@ Create Date: 2025-09-18 00:00:00.000000
 """
 
 from alembic import op
-from sqlalchemy import text, Boolean
+from sqlalchemy import text, Boolean, Column
+from sqlalchemy.sql import expression
 import logging
 
 # revision identifiers, used by Alembic.
@@ -117,12 +118,12 @@ def upgrade() -> None:
                 f"   🔄 Both {legacy} and {canonical} exist - copying data from legacy to canonical..."
             )
 
-            # Copy data from legacy to canonical where canonical is false but legacy is true
+            # Copy data from legacy to canonical where values differ (including NULLs)
             copy_sql = text(
                 f"""
                 UPDATE migration.discovery_flows
                 SET {canonical} = {legacy}
-                WHERE {legacy} = true AND {canonical} = false
+                WHERE {legacy} IS NOT NULL AND {canonical} IS DISTINCT FROM {legacy}
             """
             )
             result = conn.execute(copy_sql)
@@ -145,7 +146,12 @@ def upgrade() -> None:
             )
             op.add_column(
                 "discovery_flows",
-                op.Column(canonical, Boolean, nullable=False, default=False),
+                Column(
+                    canonical,
+                    Boolean,
+                    nullable=False,
+                    server_default=expression.false(),
+                ),
                 schema="migration",
             )
 
@@ -162,7 +168,7 @@ def upgrade() -> None:
             print(f"   ➕ Adding missing canonical column: {col}")
             op.add_column(
                 "discovery_flows",
-                op.Column(col, Boolean, nullable=False, default=False),
+                Column(col, Boolean, nullable=False, server_default=expression.false()),
                 schema="migration",
             )
         else:

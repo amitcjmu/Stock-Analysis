@@ -206,6 +206,15 @@ def upgrade() -> None:
                 schema="migration",
             )
 
+            # Step 7: Create index on master_flow_id for performance
+            print("   🔍 Creating index on master_flow_id...")
+            op.create_index(
+                "ix_discovery_flows_master_flow_id",
+                "discovery_flows",
+                ["master_flow_id"],
+                schema="migration",
+            )
+
             print("   ✅ Atomic FK swap completed successfully")
 
         # Verify final state outside transaction
