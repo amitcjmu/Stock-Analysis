@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="9" time="148.523" timestamp="2025-09-17T16:07:47.729385+00:00" hostname="fe12c6a45410"><testcase classname="tests.test_performance_benchmarks.TestAuthPerformanceBenchmarks" name="test_login_performance_benchmark" time="1.219" /><testcase classname="tests.test_performance_benchmarks.TestAuthPerformanceBenchmarks" name="test_context_switching_benchmark" time="0.029"><failure message="assert None is not None">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_performance_benchmarks.py:391: in test_context_switching_benchmark
+    ???
+E   assert None is not None</failure></testcase><testcase classname="tests.test_performance_benchmarks.TestAuthPerformanceBenchmarks" name="test_cache_operations_benchmark" time="5.647" /><testcase classname="tests.test_performance_benchmarks.TestAuthPerformanceBenchmarks" name="test_concurrent_users_benchmark" time="0.032"><failure message="AssertionError: Only 0/10 users succeeded&#10;assert 0 == 10">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_performance_benchmarks.py:634: in test_concurrent_users_benchmark
+    ???
+E   AssertionError: Only 0/10 users succeeded
+E   assert 0 == 10</failure></testcase><testcase classname="tests.test_performance_benchmarks.TestAuthPerformanceBenchmarks" name="test_high_load_stress_benchmark" time="30.040" /><testcase classname="tests.test_performance_benchmarks.TestAuthPerformanceBenchmarks" name="test_memory_efficiency_benchmark" time="0.487"><failure message="AssertionError: Eviction took 338.4ms&#10;assert 338.4493750054389 &lt; 100">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_performance_benchmarks.py:892: in test_memory_efficiency_benchmark
+    ???
+E   AssertionError: Eviction took 338.4ms
+E   assert 338.4493750054389 &lt; 100</failure></testcase><testcase classname="tests.test_performance_benchmarks.TestAuthPerformanceBenchmarks" name="test_error_recovery_performance_benchmark" time="50.422"><failure message="AssertionError: redis_slow average 1008.1ms exceeds target 600ms&#10;assert 1008.083425424993 &lt; 600">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_performance_benchmarks.py:999: in test_error_recovery_performance_benchmark
+    ???
+E   AssertionError: redis_slow average 1008.1ms exceeds target 600ms
+E   assert 1008.083425424993 &lt; 600</failure></testcase><testcase classname="tests.test_performance_benchmarks.TestPerformanceRegression" name="test_performance_targets_validation" time="0.341"><failure message="TypeError: UserContext.__init__() got an unexpected keyword argument 'test'">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/test_performance_benchmarks.py:1172: in test_performance_targets_validation
+    ???
+app/services/caching/auth_cache_service/session_management.py:154: in update_user_context
+    context = UserContext(user_id=user_id, **updates)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: UserContext.__init__() got an unexpected keyword argument 'test'</failure></testcase><testcase classname="tests.test_performance_benchmarks.TestPerformanceRegression" name="test_sustained_performance_validation" time="60.079" /></testsuite></testsuites>

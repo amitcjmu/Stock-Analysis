@@ -354,9 +354,11 @@ export const useProgressMonitoring = (
           name: `Collection Flow - ${flowDetails.automation_tier}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
-          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
+          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
+                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'automated_collection' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
-                  flowDetails.status === 'paused' ? 'paused' : 'failed',
+                  flowDetails.status === 'paused' ? 'paused' :
+                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
           progress: flowDetails.progress_percentage || 0,  // Use correct field
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
@@ -414,9 +416,11 @@ export const useProgressMonitoring = (
           name: `Collection Flow - ${flowDetails.automation_tier}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
-          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
+          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
+                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'automated_collection' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
-                  flowDetails.status === 'paused' ? 'paused' : 'failed',
+                  flowDetails.status === 'paused' ? 'paused' :
+                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
           progress: flowDetails.progress_percentage || 0,  // Use correct field
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,

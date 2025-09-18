@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="11" time="4.146" timestamp="2025-09-17T16:06:16.950351+00:00" hostname="fe12c6a45410"><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestGetAdaptiveQuestionnaireTenantScoping" name="test_get_questionnaires_filters_by_tenant_context" time="0.207"><failure message="AttributeError: &lt;module 'app.api.v1.endpoints.collection_serializers' from '/app/app/api/v1/endpoints/collection_serializers.py'&gt; does not have the attribute 'serialize_adaptive_questionnaire'">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:132: in test_get_questionnaires_filters_by_tenant_context
+    ???
+/usr/local/lib/python3.11/unittest/mock.py:1446: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/unittest/mock.py:1419: in get_original
+    raise AttributeError(
+E   AttributeError: &lt;module 'app.api.v1.endpoints.collection_serializers' from '/app/app/api/v1/endpoints/collection_serializers.py'&gt; does not have the attribute 'serialize_adaptive_questionnaire'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestGetAdaptiveQuestionnaireTenantScoping" name="test_get_questionnaires_unauthorized_tenant_returns_not_found" time="0.004"><failure message="assert 500 == 404&#10; +  where 500 = HTTPException(status_code=500, detail=&quot;'coroutine' object has no attribute 'id'&quot;).status_code&#10; +    where HTTPException(status_code=500, detail=&quot;'coroutine' object has no attribute 'id'&quot;) = &lt;ExceptionInfo HTTPException(status_code=500, detail=&quot;'coroutine' object has no attribute 'id'&quot;) tblen=2&gt;.value">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:177: in test_get_questionnaires_unauthorized_tenant_returns_not_found
+    ???
+E   assert 500 == 404
+E    +  where 500 = HTTPException(status_code=500, detail="'coroutine' object has no attribute 'id'").status_code
+E    +    where HTTPException(status_code=500, detail="'coroutine' object has no attribute 'id'") = &lt;ExceptionInfo HTTPException(status_code=500, detail="'coroutine' object has no attribute 'id'") tblen=2&gt;.value</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestGetAdaptiveQuestionnaireTenantScoping" name="test_get_questionnaires_cross_tenant_isolation" time="0.004"><failure message="assert 500 == 404&#10; +  where 500 = HTTPException(status_code=500, detail=&quot;'coroutine' object has no attribute 'id'&quot;).status_code&#10; +    where HTTPException(status_code=500, detail=&quot;'coroutine' object has no attribute 'id'&quot;) = &lt;ExceptionInfo HTTPException(status_code=500, detail=&quot;'coroutine' object has no attribute 'id'&quot;) tblen=2&gt;.value">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:208: in test_get_questionnaires_cross_tenant_isolation
+    ???
+E   assert 500 == 404
+E    +  where 500 = HTTPException(status_code=500, detail="'coroutine' object has no attribute 'id'").status_code
+E    +    where HTTPException(status_code=500, detail="'coroutine' object has no attribute 'id'") = &lt;ExceptionInfo HTTPException(status_code=500, detail="'coroutine' object has no attribute 'id'") tblen=2&gt;.value</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestGetAdaptiveQuestionnaireTenantScoping" name="test_get_questionnaires_validates_uuid_format" time="0.002" /><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestSubmitQuestionnaireTenantScoping" name="test_submit_response_filters_by_tenant_context" time="0.007"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:256: in test_submit_response_filters_by_tenant_context
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestSubmitQuestionnaireTenantScoping" name="test_submit_response_unauthorized_tenant_returns_not_found" time="0.004"><failure message="assert 500 == 404&#10; +  where 500 = HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;).status_code&#10; +    where HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;) = &lt;ExceptionInfo HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;) tblen=2&gt;.value">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:294: in test_submit_response_unauthorized_tenant_returns_not_found
+    ???
+E   assert 500 == 404
+E    +  where 500 = HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'").status_code
+E    +    where HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'") = &lt;ExceptionInfo HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'") tblen=2&gt;.value</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestSubmitQuestionnaireTenantScoping" name="test_submit_response_asset_validation_tenant_scoped" time="0.007"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:326: in test_submit_response_asset_validation_tenant_scoped
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestSubmitQuestionnaireTenantScoping" name="test_submit_response_asset_from_different_tenant_rejected" time="0.006"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:373: in test_submit_response_asset_from_different_tenant_rejected
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestSubmitQuestionnaireTenantScoping" name="test_submit_response_context_validation_required" time="0.004"><failure message="assert 500 == 404&#10; +  where 500 = HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;).status_code&#10; +    where HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;) = &lt;ExceptionInfo HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;) tblen=2&gt;.value">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:416: in test_submit_response_context_validation_required
+    ???
+E   assert 500 == 404
+E    +  where 500 = HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'").status_code
+E    +    where HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'") = &lt;ExceptionInfo HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'") tblen=2&gt;.value</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestTenantIsolationEdgeCases" name="test_uuid_vs_string_tenant_id_handling" time="0.006"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_tenant_scoping.py:448: in test_uuid_vs_string_tenant_id_handling
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_tenant_scoping.TestTenantIsolationEdgeCases" name="test_malformed_tenant_ids_rejected" time="0.004" /></testsuite></testsuites>
