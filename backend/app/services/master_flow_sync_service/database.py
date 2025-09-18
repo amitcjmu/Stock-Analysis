@@ -43,13 +43,13 @@ class FlowSyncDatabase:
             return None
 
     async def get_all_collection_flows(self) -> List[CollectionFlow]:
-        """Retrieve all collection flows for the current tenant with master flow IDs"""
+        """Retrieve all collection flows for the current tenant"""
         try:
             result = await self.db.execute(
                 select(CollectionFlow).where(
                     CollectionFlow.client_account_id == self.context.client_account_id,
                     CollectionFlow.engagement_id == self.context.engagement_id,
-                    CollectionFlow.master_flow_id.isnot(None),
+                    # Don't filter by master_flow_id - not all flows have it yet
                 )
             )
             return result.scalars().all()
@@ -58,13 +58,13 @@ class FlowSyncDatabase:
             return []
 
     async def get_all_assessment_flows(self) -> List[AssessmentFlow]:
-        """Retrieve all assessment flows for the current tenant with master flow IDs"""
+        """Retrieve all assessment flows for the current tenant"""
         try:
             result = await self.db.execute(
                 select(AssessmentFlow).where(
                     AssessmentFlow.client_account_id == self.context.client_account_id,
                     AssessmentFlow.engagement_id == self.context.engagement_id,
-                    AssessmentFlow.master_flow_id.isnot(None),
+                    # Don't filter by master_flow_id - AssessmentFlow model doesn't have it
                 )
             )
             return result.scalars().all()
