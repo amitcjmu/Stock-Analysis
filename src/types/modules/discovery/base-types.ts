@@ -48,11 +48,11 @@ export type FlowStatus = 'active' | 'completed' | 'failed' | 'paused' | 'waiting
  */
 export interface PhaseCompletion {
   dataImportCompleted: boolean;
-  attributeMappingCompleted: boolean;
+  field_mapping_completed: boolean;
   dataCleansingCompleted: boolean;
-  inventoryCompleted: boolean;
-  dependenciesCompleted: boolean;
-  techDebtCompleted: boolean;
+  asset_inventory_completed: boolean;
+  dependency_analysis_completed: boolean;
+  tech_debt_assessment_completed: boolean;
 }
 
 /**

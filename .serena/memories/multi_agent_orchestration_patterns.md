@@ -1,77 +1,59 @@
-# Multi-Agent Orchestration Patterns
+# Multi-Agent Orchestration Patterns - 2025-09-18
 
-## Effective Agent Usage Strategy
-
-### Agent Selection Criteria
+## Insight 1: Parallel Agent Deployment for Complex Tasks
+**Problem**: Need to coordinate multiple specialized agents for comprehensive fixes
+**Solution**: Deploy agents in parallel when tasks are independent
 ```python
-# Choose agents based on domain expertise:
-devsecops-linting-engineer: Code quality, linting, security analysis
-sre-precommit-enforcer: Pre-commit failures, systematic fixes
-python-crewai-fastapi-expert: Backend implementation, API design
-nextjs-ui-architect: Frontend components, React patterns
-qa-playwright-tester: E2E testing, UI validation
-pgvector-data-architect: Database schema, vector operations
-```
-
-### Orchestration Pattern
-```python
-# 1. Discovery Phase - Use DevSecOps agent
-Task: "Analyze the codebase to understand current implementation"
-Output: Detailed analysis of existing patterns, issues, gaps
-
-# 2. Implementation Phase - Use domain experts
-Task: "Implement [specific feature] following discovered patterns"
-Output: Working code with proper integration
-
-# 3. Testing Phase - Use QA agent
-Task: "Test the implementation with real scenarios"
-Output: Test results, screenshots, validation report
-
-# 4. Cleanup Phase - Use SRE agent
-Task: "Fix all pre-commit failures systematically"
-Output: Clean, committable code
-```
-
-### Parallel Agent Execution
-```python
-# Run multiple agents concurrently for independent tasks:
+# Parallel deployment pattern
 agents = [
-    Task("Analyze backend", "devsecops-linting-engineer"),
-    Task("Check frontend", "nextjs-ui-architect"),
-    Task("Review database", "pgvector-data-architect")
+    ("python-crewai-fastapi-expert", backend_fixes),
+    ("nextjs-ui-architect", frontend_fixes),
+    ("pgvector-data-architect", database_migrations)
 ]
-# Results synthesized after parallel execution
+# Execute simultaneously, gather results, then proceed
 ```
+**Usage**: When fixes span multiple layers (backend/frontend/database)
 
-### Agent Communication Pattern
-```python
-# Pass context between agents:
-discovery_result = await devsecops_agent.analyze()
-implementation_spec = {
-    "findings": discovery_result.issues,
-    "patterns": discovery_result.patterns,
-    "requirements": user_requirements
-}
-implementation = await python_expert.implement(implementation_spec)
+## Insight 2: Agent Task Delegation with Strict Instructions
+**Problem**: Agents improvising beyond plan scope causing issues
+**Critical Instructions**:
+```markdown
+IMPORTANT: First read these files:
+1. /docs/analysis/code-review/revised_schema_consolidation_plan.md
+2. /docs/analysis/Notes/coding-agent-guide.md
+
+CRITICAL: STICK TO THE PLAN. Do NOT improvise or add features not in the plan.
+
+[Specific task details with exact line numbers and file paths]
 ```
+**Usage**: Prevent agent hallucination and scope creep
 
-### Success Metrics
-- Discovery agents find root causes, not symptoms
-- Implementation agents follow existing patterns
-- Testing agents provide concrete evidence
-- Cleanup agents fix without shortcuts
+## Insight 3: Issue Triage Before Implementation
+**Problem**: Unknown scope of required changes
+**Solution**: Deploy issue-triage-coordinator first
+```
+1. Analyze current state
+2. Identify all inconsistencies
+3. Catalog files needing changes
+4. Create implementation plan
+5. Then deploy specialized agents
+```
+**Usage**: For comprehensive fixes across large codebases
 
-## Real Example: Field Mapping Intelligence
-1. DevSecOps discovered placeholder returning 0.5 confidence
-2. SRE implemented real IntelligentMappingEngine
-3. Python expert created learning service
-4. NextJS architect built UI components
-5. QA validated with Playwright
-6. SRE fixed all pre-commit issues
+## Insight 4: QA Validation with Playwright
+**Problem**: Need to verify fixes work end-to-end
+**Solution**: Deploy qa-playwright-tester after implementation
+- Test specific changed functionality
+- Check for console errors
+- Verify API responses use new field names
+- Smoke test critical paths
+**Usage**: Post-implementation validation
 
-## Common Pitfalls Avoided
-- Don't use agents for simple tasks (use direct tools)
-- Don't skip discovery phase
-- Don't ignore agent findings
-- Always validate with QA agent
-- Always cleanup with SRE agent
+## Insight 5: Pre-commit Enforcement Pattern
+**Problem**: Code quality issues blocking commits
+**Solution**: Deploy sre-precommit-enforcer to fix:
+- Boolean comparisons (`is True` vs `== True`)
+- Unused imports
+- Type annotations
+- Formatting issues
+**Note**: Some agents handle this automatically, verify after

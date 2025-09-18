@@ -127,7 +127,7 @@ class DataHandler:
                     "flow_id": flow_id,
                     "mappings": field_mappings,
                     "metadata": {
-                        "attribute_mapping_completed": flow.field_mapping_completed,
+                        "field_mapping_completed": flow.field_mapping_completed,
                         "mapping_timestamp": (
                             flow.updated_at.isoformat() if flow.updated_at else None
                         ),

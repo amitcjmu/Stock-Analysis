@@ -292,7 +292,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 "datacenter": asset_data_source.get("datacenter"),
                 # Discovery metadata
                 "discovery_source": "Discovery Flow Import",
-                "raw_import_records_id": record.id,
+                "raw_import_records_id": record.id if hasattr(record, "id") else None,
                 # Flow association
                 "master_flow_id": master_flow_id,
                 "flow_id": master_flow_id,  # Backward compatibility
@@ -338,6 +338,29 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             logger.error(f"❌ Failed to mark records as processed: {e}")
             # Don't raise - asset creation succeeded even if we can't mark records
 
+    def _flatten_cleansed_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Flatten nested cleansed_data structures.
+
+        Args:
+            data: Dictionary that may contain nested cleansed_data structures
+
+        Returns:
+            Flattened dictionary with all cleansed_data content at top level
+        """
+        if not isinstance(data, dict):
+            return {}
+
+        result = {}
+        for key, value in data.items():
+            if key == "cleansed_data" and isinstance(value, dict):
+                # Recursively flatten nested cleansed_data
+                result.update(self._flatten_cleansed_data(value))
+            else:
+                result[key] = value
+
+        return result
+
     def _classify_asset_type(self, asset_data_source: Dict[str, Any]) -> str:
         """
         Intelligently classify asset type based on available data.
@@ -348,17 +371,20 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         Returns:
             String representing the asset type classification
         """
+        # CRITICAL FIX: Flatten nested cleansed_data structures before classification
+        flattened_data = self._flatten_cleansed_data(asset_data_source)
+
         # Use resolved_name if available, otherwise check multiple name fields
-        resolved_name = str(asset_data_source.get("resolved_name", "")).lower()
-        name = str(asset_data_source.get("name", "")).lower()
-        hostname = str(asset_data_source.get("hostname", "")).lower()
-        server_name = str(asset_data_source.get("server_name", "")).lower()
-        asset_name = str(asset_data_source.get("asset_name", "")).lower()
-        app_name = str(asset_data_source.get("application_name", "")).lower()
-        asset_type = str(asset_data_source.get("type", "")).lower()
+        resolved_name = str(flattened_data.get("resolved_name", "")).lower()
+        name = str(flattened_data.get("name", "")).lower()
+        hostname = str(flattened_data.get("hostname", "")).lower()
+        server_name = str(flattened_data.get("server_name", "")).lower()
+        asset_name = str(flattened_data.get("asset_name", "")).lower()
+        app_name = str(flattened_data.get("application_name", "")).lower()
+        asset_type = str(flattened_data.get("type", "")).lower()
 
         # Check CI Type field which is common in CMDB imports
-        ci_type = str(asset_data_source.get("CI Type", "")).lower()
+        ci_type = str(flattened_data.get("CI Type", "")).lower()
 
         # Combine all name fields for comprehensive checking
         all_names = f"{resolved_name} {name} {hostname} {server_name} {asset_name} {app_name}".lower()
@@ -418,9 +444,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         ]
         if any(keyword in all_names for keyword in application_keywords):
             return "Application"
-        if asset_data_source.get("application_name") or asset_data_source.get(
-            "app_name"
-        ):
+        if flattened_data.get("application_name") or flattened_data.get("app_name"):
             return "Application"
 
         # Priority 4: Network device detection
@@ -442,11 +466,16 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         if any(keyword in asset_type for keyword in ["network", "switch", "router"]):
             return "Network Device"
 
-        # Priority 5: Server detection (most conservative)
+        # Priority 5: Server detection (most conservative) - ENHANCED WITH FLATTENED DATA
         server_keywords = ["server", "srv", "host", "vm", "virtual", "node"]
-        if any(keyword in all_names for keyword in server_keywords) or hostname:
-            return "Server"
-        if asset_data_source.get("os") or asset_data_source.get("operating_system"):
+        # Check for operating system (both 'os' and 'operating_system')
+        has_os = flattened_data.get("os") or flattened_data.get("operating_system")
+
+        if (
+            any(keyword in all_names for keyword in server_keywords)
+            or hostname
+            or has_os
+        ):
             return "Server"
 
         # Priority 6: Storage detection

@@ -25,21 +25,21 @@ class MockDiscoveryFlow:
         self.progress_percentage = progress
         self.updated_at = datetime.utcnow()
         self.data_import_completed = True
-        self.attribute_mapping_completed = True
+        self.field_mapping_completed = True
         self.data_cleansing_completed = False
-        self.inventory_completed = False
-        self.dependencies_completed = False
-        self.tech_debt_completed = False
+        self.asset_inventory_completed = False
+        self.dependency_analysis_completed = False
+        self.tech_debt_assessment_completed = False
 
     def get_current_phase(self) -> str:
         """Return current phase based on completion status"""
         if not self.data_cleansing_completed:
             return "data_cleansing"
-        elif not self.inventory_completed:
+        elif not self.asset_inventory_completed:
             return "inventory"
-        elif not self.dependencies_completed:
+        elif not self.dependency_analysis_completed:
             return "dependencies"
-        elif not self.tech_debt_completed:
+        elif not self.tech_debt_assessment_completed:
             return "tech_debt"
         return "completed"
 
@@ -53,11 +53,11 @@ class MockDiscoveryFlow:
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "phase_completion": {
                 "data_import": self.data_import_completed,
-                "attribute_mapping": self.attribute_mapping_completed,
+                "attribute_mapping": self.field_mapping_completed,
                 "data_cleansing": self.data_cleansing_completed,
-                "inventory": self.inventory_completed,
-                "dependencies": self.dependencies_completed,
-                "tech_debt": self.tech_debt_completed,
+                "inventory": self.asset_inventory_completed,
+                "dependencies": self.dependency_analysis_completed,
+                "tech_debt": self.tech_debt_assessment_completed,
             }
         }
 
