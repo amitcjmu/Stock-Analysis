@@ -45,11 +45,11 @@ class FlowSpecifications:
         """Specification for flows with incomplete phases"""
         return ~and_(
             DiscoveryFlow.data_import_completed is True,
-            DiscoveryFlow.attribute_mapping_completed is True,
+            DiscoveryFlow.field_mapping_completed is True,
             DiscoveryFlow.data_cleansing_completed is True,
-            DiscoveryFlow.inventory_completed is True,
-            DiscoveryFlow.dependencies_completed is True,
-            DiscoveryFlow.tech_debt_completed is True,
+            DiscoveryFlow.asset_inventory_completed is True,
+            DiscoveryFlow.dependency_analysis_completed is True,
+            DiscoveryFlow.tech_debt_assessment_completed is True,
         )
 
     @staticmethod
@@ -87,12 +87,12 @@ class FlowSpecifications:
         """Specification for flows with specific phase completed"""
         phase_map = {
             "data_import": DiscoveryFlow.data_import_completed,
-            "attribute_mapping": DiscoveryFlow.attribute_mapping_completed,
-            "field_mapping": DiscoveryFlow.attribute_mapping_completed,
+            "attribute_mapping": DiscoveryFlow.field_mapping_completed,
+            "field_mapping": DiscoveryFlow.field_mapping_completed,
             "data_cleansing": DiscoveryFlow.data_cleansing_completed,
-            "inventory": DiscoveryFlow.inventory_completed,
-            "dependencies": DiscoveryFlow.dependencies_completed,
-            "tech_debt": DiscoveryFlow.tech_debt_completed,
+            "inventory": DiscoveryFlow.asset_inventory_completed,
+            "dependencies": DiscoveryFlow.dependency_analysis_completed,
+            "tech_debt": DiscoveryFlow.tech_debt_assessment_completed,
         }
 
         if phase in phase_map:

@@ -257,7 +257,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       current_phase: response.current_phase || '',
       phase_completion: {
         data_import: response.summary?.data_import_completed || false,
-        field_mapping: response.summary?.field_mapping_completed || response.summary?.attribute_mapping_completed || false,
+        field_mapping: response.summary?.field_mapping_completed || false,
         data_cleansing: response.summary?.data_cleansing_completed || false,
         asset_inventory: response.summary?.asset_inventory_completed || false,
         dependency_analysis: response.summary?.dependency_analysis_completed || false,
@@ -485,7 +485,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       setPollingEnabled(false);
 
       // Clear invalid flow ID from localStorage on 404 error
-      const errorObj = error as any;
+      const errorObj = error as { status?: number; response?: { status?: number }; message?: string };
       if (errorObj?.status === 404 || errorObj?.response?.status === 404 ||
           errorObj?.message?.includes('404') || errorObj?.message?.includes('Not Found')) {
         SecureLogger.warn(`Flow ${flowId} not found (404), clearing from storage`);

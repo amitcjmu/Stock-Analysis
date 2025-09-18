@@ -2,7 +2,7 @@ import type React from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
-import { useDependencyFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
+import { useDependenciesFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useDependencyLogic } from '../../hooks/discovery/useDependencyLogic';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -28,7 +28,7 @@ const DependencyAnalysisPage = (): JSX.Element => {
     flowList,
     isFlowListLoading,
     hasEffectiveFlow
-  } = useDependencyFlowDetection();
+  } = useDependenciesFlowDetection();
 
   // V2 Discovery flow hook - pass effectiveFlowId instead of urlFlowId
   const {
@@ -70,7 +70,7 @@ const DependencyAnalysisPage = (): JSX.Element => {
   });
 
   // Get dependency analysis specific data from V2 flow - extract from flow state
-  const isDependencyAnalysisComplete = completedPhases.includes('dependency_analysis') || completedPhases.includes('dependencies_completed');
+  const isDependencyAnalysisComplete = completedPhases.includes('dependency_analysis') || completedPhases.includes('dependency_analysis_completed');
 
   // Handle dependency analysis execution
   const handleExecuteDependencyAnalysis = async (): void => {

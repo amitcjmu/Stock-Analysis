@@ -135,7 +135,9 @@ def build_summary(
         "total_records": len(raw_data),
         "data_import_completed": bool(discovery_flow.data_import_id and raw_data),
         "field_mapping_completed": bool(field_mappings),
-        "attribute_mapping_completed": bool(field_mappings),  # Alias for compatibility
+        "attribute_mapping_completed": bool(
+            field_mappings
+        ),  # Legacy alias for field_mapping_completed
         "data_cleansing_completed": (
             safe_phases_completed.get("data_cleansing", False)
             if safe_phases_completed

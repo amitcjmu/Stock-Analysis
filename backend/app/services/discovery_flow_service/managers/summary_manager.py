@@ -324,11 +324,11 @@ class SummaryManager:
         """Get phase completion status for a flow"""
         return {
             "data_import": flow.data_import_completed,
-            "attribute_mapping": flow.attribute_mapping_completed,
+            "attribute_mapping": flow.field_mapping_completed,
             "data_cleansing": flow.data_cleansing_completed,
-            "inventory": flow.inventory_completed,
-            "dependencies": flow.dependencies_completed,
-            "tech_debt": flow.tech_debt_completed,
+            "inventory": flow.asset_inventory_completed,
+            "dependencies": flow.dependency_analysis_completed,
+            "tech_debt": flow.tech_debt_assessment_completed,
         }
 
     def _analyze_flow_progress(

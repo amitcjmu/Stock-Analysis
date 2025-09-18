@@ -14,7 +14,6 @@ interface DiscoveryFlow {
   phases?: Record<string, boolean>;
   data_import_completed?: boolean;
   field_mapping_completed?: boolean;
-  attribute_mapping_completed?: boolean;
   data_cleansing_completed?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -102,8 +101,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       }
     }
 
-    // Priority 1.5: For attribute_mapping, also check flows that completed data_import
-    if (currentPhase === 'attribute_mapping') {
+    // Priority 1.5: For field_mapping, also check flows that completed data_import
+    if (currentPhase === 'field_mapping') {
       const dataImportCompleteFlow = flowList.find((flow: DiscoveryFlow) => {
         // Check if data_import is completed
         const dataImportCompleted = flow.phases?.data_import === true ||
@@ -113,11 +112,11 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         // Check if flow is in a suitable status
         const isPreferredStatus = preferredStatuses.includes(flow.status);
 
-        // Check if attribute_mapping is not yet completed
-        const attributeMappingNotCompleted = flow.phases?.attribute_mapping !== true &&
-                                           flow.attribute_mapping_completed !== true;
+        // Check if field_mapping is not yet completed
+        const fieldMappingNotCompleted = flow.phases?.field_mapping !== true &&
+                                           flow.field_mapping_completed !== true;
 
-        return dataImportCompleted && isPreferredStatus && attributeMappingNotCompleted;
+        return dataImportCompleted && isPreferredStatus && fieldMappingNotCompleted;
       });
 
       if (dataImportCompleteFlow) {
@@ -126,16 +125,13 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       }
     }
 
-    // Priority 1.6: For data_cleansing, also check flows that completed field_mapping/attribute_mapping
+    // Priority 1.6: For data_cleansing, also check flows that completed field_mapping
     if (currentPhase === 'data_cleansing') {
       const fieldMappingCompleteFlow = flowList.find((flow: DiscoveryFlow) => {
-        // Check if field_mapping or attribute_mapping is completed
+        // Check if field_mapping is completed
         const fieldMappingCompleted = flow.phases?.field_mapping === true ||
                                      flow.field_mapping_completed === true ||
-                                     flow.phases?.attribute_mapping === true ||
-                                     flow.attribute_mapping_completed === true ||
-                                     flow.current_phase === 'field_mapping' ||
-                                     flow.current_phase === 'attribute_mapping';
+                                     flow.current_phase === 'field_mapping';
 
         // Check if flow is in a suitable status
         const isPreferredStatus = preferredStatuses.includes(flow.status);
@@ -276,9 +272,9 @@ export const useDataImportFlowDetection = (): FlowAutoDetectionResult => {
   });
 };
 
-export const useAttributeMappingFlowDetection = (): FlowAutoDetectionResult => {
+export const useFieldMappingFlowDetection = (): FlowAutoDetectionResult => {
   return useDiscoveryFlowAutoDetection({
-    currentPhase: 'attribute_mapping',
+    currentPhase: 'field_mapping',
     preferredStatuses: ['initialized', 'running', 'active', 'initializing', 'processing', 'paused', 'waiting_for_user_approval', 'waiting_for_approval'],
     fallbackToAnyRunning: true
   });

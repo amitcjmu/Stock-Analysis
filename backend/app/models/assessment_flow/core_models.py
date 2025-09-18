@@ -10,7 +10,6 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     DateTime,
-    Float,
     ForeignKey,
     Integer,
     String,
@@ -68,7 +67,7 @@ class AssessmentFlow(Base):
     )
 
     # Progress tracking
-    progress = Column(Float, default=0.0, nullable=False)
+    progress = Column(Integer, default=0, nullable=False)
     phase_progress = Column(JSONB, default=lambda: {}, nullable=False)
 
     # Configuration and runtime data

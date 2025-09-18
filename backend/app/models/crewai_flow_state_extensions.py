@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
@@ -196,6 +196,30 @@ class CrewAIFlowStateExtensions(Base):
         comment="A flexible JSON blob for storing any other metadata related to the flow.",
     )
 
+    # Collection flow integration fields
+    collection_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("collection_flows.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Reference to associated collection flow if this is a collection-enabled flow.",
+    )
+    automation_tier = Column(
+        String(20),
+        nullable=True,
+        comment="Automation tier for this flow (e.g., 'basic', 'advanced', 'full').",
+    )
+    collection_quality_score = Column(
+        Float,
+        nullable=True,
+        comment="Quality score for data collection activities in this flow.",
+    )
+    data_collection_metadata = Column(
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        comment="Metadata about data collection activities and quality metrics.",
+    )
+
     # Timestamps
     created_at = Column(
         DateTime(timezone=True),
@@ -302,6 +326,12 @@ class CrewAIFlowStateExtensions(Base):
             "parent_flow_id": str(self.parent_flow_id) if self.parent_flow_id else None,
             "child_flow_ids": self.child_flow_ids or [],
             "flow_metadata": self.flow_metadata or {},
+            "collection_flow_id": (
+                str(self.collection_flow_id) if self.collection_flow_id else None
+            ),
+            "automation_tier": self.automation_tier,
+            "collection_quality_score": self.collection_quality_score,
+            "data_collection_metadata": self.data_collection_metadata or {},
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

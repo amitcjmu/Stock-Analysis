@@ -48,7 +48,7 @@ export const useTechDebtLogic = (flowId?: string): JSX.Element => {
   }, [flow, updatePhase]);
 
   const canContinueToNextPhase = useCallback(() => {
-    return flow?.phases?.tech_debt_analysis === true || flow?.phases?.tech_debt_completed === true;
+    return flow?.phases?.tech_debt_analysis === true || flow?.phases?.tech_debt_assessment_completed === true;
   }, [flow]);
 
   return {

@@ -116,11 +116,11 @@ class CrewAIIntegrationService:
                 "progress_percentage": flow.progress_percentage,
                 "phase_completion": {
                     "data_import": flow.data_import_completed,
-                    "attribute_mapping": flow.attribute_mapping_completed,
+                    "attribute_mapping": flow.field_mapping_completed,
                     "data_cleansing": flow.data_cleansing_completed,
-                    "inventory": flow.inventory_completed,
-                    "dependencies": flow.dependencies_completed,
-                    "tech_debt": flow.tech_debt_completed,
+                    "inventory": flow.asset_inventory_completed,
+                    "dependencies": flow.dependency_analysis_completed,
+                    "tech_debt": flow.tech_debt_assessment_completed,
                 },
                 "raw_data": flow.raw_data or [],
                 "metadata": flow.metadata or {},
@@ -192,11 +192,11 @@ class CrewAIIntegrationService:
             crewai_phases = crewai_state.get("phase_completion", {})
             db_phases = {
                 "data_import": flow.data_import_completed,
-                "attribute_mapping": flow.attribute_mapping_completed,
+                "attribute_mapping": flow.field_mapping_completed,
                 "data_cleansing": flow.data_cleansing_completed,
-                "inventory": flow.inventory_completed,
-                "dependencies": flow.dependencies_completed,
-                "tech_debt": flow.tech_debt_completed,
+                "inventory": flow.asset_inventory_completed,
+                "dependencies": flow.dependency_analysis_completed,
+                "tech_debt": flow.tech_debt_assessment_completed,
             }
 
             for phase, db_status in db_phases.items():

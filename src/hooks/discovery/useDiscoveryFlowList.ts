@@ -11,11 +11,11 @@ export interface DiscoveryFlow {
   next_phase?: string;
   phases?: Record<string, boolean>;
   data_import_completed?: boolean;
-  attribute_mapping_completed?: boolean;
+  field_mapping_completed?: boolean;
   data_cleansing_completed?: boolean;
-  inventory_completed?: boolean;
-  dependencies_completed?: boolean;
-  tech_debt_completed?: boolean;
+  asset_inventory_completed?: boolean;
+  dependency_analysis_completed?: boolean;
+  tech_debt_assessment_completed?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -52,11 +52,11 @@ export const useDiscoveryFlowList = (): UseQueryResult<DiscoveryFlow[], Error> =
           // Use reasonable defaults for phase completion flags since MFO doesn't provide these
           phases: {},
           data_import_completed: flow.progress > 10,
-          attribute_mapping_completed: flow.progress > 25,
+          field_mapping_completed: flow.progress > 25,
           data_cleansing_completed: flow.progress > 50,
-          inventory_completed: flow.progress > 70,
-          dependencies_completed: flow.progress > 85,
-          tech_debt_completed: flow.progress >= 100,
+          asset_inventory_completed: flow.progress > 70,
+          dependency_analysis_completed: flow.progress > 85,
+          tech_debt_assessment_completed: flow.progress >= 100,
         }));
 
         console.log('✅ Transformed discovery flows:', transformedFlows);
