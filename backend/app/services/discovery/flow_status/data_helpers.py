@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.discovery.data_extraction_service import extract_raw_data
+from app.services.discovery.phase_persistence_helpers import persist_if_changed
 
 logger = logging.getLogger(__name__)
 
@@ -124,15 +125,29 @@ def convert_list_mappings_to_dict(
     return field_mappings
 
 
-def build_summary(
-    raw_data: List[Dict[str, Any]],
+async def derive_and_persist_flags(
+    db: AsyncSession,
     discovery_flow: DiscoveryFlow,
+    raw_data: List[Dict[str, Any]],
     field_mappings: Dict[str, Any],
     safe_phases_completed: Dict[str, Any],
-) -> Dict[str, Any]:
-    """Build summary data for frontend compatibility"""
-    return {
-        "total_records": len(raw_data),
+) -> Dict[str, bool]:
+    """
+    Derive boolean flags from data sources and persist changes.
+    Implements write-through semantics for completion flags.
+
+    Args:
+        db: Database session
+        discovery_flow: DiscoveryFlow instance
+        raw_data: Loaded raw data records
+        field_mappings: Parsed field mappings
+        safe_phases_completed: Safe phases completed data
+
+    Returns:
+        Dictionary of derived flags
+    """
+    # Derive flags from data sources
+    derived_flags = {
         "data_import_completed": bool(discovery_flow.data_import_id and raw_data),
         "field_mapping_completed": bool(field_mappings),
         "data_cleansing_completed": (
@@ -140,6 +155,60 @@ def build_summary(
             if safe_phases_completed
             else False
         ),
+        # Asset inventory completion based on discovered assets
+        "asset_inventory_completed": bool(discovery_flow.discovered_assets),
+        # Dependency analysis completion based on dependencies data
+        "dependency_analysis_completed": bool(discovery_flow.dependencies),
+        # Tech debt assessment completion based on tech debt analysis
+        "tech_debt_assessment_completed": bool(discovery_flow.tech_debt_analysis),
+    }
+
+    # Only persist flags that differ from current values (write-through)
+    flag_updates = {}
+    for flag_name, derived_value in derived_flags.items():
+        current_value = getattr(discovery_flow, flag_name, False)
+        if current_value != derived_value:
+            flag_updates[flag_name] = derived_value
+
+    # Persist changes if any
+    if flag_updates:
+        changes_made = await persist_if_changed(db, discovery_flow, **flag_updates)
+        if changes_made:
+            logger.info(
+                f"📝 Write-through persistence applied: flow_id={discovery_flow.flow_id}, "
+                f"updated_flags={list(flag_updates.keys())}"
+            )
+
+    return derived_flags
+
+
+def build_summary(
+    raw_data: List[Dict[str, Any]],
+    discovery_flow: DiscoveryFlow,
+    field_mappings: Dict[str, Any],
+    safe_phases_completed: Dict[str, Any],
+    derived_flags: Optional[Dict[str, bool]] = None,
+) -> Dict[str, Any]:
+    """Build summary data for frontend compatibility"""
+    # Use derived flags if provided, otherwise compute inline (legacy)
+    if derived_flags:
+        data_import_completed = derived_flags["data_import_completed"]
+        field_mapping_completed = derived_flags["field_mapping_completed"]
+        data_cleansing_completed = derived_flags["data_cleansing_completed"]
+    else:
+        data_import_completed = bool(discovery_flow.data_import_id and raw_data)
+        field_mapping_completed = bool(field_mappings)
+        data_cleansing_completed = (
+            safe_phases_completed.get("data_cleansing", False)
+            if safe_phases_completed
+            else False
+        )
+
+    return {
+        "total_records": len(raw_data),
+        "data_import_completed": data_import_completed,
+        "field_mapping_completed": field_mapping_completed,
+        "data_cleansing_completed": data_cleansing_completed,
         "record_count": len(raw_data),
         "quality_score": 0,  # Would need to be calculated based on data quality metrics
     }

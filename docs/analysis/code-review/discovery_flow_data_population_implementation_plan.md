@@ -10,14 +10,18 @@ This document enumerates concrete edits to enforce atomic phase updates, write-t
 ## 1) Create transactional phase-advance helper (authoritative path)
 
 File (new): `backend/app/services/discovery/phase_persistence_helpers.py`
-- Add function `advance_phase_with_persistence(db: AsyncSession, flow: DiscoveryFlow, prior_phase: str, next_phase: str, *, set_completed: bool = True, set_status: Optional[str] = None, extra_updates: Optional[dict] = None) -> DiscoveryFlow`
-  - Start transaction
-  - If `set_completed`: set the boolean flag for `prior_phase` (map prior_phase→flag column)
-  - Set `flow.current_phase = next_phase`
-  - If `set_status`: set `flow.status = set_status`
-  - Call `flow.update_progress()`
-  - Apply `extra_updates` if provided
-  - Persist and commit
+- Add function:
+  - `async def advance_phase(db: AsyncSession, flow: DiscoveryFlow, target_phase: str, *, set_status: Optional[str] = None, extra_updates: Optional[dict] = None) -> PhaseTransitionResult`
+    - Determine prior_phase from `flow.current_phase` and validate using a state machine (see §0.5)
+    - Start transaction and lock row with `SELECT ... FOR UPDATE` (tenant scoped)
+    - Set completion flag for prior_phase via `PHASE_FLAG_MAP`
+    - Set `flow.current_phase = target_phase`
+    - If `set_status`: set child `flow.status = set_status`
+    - Call `flow.update_progress()` once
+    - Apply `extra_updates` if provided
+    - Persist and commit; return `PhaseTransitionResult(success, was_idempotent, prior_phase, warnings)`
+- Dataclass:
+  - `PhaseTransitionResult(success: bool, was_idempotent: bool, prior_phase: str, warnings: list[str])`
 - Add a `PHASE_FLAG_MAP` dict with canonical names: data_import, field_mapping, data_cleansing, asset_inventory, dependency_analysis, tech_debt_assessment
 
 Edits (call this helper instead of in-line updates):
@@ -38,6 +42,7 @@ File: `backend/app/services/discovery/flow_status/data_helpers.py`
 - After deriving booleans (e.g., `data_import_completed = bool(discovery_flow.data_import_id and raw_data)`), compare with stored value and persist changes:
   - If value changed: set on model, call `flow.update_progress()`, persist and commit
 - Add small utility function `persist_if_changed(db, flow, **flag_updates)` to coalesce updates and perform one commit
+- Use the same locked instance (no re-fetch); refresh if needed
 
 ---
 
@@ -92,7 +97,9 @@ Files:
 Changes:
 - Wrap phase execution in try/except blocks that persist:
   - `flow.error_message`, `flow.error_phase`, `flow.error_details` (structured error)
-  - Set `flow.status = 'failed'` for hard failures; commit
+- Classify and set:
+  - retryable (e.g., transient I/O), non_retryable (validation/data), partial (subset processed)
+  - Persist `error_details` with `error_code`, `recovery_hint`
 - Ensure `agent_state` and `phase_state` record partial progress even on errors
 
 ---
@@ -151,7 +158,9 @@ Scenarios:
 
 File (new): `backend/scripts/reconcile_discovery_flows.py`
 - Iterate flows; infer flags from existing artifacts (imports, assets, analysis JSON)
-- Set missing flags; recompute progress; fix `current_phase`; mark completed flows
+- Only fix when: data present AND no phase errors logged AND transition valid per state machine
+- Set missing flags; recompute progress; fix `current_phase`; mark completed flows where appropriate
+- Default to `--dry-run`; `--apply` to persist; tenant-scoped; CSV report preview
 
 ---
 
@@ -202,5 +211,19 @@ Order:
 2) Run one-off reconciliation script in staging; verify
 3) Run script in production (backup first)
 4) Monitor flow consistency dashboards
+5) Add Prometheus metrics:
+   - `discovery_flow_phase_transitions_total{phase, outcome}`
+   - `discovery_flow_phase_transition_duration_seconds{phase}` (histogram)
+   - `discovery_flow_flag_updates_total{flag, result}`
+   - `discovery_flow_consistency_violations_total{type}`
+   - Alerts: invalid transitions, failure rates by phase, violations > threshold
+
+---
+
+## 13) Rollback strategy
+
+- In dev: restore from last DB backup/snapshot or run reconciliation script in reverse (setting flags back to pre-change state) using CSV report
+- Add a temporary feature flag to bypass helper (route through a no-op wrapper) if emergency unblock is needed
+- Keep commits granular: revert helper wiring commit to restore old behavior quickly if required
 
 
