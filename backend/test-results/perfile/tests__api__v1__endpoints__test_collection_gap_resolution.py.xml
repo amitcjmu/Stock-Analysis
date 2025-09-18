@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="9" time="4.795" timestamp="2025-09-17T16:06:10.188747+00:00" hostname="fe12c6a45410"><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_resolves_matching_gaps" time="0.609"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:130: in test_submit_questionnaire_resolves_matching_gaps
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_ignores_non_matching_gaps" time="0.009"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:187: in test_submit_questionnaire_ignores_non_matching_gaps
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_skips_empty_responses" time="0.008"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:230: in test_submit_questionnaire_skips_empty_responses
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_handles_no_gaps" time="0.008"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:268: in test_submit_questionnaire_handles_no_gaps
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_handles_writeback_failure" time="0.008"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:310: in test_submit_questionnaire_handles_writeback_failure
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_flow_not_found" time="0.005"><failure message="assert 500 == 404&#10; +  where 500 = HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;).status_code&#10; +    where HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;) = &lt;ExceptionInfo HTTPException(status_code=500, detail=&quot;Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'&quot;) tblen=2&gt;.value">/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:352: in test_submit_questionnaire_flow_not_found
+    ???
+E   assert 500 == 404
+E    +  where 500 = HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'").status_code
+E    +    where HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'") = &lt;ExceptionInfo HTTPException(status_code=500, detail="Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'") tblen=2&gt;.value</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_with_asset_linking" time="0.009"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:391: in test_submit_questionnaire_with_asset_linking
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_invalid_asset_id" time="0.008"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:435: in test_submit_questionnaire_invalid_asset_id
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase><testcase classname="tests.api.v1.endpoints.test_collection_gap_resolution.TestGapResolutionInManualSubmit" name="test_submit_questionnaire_updates_flow_completion" time="0.008"><failure message="fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'">app/api/v1/endpoints/collection_crud_update_commands.py:223: in submit_questionnaire_response
+    logger.info(f"Found collection flow: {flow.id} (flow_id: {flow.flow_id})")
+                                          ^^^^^^^
+E   AttributeError: 'coroutine' object has no attribute 'id'
+
+During handling of the above exception, another exception occurred:
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend/tests/api/v1/endpoints/test_collection_gap_resolution.py:471: in test_submit_questionnaire_updates_flow_completion
+    ???
+app/api/v1/endpoints/collection_crud_update_commands.py:300: in submit_questionnaire_response
+    raise HTTPException(
+E   fastapi.exceptions.HTTPException: 500: Failed to submit questionnaire response: 'coroutine' object has no attribute 'id'</failure></testcase></testsuite></testsuites>

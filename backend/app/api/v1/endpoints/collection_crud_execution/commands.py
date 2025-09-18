@@ -16,6 +16,7 @@ from app.core.security.secure_logging import safe_log_format
 from app.models import User
 from app.models.collection_flow import CollectionFlow
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.services.master_flow_sync_service import MasterFlowSyncService
 
 # Import modular functions
 from app.api.v1.endpoints import collection_utils
@@ -80,6 +81,20 @@ async def execute_collection_flow(
         execution_result = await orchestrator.execute_phase(
             flow_id=execute_flow_id, phase_name=current_phase, phase_input={}
         )
+
+        # Sync master flow changes back to collection flow after execution
+        try:
+            sync_service = MasterFlowSyncService(db, context)
+            await sync_service.sync_master_to_collection_flow(
+                master_flow_id=execute_flow_id, collection_flow_id=flow_id
+            )
+        except Exception as sync_error:
+            logger.warning(
+                safe_log_format(
+                    "Failed to sync master flow to collection flow: {error}",
+                    error=str(sync_error),
+                )
+            )
 
         logger.info(
             f"Executed collection flow {flow_id} for engagement {context.engagement_id}"
@@ -315,6 +330,18 @@ async def rerun_gap_analysis(
                     phase_name="GAP_ANALYSIS",
                     force_restart=True,  # Force re-analysis
                 )
+
+                # Sync master flow changes back to collection flow after gap analysis
+                try:
+                    sync_service = MasterFlowSyncService(db, context)
+                    await sync_service.sync_master_to_collection_flow(
+                        master_flow_id=str(collection_flow.master_flow_id),
+                        collection_flow_id=flow_id,
+                    )
+                except Exception as sync_error:
+                    logger.warning(
+                        f"Failed to sync master flow after gap analysis: {sync_error}"
+                    )
 
                 logger.info(
                     f"Successfully triggered gap analysis re-run for collection flow {flow_id}"

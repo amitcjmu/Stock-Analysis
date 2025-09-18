@@ -3,7 +3,7 @@
 services:
   # Test Database
   test-db:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg17
     container_name: migration_test_db
     environment:
       POSTGRES_DB: test_assessment_db
