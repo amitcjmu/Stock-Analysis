@@ -19,6 +19,7 @@ from app.schemas.collection_flow import (
     CollectionApplicationSelectionRequest,
 )
 from app.api.v1.endpoints import collection_validators
+from app.services.master_flow_sync_service import MasterFlowSyncService
 
 logger = logging.getLogger(__name__)
 
@@ -348,6 +349,19 @@ async def update_flow_applications(
                     flow_id=str(collection_flow.master_flow_id),
                     phase_name="DATA_IMPORT",
                 )
+
+                # Sync master flow changes back to collection flow after data import
+                try:
+                    sync_service = MasterFlowSyncService(db, context)
+                    await sync_service.sync_master_to_collection_flow(
+                        master_flow_id=str(collection_flow.master_flow_id),
+                        collection_flow_id=flow_id,
+                    )
+                except Exception as sync_error:
+                    logger.warning(
+                        f"Failed to sync master flow after data import: {sync_error}"
+                    )
+
                 logger.info(
                     f"Triggered questionnaire generation for master flow {collection_flow.master_flow_id}"
                 )
@@ -387,7 +401,10 @@ async def update_flow_applications(
             )
             return {
                 "success": True,
-                "message": f"Successfully updated collection flow with {processed_count} applications, created {len(deduplication_results)} normalized records",
+                "message": (
+                    f"Successfully updated collection flow with {processed_count} applications, "
+                    f"created {len(deduplication_results)} normalized records"
+                ),
                 "flow_id": flow_id,
                 "selected_application_count": processed_count,
                 "normalized_records_created": len(deduplication_results),

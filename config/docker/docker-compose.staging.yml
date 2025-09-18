@@ -5,7 +5,7 @@
 services:
   # PostgreSQL Database with pgvector (Staging)
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg17
     container_name: migration_postgres_staging
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-migration_db_staging}
