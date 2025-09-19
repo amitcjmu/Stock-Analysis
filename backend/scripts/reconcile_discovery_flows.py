@@ -34,6 +34,9 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
 from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
+from app.services.discovery.phase_persistence_helpers.base import (
+    is_valid_transition,
+)  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -183,16 +186,23 @@ class DiscoveryFlowReconciler:
             tech_debt_completed,
         )
         if expected_phase != flow.current_phase:
-            changes.append(
-                {
-                    "flow_id": str(flow.flow_id),
-                    "client_account_id": str(flow.client_account_id),
-                    "field": "current_phase",
-                    "old_value": flow.current_phase,
-                    "new_value": expected_phase,
-                    "reason": "Phase inconsistent with completion flags",
-                }
-            )
+            # Validate the transition before suggesting the change
+            if is_valid_transition(flow.current_phase, expected_phase):
+                changes.append(
+                    {
+                        "flow_id": str(flow.flow_id),
+                        "client_account_id": str(flow.client_account_id),
+                        "field": "current_phase",
+                        "old_value": flow.current_phase,
+                        "new_value": expected_phase,
+                        "reason": "Phase inconsistent with completion flags",
+                    }
+                )
+            else:
+                logger.warning(
+                    f"Skipping invalid transition for flow {flow.flow_id}: "
+                    f"{flow.current_phase} -> {expected_phase}"
+                )
 
         # Check completion status
         all_phases_complete = all(
@@ -249,8 +259,10 @@ class DiscoveryFlowReconciler:
             has_raw_data = raw_count_result.scalar() is not None
             return has_raw_data
         except Exception as e:
-            logger.warning(f"Could not check raw import records: {e}")
-            return bool(flow.data_import_id)
+            logger.error(
+                f"Could not check raw import records for flow {flow.flow_id}: {e}"
+            )
+            return False
 
     async def _check_field_mapping_completion(self, flow: DiscoveryFlow) -> bool:
         """Check if field mapping is complete based on artifacts."""

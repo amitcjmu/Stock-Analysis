@@ -147,6 +147,8 @@ async def derive_and_persist_flags(
         Dictionary of derived flags
     """
     # Derive flags from data sources
+    # Based on business rules: phases can be marked complete even with 0 assets or 0 dependencies
+    # if processing completed without errors. Check if phase was processed, not just if data exists.
     derived_flags = {
         "data_import_completed": bool(discovery_flow.data_import_id and raw_data),
         "field_mapping_completed": bool(field_mappings),
@@ -155,12 +157,33 @@ async def derive_and_persist_flags(
             if safe_phases_completed
             else False
         ),
-        # Asset inventory completion based on discovered assets
-        "asset_inventory_completed": bool(discovery_flow.discovered_assets),
-        # Dependency analysis completion based on dependencies data
-        "dependency_analysis_completed": bool(discovery_flow.dependencies),
-        # Tech debt assessment completion based on tech debt analysis
-        "tech_debt_assessment_completed": bool(discovery_flow.tech_debt_analysis),
+        # Asset inventory completion: Check if phase was reached/processed, not just if assets exist
+        "asset_inventory_completed": (
+            bool(discovery_flow.discovered_assets)
+            or discovery_flow.current_phase
+            in ["dependency_analysis", "tech_debt_assessment"]
+            or (
+                discovery_flow.phases_completed
+                and "asset_inventory" in discovery_flow.phases_completed
+            )
+        ),
+        # Dependency analysis completion: Check if analysis was done, not just if dependencies exist
+        "dependency_analysis_completed": (
+            bool(discovery_flow.dependencies)
+            or discovery_flow.current_phase == "tech_debt_assessment"
+            or (
+                discovery_flow.phases_completed
+                and "dependency_analysis" in discovery_flow.phases_completed
+            )
+        ),
+        # Tech debt assessment completion: Check if assessment was done, not just if findings exist
+        "tech_debt_assessment_completed": (
+            bool(discovery_flow.tech_debt_analysis)
+            or (
+                discovery_flow.phases_completed
+                and "tech_debt_assessment" in discovery_flow.phases_completed
+            )
+        ),
     }
 
     # Only persist flags that differ from current values (write-through)

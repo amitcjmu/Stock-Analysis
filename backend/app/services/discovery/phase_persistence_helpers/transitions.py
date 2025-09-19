@@ -21,7 +21,7 @@ from .base import PHASE_FLAG_MAP, PhaseTransitionResult, is_valid_transition
 logger = logging.getLogger(__name__)
 
 
-async def advance_phase(
+async def advance_phase(  # noqa: C901
     db: AsyncSession,
     flow: DiscoveryFlow,
     target_phase: str,
@@ -36,7 +36,7 @@ async def advance_phase(
     ALL direct phase updates should use this helper.
 
     Args:
-        db: Database session (must be in transaction)
+        db: Database session (will create its own transaction for atomicity)
         flow: DiscoveryFlow instance (will be locked with SELECT FOR UPDATE)
         target_phase: Phase to transition to
         set_status: Optional status to set on child flow
@@ -76,6 +76,19 @@ async def advance_phase(
                 result.was_idempotent = True
                 result.success = True
                 result.add_warning(f"Phase {target_phase} already current, no-op")
+
+                # Even if idempotent, check if flow is complete and update status/completed_at
+                if locked_flow.is_complete():
+                    if locked_flow.status != "completed":
+                        locked_flow.status = "completed"
+                        result.add_warning(
+                            "Updated status to completed during idempotent check"
+                        )
+                    if locked_flow.completed_at is None:
+                        locked_flow.completed_at = datetime.utcnow()
+                        result.add_warning("Set completed_at during idempotent check")
+                    await db.flush()
+
                 return result
 
             # Validate transition using state machine

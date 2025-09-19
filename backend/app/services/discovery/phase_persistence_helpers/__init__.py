@@ -48,4 +48,5 @@ __all__ = [
     "extract_next_phase",
     # Private functions (for existing tests)
     "_is_valid_transition",
+    "is_valid_transition",  # Export the public version too
 ]
