@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAuthHeaders } from '@/utils/contextUtils';
 import type { ApiError } from '../../types/shared/api-types';
 
 export interface CrewPerformanceMetric {
@@ -53,7 +52,7 @@ export interface DashboardData {
  * Unified hook for fetching dashboard data with React Query
  * Replaces the dashboardService to prevent duplicate API calls
  */
-export const useDashboardData = (): JSX.Element => {
+export const useDashboardData = () => {
   const { user, client, engagement, getAuthHeaders } = useAuth();
 
   return useQuery({
@@ -64,13 +63,13 @@ export const useDashboardData = (): JSX.Element => {
         // Get active Discovery flows - Updated to unified-discovery as part of API migration
         apiCall('/api/v1/unified-discovery/flows/active', {  // Updated to unified-discovery endpoint as part of API migration
           method: 'GET',
-          headers: getAuthHeaders({ user, client, engagement })
+          headers: getAuthHeaders()
         }),
 
         // Get latest import data
         apiCall('/api/v1/data-import/latest-import', {
           method: 'GET',
-          headers: getAuthHeaders({ user, client, engagement })
+          headers: getAuthHeaders()
         })
       ]);
 

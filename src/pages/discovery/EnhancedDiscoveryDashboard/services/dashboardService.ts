@@ -1,5 +1,5 @@
 import { apiCall } from '@/config/api';
-import { getAuthHeaders } from '../../../../utils/contextUtils';
+import { getAuthHeaders } from '../../../../lib/api/apiClient';
 // Removed transformSnakeToCamel and isBackendFormat imports - using snake_case directly
 import type { FlowSummary, SystemMetrics, CrewPerformanceMetrics, PlatformAlert } from '../types';
 
@@ -155,12 +155,12 @@ export class DashboardService {
       // Get active Discovery flows - Updated to unified-discovery endpoint as part of API migration
       makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/api/v1/unified-discovery/flows/active', {  // Updated to unified-discovery endpoint as part of API migration
         method: 'GET',
-        headers: getAuthHeaders({ user, client, engagement })
+        headers: getAuthHeaders()
       }),
       // Get data import sessions (for discovering flows)
       makeApiCallWithRetry<DataImportResponse>('/data-import/latest-import', {
         method: 'GET',
-        headers: getAuthHeaders({ user, client, engagement })
+        headers: getAuthHeaders()
       })
     ]);
 
@@ -287,7 +287,7 @@ export class DashboardService {
             // Get flow status for this import session with retry logic
             const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/api/v1/unified-discovery/flows/${dataImport.id}/status`, {
               method: 'GET',
-              headers: getAuthHeaders({ user, client, engagement })
+              headers: getAuthHeaders()
             });
 
             if (flowStatusResponse && flowStatusResponse.flow_state) {

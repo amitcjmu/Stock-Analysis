@@ -5,14 +5,14 @@ import { Building2, BarChart3, Eye, Search, FileText, Wrench, Archive, Sparkles 
 import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAuthHeaders } from '@/utils/contextUtils';
 
 const DashboardOverviewStats: React.FC = () => {
   const auth = useAuth();
+  const { getAuthHeaders } = auth;
   const { data } = useQuery({
     queryKey: ['workflow-summary', auth.client?.id, auth.engagement?.id],
     queryFn: async () => {
-      const headers = getAuthHeaders({ user: auth.user, client: auth.client, engagement: auth.engagement });
+      const headers = getAuthHeaders();
       const res = await apiCall('/api/v1/asset-workflow/workflow/summary', { method: 'GET', headers });
       return res as {
         total_assets: number;

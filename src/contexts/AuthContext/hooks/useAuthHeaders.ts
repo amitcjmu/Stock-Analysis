@@ -8,7 +8,7 @@ export const useAuthHeaders = (
   client: Client | null,
   engagement: Engagement | null,
   flowId: string | null
-): JSX.Element => {
+): (() => Record<string, string>) => {
   return useCallback((): Record<string, string> => {
     const token = tokenStorage.getToken();
     const storedUser = tokenStorage.getUser();

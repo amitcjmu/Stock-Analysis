@@ -1,5 +1,5 @@
 import { apiCall, API_CONFIG } from '../config/api';
-import { getAuthHeaders } from '../utils/contextUtils';
+import { getAuthHeaders } from '../lib/api/apiClient';
 
 export interface DependencyCreate {
   source_id: string;

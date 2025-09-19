@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.utils.uuid_helpers import UUIDMixin
 from app.models.asset import Asset
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.context_aware_repository import ContextAwareRepository
@@ -23,7 +24,7 @@ from .queries import AnalyticsQueries, AssetQueries, FlowQueries
 logger = logging.getLogger(__name__)
 
 
-class DiscoveryFlowRepository(ContextAwareRepository):
+class DiscoveryFlowRepository(UUIDMixin, ContextAwareRepository):
     """
     Repository for discovery flow operations.
     Uses CrewAI Flow ID as single source of truth.
