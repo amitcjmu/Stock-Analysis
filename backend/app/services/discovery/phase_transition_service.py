@@ -7,13 +7,14 @@ Handles automatic phase transitions after completion of phase requirements.
 import logging
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.data_import.mapping import ImportFieldMapping
 from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
     FlowPhaseManagementCommands,
 )
+from app.services.discovery.phase_persistence_helpers import advance_phase
 
 logger = logging.getLogger(__name__)
 
@@ -97,16 +98,19 @@ class DiscoveryPhaseTransitionService:
                 },
             )
 
-            # Transition to data cleansing phase
-            await self.db.execute(
-                update(DiscoveryFlow)
-                .where(DiscoveryFlow.id == flow_id)
-                .values(
-                    current_phase="data_cleansing",
-                    field_mapping_completed=True,
-                )
+            # Transition to data cleansing phase using atomic helper
+            transition_result = await advance_phase(
+                db=self.db,
+                flow=flow,
+                target_phase="data_cleansing",
+                extra_updates={"field_mapping_completed": True},
             )
-            await self.db.commit()
+
+            if not transition_result.success:
+                logger.warning(
+                    f"Phase transition failed for flow {flow_id}: {transition_result.warnings}"
+                )
+                return None
 
             logger.info(
                 f"✅ Successfully transitioned flow {flow_id} from attribute_mapping "
@@ -143,19 +147,22 @@ class DiscoveryPhaseTransitionService:
             # Check if data cleansing has been marked complete
             # This would typically be set by the data cleansing completion endpoint
             if flow.data_cleansing_completed:
-                # Transition to inventory phase
-                await self.db.execute(
-                    update(DiscoveryFlow)
-                    .where(DiscoveryFlow.id == flow_id)
-                    .values(current_phase="inventory")
+                # Transition to asset inventory phase using atomic helper
+                transition_result = await advance_phase(
+                    db=self.db, flow=flow, target_phase="asset_inventory"
                 )
-                await self.db.commit()
+
+                if not transition_result.success:
+                    logger.warning(
+                        f"Phase transition failed for flow {flow_id}: {transition_result.warnings}"
+                    )
+                    return None
 
                 logger.info(
-                    f"✅ Successfully transitioned flow {flow_id} from data_cleansing to inventory"
+                    f"✅ Successfully transitioned flow {flow_id} from data_cleansing to asset_inventory"
                 )
 
-                return "inventory"
+                return "asset_inventory"
 
             return None
 

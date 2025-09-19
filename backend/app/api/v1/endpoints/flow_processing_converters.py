@@ -32,9 +32,16 @@ def convert_fast_path_to_api_response(
             if flow_type == "collection"
             else f"/{flow_type}/overview"
         )
+
+        # Log the routing decision for debugging
+        routing_decision = fast_response.get("routing_decision", default_route)
+        logger.info(
+            f"🔍 ROUTE DEBUG - Fast path routing: flow_id={flow_id}, phase={current_phase}, route={routing_decision}"
+        )
+
         routing_context = RoutingContext(
-            target_page=fast_response.get("routing_decision", default_route),
-            recommended_page=fast_response.get("routing_decision", default_route),
+            target_page=routing_decision,
+            recommended_page=routing_decision,
             flow_id=flow_id,
             phase=current_phase,
             flow_type=flow_type,

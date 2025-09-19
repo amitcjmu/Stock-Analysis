@@ -36,16 +36,17 @@ def is_simple_transition(
     try:
         current_phase = flow_data.get("current_phase", "")
 
-        # CRITICAL: Never use simple transition for AI-required phases
-        ai_required_phases = [
-            "data_cleansing",
+        # FIX: Allow simple transition for flow resumption
+        # Only asset_inventory and dependency_analysis need AI agents to execute work
+        # Other phases (data_import, field_mapping, data_cleansing) can use simple transition
+        ai_execution_required_phases = [
             "asset_inventory",
             "dependency_analysis",
-            "field_mapping",
         ]
-        if current_phase in ai_required_phases:
+
+        if current_phase in ai_execution_required_phases:
             logger.info(
-                f"❌ Simple transition blocked - {current_phase} requires AI processing"
+                f"❌ Simple transition blocked - {current_phase} requires AI execution"
             )
             return False
 
@@ -119,13 +120,13 @@ def needs_ai_analysis(
     try:
         current_phase = flow_data.get("current_phase", "")
 
-        # CRITICAL: Always use AI for data processing phases
-        ai_required_phases = [
-            "data_cleansing",
+        # FIX: Only require AI for phases that need actual execution
+        # asset_inventory and dependency_analysis need AI agents to do work
+        ai_execution_required_phases = [
             "asset_inventory",
             "dependency_analysis",
         ]
-        if current_phase in ai_required_phases:
+        if current_phase in ai_execution_required_phases:
             # Check if phase was already processed by AI
             ai_processed_key = f"{current_phase}_ai_processed"
             if flow_data.get(ai_processed_key, False):
