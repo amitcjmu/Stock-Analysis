@@ -390,6 +390,9 @@ class ApiClient {
 // Export singleton instance
 export const apiClient = new ApiClient();
 
+// Export the auth headers function
+export { getAuthHeaders };
+
 // Export backward compatibility function
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const method = (options.method || 'GET').toUpperCase();
