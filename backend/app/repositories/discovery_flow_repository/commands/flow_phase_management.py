@@ -10,25 +10,9 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, update
 
+from app.core.utils.uuid_helpers import convert_uuids_to_str
 from app.models.discovery_flow import DiscoveryFlow
 from .flow_base import FlowCommandsBase
-
-
-# 🔧 CC FIX: Import UUID conversion utility for JSON serialization safety
-def convert_uuids_to_str(obj: Any) -> Any:
-    """
-    Recursively convert UUID objects to strings for JSON serialization.
-    🔧 CC FIX: Prevents 'Object of type UUID is not JSON serializable' errors
-    """
-    import uuid
-
-    if isinstance(obj, uuid.UUID):
-        return str(obj)
-    elif isinstance(obj, dict):
-        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_uuids_to_str(item) for item in obj]
-    return obj
 
 
 logger = logging.getLogger(__name__)
@@ -152,8 +136,8 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
 
                 master_repo = CrewAIFlowStateExtensionsRepository(
                     db=self.db,
-                    client_account_id=str(self.client_account_id),
-                    engagement_id=str(self.engagement_id),
+                    client_account_id=self.client_account_id,
+                    engagement_id=self.engagement_id,
                     user_id=None,  # No user context available in repository
                 )
 
@@ -318,7 +302,9 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
                     )
                 )
                 await self.db.execute(stmt)
-                await self.db.commit()
+                # 🔧 CC FIX: Remove duplicate commit - transaction boundary managed by caller
+                # This ensures atomicity with the parent update_phase_completion transaction
+                # await self.db.commit()  # REMOVED to prevent double commit
 
                 # Update master flow state separately
                 await self._update_master_flow_completion(str(flow.flow_id))

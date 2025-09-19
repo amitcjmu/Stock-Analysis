@@ -181,9 +181,11 @@ class MasterFlowCommands(BaseRepo):
                 )
                 result = await self.db.execute(stmt_upd)
                 if not result.rowcount:
-                    await self.db.rollback()
+                    # 🔧 CC FIX: Don't rollback here - let parent transaction handle it
+                    # await self.db.rollback()  # REMOVED - parent manages transaction
                     raise RuntimeError("OCC conflict on flow_status update")
-                await self.db.commit()
+                # 🔧 CC FIX: Remove duplicate commit - transaction boundary managed by caller
+                # await self.db.commit()  # REMOVED to prevent double commit
         except Exception as e:
             logger.error("Failed update_flow_status for flow_id=%s: %s", flow_id, e)
             raise
