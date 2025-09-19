@@ -59,9 +59,12 @@ class MetricsEnrichmentMixin:
         )
         result_upd = await self.db.execute(stmt_upd)
         if result_upd.rowcount:
-            await self.db.commit()
+            # 🔧 CC FIX: Remove duplicate commit - transaction boundary managed by caller
+            # await self.db.commit()  # REMOVED to prevent double commit
+            pass
         else:
-            await self.db.rollback()
+            # 🔧 CC FIX: Don't rollback here - let parent transaction handle it
+            # await self.db.rollback()  # REMOVED - parent manages transaction
             logger.warning(
                 "OCC conflict updating memory_usage_metrics for flow_id=%s, client=%s, engagement=%s",
                 flow_id,
@@ -128,9 +131,12 @@ class MetricsEnrichmentMixin:
         )
         result_upd = await self.db.execute(stmt_upd)
         if result_upd.rowcount:
-            await self.db.commit()
+            # 🔧 CC FIX: Remove duplicate commit - transaction boundary managed by caller
+            # await self.db.commit()  # REMOVED to prevent double commit
+            pass
         else:
-            await self.db.rollback()
+            # 🔧 CC FIX: Don't rollback here - let parent transaction handle it
+            # await self.db.rollback()  # REMOVED - parent manages transaction
             logger.warning(
                 "OCC conflict updating agent_performance_metrics for flow_id=%s, client=%s, engagement=%s",
                 flow_id,

@@ -76,7 +76,9 @@ class FlowCompletionCommands(FlowCommandsBase):
         )
 
         await self.db.execute(stmt)
-        await self.db.commit()
+        # 🔧 CC FIX: Remove duplicate commit - transaction boundary managed by caller
+        # This ensures atomicity with the parent flow_phase_management transaction
+        # await self.db.commit()  # REMOVED to prevent double commit
 
         # Invalidate cache after update
         updated_flow = await self.flow_queries.get_by_flow_id(flow_id)
