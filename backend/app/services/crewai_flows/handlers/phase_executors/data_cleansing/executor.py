@@ -173,6 +173,14 @@ class DataCleansingExecutor(BasePhaseExecutor, DataCleansingBase):
         # Update raw_import_records with cleansed data
         # Now handled synchronously in execute_with_crew via _update_cleansed_data_sync
 
+    def _prepare_crew_input(self) -> Dict[str, Any]:
+        """Prepare input data for CrewAI crew execution"""
+        return {
+            "raw_data": self.state.raw_data,
+            "field_mappings": getattr(self.state, "field_mappings", {}),
+            "cleansing_type": "comprehensive_data_cleansing",
+        }
+
     async def _mark_phase_complete(self, phase_name: str):
         """Mark phase as complete for progression tracking and persist to database"""
         logger.info(f"✅ Phase {phase_name} completed for flow {self.state.flow_id}")

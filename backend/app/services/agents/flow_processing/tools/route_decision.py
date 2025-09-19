@@ -84,6 +84,14 @@ class RouteDecisionTool(BaseTool):
             current_phase = self._extract_current_phase(flow_analysis)
             flow_id = self._extract_flow_id(flow_analysis)
 
+            # Log for debugging route generation issues
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.info(
+                f"🔍 ROUTE DECISION DEBUG - flow_type={flow_type}, phase={current_phase}, flow_id={flow_id}"
+            )
+
             # Extract actionable guidance from validation results
             actionable_guidance = self._extract_actionable_guidance(validation_result)
 
@@ -136,9 +144,25 @@ class RouteDecisionTool(BaseTool):
             if issues:
                 reasoning += f" | Issues: {'; '.join(issues)}"
 
+            # Final validation: ensure no unsubstituted templates in target_page
+            if (
+                "{" in target_page
+                or "}" in target_page
+                or "[" in target_page
+                or "]" in target_page
+            ):
+                logger.warning(
+                    f"⚠️ ROUTE WARNING - Unsubstituted template detected: {target_page}"
+                )
+                # Fallback to a safe route
+                target_page = "/discovery/overview"
+                reasoning = "Route template error - defaulting to overview"
+
+            logger.info(f"✅ ROUTE DECISION - Final route: {target_page}")
             return f"ROUTE: {target_page} | REASONING: {reasoning} | CONFIDENCE: {confidence}"
 
         except Exception as e:
+            logger.error(f"❌ ROUTE ERROR - Exception in route decision: {str(e)}")
             return f"Error making routing decision: {str(e)}"
 
     def _extract_actionable_guidance(self, validation_result: str) -> List[str]:
@@ -175,24 +199,26 @@ class RouteDecisionTool(BaseTool):
                 current_phase,
                 f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}",
             )
+            # Always ensure template substitution happens
             if "{flow_id}" in route_template:
-                return (
-                    route_template.format(flow_id=flow_id)
-                    if flow_id
-                    else route_template.replace("/{flow_id}", "")
-                )
+                if flow_id and flow_id != "unknown":
+                    return route_template.format(flow_id=flow_id)
+                else:
+                    # If no flow_id, return to overview page instead of broken template
+                    return "/discovery/overview"
             return route_template
 
         # Default to current phase page using ROUTE_MAPPING
         route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
             current_phase, f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}"
         )
+        # Always ensure template substitution happens
         if "{flow_id}" in route_template:
-            return (
-                route_template.format(flow_id=flow_id)
-                if flow_id
-                else route_template.replace("/{flow_id}", "")
-            )
+            if flow_id and flow_id != "unknown":
+                return route_template.format(flow_id=flow_id)
+            else:
+                # If no flow_id, return to overview page instead of broken template
+                return "/discovery/overview"
         return route_template
 
     def _determine_system_action_route(
@@ -212,12 +238,13 @@ class RouteDecisionTool(BaseTool):
                 current_phase,
                 f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}",
             )
+            # Always ensure template substitution happens
             if "{flow_id}" in route_template:
-                return (
-                    route_template.format(flow_id=flow_id)
-                    if flow_id
-                    else route_template.replace("/{flow_id}", "")
-                )
+                if flow_id and flow_id != "unknown":
+                    return route_template.format(flow_id=flow_id)
+                else:
+                    # If no flow_id, return to overview page instead of broken template
+                    return "/discovery/overview"
             return route_template
 
         # Default to enhanced dashboard

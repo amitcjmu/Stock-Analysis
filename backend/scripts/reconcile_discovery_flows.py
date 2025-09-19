@@ -34,9 +34,9 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
 from app.models.discovery_flow import DiscoveryFlow  # noqa: E402
-from app.services.discovery.phase_persistence_helpers.base import (
+from app.services.discovery.phase_persistence_helpers.base import (  # noqa: E402
     is_valid_transition,
-)  # noqa: E402
+)
 
 logger = logging.getLogger(__name__)
 
