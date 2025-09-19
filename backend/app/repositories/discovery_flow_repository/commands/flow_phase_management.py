@@ -61,7 +61,7 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
         }
 
         # Prepare update values
-        update_values = {}
+        update_values: Dict[str, Any] = {}
 
         # Update phase completion boolean
         if phase in phase_field_map and completed:
@@ -71,12 +71,28 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
         update_values["current_phase"] = phase
         update_values["updated_at"] = datetime.utcnow()
 
+        # 🔧 CC FIX: Update status field based on phase progression
+        # Status should transition from "initialized" to phase-specific statuses
+        current_status = await self._get_current_flow_status(flow_id)
+        new_status = self._determine_status_from_phase(phase, completed, current_status)
+        if new_status != current_status:
+            update_values["status"] = new_status
+            logger.info(
+                f"🔄 Status transition for flow {flow_id}: {current_status} → {new_status}"
+            )
+
+        # 🔧 CC FIX: Update phases_completed field with list of completed phases
+        completed_phases = await self._get_completed_phases_list(
+            flow_id, phase, completed
+        )
+        update_values["phases_completed"] = completed_phases
+
         # Update phase and agent state data
         if data or agent_insights:
             # Get existing flow to merge state data
             existing_flow = await self.flow_queries.get_by_flow_id(flow_id)
             if existing_flow:
-                state_data = existing_flow.crewai_state_data or {}
+                state_data: Dict[str, Any] = existing_flow.crewai_state_data or {}
 
                 # Update phase data
                 if data:
@@ -136,8 +152,8 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
 
                 master_repo = CrewAIFlowStateExtensionsRepository(
                     db=self.db,
-                    client_account_id=self.client_account_id,
-                    engagement_id=self.engagement_id,
+                    client_account_id=str(self.client_account_id),
+                    engagement_id=str(self.engagement_id),
                     user_id=None,  # No user context available in repository
                 )
 
@@ -280,6 +296,30 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
                     self.db, self.client_account_id, self.engagement_id
                 )
                 await completion_commands.mark_flow_complete(str(flow.flow_id))
+
+                # 🔧 CC FIX: Explicitly update status to "completed" here
+                # This ensures the status transitions properly to completed when all phases are done
+                from sqlalchemy import update as sql_update
+
+                stmt = (
+                    sql_update(DiscoveryFlow)
+                    .where(
+                        and_(
+                            DiscoveryFlow.flow_id
+                            == self._ensure_uuid(str(flow.flow_id)),
+                            DiscoveryFlow.client_account_id == self.client_account_id,
+                            DiscoveryFlow.engagement_id == self.engagement_id,
+                        )
+                    )
+                    .values(
+                        status="completed",
+                        progress_percentage=100.0,
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+                await self.db.execute(stmt)
+                await self.db.commit()
+
                 # Update master flow state separately
                 await self._update_master_flow_completion(str(flow.flow_id))
                 return True
@@ -291,3 +331,68 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
                 f"❌ Error checking flow completion readiness for {flow.flow_id}: {e}"
             )
             return False
+
+    async def _get_current_flow_status(self, flow_id: str) -> str:
+        """Get the current status of the flow"""
+        flow = await self.flow_queries.get_by_flow_id(flow_id)
+        return str(flow.status) if flow and flow.status else "initialized"
+
+    def _determine_status_from_phase(
+        self, phase: str, completed: bool, current_status: str
+    ) -> str:
+        """
+        Determine the new status based on the current phase and completion state.
+
+        Status transitions:
+        - initialized → data_gathering (when data_import starts)
+        - data_gathering → discovery (when field_mapping starts)
+        - discovery → assessment_ready (when asset_inventory starts)
+        - assessment_ready → planning (when dependency_analysis starts)
+        - planning → completed (when all phases complete)
+        """
+        # If flow is already completed, don't change status
+        if current_status in ["completed", "complete"]:
+            return current_status
+
+        # Map phases to status transitions
+        phase_to_status = {
+            "data_import": "data_gathering",
+            "field_mapping": "discovery",
+            "data_cleansing": "discovery",
+            "asset_inventory": "assessment_ready",
+            "dependency_analysis": "planning",
+        }
+
+        if phase in phase_to_status:
+            return phase_to_status[phase]
+
+        # Default to current status if no mapping
+        return current_status
+
+    async def _get_completed_phases_list(
+        self, flow_id: str, current_phase: str, phase_completed: bool
+    ) -> List[str]:
+        """Get list of completed phases for the phases_completed field"""
+        flow = await self.flow_queries.get_by_flow_id(flow_id)
+        if not flow:
+            return []
+
+        completed_phases = []
+
+        # Check each phase completion boolean
+        if flow.data_import_completed:
+            completed_phases.append("data_import")
+        if flow.field_mapping_completed:
+            completed_phases.append("field_mapping")
+        if flow.data_cleansing_completed:
+            completed_phases.append("data_cleansing")
+        if flow.asset_inventory_completed:
+            completed_phases.append("asset_inventory")
+        if flow.dependency_analysis_completed:
+            completed_phases.append("dependency_analysis")
+
+        # Add current phase if it's being marked as completed
+        if phase_completed and current_phase not in completed_phases:
+            completed_phases.append(current_phase)
+
+        return completed_phases
