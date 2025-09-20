@@ -52,7 +52,7 @@ test.describe('API Endpoint Validation Tests', () => {
   });
 
   test('should verify unified discovery endpoints use plural flows', async ({ page }) => {
-    const apiCalls: { url: string; status: number }[] = [];
+    const apiCalls: Array<{ url: string; status: number }> = [];
 
     // Monitor all API calls
     page.on('response', (response) => {

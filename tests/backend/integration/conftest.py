@@ -1,10 +1,11 @@
 """
 Integration Test Configuration
 
-Pytest configuration and fixtures for ADCS end-to-end integration testing.
-Provides shared test infrastructure, database setup, and utility functions.
+Pytest configuration and fixtures for integration testing with MFO patterns.
+Provides shared test infrastructure, database setup, and MFO-aligned utilities.
+Imports standardized MFO fixtures and removes duplicate definitions.
 
-Generated with CC for ADCS end-to-end integration testing.
+Generated with CC for MFO-aligned integration testing.
 """
 
 import asyncio
@@ -21,6 +22,28 @@ from sqlalchemy.orm import sessionmaker
 
 # Add backend to path before importing app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../backend"))
+
+# Import MFO fixtures and standardized testing infrastructure
+from tests.fixtures.mfo_fixtures import (
+    MockRequestContext,
+    MockServiceRegistry,
+    demo_tenant_context,
+    mock_service_registry,
+    mock_async_session,
+    sample_master_flow_data,
+    sample_discovery_flow_data,
+    mock_tenant_scoped_agent_pool,
+    mfo_flow_states,
+    tenant_isolation_test_data,
+    create_mock_mfo_context,
+    create_linked_flow_data,
+    setup_mfo_test_environment,
+    DEMO_CLIENT_ACCOUNT_ID,
+    DEMO_ENGAGEMENT_ID,
+    DEMO_USER_ID,
+    DEMO_USER_EMAIL
+)
+# Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.models import ClientAccount, Engagement, User
 from app.models.base import Base
@@ -468,3 +491,52 @@ def sample_mixed_assets():
             "OS": "Linux Ubuntu 22.04",
         },
     ]
+
+
+@pytest.fixture
+def mfo_request_context() -> MockRequestContext:
+    """Create MockRequestContext for MFO operations with proper tenant scoping."""
+    return create_mock_mfo_context()
+
+
+@pytest.fixture
+async def mfo_test_environment(
+    mock_async_session: AsyncSession,
+    mfo_request_context: MockRequestContext
+) -> Dict[str, Any]:
+    """Setup complete MFO test environment with linked flows."""
+    return await setup_mfo_test_environment(
+        session=mock_async_session,
+        context=mfo_request_context,
+        flow_type="discovery"
+    )
+
+
+# Convenience fixtures combining MFO patterns with integration testing
+@pytest.fixture
+def integration_mfo_headers(mfo_request_context: MockRequestContext) -> Dict[str, str]:
+    """Integration test headers using MFO request context."""
+    headers = mfo_request_context.get_headers()
+    headers["Content-Type"] = "application/json"
+    return headers
+
+
+# Re-export MFO fixtures for convenience in integration tests
+__all__ = [
+    "demo_tenant_context",
+    "mock_service_registry",
+    "mock_async_session",
+    "sample_master_flow_data",
+    "sample_discovery_flow_data",
+    "mock_tenant_scoped_agent_pool",
+    "mfo_flow_states",
+    "tenant_isolation_test_data",
+    "mfo_request_context",
+    "mfo_test_environment",
+    "integration_mfo_headers",
+    "MockRequestContext",
+    "MockServiceRegistry",
+    "create_mock_mfo_context",
+    "create_linked_flow_data",
+    "setup_mfo_test_environment"
+]

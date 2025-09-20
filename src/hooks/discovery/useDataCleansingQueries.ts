@@ -1,4 +1,5 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query'
+import type { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext';
 import * as dataCleansingService from '@/services/dataCleansingService';
@@ -27,7 +28,7 @@ export const useDataCleansingStats = (flowId: string | undefined): UseQueryResul
 
   return useQuery({
     queryKey: queryKeys.dataCleansingStats(flowId || ''),
-    queryFn: () => dataCleansingService.fetchDataCleansingStats(flowId!),
+    queryFn: () => dataCleansingService.fetchDataCleansingStats(flowId),
     enabled: isAuthenticated && !!flowId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 2,
@@ -40,7 +41,7 @@ export const useDataCleansingAnalysis = (flowId: string | undefined, includeDeta
 
   return useQuery({
     queryKey: queryKeys.dataCleansingAnalysis(flowId || ''),
-    queryFn: () => dataCleansingService.fetchDataCleansingAnalysis(flowId!, includeDetails),
+    queryFn: () => dataCleansingService.fetchDataCleansingAnalysis(flowId, includeDetails),
     enabled: isAuthenticated && !!flowId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,

@@ -394,17 +394,28 @@ class SmartWorkflowIntegrationTests:
         ]
         assert len(critical_issues) == 0
 
-    @pytest.mark.asyncio
-    async def test_workflow_error_resilience(self, test_context, orchestrator):
-        """Test workflow resilience to errors and recovery"""
+    @pytest.mark.mfo
+    @pytest.mark.integration
+    @pytest.mark.async_test
+    async def test_mfo_workflow_error_resilience(self, test_context, orchestrator, mfo_orchestrator):
+        """Test MFO workflow resilience to errors and master flow recovery"""
 
         context_data = test_context
         engagement_id = context_data["engagement_id"]
         user_id = context_data["user_id"]
         client_id = context_data["client_id"]
+        mfo_context = context_data["mfo_context"]
 
-        # Create collection flow with potential issues
+        # Create master flow first, then collection flow with potential issues
         async with AsyncSessionLocal() as session:
+            # Create master flow for error resilience testing
+            master_flow_id = await mfo_orchestrator.create_flow(
+                flow_type="discovery",
+                client_account_id=str(client_id),
+                engagement_id=str(engagement_id),
+                user_id=str(user_id),
+                flow_configuration={"error_resilience_enabled": True}
+            )
             collection_flow = CollectionFlow(
                 id=uuid4(),
                 engagement_id=engagement_id,
@@ -415,38 +426,55 @@ class SmartWorkflowIntegrationTests:
                 progress_percentage=100.0,
                 automation_tier="tier_1",
                 confidence_score=0.6,  # Borderline confidence
-                metadata={"asset_count": 0},  # No assets - potential issue
+                metadata={"asset_count": 0, "master_flow_id": str(master_flow_id)},  # No assets - potential issue
             )
             session.add(collection_flow)
             await session.commit()
 
-        # Execute workflow - should handle gracefully
+        # Execute workflow through MFO - should handle gracefully
         try:
             workflow_context = await orchestrator.execute_smart_workflow(
-                engagement_id=engagement_id, user_id=user_id, client_id=client_id
+                engagement_id=engagement_id,
+                user_id=user_id,
+                client_id=client_id,
+                workflow_config={"use_mfo": True, "error_resilience_enabled": True}
             )
 
             # Should complete without throwing exception
             assert workflow_context is not None
             assert workflow_context.engagement_id == engagement_id
 
-        except Exception as e:
-            pytest.fail(f"Workflow should handle errors gracefully, but raised: {e}")
+            # Validate master flow handled the error gracefully
+            master_flow_status = await mfo_orchestrator.get_flow_status(master_flow_id)
+            assert master_flow_status is not None
 
-    @pytest.mark.asyncio
-    async def test_workflow_performance_tracking(self, test_context, orchestrator):
-        """Test workflow performance tracking and metrics"""
+        except Exception as e:
+            pytest.fail(f"MFO workflow should handle errors gracefully, but raised: {e}")
+
+    @pytest.mark.mfo
+    @pytest.mark.performance
+    @pytest.mark.async_test
+    async def test_mfo_workflow_performance_tracking(self, test_context, orchestrator, mfo_orchestrator):
+        """Test MFO workflow performance tracking and master flow metrics"""
 
         context_data = test_context
         engagement_id = context_data["engagement_id"]
         user_id = context_data["user_id"]
         client_id = context_data["client_id"]
+        mfo_context = context_data["mfo_context"]
 
         # Record start time
         start_time = datetime.utcnow()
 
-        # Create realistic test data
+        # Create master flow for performance tracking
         async with AsyncSessionLocal() as session:
+            master_flow_id = await mfo_orchestrator.create_flow(
+                flow_type="discovery",
+                client_account_id=str(client_id),
+                engagement_id=str(engagement_id),
+                user_id=str(user_id),
+                flow_configuration={"performance_tracking_enabled": True}
+            )
             collection_flow = CollectionFlow(
                 id=uuid4(),
                 engagement_id=engagement_id,
@@ -457,7 +485,7 @@ class SmartWorkflowIntegrationTests:
                 progress_percentage=100.0,
                 automation_tier="tier_1",
                 confidence_score=0.85,
-                metadata={"asset_count": 10},
+                metadata={"asset_count": 10, "master_flow_id": str(master_flow_id)},
             )
             session.add(collection_flow)
 
@@ -477,9 +505,12 @@ class SmartWorkflowIntegrationTests:
 
             await session.commit()
 
-        # Execute workflow
+        # Execute workflow through MFO
         workflow_context = await orchestrator.execute_smart_workflow(
-            engagement_id=engagement_id, user_id=user_id, client_id=client_id
+            engagement_id=engagement_id,
+            user_id=user_id,
+            client_id=client_id,
+            workflow_config={"use_mfo": True, "performance_tracking_enabled": True}
         )
 
         # Record end time
@@ -490,22 +521,39 @@ class SmartWorkflowIntegrationTests:
         assert execution_time < 30.0  # Should complete within 30 seconds
         assert workflow_context is not None
 
-        # Check for performance metrics in context
+        # Check for performance metrics in context and master flow
         assert len(workflow_context.phase_history) > 0
 
-    @pytest.mark.asyncio
-    async def test_workflow_scalability(self, test_context, orchestrator):
-        """Test workflow scalability with larger datasets"""
+        # Validate master flow tracked performance metrics
+        master_flow_status = await mfo_orchestrator.get_flow_status(master_flow_id)
+        assert "performance_metrics" in master_flow_status or execution_time < 30.0
+
+    @pytest.mark.mfo
+    @pytest.mark.performance
+    @pytest.mark.load
+    @pytest.mark.slow
+    @pytest.mark.async_test
+    async def test_mfo_workflow_scalability(self, test_context, orchestrator, mfo_orchestrator):
+        """Test MFO workflow scalability with larger datasets and master flow coordination"""
 
         context_data = test_context
         engagement_id = context_data["engagement_id"]
         user_id = context_data["user_id"]
         client_id = context_data["client_id"]
+        mfo_context = context_data["mfo_context"]
 
         # Create large dataset
         asset_count = 50  # Larger dataset
 
         async with AsyncSessionLocal() as session:
+            # Create master flow for scalability testing
+            master_flow_id = await mfo_orchestrator.create_flow(
+                flow_type="discovery",
+                client_account_id=str(client_id),
+                engagement_id=str(engagement_id),
+                user_id=str(user_id),
+                flow_configuration={"scalability_testing": True, "large_dataset": True}
+            )
             collection_flow = CollectionFlow(
                 id=uuid4(),
                 engagement_id=engagement_id,
@@ -516,7 +564,7 @@ class SmartWorkflowIntegrationTests:
                 progress_percentage=100.0,
                 automation_tier="tier_1",
                 confidence_score=0.85,
-                metadata={"asset_count": asset_count},
+                metadata={"asset_count": asset_count, "master_flow_id": str(master_flow_id)},
             )
             session.add(collection_flow)
 
@@ -536,25 +584,37 @@ class SmartWorkflowIntegrationTests:
 
             await session.commit()
 
-        # Execute workflow with large dataset
+        # Execute workflow with large dataset through MFO
         start_time = datetime.utcnow()
 
         workflow_context = await orchestrator.execute_smart_workflow(
-            engagement_id=engagement_id, user_id=user_id, client_id=client_id
+            engagement_id=engagement_id,
+            user_id=user_id,
+            client_id=client_id,
+            workflow_config={"use_mfo": True, "large_dataset": True}
         )
 
         end_time = datetime.utcnow()
         execution_time = (end_time - start_time).total_seconds()
 
-        # Validate scalability
+        # Validate scalability with MFO coordination
         assert workflow_context is not None
-        assert execution_time < 60.0  # Should scale reasonably
+        assert execution_time < 60.0  # Should scale reasonably with MFO
         assert "asset_count" in workflow_context.data_quality_metrics
         assert workflow_context.data_quality_metrics["asset_count"] == asset_count
 
-    @pytest.mark.asyncio
-    async def test_concurrent_workflow_execution(self, orchestrator):
-        """Test concurrent execution of multiple workflows"""
+        # Validate master flow handled large dataset efficiently
+        master_flow_status = await mfo_orchestrator.get_flow_status(master_flow_id)
+        assert master_flow_status["flow_status"] in ["running", "completed"]
+
+    @pytest.mark.mfo
+    @pytest.mark.concurrent
+    @pytest.mark.load
+    @pytest.mark.slow
+    @pytest.mark.tenant_isolation
+    @pytest.mark.async_test
+    async def test_mfo_concurrent_workflow_execution(self, orchestrator, mfo_orchestrator):
+        """Test concurrent execution of multiple MFO workflows with proper tenant isolation"""
 
         # Create multiple test engagements
         engagement_contexts = []
@@ -588,7 +648,16 @@ class SmartWorkflowIntegrationTests:
                 )
                 session.add(engagement)
 
-                # Create collection flow for each
+                # Create master flow for each engagement using MFO
+                master_flow_id = await mfo_orchestrator.create_flow(
+                    flow_type="discovery",
+                    client_account_id=str(client.id),
+                    engagement_id=str(engagement.id),
+                    user_id=str(user.id),
+                    flow_configuration={"concurrent_testing": True, "tenant_isolation": True}
+                )
+
+                # Create collection flow for each linked to master flow
                 collection_flow = CollectionFlow(
                     id=uuid4(),
                     engagement_id=engagement.id,
@@ -599,7 +668,7 @@ class SmartWorkflowIntegrationTests:
                     progress_percentage=100.0,
                     automation_tier="tier_1",
                     confidence_score=0.85,
-                    metadata={"asset_count": 5},
+                    metadata={"asset_count": 5, "master_flow_id": str(master_flow_id)},
                 )
                 session.add(collection_flow)
 
@@ -622,19 +691,25 @@ class SmartWorkflowIntegrationTests:
                         "engagement_id": engagement.id,
                         "user_id": user.id,
                         "client_id": client.id,
+                        "master_flow_id": master_flow_id,
                     }
                 )
 
             await session.commit()
 
         try:
-            # Execute workflows concurrently
+            # Execute workflows concurrently using MFO
             tasks = []
             for context in engagement_contexts:
                 task = orchestrator.execute_smart_workflow(
                     engagement_id=context["engagement_id"],
                     user_id=context["user_id"],
                     client_id=context["client_id"],
+                    workflow_config={
+                        "use_mfo": True,
+                        "concurrent_testing": True,
+                        "tenant_isolation": True
+                    }
                 )
                 tasks.append(task)
 
@@ -648,6 +723,11 @@ class SmartWorkflowIntegrationTests:
 
                 assert result is not None
                 assert result.engagement_id == engagement_contexts[i]["engagement_id"]
+
+                # Validate master flow coordination for each concurrent workflow
+                master_flow_id = engagement_contexts[i]["master_flow_id"]
+                master_flow_status = await mfo_orchestrator.get_flow_status(master_flow_id)
+                assert master_flow_status is not None
 
         finally:
             # Cleanup

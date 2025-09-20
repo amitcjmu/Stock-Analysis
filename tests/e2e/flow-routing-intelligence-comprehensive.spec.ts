@@ -517,7 +517,7 @@ test.describe('Flow Routing Intelligence - Comprehensive Test Suite', () => {
     await page.waitForTimeout(5000);
 
     // Capture the flow ID from upload
-    let flowIdElement = page.locator('text=/flow-[a-f0-9-]{36}/i');
+    const flowIdElement = page.locator('text=/flow-[a-f0-9-]{36}/i');
     if (await flowIdElement.isVisible({ timeout: 10000 })) {
       const flowIdText = await flowIdElement.textContent();
       testFlowId = flowIdText?.match(/[a-f0-9-]{36}/i)?.[0] || '';

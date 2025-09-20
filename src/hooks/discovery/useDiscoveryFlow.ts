@@ -347,7 +347,7 @@ export const useDiscoveryFlow = (flowId?: string): UseDiscoveryFlowReturn => {
   // Update error state when query error changes
   useEffect(() => {
     if (queryError) {
-      setError(queryError as Error);
+      setError(queryError);
     } else {
       setError(null);
     }

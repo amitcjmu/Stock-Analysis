@@ -1,6 +1,9 @@
 """
 Integration tests for the new agentic Discovery flow.
 Tests the removal of hardcoded thresholds and dynamic agent decision-making.
+Aligned with Master Flow Orchestrator (MFO) pattern and TenantScopedAgentPool.
+
+Generated with CC for MFO integration and proper tenant isolation.
 """
 
 import asyncio
@@ -13,6 +16,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engin
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
+# Import MFO fixtures and demo tenant constants
+from tests.fixtures.mfo_fixtures import (
+    DEMO_CLIENT_ACCOUNT_ID,
+    DEMO_ENGAGEMENT_ID,
+    DEMO_USER_ID,
+    MockRequestContext,
+    MockServiceRegistry,
+)
+# Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
+
 from app.core.database import Base
 from app.models.discovery_models import DiscoveryFlow
 from app.models.master_flow import MasterFlow
@@ -21,6 +34,7 @@ from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow imp
 )
 from app.services.flow_orchestration.status_manager import FlowStatusManager
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
 
 
 # Test database setup
@@ -48,6 +62,52 @@ async def test_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session_maker() as session:
         yield session
+
+
+@pytest.fixture
+def demo_context() -> MockRequestContext:
+    """Demo tenant context for MFO testing."""
+    return MockRequestContext(
+        client_account_id=DEMO_CLIENT_ACCOUNT_ID,
+        engagement_id=DEMO_ENGAGEMENT_ID,
+        user_id=DEMO_USER_ID,
+    )
+
+
+@pytest.fixture
+def mock_service_registry() -> MockServiceRegistry:
+    """Mock service registry for MFO operations."""
+    return MockServiceRegistry()
+
+
+@pytest.fixture
+def mock_tenant_scoped_agent_pool():
+    """Mock TenantScopedAgentPool for testing agent operations."""
+    mock_pool = MagicMock()
+
+    # Mock agent instances
+    mock_agent = MagicMock()
+    mock_agent.execute = AsyncMock(return_value={
+        "status": "completed",
+        "result": {
+            "decision": "approve",
+            "confidence": 0.95,
+            "reasoning": "High quality mapping with strong semantic alignment",
+            "suggestions": ["Consider adding additional context for edge cases"],
+        },
+        "execution_time": 1.23,
+    })
+
+    # Mock pool methods
+    mock_pool.get_agent = AsyncMock(return_value=mock_agent)
+    mock_pool.release_agent = AsyncMock()
+    mock_pool.get_pool_stats = AsyncMock(return_value={
+        "active_agents": 2,
+        "total_agents": 5,
+        "memory_usage": 128.5,
+    })
+
+    return mock_pool
 
 
 @pytest.fixture

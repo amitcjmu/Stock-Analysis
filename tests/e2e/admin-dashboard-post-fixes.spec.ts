@@ -181,7 +181,7 @@ test.describe('Admin Dashboard Post-Fix Verification', () => {
     console.log('\n🎯 TEST: Network and Console Error Detection');
     console.log('============================================');
 
-    const allNetworkRequests: { url: string; status: number; method: string }[] = [];
+    const allNetworkRequests: Array<{ url: string; status: number; method: string }> = [];
     const apiErrors: string[] = [];
 
     // Track all network requests
@@ -256,7 +256,7 @@ test.describe('Admin Dashboard Post-Fix Verification', () => {
       '/api/v1/auth/admin/dashboard-stats'
     ];
 
-    const endpointResults: { endpoint: string; status: number; exists: boolean }[] = [];
+    const endpointResults: Array<{ endpoint: string; status: number; exists: boolean }> = [];
 
     for (const endpoint of apiEndpoints) {
       try {

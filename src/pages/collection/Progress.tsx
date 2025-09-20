@@ -61,7 +61,7 @@ const CollectionProgress: React.FC = () => {
       setIsTransitioning(true);
 
       // Call dedicated transition endpoint
-      const result = await collectionFlowApi.transitionToAssessment(selectedFlow!);
+      const result = await collectionFlowApi.transitionToAssessment(selectedFlow);
 
       toast({
         title: 'Transition Successful',

@@ -28,7 +28,7 @@ import path from 'path';
 import fs from 'fs';
 
 test.describe('Collection Flow E2E Tests', () => {
-  let collectionId: string | null = null;
+  const collectionId: string | null = null;
   let consoleErrors: string[] = [];
   let networkErrors: Array<{ url: string; status: number; statusText?: string; responseBody?: any }> = [];
   let apiResponses: Array<{ url: string; status: number; data?: any }> = [];

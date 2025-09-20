@@ -14,12 +14,12 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.models.collection_flow import CollectionFlow, CollectionFlowStatus
-from app.models.master_flow import CrewAIFlowStateExtensions
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.canonical_applications.collection_flow_app import (
     CollectionFlowApplication,
 )
 from app.models.asset import Asset
-from app.services.collection_flow.state_management import CollectionFlowStateManager
+from app.services.collection_flow.state_management import CollectionFlowStateService
 from app.api.v1.endpoints.collection_applications import update_flow_applications
 from app.core.context import RequestContext
 
@@ -61,7 +61,7 @@ async def test_master_child_flow_status_synchronization(db_session):
     await db_session.commit()
 
     # Initialize state manager
-    state_manager = CollectionFlowStateManager(
+    state_manager = CollectionFlowStateService(
         db=db_session, client_account_id=str(master_flow.client_account_id)
     )
 

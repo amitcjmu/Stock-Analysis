@@ -49,7 +49,7 @@ export const FlowResumptionHandler: React.FC<FlowResumptionHandlerProps> = ({ ch
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
 
       // Extract the flow continuation data
-      const data = response.data as FlowContinuationResponse;
+      const data = response.data;
 
       // Check if we have agent guidance to display
       if (data.user_guidance) {

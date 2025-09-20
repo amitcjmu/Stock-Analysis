@@ -130,8 +130,8 @@ test.describe('Discovery Flow Phase Progression and Asset Persistence', () => {
     // Verify phases progress: initialization → field_mapping → data_cleansing → asset_inventory
     const expectedPhases = ['initialization', 'field_mapping', 'data_cleansing', 'asset_inventory'];
     let currentPhase = '';
-    let maxWaitTime = 180000; // 3 minutes total
-    let startTime = Date.now();
+    const maxWaitTime = 180000; // 3 minutes total
+    const startTime = Date.now();
 
     console.log('Monitoring phase transitions...');
     while (Date.now() - startTime < maxWaitTime) {

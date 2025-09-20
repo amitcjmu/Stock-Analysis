@@ -251,7 +251,7 @@ test.describe('Flow Endpoint Consolidation Tests', () => {
 
   test('should verify no 404 errors during complete discovery workflow', async () => {
     const response404Errors: string[] = [];
-    const allApiErrors: { status: number; url: string }[] = [];
+    const allApiErrors: Array<{ status: number; url: string }> = [];
 
     // Monitor for all errors
     page.on('response', (response) => {

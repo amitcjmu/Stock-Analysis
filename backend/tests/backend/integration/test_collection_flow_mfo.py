@@ -117,6 +117,8 @@ class TestCollectionFlowMFO:
         return engagement
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.integration
     @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_creates_mfo_flow(
         self,
@@ -172,6 +174,8 @@ class TestCollectionFlowMFO:
         logger.info(f"✅ Collection flow created with MFO flow: {mfo_flow.flow_id}")
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.integration
     @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_background_execution(
         self,
@@ -225,6 +229,8 @@ class TestCollectionFlowMFO:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.integration
     @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_execution_uses_master_flow_id(
         self,
@@ -269,6 +275,8 @@ class TestCollectionFlowMFO:
             logger.info(f"⚠️ Execution failed with: {e}")
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.integration
     @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_ensure_collection_flow_creates_mfo(
         self,
@@ -312,6 +320,8 @@ class TestCollectionFlowMFO:
         logger.info(f"✅ ensure_collection_flow created MFO flow: {mfo_flow.flow_id}")
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.integration
     @patch("app.core.rbac_utils.check_user_role", return_value=True)
     async def test_collection_flow_questionnaire_generation(
         self,
