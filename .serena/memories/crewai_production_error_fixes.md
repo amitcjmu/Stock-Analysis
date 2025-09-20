@@ -19,7 +19,7 @@ def _prepare_crew_input(self) -> Dict[str, Any]:
 
 ## Insight 2: Field Mapping Tool Parameter Mismatch
 **Problem**: Tool expects wrapped parameters but agents pass direct format
-**Error**: `Field required [type=missing, input_value={'source_fields': [...]}` 
+**Error**: `Field required [type=missing, input_value={'source_fields': [...]}`
 **Solution**: Make tool accept both parameter formats for backward compatibility
 **Code**:
 ```python
@@ -32,7 +32,7 @@ def _run(self, mapping_request: Dict[str, Any]) -> str:
         actual_request = mapping_request
     else:
         actual_request = mapping_request
-    
+
     result = FieldSuggestionImpl.generate_suggestions(actual_request)
     return json.dumps(result)
 ```
@@ -71,6 +71,6 @@ git push origin fix/discovery-flow-data-population-20250118
 
 ## Lessons Learned
 1. **Always check abstract method implementations** after modularization
-2. **Tool parameter mismatches** often occur between agent calls and tool definitions  
+2. **Tool parameter mismatches** often occur between agent calls and tool definitions
 3. **Backward compatibility** > forcing all consumers to update
 4. **Modularization must preserve all public imports** to avoid breaking changes

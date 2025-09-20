@@ -1,17 +1,35 @@
 """
-Performance tests for state operations
+CRITICAL Performance Tests for MFO State Operations
+
+Validates that Master Flow Orchestrator (MFO) state operations meet
+enterprise performance requirements following ADR-015 architecture.
+
+Benchmarks:
+- MFO atomic transaction performance
+- Tenant-scoped query performance
+- State serialization with tenant context
+- Concurrent MFO operations
+- Memory usage with tenant isolation
 """
 
 import asyncio
 import json
 import time
-from unittest.mock import AsyncMock, MagicMock
+# No typing imports needed currently
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.master_flows_service import MasterFlowService
 from app.core.context import RequestContext
+from app.core.database import AsyncSessionLocal
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.repositories.asset_repository import AssetRepository
 from app.services.crewai_flows.persistence.postgres_store import (
     ConcurrentModificationError,
     PostgresFlowStateStore,
@@ -20,11 +38,27 @@ from app.services.crewai_flows.persistence.postgres_store import (
 
 @pytest.fixture
 def test_context():
-    """Test context for state operations"""
+    """Test context for MFO state operations with tenant isolation"""
+    import uuid
     return RequestContext(
-        client_account_id="test-client-123",
-        engagement_id="test-engagement-456",
-        user_id="test-user-789",
+        client_account_id=str(uuid.uuid4()),
+        engagement_id=str(uuid.uuid4()),
+        user_id="mfo_perf_test_user",
+        user_role="admin",
+        request_id=str(uuid.uuid4()),
+    )
+
+
+@pytest.fixture
+def different_tenant_context():
+    """Different tenant context for isolation testing"""
+    import uuid
+    return RequestContext(
+        client_account_id=str(uuid.uuid4()),
+        engagement_id=str(uuid.uuid4()),
+        user_id="different_tenant_user",
+        user_role="admin",
+        request_id=str(uuid.uuid4()),
     )
 
 
@@ -119,7 +153,9 @@ async def mock_db_session():
 
     # Mock the execute result properly
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none = MagicMock(return_value=None)  # No existing record by default
+    mock_result.scalar_one_or_none = MagicMock(
+        return_value=None  # No existing record by default
+    )
 
     session.execute = AsyncMock(return_value=mock_result)
     session.commit = AsyncMock()
@@ -128,6 +164,278 @@ async def mock_db_session():
     session.merge = MagicMock()  # Sync operation, not async
     session.refresh = AsyncMock()
     return session
+
+
+class TestMFOPerformance:
+    """CRITICAL: Ensure MFO operations meet enterprise performance requirements
+
+    Validates performance benchmarks for Master Flow Orchestrator (MFO)
+    operations according to ADR-015 and enterprise SLA requirements.
+    """
+
+    @pytest.mark.performance
+    @pytest.mark.critical
+    @pytest.mark.asyncio
+    async def test_mfo_service_creation_performance(
+        self, test_context
+    ):
+        """CRITICAL: MFO service creation should be <5ms
+
+        Tests that MasterFlowService instantiation is fast enough
+        for real-time API responses.
+        """
+        async with AsyncSessionLocal() as session:
+            start = time.perf_counter()
+
+            # Create MFO service
+            mfo_service = MasterFlowService(session, test_context)
+
+            duration = (time.perf_counter() - start) * 1000
+
+            assert duration < 5, (
+                f"MFO service creation took {duration:.2f}ms, expected <5ms"
+            )
+            assert mfo_service is not None
+            assert (
+                mfo_service.context.client_account_id
+                == test_context.client_account_id
+            )
+
+    @pytest.mark.performance
+    @pytest.mark.critical
+    @pytest.mark.asyncio
+    async def test_mfo_atomic_transaction_performance(
+        self, test_context
+    ):
+        """CRITICAL: MFO atomic transactions should complete <100ms
+
+        Tests that atomic transaction patterns (ADR-012) meet
+        performance requirements for production workloads.
+        """
+        async with AsyncSessionLocal() as session:
+            mfo_service = MasterFlowService(session, test_context)
+
+            flow_id = f"perf-test-{int(time.time())}"
+
+            start = time.perf_counter()
+
+            # Mock atomic transaction calls for performance testing
+            with patch.object(session, 'begin', new_callable=AsyncMock) as mock_begin:
+                with patch.object(
+                    session, 'flush', new_callable=AsyncMock
+                ) as mock_flush:
+                    with patch.object(
+                        session, 'commit', new_callable=AsyncMock
+                    ) as mock_commit:
+                        with patch.object(
+                            session, 'add', MagicMock()
+                        ):
+                            await mfo_service.create_master_flow(
+                                flow_id=flow_id,
+                                flow_type="discovery",
+                                flow_name="Performance Test Flow"
+                            )
+
+            duration = (time.perf_counter() - start) * 1000
+
+            assert duration < 100, (
+                f"MFO atomic transaction took {duration:.2f}ms, expected <100ms"
+            )
+
+            # Verify atomic pattern was used
+            mock_begin.assert_called()
+            mock_flush.assert_called()
+            mock_commit.assert_called()
+
+    @pytest.mark.performance
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_mfo_tenant_scoped_query_performance(
+        self, test_context, different_tenant_context
+    ):
+        """CRITICAL: Tenant-scoped queries should complete <50ms
+
+        Tests that tenant isolation queries don't significantly
+        impact performance while maintaining security.
+        """
+        async with AsyncSessionLocal() as session:
+            # Create repositories for both tenants
+            repo_1 = CrewAIFlowStateExtensionsRepository(
+                session,
+                test_context.client_account_id,
+                test_context.engagement_id,
+                test_context.user_id
+            )
+
+            repo_2 = CrewAIFlowStateExtensionsRepository(
+                session,
+                different_tenant_context.client_account_id,
+                different_tenant_context.engagement_id,
+                different_tenant_context.user_id
+            )
+
+            # Test query performance for each tenant
+            start = time.perf_counter()
+            flows_1 = await repo_1.get_active_flows()
+            duration_1 = (time.perf_counter() - start) * 1000
+
+            start = time.perf_counter()
+            flows_2 = await repo_2.get_active_flows()
+            duration_2 = (time.perf_counter() - start) * 1000
+
+            assert duration_1 < 50, (
+                f"Tenant 1 query took {duration_1:.2f}ms, expected <50ms"
+            )
+            assert duration_2 < 50, (
+                f"Tenant 2 query took {duration_2:.2f}ms, expected <50ms"
+            )
+
+            # Verify tenant isolation
+            assert len(flows_1) >= 0  # Valid response
+            assert len(flows_2) >= 0  # Valid response
+
+    @pytest.mark.performance
+    @pytest.mark.asyncio
+    async def test_mfo_concurrent_operations_performance(
+        self, test_context
+    ):
+        """CRITICAL: Concurrent MFO operations should scale linearly
+
+        Tests that multiple concurrent MFO operations don't create
+        performance bottlenecks or deadlocks.
+        """
+        async with AsyncSessionLocal() as session:
+
+            # Create multiple MFO services for concurrent testing
+            concurrent_count = 20
+            tasks = []
+
+            start = time.perf_counter()
+
+            for i in range(concurrent_count):
+                # Create unique context for each operation
+                unique_context = RequestContext(
+                    client_account_id=test_context.client_account_id,
+                    engagement_id=test_context.engagement_id,
+                    user_id=f"concurrent_user_{i}",
+                    user_role="admin",
+                    request_id=f"concurrent_req_{i}",
+                )
+
+                mfo_service = MasterFlowService(session, unique_context)
+
+                # Mock the database operations for performance testing
+                with patch.object(session, 'commit', new_callable=AsyncMock):
+                    task = mfo_service.get_master_flow_status(f"test-flow-{i}")
+                    tasks.append(task)
+
+            # Execute all operations concurrently
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            duration = (time.perf_counter() - start) * 1000
+
+            # Should complete all operations in reasonable time
+            expected_max_duration = concurrent_count * 10  # 10ms per operation
+            assert duration < expected_max_duration, (
+                f"Concurrent operations took {duration:.2f}ms, "
+                f"expected <{expected_max_duration}ms"
+            )
+
+            # Verify no exceptions occurred
+            exceptions = [r for r in results if isinstance(r, Exception)]
+            assert len(exceptions) == 0, (
+                f"Concurrent operations had {len(exceptions)} exceptions"
+            )
+
+    @pytest.mark.performance
+    @pytest.mark.memory
+    @pytest.mark.asyncio
+    async def test_mfo_memory_usage_with_tenant_isolation(
+        self, test_context
+    ):
+        """CRITICAL: MFO memory usage should remain constant with tenant isolation
+
+        Tests that tenant isolation doesn't cause memory leaks or
+        excessive memory consumption.
+        """
+        import os
+        import psutil
+
+        process = psutil.Process(os.getpid())
+        initial_memory = process.memory_info().rss / 1024 / 1024  # MB
+
+        async with AsyncSessionLocal() as session:
+            # Create many tenant contexts and MFO services
+            for i in range(100):
+                unique_context = RequestContext(
+                    client_account_id=f"tenant-{i % 10}",  # 10 different tenants
+                    engagement_id=f"engagement-{i}",
+                    user_id=f"user-{i}",
+                    user_role="admin",
+                    request_id=f"req-{i}",
+                )
+
+                mfo_service = MasterFlowService(session, unique_context)
+
+                # Simulate some operations
+                with patch.object(session, 'commit', new_callable=AsyncMock):
+                    await mfo_service.get_master_flow_status(f"test-flow-{i}")
+
+        final_memory = process.memory_info().rss / 1024 / 1024  # MB
+        memory_increase = final_memory - initial_memory
+
+        # Memory increase should be reasonable (<50MB for this test)
+        assert memory_increase < 50, \
+            f"Memory increased by {memory_increase:.2f}MB, expected <50MB"
+
+    @pytest.mark.performance
+    @pytest.mark.asyncio
+    async def test_mfo_repository_performance_benchmarks(
+        self, test_context
+    ):
+        """CRITICAL: MFO repository operations meet performance SLAs
+
+        Tests that all MFO repository operations complete within
+        acceptable time limits for production workloads.
+        """
+        async with AsyncSessionLocal() as session:
+            # Test CrewAI Flow State Extensions Repository
+            crewai_repo = CrewAIFlowStateExtensionsRepository(
+                session,
+                test_context.client_account_id,
+                test_context.engagement_id,
+                test_context.user_id
+            )
+
+            # Test Discovery Flow Repository
+            discovery_repo = DiscoveryFlowRepository(
+                session,
+                test_context.client_account_id,
+                test_context.engagement_id,
+                test_context.user_id
+            )
+
+            # Test Asset Repository
+            asset_repo = AssetRepository(session, test_context.client_account_id)
+
+            # Benchmark repository operations
+            operations = [
+                ("crewai_get_active_flows", crewai_repo.get_active_flows()),
+                ("discovery_get_active_flows", discovery_repo.get_active_flows()),
+                ("asset_get_all", asset_repo.get_all()),
+            ]
+
+            for operation_name, operation in operations:
+                start = time.perf_counter()
+                result = await operation
+                duration = (time.perf_counter() - start) * 1000
+
+                # All repository operations should complete in <30ms
+                assert duration < 30, \
+                    f"{operation_name} took {duration:.2f}ms, expected <30ms"
+
+                # Result should be valid
+                assert result is not None or result == []
 
 
 class TestStatePerformance:

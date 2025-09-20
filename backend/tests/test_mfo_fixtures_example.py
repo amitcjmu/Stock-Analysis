@@ -38,7 +38,7 @@ async def test_master_flow_model_import():
         flow_type="discovery",
         flow_status="running",
         created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        updated_at=datetime.now(timezone.utc),
     )
 
     assert master_flow.flow_id == flow_id
@@ -61,7 +61,7 @@ async def test_collection_flow_model_import():
         engagement_id=1,
         status=CollectionFlowStatus.INITIALIZED,
         created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        updated_at=datetime.now(timezone.utc),
     )
 
     assert collection_flow.flow_id == flow_id
@@ -78,7 +78,7 @@ async def test_request_context_creation():
         client_account_id="1",
         engagement_id="1",
         user_id="test_user",
-        flow_id="test_flow_id"
+        flow_id="test_flow_id",
     )
 
     assert context.client_account_id == "1"
