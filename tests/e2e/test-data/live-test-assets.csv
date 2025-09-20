@@ -1,6 +1,0 @@
-hostname,ip_address,asset_type,environment,status
-server001,192.168.1.10,Server,Production,Active
-app001,192.168.1.20,Application,Production,Active
-db001,192.168.1.30,Database,Production,Active
-web001,192.168.1.40,Web Server,Production,Active
-cache001,192.168.1.50,Cache Server,Production,Active
