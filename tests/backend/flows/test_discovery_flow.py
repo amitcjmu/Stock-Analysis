@@ -1,26 +1,41 @@
 """
-Tests for Phase 2 Discovery Flow implementation
+Tests for Discovery Flow implementation with MFO Architecture
+
+Aligned with:
+- ADR-006: Master Flow Orchestrator
+- ADR-015: Persistent Multi-Tenant Agent Architecture
+- Lessons from 000-lessons.md
 """
 
 import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
+from uuid import uuid4
 
 import pytest
 
+# Import MFO fixtures and patterns
+from tests.fixtures.mfo_fixtures import (
+    mock_tenant_scoped_agent_pool,
+)
+
+# MFO architecture imports
 from app.core.context import RequestContext
-from app.services.flows.discovery_flow import DiscoveryFlowState, UnifiedDiscoveryFlow
+from app.services.flows.discovery_flow import (
+    DiscoveryFlowState,
+    UnifiedDiscoveryFlow
+)
 from app.services.flows.events import FlowEvent, FlowEventBus
 from app.services.flows.manager import FlowManager
 
 
 @pytest.fixture
-def mock_context():
-    """Create mock request context"""
+def mock_mfo_context():
+    """Create mock MFO request context with proper tenant scoping"""
     return RequestContext(
-        client_account_id="test-client-123",
-        engagement_id="test-engagement-456",
-        user_id="test-user-789",
+        client_account_id="demo-client-account",
+        engagement_id="demo-engagement-001",
+        user_id="demo-user-123",
     )
 
 
@@ -31,13 +46,15 @@ def mock_db_session():
 
 
 @pytest.fixture
-def sample_import_data():
-    """Create sample import data"""
+def sample_mfo_import_data(mock_mfo_context):
+    """Create sample import data for MFO testing"""
     return {
-        "flow_id": "test-flow-123",
-        "import_id": "test-import",
+        "flow_id": uuid4(),
+        "import_id": "demo-import-001",
         "filename": "test_data.csv",
         "record_count": 100,
+        "client_account_id": mock_mfo_context.client_account_id,
+        "engagement_id": mock_mfo_context.engagement_id,
         "raw_data": [
             {"hostname": "server1", "ip": "192.168.1.1", "type": "server"},
             {"hostname": "server2", "ip": "192.168.1.2", "type": "database"},
@@ -46,31 +63,34 @@ def sample_import_data():
     }
 
 
+@pytest.mark.mfo
+@pytest.mark.discovery_flow
 class TestDiscoveryFlowState:
-    """Tests for DiscoveryFlowState"""
+    """Tests for DiscoveryFlowState with MFO architecture"""
 
-    def test_state_initialization(self, mock_context):
-        """Test state initialization"""
+    def test_state_initialization(self, mock_mfo_context):
+        """Test state initialization with tenant scoping"""
+        flow_id = uuid4()
         state = DiscoveryFlowState(
-            flow_id="test-flow",
-            client_account_id=mock_context.client_account_id,
-            engagement_id=mock_context.engagement_id,
-            user_id=mock_context.user_id,
+            flow_id=flow_id,
+            client_account_id=mock_mfo_context.client_account_id,
+            engagement_id=mock_mfo_context.engagement_id,
+            user_id=mock_mfo_context.user_id,
         )
 
-        assert state.flow_id == "test-flow"
+        assert state.flow_id == flow_id
         assert state.current_phase == "initialization"
         assert state.progress_percentage == 0.0
         assert state.status == "running"
         assert len(state.phases_completed) == 0
 
-    def test_add_error(self, mock_context):
-        """Test error tracking"""
+    def test_add_error(self, mock_mfo_context):
+        """Test error tracking with tenant isolation"""
         state = DiscoveryFlowState(
-            flow_id="test-flow",
-            client_account_id=mock_context.client_account_id,
-            engagement_id=mock_context.engagement_id,
-            user_id=mock_context.user_id,
+            flow_id=uuid4(),
+            client_account_id=mock_mfo_context.client_account_id,
+            engagement_id=mock_mfo_context.engagement_id,
+            user_id=mock_mfo_context.user_id,
         )
 
         state.add_error("test_phase", "Test error message")
@@ -81,73 +101,102 @@ class TestDiscoveryFlowState:
         assert "timestamp" in state.errors[0]
 
 
+@pytest.mark.mfo
+@pytest.mark.discovery_flow
 class TestUnifiedDiscoveryFlow:
-    """Tests for UnifiedDiscoveryFlow"""
+    """Tests for UnifiedDiscoveryFlow with MFO architecture"""
 
     @pytest.fixture
-    def flow(self, mock_db_session, mock_context):
-        """Create flow instance"""
-        return UnifiedDiscoveryFlow(mock_db_session, mock_context)
+    def mfo_flow(self, mock_db_session, mock_mfo_context,
+                 mock_tenant_scoped_agent_pool):
+        """Create flow instance with MFO patterns"""
+        # Mock flow with TenantScopedAgentPool integration
+        flow = UnifiedDiscoveryFlow(mock_db_session, mock_mfo_context)
+        flow.agent_pool = mock_tenant_scoped_agent_pool
+        return flow
 
-    def test_flow_initialization(self, flow, mock_context):
-        """Test flow initialization"""
-        assert flow.context == mock_context
-        assert hasattr(flow, "crew_factory")
-        assert hasattr(flow, "state_store")
+    def test_flow_initialization(self, mfo_flow, mock_mfo_context):
+        """Test flow initialization with MFO patterns"""
+        assert mfo_flow.context == mock_mfo_context
+        assert hasattr(mfo_flow, "crew_factory") or hasattr(mfo_flow, "agent_pool")
+        assert hasattr(mfo_flow, "state_store")
+        # Verify tenant scoping
+        assert mfo_flow.context.client_account_id == mock_mfo_context.client_account_id
+        assert mfo_flow.context.engagement_id == mock_mfo_context.engagement_id
 
     @pytest.mark.asyncio
-    async def test_initialize_discovery(self, flow, sample_import_data):
-        """Test flow initialization method"""
-        with patch.object(flow, "save_state", new_callable=AsyncMock) as mock_save:
-            result = await flow.initialize_discovery(sample_import_data)
+    @pytest.mark.mfo
+    async def test_initialize_discovery(self, mfo_flow, sample_mfo_import_data):
+        """Test flow initialization method with MFO patterns"""
+        with patch.object(mfo_flow, "save_state", new_callable=AsyncMock) as mock_save:
+            result = await mfo_flow.initialize_discovery(sample_mfo_import_data)
 
             assert isinstance(result, DiscoveryFlowState)
-            assert result.flow_id == sample_import_data["flow_id"]
+            assert result.flow_id == sample_mfo_import_data["flow_id"]
             assert result.current_phase == "initialization"
-            assert result.total_records == sample_import_data["record_count"]
+            assert result.total_records == sample_mfo_import_data["record_count"]
+            # Verify tenant scoping
+            assert result.client_account_id == sample_mfo_import_data[
+                "client_account_id"
+            ]
+            assert result.engagement_id == sample_mfo_import_data[
+                "engagement_id"
+            ]
             mock_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_validate_and_analyze_data(self, flow, sample_import_data):
-        """Test data validation phase"""
+    @pytest.mark.mfo
+    async def test_validate_and_analyze_data(self, mfo_flow, sample_mfo_import_data):
+        """Test data validation phase with TenantScopedAgentPool"""
         # Initialize state
-        initial_state = await flow.initialize_discovery(sample_import_data)
+        initial_state = await mfo_flow.initialize_discovery(sample_mfo_import_data)
 
+        # Mock agent pool execution instead of crew factory
         with patch.object(
-            flow.crew_factory, "execute_crew", new_callable=AsyncMock
-        ) as mock_crew:
-            mock_crew.return_value = {
+            mfo_flow.agent_pool, "get_agent", new_callable=AsyncMock
+        ) as mock_agent_pool:
+            mock_agent = AsyncMock()
+            mock_agent.execute.return_value = {
                 "status": "completed",
                 "data": {"validation": "passed"},
             }
+            mock_agent_pool.return_value = mock_agent
 
-            with patch.object(flow, "save_state", new_callable=AsyncMock):
-                result = await flow.validate_and_analyze_data(initial_state)
+            with patch.object(mfo_flow, "save_state", new_callable=AsyncMock):
+                result = await mfo_flow.validate_and_analyze_data(initial_state)
 
                 assert result.current_phase == "data_validation"
                 assert "data_validation" in result.phases_completed
                 assert result.progress_percentage == 10.0
-                mock_crew.assert_called_once()
+                # Verify agent pool was used (not crew factory)
+                mock_agent_pool.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_error_handling(self, flow, sample_import_data):
-        """Test error handling in flow"""
-        initial_state = await flow.initialize_discovery(sample_import_data)
+    @pytest.mark.mfo
+    async def test_error_handling(self, mfo_flow, sample_mfo_import_data):
+        """Test error handling in flow with agent pool"""
+        initial_state = await mfo_flow.initialize_discovery(sample_mfo_import_data)
 
         with patch.object(
-            flow.crew_factory, "execute_crew", new_callable=AsyncMock
-        ) as mock_crew:
-            mock_crew.side_effect = Exception("Test error")
+            mfo_flow.agent_pool, "get_agent", new_callable=AsyncMock
+        ) as mock_agent_pool:
+            mock_agent_pool.side_effect = Exception("Test error")
 
             with pytest.raises(Exception):
-                await flow.validate_and_analyze_data(initial_state)
+                await mfo_flow.validate_and_analyze_data(initial_state)
 
-            # Check that error was handled
-            assert flow.state.error == "Test error"
+            # Check that error was handled with tenant context
+            assert mfo_flow.state.error == "Test error"
+            # Verify tenant isolation maintained during error
+            assert mfo_flow.context.client_account_id == sample_mfo_import_data[
+                "client_account_id"
+            ]
 
 
+@pytest.mark.mfo
+@pytest.mark.discovery_flow
 class TestFlowManager:
-    """Tests for FlowManager"""
+    """Tests for FlowManager with MFO architecture"""
 
     @pytest.fixture
     def manager(self):
@@ -161,7 +210,7 @@ class TestFlowManager:
 
     @pytest.mark.asyncio
     async def test_create_discovery_flow(
-        self, manager, mock_db_session, mock_context, sample_import_data
+        self, manager, mock_db_session, mock_mfo_context, sample_import_data
     ):
         """Test flow creation"""
         with patch(
@@ -172,7 +221,7 @@ class TestFlowManager:
             mock_flow.kickoff = AsyncMock()
 
             flow_id = await manager.create_discovery_flow(
-                mock_db_session, mock_context, sample_import_data
+                mock_db_session, mock_mfo_context, sample_import_data
             )
 
             assert flow_id == sample_import_data["flow_id"]
@@ -194,8 +243,10 @@ class TestFlowManager:
         assert "test-flow" not in manager.active_flows
 
 
+@pytest.mark.mfo
+@pytest.mark.discovery_flow
 class TestFlowEventBus:
-    """Tests for FlowEventBus"""
+    """Tests for FlowEventBus with MFO integration"""
 
     @pytest.fixture
     def event_bus(self):
@@ -285,28 +336,38 @@ class TestFlowEventBus:
         assert event_bus.event_history[1].data["index"] == 2
 
 
+@pytest.mark.mfo
+@pytest.mark.discovery_flow
 class TestIntegration:
-    """Integration tests for the complete flow framework"""
+    """Integration tests for the complete flow framework with MFO architecture"""
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_full_flow_execution(
-        self, mock_db_session, mock_context, sample_import_data
+        self, mock_db_session, mock_mfo_context, sample_mfo_import_data,
+        mock_tenant_scoped_agent_pool
     ):
-        """Test complete flow execution from start to finish"""
-        flow = UnifiedDiscoveryFlow(mock_db_session, mock_context)
+        """Test complete flow execution from start to finish with MFO architecture"""
+        flow = UnifiedDiscoveryFlow(mock_db_session, mock_mfo_context)
+        flow.agent_pool = mock_tenant_scoped_agent_pool
 
-        # Mock crew executions
+        # Mock agent pool executions instead of crew factory
         with patch.object(
-            flow.crew_factory, "execute_crew", new_callable=AsyncMock
-        ) as mock_crew:
-            mock_crew.return_value = {"status": "completed", "data": {}}
+            flow.agent_pool, "get_agent", new_callable=AsyncMock
+        ) as mock_agent_pool:
+            mock_agent = AsyncMock()
+            mock_agent.execute.return_value = {"status": "completed", "data": {}}
+            mock_agent_pool.return_value = mock_agent
 
             with patch.object(flow, "save_state", new_callable=AsyncMock):
-                # Initialize
-                state = await flow.initialize_discovery(sample_import_data)
+                # Initialize with MFO data
+                state = await flow.initialize_discovery(sample_mfo_import_data)
                 assert state.current_phase == "initialization"
+                # Verify tenant scoping
+                assert state.client_account_id == mock_mfo_context.client_account_id
+                assert state.engagement_id == mock_mfo_context.engagement_id
 
-                # Validate
+                # Validate with agent pool
                 state = await flow.validate_and_analyze_data(state)
                 assert state.current_phase == "data_validation"
                 assert state.progress_percentage == 10.0

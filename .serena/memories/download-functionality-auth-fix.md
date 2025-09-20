@@ -1,7 +1,7 @@
 # Download Functionality Authentication Fix
 
 ## Problem: Data Download Failing with 400 Errors
-**Symptoms**: 
+**Symptoms**:
 - Download Raw/Cleaned Data buttons failing
 - Backend logs: "Client account context is required for multi-tenant security"
 - Missing X-Client-Account-ID header
