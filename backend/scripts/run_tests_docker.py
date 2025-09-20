@@ -14,13 +14,22 @@ import signal
 from typing import List, Optional
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 class DockerTestRunner:
     """Manages Docker containers for testing and runs test suites."""
 
-    def __init__(self, project_name: str = "migrate-ui-orchestrator-test", compose_file_override: Optional[str] = None, no_build: bool = False, skip_start: bool = False):
+    def __init__(
+        self,
+        project_name: str = "migrate-ui-orchestrator-test",
+        compose_file_override: Optional[str] = None,
+        no_build: bool = False,
+        skip_start: bool = False,
+    ):
         self.project_name = project_name
         self.compose_file = compose_file_override or self._detect_compose_file()
         self.compose_cmd = self._detect_compose_command()
@@ -31,7 +40,9 @@ class DockerTestRunner:
     def _detect_compose_command(self) -> List[str]:
         """Detect whether to use 'docker compose' (v2) or 'docker-compose' (v1)."""
         try:
-            result = subprocess.run(["docker", "compose", "version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker", "compose", "version"], capture_output=True, text=True
+            )
             if result.returncode == 0:
                 return ["docker", "compose"]
         except Exception:
@@ -63,8 +74,19 @@ class DockerTestRunner:
         logger.info("Cleaning up existing containers...")
         try:
             result = subprocess.run(
-                self.compose_cmd + ["-f", self.compose_file, "-p", self.project_name, "down", "-v", "--remove-orphans"],
-                capture_output=True, text=True, timeout=60
+                self.compose_cmd
+                + [
+                    "-f",
+                    self.compose_file,
+                    "-p",
+                    self.project_name,
+                    "down",
+                    "-v",
+                    "--remove-orphans",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
 
             if result.returncode == 0:
@@ -81,7 +103,14 @@ class DockerTestRunner:
         logger.info("Starting Docker containers for testing...")
 
         try:
-            cmd = self.compose_cmd + ["-f", self.compose_file, "-p", self.project_name, "up", "-d"]
+            cmd = self.compose_cmd + [
+                "-f",
+                self.compose_file,
+                "-p",
+                self.project_name,
+                "up",
+                "-d",
+            ]
             if not self.no_build:
                 cmd.append("--build")
 
@@ -116,7 +145,7 @@ class DockerTestRunner:
 
         services = [
             ("Backend", "http://localhost:8000"),
-            ("Frontend", "http://localhost:8081")
+            ("Frontend", "http://localhost:8081"),
         ]
 
         start_time = time.time()
@@ -141,13 +170,27 @@ class DockerTestRunner:
 
             time.sleep(5)
 
-        logger.warning(f"Only {len(ready_services)}/{len(services)} services became ready")
+        logger.warning(
+            f"Only {len(ready_services)}/{len(services)} services became ready"
+        )
         return len(ready_services) > 0  # Proceed if at least one service is ready
 
     def is_backend_running(self) -> bool:
         """Check if migration_backend container is running."""
         try:
-            result = subprocess.run(["docker", "ps", "--filter", "name=migration_backend", "--format", "{{.Names}}"], capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                [
+                    "docker",
+                    "ps",
+                    "--filter",
+                    "name=migration_backend",
+                    "--format",
+                    "{{.Names}}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
             return "migration_backend" in result.stdout.strip()
         except Exception:
             return False
@@ -160,8 +203,11 @@ class DockerTestRunner:
         logger.info("Stopping Docker containers...")
         try:
             result = subprocess.run(
-                self.compose_cmd + ["-f", self.compose_file, "-p", self.project_name, "down", "-v"],
-                capture_output=True, text=True, timeout=60
+                self.compose_cmd
+                + ["-f", self.compose_file, "-p", self.project_name, "down", "-v"],
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
 
             if result.returncode == 0:
@@ -180,25 +226,20 @@ class DockerTestRunner:
         """Run backend Python tests inside the backend container with auto-detected test root."""
         logger.info("Running backend tests (inside container)...")
 
-        detect_and_run = (
-            "bash -lc '"
-            "set -e; "
-            "if [ -d backend/tests ]; then TEST_DIR=backend/tests; "
-            "elif [ -d tests/backend ]; then TEST_DIR=tests/backend; "
-            "elif [ -d tests ]; then TEST_DIR=tests; "
-            "else echo ""No tests directory found (checked backend/tests, tests/backend, tests)"" >&2; exit 2; fi; "
-            "python -m pytest \"$TEST_DIR\" -v --tb=short -x --disable-warnings'"
-        )
-
         cmd = [
-            "docker", "exec", "-T", "migration_backend", "--",
-            "bash", "-lc",
+            "docker",
+            "exec",
+            "-T",
+            "migration_backend",
+            "--",
+            "bash",
+            "-lc",
             "set -e; "
             "if [ -d backend/tests ]; then TEST_DIR=backend/tests; "
             "elif [ -d tests/backend ]; then TEST_DIR=tests/backend; "
             "elif [ -d tests ]; then TEST_DIR=tests; "
             "else echo 'No tests directory found (checked backend/tests, tests/backend, tests)' >&2; exit 2; fi; "
-            "python -m pytest \"$TEST_DIR\" -v --tb=short -x --disable-warnings"
+            'python -m pytest "$TEST_DIR" -v --tb=short -x --disable-warnings',
         ]
 
         try:
@@ -216,10 +257,12 @@ class DockerTestRunner:
         logger.info("Running frontend tests...")
 
         env = os.environ.copy()
-        env.update({
-            "DOCKER_API_BASE": "http://localhost:8000",
-            "DOCKER_FRONTEND_BASE": "http://localhost:8081"
-        })
+        env.update(
+            {
+                "DOCKER_API_BASE": "http://localhost:8000",
+                "DOCKER_FRONTEND_BASE": "http://localhost:8081",
+            }
+        )
 
         # Check if npm is available
         try:
@@ -254,19 +297,24 @@ class DockerTestRunner:
         logger.info("Running Docker integration tests...")
 
         env = os.environ.copy()
-        env.update({
-            "DOCKER_API_BASE": "http://localhost:8000",
-            "DOCKER_FRONTEND_BASE": "http://localhost:8081",
-            "PYTHONPATH": "tests/docker"
-        })
+        env.update(
+            {
+                "DOCKER_API_BASE": "http://localhost:8000",
+                "DOCKER_FRONTEND_BASE": "http://localhost:8081",
+                "PYTHONPATH": "tests/docker",
+            }
+        )
 
         cmd = [
-            sys.executable, "-m", "pytest",
+            sys.executable,
+            "-m",
+            "pytest",
             "tests/docker/",
             "-v",
             "--tb=short",
-            "-m", "not slow",  # Run only quick tests by default
-            "--disable-warnings"
+            "-m",
+            "not slow",  # Run only quick tests by default
+            "--disable-warnings",
         ]
 
         try:
@@ -293,9 +341,9 @@ class DockerTestRunner:
             results["docker"] = self.run_docker_tests()
 
         # Report results
-        logger.info("\n" + "="*50)
+        logger.info("\n" + "=" * 50)
         logger.info("TEST RESULTS SUMMARY")
-        logger.info("="*50)
+        logger.info("=" * 50)
 
         all_passed = True
         for suite, returncode in results.items():
@@ -322,19 +370,36 @@ def signal_handler(signum, frame, runner: DockerTestRunner):
 def main():
     """Main test runner function."""
     parser = argparse.ArgumentParser(description="Run tests with Docker containers")
-    parser.add_argument("--suites", "-s", nargs="+",
-                       choices=["backend", "frontend", "docker", "all"],
-                       default=["all"],
-                       help="Test suites to run")
-    parser.add_argument("--no-cleanup", action="store_true",
-                       help="Don't clean up containers after tests")
-    parser.add_argument("--services", nargs="+",
-                       help="Specific services to start (default: all)")
-    parser.add_argument("--keep-running", action="store_true",
-                       help="Keep containers running after tests for manual inspection")
+    parser.add_argument(
+        "--suites",
+        "-s",
+        nargs="+",
+        choices=["backend", "frontend", "docker", "all"],
+        default=["all"],
+        help="Test suites to run",
+    )
+    parser.add_argument(
+        "--no-cleanup",
+        action="store_true",
+        help="Don't clean up containers after tests",
+    )
+    parser.add_argument(
+        "--services", nargs="+", help="Specific services to start (default: all)"
+    )
+    parser.add_argument(
+        "--keep-running",
+        action="store_true",
+        help="Keep containers running after tests for manual inspection",
+    )
     parser.add_argument("--compose-file", help="Path to docker-compose file to use")
-    parser.add_argument("--no-build", action="store_true", help="Do not pass --build to compose up")
-    parser.add_argument("--skip-start", action="store_true", help="Skip container startup if already running")
+    parser.add_argument(
+        "--no-build", action="store_true", help="Do not pass --build to compose up"
+    )
+    parser.add_argument(
+        "--skip-start",
+        action="store_true",
+        help="Skip container startup if already running",
+    )
 
     args = parser.parse_args()
 
@@ -365,7 +430,10 @@ def main():
             # Start containers
             if not runner.start_containers(services=args.services):
                 logger.error("Failed to start containers")
-                logger.error("TIP: If build failures occur, try --no-build or start containers manually with required env vars, then re-run with --skip-start")
+                logger.error(
+                    "TIP: If build failures occur, try --no-build or start containers manually "
+                    "with required env vars, then re-run with --skip-start"
+                )
                 return 1
 
         # Run tests
@@ -373,7 +441,9 @@ def main():
 
         if args.keep_running:
             logger.info("Keeping containers running for manual inspection...")
-            logger.info("Use 'docker-compose -p migrate-ui-orchestrator-test down -v' to clean up")
+            logger.info(
+                "Use 'docker-compose -p migrate-ui-orchestrator-test down -v' to clean up"
+            )
         else:
             # Clean up
             if not args.no_cleanup:

@@ -6,12 +6,11 @@ Check Database State Script
 import asyncio
 import sys
 
-sys.path.append("/app")
+sys.path.append("/app")  # noqa: E402
 
-from sqlalchemy import func, select
-
-from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset
+from sqlalchemy import func, select  # noqa: E402
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.asset import Asset  # noqa: E402
 
 
 async def check_database_state():

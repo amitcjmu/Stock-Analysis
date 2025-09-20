@@ -234,6 +234,19 @@ class TestDataCleansingRules:
         assert isinstance(config["field"], str)
         assert len(config["field"]) > 0
 
-        # Test UUID format
-        rule_id = sample_cleansing_rule["id"]
-        uuid.UUID(rule_id)  # This will raise ValueError if invalid UUID format
+        # Test UUID format validation
+        for uuid_field in ["id", "client_account_id", "engagement_id"]:
+            try:
+                uuid.UUID(sample_cleansing_rule[uuid_field])
+            except ValueError:
+                assert False, f"Field '{uuid_field}' should be a valid UUID"
+
+        # Test regex pattern validation
+        import re
+        try:
+            re.compile(config["pattern"])
+            print(f"   ✅ Regex pattern '{config['pattern']}' is valid")
+        except re.error as e:
+            assert False, f"Regex pattern should be valid: {e}"
+
+        print("   ✅ All rule configuration validations passed")

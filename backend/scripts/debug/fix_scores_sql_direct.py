@@ -14,7 +14,7 @@ async def fix_scores_with_sql():
 
         # Find records with scores > 100
         find_query = text(
-            """
+            r"""
             SELECT id, strategy_scores
             FROM sixr_recommendations
             WHERE strategy_scores::text LIKE '%108.0%'
@@ -34,7 +34,7 @@ async def fix_scores_with_sql():
 
         # Use direct SQL UPDATE with JSON manipulation
         fix_query = text(
-            """
+            r"""
             UPDATE sixr_recommendations
             SET strategy_scores = (
                 SELECT jsonb_agg(

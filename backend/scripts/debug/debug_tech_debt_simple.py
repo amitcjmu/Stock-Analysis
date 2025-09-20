@@ -5,7 +5,7 @@ import sys
 
 sys.path.append("/app")
 
-from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
+from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent  # noqa: E402
 
 
 async def simple_test():

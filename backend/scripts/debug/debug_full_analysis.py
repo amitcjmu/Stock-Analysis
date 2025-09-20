@@ -4,13 +4,15 @@ import asyncio
 import sys
 import traceback
 
-sys.path.append("/app")
+sys.path.append("/app")  # noqa: E402
 
-from app.api.v1.discovery.asset_handlers.asset_crud import AssetCRUDHandler
-from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
+from app.api.v1.discovery.asset_handlers.asset_crud import (  # noqa: E402
+    AssetCRUDHandler,
+)
+from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent  # noqa: E402
 
 
-async def debug_full_analysis():
+async def debug_full_analysis():  # noqa: C901
     print("=== FULL ANALYSIS DEBUG ===")
 
     try:
