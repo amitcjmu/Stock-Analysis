@@ -417,7 +417,7 @@ class TestServiceRegistryMetricsBuffer:
         """Test auto-flush when buffer reaches max size"""
         with patch.object(
             registry, "_flush_metrics", new_callable=AsyncMock
-        ) as mock_flush:
+        ) as mock_flush, patch("asyncio.create_task"):
             # Add exactly 100 metrics to trigger auto-flush
             for i in range(100):
                 registry.record_metric("TestService", f"metric_{i}", i)

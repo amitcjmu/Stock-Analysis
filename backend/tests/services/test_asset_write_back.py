@@ -89,10 +89,8 @@ class TestAssetWriteBackBasicFunctionality:
 
         # Mock asset ID resolution
         asset_ids = [uuid4(), uuid4(), uuid4()]
-        scalars_mock = AsyncMock()
-        scalars_mock.all = AsyncMock(return_value=asset_ids)
         asset_result = AsyncMock()
-        asset_result.scalars = AsyncMock(return_value=scalars_mock)
+        asset_result.scalars.return_value.all.return_value = asset_ids
 
         mock_db.execute.side_effect = [resolved_rows, asset_result]
 
@@ -398,10 +396,8 @@ class TestAssetIdResolution:
 
         # Mock database result for asset ID lookup
         expected_ids = [uuid4(), uuid4()]
-        scalars_mock = AsyncMock()
-        scalars_mock.all = AsyncMock(return_value=expected_ids)
         asset_result = AsyncMock()
-        asset_result.scalars = AsyncMock(return_value=scalars_mock)
+        asset_result.scalars.return_value.all.return_value = expected_ids
         mock_db.execute.return_value = asset_result
 
         # Execute asset ID resolution
@@ -450,10 +446,8 @@ class TestAssetIdResolution:
 
         # Mock database result
         expected_ids = [uuid4()]
-        scalars_mock = AsyncMock()
-        scalars_mock.all = AsyncMock(return_value=expected_ids)
         asset_result = AsyncMock()
-        asset_result.scalars = AsyncMock(return_value=scalars_mock)
+        asset_result.scalars.return_value.all.return_value = expected_ids
         mock_db.execute.return_value = asset_result
 
         # Execute asset ID resolution
