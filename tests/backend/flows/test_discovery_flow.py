@@ -16,8 +16,11 @@ import pytest
 
 # Import MFO fixtures and patterns
 from tests.fixtures.mfo_fixtures import (
+    demo_tenant_context,
     mock_tenant_scoped_agent_pool,
+    mock_flow_execution_results,
 )
+from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
 
 # MFO architecture imports
 from app.core.context import RequestContext
@@ -30,13 +33,9 @@ from app.services.flows.manager import FlowManager
 
 
 @pytest.fixture
-def mock_mfo_context():
-    """Create mock MFO request context with proper tenant scoping"""
-    return RequestContext(
-        client_account_id="demo-client-account",
-        engagement_id="demo-engagement-001",
-        user_id="demo-user-123",
-    )
+def mock_mfo_context(demo_tenant_context):
+    """Create mock MFO request context with proper tenant scoping using MFO fixtures"""
+    return demo_tenant_context
 
 
 @pytest.fixture
@@ -209,8 +208,9 @@ class TestFlowManager:
         assert len(manager.flow_tasks) == 0
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_create_discovery_flow(
-        self, manager, mock_db_session, mock_mfo_context, sample_import_data
+        self, manager, mock_db_session, mock_mfo_context, sample_mfo_import_data
     ):
         """Test flow creation"""
         with patch(
@@ -221,10 +221,10 @@ class TestFlowManager:
             mock_flow.kickoff = AsyncMock()
 
             flow_id = await manager.create_discovery_flow(
-                mock_db_session, mock_mfo_context, sample_import_data
+                mock_db_session, mock_mfo_context, sample_mfo_import_data
             )
 
-            assert flow_id == sample_import_data["flow_id"]
+            assert flow_id == sample_mfo_import_data["flow_id"]
             assert flow_id in manager.active_flows
 
     @pytest.mark.asyncio

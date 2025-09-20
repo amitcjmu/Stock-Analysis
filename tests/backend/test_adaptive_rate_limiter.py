@@ -438,3 +438,61 @@ class TestAdaptiveRateLimiterIntegration:
         bucket_key = limiter._get_bucket_key(client_key, endpoint)
         bucket = limiter.buckets[bucket_key]
         assert bucket.adaptive_multiplier > 1.0
+
+    async def test_comprehensive_rate_limiter_resilience(self):
+        """Test rate limiter resilience under extreme conditions and edge cases."""
+        limiter = AdaptiveRateLimiter()
+
+        # Test concurrent access from multiple clients
+        concurrent_clients = 20
+        requests_per_client = 30
+
+        tasks = []
+        results = []
+
+        async def client_simulation(client_id):
+            client_key = f"concurrent:client_{client_id}:192.168.1.{client_id}"
+            endpoint = "/api/v1/concurrent/test"
+            client_results = {"allowed": 0, "denied": 0, "errors": 0}
+
+            for i in range(requests_per_client):
+                try:
+                    allowed, info = limiter.is_allowed(client_key, endpoint)
+                    if allowed:
+                        client_results["allowed"] += 1
+                    else:
+                        client_results["denied"] += 1
+                except Exception:
+                    client_results["errors"] += 1
+
+                # Small delay to simulate realistic timing
+                await asyncio.sleep(0.01)
+
+            return client_results
+
+        # Launch concurrent client simulations
+        for client_id in range(concurrent_clients):
+            task = asyncio.create_task(client_simulation(client_id))
+            tasks.append(task)
+
+        # Wait for all clients to complete
+        results = await asyncio.gather(*tasks)
+
+        # Analyze results
+        total_allowed = sum(r["allowed"] for r in results)
+        total_denied = sum(r["denied"] for r in results)
+        total_errors = sum(r["errors"] for r in results)
+        total_requests = total_allowed + total_denied + total_errors
+
+        # Validate concurrent behavior
+        assert total_errors == 0, f"Should have no errors during concurrent access, got {total_errors}"
+        assert total_allowed > 0, "Should allow some requests during concurrent access"
+        assert total_denied > 0, "Should deny some requests during concurrent access"
+
+        error_rate = (total_errors / total_requests) * 100 if total_requests > 0 else 0
+        allow_rate = (total_allowed / total_requests) * 100 if total_requests > 0 else 0
+
+        assert error_rate < 5, f"Error rate should be under 5%, got {error_rate:.1f}%"
+        assert allow_rate > 20, f"Allow rate should be reasonable, got {allow_rate:.1f}%"
+
+        print(f"   ✅ Concurrent access test: {total_allowed}/{total_requests} allowed ({allow_rate:.1f}%), {total_errors} errors")

@@ -23,7 +23,7 @@ from tests.fixtures.pytest_markers import pytest_configure
 from tests.fixtures.mfo_fixtures import (
     demo_tenant_context,
     mock_service_registry,
-    mock_async_session,
+    async_db_session,
     sample_master_flow_data,
     sample_discovery_flow_data,
     mock_tenant_scoped_agent_pool,

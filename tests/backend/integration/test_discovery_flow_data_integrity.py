@@ -35,12 +35,20 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
+from tests.fixtures.mfo_fixtures import (
+    demo_tenant_context,
+    mock_tenant_scoped_agent_pool,
+    mock_flow_execution_results,
+    create_mock_mfo_context,
+)
 
 # Configure logging for tests
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.mfo
 class TestDiscoveryFlowDataIntegrity:
     """
     Comprehensive test suite for discovery flow data integrity.
@@ -55,21 +63,17 @@ class TestDiscoveryFlowDataIntegrity:
     """
 
     @pytest.fixture
-    async def test_context(self):
-        """Create test context with multi-tenant isolation"""
-        return RequestContext(
-            client_account_id=str(uuid.uuid4()),
-            engagement_id=str(uuid.uuid4()),
-            user_id="test_user_id",
-            user_role="admin",
-            request_id=str(uuid.uuid4()),
-        )
+    async def test_context(self, demo_tenant_context):
+        """Create test context with multi-tenant isolation using MFO patterns"""
+        return demo_tenant_context
 
     @pytest.fixture
-    async def master_flow_orchestrator(self, test_context):
-        """Create master flow orchestrator for testing"""
+    async def master_flow_orchestrator(self, test_context, mock_tenant_scoped_agent_pool):
+        """Create master flow orchestrator for testing with MFO patterns"""
         async with AsyncSessionLocal() as session:
             orchestrator = MasterFlowOrchestrator(session, test_context)
+            # Replace direct Crew instantiation with TenantScopedAgentPool
+            orchestrator._agent_pool = mock_tenant_scoped_agent_pool
             yield orchestrator
 
     @pytest.fixture
@@ -116,8 +120,9 @@ class TestDiscoveryFlowDataIntegrity:
     # ================================
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_complete_data_import_to_discovery_flow_pipeline(
-        self, test_context, sample_raw_data
+        self, test_context, sample_raw_data, mock_tenant_scoped_agent_pool
     ):
         """
         Test complete pipeline: data import → master flow → discovery flow → assets
@@ -170,8 +175,9 @@ class TestDiscoveryFlowDataIntegrity:
                 await session.commit()
                 logger.info(f"✅ Created {len(raw_records)} raw import records")
 
-                # Step 3: Create master flow through orchestrator
-                MasterFlowOrchestrator(session, test_context)
+                # Step 3: Create master flow through orchestrator with agent pool
+                orchestrator = MasterFlowOrchestrator(session, test_context)
+                orchestrator._agent_pool = mock_tenant_scoped_agent_pool
 
                 # Update data import to link to master flow
                 data_import.master_flow_id = str(uuid.uuid4())
@@ -367,6 +373,7 @@ class TestDiscoveryFlowDataIntegrity:
     # ================================
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_foreign_key_constraints_prevent_invalid_data(self, test_context):
         """
         Test that foreign key constraints properly prevent invalid data insertion.
@@ -476,6 +483,7 @@ class TestDiscoveryFlowDataIntegrity:
                 raise
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_cascade_deletion_operations(self, test_context, sample_raw_data):
         """
         Test that cascade deletion properly removes related records.
@@ -646,6 +654,7 @@ class TestDiscoveryFlowDataIntegrity:
                 raise
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_orphaned_records_prevention(self, test_context):
         """
         Test that the system prevents creation of orphaned records.
@@ -734,6 +743,7 @@ class TestDiscoveryFlowDataIntegrity:
     # ================================
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_api_returns_properly_linked_data(
         self, test_context, sample_raw_data
     ):
@@ -797,7 +807,7 @@ class TestDiscoveryFlowDataIntegrity:
 
                 # Test API data structure consistency
 
-                # Test 1: Master flow repository
+                # Test 1: Master flow repository with tenant scoping
                 master_repo = CrewAIFlowStateExtensionsRepository(
                     session,
                     test_context.client_account_id,
@@ -818,7 +828,7 @@ class TestDiscoveryFlowDataIntegrity:
 
                 logger.info("✅ Master flow repository returns correct data")
 
-                # Test 2: Discovery flow repository
+                # Test 2: Discovery flow repository with tenant scoping
                 discovery_repo = DiscoveryFlowRepository(
                     session, test_context.client_account_id
                 )
@@ -934,6 +944,7 @@ class TestDiscoveryFlowDataIntegrity:
     # ================================
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_query_performance_with_relationships(self, test_context):
         """
         Test that foreign key relationships don't negatively impact query performance.
@@ -1134,6 +1145,7 @@ class TestDiscoveryFlowDataIntegrity:
                 raise
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_constraint_performance_impact(self, test_context):
         """
         Test that foreign key constraints don't cause performance issues or locking.
@@ -1248,6 +1260,7 @@ class TestDiscoveryFlowDataIntegrity:
     # ================================
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_production_deployment_validation(self):
         """
         Test that the database schema is ready for production deployment.
@@ -1450,6 +1463,7 @@ class TestDiscoveryFlowDataIntegrity:
                 raise
 
     @pytest.mark.asyncio
+    @pytest.mark.mfo
     async def test_monitoring_queries_performance(self):
         """
         Test that monitoring queries for data integrity perform well.

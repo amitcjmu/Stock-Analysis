@@ -16,9 +16,10 @@ def run_command(cmd, description):
     print("=" * 60)
 
     try:
+        # Test runner only uses predefined commands - no user input
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True
-        )  # nosec B602 # Test runner with pre-defined commands
+        )  # nosec B602 # Test runner with static predefined commands only
         print(result.stdout)
         if result.stderr:
             print("STDERR:", result.stderr)

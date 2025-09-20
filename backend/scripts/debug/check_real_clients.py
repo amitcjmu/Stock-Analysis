@@ -6,12 +6,11 @@ Check Real Clients and Engagements for Multi-Tenant Testing
 import asyncio
 import sys
 
-sys.path.append("/app")
+sys.path.append("/app")  # noqa: E402
 
-from sqlalchemy import select
-
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import ClientAccount, Engagement
+from sqlalchemy import select  # noqa: E402
+from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.models.client_account import ClientAccount, Engagement  # noqa: E402
 
 
 async def check_clients_and_engagements():
