@@ -128,14 +128,26 @@ class AgentInvestigator:
     ) -> Evidence:
         """Collect backend logs as evidence."""
         try:
-            cmd = f"docker logs migration_backend --tail {tail_lines}"
-            if grep_pattern:
-                cmd += f" 2>&1 | grep -i '{grep_pattern}'"
+            # Build secure command as list to prevent injection
+            cmd = ["docker", "logs", "migration_backend", "--tail", str(tail_lines)]
 
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True
-            )  # nosec B602
-            content = result.stdout or result.stderr or "No logs found"
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            log_content = result.stdout or result.stderr or "No logs found"
+
+            # Perform grep filtering in Python instead of shell pipeline
+            if grep_pattern:
+                filtered_lines = [
+                    line
+                    for line in log_content.splitlines()
+                    if grep_pattern.lower() in line.lower()
+                ]
+                content = (
+                    "\n".join(filtered_lines)
+                    if filtered_lines
+                    else "No matching logs found"
+                )
+            else:
+                content = log_content
 
             evidence = Evidence(
                 source=EvidenceSource.BACKEND_LOGS,
@@ -160,10 +172,10 @@ class AgentInvestigator:
     def collect_frontend_logs(self, tail_lines: int = 50) -> Evidence:
         """Collect frontend logs as evidence."""
         try:
-            cmd = f"docker logs migration_frontend --tail {tail_lines}"
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True
-            )  # nosec B602
+            # Build secure command as list to prevent injection
+            cmd = ["docker", "logs", "migration_frontend", "--tail", str(tail_lines)]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             content = result.stdout or result.stderr or "No logs found"
 
             evidence = Evidence(
@@ -189,10 +201,10 @@ class AgentInvestigator:
     def collect_git_history(self, num_commits: int = 10) -> Evidence:
         """Collect recent git history as evidence."""
         try:
-            cmd = f"git log --oneline -{num_commits}"
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True
-            )  # nosec B602
+            # Build secure command as list to prevent injection
+            cmd = ["git", "log", "--oneline", f"-{num_commits}"]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             content = result.stdout or "No git history found"
 
             evidence = Evidence(
