@@ -85,12 +85,14 @@ class TestAssetWriteBackBasicFunctionality:
 
         # Mock the resolved gaps query result
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_resolved_gaps_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
 
         # Mock asset ID resolution
         asset_ids = [uuid4(), uuid4(), uuid4()]
+        scalars_mock = AsyncMock()
+        scalars_mock.all = AsyncMock(return_value=asset_ids)
         asset_result = AsyncMock()
-        asset_result.scalars.return_value.all.return_value = asset_ids
+        asset_result.scalars = AsyncMock(return_value=scalars_mock)
 
         mock_db.execute.side_effect = [resolved_rows, asset_result]
 
@@ -119,7 +121,7 @@ class TestAssetWriteBackBasicFunctionality:
 
         # Mock the resolved gaps query
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_resolved_gaps_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
 
         mock_db.execute.side_effect = [resolved_rows]
 
@@ -133,7 +135,7 @@ class TestAssetWriteBackBasicFunctionality:
 
             # Verify that update queries include tenant scoping
             # The actual SQL construction happens inside the method
-            # We verify the method completed without errors, indicating proper tenant scoping
+            # Method completion without errors indicates proper tenant scoping
             assert mock_db.commit.call_count >= 0  # May be 0 if no valid updates
 
     @pytest.mark.asyncio
@@ -166,7 +168,7 @@ class TestAssetWriteBackBasicFunctionality:
         ]
 
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
 
         asset_ids = [uuid4()]
 
@@ -181,7 +183,7 @@ class TestAssetWriteBackBasicFunctionality:
             )
 
             # Verify that only whitelisted fields would be included in updates
-            # The actual filtering happens in build_field_updates_from_rows and whitelist checking
+            # Filtering happens in build_field_updates_from_rows and whitelist checking
             # We verify the method completed, indicating proper filtering
             assert mock_db.execute.call_count >= 1
 
@@ -192,7 +194,7 @@ class TestAssetWriteBackBasicFunctionality:
         """Test that assessment_readiness is set when minimum fields are present"""
         collection_flow_id = uuid4()
 
-        # Mock data with both environment and business_criticality (minimum required fields)
+        # Mock data with environment and business_criticality (minimum required)
         mock_data = [
             MagicMock(
                 field_name="environment",
@@ -209,7 +211,7 @@ class TestAssetWriteBackBasicFunctionality:
         ]
 
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
 
         asset_ids = [uuid4()]
 
@@ -223,8 +225,8 @@ class TestAssetWriteBackBasicFunctionality:
                 mock_db, collection_flow_id, valid_context
             )
 
-            # The assessment_readiness setting logic is tested through successful execution
-            # The actual verification would require mocking the update statement construction
+            # Assessment_readiness setting logic tested through successful execution
+            # Actual verification would require mocking update statement construction
             assert mock_db.execute.call_count >= 1
 
     @pytest.mark.asyncio
@@ -235,7 +237,7 @@ class TestAssetWriteBackBasicFunctionality:
         collection_flow_id = uuid4()
 
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_resolved_gaps_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
 
         # Mock _resolve_target_asset_ids to return empty list
         mock_db.execute.side_effect = [resolved_rows]
@@ -259,7 +261,7 @@ class TestAssetWriteBackBasicFunctionality:
 
         # Mock empty result from gaps query
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = []
+        resolved_rows.fetchall = AsyncMock(return_value=[])
 
         mock_db.execute.return_value = resolved_rows
 
@@ -322,7 +324,7 @@ class TestAssetWriteBackErrorHandling:
 
         # Mock successful gap query but failing update
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_resolved_gaps_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
 
         # First call succeeds (gap query), second fails (update)
         mock_db.execute.side_effect = [resolved_rows, Exception("Database error")]
@@ -358,9 +360,9 @@ class TestAssetWriteBackErrorHandling:
         ]
 
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
 
-        # First query succeeds, subsequent update queries fail for first batch but succeed for second
+        # First query succeeds, later updates fail for first batch, succeed for second
         mock_db.execute.side_effect = [
             resolved_rows,  # Gap query
             Exception("First batch fails"),  # First batch update fails
@@ -370,7 +372,7 @@ class TestAssetWriteBackErrorHandling:
         with patch.object(
             asset_handlers, "_resolve_target_asset_ids", return_value=asset_ids
         ):
-            # Execute write-back - should process all batches despite individual failures
+            # Execute write-back - should process all batches despite failures
             await asset_handlers.apply_resolved_gaps_to_assets(
                 mock_db, collection_flow_id, valid_context
             )
@@ -396,8 +398,10 @@ class TestAssetIdResolution:
 
         # Mock database result for asset ID lookup
         expected_ids = [uuid4(), uuid4()]
+        scalars_mock = AsyncMock()
+        scalars_mock.all = AsyncMock(return_value=expected_ids)
         asset_result = AsyncMock()
-        asset_result.scalars.return_value.all.return_value = expected_ids
+        asset_result.scalars = AsyncMock(return_value=scalars_mock)
         mock_db.execute.return_value = asset_result
 
         # Execute asset ID resolution
@@ -446,8 +450,10 @@ class TestAssetIdResolution:
 
         # Mock database result
         expected_ids = [uuid4()]
+        scalars_mock = AsyncMock()
+        scalars_mock.all = AsyncMock(return_value=expected_ids)
         asset_result = AsyncMock()
-        asset_result.scalars.return_value.all.return_value = expected_ids
+        asset_result.scalars = AsyncMock(return_value=scalars_mock)
         mock_db.execute.return_value = asset_result
 
         # Execute asset ID resolution
@@ -480,7 +486,7 @@ class TestBatchProcessing:
         asset_ids = [uuid4() for _ in range(5)]
 
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_resolved_gaps_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
 
         mock_db.execute.side_effect = [resolved_rows]
 
@@ -513,7 +519,7 @@ class TestBatchProcessing:
         ]
 
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
 
         asset_ids = [uuid4()]
 
@@ -542,7 +548,7 @@ class TestSQLInjectionPrevention:
         collection_flow_id = uuid4()
 
         resolved_rows = AsyncMock()
-        resolved_rows.fetchall.return_value = mock_resolved_gaps_data
+        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
 
         asset_ids = [uuid4()]
 
@@ -556,6 +562,6 @@ class TestSQLInjectionPrevention:
                 mock_db, collection_flow_id, valid_context
             )
 
-            # Verify that database execute was called (indicating parameterized queries were used)
+            # Verify database execute was called (indicating parameterized queries used)
             # The actual SQL construction uses SQLAlchemy's secure query building
             assert mock_db.execute.call_count >= 1

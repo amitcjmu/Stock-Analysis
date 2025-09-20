@@ -72,11 +72,11 @@ async def test_flow_with_data(
             """
             INSERT INTO migration.data_imports (
                 id, master_flow_id, client_account_id, engagement_id,
-                imported_by, filename, file_size, mime_type,
+                imported_by, import_name, filename, file_size, mime_type,
                 total_records, processed_records, status, created_at
             ) VALUES (
                 :id, :master_flow_id, :client_account_id, :engagement_id,
-                :imported_by, :filename, :file_size, :mime_type,
+                :imported_by, :import_name, :filename, :file_size, :mime_type,
                 :total_records, :processed_records, :status, :created_at
             )
         """
@@ -87,6 +87,7 @@ async def test_flow_with_data(
             "client_account_id": uuid.UUID(test_context.client_account_id),
             "engagement_id": uuid.UUID(test_context.engagement_id),
             "imported_by": uuid.uuid4(),  # Use a UUID for imported_by field
+            "import_name": "test_import",
             "filename": "test_data.csv",
             "file_size": 1024,
             "mime_type": "text/csv",
@@ -128,7 +129,7 @@ async def test_flow_with_data(
             ),
             {
                 "id": record_id,
-                "data_import_id": data_import_id,  # Use the same data_import_id for all records
+                "data_import_id": data_import_id,  # Same data_import_id for all
                 "master_flow_id": master_flow_id,
                 "client_account_id": uuid.UUID(
                     test_context.client_account_id
@@ -164,7 +165,8 @@ async def test_data_cleansing_phase_execution(
 
     # Mock the DataCleansingExecutor to verify it's called
     with patch(
-        "app.services.flow_orchestration.execution_engine_crew_discovery.DataCleansingExecutor"
+        "app.services.flow_orchestration.execution_engine_crew_discovery."
+        "DataCleansingExecutor"
     ) as MockExecutor:
         # Setup mock
         mock_executor_instance = AsyncMock()
@@ -196,7 +198,7 @@ async def test_data_cleansing_phase_execution(
             request_body = {
                 "phase": "data_cleansing",
                 "phase_input": {
-                    "complete": True  # This should trigger execution before marking complete
+                    "complete": True  # Trigger execution before marking complete
                 },
             }
 

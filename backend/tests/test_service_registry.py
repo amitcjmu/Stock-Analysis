@@ -1,8 +1,8 @@
 """
 Comprehensive Unit Tests for ServiceRegistry Implementation
 
-Tests the ServiceRegistry pattern that eliminates direct database access in CrewAI tools.
-Validates:
+Tests the ServiceRegistry pattern that eliminates direct database access in
+CrewAI tools. Validates:
 - ServiceRegistry never closes the orchestrator's session
 - Service caching and lazy instantiation
 - Tools don't import database or models
@@ -234,7 +234,7 @@ class TestServiceRegistryLifecycle:
             except ValueError:
                 pass
 
-            # Should still have flushed metrics despite exception (only if there were metrics)
+            # Should flush metrics despite exception (only if there were metrics)
             mock_flush.assert_called_once()
             assert registry._is_closed
 
@@ -640,7 +640,7 @@ class TestToolDatabaseImportValidation:
         assert True
 
     def test_tool_import_analysis_helper(self):
-        """Helper method to analyze tool imports (would be expanded in real implementation)"""
+        """Helper method to analyze tool imports (expanded in real implementation)"""
 
         def analyze_tool_imports(tool_file_path: str) -> Dict[str, List[str]]:
             """
@@ -701,7 +701,7 @@ class TestFeatureFlagBehavior:
 
                 warnings.warn(
                     "Legacy tools are deprecated and will be removed on 2025-02-01. "
-                    "Set USE_SERVICE_REGISTRY=true to use the new ServiceRegistry pattern.",
+                    "Set USE_SERVICE_REGISTRY=true to use new ServiceRegistry pattern.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
