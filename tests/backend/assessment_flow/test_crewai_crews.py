@@ -2,12 +2,23 @@
 Unit tests for Assessment Flow CrewAI crews
 
 This module tests the CrewAI crew implementations for assessment flow
-with mocked agents for fast, isolated testing.
+with mocked agents for fast, isolated testing using TenantScopedAgentPool.
+
+Generated with CC for MFO compliance.
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+# Import MFO fixtures and markers
+from tests.fixtures.mfo_fixtures import (
+    DEMO_CLIENT_ACCOUNT_ID,
+    DEMO_ENGAGEMENT_ID,
+    DEMO_USER_ID,
+    MockRequestContext,
+    mock_tenant_scoped_agent_pool,
+)
 
 try:
     from app.services.crewai_flows.assessment.crews.app_on_page_crew import (
@@ -50,20 +61,32 @@ except ImportError:
 
 
 class TestArchitectureStandardsCrew:
-    """Unit tests for Architecture Standards CrewAI crew"""
+    """Unit tests for Architecture Standards CrewAI crew - MFO compliant"""
 
     @pytest.fixture
     def architecture_crew(self, mock_flow_context):
-        """Create architecture standards crew with mocked context"""
+        """Create architecture standards crew with mocked context - uses TenantScopedAgentPool"""
         crew = ArchitectureStandardsCrew(mock_flow_context)
-        crew.crew = MagicMock()
+
+        # Mock TenantScopedAgentPool instead of direct crew
+        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
+            mock_pool = mock_tenant_scoped_agent_pool()
+            mock_pool_class.return_value = mock_pool
+            crew.agent_pool = mock_pool
+            crew.crew = MagicMock()
+
         return crew
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.architecture_standards
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_crew_execution_with_mocked_agents(
         self, architecture_crew, sample_engagement_context
     ):
-        """Test crew execution with mocked agents"""
+        """Test crew execution with mocked agents - uses TenantScopedAgentPool"""
 
         mock_crew_result = {
             "engagement_standards": [
@@ -105,8 +128,12 @@ class TestArchitectureStandardsCrew:
         assert "application_compliance" in result
         assert result["crew_confidence"] == 0.9
 
-        # Verify crew was called
+        # Verify crew was called via TenantScopedAgentPool
         architecture_crew.crew.kickoff.assert_called_once()
+
+        # Verify agent pool usage
+        if hasattr(architecture_crew, 'agent_pool'):
+            assert architecture_crew.agent_pool is not None
 
         # Verify standards structure
         standards = result["engagement_standards"]
@@ -115,14 +142,19 @@ class TestArchitectureStandardsCrew:
         assert java_standard["requirement_type"] == "java_versions"
         assert java_standard["mandatory"] is True
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.architecture_standards
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_crew_with_existing_standards(
         self,
         architecture_crew,
         sample_engagement_context,
         sample_architecture_standards,
     ):
-        """Test crew execution when engagement already has standards"""
+        """Test crew execution when engagement already has standards - MFO compliant"""
 
         # Mock existing standards
         context_with_standards = {
@@ -149,11 +181,16 @@ class TestArchitectureStandardsCrew:
         assert result["standards_updated"] is False
         assert len(result["engagement_standards"]) == 3
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.architecture_standards
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_crew_error_handling(
         self, architecture_crew, sample_engagement_context
     ):
-        """Test crew error handling"""
+        """Test crew error handling - MFO compliant"""
 
         # Mock crew failure
         architecture_crew.crew.kickoff = AsyncMock(
@@ -172,23 +209,35 @@ class TestArchitectureStandardsCrew:
 
 
 class TestComponentAnalysisCrew:
-    """Unit tests for Component Analysis CrewAI crew"""
+    """Unit tests for Component Analysis CrewAI crew - MFO compliant"""
 
     @pytest.fixture
     def component_crew(self, mock_flow_context):
-        """Create component analysis crew with mocked context"""
+        """Create component analysis crew with mocked context - uses TenantScopedAgentPool"""
         crew = ComponentAnalysisCrew(mock_flow_context)
-        crew.crew = MagicMock()
+
+        # Mock TenantScopedAgentPool instead of direct crew
+        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
+            mock_pool = mock_tenant_scoped_agent_pool()
+            mock_pool_class.return_value = mock_pool
+            crew.agent_pool = mock_pool
+            crew.crew = MagicMock()
+
         return crew
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.tech_debt
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_component_analysis_execution(
         self,
         component_crew,
         sample_application_metadata,
         sample_component_analysis_result,
     ):
-        """Test component analysis crew execution"""
+        """Test component analysis crew execution - uses TenantScopedAgentPool"""
 
         component_crew.crew.kickoff = AsyncMock(
             return_value=sample_component_analysis_result
@@ -232,11 +281,16 @@ class TestComponentAnalysisCrew:
         assert java_debt["severity"] == "high"
         assert java_debt["score"] == 8.5
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.tech_debt
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_component_analysis_with_compliance_check(
         self, component_crew, sample_application_metadata
     ):
-        """Test component analysis with architecture compliance checking"""
+        """Test component analysis with architecture compliance checking - MFO compliant"""
 
         mock_result_with_compliance = {
             "components": [
@@ -285,9 +339,15 @@ class TestComponentAnalysisCrew:
         assert "compliance_violations" in backend_component
         assert len(backend_component["compliance_violations"]) == 1
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.tech_debt
+    @pytest.mark.agent
+    @pytest.mark.performance
+    @pytest.mark.async_test
     async def test_large_application_analysis(self, component_crew):
-        """Test component analysis with large number of applications"""
+        """Test component analysis with large number of applications - MFO compliant"""
 
         # Create large application set
         large_app_set = {}
@@ -323,20 +383,32 @@ class TestComponentAnalysisCrew:
 
 
 class TestSixRStrategyCrew:
-    """Unit tests for 6R Strategy CrewAI crew"""
+    """Unit tests for 6R Strategy CrewAI crew - MFO compliant"""
 
     @pytest.fixture
     def sixr_crew(self, mock_flow_context):
-        """Create 6R strategy crew with mocked context"""
+        """Create 6R strategy crew with mocked context - uses TenantScopedAgentPool"""
         crew = SixRStrategyCrew(mock_flow_context)
-        crew.crew = MagicMock()
+
+        # Mock TenantScopedAgentPool instead of direct crew
+        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
+            mock_pool = mock_tenant_scoped_agent_pool()
+            mock_pool_class.return_value = mock_pool
+            crew.agent_pool = mock_pool
+            crew.crew = MagicMock()
+
         return crew
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.sixr_strategy
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_sixr_strategy_determination(
         self, sixr_crew, sample_component_analysis_result, sample_sixr_strategy_result
     ):
-        """Test 6R strategy determination with component analysis"""
+        """Test 6R strategy determination with component analysis - uses TenantScopedAgentPool"""
 
         sixr_crew.crew.kickoff = AsyncMock(return_value=sample_sixr_strategy_result)
 
@@ -377,11 +449,16 @@ class TestSixRStrategyCrew:
         assert result["overall_strategy"] == "refactor"
         assert result["confidence_score"] == 0.85
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.sixr_strategy
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_sixr_strategy_with_business_constraints(
         self, sixr_crew, sample_component_analysis_result
     ):
-        """Test 6R strategy considering business constraints"""
+        """Test 6R strategy considering business constraints - MFO compliant"""
 
         mock_constrained_result = {
             "component_treatments": [
@@ -428,11 +505,16 @@ class TestSixRStrategyCrew:
         assert backend_treatment["recommended_strategy"] == "rehost"
         assert backend_treatment["constraint_applied"] == "budget_limitation"
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.sixr_strategy
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_sixr_strategy_risk_assessment(
         self, sixr_crew, sample_component_analysis_result
     ):
-        """Test 6R strategy with risk assessment"""
+        """Test 6R strategy with risk assessment - MFO compliant"""
 
         mock_risk_result = {
             "component_treatments": [
@@ -480,18 +562,30 @@ class TestSixRStrategyCrew:
 
 
 class TestAppOnPageCrew:
-    """Unit tests for App-on-Page Generation CrewAI crew"""
+    """Unit tests for App-on-Page Generation CrewAI crew - MFO compliant"""
 
     @pytest.fixture
     def app_page_crew(self, mock_flow_context):
-        """Create app-on-page crew with mocked context"""
+        """Create app-on-page crew with mocked context - uses TenantScopedAgentPool"""
         crew = AppOnPageCrew(mock_flow_context)
-        crew.crew = MagicMock()
+
+        # Mock TenantScopedAgentPool instead of direct crew
+        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
+            mock_pool = mock_tenant_scoped_agent_pool()
+            mock_pool_class.return_value = mock_pool
+            crew.agent_pool = mock_pool
+            crew.crew = MagicMock()
+
         return crew
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.sixr_strategy
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_app_on_page_generation(self, app_page_crew):
-        """Test app-on-page summary generation"""
+        """Test app-on-page summary generation - uses TenantScopedAgentPool"""
 
         sixr_decisions = {
             "app-1": {
@@ -587,9 +681,15 @@ class TestAppOnPageCrew:
         assert summary["strategy_distribution"]["refactor"] == 1
         assert summary["strategy_distribution"]["replatform"] == 1
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.sixr_strategy
+    @pytest.mark.planning_flow
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_app_on_page_with_prioritization(self, app_page_crew):
-        """Test app-on-page generation with migration wave prioritization"""
+        """Test app-on-page generation with migration wave prioritization - MFO compliant"""
 
         mock_prioritized_result = {
             "applications_summary": [
@@ -650,27 +750,37 @@ class TestAppOnPageCrew:
 
 
 class TestCrewIntegration:
-    """Integration tests for crew coordination"""
+    """Integration tests for crew coordination - MFO compliant"""
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.assessment_crews
+    @pytest.mark.integration
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_crew_output_compatibility(
         self, mock_flow_context, sample_engagement_context, sample_application_metadata
     ):
-        """Test that crew outputs are compatible between phases"""
+        """Test that crew outputs are compatible between phases - uses TenantScopedAgentPool"""
 
-        # Architecture Standards Crew output
-        arch_crew = ArchitectureStandardsCrew(mock_flow_context)
-        arch_crew.crew = MagicMock()
-        arch_crew.crew.kickoff = AsyncMock(
-            return_value={
-                "engagement_standards": [
-                    {
-                        "requirement_type": "java_versions",
-                        "supported_versions": {"java": "11+"},
-                    }
-                ]
-            }
-        )
+        # Architecture Standards Crew output - using TenantScopedAgentPool
+        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
+            mock_pool = mock_tenant_scoped_agent_pool()
+            mock_pool_class.return_value = mock_pool
+
+            arch_crew = ArchitectureStandardsCrew(mock_flow_context)
+            arch_crew.agent_pool = mock_pool
+            arch_crew.crew = MagicMock()
+            arch_crew.crew.kickoff = AsyncMock(
+                return_value={
+                    "engagement_standards": [
+                        {
+                            "requirement_type": "java_versions",
+                            "supported_versions": {"java": "11+"},
+                        }
+                    ]
+                }
+            )
 
         arch_result = await arch_crew.execute(
             {

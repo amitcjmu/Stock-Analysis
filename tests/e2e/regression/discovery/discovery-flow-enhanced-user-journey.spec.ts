@@ -200,7 +200,7 @@ async function verifyDatabasePersistence(
 // Main test suite with enhanced user journey
 test.describe('Discovery Flow - Enhanced User Journey with Full Validation', () => {
   let apiContext: APIRequestContext;
-  let discoveryFlowId: string | null = null;
+  const discoveryFlowId: string | null = null;
   let tenantHeaders: any = {};
   let testDataFile: string;
 

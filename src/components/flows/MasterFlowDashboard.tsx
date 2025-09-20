@@ -53,7 +53,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch active flows via Master Flow Service (MFO)
-  type DashboardFlow = {
+  interface DashboardFlow {
     flow_id: string
     flow_name: string
     flow_type: string

@@ -28,7 +28,7 @@ import path from 'path';
 import fs from 'fs';
 
 test.describe('Assessment Flow E2E Tests', () => {
-  let assessmentId: string | null = null;
+  const assessmentId: string | null = null;
   let consoleErrors: string[] = [];
   let networkErrors: Array<{ url: string; status: number; statusText?: string; responseBody?: any }> = [];
   let assessmentData: any[] = [];

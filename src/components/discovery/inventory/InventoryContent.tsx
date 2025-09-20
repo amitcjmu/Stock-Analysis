@@ -259,7 +259,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         if (viewMode === 'all' && totalPages > 1) {
           console.log(`📊 Fetching remaining ${Math.min(totalPages - 1, safetyLimit - 1)} pages...`);
 
-          const pagePromises: Promise<any>[] = [];
+          const pagePromises: Array<Promise<any>> = [];
           for (let page = 2; page <= safetyLimit; page++) {
             pagePromises.push(fetchPage(page, serverPageSize));
           }

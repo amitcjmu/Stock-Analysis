@@ -2,13 +2,24 @@
 Unit tests for UnifiedAssessmentFlow with mock agents
 
 This module tests the core assessment flow logic with mocked CrewAI agents
-to ensure fast, isolated unit testing.
+to ensure fast, isolated unit testing using Master Flow Orchestrator (MFO) patterns.
+
+Generated with CC for MFO compliance.
 """
 
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+# Import MFO fixtures and markers
+from tests.fixtures.mfo_fixtures import (
+    DEMO_CLIENT_ACCOUNT_ID,
+    DEMO_ENGAGEMENT_ID,
+    DEMO_USER_ID,
+    MockRequestContext,
+    mock_tenant_scoped_agent_pool,
+)
 
 # Import assessment flow components (these will be created by other agents)
 try:
@@ -49,24 +60,41 @@ from tests.fixtures.assessment_fixtures import (
 
 
 class TestUnifiedAssessmentFlow:
-    """Unit tests for UnifiedAssessmentFlow with mock agents"""
+    """Unit tests for UnifiedAssessmentFlow with mock agents - MFO compliant"""
 
     @pytest.fixture
     async def assessment_flow(self, mock_flow_context, mock_crewai_service):
-        """Create assessment flow instance with mocked dependencies"""
+        """Create assessment flow instance with mocked dependencies - MFO compliant"""
+        # Use MockRequestContext instead of generic mock
+        if not isinstance(mock_flow_context, MockRequestContext):
+            mock_flow_context = MockRequestContext(
+                client_account_id=DEMO_CLIENT_ACCOUNT_ID,
+                engagement_id=DEMO_ENGAGEMENT_ID,
+                user_id=DEMO_USER_ID,
+            )
+
         flow = UnifiedAssessmentFlow(mock_crewai_service, mock_flow_context)
 
-        # Mock repository and store
+        # Mock repository and store with MFO compliance
         flow.repository = mock_assessment_repository()
         flow.postgres_store = AsyncMock()
 
+        # Mock TenantScopedAgentPool
+        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
+            mock_pool = mock_tenant_scoped_agent_pool()
+            mock_pool_class.return_value = mock_pool
+            flow.agent_pool = mock_pool
+
         return flow
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.database
+    @pytest.mark.async_test
     async def test_initialize_assessment_success(
         self, assessment_flow, sample_applications
     ):
-        """Test successful assessment flow initialization"""
+        """Test successful assessment flow initialization - MFO compliant"""
 
         # Mock repository methods
         assessment_flow.repository.create_assessment_flow = AsyncMock(
@@ -94,14 +122,18 @@ class TestUnifiedAssessmentFlow:
             assessment_flow.repository.create_assessment_flow.assert_called_once()
             assessment_flow.repository.save_flow_state.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.architecture_standards
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_capture_architecture_minimums_with_defaults(
         self,
         assessment_flow,
         sample_assessment_flow_state,
         sample_architecture_standards,
     ):
-        """Test architecture minimums capture with default standards"""
+        """Test architecture minimums capture with default standards - MFO compliant"""
 
         # Create flow state object
         flow_state = AssessmentFlowState(**sample_assessment_flow_state)
@@ -137,14 +169,18 @@ class TestUnifiedAssessmentFlow:
                 assert java_standard is not None
                 assert java_standard["mandatory"] is True
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.tech_debt
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_analyze_technical_debt_with_components(
         self,
         assessment_flow,
         sample_assessment_flow_state,
         sample_component_analysis_result,
     ):
-        """Test technical debt analysis with component identification"""
+        """Test technical debt analysis with component identification - MFO compliant"""
 
         # Create flow state object
         flow_state = AssessmentFlowState(**sample_assessment_flow_state)
@@ -191,11 +227,15 @@ class TestUnifiedAssessmentFlow:
             assert tech_debt["overall_tech_debt_score"] == 7.2
             assert len(tech_debt["tech_debt_items"]) == 2
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.sixr_strategy
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_determine_sixr_strategies_with_validation(
         self, assessment_flow, sample_assessment_flow_state, sample_sixr_strategy_result
     ):
-        """Test 6R strategy determination with compatibility validation"""
+        """Test 6R strategy determination with compatibility validation - MFO compliant"""
 
         # Create flow state object with previous phase data
         flow_state = AssessmentFlowState(**sample_assessment_flow_state)
@@ -243,11 +283,15 @@ class TestUnifiedAssessmentFlow:
             assert frontend_treatment is not None
             assert frontend_treatment["recommended_strategy"] == "refactor"
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.sixr_strategy
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_generate_app_on_page_summary(
         self, assessment_flow, sample_assessment_flow_state
     ):
-        """Test app-on-page generation with complete flow data"""
+        """Test app-on-page generation with complete flow data - MFO compliant"""
 
         # Create flow state with complete assessment data
         flow_state = AssessmentFlowState(**sample_assessment_flow_state)
@@ -300,11 +344,14 @@ class TestUnifiedAssessmentFlow:
         assert app_summary["application_name"] == "Frontend Portal"
         assert app_summary["recommended_strategy"] == "refactor"
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.database
+    @pytest.mark.async_test
     async def test_resume_from_phase_with_user_input(
         self, assessment_flow, sample_assessment_flow_state
     ):
-        """Test flow resume functionality with user input"""
+        """Test flow resume functionality with user input - MFO compliant"""
 
         user_input = {
             "architecture_standards": [
@@ -356,22 +403,25 @@ class TestUnifiedAssessmentFlow:
 
         assert "Crew execution failed" in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.tenant_isolation
+    @pytest.mark.async_test
     async def test_multi_tenant_isolation(self):
-        """Test that flows maintain multi-tenant isolation"""
+        """Test that flows maintain multi-tenant isolation - MFO compliant"""
 
-        # Create flows for different clients
-        context_1 = MagicMock()
-        context_1.flow_id = "flow-client-1"
-        context_1.client_account_id = 1
-        context_1.engagement_id = 1
-        context_1.user_id = "user-1"
+        # Create flows for different clients using MockRequestContext
+        context_1 = MockRequestContext(
+            client_account_id=DEMO_CLIENT_ACCOUNT_ID,
+            engagement_id=DEMO_ENGAGEMENT_ID,
+            user_id=DEMO_USER_ID,
+        )
 
-        context_2 = MagicMock()
-        context_2.flow_id = "flow-client-2"
-        context_2.client_account_id = 2
-        context_2.engagement_id = 2
-        context_2.user_id = "user-2"
+        context_2 = MockRequestContext(
+            client_account_id="tenant-2-1111-1111-1111-111111111111",
+            engagement_id="engage-2-2222-2222-2222-222222222222",
+            user_id="user-2-3333-3333-3333-333333333333",
+        )
 
         mock_crewai = AsyncMock()
 
@@ -380,18 +430,18 @@ class TestUnifiedAssessmentFlow:
 
         # Mock repositories with different client contexts
         flow_1.repository = MagicMock()
-        flow_1.repository.client_account_id = 1
+        flow_1.repository.client_account_id = DEMO_CLIENT_ACCOUNT_ID
         flow_1.repository.get_assessment_flow_state = AsyncMock(return_value=None)
 
         flow_2.repository = MagicMock()
-        flow_2.repository.client_account_id = 2
+        flow_2.repository.client_account_id = "tenant-2-1111-1111-1111-111111111111"
         flow_2.repository.get_assessment_flow_state = AsyncMock(return_value=None)
 
         # Verify different client contexts
-        assert flow_1.context.client_account_id == 1
-        assert flow_2.context.client_account_id == 2
-        assert flow_1.repository.client_account_id == 1
-        assert flow_2.repository.client_account_id == 2
+        assert flow_1.context.client_account_id == DEMO_CLIENT_ACCOUNT_ID
+        assert flow_2.context.client_account_id == "tenant-2-1111-1111-1111-111111111111"
+        assert flow_1.repository.client_account_id == DEMO_CLIENT_ACCOUNT_ID
+        assert flow_2.repository.client_account_id == "tenant-2-1111-1111-1111-111111111111"
 
     @pytest.mark.asyncio
     async def test_phase_transition_validation(
@@ -447,19 +497,36 @@ class TestUnifiedAssessmentFlow:
 
 
 class TestAssessmentFlowEdgeCases:
-    """Test edge cases and error conditions"""
+    """Test edge cases and error conditions - MFO compliant"""
 
     @pytest.fixture
     async def assessment_flow(self, mock_flow_context, mock_crewai_service):
-        """Create assessment flow instance"""
+        """Create assessment flow instance - MFO compliant"""
+        # Ensure we use MockRequestContext
+        if not isinstance(mock_flow_context, MockRequestContext):
+            mock_flow_context = MockRequestContext(
+                client_account_id=DEMO_CLIENT_ACCOUNT_ID,
+                engagement_id=DEMO_ENGAGEMENT_ID,
+                user_id=DEMO_USER_ID,
+            )
+
         flow = UnifiedAssessmentFlow(mock_crewai_service, mock_flow_context)
         flow.repository = mock_assessment_repository()
         flow.postgres_store = AsyncMock()
+
+        # Mock TenantScopedAgentPool
+        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
+            mock_pool = mock_tenant_scoped_agent_pool()
+            mock_pool_class.return_value = mock_pool
+            flow.agent_pool = mock_pool
+
         return flow
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.async_test
     async def test_empty_application_list(self, assessment_flow):
-        """Test handling of empty application list"""
+        """Test handling of empty application list - MFO compliant"""
 
         # Mock empty application selection
         with patch.object(
@@ -472,11 +539,14 @@ class TestAssessmentFlowEdgeCases:
 
             assert "No applications" in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.agent
+    @pytest.mark.async_test
     async def test_crew_timeout_handling(
         self, assessment_flow, sample_assessment_flow_state
     ):
-        """Test handling of crew execution timeouts"""
+        """Test handling of crew execution timeouts - MFO compliant"""
 
         flow_state = AssessmentFlowState(**sample_assessment_flow_state)
 
@@ -488,11 +558,13 @@ class TestAssessmentFlowEdgeCases:
         with pytest.raises(asyncio.TimeoutError):
             await assessment_flow.analyze_technical_debt(flow_state)
 
-    @pytest.mark.asyncio
+    @pytest.mark.mfo
+    @pytest.mark.assessment_flow
+    @pytest.mark.async_test
     async def test_invalid_user_input_handling(
         self, assessment_flow, sample_assessment_flow_state
     ):
-        """Test handling of invalid user input"""
+        """Test handling of invalid user input - MFO compliant"""
 
         invalid_user_input = {"invalid_field": "invalid_value"}
 

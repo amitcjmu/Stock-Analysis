@@ -253,7 +253,7 @@ const EnhancedApplicationSelection: React.FC = () => {
                 </div>
 
                 <ApplicationDeduplicationManager
-                  collectionFlowId={flowId!}
+                  collectionFlowId={flowId}
                   initialApplications={[]}
                   onApplicationsChange={handleCanonicalApplicationsChange}
                   disabled={isSubmitting}

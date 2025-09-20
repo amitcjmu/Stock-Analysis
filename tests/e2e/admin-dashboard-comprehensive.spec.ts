@@ -270,7 +270,7 @@ test.describe('Admin Dashboard Comprehensive Testing', () => {
     ];
 
     let workingRoutes = 0;
-    let brokenRoutes: string[] = [];
+    const brokenRoutes: string[] = [];
 
     for (const route of adminRoutes) {
       try {

@@ -130,7 +130,7 @@ describe('useAttributeMappingLogic', () => {
 
     // Use imported mocked modules
     mockUseUnifiedDiscoveryFlow = useUnifiedDiscoveryFlow;
-    mockUseAttributeMappingFlowDetection = useAttributeMappingFlowDetection as MockedFunction<typeof useAttributeMappingFlowDetection>;
+    mockUseAttributeMappingFlowDetection = useAttributeMappingFlowDetection;
     mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
     mockApiCall = apiCall as MockedFunction<typeof apiCall>;
     mockNavigate = useNavigate as MockedFunction<typeof useNavigate>;
