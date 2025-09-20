@@ -17,7 +17,7 @@ from tests.fixtures.mfo_fixtures import (
     MockRequestContext,
     MockServiceRegistry,
 )
-from tests.fixtures.pytest_markers import *  # Import all markers
+# Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
 

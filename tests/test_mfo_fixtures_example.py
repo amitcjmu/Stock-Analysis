@@ -21,7 +21,7 @@ def test_demo_tenant_context_creation(demo_tenant_context):
     assert demo_tenant_context.user_email == "demo@demo-corp.com"
 
     # Test API headers generation
-    headers = demo_tenant_context.to_dict()
+    headers = demo_tenant_context.get_headers()
     assert "X-Client-Account-ID" in headers
     assert "X-Engagement-ID" in headers
     assert "X-User-ID" in headers

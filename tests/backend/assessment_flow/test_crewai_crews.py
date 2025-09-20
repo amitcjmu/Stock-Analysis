@@ -64,16 +64,16 @@ class TestArchitectureStandardsCrew:
     """Unit tests for Architecture Standards CrewAI crew - MFO compliant"""
 
     @pytest.fixture
-    def architecture_crew(self, mock_flow_context):
+    def architecture_crew(self, mock_flow_context, monkeypatch):
         """Create architecture standards crew with mocked context - uses TenantScopedAgentPool"""
         crew = ArchitectureStandardsCrew(mock_flow_context)
 
         # Mock TenantScopedAgentPool instead of direct crew
-        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
-            mock_pool = mock_tenant_scoped_agent_pool()
-            mock_pool_class.return_value = mock_pool
-            crew.agent_pool = mock_pool
-            crew.crew = MagicMock()
+        mock_pool = mock_tenant_scoped_agent_pool()
+        monkeypatch.setattr('app.services.persistent_agents.TenantScopedAgentPool',
+                           MagicMock(return_value=mock_pool))
+        crew.agent_pool = mock_pool
+        crew.crew = MagicMock()
 
         return crew
 
@@ -212,16 +212,16 @@ class TestComponentAnalysisCrew:
     """Unit tests for Component Analysis CrewAI crew - MFO compliant"""
 
     @pytest.fixture
-    def component_crew(self, mock_flow_context):
+    def component_crew(self, mock_flow_context, monkeypatch):
         """Create component analysis crew with mocked context - uses TenantScopedAgentPool"""
         crew = ComponentAnalysisCrew(mock_flow_context)
 
         # Mock TenantScopedAgentPool instead of direct crew
-        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
-            mock_pool = mock_tenant_scoped_agent_pool()
-            mock_pool_class.return_value = mock_pool
-            crew.agent_pool = mock_pool
-            crew.crew = MagicMock()
+        mock_pool = mock_tenant_scoped_agent_pool()
+        monkeypatch.setattr('app.services.persistent_agents.TenantScopedAgentPool',
+                           MagicMock(return_value=mock_pool))
+        crew.agent_pool = mock_pool
+        crew.crew = MagicMock()
 
         return crew
 
@@ -386,16 +386,16 @@ class TestSixRStrategyCrew:
     """Unit tests for 6R Strategy CrewAI crew - MFO compliant"""
 
     @pytest.fixture
-    def sixr_crew(self, mock_flow_context):
+    def sixr_crew(self, mock_flow_context, monkeypatch):
         """Create 6R strategy crew with mocked context - uses TenantScopedAgentPool"""
         crew = SixRStrategyCrew(mock_flow_context)
 
         # Mock TenantScopedAgentPool instead of direct crew
-        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
-            mock_pool = mock_tenant_scoped_agent_pool()
-            mock_pool_class.return_value = mock_pool
-            crew.agent_pool = mock_pool
-            crew.crew = MagicMock()
+        mock_pool = mock_tenant_scoped_agent_pool()
+        monkeypatch.setattr('app.services.persistent_agents.TenantScopedAgentPool',
+                           MagicMock(return_value=mock_pool))
+        crew.agent_pool = mock_pool
+        crew.crew = MagicMock()
 
         return crew
 
@@ -565,16 +565,16 @@ class TestAppOnPageCrew:
     """Unit tests for App-on-Page Generation CrewAI crew - MFO compliant"""
 
     @pytest.fixture
-    def app_page_crew(self, mock_flow_context):
+    def app_page_crew(self, mock_flow_context, monkeypatch):
         """Create app-on-page crew with mocked context - uses TenantScopedAgentPool"""
         crew = AppOnPageCrew(mock_flow_context)
 
         # Mock TenantScopedAgentPool instead of direct crew
-        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
-            mock_pool = mock_tenant_scoped_agent_pool()
-            mock_pool_class.return_value = mock_pool
-            crew.agent_pool = mock_pool
-            crew.crew = MagicMock()
+        mock_pool = mock_tenant_scoped_agent_pool()
+        monkeypatch.setattr('app.services.persistent_agents.TenantScopedAgentPool',
+                           MagicMock(return_value=mock_pool))
+        crew.agent_pool = mock_pool
+        crew.crew = MagicMock()
 
         return crew
 
@@ -759,28 +759,28 @@ class TestCrewIntegration:
     @pytest.mark.agent
     @pytest.mark.async_test
     async def test_crew_output_compatibility(
-        self, mock_flow_context, sample_engagement_context, sample_application_metadata
+        self, mock_flow_context, sample_engagement_context, sample_application_metadata, monkeypatch
     ):
         """Test that crew outputs are compatible between phases - uses TenantScopedAgentPool"""
 
         # Architecture Standards Crew output - using TenantScopedAgentPool
-        with patch('app.services.persistent_agents.TenantScopedAgentPool') as mock_pool_class:
-            mock_pool = mock_tenant_scoped_agent_pool()
-            mock_pool_class.return_value = mock_pool
+        mock_pool = mock_tenant_scoped_agent_pool()
+        monkeypatch.setattr('app.services.persistent_agents.TenantScopedAgentPool',
+                           MagicMock(return_value=mock_pool))
 
-            arch_crew = ArchitectureStandardsCrew(mock_flow_context)
-            arch_crew.agent_pool = mock_pool
-            arch_crew.crew = MagicMock()
-            arch_crew.crew.kickoff = AsyncMock(
-                return_value={
-                    "engagement_standards": [
-                        {
-                            "requirement_type": "java_versions",
-                            "supported_versions": {"java": "11+"},
-                        }
-                    ]
-                }
-            )
+        arch_crew = ArchitectureStandardsCrew(mock_flow_context)
+        arch_crew.agent_pool = mock_pool
+        arch_crew.crew = MagicMock()
+        arch_crew.crew.kickoff = AsyncMock(
+            return_value={
+                "engagement_standards": [
+                    {
+                        "requirement_type": "java_versions",
+                        "supported_versions": {"java": "11+"},
+                    }
+                ]
+            }
+        )
 
         arch_result = await arch_crew.execute(
             {

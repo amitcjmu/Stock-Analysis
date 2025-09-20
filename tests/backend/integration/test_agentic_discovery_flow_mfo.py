@@ -24,7 +24,7 @@ from tests.fixtures.mfo_fixtures import (
     MockRequestContext,
     MockServiceRegistry,
 )
-from tests.fixtures.pytest_markers import *  # Import all markers
+# Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.core.database import Base
 from app.models.discovery_models import DiscoveryFlow
@@ -294,20 +294,61 @@ class TestAgenticDiscoveryFlowMFO:
         mock_service_registry, sample_mapping_data
     ):
         """Test that agents incorporate user feedback for improved decisions through persistent memory."""
-        # Initial mapping with agent decision - first execution
-        initial_agent = MagicMock()
-        initial_agent.execute = AsyncMock(return_value={
-            "status": "completed",
-            "result": {
-                "decision": "review",
-                "confidence": 0.72,
-                "reasoning": "Some ambiguous mappings require clarification",
-                "suggestions": ["Review cpu_cores to cpu_count mapping"],
-            },
-            "execution_time": 1.23,
-        })
+        # Create a single persistent agent instance with memory
+        persistent_agent = MagicMock()
+        persistent_agent.memory = []  # Simulate agent memory storage
+        persistent_agent.execution_count = 0  # Track number of executions
 
-        mock_tenant_scoped_agent_pool.get_agent = AsyncMock(return_value=initial_agent)
+        # Define execute behavior that changes based on feedback
+        async def execute_with_memory(task_data):
+            persistent_agent.execution_count += 1
+
+            # Check if feedback is provided and store it in memory
+            if "user_feedback" in task_data.get("data", {}):
+                persistent_agent.memory.append(task_data["data"]["user_feedback"])
+
+            # First execution - no memory, conservative decision
+            if persistent_agent.execution_count == 1:
+                return {
+                    "status": "completed",
+                    "result": {
+                        "decision": "review",
+                        "confidence": 0.72,
+                        "reasoning": "Some ambiguous mappings require clarification",
+                        "suggestions": ["Review cpu_cores to cpu_count mapping"],
+                    },
+                    "execution_time": 1.23,
+                }
+
+            # Second execution - with memory of user feedback, confident decision
+            elif persistent_agent.execution_count == 2 and len(persistent_agent.memory) > 0:
+                return {
+                    "status": "completed",
+                    "result": {
+                        "decision": "approve",
+                        "confidence": 0.94,
+                        "reasoning": "Mappings confirmed by user feedback, cpu_cores to cpu_count verified",
+                        "learning_applied": True,
+                        "memory_used": True,
+                    },
+                    "execution_time": 1.15,
+                }
+
+            # Default response
+            return {
+                "status": "completed",
+                "result": {
+                    "decision": "review",
+                    "confidence": 0.70,
+                    "reasoning": "Default response",
+                },
+                "execution_time": 1.0,
+            }
+
+        persistent_agent.execute = AsyncMock(side_effect=execute_with_memory)
+
+        # Return the SAME agent instance for both calls (persistent memory)
+        mock_tenant_scoped_agent_pool.get_agent = AsyncMock(return_value=persistent_agent)
 
         with patch(
             "app.services.persistent_agents.tenant_scoped_agent_pool.TenantScopedAgentPool",
@@ -327,6 +368,7 @@ class TestAgenticDiscoveryFlowMFO:
             })
 
             assert result1["result"]["decision"] == "review"
+            assert persistent_agent.execution_count == 1
 
             # Simulate user feedback for agent learning
             user_feedback = {
@@ -341,28 +383,15 @@ class TestAgenticDiscoveryFlowMFO:
                 "notes": "CPU mapping is correct for our use case",
             }
 
-            # Update agent with learning from feedback - agent memory should persist
-            improved_agent = MagicMock()
-            improved_agent.execute = AsyncMock(return_value={
-                "status": "completed",
-                "result": {
-                    "decision": "approve",
-                    "confidence": 0.94,
-                    "reasoning": "Mappings confirmed by user feedback, cpu_cores to cpu_count verified",
-                    "learning_applied": True,
-                },
-                "execution_time": 1.15,
-            })
-
-            # Same agent instance should have learned (persistent memory)
-            mock_tenant_scoped_agent_pool.get_agent = AsyncMock(return_value=improved_agent)
-
-            # Second pass with feedback - same tenant context ensures agent memory persistence
+            # Second pass with feedback - same tenant context ensures same agent instance
             agent2 = await TenantScopedAgentPool.get_agent(
                 context=demo_context,  # Same tenant context
                 agent_type="field_mapping_agent",
                 service_registry=mock_service_registry,
             )
+
+            # Verify same agent instance was returned (persistent memory)
+            assert agent1 is agent2
 
             mapping_with_feedback = sample_mapping_data.copy()
             mapping_with_feedback["user_feedback"] = user_feedback
@@ -375,12 +404,13 @@ class TestAgenticDiscoveryFlowMFO:
 
             # Verify agent learned from feedback through persistent memory
             assert result2["result"]["decision"] == "approve"
-            assert (
-                result2["result"]["confidence"]
-                > result1["result"]["confidence"]
-            )
+            assert result2["result"]["confidence"] > result1["result"]["confidence"]
             assert "learning_applied" in result2["result"]
             assert result2["result"]["learning_applied"] is True
+            assert "memory_used" in result2["result"]
+            assert result2["result"]["memory_used"] is True
+            assert persistent_agent.execution_count == 2
+            assert len(persistent_agent.memory) == 1
 
     @pytest.mark.mfo
     @pytest.mark.integration

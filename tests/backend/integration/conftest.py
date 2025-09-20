@@ -43,7 +43,7 @@ from tests.fixtures.mfo_fixtures import (
     DEMO_USER_ID,
     DEMO_USER_EMAIL
 )
-from tests.fixtures.pytest_markers import *
+# Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.models import ClientAccount, Engagement, User
 from app.models.base import Base
@@ -516,7 +516,7 @@ async def mfo_test_environment(
 @pytest.fixture
 def integration_mfo_headers(mfo_request_context: MockRequestContext) -> Dict[str, str]:
     """Integration test headers using MFO request context."""
-    headers = mfo_request_context.to_dict()
+    headers = mfo_request_context.get_headers()
     headers["Content-Type"] = "application/json"
     return headers
 

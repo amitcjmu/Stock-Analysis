@@ -24,7 +24,7 @@ from tests.fixtures.mfo_fixtures import (
     MockRequestContext,
     MockServiceRegistry,
 )
-from tests.fixtures.pytest_markers import *  # Import all markers
+# Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.core.database import Base
 from app.models.discovery_models import DiscoveryFlow
