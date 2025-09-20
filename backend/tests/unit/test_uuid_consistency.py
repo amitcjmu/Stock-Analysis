@@ -4,7 +4,7 @@ Test UUID type consistency across repositories.
 
 import uuid
 import pytest
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 from app.core.utils.uuid_helpers import ensure_uuid, ensure_uuid_str, UUIDMixin
 from app.repositories.crewai_flow_state_extensions_repository import (
@@ -61,9 +61,7 @@ class TestRepositoryTypeConsistency:
 
         # Should not raise exception
         repo = CrewAIFlowStateExtensionsRepository(
-            db=mock_db,
-            client_account_id=client_id,
-            engagement_id=engagement_id
+            db=mock_db, client_account_id=client_id, engagement_id=engagement_id
         )
 
         # Verify internal storage is consistent
@@ -77,9 +75,7 @@ class TestRepositoryTypeConsistency:
 
         # Should not raise exception
         repo = CrewAIFlowStateExtensionsRepository(
-            db=mock_db,
-            client_account_id=client_id,
-            engagement_id=engagement_id
+            db=mock_db, client_account_id=client_id, engagement_id=engagement_id
         )
 
         # Verify internal storage is consistent
@@ -103,7 +99,7 @@ class TestUUIDMixin:
         """Test tenant ID parsing with strings."""
         repo = MockRepository(
             "11111111-1111-1111-1111-111111111111",
-            "22222222-2222-2222-2222-222222222222"
+            "22222222-2222-2222-2222-222222222222",
         )
 
         assert isinstance(repo.client_account_id, uuid.UUID)

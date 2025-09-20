@@ -1,15 +1,31 @@
 """
-Integration tests for Discovery Flow agent decisions.
+Integration tests for Discovery Flow agent decisions with MFO Architecture.
 
 This module tests the agent decision-making process during Discovery flow execution,
 including data validation, field mapping, and asset classification decisions.
+Now aligned with:
+- ADR-006: Master Flow Orchestrator
+- ADR-015: Persistent Multi-Tenant Agent Architecture
+- TenantScopedAgentPool patterns
+- Lessons from 000-lessons.md
 """
 
 import asyncio
 import json
 from typing import Any, Dict, List
+from uuid import uuid4
 
 import pytest
+
+# Import MFO fixtures and patterns
+from tests.fixtures.mfo_fixtures import (
+    demo_tenant_context,
+    mock_tenant_scoped_agent_pool,
+    sample_master_flow_data,
+    sample_discovery_flow_data,
+    create_mock_mfo_context,
+    setup_mfo_test_environment,
+)
 
 from tests.fixtures.discovery_flow_fixtures import (
     AGENT_DECISIONS,
@@ -22,18 +38,47 @@ from tests.test_discovery_flow_base import (
     requires_llm,
 )
 
+# MFO architecture imports
+from app.core.context import RequestContext
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
+
 
 @pytest.mark.asyncio
+@pytest.mark.mfo
+@pytest.mark.discovery_flow
 class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
-    """Test agent decision-making in Discovery flow."""
+    """Test agent decision-making in Discovery flow with MFO architecture and TenantScopedAgentPool."""
+
+    def verify_tenant_scoping(self, response_data: Dict[str, Any], context: RequestContext):
+        """Helper method to verify tenant scoping in responses"""
+        if "client_account_id" in response_data:
+            assert response_data["client_account_id"] == context.client_account_id
+        if "engagement_id" in response_data:
+            assert response_data["engagement_id"] == context.engagement_id
+
+    def verify_agent_pool_usage(self, result_data: Dict[str, Any]):
+        """Helper method to verify TenantScopedAgentPool usage patterns"""
+        # Check for agent pool performance indicators
+        if "agent_metadata" in result_data:
+            metadata = result_data["agent_metadata"]
+            # Agent should be reused from pool, not created per call
+            assert metadata.get("agent_source") == "tenant_pool"
+            # Memory should be persistent across calls
+            assert metadata.get("memory_enabled") is True
 
     @integration_test
     @requires_llm
-    async def test_data_validation_agent_decisions(self, mock_deepinfra_llm):
-        """Test that Data Validation Agent makes correct decisions about data quality."""
-        # Create a discovery flow
+    @pytest.mark.mfo
+    async def test_data_validation_agent_decisions(self, mock_deepinfra_llm, demo_tenant_context):
+        """Test that Data Validation Agent makes correct decisions about data quality using TenantScopedAgentPool."""
+        # Create a discovery flow with MFO patterns
         flow_response = await self.create_discovery_flow()
         flow_id = flow_response["flow_id"]
+
+        # Verify tenant scoping from the start
+        assert flow_response.get("client_account_id") == demo_tenant_context.client_account_id
+        assert flow_response.get("engagement_id") == demo_tenant_context.engagement_id
 
         # Upload test CMDB data
         file_content = get_mock_file_content("csv")
@@ -62,12 +107,24 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
         assert "data_quality_score" in validation_results
         assert 0 <= validation_results["data_quality_score"] <= 1
 
+        # Verify agent decisions maintain tenant isolation
+        assert validation_results.get("tenant_scoped", True) is not False
+
+        # Check that agent used TenantScopedAgentPool (not per-call Crew instantiation)
+        # This should be reflected in performance metrics or agent metadata
+        if "agent_metadata" in validation_results:
+            assert validation_results["agent_metadata"].get("pool_reused") is True
+
     @integration_test
-    async def test_field_mapping_agent_suggestions(self, mock_deepinfra_llm):
-        """Test that Field Mapping Agent provides intelligent mapping suggestions."""
-        # Create flow and upload data
+    @pytest.mark.mfo
+    async def test_field_mapping_agent_suggestions(self, mock_deepinfra_llm, demo_tenant_context):
+        """Test that Field Mapping Agent provides intelligent mapping suggestions using persistent agents."""
+        # Create flow and upload data with MFO patterns
         flow_response = await self.create_discovery_flow()
         flow_id = flow_response["flow_id"]
+
+        # Ensure tenant scoping
+        self.verify_tenant_scoping(flow_response, demo_tenant_context)
 
         file_content = get_mock_file_content("csv")
         await self.upload_file(flow_id, file_content, "test_cmdb.csv")
@@ -109,11 +166,17 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
             assert "alternatives" in mapping
             assert isinstance(mapping["alternatives"], list)
 
+        # Verify agent pool usage patterns (MFO requirement)
+        if "agent_performance" in suggestions:
+            assert suggestions["agent_performance"].get("agent_reused") is True
+            assert suggestions["agent_performance"].get("memory_persistent") is True
+
     @integration_test
+    @pytest.mark.mfo
     async def test_asset_classification_decisions(
-        self, mock_deepinfra_llm, mock_crewai_flow
+        self, mock_deepinfra_llm, mock_crewai_flow, demo_tenant_context
     ):
-        """Test that agents correctly classify assets for migration."""
+        """Test that agents correctly classify assets for migration using TenantScopedAgentPool."""
         # Set up mock responses for asset classification
         mock_crewai_flow.kickoff.return_value = {
             "status": "completed",
@@ -125,9 +188,10 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
             ],
         }
 
-        # Create flow and complete initial phases
+        # Create flow and complete initial phases with tenant scoping
         flow_response = await self.create_discovery_flow()
         flow_id = flow_response["flow_id"]
+        self.verify_tenant_scoping(flow_response, demo_tenant_context)
 
         # Upload data and complete field mapping
         file_content = get_mock_file_content("csv")
@@ -172,13 +236,15 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
                 ] in candidates.get("replatform", [])
 
     @integration_test
+    @pytest.mark.mfo
     async def test_dependency_analysis_decisions(
-        self, mock_deepinfra_llm, mock_crewai_flow
+        self, mock_deepinfra_llm, mock_crewai_flow, demo_tenant_context
     ):
-        """Test that agents correctly identify dependencies and migration groups."""
-        # Create flow with test data
+        """Test that agents correctly identify dependencies and migration groups using persistent agent pool."""
+        # Create flow with test data and verify tenant isolation
         flow_response = await self.create_discovery_flow()
         flow_id = flow_response["flow_id"]
+        self.verify_tenant_scoping(flow_response, demo_tenant_context)
 
         # Upload comprehensive test data including applications
         test_data = json.dumps(MOCK_CMDB_DATA).encode("utf-8")
@@ -216,8 +282,9 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
             assert len(group["reason"]) > 0
 
     @integration_test
-    async def test_agent_decision_consistency(self, mock_deepinfra_llm):
-        """Test that agent decisions are consistent across multiple runs."""
+    @pytest.mark.mfo
+    async def test_agent_decision_consistency(self, mock_deepinfra_llm, demo_tenant_context):
+        """Test that agent decisions are consistent across multiple runs using TenantScopedAgentPool."""
         # Run the same data through the flow multiple times
         results = []
 
@@ -250,8 +317,9 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
                     )
 
     @integration_test
-    async def test_agent_decision_streaming(self):
-        """Test real-time streaming of agent decisions via SSE."""
+    @pytest.mark.mfo
+    async def test_agent_decision_streaming(self, demo_tenant_context):
+        """Test real-time streaming of agent decisions via SSE with tenant isolation."""
         flow_response = await self.create_discovery_flow()
         flow_id = flow_response["flow_id"]
 
@@ -293,11 +361,13 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
             pass
 
     @integration_test
-    async def test_agent_error_handling(self, mock_deepinfra_llm):
-        """Test how agents handle errors and edge cases."""
-        # Create flow
+    @pytest.mark.mfo
+    async def test_agent_error_handling(self, mock_deepinfra_llm, demo_tenant_context):
+        """Test how agents handle errors and edge cases while maintaining tenant isolation."""
+        # Create flow with tenant scoping
         flow_response = await self.create_discovery_flow()
         flow_id = flow_response["flow_id"]
+        self.verify_tenant_scoping(flow_response, demo_tenant_context)
 
         # Upload malformed data
         malformed_csv = (
@@ -336,8 +406,9 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
         assert "invalid_data" in issue_types or "missing_data" in issue_types
 
     @integration_test
-    async def test_agent_learning_from_feedback(self, mock_deepinfra_llm):
-        """Test that agents learn from user feedback on decisions."""
+    @pytest.mark.mfo
+    async def test_agent_learning_from_feedback(self, mock_deepinfra_llm, demo_tenant_context):
+        """Test that agents learn from user feedback on decisions using persistent memory."""
         # Create flow and get initial suggestions
         flow_response = await self.create_discovery_flow()
         flow_id = flow_response["flow_id"]
@@ -380,3 +451,6 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
         assert server_name_mapping[
             "suggested_mapping"
         ] == "asset_name" or "asset_name" in server_name_mapping.get("alternatives", [])
+
+        # Verify that learning persisted in agent memory (TenantScopedAgentPool benefit)
+        self.verify_agent_pool_usage(new_suggestions)

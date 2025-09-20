@@ -18,7 +18,9 @@ IDEAL_MAX_LINES = 300  # Best practice recommendation
 EXCLUDE_PATTERNS = [
     "*/migrations/*",
     "*/alembic/versions/*",  # Alembic migration files can be necessarily long
-    "*/tests/fixtures/*",
+    "*/tests/*",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
+    "*/test_*.py",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
+    "*_test.py",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
     "*/venv/*",
     "*/node_modules/*",
     "*/__pycache__/*",

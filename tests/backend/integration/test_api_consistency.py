@@ -1,25 +1,35 @@
 """
-API Consistency Integration Tests
+CRITICAL API Consistency Integration Tests for MFO Compliance
 
 This module provides comprehensive testing of API consistency and data relationships
-across the discovery flow system. It validates that all API endpoints return
-properly linked data with correct foreign key relationships.
+across the Master Flow Orchestrator (MFO) system following ADR-006 architecture.
+Validates that all MFO endpoints return properly linked data with correct
+foreign key relationships and maintain tenant isolation.
 
 Test Coverage:
-1. Master Flow Orchestrator API consistency
-2. Discovery Flow API data relationships
-3. Data Import API linkage validation
-4. Asset API relationship consistency
-5. Cross-API data integrity validation
-6. API response format standardization
+1. Master Flow Orchestrator (MFO) API consistency and compliance
+2. MFO endpoint security and tenant isolation
+3. Discovery Flow API data relationships through MFO
+4. Data Import API linkage validation via MFO
+5. Asset API relationship consistency with MFO patterns
+6. Cross-API data integrity validation
+7. API response format standardization (snake_case enforcement)
+8. Atomic transaction patterns validation
+9. MFO performance benchmarks
 """
 
 import logging
 import uuid
 from datetime import datetime
+from typing import Dict, Any, List
+from unittest.mock import AsyncMock, patch
 
 import pytest
+import pytest_asyncio
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
+from app.api.v1.master_flows_service import MasterFlowService
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
@@ -30,13 +40,14 @@ from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.repositories.asset_repository import AssetRepository
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class TestAPIConsistency:
+class TestMFOAPIConsistency:
     """
     Test suite for API consistency and data relationship validation.
 
@@ -46,14 +57,179 @@ class TestAPIConsistency:
 
     @pytest.fixture
     async def test_context(self):
-        """Create test context with multi-tenant isolation"""
+        """Create test context with multi-tenant isolation for MFO testing"""
         return RequestContext(
             client_account_id=str(uuid.uuid4()),
             engagement_id=str(uuid.uuid4()),
-            user_id="api_test_user",
+            user_id="mfo_api_test_user",
             user_role="admin",
             request_id=str(uuid.uuid4()),
         )
+
+    @pytest.fixture
+    async def different_tenant_context(self):
+        """Create different tenant context for isolation testing"""
+        return RequestContext(
+            client_account_id=str(uuid.uuid4()),
+            engagement_id=str(uuid.uuid4()),
+            user_id="different_tenant_user",
+            user_role="admin",
+            request_id=str(uuid.uuid4()),
+        )
+
+    @pytest.mark.mfo
+    @pytest.mark.critical
+    @pytest.mark.asyncio
+    async def test_mfo_endpoint_consistency(self, test_context):
+        """CRITICAL: Test MFO endpoint consistency and compliance
+
+        Validates that MFO endpoints return consistent data structures
+        and maintain proper tenant isolation according to ADR-006.
+        """
+        async with AsyncSessionLocal() as session:
+            mfo_service = MasterFlowService(session, test_context)
+
+            # Test flow creation
+            flow_id = str(uuid.uuid4())
+            with patch.object(session, 'commit', new_callable=AsyncMock):
+                flow_response = await mfo_service.create_master_flow(
+                    flow_id=flow_id,
+                    flow_type="discovery",
+                    flow_name="MFO Consistency Test Flow"
+                )
+
+            # Validate response structure
+            assert "flow_id" in flow_response
+            assert "client_account_id" in flow_response
+            assert "engagement_id" in flow_response
+            assert flow_response["client_account_id"] == test_context.client_account_id
+            assert flow_response["engagement_id"] == test_context.engagement_id
+
+            logger.info("✅ MFO endpoint consistency validated")
+
+    @pytest.mark.mfo
+    @pytest.mark.security
+    @pytest.mark.critical
+    @pytest.mark.asyncio
+    async def test_mfo_tenant_isolation_in_api_responses(
+        self, test_context, different_tenant_context
+    ):
+        """CRITICAL: Test MFO API responses maintain tenant isolation
+
+        Validates that MFO API responses only include data scoped
+        to the requesting tenant.
+        """
+        async with AsyncSessionLocal() as session:
+            # Create services for different tenants
+            mfo_service_1 = MasterFlowService(session, test_context)
+            mfo_service_2 = MasterFlowService(session, different_tenant_context)
+
+            # Create flow for tenant 1
+            flow_1_id = str(uuid.uuid4())
+            with patch.object(session, 'commit', new_callable=AsyncMock):
+                await mfo_service_1.create_master_flow(
+                    flow_id=flow_1_id,
+                    flow_type="discovery",
+                    flow_name="Tenant 1 Flow"
+                )
+
+            # Tenant 2 should not see tenant 1's flow
+            tenant_2_flows = await mfo_service_2.get_all_flows()
+            tenant_1_flow_ids = [f.get("flow_id") for f in tenant_2_flows if f.get("flow_id") == flow_1_id]
+
+            assert len(tenant_1_flow_ids) == 0, "MFO API leaked cross-tenant data"
+
+            logger.info("✅ MFO tenant isolation in API responses validated")
+
+    @pytest.mark.mfo
+    @pytest.mark.performance
+    @pytest.mark.asyncio
+    async def test_mfo_atomic_transaction_patterns(self, test_context):
+        """CRITICAL: Test MFO atomic transaction patterns
+
+        Validates that MFO operations follow ADR-012 atomic transaction
+        patterns for data consistency.
+        """
+        async with AsyncSessionLocal() as session:
+            mfo_service = MasterFlowService(session, test_context)
+
+            flow_id = str(uuid.uuid4())
+
+            # Track transaction calls
+            begin_called = False
+            flush_called = False
+            commit_called = False
+
+            async def mock_begin():
+                nonlocal begin_called
+                begin_called = True
+
+            async def mock_flush():
+                nonlocal flush_called
+                flush_called = True
+
+            async def mock_commit():
+                nonlocal commit_called
+                commit_called = True
+
+            with patch.object(session, 'begin', side_effect=mock_begin):
+                with patch.object(session, 'flush', side_effect=mock_flush):
+                    with patch.object(session, 'commit', side_effect=mock_commit):
+                        await mfo_service.create_master_flow(
+                            flow_id=flow_id,
+                            flow_type="discovery",
+                            flow_name="Atomic Transaction Test"
+                        )
+
+            # Verify atomic pattern was followed
+            assert begin_called, "Atomic transaction begin() not called"
+            assert flush_called, "Atomic transaction flush() not called"
+            assert commit_called, "Atomic transaction commit() not called"
+
+            logger.info("✅ MFO atomic transaction patterns validated")
+
+    @pytest.mark.mfo
+    @pytest.mark.field_naming
+    @pytest.mark.asyncio
+    async def test_mfo_snake_case_field_enforcement(self, test_context):
+        """CRITICAL: Test MFO endpoints enforce snake_case field naming
+
+        Validates that all MFO API responses use snake_case field names
+        and never return camelCase fields.
+        """
+        async with AsyncSessionLocal() as session:
+            mfo_service = MasterFlowService(session, test_context)
+
+            flow_id = str(uuid.uuid4())
+            with patch.object(session, 'commit', new_callable=AsyncMock):
+                flow_response = await mfo_service.create_master_flow(
+                    flow_id=flow_id,
+                    flow_type="discovery",
+                    flow_name="Snake Case Test Flow"
+                )
+
+            # Check for snake_case fields (correct)
+            snake_case_fields = [
+                "flow_id", "client_account_id", "engagement_id",
+                "flow_type", "flow_name", "created_at", "updated_at"
+            ]
+
+            for field in snake_case_fields:
+                if field in flow_response:
+                    assert isinstance(flow_response[field], (str, int, float, type(None))), \
+                        f"Field {field} has invalid type"
+
+            # Check for camelCase fields (should not exist)
+            camel_case_fields = [
+                "flowId", "clientAccountId", "engagementId",
+                "flowType", "flowName", "createdAt", "updatedAt"
+            ]
+
+            for field in camel_case_fields:
+                assert field not in flow_response, \
+                    f"Found prohibited camelCase field: {field}"
+
+            logger.info("✅ MFO snake_case field enforcement validated")
 
     @pytest.fixture
     async def complete_test_data(self, test_context):

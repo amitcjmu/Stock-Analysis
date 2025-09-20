@@ -297,5 +297,202 @@ The recommended 4-phase implementation plan provides a structured approach to mo
 
 ---
 
+## Batch 2 Analysis - Test Cleanup Initiative
+### Analyzed: September 2025
+
+This section documents the second batch of test files analyzed for potential archival, update, or retention based on their alignment with the MFO architecture and current codebase patterns.
+
+### Summary Statistics
+- **Total Files Analyzed**: 47
+- **Files Archived**: 31 (66%)
+- **Files Updated**: 6 (13%)
+- **Files Kept As-Is**: 6 (13%)
+- **Non-Test Files (Restored)**: 4 (8%)
+
+### Detailed File Analysis
+
+#### ARCHIVED FILES (31 files)
+
+##### Data Cleansing Tests (6 files)
+- `tests/backend/data_cleansing/test_data_cleansing_basic.py`
+- `tests/backend/data_cleansing/test_data_cleansing_completeness.py`
+- `tests/backend/data_cleansing/test_data_cleansing_correctness.py`
+- `tests/backend/data_cleansing/test_data_cleansing_csv.py`
+- `tests/backend/data_cleansing/test_data_cleansing_deduplication.py`
+- `tests/backend/data_cleansing/test_data_cleansing_deduplication_new.py`
+- **Reason**: Legacy data cleansing module no longer exists in codebase
+- **Action**: Deleted - functionality now handled by discovery flow's data validation phase
+
+##### Debug Scripts (2 files)
+- `tests/backend/debug/debug_asset_inventory.py`
+- `tests/backend/debug/debug_user_deactivation.py`
+- **Reason**: Debugging scripts not actual tests
+- **Action**: Deleted - should not be in test directory
+
+##### Obsolete API Tests (3 files)
+- `tests/backend/api/test_discovery_flow_v2_endpoints.py`
+- `tests/backend/api/test_v3_api.py`
+- `tests/backend/api/test_v3_api_comprehensive.py`
+- **Reason**: Testing deprecated v2/v3 API versions
+- **Action**: Deleted - current API uses v1 with MFO pattern
+
+##### Database Consolidation Tests (10 files)
+- `tests/backend/migration/test_db_consolidation_atomic.py`
+- `tests/backend/migration/test_db_consolidation_correctness.py`
+- `tests/backend/migration/test_db_consolidation_performance.py`
+- `tests/backend/migration/test_db_consolidation_recovery.py`
+- `tests/backend/migration/test_db_consolidation_referential.py`
+- `tests/backend/migration/test_db_consolidation_triggers.py`
+- `tests/backend/migration/test_db_consolidation_unique.py`
+- `tests/backend/migration/test_db_consolidation_validation.py`
+- `tests/backend/migration/test_db_consolidation_views.py`
+- `tests/backend/migration/test_flow_db_consolidation_basic.py`
+- **Reason**: Database consolidation completed, using SQLAlchemy models
+- **Action**: Deleted - migrations handled by Alembic
+
+##### Legacy Flow Tests (5 files)
+- `tests/backend/flows/test_discovery_flow_old.py`
+- `tests/backend/flows/test_discovery_flow_enhanced.py`
+- `tests/backend/flows/test_discovery_flow_scenarios.py`
+- `tests/backend/legacy/test_discovery_flow_legacy.py`
+- `tests/backend/legacy/test_discovery_flow_v2.py`
+- **Reason**: Testing deprecated flow implementations
+- **Action**: Deleted - superseded by MFO architecture
+
+##### Incomplete/Placeholder Tests (5 files)
+- `tests/backend/integration/test_mfo_agentic_discovery_flow.py`
+- `tests/backend/performance/test_flow_execution_performance.py`
+- `tests/backend/performance/test_mfo_performance.py`
+- `tests/backend/services/test_flow_state_machine.py`
+- `tests/backend/services/test_github_webhook_handler.py`
+- **Reason**: Empty/placeholder tests for unimplemented features
+- **Action**: Deleted (state machine converted to skip pattern)
+
+#### UPDATED FILES (6 files)
+
+##### `tests/backend/flows/test_discovery_flow.py`
+- **Changes Made**:
+  - Added MFO fixtures and TenantScopedAgentPool
+  - Fixed hardcoded assertions to use variables
+  - Updated context naming to mock_mfo_context
+  - Added proper tenant scoping verification
+- **Reason**: Core test needed MFO pattern alignment
+
+##### `tests/backend/flows/test_discovery_flow_sequence.py`
+- **Changes Made**:
+  - Renamed execute_*_crew methods to execute_*_phase
+  - Added comprehensive tenant isolation checks
+  - Updated to use MFO context patterns
+- **Reason**: Method naming consistency with current architecture
+
+##### `tests/backend/security/test_tenant_isolation.py`
+- **Changes Made**:
+  - Enhanced with MFO tenant isolation patterns
+  - Added cross-flow isolation tests
+  - Updated query patterns for proper scoping
+- **Reason**: Critical security test needed MFO updates
+
+##### `tests/backend/performance/test_state_operations.py`
+- **Changes Made**:
+  - Added missing user_id parameter
+  - Fixed line length violations
+  - Updated to match current repository signatures
+- **Reason**: Parameter mismatch with updated repository
+
+##### `tests/unit/test_uuid_consistency.py`
+- **Changes Made**:
+  - Removed unused Mock import
+  - Cleaned up imports
+- **Reason**: Flake8 compliance
+
+##### `tests/services/test_flow_state_machine.py`
+- **Changes Made**:
+  - Converted to proper skip pattern
+  - Added TODO and documentation
+  - Removed all implementation attempts
+- **Reason**: Module not yet implemented, proper placeholder needed
+
+#### KEPT AS-IS (6 files)
+
+##### Repository Tests
+- `tests/backend/repository/test_discovery_flow_repository.py`
+- `tests/backend/repository/test_discovery_flow_repository_comprehensive.py`
+- **Reason**: Current and properly testing repository patterns
+
+##### Flow Manager Tests
+- `tests/backend/flows/test_discovery_flow_manager.py`
+- `tests/backend/flows/test_discovery_flow_manager_comprehensive.py`
+- **Reason**: Active components with good test coverage
+
+##### Integration Tests
+- `tests/backend/integration/test_agentic_discovery_flow_mfo.py`
+- **Reason**: Already updated with MFO patterns
+
+##### Unit Tests
+- `tests/unit/test_field_mapping_accuracy.py`
+- **Reason**: Core business logic test
+
+#### NON-TEST FILES RESTORED (4 files)
+
+These files were mistakenly identified as tests but are actually service implementations:
+- `backend/app/services/adapters/azure_adapter/compute.py`
+- `backend/app/services/adapters/azure_adapter/discovery.py`
+- `backend/app/services/adapters/azure_adapter/monitoring.py`
+- `backend/app/services/adapters/gcp_adapter/connectivity.py`
+- **Action**: Immediately restored with `git restore`
+- **Lesson**: Always verify file paths before deletion
+
+### Key Patterns Applied
+
+#### 1. MFO Integration Pattern
+```python
+# Before
+flow = UnifiedDiscoveryFlow(db_session, context)
+flow.crew_factory = CrewFactory()
+
+# After
+flow = UnifiedDiscoveryFlow(db_session, mock_mfo_context)
+flow.agent_pool = mock_tenant_scoped_agent_pool
+```
+
+#### 2. Tenant Scoping Pattern
+```python
+# Added to all relevant tests
+assert state.client_account_id == mock_mfo_context.client_account_id
+assert state.engagement_id == mock_mfo_context.engagement_id
+```
+
+#### 3. Method Naming Consistency
+```python
+# Before
+await flow.execute_validation_crew()
+
+# After
+await flow.execute_validation_phase()
+```
+
+### Lessons Learned
+
+1. **Always verify file types before deletion** - Check actual file paths and contents
+2. **Use agents for parallel work** - Significantly faster than sequential processing
+3. **QA validation catches subtle issues** - Found 4 issues that would have caused test failures
+4. **Linting agents handle compliance better** - Let specialized agents handle pre-commit fixes
+5. **Document everything** - This report provides audit trail for future reference
+
+### Pre-commit Validation Results
+
+All pre-commit checks now pass:
+- ✅ Detect hardcoded secrets
+- ✅ Bandit security checks
+- ✅ Black formatting
+- ✅ Flake8 linting
+- ✅ Mypy type checking
+- ✅ File formatting (EOF, whitespace)
+- ✅ Architectural policies
+- ✅ Python file length limits
+
+---
+
 *Report Generated: September 2025*
+*Batch 2 Analysis Added: September 2025*
 *Next Review Date: October 2025*
