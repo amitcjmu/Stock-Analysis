@@ -11,14 +11,14 @@ def my_fixture(self, mock_context):
     with patch('module.Class') as mock_class:
         mock = MagicMock()
         mock_class.return_value = mock
-    return obj  # Mock is out of scope!
+    return mock  # Mock is out of scope!
 
 # ✅ CORRECT - Monkeypatch fixture
 @pytest.fixture
 def my_fixture(self, mock_context, monkeypatch):
     mock = MagicMock()
     monkeypatch.setattr('module.Class', MagicMock(return_value=mock))
-    return obj  # Mock persists for test duration
+    return mock  # Mock persists for test duration
 ```
 **Usage**: Always use monkeypatch for patching in pytest fixtures
 

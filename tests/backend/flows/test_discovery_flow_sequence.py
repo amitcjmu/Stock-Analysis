@@ -267,6 +267,8 @@ def mock_mfo_service(demo_tenant_context, mock_tenant_scoped_agent_pool):
     async def mock_execute_field_mapping(context: RequestContext, flow_data: Dict[str, Any]):
         # Use TenantScopedAgentPool instead of per-call Crew instantiation
         agent = await service.agent_pool.get_agent(context, "field_mapping")
+        # Verify agent persistence for MFO performance
+        assert agent is not None, "Agent should be retrieved from pool"
         result = MockFlowResult("field_mapping")
 
         # Handle memory failure gracefully
@@ -284,6 +286,7 @@ def mock_mfo_service(demo_tenant_context, mock_tenant_scoped_agent_pool):
     async def mock_execute_data_cleansing(context: RequestContext, flow_data: Dict[str, Any], field_mapping_result: Dict[str, Any]):
         # Use persistent agent from pool
         agent = await service.agent_pool.get_agent(context, "data_cleansing")
+        assert agent is not None, "Agent should be persistent in pool"
         result = MockFlowResult("data_cleansing")
         service.shared_memory.add("data_cleansing_result", result.to_dict())
         service.shared_memory.add(
@@ -294,6 +297,7 @@ def mock_mfo_service(demo_tenant_context, mock_tenant_scoped_agent_pool):
     async def mock_execute_inventory_building(context: RequestContext, flow_data: Dict[str, Any], previous_results: Dict[str, Any]):
         # Use persistent agent from pool
         agent = await service.agent_pool.get_agent(context, "inventory_building")
+        assert agent is not None, "Agent should be persistent in pool"
         result = MockFlowResult("inventory_building")
         service.shared_memory.add("inventory_building_result", result.to_dict())
         service.shared_memory.add(
@@ -304,6 +308,7 @@ def mock_mfo_service(demo_tenant_context, mock_tenant_scoped_agent_pool):
     async def mock_execute_app_server_dependency(context: RequestContext, flow_data: Dict[str, Any], previous_results: Dict[str, Any]):
         # Use persistent agent from pool
         agent = await service.agent_pool.get_agent(context, "app_server_dependency")
+        assert agent is not None, "Agent should be persistent in pool"
         result = MockFlowResult("app_server_dependency")
         service.shared_memory.add("app_server_dependency_result", result.to_dict())
         service.shared_memory.add(
@@ -314,6 +319,7 @@ def mock_mfo_service(demo_tenant_context, mock_tenant_scoped_agent_pool):
     async def mock_execute_app_app_dependency(context: RequestContext, flow_data: Dict[str, Any], previous_results: Dict[str, Any]):
         # Use persistent agent from pool
         agent = await service.agent_pool.get_agent(context, "app_app_dependency")
+        assert agent is not None, "Agent should be persistent in pool"
         result = MockFlowResult("app_app_dependency")
         service.shared_memory.add("app_app_dependency_result", result.to_dict())
         service.shared_memory.add(
@@ -324,6 +330,7 @@ def mock_mfo_service(demo_tenant_context, mock_tenant_scoped_agent_pool):
     async def mock_execute_technical_debt(context: RequestContext, flow_data: Dict[str, Any], previous_results: Dict[str, Any]):
         # Use persistent agent from pool
         agent = await service.agent_pool.get_agent(context, "technical_debt")
+        assert agent is not None, "Agent should be persistent in pool"
         result = MockFlowResult("technical_debt")
         service.shared_memory.add("technical_debt_result", result.to_dict())
         service.shared_memory.add(
@@ -334,6 +341,7 @@ def mock_mfo_service(demo_tenant_context, mock_tenant_scoped_agent_pool):
     async def mock_execute_integration(context: RequestContext, flow_data: Dict[str, Any], all_results: Dict[str, Any]):
         # Use persistent agent from pool
         agent = await service.agent_pool.get_agent(context, "integration")
+        assert agent is not None, "Agent should be persistent in pool"
         result = MockFlowResult("integration")
         service.shared_memory.add("integration_result", result.to_dict())
         return result.to_dict()
@@ -507,17 +515,17 @@ class TestDataHandoffValidation:
     @pytest.mark.asyncio
     @pytest.mark.mfo
     async def test_data_cleansing_to_inventory_handoff(
-        self, mock_mfo_service, demo_tenant_context, mock_discovery_flow_data,
-        mock_import_session
+        self, mock_mfo_service, demo_tenant_context, mock_discovery_flow_data
     ):
         """Test data handoff from data cleansing to inventory building with MFO"""
         service = mock_mfo_service
-        session = mock_import_session
+        context = demo_tenant_context
+        discovery_flow = mock_discovery_flow_data
 
         # Execute prerequisites
-        field_mapping_result = await service.execute_field_mapping_phase(session)
+        field_mapping_result = await service.execute_field_mapping_phase(context, discovery_flow)
         data_cleansing_result = await service.execute_data_cleansing_phase(
-            session, field_mapping_result
+            context, discovery_flow, field_mapping_result
         )
 
         # Verify handoff readiness
@@ -535,19 +543,20 @@ class TestDataHandoffValidation:
 
     @pytest.mark.asyncio
     async def test_inventory_to_dependencies_handoff(
-        self, mock_discovery_flow_service, mock_import_session
+        self, mock_mfo_service, demo_tenant_context, mock_discovery_flow_data
     ):
         """Test data handoff from inventory building to dependency analysis"""
-        service = mock_discovery_flow_service
-        session = mock_import_session
+        service = mock_mfo_service
+        context = demo_tenant_context
+        discovery_flow = mock_discovery_flow_data
 
         # Execute prerequisites
-        field_mapping_result = await service.execute_field_mapping_phase(session)
+        field_mapping_result = await service.execute_field_mapping_phase(context, discovery_flow)
         data_cleansing_result = await service.execute_data_cleansing_phase(
-            session, field_mapping_result
+            context, discovery_flow, field_mapping_result
         )
         inventory_result = await service.execute_inventory_building_phase(
-            session,
+            context, discovery_flow,
             {
                 "field_mapping": field_mapping_result,
                 "data_cleansing": data_cleansing_result,
@@ -569,18 +578,19 @@ class TestDataHandoffValidation:
 
     @pytest.mark.asyncio
     async def test_dependency_to_tech_debt_handoff(
-        self, mock_discovery_flow_service, mock_import_session
+        self, mock_mfo_service, demo_tenant_context, mock_discovery_flow_data
     ):
         """Test data handoff from dependency analysis to technical debt evaluation"""
-        service = mock_discovery_flow_service
-        session = mock_import_session
+        service = mock_mfo_service
+        context = demo_tenant_context
+        discovery_flow = mock_discovery_flow_data
 
         # Execute prerequisites through dependency analysis
-        field_mapping_result = await service.execute_field_mapping_phase(session)
-        await service.execute_data_cleansing_phase(session, field_mapping_result)
-        await service.execute_inventory_building_phase(session, {})
-        await service.execute_app_server_dependency_phase(session, {})
-        app_app_result = await service.execute_app_app_dependency_phase(session, {})
+        field_mapping_result = await service.execute_field_mapping_phase(context, discovery_flow)
+        await service.execute_data_cleansing_phase(context, discovery_flow, field_mapping_result)
+        await service.execute_inventory_building_phase(context, discovery_flow, {})
+        await service.execute_app_server_dependency_phase(context, discovery_flow, {})
+        app_app_result = await service.execute_app_app_dependency_phase(context, discovery_flow, {})
 
         # Verify handoff readiness
         handoff_ready = service.shared_memory.validate_data_handoff(
