@@ -1,6 +1,0 @@
-hostname,ip_address,operating_system,environment,asset_type,application_name,cpu_cores,memory_gb,storage_gb
-web-server-01,10.0.1.10,Ubuntu 20.04,production,server,E-Commerce Platform,8,16,500
-db-server-01,10.0.1.20,CentOS 7,production,database,MySQL Cluster,16,32,1000
-app-server-01,10.0.1.30,Windows Server 2019,production,server,Inventory Management,4,8,250
-cache-server-01,10.0.1.40,Ubuntu 18.04,production,server,Redis Cache,2,4,100
-api-gateway-01,10.0.1.50,Ubuntu 20.04,production,server,API Gateway,4,8,200

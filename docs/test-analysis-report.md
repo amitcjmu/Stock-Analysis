@@ -297,5 +297,163 @@ The recommended 4-phase implementation plan provides a structured approach to mo
 
 ---
 
+## Batch 3 Analysis - "Keep" Files Re-evaluation
+### Analyzed: September 2025
+
+This section documents the re-evaluation of 109 files previously marked as "Keep" to identify which were actually debug scripts, obsolete tests, or incorrectly categorized.
+
+### Summary Statistics
+- **Total Files Analyzed**: 109
+- **Files Archived**: 87 (80%)
+- **Files Kept**: 15 (14%)
+- **Service Files Preserved**: 7 (6%)
+
+### Key Findings
+
+#### MAJOR DISCOVERY: Most "test_*.py" files in backend/scripts/ are NOT tests
+These are debug/utility scripts that should never have been in the repository:
+- They don't use pytest or unittest frameworks
+- They're one-off debugging scripts
+- They contain hardcoded values and credentials
+- They bypass proper testing patterns
+
+### Detailed Analysis
+
+#### ARCHIVED FILES (87 files)
+
+##### Debug/Utility Scripts in backend/scripts/ (28 files)
+All files with test_ prefix in backend/scripts/ were actually debug scripts:
+- `test_cors.py`, `test_cors_deployed.py`, `test_cors_railway.py` - CORS debugging
+- `test_platform_login.py`, `test_user_access_flow.py`, `test_user_update.py` - Auth debugging
+- `test_master_flow_auth.py`, `test_row_level_security.py` - Security debugging
+- `test_deletion_cascade.py`, `test_stuck_flow_fix.py` - Database debugging
+- `test_flow_persistence.py`, `test_flow_resume_fix.py` - Flow debugging
+- `test_marathon_import.py`, `test_migration.py` - Migration scripts
+- `test_minimal_asset.py`, `test_phase5_application_layer.py` - Manual testing
+- `test_discovery_flow_linkage.py`, `test_asset_inventory_agent.py` - Flow debugging
+- `test_collection_phase_progression.py` - Collection debugging
+- `test_crewai_flow_simple.py` - CrewAI debugging
+- `debug_import_context.py`, `seed_test_data.py` - Data utilities
+- **Action**: Deleted - Not tests, debug scripts don't belong in production
+
+##### Debug Scripts in scripts/ directory (9 files)
+- `test_admin_operations.py` - Admin debugging
+- `test_context_*.py` (6 files) - Context debugging utilities
+- `test_discovery_flow_complete.py` - Manual flow testing
+- `analysis/test_monitoring_integration.py` - Monitoring debug
+- **Action**: Deleted - Debug utilities outside proper structure
+
+##### Non-Test Files in tests/backend/ (30 files)
+Files that don't import pytest/unittest and are actually scripts:
+- `test_agent_monitor.py` - Monitoring script, not a test
+- `test_agentic_system.py`, `test_ai_learning.py` - AI debugging
+- `test_asset_classification.py`, `test_asset_multitenancy.py` - Asset debugging
+- `test_classification_learning.py`, `test_learning_system.py` - ML debugging
+- `test_cmdb_analysis.py`, `test_cmdb_endpoint.py` - CMDB debugging
+- `test_confidence_manager.py` - Confidence debugging
+- `test_crewai.py`, `test_crewai_no_thinking.py`, `test_crewai_with_litellm.py` - CrewAI debug
+- `test_data_import_flow.py` - Import debugging
+- `test_deepinfra.py`, `test_deepinfra_llm.py` - LLM debugging
+- `test_dependency_api.py` - Dependency debugging
+- `test_embedding_service.py` - Embedding debugging
+- `test_field_mapping_intelligence.py`, `test_field_mapping.py` - Mapping debug
+- `test_flow_attribute_fixes.py` - Flow debugging
+- `test_import_to_field_mapping_flow.py` - Import debugging
+- `test_llm_config.py` - LLM configuration debugging
+- `test_modular_rbac_api.py`, `test_modular_rbac.py` - RBAC debugging
+- `test_monitored_execution.py` - Monitoring debugging
+- `test_no_thinking_mode.py` - Mode debugging
+- `test_production_ready.py` - Production checks
+- `test_redis_cache.py` - Cache debugging
+- `test_smoke.py` - Smoke test script
+- **Action**: Deleted - Scripts masquerading as tests
+
+##### Obsolete Test Directories (10+ files)
+- `tests/backend/e2e/` - Old E2E tests
+- `tests/backend/error_handling/` - Error handling tests
+- `tests/backend/collaboration/` - Collaboration tests
+- `tests/backend/planning/` - Planning tests
+- `tests/e2e/` - Duplicate E2E directory
+- `tests/test_*.py` - Root level test files
+- **Action**: Deleted - Obsolete test structures
+
+##### Misplaced Test Files (5 files)
+- `backend/app/services/crewai_flows/persistence/test_postgres_store.py` - Test in service dir
+- `backend/seeding/test_db_connection.py` - Test in seeding dir
+- `backend/tests/test_field_mapping_service.py` - Duplicate test
+- `backend/tests/test_field_mapping_tenant_isolation.py` - Duplicate test
+- `backend/tests/test_service_registry_metrics_flush.py` - Duplicate test
+- **Action**: Deleted - Tests don't belong in service directories
+
+##### Backend/tests Duplicates (4 files)
+- `test_auth_performance_integration.py` - Duplicate of integration test
+- `test_performance_benchmarks.py` - Old benchmark test
+- `test_collection_gap_resolution.py` - Obsolete collection test
+- `test_collection_tenant_scoping.py` - Obsolete collection test
+- **Action**: Deleted - Duplicates of tests elsewhere
+
+#### KEPT FILES (15 files)
+
+##### Legitimate Test Files with pytest/unittest
+These files actually import and use test frameworks:
+- `tests/backend/test_adaptive_rate_limiter.py`
+- `tests/backend/test_agent_service_layer.py`
+- `tests/backend/test_azure_adapter.py`
+- `tests/backend/test_cache_integration.py`
+- `tests/backend/test_crewai_flow_service.py`
+- `tests/backend/test_crewai_flow_validation.py`
+- `tests/backend/test_crewai_system.py`
+- `tests/backend/test_data_cleansing.py`
+- `tests/backend/test_discovery_flow_base.py`
+- `tests/backend/test_field_mapping_auto_generation.py`
+- `tests/backend/test_master_flow_migration.py`
+- `tests/backend/test_multitenant_workflow.py`
+- `tests/backend/test_rbac_only.py`
+- `tests/backend/test_flow_configurations.py`
+- `tests/backend/test_memory_system.py`
+
+#### SERVICE FILES PRESERVED (7 files)
+
+These were incorrectly listed but are actual service files:
+- `backend/app/api/v1/routes/llm_health.py` - API route
+- `backend/railway_setup.py` - Deployment setup
+- Other service configuration files
+
+### Lessons Learned from Batch 3
+
+1. **File Naming is Misleading**: Just because a file starts with `test_` doesn't make it a test
+2. **Location Matters**: Files in `scripts/` are utilities, not tests
+3. **Framework Usage is Key**: Real tests import pytest or unittest
+4. **Debug Scripts Accumulate**: 80% of "test" files were actually debug scripts
+5. **Proper Structure Required**: Tests belong in `tests/` with proper framework
+
+### Cleanup Impact
+
+This batch removed the most technical debt:
+- **87 debug scripts removed** - Massive reduction in confusion
+- **Clearer test structure** - Only real tests remain
+- **No more misleading files** - test_ prefix now means actual test
+- **Proper organization** - Scripts and tests are clearly separated
+
+### Recommendations
+
+1. **Establish Naming Convention**:
+   - Debug scripts should use `debug_` prefix
+   - Test files must import pytest/unittest
+   - Scripts belong in `scripts/debug/` not mixed with tests
+
+2. **Regular Cleanup**:
+   - Quarterly review of scripts/ directory
+   - Remove one-off debug scripts after use
+   - Don't commit debug utilities
+
+3. **CI/CD Enforcement**:
+   - Pre-commit hook to verify test files import test frameworks
+   - Reject test_ prefix files that aren't actual tests
+   - Automatic cleanup of old debug scripts
+
+---
+
 *Report Generated: September 2025*
+*Batch 3 Analysis Added: September 2025*
 *Next Review Date: October 2025*
