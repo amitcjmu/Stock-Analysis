@@ -103,29 +103,14 @@ async def initialize_discovery_flow(
         )
 
         # CRITICAL FIX: Create child DiscoveryFlow record (required by two-table architecture)
-        # Must include ALL required fields or DB insert will fail
         child_flow = DiscoveryFlow(
             flow_id=uuid.UUID(flow_id),
             master_flow_id=uuid.UUID(flow_id),
-            flow_name=flow_name,  # REQUIRED field
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
-            user_id=(
-                str(context.user_id) if context.user_id else "system"
-            ),  # REQUIRED field (String type)
-            status="running",  # REQUIRED field with default
+            user_id=context.user_id,  # Required field - was missing
+            status="running",
             current_phase="data_ingestion",
-            progress_percentage=0.0,  # Start at 0% progress
-            # data_cleansing_completed uses model default (False) - don't hardcode
-            phase_state=initial_data.get(
-                "phase_state", {}
-            ),  # Use provided or empty dict
-            agent_state=initial_data.get(
-                "agent_state", {}
-            ),  # Use provided or empty dict
-            crewai_state_data=initial_data.get(
-                "crewai_state", {}
-            ),  # Use provided or empty dict
             data_import_id=(
                 initial_data.get("import_metadata", {}).get("import_id")
                 if initial_data
