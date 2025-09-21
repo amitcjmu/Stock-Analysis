@@ -106,6 +106,7 @@ async def initialize_discovery_flow(
         child_flow = DiscoveryFlow(
             flow_id=uuid.UUID(flow_id),
             master_flow_id=uuid.UUID(flow_id),
+            flow_name=flow_name,  # REQUIRED field - was missing, causing DB constraint violation
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             user_id=context.user_id,  # Required field - was missing
