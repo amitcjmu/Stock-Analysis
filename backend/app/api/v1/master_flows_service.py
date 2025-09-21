@@ -100,7 +100,7 @@ class MasterFlowService:
                     "configuration": flow.flow_configuration or {},
                 }
 
-                # If it's a discovery flow, add progress details
+                # Add flow-specific progress details based on flow type
                 if flow.flow_type == "discovery":
                     try:
                         # Get discovery flow details for progress display
@@ -131,6 +131,40 @@ class MasterFlowService:
                                 "current_phase": "initialization",
                                 "progress_percentage": 0,
                                 "phases_completed": 0,
+                            }
+                        )
+                elif flow.flow_type == "collection":
+                    try:
+                        # Get collection flow details for progress display
+                        from app.repositories.collection_flow_repository import (
+                            CollectionFlowRepository,
+                        )
+
+                        collection_repo = CollectionFlowRepository(
+                            self.db, self.client_account_id, self.engagement_id
+                        )
+                        collection_flows = await collection_repo.get_by_filters(
+                            master_flow_id=flow.flow_id
+                        )
+                        if collection_flows:
+                            collection_flow = collection_flows[0]
+                            flow_data.update(
+                                {
+                                    "current_phase": collection_flow.current_phase,
+                                    "progress_percentage": collection_flow.progress_percentage
+                                    or 0,
+                                    "status": collection_flow.status,  # Use collection flow status
+                                }
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not fetch collection flow details for {flow.flow_id}: {e}"
+                        )
+                        # Add defaults if we can't get the details
+                        flow_data.update(
+                            {
+                                "current_phase": "initialization",
+                                "progress_percentage": 0,
                             }
                         )
 
