@@ -145,11 +145,7 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
 
         # Initialize state manager
         self.state_manager = FlowStateManager(
-            flow_type="collection",
-            flow_id=self._flow_id,
-            client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id),
-            db_session=self.flow_context.db_session,
+            self.flow_context.db_session, context
         )
 
         # Initialize unified flow management
