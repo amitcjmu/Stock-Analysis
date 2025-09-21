@@ -20,8 +20,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { HelpCircle, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { FormFieldProps, FieldValue } from '../types';
+import type { FormFieldProps, FieldValue, VendorProduct } from '../types';
 import { FieldType } from '../types';
+import { TechnologyPicker } from './TechnologyPicker';
 
 export const FormField: React.FC<FormFieldProps> = ({
   field,
@@ -82,6 +83,33 @@ export const FormField: React.FC<FormFieldProps> = ({
           />
         );
 
+      case 'numeric_input':
+        return (
+          <div className="space-y-2">
+            <div className="relative">
+              <Input
+                {...commonProps}
+                type="number"
+                value={value || ''}
+                onChange={(e) => handleChange(e.target.value ? Number(e.target.value) : undefined)}
+                placeholder={field.placeholder || 'Enter minutes'}
+                min="0"
+                step="1"
+              />
+              {field.description?.includes('minutes') && (
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
+                  min
+                </span>
+              )}
+            </div>
+            {field.helpText && (
+              <p className="text-xs text-muted-foreground">
+                {field.helpText}
+              </p>
+            )}
+          </div>
+        );
+
       case 'date':
         return (
           <Input
@@ -90,6 +118,24 @@ export const FormField: React.FC<FormFieldProps> = ({
             value={value || ''}
             onChange={(e) => handleChange(e.target.value)}
           />
+        );
+
+      case 'date_input':
+        return (
+          <div className="space-y-2">
+            <Input
+              {...commonProps}
+              type="date"
+              value={value || ''}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder={field.placeholder || 'Select date'}
+            />
+            {field.helpText && (
+              <p className="text-xs text-muted-foreground">
+                {field.helpText}
+              </p>
+            )}
+          </div>
         );
 
       case 'textarea':
@@ -153,6 +199,57 @@ export const FormField: React.FC<FormFieldProps> = ({
         );
       }
 
+      case 'multi_select': {
+        const selectedValues = Array.isArray(value) ? value : [];
+        return (
+          <div className="space-y-3">
+            <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
+              <div className="space-y-2">
+                {field.options?.map((option) => (
+                  <div key={option.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`${field.id}-${option.value}`}
+                      checked={selectedValues.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          handleChange([...selectedValues, option.value]);
+                        } else {
+                          handleChange(selectedValues.filter(v => v !== option.value));
+                        }
+                      }}
+                      disabled={disabled}
+                    />
+                    <Label
+                      htmlFor={`${field.id}-${option.value}`}
+                      className="text-sm font-normal cursor-pointer flex-1"
+                    >
+                      {option.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {selectedValues.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {selectedValues.map((val) => {
+                  const option = field.options?.find(opt => opt.value === val);
+                  return (
+                    <Badge key={val} variant="secondary" className="text-xs">
+                      {option?.label || val}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+            {field.helpText && (
+              <p className="text-xs text-muted-foreground">
+                {field.helpText}
+              </p>
+            )}
+          </div>
+        );
+      }
+
       case 'radio':
         return (
           <RadioGroup
@@ -203,6 +300,18 @@ export const FormField: React.FC<FormFieldProps> = ({
             type="file"
             onChange={(e) => handleChange(e.target.files?.[0])}
             accept=".csv,.xlsx,.json"
+          />
+        );
+
+      case 'technology_selection':
+        return (
+          <TechnologyPicker
+            value={value as VendorProduct | VendorProduct[]}
+            onChange={handleChange}
+            placeholder={field.placeholder || 'Select vendor/product...'}
+            multiple={field.description?.includes('multiple') || false}
+            disabled={disabled}
+            helpText={field.helpText}
           />
         );
 

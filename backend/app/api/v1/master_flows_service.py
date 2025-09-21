@@ -83,24 +83,92 @@ class MasterFlowService:
             result = await self.db.execute(stmt)
             master_flows = result.scalars().all()
 
-            # Convert to response format
+            # Convert to response format with discovery flow details
             active_flows = []
             for flow in master_flows:
-                active_flows.append(
-                    {
-                        "master_flow_id": str(flow.flow_id),
-                        "flow_type": flow.flow_type,
-                        "flow_name": flow.flow_name,
-                        "status": flow.flow_status,
-                        "created_at": (
-                            flow.created_at.isoformat() if flow.created_at else None
-                        ),
-                        "updated_at": (
-                            flow.updated_at.isoformat() if flow.updated_at else None
-                        ),
-                        "configuration": flow.flow_configuration or {},
-                    }
-                )
+                flow_data = {
+                    "master_flow_id": str(flow.flow_id),
+                    "flow_type": flow.flow_type,
+                    "flow_name": flow.flow_name,
+                    "status": flow.flow_status,
+                    "created_at": (
+                        flow.created_at.isoformat() if flow.created_at else None
+                    ),
+                    "updated_at": (
+                        flow.updated_at.isoformat() if flow.updated_at else None
+                    ),
+                    "configuration": flow.flow_configuration or {},
+                }
+
+                # Add flow-specific progress details based on flow type
+                if flow.flow_type == "discovery":
+                    try:
+                        # Get discovery flow details for progress display
+                        discovery_repo = DiscoveryFlowRepository(
+                            self.db, self.client_account_id, self.engagement_id
+                        )
+                        discovery_flows = await discovery_repo.get_by_filters(
+                            master_flow_id=flow.flow_id
+                        )
+                        if discovery_flows:
+                            discovery_flow = discovery_flows[0]
+                            flow_data.update(
+                                {
+                                    "current_phase": discovery_flow.current_phase,
+                                    "progress_percentage": discovery_flow.progress_percentage,
+                                    "phases_completed": discovery_flow.phases_completed,
+                                    "phase_state": discovery_flow.phase_state,
+                                    "status": discovery_flow.status,  # Use discovery flow status
+                                }
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not fetch discovery flow details for {flow.flow_id}: {e}"
+                        )
+                        # Add defaults if we can't get the details
+                        flow_data.update(
+                            {
+                                "current_phase": "initialization",
+                                "progress_percentage": 0,
+                                "phases_completed": 0,
+                            }
+                        )
+                elif flow.flow_type == "collection":
+                    try:
+                        # Get collection flow details for progress display
+                        from app.repositories.collection_flow_repository import (
+                            CollectionFlowRepository,
+                        )
+
+                        collection_repo = CollectionFlowRepository(
+                            self.db, self.client_account_id, self.engagement_id
+                        )
+                        collection_flows = await collection_repo.get_by_filters(
+                            master_flow_id=flow.flow_id
+                        )
+                        if collection_flows:
+                            collection_flow = collection_flows[0]
+                            flow_data.update(
+                                {
+                                    "current_phase": collection_flow.current_phase,
+                                    "progress_percentage": collection_flow.progress_percentage
+                                    or 0,
+                                    "status": collection_flow.status,  # Use collection flow status
+                                }
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not fetch collection flow details for {flow.flow_id}: {e}"
+                        )
+                        # Add defaults if we can't get the details
+                        flow_data.update(
+                            {
+                                "current_phase": "initialization",
+                                "progress_percentage": 0,
+                            }
+                        )
+
+                active_flows.append(flow_data)
 
             logger.info(
                 f"Found {len(active_flows)} active master flows"

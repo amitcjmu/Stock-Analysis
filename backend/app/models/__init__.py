@@ -17,6 +17,30 @@ from app.models.agent_performance_daily import AgentPerformanceDaily
 # Agent Observability Models
 from app.models.agent_task_history import AgentTaskHistory
 
+# Collection Gaps Models (Phase 1)
+from app.models.vendor_products_catalog import (
+    VendorProductsCatalog,
+    ProductVersionsCatalog,
+    TenantVendorProducts,
+    TenantProductVersions,
+    LifecycleMilestones,
+    AssetProductLinks,
+)
+from app.models.asset_resilience import (
+    AssetResilience,
+    AssetComplianceFlags,
+    AssetVulnerabilities,
+    AssetLicenses,
+)
+from app.models.maintenance_windows import (
+    MaintenanceWindows,
+    BlackoutPeriods,
+)
+from app.models.governance import (
+    ApprovalRequests,
+    MigrationExceptions,
+)
+
 # Assessment Models
 from app.models.assessment import Assessment, WavePlan
 
@@ -240,4 +264,19 @@ __all__ = [
     "AgentTaskHistory",
     "AgentPerformanceDaily",
     "AgentDiscoveredPatterns",
+    # Collection Gaps Models (Phase 1)
+    "VendorProductsCatalog",
+    "ProductVersionsCatalog",
+    "TenantVendorProducts",
+    "TenantProductVersions",
+    "LifecycleMilestones",
+    "AssetProductLinks",
+    "AssetResilience",
+    "AssetComplianceFlags",
+    "AssetVulnerabilities",
+    "AssetLicenses",
+    "MaintenanceWindows",
+    "BlackoutPeriods",
+    "ApprovalRequests",
+    "MigrationExceptions",
 ]

@@ -56,7 +56,8 @@ import type {
   FormSection,
   FieldValidationResult,
   ValidationError,
-  FieldValue
+  FieldValue,
+  VendorProduct
 } from './types';
 import {
   AdaptiveFormData
@@ -351,6 +352,108 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                   errorMessage: 'Please enter a valid URL',
                   severity: 'error'
                 });
+              }
+            }
+          }
+
+          // Phase 1: New field type validations
+
+          // Date input validation
+          if (hasValue && field.fieldType === 'date_input') {
+            try {
+              const date = new Date(String(value));
+              if (isNaN(date.getTime())) {
+                isValid = false;
+                if (isShowingErrors) {
+                  errors.push({
+                    fieldId: field.id,
+                    fieldLabel: field.label,
+                    errorCode: 'invalidDate',
+                    errorMessage: 'Please enter a valid date',
+                    severity: 'error'
+                  });
+                }
+              }
+            } catch {
+              isValid = false;
+              if (isShowingErrors) {
+                errors.push({
+                  fieldId: field.id,
+                  fieldLabel: field.label,
+                  errorCode: 'invalidDate',
+                  errorMessage: 'Please enter a valid date',
+                  severity: 'error'
+                });
+              }
+            }
+          }
+
+          // Numeric input validation
+          if (hasValue && field.fieldType === 'numeric_input') {
+            const numValue = Number(value);
+            if (isNaN(numValue) || numValue < 0) {
+              isValid = false;
+              if (isShowingErrors) {
+                errors.push({
+                  fieldId: field.id,
+                  fieldLabel: field.label,
+                  errorCode: 'invalidNumber',
+                  errorMessage: 'Please enter a valid number (0 or greater)',
+                  severity: 'error'
+                });
+              }
+            }
+          }
+
+          // Multi-select validation (ensure array format)
+          if (hasValue && field.fieldType === 'multi_select') {
+            if (!Array.isArray(value)) {
+              isValid = false;
+              if (isShowingErrors) {
+                errors.push({
+                  fieldId: field.id,
+                  fieldLabel: field.label,
+                  errorCode: 'invalidSelection',
+                  errorMessage: 'Invalid selection format',
+                  severity: 'error'
+                });
+              }
+            }
+          }
+
+          // Technology selection validation
+          if (hasValue && field.fieldType === 'technology_selection') {
+            // Validate VendorProduct object structure
+            if (typeof value === 'object' && value !== null) {
+              const vendorProduct = value as VendorProduct;
+              if (!vendorProduct.vendor_name && !vendorProduct.product_name) {
+                isValid = false;
+                if (isShowingErrors) {
+                  errors.push({
+                    fieldId: field.id,
+                    fieldLabel: field.label,
+                    errorCode: 'invalidTechnology',
+                    errorMessage: 'Please specify vendor and/or product name',
+                    severity: 'error'
+                  });
+                }
+              }
+            } else if (Array.isArray(value)) {
+              // Multiple technology selections
+              const hasInvalidEntry = value.some(item =>
+                !item || (!item.vendor_name && !item.product_name)
+              );
+              if (hasInvalidEntry) {
+                isValid = false;
+                if (isShowingErrors) {
+                  errors.push({
+                    fieldId: field.id,
+                    fieldLabel: field.label,
+                    errorCode: 'invalidTechnology',
+                    errorMessage: 'All technologies must have vendor and/or product name',
+                    severity: 'error'
+                  });
+                }
               }
             }
           }

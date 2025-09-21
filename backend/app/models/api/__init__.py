@@ -14,16 +14,54 @@ from .data_import import (  # Request Models; Response Models
     ImportStatusResponse,
     UploadContextRequest,
 )
+from .collection_gaps import (
+    # Request Models
+    QuestionnaireGenerationRequest,
+    QuestionnaireResponse,
+    ResponsesBatchRequest,
+    CollectionFlowCreateRequest,
+    MaintenanceWindowRequest,
+    BlackoutPeriodRequest,
+    VendorProductCreateRequest,
+    # Response Models
+    AdaptiveQuestionnaire,
+    AdaptiveQuestionnaireSection,
+    ResponseProcessingResult,
+    CollectionGap,
+    CollectionGapsResponse,
+    CollectionFlowResponse,
+    VendorProductResponse,
+    MaintenanceWindowResponse,
+    StandardErrorResponse,
+)
 
 __all__ = [
-    # Request Models
+    # Data Import Request Models
     "FileMetadataRequest",
     "UploadContextRequest",
     "DataImportRequest",
-    # Response Models
+    # Data Import Response Models
     "ImportMetadata",
     "DataImportResponse",
     "DataImportErrorResponse",
     "ImportStatusResponse",
     "ImportDataResponse",
+    # Collection Gaps Request Models
+    "QuestionnaireGenerationRequest",
+    "QuestionnaireResponse",
+    "ResponsesBatchRequest",
+    "CollectionFlowCreateRequest",
+    "MaintenanceWindowRequest",
+    "BlackoutPeriodRequest",
+    "VendorProductCreateRequest",
+    # Collection Gaps Response Models
+    "AdaptiveQuestionnaire",
+    "AdaptiveQuestionnaireSection",
+    "ResponseProcessingResult",
+    "CollectionGap",
+    "CollectionGapsResponse",
+    "CollectionFlowResponse",
+    "VendorProductResponse",
+    "MaintenanceWindowResponse",
+    "StandardErrorResponse",
 ]

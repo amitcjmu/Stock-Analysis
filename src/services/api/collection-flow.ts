@@ -1,6 +1,19 @@
 import { apiCall } from '@/config/api';
 import type { CollectionFlow, CleanupResult, FlowContinueResult } from '@/hooks/collection/useCollectionFlowManagement';
 import type { BaseMetadata } from '../../types/shared/metadata-types';
+import type { MaintenanceWindow, VendorProduct, CompletenessMetrics } from '@/components/collection/types';
+
+// Error interface for proper type handling
+interface ApiError {
+  status?: number;
+  response?: {
+    status?: number;
+    data?: {
+      detail?: unknown;
+    };
+    detail?: unknown;
+  };
+}
 
 export interface CollectionFlowConfiguration extends BaseMetadata {
   automation_tier?: 'basic' | 'standard' | 'advanced' | 'enterprise';
@@ -180,10 +193,11 @@ class CollectionFlowApi {
   async getFlowQuestionnaires(flowId: string): Promise<AdaptiveQuestionnaireResponse[]> {
     try {
       return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Stabilize error handling - check multiple possible error shapes
-      const status = err?.status ?? err?.response?.status;
-      const detail = err?.response?.data?.detail ?? err?.response?.detail;
+      const error = err as ApiError;
+      const status = error?.status ?? error?.response?.status;
+      const detail = error?.response?.data?.detail ?? error?.response?.detail;
       const errorCode = typeof detail === 'object' ? detail?.error : undefined;
 
       if (status === 422 && errorCode === 'no_applications_selected') {
@@ -212,7 +226,7 @@ class CollectionFlowApi {
   async getQuestionnaireResponses(
     flowId: string,
     questionnaireId: string
-  ): Promise<any> {
+  ): Promise<{ responses: Record<string, unknown> }> {
     try {
       return await apiCall(
         `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/responses`,
@@ -220,7 +234,7 @@ class CollectionFlowApi {
           method: 'GET'
         }
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to get questionnaire responses:', err);
       // Return empty responses on error to allow form to still function
       return { responses: {} };
@@ -403,6 +417,99 @@ class CollectionFlowApi {
   async transitionToAssessment(flowId: string): Promise<TransitionResult> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}/transition-to-assessment`, {
       method: 'POST'
+    });
+  }
+
+  // Phase 1: Collection Gaps - Maintenance Windows
+  async getMaintenanceWindows(scopeType?: string, scopeId?: string): Promise<MaintenanceWindow[]> {
+    const params = new URLSearchParams();
+    if (scopeType) params.append('scope_type', scopeType);
+    if (scopeId) params.append('scope_id', scopeId);
+
+    const query = params.toString();
+    return await apiCall(`${this.baseUrl}/maintenance-windows${query ? `?${query}` : ''}`, {
+      method: 'GET'
+    });
+  }
+
+  async createMaintenanceWindow(data: Omit<MaintenanceWindow, 'id' | 'created_at' | 'updated_at'>): Promise<MaintenanceWindow> {
+    return await apiCall(`${this.baseUrl}/maintenance-windows`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateMaintenanceWindow(windowId: string, data: Partial<MaintenanceWindow>): Promise<MaintenanceWindow> {
+    return await apiCall(`${this.baseUrl}/maintenance-windows/${windowId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteMaintenanceWindow(windowId: string): Promise<{ status: string; message: string }> {
+    return await apiCall(`${this.baseUrl}/maintenance-windows/${windowId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // Phase 1: Collection Gaps - Technology/Vendor Products
+  async searchTechnologyOptions(query: string, category?: string): Promise<VendorProduct[]> {
+    const params = new URLSearchParams({ query });
+    if (category) params.append('category', category);
+
+    return await apiCall(`${this.baseUrl}/technology-search?${params}`, {
+      method: 'GET'
+    });
+  }
+
+  async normalizeTechnologyEntry(vendorName: string, productName: string, version?: string): Promise<VendorProduct> {
+    return await apiCall(`${this.baseUrl}/technology-normalize`, {
+      method: 'POST',
+      body: JSON.stringify({
+        vendor_name: vendorName,
+        product_name: productName,
+        product_version: version
+      })
+    });
+  }
+
+  // Phase 1: Collection Gaps - Completeness Metrics
+  async getCompletenessMetrics(flowId: string): Promise<CompletenessMetrics> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/completeness`, {
+      method: 'GET'
+    });
+  }
+
+  async refreshCompletenessMetrics(flowId: string, categoryId?: string): Promise<CompletenessMetrics> {
+    const body = categoryId ? JSON.stringify({ category_id: categoryId }) : undefined;
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/completeness/refresh`, {
+      method: 'POST',
+      body
+    });
+  }
+
+  // Phase 1: Collection Gaps - Bulk Response Submission
+  async submitBulkResponses(
+    flowId: string,
+    questionnaireId: string,
+    responses: Record<string, unknown>
+  ): Promise<{
+    status: string;
+    processed_count: number;
+    success_count: number;
+    error_count: number;
+    errors: Array<{ field_id: string; error: string }>;
+  }> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/responses/bulk`, {
+      method: 'POST',
+      body: JSON.stringify(responses)
+    });
+  }
+
+  // Phase 1: Collection Gaps - Scope Target Options
+  async getScopeTargets(scopeType: 'tenant' | 'application' | 'asset'): Promise<Array<{ value: string; label: string; type: string }>> {
+    return await apiCall(`${this.baseUrl}/scope-targets/${scopeType}`, {
+      method: 'GET'
     });
   }
 }

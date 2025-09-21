@@ -71,7 +71,11 @@ export type FieldType =
   | 'date'
   | 'email'
   | 'url'
-  | 'file';
+  | 'file'
+  | 'date_input'
+  | 'numeric_input'
+  | 'multi_select'
+  | 'technology_selection';
 
 // CC: Form value type based on field types
 type FieldValue = string | number | boolean | Date | File | string[];
@@ -246,4 +250,62 @@ export interface TemplateMatchResult {
   matchScore: number;
   applicableReasons: string[];
   estimatedTimeSavings: number;
+}
+
+// Phase 1 Collection Gaps Types
+export interface MaintenanceWindow {
+  id?: string;
+  name: string;
+  description?: string;
+  scope: 'tenant' | 'application' | 'asset';
+  scope_id: string;
+  start_time: string; // ISO date-time
+  end_time: string; // ISO date-time
+  recurrence_pattern?: 'none' | 'daily' | 'weekly' | 'monthly' | 'quarterly';
+  timezone: string;
+  impact_level: 'low' | 'medium' | 'high' | 'critical';
+  approval_required: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface VendorProduct {
+  id?: string;
+  vendor_name: string;
+  product_name: string;
+  product_version?: string;
+  category?: string;
+  normalized_vendor?: string;
+  normalized_product?: string;
+  confidence_score?: number;
+}
+
+export interface TechnologySelectionOption {
+  value: string;
+  label: string;
+  vendor?: string;
+  product?: string;
+  version?: string;
+  category?: string;
+  description?: string;
+  confidence_score?: number;
+}
+
+export interface CompletenessCategory {
+  id: string;
+  name: string;
+  description: string;
+  completion_percentage: number;
+  last_checked?: string;
+  required_fields: string[];
+  completed_fields: string[];
+  status: 'complete' | 'partial' | 'missing' | 'error';
+}
+
+export interface CompletenessMetrics {
+  overall_completion: number;
+  categories: CompletenessCategory[];
+  last_updated: string;
+  total_fields: number;
+  completed_fields: number;
 }
