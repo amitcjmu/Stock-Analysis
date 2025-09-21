@@ -4,8 +4,8 @@ Provides collection flow-specific query methods with automatic client account sc
 """
 
 import logging
+import uuid
 from typing import Any, Dict, List, Optional
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,13 +60,53 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
         automation_tier: str,
         flow_metadata: Optional[Dict[str, Any]] = None,
         collection_config: Optional[Dict[str, Any]] = None,
-        **kwargs
+        **kwargs,
     ) -> CollectionFlow:
-        """Create a new collection flow with context."""
+        """Create a new collection flow with Master Flow Orchestrator (MFO) integration."""
+        from app.core.context import RequestContext
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Generate flow_id if not provided
-        flow_id = kwargs.get("flow_id") or str(UUID.uuid4())
+        flow_id = kwargs.get("flow_id") or str(uuid.uuid4())
 
+        # Prepare context for MFO
+        context = RequestContext(
+            client_account_id=self.client_account_id,
+            engagement_id=self.engagement_id,
+            user_id=kwargs.get("user_id", "system"),
+        )
+
+        # Prepare master flow configuration
+        master_flow_config = {
+            "flow_name": flow_name,
+            "automation_tier": automation_tier,
+            "metadata": flow_metadata or {},
+            "collection_config": collection_config or {},
+        }
+
+        # Prepare master flow initial state
+        initial_state = {
+            "current_phase": "initialization",
+            "progress_percentage": 0.0,
+            "collection_config": collection_config or {},
+            "flow_metadata": flow_metadata or {},
+        }
+
+        # Use existing transaction to create both master and child flows atomically
+        # Step 1: Register flow with Master Flow Orchestrator (ADR-006 pattern)
+        mfo = MasterFlowOrchestrator(self.db, context)
+        master_flow_id, master_flow_data = await mfo.create_flow(
+            flow_type="collection",
+            flow_name=flow_name,
+            configuration=master_flow_config,
+            initial_state=initial_state,
+            atomic=True,  # Prevents internal commits
+        )
+
+        # Step 2: Flush to make master flow ID available for FK relationship
+        await self.db.flush()
+
+        # Step 3: Create child collection flow with master_flow_id linkage
         flow_data = {
             "flow_id": flow_id,
             "flow_name": flow_name,
@@ -78,10 +118,20 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
             "collection_config": collection_config or {},
             "client_account_id": self.client_account_id,
             "engagement_id": self.engagement_id,
+            "master_flow_id": master_flow_id,  # Link to master flow
             **kwargs,
         }
 
-        return await self.create_record(**flow_data)
+        # Use parent class create method with no commit since we're in existing transaction
+        collection_flow = await super().create(commit=False, **flow_data)
+
+        # Transaction will be automatically committed by get_db() context manager
+        logger.info(
+            f"✅ Collection flow created with MFO integration: "
+            f"flow_id={flow_id}, master_flow_id={master_flow_id}"
+        )
+
+        return collection_flow
 
     async def update_status(
         self,

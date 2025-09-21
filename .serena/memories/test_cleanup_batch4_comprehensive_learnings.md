@@ -27,7 +27,7 @@ cmd = ["docker", "logs", container, "--tail", str(lines)]
 result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 # Filter in Python instead
 if pattern:
-    filtered = [line for line in result.stdout.splitlines() 
+    filtered = [line for line in result.stdout.splitlines()
                 if pattern.lower() in line.lower()]
 ```
 **Usage**: Always use list-based commands for subprocess calls
