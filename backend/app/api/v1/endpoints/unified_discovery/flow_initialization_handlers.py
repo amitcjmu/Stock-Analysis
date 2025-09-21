@@ -115,11 +115,17 @@ async def initialize_discovery_flow(
             ),  # REQUIRED field (String type)
             status="running",  # REQUIRED field with default
             current_phase="data_ingestion",
-            progress_percentage=0.0,  # REQUIRED field with default
-            data_cleansing_completed=False,  # REQUIRED field with default
-            phase_state={},  # REQUIRED field with default (JSONB)
-            agent_state={},  # REQUIRED field with default (JSONB)
-            crewai_state_data={},  # REQUIRED field with default (JSONB)
+            progress_percentage=0.0,  # Start at 0% progress
+            # data_cleansing_completed uses model default (False) - don't hardcode
+            phase_state=initial_data.get(
+                "phase_state", {}
+            ),  # Use provided or empty dict
+            agent_state=initial_data.get(
+                "agent_state", {}
+            ),  # Use provided or empty dict
+            crewai_state_data=initial_data.get(
+                "crewai_state", {}
+            ),  # Use provided or empty dict
             data_import_id=(
                 initial_data.get("import_metadata", {}).get("import_id")
                 if initial_data
