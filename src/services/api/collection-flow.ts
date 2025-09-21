@@ -512,6 +512,204 @@ class CollectionFlowApi {
       method: 'GET'
     });
   }
+
+  // Phase 2: Collection Gaps - Vendor Products Management
+  async getVendorProducts(searchQuery?: string, category?: string): Promise<VendorProduct[]> {
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (category) params.append('category', category);
+
+    const query = params.toString();
+    return await apiCall(`${this.baseUrl}/vendor-products${query ? `?${query}` : ''}`, {
+      method: 'GET'
+    });
+  }
+
+  async createVendorProduct(data: Omit<VendorProduct, 'id'>): Promise<VendorProduct> {
+    return await apiCall(`${this.baseUrl}/vendor-products`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateVendorProduct(productId: string, data: Partial<VendorProduct>): Promise<VendorProduct> {
+    return await apiCall(`${this.baseUrl}/vendor-products/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteVendorProduct(productId: string): Promise<{ status: string; message: string }> {
+    return await apiCall(`${this.baseUrl}/vendor-products/${productId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async normalizeVendorProduct(vendorName: string, productName: string, version?: string): Promise<VendorProduct> {
+    return await apiCall(`${this.baseUrl}/vendor-products/normalize`, {
+      method: 'POST',
+      body: JSON.stringify({
+        vendor_name: vendorName,
+        product_name: productName,
+        product_version: version
+      })
+    });
+  }
+
+  // Phase 2: Collection Gaps - Governance & Exceptions
+  async getGovernanceRequirements(): Promise<Array<{
+    id: string;
+    title: string;
+    description: string;
+    category: 'security' | 'compliance' | 'risk' | 'policy';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    status: 'active' | 'inactive' | 'draft';
+    applicable_scopes: Array<'tenant' | 'application' | 'asset'>;
+    approval_workflow: string[];
+    created_at: string;
+    updated_at?: string;
+  }>> {
+    return await apiCall(`${this.baseUrl}/governance/requirements`, {
+      method: 'GET'
+    });
+  }
+
+  async getMigrationExceptions(): Promise<Array<{
+    id: string;
+    requirement_id: string;
+    title: string;
+    justification: string;
+    business_impact: string;
+    mitigation_plan: string;
+    scope: 'tenant' | 'application' | 'asset';
+    scope_id: string;
+    requested_by: string;
+    status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    expiry_date?: string;
+    approval_history: Array<{
+      approver: string;
+      action: 'approved' | 'rejected' | 'requested_changes';
+      timestamp: string;
+      comments?: string;
+    }>;
+    created_at: string;
+    updated_at?: string;
+  }>> {
+    return await apiCall(`${this.baseUrl}/governance/exceptions`, {
+      method: 'GET'
+    });
+  }
+
+  async createMigrationException(data: {
+    requirement_id: string;
+    title: string;
+    justification: string;
+    business_impact: string;
+    mitigation_plan: string;
+    scope: 'tenant' | 'application' | 'asset';
+    scope_id: string;
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    expiry_date?: string;
+  }): Promise<{
+    id: string;
+    requirement_id: string;
+    title: string;
+    justification: string;
+    business_impact: string;
+    mitigation_plan: string;
+    scope: 'tenant' | 'application' | 'asset';
+    scope_id: string;
+    requested_by: string;
+    status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    expiry_date?: string;
+    approval_history: Array<{
+      approver: string;
+      action: 'approved' | 'rejected' | 'requested_changes';
+      timestamp: string;
+      comments?: string;
+    }>;
+    created_at: string;
+    updated_at?: string;
+  }> {
+    return await apiCall(`${this.baseUrl}/governance/exceptions`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getApprovalRequests(): Promise<Array<{
+    id: string;
+    title: string;
+    description: string;
+    request_type: 'policy_exception' | 'process_deviation' | 'risk_acceptance' | 'compliance_waiver';
+    scope: 'tenant' | 'application' | 'asset';
+    scope_id: string;
+    business_justification: string;
+    risk_assessment: string;
+    mitigation_measures: string;
+    requested_by: string;
+    status: 'pending' | 'under_review' | 'approved' | 'rejected';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    created_at: string;
+    updated_at?: string;
+  }>> {
+    return await apiCall(`${this.baseUrl}/governance/approval-requests`, {
+      method: 'GET'
+    });
+  }
+
+  async createApprovalRequest(data: {
+    title: string;
+    description: string;
+    request_type: 'policy_exception' | 'process_deviation' | 'risk_acceptance' | 'compliance_waiver';
+    scope: 'tenant' | 'application' | 'asset';
+    scope_id: string;
+    business_justification: string;
+    risk_assessment: string;
+    mitigation_measures: string;
+    priority: 'low' | 'medium' | 'high' | 'critical';
+  }): Promise<{
+    id: string;
+    title: string;
+    description: string;
+    request_type: 'policy_exception' | 'process_deviation' | 'risk_acceptance' | 'compliance_waiver';
+    scope: 'tenant' | 'application' | 'asset';
+    scope_id: string;
+    business_justification: string;
+    risk_assessment: string;
+    mitigation_measures: string;
+    requested_by: string;
+    status: 'pending' | 'under_review' | 'approved' | 'rejected';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    created_at: string;
+    updated_at?: string;
+  }> {
+    return await apiCall(`${this.baseUrl}/governance/approval-requests`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Phase 2: Collection Gaps - Maintenance Windows Conflicts
+  async getMaintenanceConflicts(): Promise<Array<{
+    window_id: string;
+    conflicting_windows: Array<{
+      id: string;
+      name: string;
+      start_time: string;
+      end_time: string;
+      scope: string;
+      impact_level: string;
+    }>;
+    overlap_duration_minutes: number;
+    risk_level: 'low' | 'medium' | 'high' | 'critical';
+  }>> {
+    return await apiCall(`${this.baseUrl}/maintenance-windows/conflicts`, {
+      method: 'GET'
+    });
+  }
 }
 
 // Phase 3: TypeScript interface for transition response

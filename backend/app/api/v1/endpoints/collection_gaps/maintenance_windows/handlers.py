@@ -147,47 +147,44 @@ async def create_maintenance_window(
         # Validate time range
         validate_time_range(request.start_time, request.end_time)
 
-        async with db.begin():
-            # Initialize repository
-            repo = MaintenanceWindowRepository(
-                db, context.client_account_id, context.engagement_id
-            )
+        # Initialize repository
+        repo = MaintenanceWindowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
 
-            # Check for conflicts
-            conflicts = await repo.check_conflicts(
-                start_time=request.start_time,
-                end_time=request.end_time,
-                scope_type=request.scope_type,
-                application_id=request.application_id,
-                asset_id=request.asset_id,
-            )
+        # Check for conflicts
+        conflicts = await repo.check_conflicts(
+            start_time=request.start_time,
+            end_time=request.end_time,
+            scope_type=request.scope_type,
+            application_id=request.application_id,
+            asset_id=request.asset_id,
+        )
 
-            check_schedule_conflicts(conflicts, "creation")
+        check_schedule_conflicts(conflicts, "creation")
 
-            # Create the maintenance window
-            created_window = await repo.create_window(
-                name=request.name,
-                start_time=request.start_time,
-                end_time=request.end_time,
-                scope_type=request.scope_type,
-                application_id=request.application_id,
-                asset_id=request.asset_id,
-                recurring=request.recurring,
-                timezone=request.timezone,
-                commit=False,  # Will commit with transaction
-            )
+        # Create the maintenance window
+        created_window = await repo.create_window(
+            name=request.name,
+            start_time=request.start_time,
+            end_time=request.end_time,
+            scope_type=request.scope_type,
+            application_id=request.application_id,
+            asset_id=request.asset_id,
+            recurring=request.recurring,
+            timezone=request.timezone,
+            commit=True,  # Repository handles transaction
+        )
 
-            await db.flush()  # Ensure ID is available
+        result = convert_to_response(created_window)
 
-            result = convert_to_response(created_window)
+        logger.info(
+            f"✅ Created maintenance window {created_window.id} for "
+            f"client {context.client_account_id}, "
+            f"engagement {context.engagement_id}"
+        )
 
-            logger.info(
-                f"✅ Created maintenance window {created_window.id} for "
-                f"client {context.client_account_id}, "
-                f"engagement {context.engagement_id}"
-            )
-
-            return result
+        return result
 
     except HTTPException:
         raise
@@ -236,51 +233,50 @@ async def update_maintenance_window(
         window_uuid = validate_uuid(window_id, "window ID")
         validate_time_range(request.start_time, request.end_time)
 
-        async with db.begin():
-            # Initialize repository
-            repo = MaintenanceWindowRepository(
-                db, context.client_account_id, context.engagement_id
-            )
+        # Initialize repository
+        repo = MaintenanceWindowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
 
-            # Check if window exists
-            existing = await repo.get_by_id(str(window_uuid))
-            validate_window_exists(existing, window_id)
+        # Check if window exists
+        existing = await repo.get_by_id(str(window_uuid))
+        validate_window_exists(existing, window_id)
 
-            # Check for conflicts (excluding current window)
-            conflicts = await repo.check_conflicts(
-                start_time=request.start_time,
-                end_time=request.end_time,
-                scope_type=request.scope_type,
-                application_id=request.application_id,
-                asset_id=request.asset_id,
-                exclude_id=str(window_uuid),
-            )
+        # Check for conflicts (excluding current window)
+        conflicts = await repo.check_conflicts(
+            start_time=request.start_time,
+            end_time=request.end_time,
+            scope_type=request.scope_type,
+            application_id=request.application_id,
+            asset_id=request.asset_id,
+            exclude_id=str(window_uuid),
+        )
 
-            check_schedule_conflicts(conflicts, "update")
+        check_schedule_conflicts(conflicts, "update")
 
-            # Update the window
-            updated_window = await repo.update(
-                str(window_uuid),
-                commit=False,
-                name=request.name,
-                start_time=request.start_time,
-                end_time=request.end_time,
-                scope_type=request.scope_type,
-                application_id=request.application_id,
-                asset_id=request.asset_id,
-                recurring=request.recurring,
-                timezone=request.timezone,
-            )
+        # Update the window
+        updated_window = await repo.update(
+            str(window_uuid),
+            commit=True,  # Repository handles transaction
+            name=request.name,
+            start_time=request.start_time,
+            end_time=request.end_time,
+            scope_type=request.scope_type,
+            application_id=request.application_id,
+            asset_id=request.asset_id,
+            recurring=request.recurring,
+            timezone=request.timezone,
+        )
 
-            result = convert_to_response(updated_window)
+        result = convert_to_response(updated_window)
 
-            logger.info(
-                f"✅ Updated maintenance window {window_id} for "
-                f"client {context.client_account_id}, "
-                f"engagement {context.engagement_id}"
-            )
+        logger.info(
+            f"✅ Updated maintenance window {window_id} for "
+            f"client {context.client_account_id}, "
+            f"engagement {context.engagement_id}"
+        )
 
-            return result
+        return result
 
     except HTTPException:
         raise
@@ -322,24 +318,25 @@ async def delete_maintenance_window(
         # Validate UUID format
         window_uuid = validate_uuid(window_id, "window ID")
 
-        async with db.begin():
-            # Initialize repository
-            repo = MaintenanceWindowRepository(
-                db, context.client_account_id, context.engagement_id
-            )
+        # Initialize repository
+        repo = MaintenanceWindowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
 
-            # Check if window exists
-            existing = await repo.get_by_id(str(window_uuid))
-            validate_window_exists(existing, window_id)
+        # Check if window exists
+        existing = await repo.get_by_id(str(window_uuid))
+        validate_window_exists(existing, window_id)
 
-            # Delete the window
-            await repo.delete(str(window_uuid), commit=False)
+        # Delete the window
+        await repo.delete(
+            str(window_uuid), commit=True
+        )  # Repository handles transaction
 
-            logger.info(
-                f"✅ Deleted maintenance window {window_id} for "
-                f"client {context.client_account_id}, "
-                f"engagement {context.engagement_id}"
-            )
+        logger.info(
+            f"✅ Deleted maintenance window {window_id} for "
+            f"client {context.client_account_id}, "
+            f"engagement {context.engagement_id}"
+        )
 
     except HTTPException:
         raise

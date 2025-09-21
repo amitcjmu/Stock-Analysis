@@ -158,40 +158,37 @@ async def create_governance_requirement(
     typically used for high-risk exceptions or custom approaches.
     """
     try:
-        async with db.begin():
-            # Initialize repository
-            repo = ApprovalRequestRepository(
-                db, context.client_account_id, context.engagement_id
-            )
+        # Initialize repository
+        repo = ApprovalRequestRepository(
+            db, context.client_account_id, context.engagement_id
+        )
 
-            # Create the approval request
-            created_request = await repo.create_request(
-                entity_type=request.entity_type,
-                entity_id=request.entity_id,
-                notes=request.notes,
-                commit=False,  # Will commit with transaction
-            )
+        # Create the approval request
+        created_request = await repo.create_request(
+            entity_type=request.entity_type,
+            entity_id=request.entity_id,
+            notes=request.notes,
+            commit=True,  # Repository handles transaction
+        )
 
-            await db.flush()  # Ensure ID is available
+        result = GovernanceRequirementResponse(
+            id=str(created_request.id),
+            entity_type=request.entity_type,
+            entity_id=request.entity_id,
+            status="PENDING",
+            notes=request.notes,
+            requested_at=format_timestamp(created_request.requested_at),
+            decided_at=None,
+            approver_id=None,
+        )
 
-            result = GovernanceRequirementResponse(
-                id=str(created_request.id),
-                entity_type=request.entity_type,
-                entity_id=request.entity_id,
-                status="PENDING",
-                notes=request.notes,
-                requested_at=format_timestamp(created_request.requested_at),
-                decided_at=None,
-                approver_id=None,
-            )
+        logger.info(
+            f"✅ Created governance requirement {created_request.id} for "
+            f"client {context.client_account_id}, "
+            f"engagement {context.engagement_id}"
+        )
 
-            logger.info(
-                f"✅ Created governance requirement {created_request.id} for "
-                f"client {context.client_account_id}, "
-                f"engagement {context.engagement_id}"
-            )
-
-            return result
+        return result
 
     except Exception as e:
         logger.error(f"❌ Failed to create governance requirement: {e}")
@@ -370,7 +367,7 @@ async def create_migration_exception(
                 risk_level=request.risk_level,
                 application_id=request.application_id,
                 asset_id=request.asset_id,
-                commit=False,  # Will commit with transaction
+                commit=False,  # Don't commit yet - more operations needed
             )
 
             await db.flush()  # Ensure ID is available
@@ -385,42 +382,44 @@ async def create_migration_exception(
                     notes=generate_approval_notes(
                         request.risk_level, request.exception_type
                     ),
-                    commit=False,
+                    commit=False,  # Don't commit yet - need to link to exception
                 )
                 await db.flush()
 
                 # Link approval request to exception
                 await exception_repo.update(
                     str(created_exception.id),
-                    commit=False,
+                    commit=False,  # Final commit will happen when transaction closes
                     approval_request_id=str(approval_request.id),
                 )
                 approval_request_id = str(approval_request.id)
 
-            result = MigrationExceptionResponse(
-                id=str(created_exception.id),
-                exception_type=request.exception_type,
-                rationale=request.rationale,
-                risk_level=request.risk_level,
-                status="OPEN",
-                application_id=request.application_id,
-                asset_id=request.asset_id,
-                approval_request_id=approval_request_id,
-                created_at="",  # Would need to add created_at to model
-            )
+        # Transaction commits automatically when exiting async with block
 
-            logger.info(
-                f"✅ Created migration exception {created_exception.id} for "
-                f"client {context.client_account_id}, "
-                f"engagement {context.engagement_id}"
-                + (
-                    f" with approval request {approval_request_id}"
-                    if approval_request_id
-                    else ""
-                )
-            )
+        result = MigrationExceptionResponse(
+            id=str(created_exception.id),
+            exception_type=request.exception_type,
+            rationale=request.rationale,
+            risk_level=request.risk_level,
+            status="OPEN",
+            application_id=request.application_id,
+            asset_id=request.asset_id,
+            approval_request_id=approval_request_id,
+            created_at="",  # Would need to add created_at to model
+        )
 
-            return result
+        logger.info(
+            f"✅ Created migration exception {created_exception.id} for "
+            f"client {context.client_account_id}, "
+            f"engagement {context.engagement_id}"
+            + (
+                f" with approval request {approval_request_id}"
+                if approval_request_id
+                else ""
+            )
+        )
+
+        return result
 
     except Exception as e:
         logger.error(f"❌ Failed to create migration exception: {e}")

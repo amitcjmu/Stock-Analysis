@@ -131,34 +131,31 @@ async def create_vendor_product(
     not in the global catalog.
     """
     try:
-        async with db.begin():
-            # Initialize tenant repository
-            tenant_repo = TenantVendorProductRepository(
-                db, context.client_account_id, context.engagement_id
-            )
+        # Initialize tenant repository
+        tenant_repo = TenantVendorProductRepository(
+            db, context.client_account_id, context.engagement_id
+        )
 
-            # Create custom tenant product
-            created_product = await tenant_repo.create_custom_product(
-                vendor_name=request.vendor_name,
-                product_name=request.product_name,
-                commit=False,  # Will commit with transaction
-            )
+        # Create custom tenant product
+        created_product = await tenant_repo.create_custom_product(
+            vendor_name=request.vendor_name,
+            product_name=request.product_name,
+            commit=True,  # Let repository handle transaction
+        )
 
-            await db.flush()  # Ensure ID is available
+        result = VendorProductResponse(
+            id=str(created_product.id),
+            vendor_name=request.vendor_name,
+            product_name=request.product_name,
+            versions=None,
+        )
 
-            result = VendorProductResponse(
-                id=str(created_product.id),
-                vendor_name=request.vendor_name,
-                product_name=request.product_name,
-                versions=None,
-            )
+        logger.info(
+            f"✅ Created vendor product {created_product.id} for "
+            f"client {context.client_account_id}, engagement {context.engagement_id}"
+        )
 
-            logger.info(
-                f"✅ Created vendor product {created_product.id} for "
-                f"client {context.client_account_id}, engagement {context.engagement_id}"
-            )
-
-            return result
+        return result
 
     except Exception as e:
         logger.error(f"❌ Failed to create vendor product: {e}")
@@ -213,44 +210,43 @@ async def update_vendor_product(
                 },
             )
 
-        async with db.begin():
-            # Initialize tenant repository
-            tenant_repo = TenantVendorProductRepository(
-                db, context.client_account_id, context.engagement_id
+        # Initialize tenant repository
+        tenant_repo = TenantVendorProductRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+
+        # Update the product
+        updated_product = await tenant_repo.update(
+            str(product_uuid),
+            commit=True,
+            custom_vendor_name=request.vendor_name,
+            custom_product_name=request.product_name,
+        )
+
+        if not updated_product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "success": False,
+                    "error": "product_not_found",
+                    "message": "Vendor product not found",
+                    "details": {"product_id": product_id},
+                },
             )
 
-            # Update the product
-            updated_product = await tenant_repo.update(
-                str(product_uuid),
-                commit=False,
-                custom_vendor_name=request.vendor_name,
-                custom_product_name=request.product_name,
-            )
+        result = VendorProductResponse(
+            id=str(updated_product.id),
+            vendor_name=request.vendor_name,
+            product_name=request.product_name,
+            versions=None,
+        )
 
-            if not updated_product:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail={
-                        "success": False,
-                        "error": "product_not_found",
-                        "message": "Vendor product not found",
-                        "details": {"product_id": product_id},
-                    },
-                )
+        logger.info(
+            f"✅ Updated vendor product {product_id} for "
+            f"client {context.client_account_id}, engagement {context.engagement_id}"
+        )
 
-            result = VendorProductResponse(
-                id=str(updated_product.id),
-                vendor_name=request.vendor_name,
-                product_name=request.product_name,
-                versions=None,
-            )
-
-            logger.info(
-                f"✅ Updated vendor product {product_id} for "
-                f"client {context.client_account_id}, engagement {context.engagement_id}"
-            )
-
-            return result
+        return result
 
     except HTTPException:
         raise
@@ -304,32 +300,31 @@ async def delete_vendor_product(
                 },
             )
 
-        async with db.begin():
-            # Initialize tenant repository
-            tenant_repo = TenantVendorProductRepository(
-                db, context.client_account_id, context.engagement_id
+        # Initialize tenant repository
+        tenant_repo = TenantVendorProductRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+
+        # Check if product exists
+        existing = await tenant_repo.get_by_id(str(product_uuid))
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "success": False,
+                    "error": "product_not_found",
+                    "message": "Vendor product not found",
+                    "details": {"product_id": product_id},
+                },
             )
 
-            # Check if product exists
-            existing = await tenant_repo.get_by_id(str(product_uuid))
-            if not existing:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail={
-                        "success": False,
-                        "error": "product_not_found",
-                        "message": "Vendor product not found",
-                        "details": {"product_id": product_id},
-                    },
-                )
+        # Delete the product
+        await tenant_repo.delete(str(product_uuid), commit=True)
 
-            # Delete the product
-            await tenant_repo.delete(str(product_uuid), commit=False)
-
-            logger.info(
-                f"✅ Deleted vendor product {product_id} for "
-                f"client {context.client_account_id}, engagement {context.engagement_id}"
-            )
+        logger.info(
+            f"✅ Deleted vendor product {product_id} for "
+            f"client {context.client_account_id}, engagement {context.engagement_id}"
+        )
 
     except HTTPException:
         raise
