@@ -43,7 +43,8 @@ class ResilienceRepository(ContextAwareRepository[AssetResilience]):
         Returns:
             Asset resilience record if found
         """
-        return await self.get_by_filters(asset_id=asset_id)
+        results = await self.get_by_filters(asset_id=asset_id)
+        return results[0] if results else None
 
     async def upsert_resilience(
         self,

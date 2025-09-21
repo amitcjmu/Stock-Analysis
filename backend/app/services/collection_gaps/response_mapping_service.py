@@ -256,6 +256,7 @@ class ResponseMappingService:
         """
         vendor_name = response.get("metadata", {}).get("vendor_name")
         product_name = response.get("metadata", {}).get("product_name")
+        version_label = response.get("metadata", {}).get("version_label", "Unknown")
         asset_id = response.get("asset_id")
         confidence_score = response.get("metadata", {}).get("confidence_score", 0.8)
 
@@ -264,21 +265,39 @@ class ResponseMappingService:
 
         affected_tables = []
 
-        # Create or find tenant vendor product
-        tenant_product = await self.tenant_vendor_repo.create_custom_product(
-            vendor_name=vendor_name,
-            product_name=product_name,
-            commit=False,  # We're in a transaction
+        # Check for existing tenant vendor product to prevent duplicates
+        normalized_key = f"{vendor_name.lower().replace(' ', '_')}_{product_name.lower().replace(' ', '_')}"
+        existing_products = await self.tenant_vendor_repo.get_by_filters(
+            normalized_key=normalized_key
         )
-        affected_tables.append("tenant_vendor_products")
 
-        # If asset_id provided, create asset-product link
+        if existing_products:
+            tenant_product = existing_products[0]
+        else:
+            # Create new tenant vendor product
+            tenant_product = await self.tenant_vendor_repo.create_custom_product(
+                vendor_name=vendor_name,
+                product_name=product_name,
+                normalized_key=normalized_key,
+                commit=False,  # We're in a transaction
+            )
+            affected_tables.append("tenant_vendor_products")
+
+        # Create tenant product version
+        from app.models.vendor_products_catalog import TenantProductVersions
+        tenant_version = TenantProductVersions(
+            tenant_product_id=tenant_product.id,
+            version_label=version_label,
+        )
+        self.db.add(tenant_version)
+        await self.db.flush()  # Get the ID for foreign key
+        affected_tables.append("tenant_product_versions")
+
+        # If asset_id provided, create asset-product link with proper tenant_version_id
         if asset_id:
             await self.asset_link_repo.link_asset_to_product(
                 asset_id=asset_id,
-                tenant_version_id=str(
-                    tenant_product.id
-                ),  # Link to tenant product for now
+                tenant_version_id=str(tenant_version.id),  # Correct FK to tenant_product_version
                 confidence_score=confidence_score,
                 matched_by="questionnaire",
                 commit=False,

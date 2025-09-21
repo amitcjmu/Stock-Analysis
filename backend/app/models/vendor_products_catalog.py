@@ -212,7 +212,7 @@ class TenantProductVersions(Base, TimestampMixin):
     tenant_product_id = Column(
         UUID(as_uuid=True),
         ForeignKey("migration.tenant_vendor_products.id", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 

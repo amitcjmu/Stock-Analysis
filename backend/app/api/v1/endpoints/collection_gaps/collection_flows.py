@@ -11,11 +11,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies import (
-    get_async_db,
-    get_client_account_id,
-    get_engagement_id,
-)
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
 from app.models.api.collection_gaps import (
     AdaptiveQuestionnaire,
     CollectionFlowCreateRequest,
@@ -52,9 +49,8 @@ router = APIRouter(
 )
 async def create_collection_flow(
     request: CollectionFlowCreateRequest,
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: str = Depends(get_client_account_id),
-    engagement_id: str = Depends(get_engagement_id),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Create a new collection flow.
@@ -64,7 +60,7 @@ async def create_collection_flow(
     """
     try:
         # Initialize repository
-        collection_repo = CollectionFlowRepository(db, client_account_id, engagement_id)
+        collection_repo = CollectionFlowRepository(db, context.client_account_id, context.engagement_id)
 
         # Create collection flow (this would integrate with MasterFlowOrchestrator)
         collection_flow = await collection_repo.create(
@@ -104,15 +100,14 @@ async def create_collection_flow(
 )
 async def get_collection_flow(
     flow_id: str,
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: str = Depends(get_client_account_id),
-    engagement_id: str = Depends(get_engagement_id),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Get collection flow details with completeness metrics.
     """
     try:
-        collection_repo = CollectionFlowRepository(db, client_account_id, engagement_id)
+        collection_repo = CollectionFlowRepository(db, context.client_account_id, context.engagement_id)
         collection_flow = await collection_repo.get_by_filters(flow_id=flow_id)
 
         if not collection_flow:
@@ -123,13 +118,10 @@ async def get_collection_flow(
 
         flow = collection_flow[0]
 
-        # Calculate completeness by category (stub implementation)
-        completeness_by_category = {
-            "lifecycle": 75.0,
-            "resilience": 60.0,
-            "compliance": 85.0,
-            "licensing": 40.0,
-        }
+        # Calculate actual completeness by category based on database data
+        completeness_by_category = await _calculate_completeness_metrics(
+            db, context.client_account_id, context.engagement_id
+        )
 
         return CollectionFlowResponse(
             id=str(flow.id),
@@ -139,7 +131,9 @@ async def get_collection_flow(
             current_phase=flow.current_phase,
             progress_percentage=flow.progress_percentage,
             completeness_by_category=completeness_by_category,
-            pending_gaps=15,  # Stub value
+            pending_gaps=await _calculate_pending_gaps(
+                db, context.client_account_id, context.engagement_id
+            ),
         )
 
     except HTTPException:
@@ -169,9 +163,8 @@ async def get_collection_flow(
 async def generate_questionnaires(
     flow_id: str,
     request: QuestionnaireGenerationRequest,
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: str = Depends(get_client_account_id),
-    engagement_id: str = Depends(get_engagement_id),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Generate adaptive questionnaires based on data gaps.
@@ -181,7 +174,7 @@ async def generate_questionnaires(
     """
     try:
         # Verify flow exists
-        collection_repo = CollectionFlowRepository(db, client_account_id, engagement_id)
+        collection_repo = CollectionFlowRepository(db, context.client_account_id, context.engagement_id)
         collection_flow = await collection_repo.get_by_filters(flow_id=flow_id)
 
         if not collection_flow:
@@ -193,15 +186,13 @@ async def generate_questionnaires(
         # Get questionnaire generation tool from registry
         questionnaire_tool = AgentToolRegistry.get("questionnaire_generation")
 
-        # Prepare gap analysis (stub implementation)
-        gap_analysis = {
-            "missing_fields_by_category": {
-                "lifecycle": ["end_of_life_date", "vendor_support_status"],
-                "resilience": ["rto_minutes", "rpo_minutes"],
-                "compliance": ["data_classification"],
-                "licensing": ["license_type", "renewal_date"],
-            }
-        }
+        # Perform actual gap analysis using agent tool
+        gap_tool = AgentToolRegistry.get("gap_analysis")
+        subject = {"scope": "engagement", "ids": [context.engagement_id]}
+        existing_data_snapshot = await _get_existing_data_snapshot(
+            db, context.client_account_id, context.engagement_id
+        )
+        gap_analysis = gap_tool._run(subject, existing_data_snapshot)
 
         # Filter by requested categories if specified
         if request.categories:
@@ -256,9 +247,8 @@ async def generate_questionnaires(
 async def submit_responses(
     flow_id: str,
     request: ResponsesBatchRequest,
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: str = Depends(get_client_account_id),
-    engagement_id: str = Depends(get_engagement_id),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Submit questionnaire responses for processing.
@@ -269,7 +259,7 @@ async def submit_responses(
     """
     try:
         # Verify flow exists
-        collection_repo = CollectionFlowRepository(db, client_account_id, engagement_id)
+        collection_repo = CollectionFlowRepository(db, context.client_account_id, context.engagement_id)
         collection_flow = await collection_repo.get_by_filters(flow_id=flow_id)
 
         if not collection_flow:
@@ -279,7 +269,7 @@ async def submit_responses(
             )
 
         # Initialize response mapping service
-        response_service = ResponseMappingService(db, client_account_id, engagement_id)
+        response_service = ResponseMappingService(db, context.client_account_id, context.engagement_id)
 
         # Convert Pydantic models to dictionaries for processing
         responses_data = [response.model_dump() for response in request.responses]
@@ -315,9 +305,8 @@ async def submit_responses(
 )
 async def get_collection_gaps(
     flow_id: str,
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: str = Depends(get_client_account_id),
-    engagement_id: str = Depends(get_engagement_id),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Get prioritized collection gaps analysis.
@@ -327,7 +316,7 @@ async def get_collection_gaps(
     """
     try:
         # Verify flow exists
-        collection_repo = CollectionFlowRepository(db, client_account_id, engagement_id)
+        collection_repo = CollectionFlowRepository(db, context.client_account_id, context.engagement_id)
         collection_flow = await collection_repo.get_by_filters(flow_id=flow_id)
 
         if not collection_flow:
@@ -336,43 +325,21 @@ async def get_collection_gaps(
                 detail="Collection flow not found",
             )
 
-        # Get gap analysis tool from registry
+        # Get gap analysis tool from registry and perform actual analysis
         gap_tool = AgentToolRegistry.get("gap_analysis")
 
-        # Prepare input for gap analysis (stub implementation)
-        subject = {"scope": "engagement", "ids": [engagement_id]}
-        existing_data = {"assets_count": 150, "coverage": 65.0}
+        # Prepare input for gap analysis based on actual data
+        subject = {"scope": "engagement", "ids": [context.engagement_id]}
+        existing_data_snapshot = await _get_existing_data_snapshot(
+            db, context.client_account_id, context.engagement_id
+        )
 
         # Run gap analysis
-        gap_tool._run(subject, existing_data)
+        gap_analysis_result = gap_tool._run(subject, existing_data_snapshot)
 
-        # Convert to API response format
-        from app.models.api.collection_gaps import CollectionGap
-
-        critical_gaps = [
-            CollectionGap(
-                category="lifecycle",
-                field_name="end_of_life_date",
-                description="Product end-of-life date is not available",
-                priority="critical",
-                affected_assets=25,
-            )
-        ]
-
-        high_gaps = [
-            CollectionGap(
-                category="resilience",
-                field_name="rto_minutes",
-                description="Recovery Time Objective not defined",
-                priority="high",
-                affected_assets=40,
-            )
-        ]
-
-        return CollectionGapsResponse(
-            critical=critical_gaps,
-            high=high_gaps,
-            optional=[],
+        # Convert gap analysis results to API response format
+        return await _convert_gap_analysis_to_response(
+            gap_analysis_result, db, context.client_account_id, context.engagement_id
         )
 
     except HTTPException:
@@ -397,15 +364,14 @@ async def get_collection_gaps(
 )
 async def get_flow_status(
     flow_id: str,
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: str = Depends(get_client_account_id),
-    engagement_id: str = Depends(get_engagement_id),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Get flow status for polling (5s active/15s waiting pattern).
     """
     try:
-        collection_repo = CollectionFlowRepository(db, client_account_id, engagement_id)
+        collection_repo = CollectionFlowRepository(db, context.client_account_id, context.engagement_id)
         collection_flow = await collection_repo.get_by_filters(flow_id=flow_id)
 
         if not collection_flow:
@@ -434,3 +400,205 @@ async def get_flow_status(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve flow status",
         )
+
+
+async def _calculate_completeness_metrics(
+    db: AsyncSession, client_account_id: str, engagement_id: str
+) -> Dict[str, float]:
+    """
+    Calculate actual completeness metrics by category based on database data.
+
+    Args:
+        db: Database session
+        client_account_id: Client account UUID for tenant scoping
+        engagement_id: Engagement UUID for project scoping
+
+    Returns:
+        Dictionary with completeness percentages by category
+    """
+    from app.repositories.resilience_repository import (
+        ResilienceRepository,
+        ComplianceRepository,
+        LicenseRepository,
+    )
+    from app.repositories.vendor_product_repository import LifecycleRepository
+    from sqlalchemy import select, func
+    from app.models.assets import Asset
+
+    # Get total asset count for this engagement
+    total_assets_query = select(func.count(Asset.id)).where(
+        Asset.client_account_id == client_account_id,
+        Asset.engagement_id == engagement_id,
+    )
+    result = await db.execute(total_assets_query)
+    total_assets = result.scalar() or 1  # Avoid division by zero
+
+    # Initialize repositories
+    resilience_repo = ResilienceRepository(db, client_account_id, engagement_id)
+    compliance_repo = ComplianceRepository(db, client_account_id, engagement_id)
+    license_repo = LicenseRepository(db, client_account_id, engagement_id)
+    lifecycle_repo = LifecycleRepository(db, client_account_id, engagement_id)
+
+    # Calculate lifecycle completeness
+    lifecycle_milestones = await lifecycle_repo.get_all()
+    lifecycle_completeness = (len(lifecycle_milestones) / total_assets) * 100 if total_assets > 0 else 0.0
+
+    # Calculate resilience completeness
+    resilience_records = await resilience_repo.get_all()
+    resilience_completeness = (len(resilience_records) / total_assets) * 100 if total_assets > 0 else 0.0
+
+    # Calculate compliance completeness
+    compliance_records = await compliance_repo.get_all()
+    compliance_completeness = (len(compliance_records) / total_assets) * 100 if total_assets > 0 else 0.0
+
+    # Calculate licensing completeness
+    license_records = await license_repo.get_all()
+    licensing_completeness = (len(license_records) / total_assets) * 100 if total_assets > 0 else 0.0
+
+    return {
+        "lifecycle": min(lifecycle_completeness, 100.0),
+        "resilience": min(resilience_completeness, 100.0),
+        "compliance": min(compliance_completeness, 100.0),
+        "licensing": min(licensing_completeness, 100.0),
+    }
+
+
+async def _calculate_pending_gaps(
+    db: AsyncSession, client_account_id: str, engagement_id: str
+) -> int:
+    """
+    Calculate the number of pending gaps that need to be addressed.
+
+    Args:
+        db: Database session
+        client_account_id: Client account UUID for tenant scoping
+        engagement_id: Engagement UUID for project scoping
+
+    Returns:
+        Number of pending gaps
+    """
+    # Get completeness metrics and calculate pending gaps based on thresholds
+    completeness = await _calculate_completeness_metrics(db, client_account_id, engagement_id)
+
+    # Count categories with less than 80% completeness as pending gaps
+    pending_gaps = sum(1 for percentage in completeness.values() if percentage < 80.0)
+
+    return pending_gaps
+
+
+async def _get_existing_data_snapshot(
+    db: AsyncSession, client_account_id: str, engagement_id: str
+) -> Dict[str, Any]:
+    """
+    Get snapshot of existing data for gap analysis.
+
+    Args:
+        db: Database session
+        client_account_id: Client account UUID for tenant scoping
+        engagement_id: Engagement UUID for project scoping
+
+    Returns:
+        Dictionary with current data state snapshot
+    """
+    from sqlalchemy import select, func
+    from app.models.assets import Asset
+
+    # Get asset count
+    total_assets_query = select(func.count(Asset.id)).where(
+        Asset.client_account_id == client_account_id,
+        Asset.engagement_id == engagement_id,
+    )
+    result = await db.execute(total_assets_query)
+    assets_count = result.scalar() or 0
+
+    # Get completeness metrics
+    completeness = await _calculate_completeness_metrics(db, client_account_id, engagement_id)
+
+    # Calculate overall coverage
+    overall_coverage = sum(completeness.values()) / len(completeness) if completeness else 0.0
+
+    return {
+        "assets_count": assets_count,
+        "coverage": overall_coverage,
+        "completeness_by_category": completeness,
+        "engagement_id": engagement_id,
+        "client_account_id": client_account_id,
+    }
+
+
+async def _convert_gap_analysis_to_response(
+    gap_analysis_result: Dict[str, Any],
+    db: AsyncSession,
+    client_account_id: str,
+    engagement_id: str,
+) -> "CollectionGapsResponse":
+    """
+    Convert gap analysis results to API response format.
+
+    Args:
+        gap_analysis_result: Results from gap analysis tool
+        db: Database session
+        client_account_id: Client account UUID for tenant scoping
+        engagement_id: Engagement UUID for project scoping
+
+    Returns:
+        CollectionGapsResponse with prioritized gaps
+    """
+    from app.models.api.collection_gaps import CollectionGap, CollectionGapsResponse
+    from sqlalchemy import select, func
+    from app.models.assets import Asset
+
+    # Get total asset count for affected asset calculations
+    total_assets_query = select(func.count(Asset.id)).where(
+        Asset.client_account_id == client_account_id,
+        Asset.engagement_id == engagement_id,
+    )
+    result = await db.execute(total_assets_query)
+    total_assets = result.scalar() or 1
+
+    critical_gaps = []
+    high_gaps = []
+    optional_gaps = []
+
+    # Extract missing fields by category
+    missing_fields = gap_analysis_result.get("missing_fields_by_category", {})
+    priorities = gap_analysis_result.get("priorities", {})
+
+    # Create gap objects based on analysis results
+    for category, fields in missing_fields.items():
+        for field_name in fields:
+            # Determine priority
+            priority = "medium"  # default
+            if field_name in priorities.get("critical", []):
+                priority = "critical"
+            elif field_name in priorities.get("high", []):
+                priority = "high"
+            elif field_name in priorities.get("medium", []):
+                priority = "medium"
+            else:
+                priority = "optional"
+
+            # Estimate affected assets (this could be made more sophisticated)
+            affected_assets = int(total_assets * 0.3)  # Assume 30% of assets are affected by each gap
+
+            gap = CollectionGap(
+                category=category,
+                field_name=field_name,
+                description=f"{field_name.replace('_', ' ').title()} is not available for complete migration planning",
+                priority=priority,
+                affected_assets=affected_assets,
+            )
+
+            # Sort into priority buckets
+            if priority == "critical":
+                critical_gaps.append(gap)
+            elif priority == "high":
+                high_gaps.append(gap)
+            else:
+                optional_gaps.append(gap)
+
+    return CollectionGapsResponse(
+        critical=critical_gaps,
+        high=high_gaps,
+        optional=optional_gaps,
+    )
