@@ -18,9 +18,7 @@ from app.models.api.collection_gaps import (
     MaintenanceWindowResponse,
     StandardErrorResponse,
 )
-from app.repositories.maintenance_window_repository import (
-    MaintenanceWindowRepository,
-)
+from app.repositories.maintenance_window_repository import MaintenanceWindowRepository
 
 from .utils import convert_to_response, convert_windows_to_responses
 from .validators import (
@@ -32,7 +30,7 @@ from .validators import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/maintenance-windows", tags=["Collection"])
+router = APIRouter(prefix="/maintenance-windows")
 
 
 @router.get(
@@ -76,9 +74,7 @@ async def list_maintenance_windows(
         if active_only:
             # Get currently active windows
             windows = await repo.get_active_windows(
-                scope_type=scope_type,
-                application_id=application_id,
-                asset_id=asset_id,
+                scope_type=scope_type, application_id=application_id, asset_id=asset_id
             )
         elif upcoming_days:
             # Get upcoming windows within specified days

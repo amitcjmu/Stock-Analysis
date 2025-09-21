@@ -33,7 +33,7 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/governance", tags=["Collection"])
+router = APIRouter(prefix="/governance")
 
 
 @router.get(
@@ -262,9 +262,7 @@ async def list_migration_exceptions(
         elif application_id or asset_id:
             # Get exceptions by scope
             exceptions = await repo.get_by_scope(
-                application_id=application_id,
-                asset_id=asset_id,
-                status=status,
+                application_id=application_id, asset_id=asset_id, status=status
             )
         else:
             # Get all exceptions with optional filters
