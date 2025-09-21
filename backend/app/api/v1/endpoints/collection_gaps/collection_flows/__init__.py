@@ -11,7 +11,7 @@ backward compatibility with existing imports.
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.request_context import RequestContext, get_request_context
+from app.core.context import RequestContext, get_request_context
 from app.core.database import get_db
 from app.models.api.collection_gaps import (
     CollectionFlowCreateRequest,

@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.request_context import RequestContext
+from app.core.context import RequestContext
 from app.models.api.collection_gaps import (
     AdaptiveQuestionnaire,
     CollectionFlowCreateRequest,

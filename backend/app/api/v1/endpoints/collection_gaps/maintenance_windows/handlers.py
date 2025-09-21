@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.request_context import get_request_context, RequestContext
+from app.core.context import get_request_context, RequestContext
 from app.models.api.collection_gaps import (
     MaintenanceWindowRequest,
     MaintenanceWindowResponse,
