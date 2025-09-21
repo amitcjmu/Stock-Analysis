@@ -91,6 +91,7 @@ class VendorProductMappers(BaseResponseMapper):
             "product_name": "string",
             "version": "string",
             "asset_ids": ["uuid1", "uuid2", ...],
+            "tenant_version_id": "uuid",  # Required for proper linkage
             "metadata": {...}
         }
         """
@@ -99,10 +100,16 @@ class VendorProductMappers(BaseResponseMapper):
             product_name = response.get("product_name")
             version = response.get("version")
             asset_ids = response.get("asset_ids", [])
+            tenant_version_id = response.get("tenant_version_id")
 
             if not all([vendor_name, product_name, version]):
                 raise ValueError(
                     "Missing required vendor_name, product_name, or version"
+                )
+
+            if not tenant_version_id:
+                raise ValueError(
+                    "tenant_version_id is required for proper version linkage"
                 )
 
             created_records = []
@@ -136,20 +143,26 @@ class VendorProductMappers(BaseResponseMapper):
                     tenant_metadata=response.get("tenant_metadata", {}),
                 )
 
-            # Create or update tenant product version
-            tenant_version = await self.tenant_vendor_product_repo.upsert_version(
-                tenant_vendor_product_id=tenant_vendor_product.id,
-                version=version,
-                version_metadata=response.get("version_metadata", {}),
-            )
-            created_records.append(f"tenant_product_version:{tenant_version.id}")
+            # Verify tenant version exists (no auto-creation - must be provided)
+            try:
+                tenant_version = await self.tenant_vendor_product_repo.get_by_id(
+                    tenant_version_id
+                )
+                if not tenant_version:
+                    raise ValueError(f"Tenant version {tenant_version_id} not found")
+            except Exception:
+                raise ValueError(
+                    f"Invalid or missing tenant_version_id: {tenant_version_id}"
+                )
+
+            created_records.append(f"tenant_product_version:{tenant_version_id}")
 
             # Update asset links to reference the specific version
             for asset_id in asset_ids:
                 asset_link = await self.asset_product_link_repo.upsert(
                     asset_id=asset_id,
                     tenant_vendor_product_id=tenant_vendor_product.id,
-                    tenant_version_id=tenant_version.id,
+                    tenant_version_id=tenant_version_id,
                     relationship_type="version_specific",
                     confidence_score=response.get("confidence_score", 0.95),
                 )
@@ -157,7 +170,7 @@ class VendorProductMappers(BaseResponseMapper):
 
             logger.info(
                 f"✅ Successfully mapped product version: {vendor_name}/{product_name} v{version} "
-                f"to {len(asset_ids)} assets"
+                f"to {len(asset_ids)} assets with tenant_version_id {tenant_version_id}"
             )
             return created_records
 
