@@ -1,3 +1,34 @@
+## [0.0.0-docs-collection-gaps] - 2025-09-21
+
+### 📚 Documentation - Collection Gaps Phase 1 (7-Layer Design)
+
+This update adds a comprehensive design and implementation plan to expand the Collection Flow beyond application-only initiation, enabling lifecycle (EoL/EoS), resilience (RTO/RPO), operational windows, and foundational governance capture.
+
+### 🚀 Primary Changes
+
+#### 7-Layer Design & APIs
+- Added docs under `docs/planning/collection-gaps/`:
+  - `00_README.md`, `01_requirements.md`, `02_architecture_7_layers.md`, `03_schema_changes.sql.md`, `04_api_design.md`, `05_agent_integration.md`, `06_frontend_collection_flow.md`, `07_persistence_mapping.md`, `08_migration_plan.md`, `09_telemetry_and_success_metrics.md`, `10_q_and_a.md`.
+- Standardized API request bodies (Pydantic) and MFO integration notes.
+
+#### Schema Strategy
+- Introduced global catalog + tenant overrides for vendor/product/version; added lifecycle milestones, resilience, operations, and governance tables (documentation only).
+- Enforced CHECK constraints pattern per ADRs.
+ - Added optional materialized view plan for simplified read paths.
+
+#### Agent & Frontend
+- Clarified TenantScopedAgentPool initialization and memory enablement (DeepInfra patch).
+- Added mapping registry pattern for complex questionnaire persistence.
+- Frontend guidance for snake_case, reuse of existing components, and phased scope.
+ - Added execution plan (4 weeks), monitoring/alerting thresholds, integration testing plan, rollback handler, support runbook.
+
+### 📊 Business Impact
+- Enables targeted Phase 1 delivery of high-value data gaps (EoL/EoS, RTO/RPO, maintenance windows) to improve 6R decisions and wave planning.
+
+### 🎯 Success Metrics (Phase 1 targets)
+- Lifecycle coverage ≥70% (initial), improving over iterations.
+- Median agent confidence ≥0.60 (initial), improving with data capture and learning.
+
 # AI Modernize Migration Platform - Changelog
 
 ## [2025-09-06] - Documentation: Legacy Archival Inventory
