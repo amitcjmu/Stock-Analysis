@@ -47,7 +47,10 @@ class AssetResilience(Base, TimestampMixin):
     asset = relationship("Asset")
 
     def __repr__(self):
-        return f"<AssetResilience(id={self.id}, asset_id={self.asset_id}, rto={self.rto_minutes}, rpo={self.rpo_minutes})>"
+        return (
+            f"<AssetResilience(id={self.id}, asset_id={self.asset_id}, "
+            f"rto={self.rto_minutes}, rpo={self.rpo_minutes})>"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""
@@ -101,7 +104,10 @@ class AssetComplianceFlags(Base, TimestampMixin):
     asset = relationship("Asset")
 
     def __repr__(self):
-        return f"<AssetComplianceFlags(id={self.id}, asset_id={self.asset_id}, classification='{self.data_classification}')>"
+        return (
+            f"<AssetComplianceFlags(id={self.id}, asset_id={self.asset_id}, "
+            f"classification='{self.data_classification}')>"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""
@@ -152,7 +158,10 @@ class AssetVulnerabilities(Base, TimestampMixin):
     asset = relationship("Asset")
 
     def __repr__(self):
-        return f"<AssetVulnerabilities(id={self.id}, asset_id={self.asset_id}, cve='{self.cve_id}', severity='{self.severity}')>"
+        return (
+            f"<AssetVulnerabilities(id={self.id}, asset_id={self.asset_id}, "
+            f"cve='{self.cve_id}', severity='{self.severity}')>"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""

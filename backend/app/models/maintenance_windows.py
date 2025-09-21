@@ -156,7 +156,10 @@ class BlackoutPeriods(Base, TimestampMixin):
     asset = relationship("Asset")
 
     def __repr__(self):
-        return f"<BlackoutPeriods(id={self.id}, scope='{self.scope_type}', start={self.start_date}, end={self.end_date})>"
+        return (
+            f"<BlackoutPeriods(id={self.id}, scope='{self.scope_type}', "
+            f"start={self.start_date}, end={self.end_date})>"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""

@@ -144,9 +144,7 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
         self.services = ServiceInitializer(self.flow_context.db_session, context)
 
         # Initialize state manager
-        self.state_manager = FlowStateManager(
-            self.flow_context.db_session, context
-        )
+        self.state_manager = FlowStateManager(self.flow_context.db_session, context)
 
         # Initialize unified flow management
         self.unified_flow_management = UnifiedFlowManagement(self._flow_state)

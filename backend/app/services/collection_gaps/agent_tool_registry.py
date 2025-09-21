@@ -307,7 +307,10 @@ def create_vendor_lifecycle_tool() -> BaseTool:
                     "vendor_name": vendor_name.strip().title(),
                     "product_name": product_name.strip(),
                     "version": version.strip() if version else "unknown",
-                    "normalized_key": f"{vendor_name.lower().replace(' ', '_')}_{product_name.lower().replace(' ', '_')}",
+                    "normalized_key": (
+                        f"{vendor_name.lower().replace(' ', '_')}_"
+                        f"{product_name.lower().replace(' ', '_')}"
+                    ),
                 },
                 "lifecycle_milestones": [
                     {

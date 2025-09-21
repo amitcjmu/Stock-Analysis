@@ -36,7 +36,6 @@ from .handlers import (
 # Router setup
 router = APIRouter(
     prefix="/collection",
-    tags=["Collection Gaps"],
 )
 
 

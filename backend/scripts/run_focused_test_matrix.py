@@ -311,7 +311,8 @@ class FocusedTestExecutor:
                 else "❌" if result["status"] == "fail" else "⚠️"
             )
             print(
-                f"   {status_icon} {result['tests_run']} tests, {result['passed']} passed, {result['failed']} failed, {result['skipped']} skipped"
+                f"   {status_icon} {result['tests_run']} tests, {result['passed']} passed, "
+                f"{result['failed']} failed, {result['skipped']} skipped"
             )
 
         # Save results to JSON file
