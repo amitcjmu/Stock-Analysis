@@ -629,7 +629,8 @@ class TestConflictDetectionService:
                 resolved_value="value",
             )
 
-    def test_empty_values_handling(self, service, sample_context):
+    @pytest.mark.asyncio
+    async def test_empty_values_handling(self, service, sample_context):
         """Test that empty and null values are properly filtered."""
         asset = Asset(
             id=uuid.uuid4(),
@@ -657,8 +658,7 @@ class TestConflictDetectionService:
         service.db.execute.return_value = mock_import_result
 
         # Execute field aggregation
-        import asyncio
-        field_sources = asyncio.run(service._aggregate_field_data(asset))
+        field_sources = await service._aggregate_field_data(asset)
 
         # Verify that only valid_field has sources (empty/null values filtered out)
         assert "valid_field" in field_sources

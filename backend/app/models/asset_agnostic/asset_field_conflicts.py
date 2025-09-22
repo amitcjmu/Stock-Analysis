@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import Column, String, Text, ForeignKey, UniqueConstraint, Index
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, JSONB, ENUM
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.models.base import TimestampMixin, Base
@@ -72,9 +72,7 @@ class AssetFieldConflict(Base, TimestampMixin):
 
     # Resolution tracking
     resolution_status = Column(
-        ENUM(
-            "pending", "auto_resolved", "manual_resolved", name="resolution_status_enum"
-        ),
+        String(20),
         nullable=False,
         default="pending",
         doc="Current status of conflict resolution",
@@ -96,6 +94,12 @@ class AssetFieldConflict(Base, TimestampMixin):
 
     # Relationships
     asset = relationship("Asset", back_populates="field_conflicts")
+
+    def __init__(self, **kwargs):
+        """Initialize with default resolution_status if not provided."""
+        if "resolution_status" not in kwargs:
+            kwargs["resolution_status"] = "pending"
+        super().__init__(**kwargs)
 
     def __repr__(self) -> str:
         return (

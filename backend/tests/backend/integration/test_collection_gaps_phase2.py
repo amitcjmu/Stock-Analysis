@@ -143,6 +143,8 @@ class TestVendorProductsEndpoints:
             mock_repo = AsyncMock()
             mock_updated = MagicMock()
             mock_updated.id = uuid4()
+            mock_updated.vendor_name = "Updated Vendor"
+            mock_updated.product_name = "Updated Product"
             mock_repo.update.return_value = mock_updated
             mock_repo_class.return_value = mock_repo
 

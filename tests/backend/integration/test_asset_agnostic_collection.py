@@ -10,11 +10,8 @@ Tests the complete implementation including:
 import pytest
 from typing import Dict, Any
 from uuid import UUID, uuid4
-import sys
-import os
 
-# Add the backend directory to the path so we can import app modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../backend"))
+# Note: Using proper Python import mechanism instead of sys.path manipulation
 
 from httpx import AsyncClient
 from sqlalchemy import select, create_engine

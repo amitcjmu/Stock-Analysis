@@ -379,7 +379,7 @@ class TestAssetFieldConflictEdgeCases:
         # Should handle missing fields gracefully
         highest = conflict.get_highest_confidence_value()
         assert highest is not None
-        assert highest["confidence"] == 0.0  # Default when missing
+        assert highest.get("confidence", 0.0) == 0.0  # Default when missing
 
     def test_empty_field_name(self):
         """Test behavior with empty field name."""

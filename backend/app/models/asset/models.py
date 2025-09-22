@@ -396,7 +396,6 @@ class Asset(
         "CollectionQuestionnaireResponse", back_populates="asset"
     )
     field_conflicts = relationship("AssetFieldConflict", back_populates="asset")
-    field_values = relationship("AssetFieldValue", back_populates="asset")
 
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"
