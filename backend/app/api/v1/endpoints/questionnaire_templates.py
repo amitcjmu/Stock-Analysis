@@ -27,36 +27,40 @@ def get_bootstrap_questionnaire_template(
     return {
         "id": f"bootstrap_{flow_id}",
         "flow_id": flow_id,
-        "title": "Application Information Collection",
+        "title": "Asset Data Collection",
         "description": (
-            "Please provide essential information about the application "
+            "Please provide essential information about the asset "
             "to enable targeted data collection and analysis."
         ),
         "form_fields": [
             # Application Identity Section
             {
-                "field_id": "application_name",
-                "question_text": "What is the application name?",
+                "field_id": "asset_name",
+                "question_text": "What is the asset name?",
                 "field_type": "text",
                 "required": True,
                 "category": "identity",
-                "help_text": "Enter the official application name",
+                "help_text": "Enter the official asset name or identifier",
             },
             {
-                "field_id": "application_type",
-                "question_text": "What type of application is this?",
+                "field_id": "asset_type",
+                "question_text": "What type of asset is this?",
                 "field_type": "select",
                 "required": True,
                 "category": "identity",
                 "options": [
-                    "web_application",
-                    "mobile_application",
-                    "desktop_application",
-                    "api_service",
+                    "application",
                     "database",
+                    "server",
+                    "network_device",
+                    "storage_system",
                     "middleware",
-                    "batch_job",
-                    "microservice",
+                    "container",
+                    "virtual_machine",
+                    "cloud_service",
+                    "api_gateway",
+                    "load_balancer",
+                    "firewall",
                     "other",
                 ],
             },
@@ -66,7 +70,7 @@ def get_bootstrap_questionnaire_template(
                 "field_type": "text",
                 "required": True,
                 "category": "business",
-                "help_text": "Describe the main business function this application serves",
+                "help_text": "Describe the main business function this asset serves",
             },
             # Technical Architecture Section
             {
@@ -89,7 +93,7 @@ def get_bootstrap_questionnaire_template(
             },
             {
                 "field_id": "hosting_environment",
-                "question_text": "Where is the application currently hosted?",
+                "question_text": "Where is the asset currently hosted?",
                 "field_type": "select",
                 "required": True,
                 "category": "infrastructure",
@@ -138,7 +142,7 @@ def get_bootstrap_questionnaire_template(
             },
             {
                 "field_id": "user_base_size",
-                "question_text": "Approximately how many users does this application serve?",
+                "question_text": "Approximately how many users does this asset serve?",
                 "field_type": "select",
                 "required": False,
                 "category": "business",
@@ -169,7 +173,7 @@ def get_bootstrap_questionnaire_template(
             # Integration & Dependencies
             {
                 "field_id": "integration_complexity",
-                "question_text": "How complex are the application integrations?",
+                "question_text": "How complex are the asset integrations?",
                 "field_type": "select",
                 "required": False,
                 "category": "technical",

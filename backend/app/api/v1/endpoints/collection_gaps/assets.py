@@ -274,10 +274,19 @@ async def resolve_asset_conflict(
             detail=f"Conflict for field '{field_name}' is already resolved",
         )
 
+    # Convert user_id to UUID if present
+    try:
+        resolved_by_uuid = UUID(context.user_id) if context.user_id else None
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format in context",
+        )
+
     # Resolve the conflict
     conflict.resolve_conflict(
         resolved_value=resolution.value,
-        resolved_by=context.user_id,
+        resolved_by=resolved_by_uuid,
         rationale=resolution.rationale,
         auto_resolved=False,
     )

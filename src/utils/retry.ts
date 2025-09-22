@@ -2,7 +2,8 @@
  * Retry utility for handling failed operations with exponential backoff
  */
 
-import { isRetryableError, getRetryDelay, ErrorLike } from './errorHandling';
+import type { ErrorLike } from './errorHandling';
+import { isRetryableError, getRetryDelay } from './errorHandling';
 
 export interface RetryOptions {
   maxAttempts?: number;

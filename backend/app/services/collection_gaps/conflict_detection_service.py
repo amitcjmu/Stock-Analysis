@@ -38,9 +38,13 @@ class ConflictDetectionService:
         """Initialize the conflict detection service."""
         self.db = db
         self.context = context
-        self.logger = logger.bind(
-            client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id),
+        # Use LoggerAdapter to attach contextual information
+        self.logger = logging.LoggerAdapter(
+            logger,
+            {
+                "client_account_id": str(context.client_account_id),
+                "engagement_id": str(context.engagement_id),
+            },
         )
 
         # Convert context IDs to UUID for database queries

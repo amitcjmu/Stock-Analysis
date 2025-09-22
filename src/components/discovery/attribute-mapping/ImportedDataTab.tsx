@@ -19,7 +19,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 interface SessionInfo {
   flowId: string | null;
-  availableDataImports: { id: string; name?: string; [key: string]: unknown }[];
+  availableDataImports: Array<{ id: string; name?: string; [key: string]: unknown }>;
   selectedDataImportId: string | null;
   hasMultipleSessions: boolean;
 }

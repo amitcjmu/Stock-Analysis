@@ -300,64 +300,26 @@ const AdaptiveForms: React.FC = () => {
     initializationAttempts.current = newAttempts;
   }, [activeFlowId, flowId]);
 
-  // Detect if we need to redirect to application selection
+  // Asset-Agnostic: No longer require application selection
+  // Collection can work with ANY asset type, not just applications
   useEffect(() => {
     if (isLoadingFlow || !currentCollectionFlow || !activeFlowId) return;
 
-    const hasApps = hasApplicationsSelected(currentCollectionFlow);
-
-    // Only redirect for NEW flows (not existing ones being continued)
-    // Check if this is a continuation of an existing flow by looking for flowId in URL
-    const isExistingFlowContinuation = flowId !== null && flowId !== undefined;
-
-    // Also check if the flow has already progressed beyond initial state
-    const hasProgressed =
-      currentCollectionFlow.progress > 0 ||
-      currentCollectionFlow.current_phase !== "initialization";
-
-    if (!hasApps && !isExistingFlowContinuation && !hasProgressed && !hasRedirectedForApps) {
-      // For NEW flows without apps, redirect to application selection
-      console.log(
-        "🔄 New collection flow has no applications selected, redirecting to application selection",
-        {
-          flowId: activeFlowId,
-        },
-      );
-
-      setHasRedirectedForApps(true); // Prevent repeated redirects
-      navigate(`/collection/select-applications?flowId=${activeFlowId}`);
-      return;
-    } else if (!hasApps && (isExistingFlowContinuation || hasProgressed) && !showAppSelectionPrompt) {
-      // For existing flows without apps, show a warning but don't redirect
-      console.log(
-        "⚠️ Existing collection flow has no applications selected, but not redirecting to avoid loop",
-        {
-          flowId: activeFlowId,
-          isExistingFlowContinuation,
-          hasProgressed,
-        },
-      );
-
-      // Show app selection prompt to give users a path forward (only once)
-      setShowAppSelectionPrompt(true);
-
-      // Show a warning toast (only once)
-      toast({
-        title: "No Applications Selected",
-        description:
-          "This collection flow does not have any applications selected. You may need to restart the flow.",
-        variant: "destructive",
-        duration: 7000,
-      });
-    }
+    // Log the flow state but don't redirect - asset-agnostic collection
+    console.log(
+      "📊 Asset-agnostic collection flow initialized",
+      {
+        flowId: activeFlowId,
+        phase: currentCollectionFlow.current_phase,
+        progress: currentCollectionFlow.progress,
+        // Applications are optional, not required
+        hasApplications: hasApplicationsSelected(currentCollectionFlow),
+      },
+    );
   }, [
     currentCollectionFlow,
     isLoadingFlow,
     activeFlowId,
-    flowId,
-    navigate,
-    hasRedirectedForApps,
-    showAppSelectionPrompt,
   ]);
 
   // Reset the hasJustDeleted flag after auto-initialization triggers
@@ -528,66 +490,9 @@ const AdaptiveForms: React.FC = () => {
     );
   }
 
-  // Show app selection prompt if no applications are selected for the current flow
-  if (showAppSelectionPrompt && activeFlowId) {
-    const handleGoToAppSelection = () => {
-      navigate(
-        `${ROUTES.COLLECTION.SELECT_APPLICATIONS}?flowId=${activeFlowId}`,
-      );
-    };
-
-    const handleRestartFlow = () => {
-      // Clear the current flow and start fresh
-      navigate("/collection");
-      setShowAppSelectionPrompt(false);
-    };
-
-    return (
-      <CollectionPageLayout
-        title="Application Selection Required"
-        description="This collection flow needs applications to proceed"
-      >
-        <div className="max-w-2xl mx-auto mt-8">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-              No Applications Selected
-            </h3>
-            <p className="text-yellow-700 mb-4">
-              This collection flow does not have any applications selected. You
-              need to select applications before proceeding with data
-              collection.
-            </p>
-
-            <div className="space-y-3">
-              <Button
-                onClick={handleGoToAppSelection}
-                variant="default"
-                className="w-full"
-              >
-                Select Applications for This Flow
-              </Button>
-
-              <Button
-                onClick={handleRestartFlow}
-                variant="outline"
-                className="w-full"
-              >
-                Start New Collection Flow
-              </Button>
-
-              <Button
-                onClick={() => navigate("/collection/overview")}
-                variant="outline"
-                className="w-full"
-              >
-                View All Collection Flows
-              </Button>
-            </div>
-          </div>
-        </div>
-      </CollectionPageLayout>
-    );
-  }
+  // Asset-Agnostic: Removed application selection prompt
+  // Collection now works with ANY asset type, not requiring application selection
+  // The system will automatically pull in relevant assets based on the data gaps identified
 
   // Show blocker only if there are other incomplete flows AND we're not continuing a specific flow
   // NEVER block if we have a flowId - we're continuing an existing flow
@@ -806,7 +711,7 @@ const AdaptiveForms: React.FC = () => {
       description={
         applicationId
           ? `Collecting data for application ${applicationId}`
-          : "New application data collection"
+          : "Asset-agnostic data collection"
       }
     >
       <AdaptiveFormContainer

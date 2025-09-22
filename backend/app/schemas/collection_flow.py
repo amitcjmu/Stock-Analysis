@@ -51,7 +51,9 @@ class CollectionFlowResponse(BaseModel):
     engagement_id: str
     status: str
     automation_tier: str
-    current_phase: str
+    current_phase: Optional[str] = Field(
+        default="initialized", description="Current phase of the flow"
+    )
     progress: float
     collection_config: Dict[str, Any]
     created_at: datetime

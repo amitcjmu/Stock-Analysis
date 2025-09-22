@@ -49,7 +49,7 @@ router = APIRouter(prefix="/governance")
     ),
 )
 async def list_governance_requirements(
-    status: Optional[str] = Query(
+    approval_status: Optional[str] = Query(
         None, description="Filter by approval status (PENDING, APPROVED, REJECTED)"
     ),
     entity_type: Optional[str] = Query(None, description="Filter by entity type"),
@@ -71,7 +71,7 @@ async def list_governance_requirements(
             db, context.client_account_id, context.engagement_id
         )
 
-        if status == "PENDING":
+        if approval_status == "PENDING":
             # Get pending requests with optional filters
             requests = await repo.get_pending_requests(
                 entity_type=entity_type, entity_id=entity_id
@@ -79,7 +79,7 @@ async def list_governance_requirements(
         elif approver_id:
             # Get requests by approver
             requests = await repo.get_by_approver(
-                approver_id=approver_id, status=status
+                approver_id=approver_id, status=approval_status
             )
         elif entity_type and entity_id:
             # Get requests for specific entity
@@ -88,8 +88,8 @@ async def list_governance_requirements(
             )
         else:
             # Get all requests with optional status filter
-            if status:
-                requests = await repo.get_by_filters(status=status)
+            if approval_status:
+                requests = await repo.get_by_filters(status=approval_status)
             else:
                 requests = await repo.get_all()
 
@@ -127,7 +127,7 @@ async def list_governance_requirements(
                 "error": "list_failed",
                 "message": f"Failed to list governance requirements: {str(e)}",
                 "details": {
-                    "status": status,
+                    "status": approval_status,
                     "entity_type": entity_type,
                     "entity_id": entity_id,
                 },
@@ -220,7 +220,7 @@ async def create_governance_requirement(
     ),
 )
 async def list_migration_exceptions(
-    status: Optional[str] = Query(
+    exception_status: Optional[str] = Query(
         None, description="Filter by exception status (OPEN, CLOSED)"
     ),
     risk_level: Optional[str] = Query(
@@ -251,7 +251,7 @@ async def list_migration_exceptions(
         if high_risk_only:
             # Get high and critical risk exceptions
             exceptions = await repo.get_high_risk_exceptions()
-        elif status == "OPEN":
+        elif exception_status == "OPEN":
             # Get open exceptions with optional filters
             exceptions = await repo.get_open_exceptions(
                 exception_type=exception_type, risk_level=risk_level
@@ -259,13 +259,15 @@ async def list_migration_exceptions(
         elif application_id or asset_id:
             # Get exceptions by scope
             exceptions = await repo.get_by_scope(
-                application_id=application_id, asset_id=asset_id, status=status
+                application_id=application_id,
+                asset_id=asset_id,
+                status=exception_status,
             )
         else:
             # Get all exceptions with optional filters
             filters = {}
-            if status:
-                filters["status"] = status
+            if exception_status:
+                filters["status"] = exception_status
             if risk_level:
                 filters["risk_level"] = risk_level
             if exception_type:
@@ -317,7 +319,7 @@ async def list_migration_exceptions(
                 "error": "list_failed",
                 "message": f"Failed to list migration exceptions: {str(e)}",
                 "details": {
-                    "status": status,
+                    "status": exception_status,
                     "risk_level": risk_level,
                     "exception_type": exception_type,
                 },
@@ -396,6 +398,12 @@ async def create_migration_exception(
 
         # Transaction commits automatically when exiting async with block
 
+        # Ensure timestamps are loaded from DB
+        try:
+            await db.refresh(created_exception)
+        except Exception:
+            pass  # Ignore refresh errors, use existing data
+
         result = MigrationExceptionResponse(
             id=str(created_exception.id),
             exception_type=request.exception_type,
@@ -405,7 +413,11 @@ async def create_migration_exception(
             application_id=request.application_id,
             asset_id=request.asset_id,
             approval_request_id=approval_request_id,
-            created_at="",  # Would need to add created_at to model
+            created_at=(
+                created_exception.created_at.isoformat()
+                if getattr(created_exception, "created_at", None)
+                else None
+            ),
         )
 
         logger.info(
