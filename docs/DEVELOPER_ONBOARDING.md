@@ -26,17 +26,17 @@ docker-compose up -d --build
 
 # 3. Verify everything is working
 curl http://localhost:8000/health     # Backend health check
-curl http://localhost:8081           # Frontend check
+curl http://localhost:8081           # Frontend check (NOT port 3000)
 
 # 4. Access the platform
-# Frontend: http://localhost:8081
-# Backend API: http://localhost:8000  
+# Frontend: http://localhost:8081 (IMPORTANT: NOT 3000)
+# Backend API: http://localhost:8000
 # API Docs: http://localhost:8000/docs
 ```
 
 ### 🎯 Test Your Setup (15 minutes)
-1. **Open the frontend**: Navigate to http://localhost:8081
-2. **Login with demo credentials**: `demo@demo-corp.com` / `password`
+1. **Open the frontend**: Navigate to http://localhost:8081 (NOT port 3000)
+2. **Login with demo credentials**: Use current platform admin patterns (NOT demo@democorp.com)
 3. **Create a test discovery flow**: Upload a sample CSV file
 4. **Watch the AI agents work**: See real-time processing and field mapping
 5. **Explore the admin dashboard**: Check LLM cost tracking and agent monitoring
@@ -258,7 +258,7 @@ docker exec -it migration_db psql -U user -d migration_db
 
 # ❌ Wrong way - local development
 python main.py
-npm run dev
+npm run dev  # NEVER use this - would run on port 3000 incorrectly
 ```
 
 #### **Agentic-First Programming**
@@ -314,7 +314,8 @@ def analyze_data(data):
 1. **Clean rebuild**: `docker-compose down && docker-compose up --build`
 2. **Check for syntax errors**: Look for TypeScript/Python syntax issues
 3. **Verify imports**: Ensure all modules are properly imported
-4. **Read recent commits**: Check what changed recently
+4. **Check port conflicts**: Ensure nothing is running on port 8081 locally
+5. **Read recent commits**: Check what changed recently
 
 ---
 
