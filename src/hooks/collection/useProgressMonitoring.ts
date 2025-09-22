@@ -348,9 +348,10 @@ export const useProgressMonitoring = (
         const flowDetails = await collectionFlowApi.getFlowDetails(flowId);
 
         // Transform API response to match our CollectionFlow interface
+        // Fix field mapping: backend returns 'id' as UUID and 'progress' not 'progress_percentage'
         const flow: CollectionFlow = {
           id: flowDetails.id,
-          flow_id: flowDetails.flow_id,
+          flow_id: flowDetails.id,  // Use id as flow_id for consistency
           name: `Collection Flow - ${flowDetails.automation_tier}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
@@ -359,7 +360,7 @@ export const useProgressMonitoring = (
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
                   flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
-          progress: flowDetails.progress_percentage || 0,  // Use correct field
+          progress: flowDetails.progress || 0,  // Fixed: use 'progress' not 'progress_percentage'
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
           estimated_completion: flowDetails.estimated_completion,
@@ -412,7 +413,7 @@ export const useProgressMonitoring = (
         // Transform flows (REAL data only; remove any mock generation)
         const flows: CollectionFlow[] = allFlows.map(flowDetails => ({
           id: flowDetails.id,
-          flow_id: flowDetails.flow_id,
+          flow_id: flowDetails.id,  // Use id as flow_id for consistency
           name: `Collection Flow - ${flowDetails.automation_tier}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
@@ -421,7 +422,7 @@ export const useProgressMonitoring = (
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
                   flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
-          progress: flowDetails.progress_percentage || 0,  // Use correct field
+          progress: flowDetails.progress || 0,  // Fixed: use 'progress' not 'progress_percentage'
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
           estimated_completion: flowDetails.estimated_completion,

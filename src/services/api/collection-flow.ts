@@ -42,6 +42,7 @@ export interface NotificationConfig {
 export interface CollectionFlowCreateRequest {
   automation_tier?: string;
   collection_config?: CollectionFlowConfiguration;
+  allow_multiple?: boolean;  // Allow multiple concurrent flows
 }
 
 export interface CollectionFlowResponse extends CollectionFlow {
@@ -151,9 +152,14 @@ class CollectionFlowApi {
   }
 
   async createFlow(data: CollectionFlowCreateRequest): Promise<CollectionFlowResponse> {
+    // Always allow multiple concurrent flows
+    const requestData = {
+      ...data,
+      allow_multiple: true
+    };
     return await apiCall(`${this.baseUrl}/flows`, {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(requestData)
     });
   }
 
