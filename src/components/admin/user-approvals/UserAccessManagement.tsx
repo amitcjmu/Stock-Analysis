@@ -75,14 +75,14 @@ export const UserAccessManagement: React.FC = () => {
     loadClients();
     loadEngagements(); // Load all engagements initially
     loadAccessGrants();
-  }, []); // Run only once on mount
+  }, [loadUsers, loadClients, loadEngagements, loadAccessGrants]); // Include all functions
 
   // Reload engagements when selected client changes
   useEffect(() => {
     if (selectedClient) {
       loadEngagements(selectedClient);
     }
-  }, [selectedClient]); // Only depend on selectedClient
+  }, [selectedClient, loadEngagements]); // Include loadEngagements function
 
   const loadUsers = useCallback(async () => {
     try {
@@ -102,7 +102,7 @@ export const UserAccessManagement: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, []); // Remove toast dependency to prevent re-creation
+  }, [toast]); // Include toast dependency
 
   const loadClients = useCallback(async () => {
     try {

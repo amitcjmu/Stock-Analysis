@@ -19,6 +19,37 @@ from app.models.asset import Asset  # CORRECT IMPORT PATH
 from app.models.collection_flow import CollectionFlow
 from app.models.asset_agnostic.asset_field_conflicts import AssetFieldConflict
 
+
+def _convert_context_ids_to_uuid(context: RequestContext) -> tuple[UUID, UUID]:
+    """
+    Convert string context IDs to UUID objects for database queries.
+
+    Args:
+        context: RequestContext with string ID values
+
+    Returns:
+        Tuple of (client_account_uuid, engagement_uuid)
+
+    Raises:
+        HTTPException: If context IDs are missing or invalid UUID format
+    """
+    if not context.client_account_id or not context.engagement_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing required tenant context (client_account_id or engagement_id)",
+        )
+
+    try:
+        client_account_uuid = UUID(context.client_account_id)
+        engagement_uuid = UUID(context.engagement_id)
+        return client_account_uuid, engagement_uuid
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid UUID format in context: {str(e)}",
+        )
+
+
 router = APIRouter(prefix="/assets")
 
 
@@ -76,6 +107,9 @@ async def start_asset_collection(
             detail=f"Invalid scope '{request.scope}'. Must be one of: {', '.join(valid_scopes)}",
         )
 
+    # Convert context IDs to UUID for database queries
+    client_account_uuid, engagement_uuid = _convert_context_ids_to_uuid(context)
+
     # If scope is 'asset', validate that the asset exists and is accessible
     if request.scope == "asset":
         try:
@@ -90,8 +124,8 @@ async def start_asset_collection(
         asset_result = await db.execute(
             select(Asset)
             .where(Asset.id == asset_uuid)
-            .where(Asset.client_account_id == context.client_account_id)
-            .where(Asset.engagement_id == context.engagement_id)
+            .where(Asset.client_account_id == client_account_uuid)
+            .where(Asset.engagement_id == engagement_uuid)
         )
         asset = asset_result.scalar_one_or_none()
 
@@ -102,7 +136,19 @@ async def start_asset_collection(
             )
 
     # Create collection flow with scope metadata
+    import uuid as uuid_module
+
+    flow_id = uuid_module.uuid4()
+
     flow = CollectionFlow(
+        flow_id=flow_id,
+        flow_name=f"Asset {request.asset_type or 'Generic'} Collection",
+        user_id=(
+            UUID(context.user_id)
+            if context.user_id
+            else UUID("33333333-3333-3333-3333-333333333333")
+        ),
+        automation_tier="tier_1",
         flow_metadata={
             "scope": request.scope,
             "scope_id": request.scope_id,
@@ -110,9 +156,9 @@ async def start_asset_collection(
             "collection_type": "asset_agnostic",
             "phase": "data_gathering",
         },
-        client_account_id=context.client_account_id,
-        engagement_id=context.engagement_id,
-        status="active",
+        client_account_id=client_account_uuid,
+        engagement_id=engagement_uuid,
+        status="initialized",
     )
 
     db.add(flow)
@@ -120,7 +166,7 @@ async def start_asset_collection(
     await db.refresh(flow)
 
     return AssetCollectionStartResponse(
-        flow_id=str(flow.id), status="started", scope=request.scope
+        flow_id=str(flow.flow_id), status="started", scope=request.scope
     )
 
 
@@ -145,12 +191,15 @@ async def get_asset_conflicts(
             detail="Invalid asset ID format. Must be a valid UUID.",
         )
 
+    # Convert context IDs to UUID for database queries
+    client_account_uuid, engagement_uuid = _convert_context_ids_to_uuid(context)
+
     # Verify asset exists and is accessible
     asset_result = await db.execute(
         select(Asset)
         .where(Asset.id == asset_uuid)
-        .where(Asset.client_account_id == context.client_account_id)
-        .where(Asset.engagement_id == context.engagement_id)
+        .where(Asset.client_account_id == client_account_uuid)
+        .where(Asset.engagement_id == engagement_uuid)
     )
     asset = asset_result.scalar_one_or_none()
 
@@ -164,8 +213,8 @@ async def get_asset_conflicts(
     conflicts_result = await db.execute(
         select(AssetFieldConflict)
         .where(AssetFieldConflict.asset_id == asset_uuid)
-        .where(AssetFieldConflict.client_account_id == context.client_account_id)
-        .where(AssetFieldConflict.engagement_id == context.engagement_id)
+        .where(AssetFieldConflict.client_account_id == client_account_uuid)
+        .where(AssetFieldConflict.engagement_id == engagement_uuid)
         .order_by(AssetFieldConflict.created_at.desc())
     )
     conflicts = conflicts_result.scalars().all()
@@ -199,13 +248,16 @@ async def resolve_asset_conflict(
             detail="Invalid asset ID format. Must be a valid UUID.",
         )
 
+    # Convert context IDs to UUID for database queries
+    client_account_uuid, engagement_uuid = _convert_context_ids_to_uuid(context)
+
     # Find the specific conflict with proper tenant scoping
     conflict_result = await db.execute(
         select(AssetFieldConflict)
         .where(AssetFieldConflict.asset_id == asset_uuid)
         .where(AssetFieldConflict.field_name == field_name)
-        .where(AssetFieldConflict.client_account_id == context.client_account_id)
-        .where(AssetFieldConflict.engagement_id == context.engagement_id)
+        .where(AssetFieldConflict.client_account_id == client_account_uuid)
+        .where(AssetFieldConflict.engagement_id == engagement_uuid)
     )
     conflict = conflict_result.scalar_one_or_none()
 

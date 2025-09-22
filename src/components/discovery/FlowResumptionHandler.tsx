@@ -77,11 +77,11 @@ export const FlowResumptionHandler: React.FC<FlowResumptionHandlerProps> = ({ ch
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('❌ Flow resumption error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to resume flow",
+        description: (error && typeof error === 'object' && 'message' in error ? (error as { message: string }).message : undefined) || "Failed to resume flow",
         variant: "destructive",
       });
     },

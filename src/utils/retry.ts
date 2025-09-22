@@ -2,14 +2,14 @@
  * Retry utility for handling failed operations with exponential backoff
  */
 
-import { isRetryableError, getRetryDelay } from './errorHandling';
+import { isRetryableError, getRetryDelay, ErrorLike } from './errorHandling';
 
 export interface RetryOptions {
   maxAttempts?: number;
   initialDelay?: number;
   maxDelay?: number;
   exponentialBackoff?: boolean;
-  shouldRetry?: (error: any, attempt: number) => boolean;
+  shouldRetry?: (error: ErrorLike, attempt: number) => boolean;
 }
 
 const defaultRetryOptions: Required<RetryOptions> = {
@@ -28,7 +28,7 @@ export async function withRetry<T>(
   options: RetryOptions = {}
 ): Promise<T> {
   const opts = { ...defaultRetryOptions, ...options };
-  let lastError: any;
+  let lastError: ErrorLike;
 
   for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
     try {
@@ -71,7 +71,7 @@ export async function withRetry<T>(
 /**
  * Create a retry wrapper for a function
  */
-export function createRetryWrapper<T extends (...args: any[]) => Promise<any>>(
+export function createRetryWrapper<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   options: RetryOptions = {}
 ): T {

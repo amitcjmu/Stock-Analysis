@@ -41,14 +41,68 @@ const DataIntegration: React.FC = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
-  // Get asset_id from URL parameters or use a default for demo purposes
-  const asset_id = searchParams.get('asset_id') || 'demo-asset-001';
+  // Get asset_id from URL parameters - required for this component to function
+  const asset_id = searchParams.get('asset_id');
 
   // State management
   const [conflicts, setConflicts] = useState<DataConflict[]>([]);
   const [validation, setValidation] = useState<FormValidationResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resolvedConflicts, setResolvedConflicts] = useState<string[]>([]);
+
+  // Early return if no asset_id is provided
+  if (!asset_id) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+            <div className="mb-6">
+              <ContextBreadcrumbs />
+            </div>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/collection')}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Collection
+                  </Button>
+                  <div>
+                    <h1 className="text-2xl font-bold">Data Integration & Validation</h1>
+                    <p className="text-muted-foreground">
+                      Resolve conflicts and validate data from multiple collection sources
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Card>
+                <CardContent className="p-8">
+                  <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Asset Selection Required</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Please select an asset to view and resolve data conflicts.
+                      You can navigate back to the collection page to choose an asset.
+                    </p>
+                    <Button onClick={() => navigate('/collection')}>
+                      Select Asset
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch real conflicts data from the API
   const { data: conflictsData, isLoading, error, refetch } = useQuery({

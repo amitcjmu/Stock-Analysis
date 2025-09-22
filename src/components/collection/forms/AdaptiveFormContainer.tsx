@@ -57,9 +57,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   className = ''
 }) => {
   // CC: Component initialization effect
+  const onSaveType = typeof onSave;
   React.useEffect(() => {
     // AdaptiveFormContainer initialized with save functionality
-  }, [typeof onSave]);
+  }, [onSaveType]);
   // Defensive checks
   if (!formData) {
     return (

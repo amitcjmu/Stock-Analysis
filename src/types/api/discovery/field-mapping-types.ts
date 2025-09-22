@@ -98,7 +98,7 @@ export interface FieldMappingItem {
   agent_reasoning?: string;
 
   /** Transformation rules for the mapping - matches backend transformation_rules (Optional[dict]) */
-  transformation_rules?: Record<string, any>;
+  transformation_rules?: Record<string, unknown>;
 }
 
 /**
@@ -457,21 +457,21 @@ export function isFieldMappingItem(obj: unknown): obj is FieldMappingItem {
   return (
     obj &&
     typeof obj === 'object' &&
-    typeof (obj as any).id === 'string' &&
-    typeof (obj as any).source_field === 'string' &&
-    typeof (obj as any).target_field === 'string' &&
-    typeof (obj as any).status === 'string' &&
-    ((obj as any).confidence_score === undefined ||
-     (typeof (obj as any).confidence_score === 'number' &&
-      (obj as any).confidence_score >= 0 &&
-      (obj as any).confidence_score <= 1)) &&
-    ((obj as any).field_type === undefined || typeof (obj as any).field_type === 'string') &&
-    ((obj as any).approved_by === undefined || typeof (obj as any).approved_by === 'string') &&
-    ((obj as any).approved_at === undefined || typeof (obj as any).approved_at === 'string') &&
-    ((obj as any).agent_reasoning === undefined || typeof (obj as any).agent_reasoning === 'string') &&
-    ((obj as any).transformation_rules === undefined ||
-     (typeof (obj as any).transformation_rules === 'object' &&
-      (obj as any).transformation_rules !== null))
+    'id' in obj && typeof obj.id === 'string' &&
+    'source_field' in obj && typeof obj.source_field === 'string' &&
+    'target_field' in obj && typeof obj.target_field === 'string' &&
+    'status' in obj && typeof obj.status === 'string' &&
+    (!('confidence_score' in obj) || obj.confidence_score === undefined ||
+     (typeof obj.confidence_score === 'number' &&
+      obj.confidence_score >= 0 &&
+      obj.confidence_score <= 1)) &&
+    (!('field_type' in obj) || obj.field_type === undefined || typeof obj.field_type === 'string') &&
+    (!('approved_by' in obj) || obj.approved_by === undefined || typeof obj.approved_by === 'string') &&
+    (!('approved_at' in obj) || obj.approved_at === undefined || typeof obj.approved_at === 'string') &&
+    (!('agent_reasoning' in obj) || obj.agent_reasoning === undefined || typeof obj.agent_reasoning === 'string') &&
+    (!('transformation_rules' in obj) || obj.transformation_rules === undefined ||
+     (typeof obj.transformation_rules === 'object' &&
+      obj.transformation_rules !== null))
   );
 }
 

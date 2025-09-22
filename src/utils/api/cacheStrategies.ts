@@ -98,10 +98,10 @@ export class CacheManager {
     try {
       // Check for common dangerous patterns that could lead to ReDoS
       const dangerousPatterns = [
-        /\(\?\![^\)]*\+/,    // Negative lookahead with quantifiers
-        /\([^\)]*\+[^\)]*\+/,  // Nested quantifiers
-        /\([^\)]*\*[^\)]*\*/,  // Nested star quantifiers
-        /\{\d+,\}/,         // Open-ended quantifiers
+        /\(\?![^)]*\+/,    // Negative lookahead with quantifiers
+        /\([^)]*\+[^)]*\+/,  // Nested quantifiers
+        /\([^)]*\*[^)]*\*/,  // Nested star quantifiers
+        /\{\d+,}/,         // Open-ended quantifiers
       ];
 
       for (const dangerous of dangerousPatterns) {

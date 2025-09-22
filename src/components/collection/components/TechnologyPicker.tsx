@@ -17,7 +17,7 @@ import type { TechnologySelectionOption, VendorProduct } from '../types';
 
 interface TechnologyPickerProps {
   value?: VendorProduct | VendorProduct[];
-  onChange: (value: VendorProduct | VendorProduct[]) => void;
+  onChange: (value: VendorProduct | VendorProduct[] | undefined) => void;
   placeholder?: string;
   multiple?: boolean;
   disabled?: boolean;
@@ -168,7 +168,7 @@ export const TechnologyPicker: React.FC<TechnologyPickerProps> = ({
       );
       onChange(filtered);
     } else {
-      onChange(undefined as any);
+      onChange(undefined);
     }
   }, [value, onChange, multiple]);
 

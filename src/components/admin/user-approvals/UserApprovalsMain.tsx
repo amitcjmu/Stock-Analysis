@@ -73,7 +73,7 @@ export const UserApprovalsMain: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // Remove showDataFetchErrorToast dependency
+  }, [showDataFetchErrorToast]); // Include showDataFetchErrorToast dependency
 
   const fetchActiveUsers = useCallback(async () => {
     try {
@@ -89,13 +89,13 @@ export const UserApprovalsMain: React.FC = () => {
       console.error('Error fetching active users:', error);
       showDataFetchErrorToast();
     }
-  }, []); // Remove showDataFetchErrorToast dependency
+  }, [showDataFetchErrorToast]); // Include showDataFetchErrorToast dependency
 
   // Initialize data on component mount
   useEffect(() => {
     fetchPendingUsers();
     fetchActiveUsers();
-  }, []); // Run only once on mount
+  }, [fetchPendingUsers, fetchActiveUsers]); // Include function dependencies
 
   useEffect(() => {
     // Listen for user creation events

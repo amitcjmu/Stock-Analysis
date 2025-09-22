@@ -94,7 +94,7 @@ export const UserSearchAndEdit: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // Remove toast dependency
+  }, [toast]); // Include toast dependency
 
   const loadClients = useCallback(async (): Promise<void> => {
     try {
@@ -141,7 +141,7 @@ export const UserSearchAndEdit: React.FC = () => {
     loadUsers();
     loadClients();
     loadEngagements();
-  }, []); // Run only once on mount
+  }, [loadUsers, loadClients, loadEngagements]); // Include function dependencies
 
   // Reset engagement selection when client changes
   useEffect(() => {

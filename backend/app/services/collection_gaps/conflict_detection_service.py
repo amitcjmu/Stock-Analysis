@@ -43,6 +43,14 @@ class ConflictDetectionService:
             engagement_id=str(context.engagement_id),
         )
 
+        # Convert context IDs to UUID for database queries
+        self._client_account_uuid = (
+            UUID(context.client_account_id) if context.client_account_id else None
+        )
+        self._engagement_uuid = (
+            UUID(context.engagement_id) if context.engagement_id else None
+        )
+
     async def detect_conflicts(self, asset_id: UUID) -> List[AssetFieldConflict]:
         """
         Aggregate data from multiple sources and detect conflicts for a specific asset.
@@ -59,8 +67,8 @@ class ConflictDetectionService:
         asset_result = await self.db.execute(
             select(Asset)
             .where(Asset.id == asset_id)
-            .where(Asset.client_account_id == self.context.client_account_id)
-            .where(Asset.engagement_id == self.context.engagement_id)
+            .where(Asset.client_account_id == self._client_account_uuid)
+            .where(Asset.engagement_id == self._engagement_uuid)
         )
         asset = asset_result.scalar_one_or_none()
 
@@ -102,8 +110,8 @@ class ConflictDetectionService:
 
         # Build query based on scope
         query = select(Asset).where(
-            Asset.client_account_id == self.context.client_account_id,
-            Asset.engagement_id == self.context.engagement_id,
+            Asset.client_account_id == self._client_account_uuid,
+            Asset.engagement_id == self._engagement_uuid,
         )
 
         if scope == "asset":
@@ -177,8 +185,8 @@ class ConflictDetectionService:
         import_records_result = await self.db.execute(
             select(RawImportRecord)
             .where(RawImportRecord.asset_id == asset.id)
-            .where(RawImportRecord.client_account_id == self.context.client_account_id)
-            .where(RawImportRecord.engagement_id == self.context.engagement_id)
+            .where(RawImportRecord.client_account_id == self._client_account_uuid)
+            .where(RawImportRecord.engagement_id == self._engagement_uuid)
         )
         import_records = import_records_result.scalars().all()
 
@@ -239,10 +247,8 @@ class ConflictDetectionService:
             select(AssetFieldConflict)
             .where(AssetFieldConflict.asset_id == asset_id)
             .where(AssetFieldConflict.field_name == field_name)
-            .where(
-                AssetFieldConflict.client_account_id == self.context.client_account_id
-            )
-            .where(AssetFieldConflict.engagement_id == self.context.engagement_id)
+            .where(AssetFieldConflict.client_account_id == self._client_account_uuid)
+            .where(AssetFieldConflict.engagement_id == self._engagement_uuid)
         )
         existing_conflict = existing_result.scalar_one_or_none()
 
@@ -283,8 +289,8 @@ class ConflictDetectionService:
             # Create new conflict
             new_conflict = AssetFieldConflict(
                 asset_id=asset_id,
-                client_account_id=self.context.client_account_id,
-                engagement_id=self.context.engagement_id,
+                client_account_id=self._client_account_uuid,
+                engagement_id=self._engagement_uuid,
                 field_name=field_name,
                 conflicting_values=conflicting_values,
                 resolution_status="pending",
@@ -310,10 +316,8 @@ class ConflictDetectionService:
         result = await self.db.execute(
             select(AssetFieldConflict)
             .where(AssetFieldConflict.asset_id == asset_id)
-            .where(
-                AssetFieldConflict.client_account_id == self.context.client_account_id
-            )
-            .where(AssetFieldConflict.engagement_id == self.context.engagement_id)
+            .where(AssetFieldConflict.client_account_id == self._client_account_uuid)
+            .where(AssetFieldConflict.engagement_id == self._engagement_uuid)
             .order_by(AssetFieldConflict.created_at.desc())
         )
         return result.scalars().all()
@@ -344,10 +348,8 @@ class ConflictDetectionService:
         result = await self.db.execute(
             select(AssetFieldConflict)
             .where(AssetFieldConflict.id == conflict_id)
-            .where(
-                AssetFieldConflict.client_account_id == self.context.client_account_id
-            )
-            .where(AssetFieldConflict.engagement_id == self.context.engagement_id)
+            .where(AssetFieldConflict.client_account_id == self._client_account_uuid)
+            .where(AssetFieldConflict.engagement_id == self._engagement_uuid)
         )
         conflict = result.scalar_one_or_none()
 

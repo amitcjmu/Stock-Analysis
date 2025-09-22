@@ -104,8 +104,8 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     const mapping = fieldMappings.find(m => m.id === mappingId);
     if (!mapping) {
       console.error('Mapping not found:', mappingId);
-      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
-        (window as any).showWarningToast('Selected mapping could not be found. Please refresh and try again.');
+      if (typeof window !== 'undefined' && 'showWarningToast' in window && typeof (window as { showWarningToast?: (message: string) => void }).showWarningToast === 'function') {
+        (window as { showWarningToast: (message: string) => void }).showWarningToast('Selected mapping could not be found. Please refresh and try again.');
       }
       return;
     }
@@ -120,9 +120,9 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Trigger cache invalidation and refresh after successful approval
-      if (typeof window !== 'undefined' && (window as any).__invalidateFieldMappings) {
+      if (typeof window !== 'undefined' && '__invalidateFieldMappings' in window && typeof (window as { __invalidateFieldMappings?: () => Promise<void> }).__invalidateFieldMappings === 'function') {
         console.log('🔄 Invalidating cache after individual approval');
-        await (window as any).__invalidateFieldMappings();
+        await (window as { __invalidateFieldMappings: () => Promise<void> }).__invalidateFieldMappings();
       }
 
       // Also trigger onRefresh to update the UI - this should refetch the data
@@ -153,9 +153,9 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // Trigger cache invalidation and refresh after successful rejection
-        if (typeof window !== 'undefined' && (window as any).__invalidateFieldMappings) {
+        if (typeof window !== 'undefined' && '__invalidateFieldMappings' in window && typeof (window as { __invalidateFieldMappings?: () => Promise<void> }).__invalidateFieldMappings === 'function') {
           console.log('🔄 Invalidating cache after individual rejection');
-          await (window as any).__invalidateFieldMappings();
+          await (window as { __invalidateFieldMappings: () => Promise<void> }).__invalidateFieldMappings();
         }
 
         // Also trigger onRefresh to update the UI - this should refetch the data

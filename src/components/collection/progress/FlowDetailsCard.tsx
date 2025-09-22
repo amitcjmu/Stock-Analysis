@@ -148,9 +148,13 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
           return;
         }
-      } catch (questionnairesError: any) {
+      } catch (questionnairesError: unknown) {
         // Handle 422 'no_applications_selected' error
-        if (questionnairesError?.status === 422 && questionnairesError?.code === 'no_applications_selected') {
+        if (questionnairesError && typeof questionnairesError === 'object' &&
+            'status' in questionnairesError &&
+            'code' in questionnairesError &&
+            (questionnairesError as { status: number; code: string }).status === 422 &&
+            (questionnairesError as { status: number; code: string }).code === 'no_applications_selected') {
           console.log('⚠️ No applications selected for flow, showing app selection UI');
           setShowAppSelection(true);
           return;
@@ -217,9 +221,13 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
           return;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 422 'no_applications_selected' error during polling
-        if (error?.status === 422 && error?.code === 'no_applications_selected') {
+        if (error && typeof error === 'object' &&
+            'status' in error &&
+            'code' in error &&
+            (error as { status: number; code: string }).status === 422 &&
+            (error as { status: number; code: string }).code === 'no_applications_selected') {
           setIsPollingForQuestionnaires(false);
           setShowAppSelection(true);
           return;
