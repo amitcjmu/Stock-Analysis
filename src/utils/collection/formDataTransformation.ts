@@ -26,7 +26,7 @@ export interface QuestionData {
   required?: boolean;
   validation?: ConfigurationObject;
   business_impact_score?: number;
-  options?: any[]; // can be FieldOption[] or string[] from backend
+  options?: FieldOption[] | string[]; // can be FieldOption[] or string[] from backend
   help_text?: string;
   description?: string;
 }
@@ -98,7 +98,7 @@ export const convertQuestionToFormField = (
     .trim()
     .replace(/\b\w/g, c => c.toUpperCase());
 
-  const normalizeOptions = (opts: any[] | undefined): FieldOption[] | undefined => {
+  const normalizeOptions = (opts: FieldOption[] | string[] | undefined): FieldOption[] | undefined => {
     if (!opts) return undefined;
     if (opts.length === 0) return [];
     if (typeof opts[0] === 'string') {

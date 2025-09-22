@@ -57,9 +57,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   className = ''
 }) => {
   // CC: Component initialization effect
+  const onSaveType = typeof onSave;
   React.useEffect(() => {
     // AdaptiveFormContainer initialized with save functionality
-  }, [typeof onSave]);
+  }, [onSaveType]);
   // Defensive checks
   if (!formData) {
     return (
@@ -106,14 +107,14 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
         {/* Form Tabs */}
         <Tabs defaultValue="single" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="single">Single Application</TabsTrigger>
+            <TabsTrigger value="single">Single Asset</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Mode</TabsTrigger>
           </TabsList>
 
           <TabsContent value="single" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Application Data Collection</CardTitle>
+                <CardTitle>Asset Data Collection</CardTitle>
               </CardHeader>
               <CardContent>
                 <AdaptiveForm
@@ -133,7 +134,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
           <TabsContent value="bulk" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Bulk Application Collection</CardTitle>
+                <CardTitle>Bulk Asset Collection</CardTitle>
               </CardHeader>
               <CardContent>
                 <BulkDataGrid

@@ -73,54 +73,59 @@ export function toSnakeCase(str: string): string {
  * Check if an object has the expected flow properties
  * Checks for either snake_case or legacy camelCase for backward compatibility
  */
-export function isValidFlowObject(obj: any): boolean {
+export function isValidFlowObject(obj: unknown): boolean {
   if (!obj || typeof obj !== 'object') {
     return false;
   }
+  const record = obj as Record<string, unknown>;
   // Check for snake_case (current) or camelCase (legacy)
-  const hasFlowId = obj.flow_id || obj.flowId;
-  const hasStatus = obj.status;
+  const hasFlowId = record.flow_id || record.flowId;
+  const hasStatus = record.status;
   return Boolean(hasFlowId && hasStatus);
 }
 
 /**
  * Get flow ID from object (handles both snake_case and legacy camelCase)
  */
-export function getFlowId(obj: any): string | null {
+export function getFlowId(obj: unknown): string | null {
   if (!obj || typeof obj !== 'object') {
     return null;
   }
+  const record = obj as Record<string, unknown>;
   // Prefer snake_case, fallback to legacy camelCase
-  return obj.flow_id || obj.flowId || null;
+  return (record.flow_id as string) || (record.flowId as string) || null;
 }
 
 /**
  * Get flow status safely with null checks
  */
-export function getFlowStatus(obj: any): string {
+export function getFlowStatus(obj: unknown): string {
   if (!obj || typeof obj !== 'object') {
     return 'unknown';
   }
-  return obj.status || 'idle';
+  const record = obj as Record<string, unknown>;
+  return (record.status as string) || 'idle';
 }
 
 /**
  * Safe property accessor that tries both snake_case and legacy camelCase
  */
-export function safeGetProperty(obj: any, key: string): any {
+export function safeGetProperty(obj: unknown, key: string): unknown {
   if (!obj || typeof obj !== 'object') {
     return undefined;
   }
 
+  const record = obj as Record<string, unknown>;
+
   // Try the key as-is first
-  if (obj.hasOwnProperty(key)) {
-    return obj[key];
+  if (Object.prototype.hasOwnProperty.call(record, key)) {
+    return record[key];
   }
 
   // Try converting between snake_case and camelCase for backward compatibility
   const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-  if (obj.hasOwnProperty(snakeKey)) {
-    return obj[snakeKey];
+  if (Object.prototype.hasOwnProperty.call(record, snakeKey)) {
+    return record[snakeKey];
   }
 
   return undefined;

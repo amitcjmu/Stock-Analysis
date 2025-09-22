@@ -64,6 +64,10 @@ export const ROUTES = {
     ROOT: "/assessment",
     SIXR: "/assessment/sixr",
     REPORTS: "/assessment/reports",
+    COLLECTION_GAPS: "/assessment/collection-gaps",
+    VENDOR_PRODUCTS: "/assessment/collection-gaps/vendor-products",
+    MAINTENANCE_WINDOWS: "/assessment/collection-gaps/maintenance-windows",
+    GOVERNANCE: "/assessment/collection-gaps/governance",
   },
 
   // Profile routes

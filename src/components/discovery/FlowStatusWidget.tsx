@@ -156,7 +156,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
       setLoading(false);
       requestInProgress.current = false;
     }
-  }, [flowId, client?.id, engagement?.id, user?.id]);;
+  }, [flowId, client?.id, engagement?.id, user?.id, currentPhase, flowType]);
 
   useEffect(() => {
     // Add a small delay to prevent immediate execution on mount

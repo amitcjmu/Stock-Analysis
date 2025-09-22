@@ -97,7 +97,7 @@ export const MaintenanceWindowForm: React.FC<MaintenanceWindowFormProps> = ({
     }
   }, [formData, onSave, validateForm]);
 
-  const handleFieldChange = useCallback((field: keyof MaintenanceWindow, value: any) => {
+  const handleFieldChange = useCallback((field: keyof MaintenanceWindow, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

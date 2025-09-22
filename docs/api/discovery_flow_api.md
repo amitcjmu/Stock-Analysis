@@ -58,7 +58,7 @@ Create a new Discovery Flow through the Master Flow Orchestrator.
 {
   "flow_type": "discovery",
   "client_account_id": "string",
-  "engagement_id": "string", 
+  "engagement_id": "string",
   "user_id": "string",
   "configuration": {
     "data_source": "cmdb_import|csv_upload|api_integration",
@@ -75,11 +75,11 @@ Create a new Discovery Flow through the Master Flow Orchestrator.
 **Response:**
 ```json
 {
-  "master_flow_id": "550e8400-e29b-41d4-a716-446655440000",
-  "flow_type": "discovery", 
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
+  "flow_type": "discovery",
   "status": "initialized",
   "current_phase": "data_import",
-  "created_at": "2025-01-15T10:00:00Z"
+  "created_at": "2025-01-22T10:00:00Z"
 }
 ```
 
@@ -105,13 +105,13 @@ Delete the Discovery flow.
 
 ### **2. Discovery-Specific Operations (Using master_flow_id)**
 
-#### `POST /api/v1/unified-discovery/flow/{master_flow_id}/execute`
+#### `POST /api/v1/master-flows/{master_flow_id}/discovery/execute`
 
-Execute Discovery flow phases with master_flow_id.
+Execute Discovery flow phases with master_flow_id through MFO coordination.
 
-**Original Endpoint Documentation (Updated for MFO):**
+**IMPORTANT**: All discovery operations now use `/api/v1/master-flows/*` endpoints.
 
-Initialize a new Discovery Flow session with comprehensive planning.
+Initialize a new Discovery Flow through MFO with comprehensive planning.
 
 **Request Body:**
 ```json
@@ -145,7 +145,7 @@ Initialize a new Discovery Flow session with comprehensive planning.
 ```json
 {
   "status": "initialized_with_planning",
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "flow_fingerprint": "fp_abcdef123456",
   "discovery_plan": {
     "phases": [
@@ -171,7 +171,7 @@ Initialize a new Discovery Flow session with comprehensive planning.
     "manager_agents": 6,
     "specialist_agents": 15
   },
-  "shared_memory_id": "mem_vector_789012",
+  "shared_memory_id": "mem_vector_XXXXXXXX",
   "knowledge_base_refs": [
     "field_mapping_kb",
     "asset_classification_kb",
@@ -180,16 +180,16 @@ Initialize a new Discovery Flow session with comprehensive planning.
 }
 ```
 
-### **2. Crew Execution Endpoints**
+### **2. Crew Execution Endpoints (Through MFO)**
 
-#### `POST /discovery/flow/crews/field-mapping/execute`
+#### `POST /api/v1/master-flows/{master_flow_id}/crews/field-mapping/execute`
 
 Execute the Field Mapping Crew with manager coordination.
 
 **Request Body:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "data": [
     {
       "hostname": "web-server-01",
@@ -286,7 +286,7 @@ Execute the Field Mapping Crew with manager coordination.
 }
 ```
 
-#### `POST /discovery/flow/crews/data-cleansing/execute`
+#### `POST /api/v1/master-flows/{master_flow_id}/crews/data-cleansing/execute`
 
 Execute the Data Cleansing Crew using field mapping insights.
 
@@ -335,7 +335,7 @@ Execute the Data Cleansing Crew using field mapping insights.
 }
 ```
 
-#### `POST /discovery/flow/crews/inventory-building/execute`
+#### `POST /api/v1/master-flows/{master_flow_id}/crews/inventory-building/execute`
 
 Execute the Inventory Building Crew with multi-domain classification.
 
@@ -394,7 +394,7 @@ Execute the Inventory Building Crew with multi-domain classification.
 }
 ```
 
-#### `POST /discovery/flow/crews/app-server-dependency/execute`
+#### `POST /api/v1/master-flows/{master_flow_id}/crews/app-server-dependency/execute`
 
 Execute the App-Server Dependency Crew for hosting relationship analysis.
 
@@ -443,7 +443,7 @@ Execute the App-Server Dependency Crew for hosting relationship analysis.
 }
 ```
 
-#### `POST /discovery/flow/crews/app-app-dependency/execute`
+#### `POST /api/v1/master-flows/{master_flow_id}/crews/app-app-dependency/execute`
 
 Execute the App-App Dependency Crew for application integration analysis.
 
@@ -489,7 +489,7 @@ Execute the App-App Dependency Crew for application integration analysis.
 }
 ```
 
-#### `POST /discovery/flow/crews/technical-debt/execute`
+#### `POST /api/v1/master-flows/{master_flow_id}/crews/technical-debt/execute`
 
 Execute the Technical Debt Crew for modernization assessment.
 
@@ -579,14 +579,14 @@ Execute the Technical Debt Crew for modernization assessment.
 
 ### **3. Flow Status and Monitoring**
 
-#### `GET /discovery/flow/status/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/status`
 
-Get comprehensive flow status with crew coordination details.
+Get comprehensive flow status with crew coordination details through MFO.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "overall_status": "in_progress",
   "current_phase": "inventory_building",
   "completion_percentage": 65,
@@ -646,7 +646,7 @@ Get comprehensive flow status with crew coordination details.
 }
 ```
 
-#### `GET /discovery/flow/crews/{crew_name}/details/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/crews/{crew_name}/details`
 
 Get detailed crew execution information.
 
@@ -654,7 +654,7 @@ Get detailed crew execution information.
 ```json
 {
   "crew_name": "FieldMappingCrew",
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "execution_details": {
     "manager_agent": {
       "name": "Field Mapping Manager",
@@ -734,14 +734,14 @@ Get detailed crew execution information.
 
 ### **4. Memory and Knowledge Management**
 
-#### `GET /discovery/flow/memory/status/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/memory/status`
 
 Get shared memory status and insights.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "memory_status": {
     "memory_id": "mem_vector_789012",
     "storage_type": "vector",
@@ -785,14 +785,14 @@ Get shared memory status and insights.
 }
 ```
 
-#### `GET /discovery/flow/knowledge/status/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/knowledge/status`
 
 Get knowledge base usage and effectiveness.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "knowledge_bases": [
     {
       "name": "field_mapping_kb",
@@ -835,14 +835,14 @@ Get knowledge base usage and effectiveness.
 
 ### **5. Planning and Coordination**
 
-#### `GET /discovery/flow/planning/status/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/planning/status`
 
 Get execution planning status and adaptations.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "planning_status": {
     "original_plan": {
       "estimated_total_time": "8 minutes",
@@ -885,14 +885,14 @@ Get execution planning status and adaptations.
 }
 ```
 
-#### `POST /discovery/flow/planning/intelligence/{session_id}`
+#### `POST /api/v1/master-flows/{master_flow_id}/planning/intelligence`
 
 Get AI-powered planning intelligence and optimization recommendations.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "planning_intelligence": {
     "performance_analysis": {
       "crew_efficiency_scores": {
@@ -937,14 +937,14 @@ Get AI-powered planning intelligence and optimization recommendations.
 
 ### **6. Collaboration and Analytics**
 
-#### `GET /discovery/flow/collaboration/tracking/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/collaboration/tracking`
 
 Track agent collaboration activities and effectiveness.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "collaboration_tracking": {
     "intra_crew_collaboration": [
       {
@@ -985,14 +985,14 @@ Track agent collaboration activities and effectiveness.
 }
 ```
 
-#### `GET /discovery/flow/collaboration/analytics/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/collaboration/analytics`
 
 Get detailed collaboration analytics and optimization insights.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "collaboration_analytics": {
     "collaboration_patterns": [
       {
@@ -1032,14 +1032,14 @@ Get detailed collaboration analytics and optimization insights.
 
 ### **7. Performance and Monitoring**
 
-#### `GET /discovery/flow/agents/performance/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/agents/performance`
 
 Get detailed agent performance metrics.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "agent_performance": {
     "manager_agents": [
       {
@@ -1086,14 +1086,14 @@ Get detailed agent performance metrics.
 }
 ```
 
-#### `GET /discovery/flow/memory/analytics/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/memory/analytics`
 
 Get memory system analytics and optimization insights.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "memory_analytics": {
     "usage_statistics": {
       "total_memory_size": "312 MB",
@@ -1133,14 +1133,14 @@ Get memory system analytics and optimization insights.
 
 ### **8. UI Integration Endpoints**
 
-#### `GET /discovery/flow/ui/dashboard-data/{session_id}`
+#### `GET /api/v1/master-flows/{master_flow_id}/ui/dashboard-data`
 
 Get comprehensive dashboard data for UI visualization.
 
 **Response:**
 ```json
 {
-  "session_id": "disc_flow_123456789",
+  "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
   "dashboard_data": {
     "overview": {
       "status": "in_progress",
@@ -1225,7 +1225,7 @@ Get comprehensive dashboard data for UI visualization.
       ]
     },
     "timestamp": "2025-01-27T10:30:00Z",
-    "session_id": "disc_flow_123456789"
+    "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX"
   }
 }
 ```
@@ -1255,41 +1255,49 @@ Get comprehensive dashboard data for UI visualization.
 | Status Monitoring | 100 requests | 1 minute |
 | Analytics | 200 requests | 1 hour |
 
-## 🔍 **WebSocket Events**
+## 🔍 **HTTP Polling Events**
 
-### **Real-Time Flow Updates**
+### **Real-Time Flow Updates via Polling**
 
-Connect to: `ws://localhost:8000/ws/discovery-flow/{session_id}`
+**IMPORTANT**: Use HTTP polling instead of WebSockets for Railway compatibility.
 
-**Event Types:**
+Poll: `GET /api/v1/polling/flow-status/{master_flow_id}`
+
+**Polling Response:**
 ```json
 {
-  "event_type": "crew_status_update",
-  "session_id": "disc_flow_123456789",
+  "success": true,
   "data": {
-    "crew": "InventoryBuildingCrew",
-    "status": "in_progress",
-    "progress": 75,
-    "agent_updates": [
-      {
-        "agent": "Application Discovery Expert",
-        "status": "processing",
-        "current_task": "application_classification"
-      }
-    ]
-  },
-  "timestamp": "2025-01-27T10:35:00Z"
+    "flow_status": {
+      "master_flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
+      "status": "in_progress",
+      "current_phase": "inventory_building",
+      "progress": 75,
+      "crew_updates": [
+        {
+          "crew": "InventoryBuildingCrew",
+          "status": "in_progress",
+          "agent_updates": [
+            {
+              "agent": "Application Discovery Expert",
+              "status": "processing",
+              "current_task": "application_classification"
+            }
+          ]
+        }
+      ]
+    },
+    "polling_interval": 5000,
+    "timestamp": "2025-01-22T10:35:00Z"
+  }
 }
 ```
 
-**Other Event Types:**
-- `agent_collaboration_event`
-- `memory_insight_stored`
-- `knowledge_base_query`
-- `planning_adjustment`
-- `phase_completion`
-- `error_occurrence`
-- `performance_alert`
+**Polling Strategy:**
+- **Active flows**: Poll every 5 seconds
+- **Waiting/paused flows**: Poll every 15 seconds
+- **Completed flows**: Poll every 30 seconds
+- **Frontend implementation**: Use TanStack Query with dynamic intervals
 
 ## 📋 **Best Practices**
 

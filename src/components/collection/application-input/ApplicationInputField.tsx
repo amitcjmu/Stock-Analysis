@@ -102,6 +102,15 @@ export const ApplicationInputField: React.FC<ApplicationInputFieldProps> = ({
     }
   }, [suggestions.length]);
 
+  // Handle suggestion selection
+  const handleSuggestionSelect = useCallback((suggestion: ApplicationSuggestion) => {
+    onChange(suggestion.display_text);
+    onApplicationSelected(suggestion, suggestion.display_text);
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+    clearDuplicateState();
+  }, [onChange, onApplicationSelected, clearDuplicateState]);
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (!showSuggestions || suggestions.length === 0) {
@@ -151,16 +160,7 @@ export const ApplicationInputField: React.FC<ApplicationInputFieldProps> = ({
         setSelectedIndex(-1);
         break;
     }
-  }, [showSuggestions, suggestions, selectedIndex, value, checkForDuplicates]);
-
-  // Handle suggestion selection
-  const handleSuggestionSelect = useCallback((suggestion: ApplicationSuggestion) => {
-    onChange(suggestion.display_text);
-    onApplicationSelected(suggestion, suggestion.display_text);
-    setShowSuggestions(false);
-    setSelectedIndex(-1);
-    clearDuplicateState();
-  }, [onChange, onApplicationSelected, clearDuplicateState]);
+  }, [showSuggestions, suggestions, selectedIndex, value, checkForDuplicates, handleSuggestionSelect]);
 
   // Handle manual entry (when user doesn't select a suggestion)
   const handleManualEntry = useCallback(() => {

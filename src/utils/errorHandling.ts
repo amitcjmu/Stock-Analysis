@@ -12,12 +12,17 @@ export interface ApiError {
   isTimeout?: boolean;
   isRateLimited?: boolean;
   requestId?: string;
+  name?: string;
+  retryAfter?: number;
 }
+
+// Extended error type that includes common error properties
+export type ErrorLike = ApiError | Error | { message?: string; status?: number; [key: string]: unknown } | unknown;
 
 /**
  * Get a user-friendly error message based on the error type
  */
-export function getUserFriendlyErrorMessage(error: any): string {
+export function getUserFriendlyErrorMessage(error: ErrorLike): string {
   // Handle network errors
   if (!navigator.onLine) {
     return 'No internet connection. Please check your network and try again.';
@@ -68,7 +73,7 @@ export function getUserFriendlyErrorMessage(error: any): string {
 /**
  * Get error title based on the error type
  */
-export function getErrorTitle(error: any): string {
+export function getErrorTitle(error: ErrorLike): string {
   if (!navigator.onLine) {
     return 'Network Error';
   }
@@ -114,7 +119,7 @@ export function getErrorTitle(error: any): string {
 /**
  * Determine if an error is retryable
  */
-export function isRetryableError(error: any): boolean {
+export function isRetryableError(error: ErrorLike): boolean {
   // Don't retry authentication or permission errors
   if (error?.status === 401 || error?.status === 403) {
     return false;
@@ -147,7 +152,7 @@ export function isRetryableError(error: any): boolean {
 /**
  * Get suggested retry delay in milliseconds
  */
-export function getRetryDelay(error: any): number {
+export function getRetryDelay(error: ErrorLike): number {
   if (error?.retryAfter) {
     return error.retryAfter;
   }
@@ -170,7 +175,7 @@ export function getRetryDelay(error: any): number {
 /**
  * Format error for logging while keeping user data private
  */
-export function formatErrorForLogging(error: any, context?: string): string {
+export function formatErrorForLogging(error: ErrorLike, context?: string): string {
   const parts = [];
 
   if (context) {
@@ -199,7 +204,12 @@ export function formatErrorForLogging(error: any, context?: string): string {
 /**
  * Toast notification options for different error types
  */
-export function getErrorToastOptions(error: any) {
+export function getErrorToastOptions(error: ErrorLike): {
+  title: string;
+  description: string;
+  variant: "destructive";
+  duration: number;
+} {
   return {
     title: getErrorTitle(error),
     description: getUserFriendlyErrorMessage(error),

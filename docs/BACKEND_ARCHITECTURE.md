@@ -8,7 +8,7 @@
 4. [AI Agent System](#ai-agent-system)
 5. [Database Layer](#database-layer)
 6. [API Endpoints](#api-endpoints)
-7. [WebSocket Implementation](#websocket-implementation)
+7. [Real-time Communication](#real-time-communication)
 8. [Configuration Management](#configuration-management)
 9. [Error Handling](#error-handling)
 10. [Testing](#testing)
@@ -22,7 +22,7 @@ The backend is built with FastAPI, a modern Python web framework that provides a
 - **CrewAI Agents**: AI-powered analysis and learning agents
 - **SQLAlchemy ORM**: Database abstraction layer
 - **Pydantic V2 Schemas**: Data validation and serialization with improved performance and features
-- **WebSocket Manager**: Real-time communication
+- **Polling Service**: HTTP polling for real-time updates (Railway compatible)
 - **Service Layer**: Business logic and AI integration
 
 ## FastAPI Application Structure
@@ -96,8 +96,8 @@ backend/app/
 │   ├── agent_monitor.py  # Real-time agent monitoring
 │   └── tools/            # AI agent tools
 │       └── field_mapping_tool.py  # Field mapping tool
-└── websocket/            # WebSocket handlers
-    └── manager.py        # WebSocket connection management
+└── polling/             # HTTP polling handlers
+    └── service.py       # Polling service for real-time updates
 ```
 
 ## Core Services
@@ -368,7 +368,7 @@ def _create_cmdb_analyst_agent(self):
         verbose=False,
         allow_delegation=False,
         llm=self.llm,
-        memory=False  # Disable memory to avoid OpenAI API calls
+        memory=True   # Memory enabled via DeepInfra patch (ADR-019)
     )
 ```
 
@@ -412,7 +412,7 @@ async def _execute_task_async(self, task: Any) -> str:
             tasks=[task],
             process=Process.sequential,
             verbose=False,
-            memory=False  # Disable memory to avoid OpenAI API calls
+            memory=True   # Memory enabled via DeepInfra patch
         )
         
         # Execute with timeout
@@ -438,6 +438,7 @@ async def _execute_task_async(self, task: Any) -> str:
 # models/migration.py
 class Migration(Base):
     __tablename__ = "migrations"
+    __table_args__ = {'schema': 'migration'}
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -537,12 +538,89 @@ async def process_feedback(request: FeedbackRequest):
         raise HTTPException(status_code=500, detail=str(e))
 ```
 
-## WebSocket Implementation
+## Real-time Communication
 
-### Connection Manager
+### HTTP Polling Strategy (Railway Deployment)
+
+**IMPORTANT**: The platform uses HTTP polling instead of WebSockets for Railway compatibility.
 
 ```python
-# websocket/manager.py
+# services/polling_service.py
+class PollingService:
+    """Manages HTTP polling for real-time updates without WebSockets."""
+
+    def __init__(self):
+        self.active_intervals = {
+            'running': 5000,      # 5 seconds for active flows
+            'waiting': 15000,     # 15 seconds for waiting states
+            'completed': 30000    # 30 seconds for completed flows
+        }
+
+    async def get_flow_status(self, flow_id: str, client_context: dict) -> dict:
+        """Get current flow status for polling clients."""
+
+        # Get comprehensive flow status
+        flow_status = await self.master_flow_service.get_flow_status(flow_id)
+
+        # Determine appropriate polling interval
+        polling_interval = self._get_polling_interval(flow_status['status'])
+
+        return {
+            'flow_status': flow_status,
+            'polling_interval': polling_interval,
+            'timestamp': datetime.utcnow().isoformat(),
+            'next_poll_in': polling_interval
+        }
+
+    def _get_polling_interval(self, status: str) -> int:
+        """Return appropriate polling interval based on flow status."""
+        if status in ['running', 'in_progress']:
+            return self.active_intervals['running']
+        elif status in ['waiting', 'paused']:
+            return self.active_intervals['waiting']
+        else:
+            return self.active_intervals['completed']
+```
+
+### Polling Endpoints
+
+```python
+@router.get("/polling/flow-status/{flow_id}")
+async def poll_flow_status(flow_id: str, context: RequestContext = Depends(get_request_context)):
+    """Polling endpoint for real-time flow status updates."""
+
+    try:
+        polling_service = PollingService()
+        status_data = await polling_service.get_flow_status(flow_id, context.dict())
+
+        return {
+            'success': True,
+            'data': status_data,
+            'polling_strategy': 'http_polling',
+            'railway_compatible': True
+        }
+
+    except Exception as e:
+        logger.error(f"Polling error for flow {flow_id}: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'polling_interval': 30000  # Fallback to 30s on error
+        }
+
+@router.get("/polling/agent-monitor/{flow_id}")
+async def poll_agent_status(flow_id: str):
+    """Polling endpoint for agent monitoring updates."""
+
+    status = agent_monitor.get_current_status(flow_id)
+
+    return {
+        'agent_status': status,
+        'polling_interval': 5000 if status.get('active_tasks') else 15000,
+        'timestamp': datetime.utcnow().isoformat()
+    }
+```
+
 ## Pydantic V2 Implementation
 
 ### Model Configuration
@@ -555,21 +633,25 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 
-class SessionBase(BaseModel):
-    """Base model for session data."""
-    session_name: str = Field(..., description="Unique identifier for the session")
-    session_display_name: Optional[str] = Field(
-        None, 
-        description="User-friendly display name for the session"
+class FlowBase(BaseModel):
+    """Base model for flow data using snake_case fields."""
+    flow_id: str = Field(..., description="Unique identifier for the flow")
+    flow_display_name: Optional[str] = Field(
+        None,
+        description="User-friendly display name for the flow"
     )
+    client_account_id: str = Field(..., description="Client account identifier")
+    engagement_id: str = Field(..., description="Engagement identifier")
     # ... other fields ...
 
     model_config = {
         "from_attributes": True,  # Replaces orm_mode in Pydantic V1
         "json_schema_extra": {
             "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174000",
-                "session_name": "my-session",
+                "flow_id": "XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX",
+                "flow_display_name": "my-discovery-flow",
+                "client_account_id": "client_123",
+                "engagement_id": "eng_456"
                 # ... other example fields ...
             }
         }
@@ -591,45 +673,9 @@ class SessionBase(BaseModel):
    - Use `model_dump()` instead of `dict()`
    - Use `model_dump_json()` instead of `json()`
 
-## WebSocket Implementation
-
-```python
-class ConnectionManager:
-    """Manages WebSocket connections for real-time updates."""
-    
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-    
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-    
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-    
-    async def broadcast(self, message: dict):
-        for connection in self.active_connections:
-            try:
-                await connection.send_json(message)
-            except ConnectionClosedOK:
-                self.active_connections.remove(connection)
-```
-
-### WebSocket Endpoints
-
-```python
-@router.websocket("/agent-monitor")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    try:
-        while True:
-            # Send agent status updates
-            status = agent_monitor.get_current_status()
-            await websocket.send_json(status)
-            await asyncio.sleep(1)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-```
+4. **Field Naming**:
+   - **CRITICAL**: All fields use snake_case (e.g., `flow_id`, `client_account_id`)
+   - No camelCase transformation - use fields exactly as returned from API
 
 ## Configuration Management
 
@@ -654,7 +700,7 @@ class Settings(BaseSettings):
     CREWAI_MAX_TOKENS: int = 1000
     
     # CORS Configuration
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:8081"]
     
     class Config:
         env_file = ".env"
@@ -807,4 +853,6 @@ This backend architecture provides a robust, scalable foundation for the AI Mode
 - **Error Handling**: Graceful degradation and recovery mechanisms
 - **Security**: RBAC and audit logging throughout the system
 
-Last Updated: 2025-01-18 
+Last Updated: 2025-01-22
+
+**IMPORTANT**: This platform uses HTTP polling instead of WebSockets for Railway deployment compatibility. All database tables are in the 'migration' schema, and all fields use snake_case naming convention. 

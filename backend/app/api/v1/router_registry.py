@@ -92,6 +92,12 @@ def register_conditional_routers(api_router: APIRouter):
         # assessment_flow_router,     # Currently disabled
         COLLECTION_AVAILABLE,
         collection_router,
+        COLLECTION_GAPS_AVAILABLE,
+        collection_gaps_vendor_products_router,
+        collection_gaps_maintenance_windows_router,
+        collection_gaps_governance_router,
+        collection_gaps_assets_router,
+        collection_gaps_collection_flows_router,
         FLOW_PROCESSING_AVAILABLE,
         flow_processing_router,
         routers_with_flags,
@@ -132,6 +138,31 @@ def register_conditional_routers(api_router: APIRouter):
         logger.info("✅ Collection Flow API router included at /collection")
     else:
         logger.warning("⚠️ Collection Flow API router not available")
+
+    # Collection Gaps API
+    if COLLECTION_GAPS_AVAILABLE:
+        api_router.include_router(
+            collection_gaps_vendor_products_router, prefix="/collection"
+        )
+        api_router.include_router(
+            collection_gaps_maintenance_windows_router, prefix="/collection"
+        )
+        api_router.include_router(
+            collection_gaps_governance_router, prefix="/collection"
+        )
+        api_router.include_router(collection_gaps_assets_router, prefix="/collection")
+        api_router.include_router(
+            collection_gaps_collection_flows_router, prefix="/collection"
+        )
+        logger.info(
+            (
+                "✅ Collection Gaps API routers included at /collection/vendor-products, "
+                "/collection/maintenance-windows, /collection/governance, "
+                "/collection/assets, /collection/collection-flows"
+            )
+        )
+    else:
+        logger.warning("⚠️ Collection Gaps API routers not available")
 
     # Flow Processing API
     if FLOW_PROCESSING_AVAILABLE:

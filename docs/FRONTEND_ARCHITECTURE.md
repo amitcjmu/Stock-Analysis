@@ -8,7 +8,7 @@
 4. [State Management](#state-management)
 5. [Routing and Navigation](#routing-and-navigation)
 6. [UI Components](#ui-components)
-7. [Real-time Features](#real-time-features)
+7. [HTTP Polling Features](#http-polling-features)
 8. [Data Fetching](#data-fetching)
 9. [Styling and Theming](#styling-and-theming)
 10. [Performance Optimization](#performance-optimization)
@@ -29,7 +29,9 @@ The frontend is built with Vite + React 18, TypeScript for type safety, and Tail
 - **Zod**: Runtime type validation
 - **React Hook Form**: Form state management
 
-Last Updated: 2025-01-18
+Last Updated: 2025-01-22
+
+**IMPORTANT**: This platform uses HTTP polling with TanStack Query instead of WebSockets for Railway deployment compatibility. All API fields use snake_case naming convention.
 
 ## Vite React Application Structure
 
@@ -273,65 +275,77 @@ const [data, setData] = useState<DataType | null>(null)
 const [error, setError] = useState<string | null>(null)
 ```
 
-### Custom Hooks for Shared State
+### HTTP Polling Hooks
 
 ```tsx
-// hooks/useAgentMonitor.ts
-import { useState, useEffect, useRef } from 'react'
-import { AgentStatus, TaskStatus } from '@/types/agent'
+// hooks/useFlowPolling.ts
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { FlowStatus } from '@/types/flow'
 
-export function useAgentMonitor() {
-  const [status, setStatus] = useState<AgentStatus | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
-  const wsRef = useRef<WebSocket | null>(null)
+export function useFlowPolling(flow_id: string) {
+  const [pollingInterval, setPollingInterval] = useState(5000)
 
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['flow-status', flow_id],
+    queryFn: async (): Promise<FlowStatus> => {
+      const response = await fetch(`/api/v1/polling/flow-status/${flow_id}`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/agent-monitor`)
-    
-    ws.onopen = () => {
-      setIsConnected(true)
-      console.log('Agent monitor connected')
-    }
+      const result = await response.json()
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      setStatus(data)
-    }
+      // Dynamically adjust polling interval based on flow status
+      if (result.data?.polling_interval) {
+        setPollingInterval(result.data.polling_interval)
+      }
 
-    ws.onclose = () => {
-      setIsConnected(false)
-      console.log('Agent monitor disconnected')
-    }
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-      setIsConnected(false)
-    }
-
-    wsRef.current = ws
-  }, [])
-
-  const disconnect = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      disconnect()
-    }
-  }, [disconnect])
+      return result.data?.flow_status
+    },
+    refetchInterval: (data) => {
+      // Stop polling if flow is completed or failed
+      if (data?.status === 'completed' || data?.status === 'failed') {
+        return false
+      }
+      return pollingInterval
+    },
+    enabled: !!flow_id && flow_id !== 'XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX',
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
+  })
 
   return {
-    status,
-    isConnected,
-    connect,
-    disconnect
+    flow_status: data,
+    isLoading,
+    error,
+    refetch,
+    pollingInterval,
+    isPolling: !isLoading && !error
   }
+}
+
+// hooks/useAgentMonitor.ts
+import { useQuery } from '@tanstack/react-query'
+import { AgentStatus } from '@/types/agent'
+
+export function useAgentMonitor(flow_id: string) {
+  return useQuery({
+    queryKey: ['agent-monitor', flow_id],
+    queryFn: async (): Promise<AgentStatus> => {
+      const response = await fetch(`/api/v1/polling/agent-monitor/${flow_id}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch agent status')
+      }
+      return response.json()
+    },
+    refetchInterval: (data) => {
+      // More frequent polling when agents are active
+      return data?.agent_status?.active_tasks &&
+             Object.keys(data.agent_status.active_tasks).length > 0 ? 3000 : 10000
+    },
+    enabled: !!flow_id && flow_id !== 'XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX'
+  })
 }
 ```
 
@@ -647,70 +661,82 @@ export function DataAnalysisResults({ analysis, onFeedback }: DataAnalysisResult
 }
 ```
 
-## Real-time Features
+## HTTP Polling Features
 
-### WebSocket Integration
+### TanStack Query Polling Integration
+
+**IMPORTANT**: The platform uses HTTP polling instead of WebSockets for Railway deployment compatibility.
 
 ```tsx
 // components/monitoring/AgentMonitor.tsx
-'use client'
-
-import { useAgentMonitor } from '@/hooks/useAgentMonitor'
+import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 
-export function AgentMonitor() {
-  const { status, isConnected, connect, disconnect } = useAgentMonitor()
-  const [isRefreshing, setIsRefreshing] = useState(false)
+export function AgentMonitor({ flow_id }: { flow_id: string }) {
+  const [pollingInterval, setPollingInterval] = useState(5000) // Default 5 seconds
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    try {
-      // Fetch latest status
-      const response = await fetch('/api/v1/monitoring/agent-status')
-      const latestStatus = await response.json()
-      // Update status would be handled by the hook
-    } catch (error) {
-      console.error('Failed to refresh agent status:', error)
-    } finally {
-      setIsRefreshing(false)
-    }
+  // HTTP Polling with TanStack Query
+  const { data: status, isLoading, error, refetch } = useQuery({
+    queryKey: ['agent-status', flow_id],
+    queryFn: async () => {
+      const response = await fetch(`/api/v1/polling/agent-monitor/${flow_id}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch agent status')
+      }
+      const result = await response.json()
+
+      // Update polling interval based on response
+      setPollingInterval(result.polling_interval || 5000)
+
+      return result
+    },
+    refetchInterval: pollingInterval,
+    enabled: !!flow_id && flow_id !== 'XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX'
+  })
+
+  const handleManualRefresh = async () => {
+    await refetch()
   }
 
-  useEffect(() => {
-    connect()
-    return () => disconnect()
-  }, [connect, disconnect])
+  const agent_status = status?.agent_status
+  const isPolling = !isLoading && !error
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Agent Monitor</CardTitle>
         <div className="flex items-center space-x-2">
-          <Badge variant={isConnected ? 'default' : 'destructive'}>
-            {isConnected ? 'Connected' : 'Disconnected'}
+          <Badge variant={isPolling ? 'default' : 'destructive'}>
+            {isPolling ? `Polling (${pollingInterval / 1000}s)` : 'Disconnected'}
           </Badge>
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
+            onClick={handleManualRefresh}
+            disabled={isLoading}
           >
-            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {status ? (
+        {error && (
+          <div className="text-center text-destructive mb-4">
+            Error: {error.message}
+          </div>
+        )}
+        {agent_status ? (
           <div className="space-y-4">
             {/* Active Tasks */}
             <div>
               <h3 className="font-medium mb-2">Active Tasks</h3>
-              {Object.entries(status.active_tasks).length > 0 ? (
+              {Object.entries(agent_status.active_tasks || {}).length > 0 ? (
                 <div className="space-y-2">
-                  {Object.entries(status.active_tasks).map(([taskId, task]) => (
+                  {Object.entries(agent_status.active_tasks).map(([taskId, task]) => (
                     <div key={taskId} className="flex items-center justify-between p-2 border rounded">
                       <div>
                         <div className="font-medium">{task.agent_name}</div>
@@ -730,7 +756,7 @@ export function AgentMonitor() {
             {/* Recent Tasks */}
             <div>
               <h3 className="font-medium mb-2">Recent Tasks</h3>
-              {status.task_history?.slice(0, 5).map((task) => (
+              {agent_status.task_history?.slice(0, 5).map((task) => (
                 <div key={task.task_id} className="flex items-center justify-between p-2 border rounded mb-2">
                   <div>
                     <div className="font-medium">{task.agent_name}</div>
@@ -747,7 +773,7 @@ export function AgentMonitor() {
           </div>
         ) : (
           <div className="text-center text-muted-foreground">
-            No agent status available
+            {isLoading ? 'Loading agent status...' : 'No agent status available'}
           </div>
         )}
       </CardContent>
@@ -979,7 +1005,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 8081, // Docker development port
+    port: 8081, // Docker development port (NOT 3000)
     host: true,
   },
 })

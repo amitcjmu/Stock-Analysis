@@ -446,16 +446,14 @@ const CollectionIndex: React.FC = () => {
                   onClick={() => startCollectionWorkflow(workflow.id, workflow.path)}
                   variant="outline"
                   size="sm"
-                  disabled={isCreatingFlow === workflow.id || !canCreateCollectionFlow(user) || (collectionMetrics.hasActiveFlow && workflow.id !== 'progress-monitoring')}
-                  title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : (collectionMetrics.hasActiveFlow && workflow.id !== 'progress-monitoring' ? 'An active flow exists. Please complete or cancel it first.' : '')}
+                  disabled={isCreatingFlow === workflow.id || !canCreateCollectionFlow(user)}
+                  title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
                 >
                   {isCreatingFlow === workflow.id ? (
                     <>
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       Starting...
                     </>
-                  ) : collectionMetrics.hasActiveFlow && workflow.id !== 'progress-monitoring' ? (
-                    'Flow Active'
                   ) : (
                     'Start Workflow'
                   )}

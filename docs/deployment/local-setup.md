@@ -218,7 +218,7 @@ chmod +x docker-start.sh docker-stop.sh
 # NAME                  IMAGE                         COMMAND                  SERVICE    CREATED         STATUS                   PORTS
 # migration_postgres    pgvector/pgvector:pg16       "docker-entrypoint.s…"   postgres   4 seconds ago   Up 3 seconds (healthy)   0.0.0.0:5433->5432/tcp
 # migration_backend     migrate-platform-backend     "uvicorn app.main:ap…"   backend    4 seconds ago   Up 2 seconds             0.0.0.0:8000->8000/tcp
-# migration_frontend    migrate-platform-frontend    "npm run dev"            frontend   4 seconds ago   Up 1 second              0.0.0.0:8081->3000/tcp
+# migration_frontend    migrate-platform-frontend    "npm run dev"            frontend   4 seconds ago   Up 1 second              0.0.0.0:8081->8081/tcp
 # 
 # 🌐 Frontend: http://localhost:8081
 # 🔧 Backend API: http://localhost:8000

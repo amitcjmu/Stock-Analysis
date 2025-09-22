@@ -19,7 +19,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 interface SessionInfo {
   flowId: string | null;
-  availableDataImports: any[];
+  availableDataImports: Array<{ id: string; name?: string; [key: string]: unknown }>;
   selectedDataImportId: string | null;
   hasMultipleSessions: boolean;
 }
@@ -99,8 +99,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
 
         const hasResponseStatus = (err: unknown): err is { response: { status: number } } => {
           return typeof err === 'object' && err !== null && 'response' in err &&
-                 typeof (err as any).response === 'object' && (err as any).response !== null &&
-                 'status' in (err as any).response;
+                 typeof (err as { response: unknown }).response === 'object' && (err as { response: unknown }).response !== null &&
+                 'status' in (err as { response: { status: unknown } }).response;
         };
 
         if ((hasErrorStatus(error) && error.status === 404) ||

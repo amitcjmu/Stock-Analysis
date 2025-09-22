@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -14,6 +14,12 @@ import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
 import { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// Collection Gaps Phase 2 Components
+const CollectionGapsDashboard = React.lazy(() => import('./pages/assessment/collection-gaps/index'));
+const VendorProductsPage = React.lazy(() => import('./pages/assessment/collection-gaps/vendor-products'));
+const MaintenanceWindowsPage = React.lazy(() => import('./pages/assessment/collection-gaps/maintenance-windows'));
+const GovernancePage = React.lazy(() => import('./pages/assessment/collection-gaps/governance'));
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
@@ -288,6 +294,40 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/collection/flow-management"
         element={<LazyCollectionFlowManagement />}
+      />
+
+      {/* Collection Gaps Phase 2 Routes */}
+      <Route
+        path="/assessment/collection-gaps"
+        element={
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <CollectionGapsDashboard />
+          </React.Suspense>
+        }
+      />
+      <Route
+        path="/assessment/collection-gaps/vendor-products"
+        element={
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <VendorProductsPage />
+          </React.Suspense>
+        }
+      />
+      <Route
+        path="/assessment/collection-gaps/maintenance-windows"
+        element={
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <MaintenanceWindowsPage />
+          </React.Suspense>
+        }
+      />
+      <Route
+        path="/assessment/collection-gaps/governance"
+        element={
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <GovernancePage />
+          </React.Suspense>
+        }
       />
 
       {/* Assessment sub-routes */}

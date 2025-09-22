@@ -43,8 +43,8 @@ const NeedsReviewCard: React.FC<NeedsReviewCardProps> = ({
     } catch (error) {
       console.error('❌ Error in confirm mapping:', error);
       // Show error toast if available
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        (window as any).showErrorToast('Failed to update and approve mapping. Please try again.');
+      if (typeof window !== 'undefined' && 'showErrorToast' in window && typeof (window as { showErrorToast?: (message: string) => void }).showErrorToast === 'function') {
+        (window as { showErrorToast: (message: string) => void }).showErrorToast('Failed to update and approve mapping. Please try again.');
       }
     }
   };

@@ -23,9 +23,7 @@ from .operational_mappers import OperationalMappers
 logger = logging.getLogger(__name__)
 
 
-class ResponseMappingService(
-    BaseResponseMapper, VendorProductMappers, ResilienceMappers, OperationalMappers
-):
+class ResponseMappingService(BaseResponseMapper):
     """Service for mapping questionnaire responses to database tables."""
 
     def __init__(
@@ -36,6 +34,15 @@ class ResponseMappingService(
     ):
         """Initialize response mapping service with database session and tenant context."""
         super().__init__(db, client_account_id, engagement_id)
+
+        # Initialize mapper components using composition instead of inheritance
+        self.vendor_mappers = VendorProductMappers(db, client_account_id, engagement_id)
+        self.resilience_mappers = ResilienceMappers(
+            db, client_account_id, engagement_id
+        )
+        self.operational_mappers = OperationalMappers(
+            db, client_account_id, engagement_id
+        )
 
         # Initialize feature flags
         self.dry_run_mode = is_truthy_env("RESPONSE_MAPPING_DRY_RUN", default=False)
@@ -138,6 +145,53 @@ class ResponseMappingService(
 
         # Call the appropriate handler
         return await handler_method(response)
+
+    # Delegation methods for vendor/product operations
+    async def map_vendor_product(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to vendor mappers."""
+        return await self.vendor_mappers.map_vendor_product(response)
+
+    async def map_product_version(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to vendor mappers."""
+        return await self.vendor_mappers.map_product_version(response)
+
+    async def map_lifecycle_dates(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to vendor mappers."""
+        return await self.vendor_mappers.map_lifecycle_dates(response)
+
+    # Delegation methods for resilience operations
+    async def map_resilience_metrics(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to resilience mappers."""
+        return await self.resilience_mappers.map_resilience_metrics(response)
+
+    async def map_compliance_flags(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to resilience mappers."""
+        return await self.resilience_mappers.map_compliance_flags(response)
+
+    async def map_license(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to resilience mappers."""
+        return await self.resilience_mappers.map_license(response)
+
+    async def map_vulnerability(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to resilience mappers."""
+        return await self.resilience_mappers.map_vulnerability(response)
+
+    # Delegation methods for operational operations
+    async def map_maintenance_window(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to operational mappers."""
+        return await self.operational_mappers.map_maintenance_window(response)
+
+    async def map_blackout_period(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to operational mappers."""
+        return await self.operational_mappers.map_blackout_period(response)
+
+    async def map_dependencies(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to operational mappers."""
+        return await self.operational_mappers.map_dependencies(response)
+
+    async def map_exception(self, response: Dict[str, Any]) -> List[str]:
+        """Delegate to operational mappers."""
+        return await self.operational_mappers.map_exception(response)
 
     async def _handle_direct_field_mapping(
         self, response: Dict[str, Any], field_name: str, model_field: str
