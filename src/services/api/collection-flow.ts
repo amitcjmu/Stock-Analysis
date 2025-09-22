@@ -710,6 +710,60 @@ class CollectionFlowApi {
       method: 'GET'
     });
   }
+
+  // Phase 2: Asset-Agnostic Collection Endpoints
+  async startAssetCollection(data: {
+    scope: 'tenant' | 'engagement' | 'asset';
+    scope_id: string;
+    asset_type?: string;
+  }): Promise<{
+    flow_id: string;
+    status: string;
+  }> {
+    return await apiCall(`${this.baseUrl}/assets/start`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getAssetConflicts(asset_id: string): Promise<Array<{
+    id: string;
+    asset_id: string;
+    field_name: string;
+    conflicting_values: Array<{
+      value: unknown;
+      source: string;
+      timestamp: string;
+      confidence: number;
+    }>;
+    resolution_status: 'pending' | 'auto_resolved' | 'manual_resolved';
+    resolved_value?: string;
+    resolved_by?: string;
+    resolution_rationale?: string;
+    created_at: string;
+    updated_at?: string;
+  }>> {
+    return await apiCall(`${this.baseUrl}/assets/${asset_id}/conflicts`, {
+      method: 'GET'
+    });
+  }
+
+  async resolveAssetConflict(
+    asset_id: string,
+    field_name: string,
+    resolution: {
+      value: string;
+      rationale?: string;
+    }
+  ): Promise<{
+    status: string;
+    message?: string;
+  }> {
+    return await apiCall(`${this.baseUrl}/assets/${asset_id}/conflicts/${field_name}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify(resolution)
+    });
+  }
 }
 
 // Phase 3: TypeScript interface for transition response

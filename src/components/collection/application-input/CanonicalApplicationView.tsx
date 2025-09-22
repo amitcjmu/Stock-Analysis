@@ -132,11 +132,12 @@ export const CanonicalApplicationView: React.FC<CanonicalApplicationViewProps> =
         case 'variants':
           comparison = canonicalAppA.variants.length - canonicalAppB.variants.length;
           break;
-        case 'lastCollected':
+        case 'lastCollected': {
           const dateA = canonicalAppA.metadata.last_collected_at ? new Date(canonicalAppA.metadata.last_collected_at) : new Date(0);
           const dateB = canonicalAppB.metadata.last_collected_at ? new Date(canonicalAppB.metadata.last_collected_at) : new Date(0);
           comparison = dateA.getTime() - dateB.getTime();
           break;
+        }
       }
 
       return sortOrder === 'asc' ? comparison : -comparison;

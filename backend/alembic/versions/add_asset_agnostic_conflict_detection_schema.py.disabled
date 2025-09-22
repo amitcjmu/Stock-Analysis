@@ -1,0 +1,438 @@
+"""Add asset-agnostic conflict detection schema
+
+Revision ID: add_asset_agnostic_schema
+Revises: [previous_revision_id]
+Create Date: 2025-01-20 10:00:00.000000
+
+This migration adds comprehensive support for:
+1. Asset-agnostic data collection (any asset type)
+2. Field-level conflict detection between data sources
+3. Confidence scoring and automated conflict resolution
+4. pgvector-based asset similarity matching
+5. Data provenance tracking at the field level
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.sql import text
+
+# revision identifiers, used by Alembic.
+revision: str = 'add_asset_agnostic_schema'
+down_revision: Union[str, None] = None  # Replace with actual previous revision
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Add asset-agnostic conflict detection schema"""
+
+    # Ensure pgvector extension exists
+    try:
+        op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    except Exception:
+        # Extension might already exist or require superuser
+        pass
+
+    # 1. Asset Type Definitions Table
+    op.create_table(
+        'asset_type_definitions',
+        sa.Column('id', postgresql.UUID(as_uuid=True),
+                 server_default=sa.text('gen_random_uuid()'), primary_key=True),
+        sa.Column('client_account_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('engagement_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False),
+
+        # Asset type definition
+        sa.Column('asset_type_name', sa.String(100), nullable=False,
+                 comment='Type name like server, database, application, network_device'),
+        sa.Column('display_name', sa.String(255), nullable=False),
+        sa.Column('description', sa.Text, nullable=True),
+
+        # Schema definition
+        sa.Column('field_schema', postgresql.JSONB, nullable=False,
+                 comment='JSON Schema defining expected fields for this asset type'),
+        sa.Column('required_fields', postgresql.ARRAY(sa.Text), nullable=False,
+                 server_default='{}', comment='Array of required field names'),
+        sa.Column('optional_fields', postgresql.ARRAY(sa.Text), nullable=False,
+                 server_default='{}', comment='Array of optional field names'),
+
+        # Identity and matching configuration
+        sa.Column('identity_fields', postgresql.ARRAY(sa.Text), nullable=False,
+                 comment='Fields used to identify unique assets (name, hostname, serial, etc.)'),
+        sa.Column('similarity_fields', postgresql.ARRAY(sa.Text), nullable=False,
+                 comment='Fields used for fuzzy matching across data sources'),
+
+        # Relationship configuration
+        sa.Column('supports_dependencies', sa.Boolean, server_default='true'),
+        sa.Column('typical_relationships', postgresql.JSONB, server_default='{}',
+                 comment='Common relationship patterns for this asset type'),
+
+        # System metadata
+        sa.Column('is_system_defined', sa.Boolean, server_default='false',
+                 comment='True for built-in asset types, false for custom'),
+        sa.Column('is_active', sa.Boolean, server_default='true'),
+
+        # Timestamps
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(),
+                 onupdate=sa.func.now()),
+
+        schema='migration'
+    )
+
+    # Unique constraint for asset type per tenant
+    op.create_unique_constraint(
+        'uq_asset_type_per_tenant',
+        'asset_type_definitions',
+        ['client_account_id', 'engagement_id', 'asset_type_name'],
+        schema='migration'
+    )
+
+    # Indexes for asset type definitions
+    op.create_index('idx_asset_type_definitions_tenant', 'asset_type_definitions',
+                   ['client_account_id', 'engagement_id'], schema='migration')
+    op.create_index('idx_asset_type_definitions_type', 'asset_type_definitions',
+                   ['asset_type_name'], schema='migration')
+
+    # 2. Asset Field Values Table (EAV Pattern for Dynamic Fields)
+    op.create_table(
+        'asset_field_values',
+        sa.Column('id', postgresql.UUID(as_uuid=True),
+                 server_default=sa.text('gen_random_uuid()'), primary_key=True),
+        sa.Column('asset_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('migration.assets.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('client_account_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('engagement_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False),
+
+        # Field definition
+        sa.Column('field_name', sa.String(255), nullable=False,
+                 comment='Name of the field (e.g., hostname, cpu_cores, operating_system)'),
+        sa.Column('field_type', sa.String(50), nullable=False,
+                 comment='Data type: string, number, boolean, date, json, vector'),
+
+        # Value storage (polymorphic - only one should be populated)
+        sa.Column('value_text', sa.Text, nullable=True),
+        sa.Column('value_number', sa.Numeric, nullable=True),
+        sa.Column('value_boolean', sa.Boolean, nullable=True),
+        sa.Column('value_date', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('value_json', postgresql.JSONB, nullable=True),
+        sa.Column('value_vector', sa.Text, nullable=True,
+                 comment='Embedding vector for similarity matching (pgvector support)'),
+
+        # Data provenance
+        sa.Column('source_system', sa.String(100), nullable=False,
+                 comment='System that provided this data (ServiceNow, Azure, CSV, etc.)'),
+        sa.Column('source_record_id', sa.String(255), nullable=True,
+                 comment='Original record ID in source system'),
+        sa.Column('data_import_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('migration.data_imports.id', ondelete='SET NULL'), nullable=True),
+        sa.Column('collection_flow_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('migration.collection_flows.id', ondelete='SET NULL'), nullable=True),
+
+        # Quality and confidence metrics
+        sa.Column('confidence_score', sa.Float, nullable=True,
+                 comment='Confidence score 0.0-1.0 for this field value'),
+        sa.Column('quality_score', sa.Float, nullable=True,
+                 comment='Data quality score 0.0-1.0 based on validation'),
+        sa.Column('validation_status', sa.String(20), server_default='valid',
+                 comment='Validation status: valid, warning, error, invalid'),
+        sa.Column('validation_errors', postgresql.JSONB, nullable=True,
+                 comment='Array of validation error messages'),
+
+        # Conflict tracking
+        sa.Column('has_conflicts', sa.Boolean, server_default='false',
+                 comment='True if this field has conflicting values from other sources'),
+        sa.Column('conflict_resolution_status', sa.String(20), server_default='none',
+                 comment='none, detected, resolved, manual_review'),
+        sa.Column('resolved_by', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
+        sa.Column('resolved_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('resolution_strategy', sa.String(50), nullable=True,
+                 comment='latest_wins, highest_confidence, manual_choice, merge'),
+
+        # Timestamps
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(),
+                 onupdate=sa.func.now()),
+
+        schema='migration'
+    )
+
+    # Check constraint to ensure only one value type is set
+    op.create_check_constraint(
+        'ck_asset_field_values_single_value',
+        'asset_field_values',
+        text("""
+        (
+            (value_text IS NOT NULL AND value_number IS NULL AND value_boolean IS NULL AND value_date IS NULL AND value_json IS NULL AND value_vector IS NULL) OR
+            (value_text IS NULL AND value_number IS NOT NULL AND value_boolean IS NULL AND value_date IS NULL AND value_json IS NULL AND value_vector IS NULL) OR
+            (value_text IS NULL AND value_number IS NULL AND value_boolean IS NOT NULL AND value_date IS NULL AND value_json IS NULL AND value_vector IS NULL) OR
+            (value_text IS NULL AND value_number IS NULL AND value_boolean IS NULL AND value_date IS NOT NULL AND value_json IS NULL AND value_vector IS NULL) OR
+            (value_text IS NULL AND value_number IS NULL AND value_boolean IS NULL AND value_date IS NULL AND value_json IS NOT NULL AND value_vector IS NULL) OR
+            (value_text IS NULL AND value_number IS NULL AND value_boolean IS NULL AND value_date IS NULL AND value_json IS NULL AND value_vector IS NOT NULL)
+        )
+        """),
+        schema='migration'
+    )
+
+    # Check constraints for confidence and quality scores
+    op.create_check_constraint(
+        'ck_asset_field_values_confidence_range',
+        'asset_field_values',
+        'confidence_score >= 0.0 AND confidence_score <= 1.0',
+        schema='migration'
+    )
+
+    op.create_check_constraint(
+        'ck_asset_field_values_quality_range',
+        'asset_field_values',
+        'quality_score >= 0.0 AND quality_score <= 1.0',
+        schema='migration'
+    )
+
+    # Indexes for asset field values (critical for performance)
+    op.create_index('idx_asset_field_values_asset_id', 'asset_field_values',
+                   ['asset_id'], schema='migration')
+    op.create_index('idx_asset_field_values_tenant', 'asset_field_values',
+                   ['client_account_id', 'engagement_id'], schema='migration')
+    op.create_index('idx_asset_field_values_field_name', 'asset_field_values',
+                   ['field_name'], schema='migration')
+    op.create_index('idx_asset_field_values_source', 'asset_field_values',
+                   ['source_system'], schema='migration')
+    op.create_index('idx_asset_field_values_conflicts', 'asset_field_values',
+                   ['has_conflicts'], schema='migration',
+                   postgresql_where=text('has_conflicts = true'))
+
+    # Vector index for similarity search (requires pgvector)
+    try:
+        op.execute(text("""
+            CREATE INDEX idx_asset_field_values_vector
+            ON migration.asset_field_values
+            USING ivfflat (value_vector vector_cosine_ops)
+            WITH (lists = 100)
+        """))
+    except Exception:
+        # Vector index creation might fail if pgvector not available
+        print("Warning: Could not create vector index. Ensure pgvector extension is installed.")
+
+    # Composite index for conflict detection queries
+    op.create_index('idx_asset_field_values_conflict_detection', 'asset_field_values',
+                   ['asset_id', 'field_name', 'source_system'], schema='migration')
+
+    # 3. Asset Field Conflicts Table
+    op.create_table(
+        'asset_field_conflicts',
+        sa.Column('id', postgresql.UUID(as_uuid=True),
+                 server_default=sa.text('gen_random_uuid()'), primary_key=True),
+        sa.Column('asset_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('migration.assets.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('client_account_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('engagement_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False),
+
+        # Conflict definition
+        sa.Column('field_name', sa.String(255), nullable=False,
+                 comment='Name of the field that has conflicting values'),
+        sa.Column('conflict_type', sa.String(50), nullable=False,
+                 comment='Type: value_mismatch, type_mismatch, format_conflict'),
+
+        # Conflicting values reference
+        sa.Column('conflicting_value_ids', postgresql.ARRAY(postgresql.UUID), nullable=False,
+                 comment='Array of asset_field_values.id that are in conflict'),
+
+        # Detection metadata
+        sa.Column('detected_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column('detection_method', sa.String(50), nullable=True,
+                 comment='automatic, user_reported, validation_rule'),
+        sa.Column('severity', sa.String(20), server_default='medium',
+                 comment='low, medium, high, critical'),
+
+        # Resolution tracking
+        sa.Column('status', sa.String(20), server_default='open',
+                 comment='open, in_review, resolved, ignored'),
+        sa.Column('resolution_strategy', sa.String(50), nullable=True,
+                 comment='latest_wins, highest_confidence, manual_choice, merge, custom_rule'),
+        sa.Column('resolved_value_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('migration.asset_field_values.id', ondelete='SET NULL'), nullable=True),
+
+        # Resolution metadata
+        sa.Column('resolved_by', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
+        sa.Column('resolved_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('resolution_notes', sa.Text, nullable=True),
+        sa.Column('resolution_confidence', sa.Float, nullable=True),
+
+        # Auto-resolution configuration
+        sa.Column('auto_resolve_enabled', sa.Boolean, server_default='false'),
+        sa.Column('auto_resolve_rule', postgresql.JSONB, nullable=True,
+                 comment='Rule definition for future similar conflicts'),
+
+        # Timestamps
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(),
+                 onupdate=sa.func.now()),
+
+        schema='migration'
+    )
+
+    # Indexes for conflict management
+    op.create_index('idx_asset_field_conflicts_asset', 'asset_field_conflicts',
+                   ['asset_id'], schema='migration')
+    op.create_index('idx_asset_field_conflicts_tenant', 'asset_field_conflicts',
+                   ['client_account_id', 'engagement_id'], schema='migration')
+    op.create_index('idx_asset_field_conflicts_status', 'asset_field_conflicts',
+                   ['status'], schema='migration')
+    op.create_index('idx_asset_field_conflicts_severity', 'asset_field_conflicts',
+                   ['severity'], schema='migration')
+    op.create_index('idx_asset_field_conflicts_field', 'asset_field_conflicts',
+                   ['field_name'], schema='migration')
+
+    # 4. Data Source Reliability Table
+    op.create_table(
+        'data_source_reliability',
+        sa.Column('id', postgresql.UUID(as_uuid=True),
+                 server_default=sa.text('gen_random_uuid()'), primary_key=True),
+        sa.Column('client_account_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('engagement_id', postgresql.UUID(as_uuid=True),
+                 sa.ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False),
+
+        # Source identification
+        sa.Column('source_system', sa.String(100), nullable=False,
+                 comment='Name of the source system (ServiceNow, Azure, CSV, etc.)'),
+        sa.Column('source_type', sa.String(50), nullable=False,
+                 comment='Type: cmdb, discovery_tool, manual_entry, api, csv_import'),
+
+        # Reliability metrics
+        sa.Column('overall_reliability_score', sa.Float, server_default='0.5',
+                 comment='Overall reliability score 0.0-1.0'),
+        sa.Column('field_reliability_scores', postgresql.JSONB, server_default='{}',
+                 comment='Per-field reliability scores as JSON object'),
+
+        # Quality metrics over time
+        sa.Column('total_records_provided', sa.Integer, server_default='0'),
+        sa.Column('accurate_records_count', sa.Integer, server_default='0'),
+        sa.Column('conflicts_caused_count', sa.Integer, server_default='0'),
+        sa.Column('conflicts_resolved_favorably', sa.Integer, server_default='0'),
+
+        # Freshness tracking
+        sa.Column('typical_update_frequency', postgresql.INTERVAL, nullable=True,
+                 comment='How often this source typically provides updates'),
+        sa.Column('last_data_received', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('data_staleness_penalty', sa.Float, server_default='0.0',
+                 comment='Penalty for stale data 0.0-1.0'),
+
+        # Configuration
+        sa.Column('priority_weight', sa.Float, server_default='1.0',
+                 comment='Manual weight assigned to this source (higher = more trusted)'),
+        sa.Column('auto_resolve_threshold', sa.Float, server_default='0.8',
+                 comment='Auto-resolve conflicts if confidence above this threshold'),
+
+        # Asset type specific reliability
+        sa.Column('asset_type_reliability', postgresql.JSONB, server_default='{}',
+                 comment='Different reliability scores per asset type'),
+
+        # Metadata
+        sa.Column('is_active', sa.Boolean, server_default='true'),
+        sa.Column('notes', sa.Text, nullable=True),
+
+        # Timestamps
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(),
+                 onupdate=sa.func.now()),
+
+        schema='migration'
+    )
+
+    # Unique constraint for source per tenant
+    op.create_unique_constraint(
+        'uq_data_source_per_tenant',
+        'data_source_reliability',
+        ['client_account_id', 'engagement_id', 'source_system'],
+        schema='migration'
+    )
+
+    # Check constraints for reliability scores
+    op.create_check_constraint(
+        'ck_data_source_reliability_overall_range',
+        'data_source_reliability',
+        'overall_reliability_score >= 0.0 AND overall_reliability_score <= 1.0',
+        schema='migration'
+    )
+
+    op.create_check_constraint(
+        'ck_data_source_reliability_priority_positive',
+        'data_source_reliability',
+        'priority_weight > 0.0',
+        schema='migration'
+    )
+
+    # Indexes for data source reliability
+    op.create_index('idx_data_source_reliability_tenant', 'data_source_reliability',
+                   ['client_account_id', 'engagement_id'], schema='migration')
+    op.create_index('idx_data_source_reliability_source', 'data_source_reliability',
+                   ['source_system'], schema='migration')
+    op.create_index('idx_data_source_reliability_score', 'data_source_reliability',
+                   ['overall_reliability_score'], schema='migration')
+
+    # 5. Add identity_vector column to existing assets table for similarity matching
+    op.add_column('assets',
+                 sa.Column('identity_vector', sa.Text, nullable=True,
+                          comment='Embedding vector for asset identity matching (pgvector support)'),
+                 schema='migration')
+
+    # Vector index for asset similarity
+    try:
+        op.execute(text("""
+            CREATE INDEX idx_assets_identity_vector
+            ON migration.assets
+            USING ivfflat (identity_vector vector_cosine_ops)
+            WITH (lists = 100)
+        """))
+    except Exception:
+        print("Warning: Could not create asset identity vector index.")
+
+    # 6. Create initial system-defined asset types
+    op.execute(text("""
+        INSERT INTO migration.asset_type_definitions
+        (client_account_id, engagement_id, asset_type_name, display_name, description,
+         field_schema, required_fields, optional_fields, identity_fields, similarity_fields, is_system_defined)
+        SELECT DISTINCT
+            '00000000-0000-0000-0000-000000000000'::uuid as client_account_id,
+            '00000000-0000-0000-0000-000000000000'::uuid as engagement_id,
+            'server' as asset_type_name,
+            'Server' as display_name,
+            'Physical or virtual server infrastructure' as description,
+            '{"type": "object", "properties": {"name": {"type": "string"}, "hostname": {"type": "string"}, "ip_address": {"type": "string"}, "operating_system": {"type": "string"}, "cpu_cores": {"type": "integer"}, "memory_gb": {"type": "number"}}}' as field_schema,
+            ARRAY['name', 'hostname'] as required_fields,
+            ARRAY['ip_address', 'operating_system', 'cpu_cores', 'memory_gb', 'environment', 'location'] as optional_fields,
+            ARRAY['hostname', 'ip_address', 'name'] as identity_fields,
+            ARRAY['hostname', 'ip_address', 'operating_system'] as similarity_fields,
+            true as is_system_defined
+        WHERE NOT EXISTS (
+            SELECT 1 FROM migration.asset_type_definitions
+            WHERE asset_type_name = 'server' AND is_system_defined = true
+        )
+    """))
+
+
+def downgrade() -> None:
+    """Remove asset-agnostic conflict detection schema"""
+
+    # Drop tables in reverse order (handle foreign key dependencies)
+    op.drop_table('data_source_reliability', schema='migration')
+    op.drop_table('asset_field_conflicts', schema='migration')
+    op.drop_table('asset_field_values', schema='migration')
+    op.drop_table('asset_type_definitions', schema='migration')
+
+    # Remove identity_vector column from assets table
+    op.drop_column('assets', 'identity_vector', schema='migration')
+
+    # Note: We don't drop the vector extension as it might be used elsewhere

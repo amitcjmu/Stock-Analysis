@@ -96,6 +96,8 @@ def register_conditional_routers(api_router: APIRouter):
         collection_gaps_vendor_products_router,
         collection_gaps_maintenance_windows_router,
         collection_gaps_governance_router,
+        collection_gaps_assets_router,
+        collection_gaps_collection_flows_router,
         FLOW_PROCESSING_AVAILABLE,
         flow_processing_router,
         routers_with_flags,
@@ -148,10 +150,15 @@ def register_conditional_routers(api_router: APIRouter):
         api_router.include_router(
             collection_gaps_governance_router, prefix="/collection"
         )
+        api_router.include_router(collection_gaps_assets_router, prefix="/collection")
+        api_router.include_router(
+            collection_gaps_collection_flows_router, prefix="/collection"
+        )
         logger.info(
             (
                 "✅ Collection Gaps API routers included at /collection/vendor-products, "
-                "/collection/maintenance-windows, /collection/governance"
+                "/collection/maintenance-windows, /collection/governance, "
+                "/collection/assets, /collection/collection-flows"
             )
         )
     else:

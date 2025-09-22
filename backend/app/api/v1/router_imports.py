@@ -147,6 +147,8 @@ except ImportError:
 collection_gaps_vendor_products_router: Optional[APIRouter]
 collection_gaps_maintenance_windows_router: Optional[APIRouter]
 collection_gaps_governance_router: Optional[APIRouter]
+collection_gaps_assets_router: Optional[APIRouter]
+collection_gaps_collection_flows_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.collection_gaps.vendor_products import (
         router as collection_gaps_vendor_products_router,
@@ -157,6 +159,12 @@ try:
     from app.api.v1.endpoints.collection_gaps.governance import (
         router as collection_gaps_governance_router,
     )
+    from app.api.v1.endpoints.collection_gaps.assets import (
+        router as collection_gaps_assets_router,
+    )
+    from app.api.v1.endpoints.collection_gaps.collection_flows import (
+        router as collection_gaps_collection_flows_router,
+    )
 
     COLLECTION_GAPS_AVAILABLE = True
 except ImportError:
@@ -164,6 +172,8 @@ except ImportError:
     collection_gaps_vendor_products_router = None
     collection_gaps_maintenance_windows_router = None
     collection_gaps_governance_router = None
+    collection_gaps_assets_router = None
+    collection_gaps_collection_flows_router = None
 
 # Flow Processing endpoints
 flow_processing_router: Optional[APIRouter]
@@ -411,6 +421,8 @@ __all__ = [
     "collection_gaps_vendor_products_router",
     "collection_gaps_maintenance_windows_router",
     "collection_gaps_governance_router",
+    "collection_gaps_assets_router",
+    "collection_gaps_collection_flows_router",
     "FLOW_PROCESSING_AVAILABLE",
     "flow_processing_router",
     # Dynamic routers with flags

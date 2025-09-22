@@ -128,11 +128,11 @@ export const ApplicationSelectionUI: React.FC<ApplicationSelectionUIProps> = ({
       });
 
       onComplete();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update flow applications:', error);
       toast({
         title: 'Update Failed',
-        description: error.message || 'Failed to update application selection.',
+        description: error instanceof Error ? error.message : 'Failed to update application selection.',
         variant: 'destructive'
       });
     } finally {

@@ -460,7 +460,7 @@ window.fetch = async function(url, options) {
 
   // Fall back to original fetch for non-mocked endpoints
   console.log(`[MOCK API] No mock found for ${pathname}, using real API`);
-  return originalFetch.apply(this, arguments);
+  return originalFetch.call(this, url, options);
 };
 
 console.log('[MOCK API] Mock API interceptor loaded successfully');

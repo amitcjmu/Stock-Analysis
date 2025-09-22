@@ -61,18 +61,28 @@ describe('useAdaptiveFormFlow - Infinite Loading Fixes', () => {
     // Mock API responses to simulate timeout
     mockedCollectionFlowApi.createFlow.mockResolvedValue({
       id: 'test-flow-1',
-      status: 'active'
-    } as any);
+      status: 'active',
+      current_phase: 'initialization',
+      progress: 0,
+      automation_tier: 'standard',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
 
     mockedCollectionFlowApi.executeFlowPhase.mockResolvedValue({
       phase: 'initialization',
       status: 'running'
-    } as any);
+    });
 
     mockedCollectionFlowApi.getFlowStatus.mockResolvedValue({
+      id: 'test-flow-1',
       status: 'running',
-      current_phase: 'gap_analysis'
-    } as any);
+      current_phase: 'gap_analysis',
+      progress: 50,
+      automation_tier: 'standard',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
 
     // Mock questionnaires to never return results (simulate timeout)
     mockedCollectionFlowApi.getFlowQuestionnaires.mockRejectedValue(
@@ -131,12 +141,12 @@ describe('useAdaptiveFormFlow - Infinite Loading Fixes', () => {
     mockedCollectionFlowApi.createFlow.mockResolvedValue({
       id: 'test-flow-1',
       status: 'active'
-    } as any);
+    });
 
     mockedCollectionFlowApi.executeFlowPhase.mockResolvedValue({
       phase: 'initialization',
       status: 'running'
-    } as any);
+    });
 
     // Mock questionnaires available after 2 seconds
     let callCount = 0;

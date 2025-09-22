@@ -1,7 +1,9 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { collectionFlowApi } from '@/services/api/collection-flow';
 import { ArrowLeft, RefreshCw, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 
 // Import layout components
@@ -37,119 +39,79 @@ import { useToast } from '@/components/ui/use-toast';
 const DataIntegration: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+
+  // Get asset_id from URL parameters or use a default for demo purposes
+  const asset_id = searchParams.get('asset_id') || 'demo-asset-001';
 
   // State management
   const [conflicts, setConflicts] = useState<DataConflict[]>([]);
   const [validation, setValidation] = useState<FormValidationResult | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resolvedConflicts, setResolvedConflicts] = useState<string[]>([]);
 
-  // Mock data - in real implementation this would come from API
-  useEffect(() => {
-    const mockConflicts: DataConflict[] = [
-      {
-        id: 'conflict-1',
-        attributeName: 'application_type',
-        attributeLabel: 'Application Type',
-        conflictingValues: [
-          {
-            value: 'web',
-            source: 'automated',
-            sourceId: 'scanner-001',
-            confidenceScore: 0.85,
-            collectedAt: '2025-07-19T10:30:00Z'
-          },
-          {
-            value: 'desktop',
-            source: 'manual',
-            sourceId: 'form-001',
-            confidenceScore: 0.95,
-            collectedAt: '2025-07-19T11:45:00Z'
-          }
-        ],
-        recommendedResolution: 'desktop',
-        requiresUserReview: true
-      },
-      {
-        id: 'conflict-2',
-        attributeName: 'technology_stack',
-        attributeLabel: 'Technology Stack',
-        conflictingValues: [
-          {
-            value: ['Java', 'Spring'],
-            source: 'automated',
-            sourceId: 'scanner-002',
-            confidenceScore: 0.78,
-            collectedAt: '2025-07-19T10:30:00Z'
-          },
-          {
-            value: ['Java', 'Spring Boot', 'MySQL'],
-            source: 'manual',
-            sourceId: 'form-002',
-            confidenceScore: 0.92,
-            collectedAt: '2025-07-19T12:00:00Z'
-          },
-          {
-            value: ['Java 11', 'Spring Boot 2.5'],
-            source: 'bulk',
-            sourceId: 'upload-001',
-            confidenceScore: 0.88,
-            collectedAt: '2025-07-19T12:30:00Z'
-          }
-        ],
-        recommendedResolution: 'Java, Spring Boot, MySQL',
-        requiresUserReview: false
-      },
-      {
-        id: 'conflict-3',
-        attributeName: 'business_criticality',
-        attributeLabel: 'Business Criticality',
-        conflictingValues: [
-          {
-            value: 'high',
-            source: 'manual',
-            sourceId: 'form-003',
-            confidenceScore: 0.95,
-            collectedAt: '2025-07-19T11:00:00Z'
-          },
-          {
-            value: 'medium',
-            source: 'template',
-            sourceId: 'template-001',
-            confidenceScore: 0.70,
-            collectedAt: '2025-07-19T10:45:00Z'
-          }
-        ],
-        recommendedResolution: 'high',
-        requiresUserReview: true
+  // Fetch real conflicts data from the API
+  const { data: conflictsData, isLoading, error, refetch } = useQuery({
+    queryKey: ['asset-conflicts', asset_id],
+    queryFn: async () => {
+      try {
+        const response = await collectionFlowApi.getAssetConflicts(asset_id);
+        return response;
+      } catch (err) {
+        console.error('Failed to fetch asset conflicts:', err);
+        // Return empty array if API fails, rather than showing error
+        return [];
       }
-    ];
+    },
+    enabled: !!asset_id,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: false // Only refetch manually
+  });
 
-    const mockValidation: FormValidationResult = {
-      formId: 'data-integration',
-      isValid: false,
-      overallConfidenceScore: 0.87,
-      completionPercentage: 73,
-      fieldResults: {},
-      crossFieldErrors: [
-        {
-          fieldId: 'application_type',
-          fieldLabel: 'Application Type',
-          errorCode: 'CONFLICTING_VALUES',
-          errorMessage: 'Multiple conflicting values detected from different sources',
-          severity: 'warning'
-        }
-      ],
-      businessRuleViolations: []
-    };
+  // Transform API conflicts data to match frontend DataConflict interface
+  useEffect(() => {
+    if (conflictsData) {
+      const transformedConflicts: DataConflict[] = conflictsData.map(apiConflict => ({
+        id: apiConflict.id,
+        attributeName: apiConflict.field_name,
+        attributeLabel: apiConflict.field_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        conflictingValues: apiConflict.conflicting_values.map(value => ({
+          value: value.value,
+          source: value.source === 'custom_attributes' ? 'manual' :
+                  value.source === 'technical_details' ? 'automated' :
+                  value.source.startsWith('import:') ? 'bulk' : 'automated',
+          sourceId: value.source,
+          confidenceScore: value.confidence,
+          collectedAt: value.timestamp
+        })),
+        recommendedResolution: undefined, // API doesn't provide this yet
+        requiresUserReview: apiConflict.resolution_status === 'pending'
+      }));
 
-    setTimeout(() => {
-      setConflicts(mockConflicts);
+      setConflicts(transformedConflicts);
+
+      // Generate validation result based on conflicts
+      const mockValidation: FormValidationResult = {
+        formId: 'data-integration',
+        isValid: transformedConflicts.length === 0,
+        overallConfidenceScore: transformedConflicts.length > 0 ? 0.75 : 1.0,
+        completionPercentage: Math.round(((transformedConflicts.length - transformedConflicts.filter(c => c.requiresUserReview).length) / Math.max(transformedConflicts.length, 1)) * 100),
+        fieldResults: {},
+        crossFieldErrors: transformedConflicts
+          .filter(conflict => conflict.requiresUserReview)
+          .map(conflict => ({
+            fieldId: conflict.attributeName,
+            fieldLabel: conflict.attributeLabel,
+            errorCode: 'CONFLICTING_VALUES',
+            errorMessage: 'Multiple conflicting values detected from different sources',
+            severity: 'warning' as const
+          })),
+        businessRuleViolations: []
+      };
+
       setValidation(mockValidation);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [conflictsData]);
 
   // Progress milestones
   const progressMilestones: ProgressMilestone[] = [
@@ -188,47 +150,73 @@ const DataIntegration: React.FC = () => {
     }
   ];
 
-  const handleConflictResolve = (conflictId: string, resolution: ConflictResolution): void => {
-    setResolvedConflicts(prev => [...prev, conflictId]);
+  const handleConflictResolve = async (conflictId: string, resolution: ConflictResolution): Promise<void> => {
+    try {
+      setIsProcessing(true);
 
-    // Update conflicts list
-    setConflicts(prev => prev.filter(c => c.id !== conflictId));
+      // Find the conflict to get field_name
+      const conflict = conflicts.find(c => c.id === conflictId);
+      if (!conflict) {
+        throw new Error('Conflict not found');
+      }
 
-    toast({
-      title: 'Conflict Resolved',
-      description: `Selected ${resolution.selectedValue} from ${resolution.selectedSource} source.`
-    });
+      // Call the API to resolve the conflict
+      await collectionFlowApi.resolveAssetConflict(
+        asset_id,
+        conflict.attributeName,
+        {
+          value: String(resolution.selectedValue),
+          rationale: resolution.userJustification
+        }
+      );
 
-    // Check if all conflicts are resolved
-    if (resolvedConflicts.length + 1 === conflicts.length) {
-      // Update validation to mark as valid
-      setValidation(prev => prev ? { ...prev, isValid: true } : null);
+      // Update local state
+      setResolvedConflicts(prev => [...prev, conflictId]);
+      setConflicts(prev => prev.filter(c => c.id !== conflictId));
 
       toast({
-        title: 'All Conflicts Resolved',
-        description: 'Data integration is complete. Ready to proceed to discovery phase.'
+        title: 'Conflict Resolved',
+        description: `Selected "${resolution.selectedValue}" from ${resolution.selectedSource} source.`
       });
+
+      // Check if all conflicts are resolved
+      const remainingConflicts = conflicts.filter(c => c.id !== conflictId);
+      if (remainingConflicts.length === 0) {
+        // Update validation to mark as valid
+        setValidation(prev => prev ? { ...prev, isValid: true, completionPercentage: 100 } : null);
+
+        toast({
+          title: 'All Conflicts Resolved',
+          description: 'Data integration is complete. Ready to proceed to discovery phase.'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to resolve conflict:', error);
+      toast({
+        title: 'Resolution Failed',
+        description: 'Failed to resolve conflict. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleRefreshData = async (): void => {
-    setIsLoading(true);
     try {
-      // Simulate API call to refresh data
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Refetch conflicts data from the API
+      await refetch();
 
       toast({
         title: 'Data Refreshed',
-        description: 'Latest data has been loaded from all sources.'
+        description: 'Latest conflict data has been loaded from all sources.'
       });
     } catch (error) {
       toast({
         title: 'Refresh Failed',
-        description: 'Failed to refresh data. Please try again.',
+        description: 'Failed to refresh conflict data. Please try again.',
         variant: 'destructive'
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

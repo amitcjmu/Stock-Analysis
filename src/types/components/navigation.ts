@@ -38,6 +38,7 @@ export interface RouteConfig {
 }
 
 // Sidebar component types (legacy NavigationSidebar removed)
+export interface SidebarProps extends BaseNavigationProps {
   header?: ReactNode;
   footer?: ReactNode;
   variant?: 'default' | 'compact' | 'floating';

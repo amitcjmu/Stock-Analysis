@@ -60,9 +60,9 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
-  const unresolvedConflicts = conflicts.filter(c => !c.id);
-  const sourceCount = Object.keys(dataSources).length;
-  const attributeCount = Object.keys(integratedData).length;
+  const unresolvedConflicts = (conflicts || []).filter(c => !c.id);
+  const sourceCount = Object.keys(dataSources || {}).length;
+  const attributeCount = Object.keys(integratedData || {}).length;
 
   const getQualityBadge = (score: number): JSX.Element => {
     if (score >= 0.9) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
