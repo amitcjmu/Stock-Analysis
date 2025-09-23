@@ -34,15 +34,17 @@ async def health_check():
     # Basic database connectivity check
     database_status = False
     try:
-        # Try to get a database connection without executing a query
+        # Try to get a database connection - get_db() is an async generator
         db_gen = get_db()
-        next(db_gen)  # Get the database session
+        session = await anext(db_gen)  # Get the database session asynchronously
         database_status = True
         # Properly close the database session
         try:
-            next(db_gen)
-        except StopIteration:
-            pass  # Generator exhausted, session closed
+            await anext(db_gen)
+        except StopAsyncIteration:
+            pass  # Async generator exhausted, session closed
+        finally:
+            await session.close()
     except Exception as e:
         # Database not available or connection failed
         logging.warning(f"Database health check failed: {e}")
