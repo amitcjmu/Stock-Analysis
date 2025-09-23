@@ -244,8 +244,12 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
         return self._flow_state
 
     @start()
-    async def initialize_collection(self):
-        """Initialize the collection flow"""
+    async def initialize_collection(self, previous_result=None):
+        """Initialize the collection flow
+
+        Args:
+            previous_result: Previous phase result (None for initialization)
+        """
         config = {
             "client_requirements": self.client_requirements,
             "environment_config": self.environment_config,

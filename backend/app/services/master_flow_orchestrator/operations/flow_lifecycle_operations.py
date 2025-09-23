@@ -384,12 +384,14 @@ class FlowLifecycleOperations:
                 crewai_service = CrewAIFlowService()
 
                 # UnifiedDiscoveryFlow requires crewai_service as first parameter
+                # UnifiedCollectionFlow also requires db_session parameter
                 flow_instance = flow_config.crew_class(
                     crewai_service,  # Required first parameter
                     context=self.context,
                     flow_id=master_flow.flow_id,
                     initial_state=master_flow.flow_persistence_data,
                     configuration=master_flow.flow_configuration,
+                    db_session=self.db,  # Required for UnifiedCollectionFlow
                 )
 
                 # Check if we should force re-run instead of resume
