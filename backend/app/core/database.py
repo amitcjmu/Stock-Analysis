@@ -323,7 +323,9 @@ class DatabaseManager:
 
         try:
             async with asyncio.timeout(5):  # 5 second timeout
-                async with self.session_factory() as session:
+                # Create session properly - session_factory is async_sessionmaker
+                session = self.session_factory()
+                try:
                     # Test both regular and vector functionality
                     await session.execute(text("SELECT 1"))
                     # Test pgvector extension
@@ -331,14 +333,16 @@ class DatabaseManager:
                         text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
                     )
 
-                response_time = (datetime.utcnow() - start_time).total_seconds()
-                self.health_tracker.record_connection_attempt(True, response_time)
-                self.health_tracker.last_health_check = datetime.utcnow()
+                    response_time = (datetime.utcnow() - start_time).total_seconds()
+                    self.health_tracker.record_connection_attempt(True, response_time)
+                    self.health_tracker.last_health_check = datetime.utcnow()
 
-                logger.info(
-                    f"✅ Unified pgvector database health check passed in {response_time:.2f}s"
-                )
-                return True
+                    logger.info(
+                        f"✅ Unified pgvector database health check passed in {response_time:.2f}s"
+                    )
+                    return True
+                finally:
+                    await session.close()
 
         except Exception as e:
             response_time = (datetime.utcnow() - start_time).total_seconds()
