@@ -24,7 +24,140 @@ from app.api.v1.endpoints import collection_validators
 from app.api.v1.endpoints import collection_serializers
 from .base import sanitize_mfo_result
 
+# Import for orphaned flow handling
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
 logger = logging.getLogger(__name__)
+
+
+async def create_master_flow_for_orphan(
+    collection_flow: CollectionFlow,
+    db: AsyncSession,
+    context: RequestContext,
+) -> CrewAIFlowStateExtensions:
+    """Create a new master flow for an orphaned collection flow.
+
+    This handles cases where a collection flow exists without a master_flow_id,
+    likely due to incomplete flow creation or data corruption.
+
+    Args:
+        collection_flow: The orphaned collection flow
+        db: Database session
+        context: Request context
+
+    Returns:
+        The newly created master flow
+
+    Raises:
+        HTTPException: If master flow creation fails
+    """
+    try:
+        from datetime import datetime, timezone
+        from uuid import uuid4
+
+        # Generate new master flow ID
+        master_flow_id = uuid4()
+
+        logger.info(
+            safe_log_format(
+                "Creating master flow {master_flow_id} for orphaned collection flow {collection_flow_id}",
+                master_flow_id=str(master_flow_id),
+                collection_flow_id=str(collection_flow.flow_id),
+            )
+        )
+
+        # Create master flow with collection flow's metadata
+        master_flow = CrewAIFlowStateExtensions(
+            flow_id=master_flow_id,
+            flow_type="collection",
+            flow_name=f"Recovered Collection Flow - {collection_flow.flow_name}",
+            flow_status="running",  # Resume as running
+            current_phase=collection_flow.current_phase or "initialization",
+            progress_percentage=collection_flow.progress_percentage or 0.0,
+            flow_configuration={
+                "recovery_mode": True,
+                "original_collection_flow_id": str(collection_flow.flow_id),
+                "recovery_timestamp": datetime.now(timezone.utc).isoformat(),
+                "automation_tier": (
+                    collection_flow.automation_tier.value
+                    if collection_flow.automation_tier
+                    else "tier_1"
+                ),
+                **collection_flow.collection_config,
+            },
+            flow_persistence_data={
+                "recovery_metadata": {
+                    "recovered_at": datetime.now(timezone.utc).isoformat(),
+                    "recovery_reason": "orphaned_collection_flow",
+                    "original_flow_data": {
+                        "flow_id": str(collection_flow.flow_id),
+                        "status": (
+                            collection_flow.status.value
+                            if collection_flow.status
+                            else "unknown"
+                        ),
+                        "current_phase": collection_flow.current_phase,
+                        "progress_percentage": collection_flow.progress_percentage,
+                    },
+                },
+                "collection_state": {
+                    "phase_state": collection_flow.phase_state,
+                    "user_inputs": collection_flow.user_inputs,
+                    "phase_results": collection_flow.phase_results,
+                    "collection_results": collection_flow.collection_results,
+                    "gap_analysis_results": collection_flow.gap_analysis_results,
+                },
+            },
+            client_account_id=collection_flow.client_account_id,
+            engagement_id=collection_flow.engagement_id,
+            user_id=collection_flow.user_id or context.user_id,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+
+        # Add to session and flush to get the ID
+        db.add(master_flow)
+        await db.flush()
+
+        # Update collection flow with the new master_flow_id
+        collection_flow.master_flow_id = master_flow.flow_id
+        collection_flow.updated_at = datetime.now(timezone.utc)
+
+        # Add recovery note to collection flow metadata
+        if not collection_flow.flow_metadata:
+            collection_flow.flow_metadata = {}
+        collection_flow.flow_metadata["recovery_info"] = {
+            "recovered_at": datetime.now(timezone.utc).isoformat(),
+            "master_flow_created": str(master_flow.flow_id),
+            "recovery_reason": "orphaned_flow_repair",
+        }
+
+        # Commit the transaction
+        await db.commit()
+
+        logger.info(
+            safe_log_format(
+                "Successfully created master flow {master_flow_id} and linked to collection flow {collection_flow_id}",
+                master_flow_id=str(master_flow.flow_id),
+                collection_flow_id=str(collection_flow.flow_id),
+            )
+        )
+
+        return master_flow
+
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Failed to create master flow for orphaned collection flow {collection_flow_id}: {error}",
+                collection_flow_id=str(collection_flow.flow_id),
+                error=str(e),
+            )
+        )
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create master flow for orphaned collection flow: {str(e)}",
+        )
 
 
 async def execute_collection_flow(
@@ -62,12 +195,52 @@ async def execute_collection_flow(
         if not current_phase or current_phase == "initialized":
             current_phase = "initialization"
 
-        # Use master_flow_id if it exists, otherwise try with collection flow_id
-        execute_flow_id = (
-            str(collection_flow.master_flow_id)
-            if collection_flow.master_flow_id
-            else flow_id
-        )
+        # CRITICAL FIX: Handle orphaned flows without master_flow_id
+        if not collection_flow.master_flow_id:
+            logger.warning(
+                safe_log_format(
+                    "Collection flow {flow_id} has no master_flow_id - attempting to create one for execution",
+                    flow_id=flow_id,
+                )
+            )
+
+            try:
+                # Create a new master flow for this orphaned collection flow
+                master_flow = await create_master_flow_for_orphan(
+                    collection_flow, db, context
+                )
+
+                logger.info(
+                    safe_log_format(
+                        "Successfully created master flow {master_flow_id} for orphaned collection flow {flow_id} during execution",
+                        master_flow_id=str(master_flow.flow_id),
+                        flow_id=flow_id,
+                    )
+                )
+
+                # Update local reference
+                collection_flow.master_flow_id = master_flow.flow_id
+
+            except Exception as repair_error:
+                logger.error(
+                    safe_log_format(
+                        "Failed to repair orphaned collection flow {flow_id} during execution: {error}",
+                        flow_id=flow_id,
+                        error=str(repair_error),
+                    )
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "orphaned_flow_repair_failed",
+                        "message": "Collection flow has no master flow and repair failed during execution",
+                        "flow_id": flow_id,
+                        "repair_error": str(repair_error),
+                        "required_action": "contact_support",
+                    },
+                )
+
+        execute_flow_id = str(collection_flow.master_flow_id)
 
         logger.info(
             safe_log_format(
@@ -151,6 +324,51 @@ async def continue_flow(
         # Check if flow can be resumed
         await collection_validators.validate_flow_can_be_resumed(collection_flow)
 
+        # CRITICAL FIX: Handle orphaned flows without master_flow_id
+        if not collection_flow.master_flow_id:
+            logger.warning(
+                safe_log_format(
+                    "Collection flow {flow_id} has no master_flow_id - attempting to create one",
+                    flow_id=flow_id,
+                )
+            )
+
+            try:
+                # Create a new master flow for this orphaned collection flow
+                master_flow = await create_master_flow_for_orphan(
+                    collection_flow, db, context
+                )
+
+                logger.info(
+                    safe_log_format(
+                        "Successfully created master flow {master_flow_id} for orphaned collection flow {flow_id}",
+                        master_flow_id=str(master_flow.flow_id),
+                        flow_id=flow_id,
+                    )
+                )
+
+                # Update local reference
+                collection_flow.master_flow_id = master_flow.flow_id
+
+            except Exception as repair_error:
+                logger.error(
+                    safe_log_format(
+                        "Failed to repair orphaned collection flow {flow_id}: {error}",
+                        flow_id=flow_id,
+                        error=str(repair_error),
+                    )
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "orphaned_flow_repair_failed",
+                        "message": "Collection flow has no master flow and repair failed",
+                        "flow_id": flow_id,
+                        "repair_error": str(repair_error),
+                        "required_action": "contact_support",
+                    },
+                )
+
         # Check current flow state to provide more detailed status
         current_phase = collection_flow.current_phase
         flow_status = collection_flow.status
@@ -196,11 +414,33 @@ async def continue_flow(
             )
 
         # Resume flow through MFO
-        # Use master_flow_id if available, otherwise fallback to collection flow_id
-        resume_flow_id = (
-            str(collection_flow.master_flow_id)
-            if collection_flow.master_flow_id
-            else flow_id
+        # At this point we should have a valid master_flow_id (either existing or newly created)
+        if not collection_flow.master_flow_id:
+            # This should not happen after the repair logic above, but add defensive check
+            logger.error(
+                safe_log_format(
+                    "Collection flow {flow_id} still has no master_flow_id after repair attempt",
+                    flow_id=flow_id,
+                )
+            )
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "missing_master_flow_id",
+                    "message": "Collection flow has no master flow ID and repair failed",
+                    "flow_id": flow_id,
+                    "required_action": "contact_support",
+                },
+            )
+
+        resume_flow_id = str(collection_flow.master_flow_id)
+
+        logger.info(
+            safe_log_format(
+                "Resuming collection flow {flow_id} using master flow {master_flow_id}",
+                flow_id=flow_id,
+                master_flow_id=resume_flow_id,
+            )
         )
 
         try:
@@ -209,12 +449,35 @@ async def continue_flow(
             )
             mfo_triggered = True
             mfo_result = result
-        except Exception as mfo_error:
-            logger.warning(
-                f"MFO resume failed, but flow can still continue: {str(mfo_error)}"
+
+            logger.info(
+                safe_log_format(
+                    "MFO resume successful for flow {flow_id}",
+                    flow_id=flow_id,
+                )
             )
-            mfo_triggered = False
-            mfo_result = {"error": str(mfo_error)}
+
+        except Exception as mfo_error:
+            logger.error(
+                safe_log_format(
+                    "MFO resume failed for flow {flow_id}: {error}",
+                    flow_id=flow_id,
+                    error=str(mfo_error),
+                )
+            )
+
+            # Return proper error status instead of 200
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "resume_failed",
+                    "message": "Failed to resume collection flow through Master Flow Orchestrator",
+                    "flow_id": flow_id,
+                    "master_flow_id": resume_flow_id,
+                    "mfo_error": str(mfo_error),
+                    "required_action": "retry_or_contact_support",
+                },
+            )
 
         logger.info(
             f"Resumed collection flow {flow_id} for engagement {context.engagement_id}"
@@ -233,6 +496,11 @@ async def continue_flow(
             "mfo_result": sanitize_mfo_result(mfo_result),
             "next_steps": next_steps,
             "continued_at": datetime.now(timezone.utc).isoformat(),
+            "master_flow_id": str(collection_flow.master_flow_id),
+            "recovery_performed": bool(
+                collection_flow.flow_metadata
+                and collection_flow.flow_metadata.get("recovery_info")
+            ),
             # Legacy compatibility - also sanitize for backward compatibility
             "resume_result": sanitize_mfo_result(mfo_result),
         }
@@ -322,7 +590,50 @@ async def rerun_gap_analysis(
             seconds=estimated_seconds
         )
 
-        # Trigger gap analysis through MFO if available
+        # Trigger gap analysis through MFO - create master flow if missing
+        if not collection_flow.master_flow_id:
+            logger.warning(
+                safe_log_format(
+                    "Collection flow {flow_id} has no master_flow_id - attempting to create one for gap analysis",
+                    flow_id=flow_id,
+                )
+            )
+
+            try:
+                # Create a new master flow for this orphaned collection flow
+                master_flow = await create_master_flow_for_orphan(
+                    collection_flow, db, context
+                )
+
+                logger.info(
+                    safe_log_format(
+                        "Successfully created master flow {master_flow_id} for orphaned collection flow {flow_id} during gap analysis",
+                        master_flow_id=str(master_flow.flow_id),
+                        flow_id=flow_id,
+                    )
+                )
+
+                # Update local reference
+                collection_flow.master_flow_id = master_flow.flow_id
+
+            except Exception as repair_error:
+                logger.error(
+                    safe_log_format(
+                        "Failed to repair orphaned collection flow {flow_id} during gap analysis: {error}",
+                        flow_id=flow_id,
+                        error=str(repair_error),
+                    )
+                )
+                return {
+                    "status": "error",
+                    "message": "Gap analysis failed - collection flow has no master flow and repair failed",
+                    "flow_id": flow_id,
+                    "error_code": "orphaned_flow_repair_failed",
+                    "repair_error": str(repair_error),
+                    "required_action": "contact_support",
+                }
+
+        # Now we should have a valid master_flow_id
         if collection_flow.master_flow_id:
             try:
                 orchestrator = MasterFlowOrchestrator(db, context)

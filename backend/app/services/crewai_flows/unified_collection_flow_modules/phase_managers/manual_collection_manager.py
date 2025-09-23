@@ -81,7 +81,9 @@ class ManualCollectionManager:
         except Exception as e:
             logger.error(f"❌ Manual collection failed: {e}")
             flow_state.add_error("manual_collection", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
+            await enhanced_error_handler.handle_critical_flow_error(
+                flow_state.flow_id, e, flow_state
+            )
             raise
 
     async def resume(

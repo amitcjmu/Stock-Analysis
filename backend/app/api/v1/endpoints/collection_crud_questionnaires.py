@@ -3,6 +3,7 @@ Collection Flow Questionnaire Query Operations
 Questionnaire-specific read operations for collection flows.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import List, Optional
@@ -133,6 +134,9 @@ async def get_adaptive_questionnaires(
             logger.info(f"Flow {flow_id} is completed. Returning empty list.")
             return []
 
+        # Get existing assets needed for both agent and bootstrap generation
+        existing_assets = await _get_existing_assets(db, context)
+
         # Check agent generation feature flag
         from app.core.feature_flags import is_feature_enabled
 
@@ -140,12 +144,34 @@ async def get_adaptive_questionnaires(
 
         if use_agent:
             logger.info(f"Agent generation enabled for flow {flow_id}")
-            return []  # Trigger frontend polling
+            try:
+                # Try agent generation with timeout
+                agent_questionnaires = await asyncio.wait_for(
+                    _generate_agent_questionnaires(
+                        flow_id, flow, existing_assets, context
+                    ),
+                    timeout=30.0,  # 30 second timeout
+                )
+                if agent_questionnaires:
+                    logger.info(f"Agent generation successful for flow {flow_id}")
+                    return agent_questionnaires
+                else:
+                    logger.warning(
+                        f"Agent generation returned empty for flow {flow_id}, falling back to bootstrap"
+                    )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Agent generation timed out for flow {flow_id}, falling back to bootstrap"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Agent generation failed for flow {flow_id}: {e}, falling back to bootstrap"
+                )
+
+            # Fall through to bootstrap generation
 
         # Generate bootstrap questionnaire
         logger.info(f"Generating bootstrap questionnaire for flow {flow_id}")
-
-        existing_assets = await _get_existing_assets(db, context)
         selected_app_name, selected_app_id = _get_selected_application_info(
             flow, existing_assets
         )
@@ -165,8 +191,8 @@ async def get_adaptive_questionnaires(
         bootstrap_questionnaire = AdaptiveQuestionnaireResponse(
             id=bootstrap_template["id"],
             collection_flow_id=bootstrap_template["flow_id"],
-            title=bootstrap_template["title"],
-            description=bootstrap_template["description"],
+            title=f"{bootstrap_template['title']} (Bootstrap)",
+            description=f"{bootstrap_template['description']} - Generated using bootstrap template",
             target_gaps=[
                 "application_selection",
                 "basic_info",
@@ -232,3 +258,100 @@ def _convert_template_field_to_question(
         question["default_value"] = field["default_value"]
 
     return question
+
+
+async def _generate_agent_questionnaires(
+    flow_id: str,
+    flow: CollectionFlow,
+    existing_assets: List[Asset],
+    context: RequestContext,
+) -> List[AdaptiveQuestionnaireResponse]:
+    """Generate questionnaires using AI agent with hybrid fallback."""
+    try:
+        from app.services.ai_analysis.questionnaire_generator import (
+            QuestionnaireService,
+            QuestionnaireProcessor,
+        )
+        from app.services.ai_analysis.questionnaire_generator.agents import (
+            QuestionnaireAgentManager,
+        )
+        from app.services.ai_analysis.questionnaire_generator.tasks import (
+            QuestionnaireTaskManager,
+        )
+
+        # Initialize questionnaire generation service
+        agent_manager = QuestionnaireAgentManager()
+        agents = agent_manager.create_agents()
+
+        # Create task inputs for questionnaire generation
+        task_inputs = {
+            "gap_analysis": (
+                flow.persistence_data.get("gap_analysis", {})
+                if flow.persistence_data
+                else {}
+            ),
+            "business_context": flow.collection_config or {},
+            "collection_flow_id": flow_id,
+            "stakeholder_context": {},
+            "automation_tier": "tier_2",
+        }
+
+        task_manager = QuestionnaireTaskManager(agents)
+        tasks = task_manager.create_tasks(task_inputs)
+
+        processor = QuestionnaireProcessor(
+            agents=agents, tasks=tasks, name="questionnaire_generation"
+        )
+        service = QuestionnaireService(processor)
+
+        # Prepare data gaps context
+        data_gaps = [
+            {"gap_type": "application_selection", "priority": "critical"},
+            {"gap_type": "basic_info", "priority": "high"},
+            {"gap_type": "technical_details", "priority": "medium"},
+            {"gap_type": "infrastructure", "priority": "medium"},
+            {"gap_type": "compliance", "priority": "low"},
+        ]
+
+        # Generate questionnaires
+        questionnaires_data = await service.generate_questionnaires(
+            data_gaps=data_gaps,
+            business_context={"flow_id": flow_id, "scope": "engagement"},
+            automation_tier="tier_2",
+            collection_flow_id=flow_id,
+        )
+
+        # Convert to response format
+        result = []
+        for idx, q_data in enumerate(questionnaires_data):
+            questionnaire = AdaptiveQuestionnaireResponse(
+                id=q_data.get("id", f"agent-generated-{idx}"),
+                collection_flow_id=flow_id,
+                title=f"{q_data.get('title', 'AI-Generated Questionnaire')} (Agent)",
+                description=(
+                    f"{q_data.get('description', 'Generated by AI agent')} - "
+                    "Created using AI questionnaire agent"
+                ),
+                target_gaps=[
+                    "application_selection",
+                    "basic_info",
+                    "technical_details",
+                ],
+                questions=q_data.get("questions", []),
+                validation_rules=q_data.get("validation_rules", {}),
+                completion_status="pending",
+                responses_collected={},
+                created_at=datetime.now(),
+                completed_at=None,
+            )
+            result.append(questionnaire)
+
+        logger.info(f"Generated {len(result)} questionnaires using AI agent")
+        return result
+
+    except ImportError as e:
+        logger.warning(f"Questionnaire generation service not available: {e}")
+        return []
+    except Exception as e:
+        logger.error(f"Failed to generate questionnaires with agent: {e}")
+        return []

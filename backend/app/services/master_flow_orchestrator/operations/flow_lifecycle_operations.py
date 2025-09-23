@@ -68,6 +68,51 @@ class FlowLifecycleOperations:
             # Get flow from database
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if not master_flow:
+                logger.error(
+                    f"❌ Flow not found in master flow table: {flow_id} "
+                    f"(client: {self.context.client_account_id}, engagement: {self.context.engagement_id})"
+                )
+
+                # Check if this might be an orphaned collection flow
+                logger.info(
+                    f"🔍 Checking for orphaned collection flow data for {flow_id}"
+                )
+                try:
+                    from sqlalchemy import select
+                    from app.models.collection_flow import CollectionFlow
+
+                    # Check if there's a collection flow with this ID but no master_flow_id
+                    result = await self.db.execute(
+                        select(CollectionFlow).where(
+                            CollectionFlow.flow_id == flow_id,
+                            CollectionFlow.client_account_id
+                            == self.context.client_account_id,
+                            CollectionFlow.engagement_id == self.context.engagement_id,
+                            CollectionFlow.master_flow_id.is_(None),
+                        )
+                    )
+                    orphaned_collection = result.scalar_one_or_none()
+
+                    if orphaned_collection:
+                        logger.warning(
+                            f"⚠️ Found orphaned collection flow {flow_id} without master_flow_id. "
+                            f"Status: {orphaned_collection.status}, Phase: {orphaned_collection.current_phase}"
+                        )
+                        raise ValueError(
+                            f"Flow not found in master flow table: {flow_id}. "
+                            f"However, found orphaned collection flow data that needs repair. "
+                            f"Use the continue endpoint to automatically repair this flow."
+                        )
+                    else:
+                        logger.info(
+                            f"ℹ️ No orphaned collection flow found for {flow_id}"
+                        )
+
+                except Exception as check_error:
+                    logger.warning(
+                        f"Failed to check for orphaned collection flow: {check_error}"
+                    )
+
                 raise ValueError(f"Flow not found: {flow_id}")
 
             # Check if flow can be paused
@@ -170,6 +215,63 @@ class FlowLifecycleOperations:
             # Get flow from database
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if not master_flow:
+                logger.error(
+                    f"❌ Flow not found in master flow table for resume: {flow_id} "
+                    f"(client: {self.context.client_account_id}, engagement: {self.context.engagement_id})"
+                )
+
+                # Check if this might be an orphaned collection flow
+                logger.info(
+                    f"🔍 Checking for orphaned collection flow data for resume operation on {flow_id}"
+                )
+                try:
+                    from sqlalchemy import select
+                    from app.models.collection_flow import CollectionFlow
+
+                    # Check if there's a collection flow with this ID but no master_flow_id
+                    result = await self.db.execute(
+                        select(CollectionFlow).where(
+                            CollectionFlow.flow_id == flow_id,
+                            CollectionFlow.client_account_id
+                            == self.context.client_account_id,
+                            CollectionFlow.engagement_id == self.context.engagement_id,
+                            CollectionFlow.master_flow_id.is_(None),
+                        )
+                    )
+                    orphaned_collection = result.scalar_one_or_none()
+
+                    if orphaned_collection:
+                        logger.warning(
+                            f"⚠️ Resume operation failed: Found orphaned collection flow {flow_id} without master_flow_id. "
+                            f"Status: {orphaned_collection.status}, Phase: {orphaned_collection.current_phase}. "
+                            f"This flow needs repair before it can be resumed."
+                        )
+                        return {
+                            "status": "resume_failed",
+                            "flow_id": flow_id,
+                            "error": "orphaned_collection_flow",
+                            "message": (
+                                f"Cannot resume flow {flow_id} because it exists as an orphaned collection flow "
+                                f"without a master flow entry. Use the collection continue endpoint to repair this flow."
+                            ),
+                            "suggested_action": "use_collection_continue_endpoint",
+                            "collection_flow_status": (
+                                orphaned_collection.status.value
+                                if orphaned_collection.status
+                                else "unknown"
+                            ),
+                            "collection_flow_phase": orphaned_collection.current_phase,
+                        }
+                    else:
+                        logger.info(
+                            f"ℹ️ No orphaned collection flow found for {flow_id}"
+                        )
+
+                except Exception as check_error:
+                    logger.warning(
+                        f"Failed to check for orphaned collection flow during resume: {check_error}"
+                    )
+
                 raise ValueError(f"Flow not found: {flow_id}")
 
             # Check if flow can be resumed
@@ -281,6 +383,10 @@ class FlowLifecycleOperations:
             # Get flow from database
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if not master_flow:
+                logger.error(
+                    f"❌ Flow not found in master flow table for deletion: {flow_id} "
+                    f"(client: {self.context.client_account_id}, engagement: {self.context.engagement_id})"
+                )
                 raise ValueError(f"Flow not found: {flow_id}")
 
             # Perform soft delete

@@ -131,7 +131,9 @@ class PlatformDetectionManager:
         except Exception as e:
             logger.error(f"❌ Platform detection failed: {e}")
             flow_state.add_error("platform_detection", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
+            await enhanced_error_handler.handle_critical_flow_error(
+                flow_state.flow_id, e, flow_state
+            )
             raise
 
     async def resume(

@@ -25,8 +25,8 @@ try:
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
-    Process = object
-    BaseDiscoveryCrew = object
+    Process = type("Process", (object,), {})  # type: ignore
+    BaseDiscoveryCrew = type("BaseDiscoveryCrew", (object,), {})  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -203,10 +203,152 @@ class QuestionnaireService:
                         "id": f"questionnaire-{collection_flow_id}",
                         "title": "Migration Data Collection Questionnaire",
                         "estimated_duration_minutes": 20,
+                        "version": "1.0",
+                        "scope": "application_assessment",
                     },
-                    "questionnaire_sections": [],
-                    "adaptive_logic": {},
-                    "completion_criteria": {},
+                    "questionnaire_sections": [
+                        {
+                            "section_id": "basic_info",
+                            "section_title": "Basic Application Information",
+                            "section_description": "Essential details about the application for migration planning",
+                            "estimated_duration_minutes": 8,
+                            "target_stakeholders": ["business_owner", "technical_lead"],
+                            "questions": [
+                                {
+                                    "id": "app_purpose",
+                                    "text": "What is the primary business purpose of this application?",
+                                    "type": "text",
+                                    "required": True,
+                                    "category": "business_context",
+                                    "priority": "critical",
+                                    "help_text": "Describe the main business function this application serves",
+                                    "gap_resolution": "application_selection",
+                                },
+                                {
+                                    "id": "business_criticality",
+                                    "text": "How critical is this application to business operations?",
+                                    "type": "select",
+                                    "required": True,
+                                    "category": "business_context",
+                                    "priority": "critical",
+                                    "options": [
+                                        {
+                                            "value": "mission_critical",
+                                            "label": "Mission Critical",
+                                        },
+                                        {
+                                            "value": "business_critical",
+                                            "label": "Business Critical",
+                                        },
+                                        {"value": "important", "label": "Important"},
+                                        {
+                                            "value": "nice_to_have",
+                                            "label": "Nice to Have",
+                                        },
+                                    ],
+                                    "gap_resolution": "basic_info",
+                                },
+                                {
+                                    "id": "user_count",
+                                    "text": "Approximately how many users access this application?",
+                                    "type": "select",
+                                    "required": True,
+                                    "category": "usage_metrics",
+                                    "priority": "high",
+                                    "options": [
+                                        {"value": "1-10", "label": "1-10 users"},
+                                        {"value": "11-50", "label": "11-50 users"},
+                                        {"value": "51-200", "label": "51-200 users"},
+                                        {
+                                            "value": "201-1000",
+                                            "label": "201-1,000 users",
+                                        },
+                                        {"value": "1000+", "label": "1,000+ users"},
+                                    ],
+                                    "gap_resolution": "basic_info",
+                                },
+                            ],
+                        },
+                        {
+                            "section_id": "technical_details",
+                            "section_title": "Technical Architecture",
+                            "section_description": "Technical specifications and architecture details",
+                            "estimated_duration_minutes": 12,
+                            "target_stakeholders": [
+                                "technical_lead",
+                                "developer",
+                                "architect",
+                            ],
+                            "questions": [
+                                {
+                                    "id": "tech_stack",
+                                    "text": "What is the primary technology stack?",
+                                    "type": "select",
+                                    "required": True,
+                                    "category": "technology",
+                                    "priority": "critical",
+                                    "options": [
+                                        {"value": "java", "label": "Java"},
+                                        {"value": "dotnet", "label": ".NET"},
+                                        {"value": "python", "label": "Python"},
+                                        {"value": "nodejs", "label": "Node.js"},
+                                        {"value": "php", "label": "PHP"},
+                                        {"value": "ruby", "label": "Ruby"},
+                                        {"value": "go", "label": "Go"},
+                                        {"value": "other", "label": "Other"},
+                                    ],
+                                    "gap_resolution": "technical_details",
+                                },
+                                {
+                                    "id": "database_type",
+                                    "text": "What type of database does this application use?",
+                                    "type": "select",
+                                    "required": True,
+                                    "category": "technology",
+                                    "priority": "high",
+                                    "options": [
+                                        {"value": "mysql", "label": "MySQL"},
+                                        {"value": "postgresql", "label": "PostgreSQL"},
+                                        {"value": "oracle", "label": "Oracle"},
+                                        {"value": "sqlserver", "label": "SQL Server"},
+                                        {"value": "mongodb", "label": "MongoDB"},
+                                        {"value": "redis", "label": "Redis"},
+                                        {"value": "none", "label": "No Database"},
+                                        {"value": "other", "label": "Other"},
+                                    ],
+                                    "gap_resolution": "technical_details",
+                                },
+                            ],
+                        },
+                    ],
+                    "adaptive_logic": {
+                        "branching_rules": [
+                            {
+                                "condition": "business_criticality == 'mission_critical'",
+                                "action": "add_section",
+                                "target": "compliance_requirements",
+                            }
+                        ],
+                        "dynamic_questions": [
+                            {
+                                "trigger": "tech_stack == 'other'",
+                                "question": {
+                                    "id": "tech_stack_other",
+                                    "text": "Please specify the technology stack",
+                                    "type": "text",
+                                    "required": True,
+                                },
+                            }
+                        ],
+                    },
+                    "completion_criteria": {
+                        "success_metrics": [
+                            "all_critical_questions_answered",
+                            "business_context_complete",
+                            "technical_overview_complete",
+                        ],
+                        "minimum_completion": 0.8,
+                    },
                 }
             )
 
@@ -215,7 +357,7 @@ class QuestionnaireService:
             sections = questionnaire_data.get("sections", [])
 
             # Convert sections to questionnaire format expected by the system
-            questionnaires = []
+            questionnaires: list[dict] = []
             for section in sections:
                 questionnaire = {
                     "id": section.get(

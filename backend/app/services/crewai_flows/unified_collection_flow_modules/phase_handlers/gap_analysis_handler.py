@@ -73,9 +73,7 @@ class GapAnalysisHandler:
             crew = create_gap_analysis_crew(
                 crewai_service=self.crewai_service,
                 collected_data=collected_data,
-                sixr_requirements=config.get("client_requirements", {}).get(
-                    "sixr_requirements", {}
-                ),
+                quality_assessment=config.get("quality_assessment", {}),
                 context={
                     "automation_tier": state.automation_tier.value,
                     "existing_gaps": collection_gaps,
@@ -140,7 +138,6 @@ class GapAnalysisHandler:
                         client_account_id=self.flow_context.client_account_id,
                         engagement_id=self.flow_context.engagement_id,
                         user_id=getattr(self.flow_context, "user_id", None),
-                        tenant_id=getattr(self.flow_context, "tenant_id", None),
                     )
 
                     # Get collection flow ID from flow context
@@ -217,7 +214,6 @@ class GapAnalysisHandler:
                                 client_account_id=self.flow_context.client_account_id,
                                 engagement_id=self.flow_context.engagement_id,
                                 user_id=getattr(self.flow_context, "user_id", None),
-                                tenant_id=getattr(self.flow_context, "tenant_id", None),
                             )
 
                             # Initialize orchestrator and trigger next phase
@@ -277,5 +273,7 @@ class GapAnalysisHandler:
         except Exception as e:
             logger.error(f"❌ Gap analysis failed: {e}")
             state.add_error("gap_analysis", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
+            await enhanced_error_handler.handle_critical_flow_error(
+                state.flow_id, e, state
+            )
             raise CollectionFlowError(f"Gap analysis failed: {e}")

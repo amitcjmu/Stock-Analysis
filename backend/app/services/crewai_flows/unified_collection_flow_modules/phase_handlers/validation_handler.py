@@ -144,5 +144,7 @@ class ValidationHandler:
         except Exception as e:
             logger.error(f"❌ Data validation failed: {e}")
             state.add_error("data_validation", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
+            await enhanced_error_handler.handle_critical_flow_error(
+                state.flow_id, e, state
+            )
             raise CollectionFlowError(f"Data validation failed: {e}")

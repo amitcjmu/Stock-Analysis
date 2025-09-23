@@ -212,5 +212,7 @@ class AutomatedCollectionHandler:
         except Exception as e:
             logger.error(f"❌ Automated collection failed: {e}")
             state.add_error("automated_collection", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
+            await enhanced_error_handler.handle_critical_flow_error(
+                state.flow_id, e, state
+            )
             raise CollectionFlowError(f"Automated collection failed: {e}")

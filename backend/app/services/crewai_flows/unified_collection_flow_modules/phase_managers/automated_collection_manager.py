@@ -143,7 +143,9 @@ class AutomatedCollectionManager:
         except Exception as e:
             logger.error(f"❌ Automated collection failed: {e}")
             flow_state.add_error("automated_collection", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
+            await enhanced_error_handler.handle_critical_flow_error(
+                flow_state.flow_id, e, flow_state
+            )
             raise
 
     async def resume(
@@ -367,10 +369,9 @@ class AutomatedCollectionManager:
         from app.services.collection_flow.adapters import adapter_registry
 
         adapters = {}
-        for adapter_type in adapter_registry.list_adapters():
-            adapter_info = adapter_registry.get_adapter_info(adapter_type)
-            if adapter_info:
-                adapters[adapter_type] = adapter_info
+        for adapter_metadata in adapter_registry.list_all_adapters():
+            # Use the adapter metadata directly instead of making another call
+            adapters[adapter_metadata.name] = adapter_metadata
 
         return adapters
 
@@ -405,9 +406,9 @@ class AutomatedCollectionManager:
                 collected_domains.add(item["domain"])
 
         critical_domains = [
-            DataDomain.APPLICATIONS,
+            DataDomain.APPLICATION,
             DataDomain.INFRASTRUCTURE,
-            DataDomain.DEPENDENCIES,
+            DataDomain.NETWORK,  # Using NETWORK instead of DEPENDENCIES
         ]
         for domain in critical_domains:
             if domain.value not in collected_domains:
@@ -425,7 +426,7 @@ class AutomatedCollectionManager:
         self, transformed_data: List[Dict]
     ) -> Dict[str, float]:
         """Calculate coverage for each data domain"""
-        domain_counts = {}
+        domain_counts: Dict[str, int] = {}
         total_items = len(transformed_data)
 
         if total_items == 0:

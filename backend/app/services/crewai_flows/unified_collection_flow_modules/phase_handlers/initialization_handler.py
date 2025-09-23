@@ -48,14 +48,18 @@ class InitializationHandler:
             state.updated_at = datetime.utcnow()
 
             # Initialize flow in database
-            await self.services.state_service.initialize_collection_flow(
-                flow_id=state.flow_id,
-                automation_tier=state.automation_tier.value,
-                configuration={
+            await self.services.state_service.initialize_flow(
+                flow_name=f"Collection Flow - {state.flow_id}",
+                automation_tier=state.automation_tier,
+                master_flow_id=config.get("master_flow_id"),
+                discovery_flow_id=config.get("discovery_flow_id"),
+                collection_config={
                     "client_requirements": config.get("client_requirements", {}),
                     "environment_config": config.get("environment_config", {}),
-                    "master_flow_id": config.get("master_flow_id"),
-                    "discovery_flow_id": config.get("discovery_flow_id"),
+                },
+                metadata={
+                    "flow_id": state.flow_id,
+                    "initialized_at": datetime.utcnow().isoformat(),
                 },
             )
 
@@ -109,5 +113,7 @@ class InitializationHandler:
         except Exception as e:
             logger.error(f"❌ Initialization failed: {e}")
             state.add_error("initialization", str(e))
-            await enhanced_error_handler.handle_error(e, self.flow_context)
+            await enhanced_error_handler.handle_critical_flow_error(
+                state.flow_id, e, state
+            )
             raise CollectionFlowError(f"Initialization failed: {e}")
