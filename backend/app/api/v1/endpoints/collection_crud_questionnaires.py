@@ -109,7 +109,20 @@ async def get_adaptive_questionnaires(
             )
             return []
 
-        # No questionnaires found - generate asset-aware bootstrap questionnaire
+        # Check if we should use agent generation or bootstrap
+        from app.core.feature_flags import is_feature_enabled
+
+        use_agent = is_feature_enabled("collection.gaps.v2_agent_questionnaires", True)
+
+        if use_agent:
+            logger.info(
+                f"No questionnaires found for flow {flow_id}, agent generation is enabled"
+            )
+            # Return empty list to trigger frontend polling
+            # Frontend should call the generate endpoint
+            return []
+
+        # Fallback to bootstrap questionnaire if agent generation is disabled
         logger.info(
             f"No questionnaires found for flow {flow_id}, generating asset-aware bootstrap questionnaire"
         )

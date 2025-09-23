@@ -19,6 +19,8 @@ FEATURE_FLAGS: Dict[str, bool] = {
     # Collection Gaps Phase 2 features
     "collection.gaps.v1": True,  # Enable asset-agnostic collection endpoints
     "collection.gaps.v2": True,  # Enable asset selection and enhanced questionnaires
+    "collection.gaps.v2_agent_questionnaires": True,  # Use agent-driven questionnaire generation
+    "collection.gaps.bootstrap_fallback": True,  # Allow bootstrap fallback if agent times out
     "collection.gaps.conflict_detection": True,  # Enable conflict detection features
     "collection.gaps.advanced_analytics": False,  # Future analytics features
     # Other feature flags can be added here
@@ -33,12 +35,13 @@ PERMANENT_FEATURES: Set[str] = {
 }
 
 
-def is_feature_enabled(feature_name: str) -> bool:
+def is_feature_enabled(feature_name: str, default: bool = False) -> bool:
     """
     Check if a feature flag is enabled.
 
     Args:
         feature_name: The name of the feature to check
+        default: Default value if feature flag not found
 
     Returns:
         True if the feature is enabled, False otherwise
@@ -48,7 +51,7 @@ def is_feature_enabled(feature_name: str) -> bool:
         return True
 
     # Check configured feature flags
-    enabled = FEATURE_FLAGS.get(feature_name, False)
+    enabled = FEATURE_FLAGS.get(feature_name, default)
 
     logger.debug(f"Feature flag check: '{feature_name}' = {enabled}")
     return enabled

@@ -187,3 +187,45 @@ class CollectionApplicationSelectionRequest(BaseModel):
         default="update_applications",
         description="Action to perform (default: update_applications)",
     )
+
+
+class QuestionnaireGenerationRequest(BaseModel):
+    """Request to generate questionnaire using agents"""
+
+    selected_asset_ids: Optional[List[str]] = Field(
+        None,
+        description="List of asset IDs to focus questionnaire on",
+    )
+    scope: Optional[str] = Field(
+        default="engagement",
+        description="Scope of questionnaire: engagement, tenant, or asset",
+    )
+    questionnaire_type: Optional[str] = Field(
+        default="adaptive",
+        description="Type of questionnaire to generate",
+    )
+
+
+class QuestionnaireGenerationResponse(BaseModel):
+    """Response from questionnaire generation request"""
+
+    status: str = Field(
+        ...,
+        description="Generation status: pending, ready, fallback, or error",
+    )
+    questionnaire_id: Optional[str] = Field(
+        None,
+        description="ID of generated questionnaire when ready",
+    )
+    error_code: Optional[str] = Field(
+        None,
+        description="Error code if generation failed or pending",
+    )
+    retry_after: Optional[int] = Field(
+        None,
+        description="Seconds to wait before retrying if pending",
+    )
+    message: Optional[str] = Field(
+        None,
+        description="Human-readable status message",
+    )
