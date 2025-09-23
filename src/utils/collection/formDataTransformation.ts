@@ -48,6 +48,8 @@ export const mapQuestionTypeToFieldType = (questionType: string): string => {
     'url': 'url',
     'date': 'date',
     'file': 'file',
+    // Asset-aware collection types
+    'asset_selector': 'asset_selector',
     // Backend generator CrewAI types
     'single_select': 'select',
     'multi_select': 'multiselect',
@@ -134,7 +136,10 @@ export const convertQuestionToFormField = (
     order: index + 1,
     businessImpactScore: question.business_impact_score || 0.7,
     options: fieldOptions,
-    helpText: question.help_text || question.description
+    helpText: question.help_text || question.description,
+    metadata: question.metadata,  // Pass through metadata for asset selector
+    multiple: question.multiple,  // Pass through multiple selection flag
+    placeholder: question.placeholder  // Pass through placeholder text
   };
 };
 
@@ -145,14 +150,22 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
   const sections: FormSection[] = [];
 
   // Group questions by category
+  // First, handle asset selection questions separately
+  const assetSelectionQuestions = questions.filter((q: QuestionData) =>
+    q.category === 'asset_selection' ||
+    q.field_id === 'selected_assets' ||
+    q.field_type === 'asset_selector'
+  );
+
   const basicQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'basic' ||
+    (q.category === 'basic' ||
     q.category === 'business' ||
     q.field_id === 'application_name' ||
     q.field_id === 'application_type' ||
     q.field_id === 'business_criticality' ||
     q.field_id === 'primary_users' ||
-    q.field_id === 'user_count'
+    q.field_id === 'user_count') &&
+    q.field_type !== 'asset_selector'  // Don't include asset selectors here
   );
 
   const technicalQuestions = questions.filter((q: QuestionData) =>
@@ -178,6 +191,21 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
     q.field_id === 'compliance_requirements' ||
     q.field_id === 'disaster_recovery'
   );
+
+  // Create asset selection section (should come first)
+  if (assetSelectionQuestions.length > 0) {
+    sections.push({
+      id: 'agent-asset-selection',
+      title: 'Asset Selection',
+      description: 'Select assets to enhance with additional data',
+      fields: assetSelectionQuestions.map((q, index) =>
+        convertQuestionToFormField(q, index, 'agent-asset-selection')
+      ),
+      order: 0,  // Should be first
+      requiredFieldsCount: assetSelectionQuestions.filter((q: QuestionData) => q.required !== false).length,
+      completionWeight: 0.15
+    });
+  }
 
   // Create basic information section
   if (basicQuestions.length > 0) {
