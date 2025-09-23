@@ -99,6 +99,17 @@ def get_lifespan():  # noqa: C901
                 "⚠️⚠️⚠️ Database connection test failed: %s", e, exc_info=True
             )
 
+        # Log feature flags configuration
+        try:
+            logging.getLogger(__name__).info(
+                "🔄 Loading feature flags configuration..."
+            )
+            from app.core.feature_flags import log_feature_flags
+
+            log_feature_flags()
+        except Exception as e:  # pragma: no cover
+            logging.getLogger(__name__).warning("Feature flags logging warning: %s", e)
+
         # Start flow health monitor
         try:
             logging.getLogger(__name__).info("🔄 Starting flow health monitor...")

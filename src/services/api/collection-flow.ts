@@ -125,7 +125,8 @@ export interface AdaptiveQuestionnaireResponse {
   target_gaps: GapTargetInfo[];
   questions: QuestionnaireQuestion[];
   validation_rules: ValidationRuleConfig[];
-  completion_status: string;
+  completion_status: "pending" | "ready" | "fallback" | "failed";
+  status_line?: string;
   responses_collected?: QuestionnaireResponse[];
   created_at: string;
   completed_at?: string;

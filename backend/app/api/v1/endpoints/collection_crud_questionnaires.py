@@ -6,11 +6,12 @@ Questionnaire-specific read operations for collection flows.
 import asyncio
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
+from uuid import uuid4
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from uuid import UUID
 
 from app.core.context import RequestContext
@@ -48,13 +49,17 @@ async def _get_flow_by_id(
     return flow
 
 
-async def _get_existing_questionnaires(
-    flow: CollectionFlow, db: AsyncSession
+async def _get_existing_questionnaires_tenant_scoped(
+    flow: CollectionFlow, db: AsyncSession, context: RequestContext
 ) -> List[AdaptiveQuestionnaireResponse]:
-    """Get existing questionnaires from database."""
+    """Get existing questionnaires from database with tenant scoping."""
     questionnaires_result = await db.execute(
         select(AdaptiveQuestionnaire)
-        .where(AdaptiveQuestionnaire.collection_flow_id == flow.id)
+        .where(
+            AdaptiveQuestionnaire.collection_flow_id == flow.id,
+            AdaptiveQuestionnaire.client_account_id == context.client_account_id,
+            AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+        )
         .order_by(AdaptiveQuestionnaire.created_at.desc())
     )
     questionnaires = questionnaires_result.scalars().all()
@@ -119,13 +124,19 @@ async def get_adaptive_questionnaires(
     current_user: User,
     context: RequestContext,
 ) -> List[AdaptiveQuestionnaireResponse]:
-    """Get adaptive questionnaires for a collection flow."""
+    """
+    Get adaptive questionnaires for a collection flow with tenant-scoped queries.
+
+    Implements agent-first generation with background processing and fallback strategies.
+    """
     try:
         # Get and validate flow
         flow = await _get_flow_by_id(flow_id, db, context)
 
-        # Try existing questionnaires first
-        existing_questionnaires = await _get_existing_questionnaires(flow, db)
+        # Try existing questionnaires first with tenant scoping
+        existing_questionnaires = await _get_existing_questionnaires_tenant_scoped(
+            flow, db, context
+        )
         if existing_questionnaires:
             return existing_questionnaires
 
@@ -141,80 +152,74 @@ async def get_adaptive_questionnaires(
         from app.core.feature_flags import is_feature_enabled
 
         use_agent = is_feature_enabled("collection.gaps.v2_agent_questionnaires", True)
+        bootstrap_fallback = is_feature_enabled(
+            "collection.gaps.bootstrap_fallback", True
+        )
 
         if use_agent:
             logger.info(f"Agent generation enabled for flow {flow_id}")
-            try:
-                # Try agent generation with timeout
-                agent_questionnaires = await asyncio.wait_for(
-                    _generate_agent_questionnaires(
-                        flow_id, flow, existing_assets, context
-                    ),
-                    timeout=30.0,  # 30 second timeout
-                )
-                if agent_questionnaires:
-                    logger.info(f"Agent generation successful for flow {flow_id}")
-                    return agent_questionnaires
-                else:
-                    logger.warning(
-                        f"Agent generation returned empty for flow {flow_id}, falling back to bootstrap"
-                    )
-            except asyncio.TimeoutError:
-                logger.warning(
-                    f"Agent generation timed out for flow {flow_id}, falling back to bootstrap"
-                )
-            except Exception as e:
-                logger.error(
-                    f"Agent generation failed for flow {flow_id}: {e}, falling back to bootstrap"
-                )
 
-            # Fall through to bootstrap generation
+            # Start agent generation in background and return pending record
+            pending_questionnaires = await _start_agent_generation(
+                flow_id, flow, existing_assets, context, db
+            )
 
-        # Generate bootstrap questionnaire
-        logger.info(f"Generating bootstrap questionnaire for flow {flow_id}")
-        selected_app_name, selected_app_id = _get_selected_application_info(
-            flow, existing_assets
+            if pending_questionnaires:
+                logger.info(f"Started background agent generation for flow {flow_id}")
+                return pending_questionnaires
+
+        # Fallback to bootstrap if agent generation not enabled or failed to start
+        if bootstrap_fallback:
+            logger.info(f"Generating bootstrap questionnaire for flow {flow_id}")
+            selected_app_name, selected_app_id = _get_selected_application_info(
+                flow, existing_assets
+            )
+
+            collection_scope = "engagement"
+            if flow.collection_config:
+                collection_scope = flow.collection_config.get("scope", "engagement")
+
+            bootstrap_template = get_bootstrap_questionnaire_template(
+                flow_id=flow_id,
+                selected_application_id=selected_app_id,
+                selected_application_name=selected_app_name,
+                existing_assets=existing_assets,
+                scope=collection_scope,
+            )
+
+            bootstrap_questionnaire = AdaptiveQuestionnaireResponse(
+                id=bootstrap_template["id"],
+                collection_flow_id=bootstrap_template["flow_id"],
+                title=f"{bootstrap_template['title']} (Bootstrap)",
+                description=f"{bootstrap_template['description']} - Generated using bootstrap template",
+                target_gaps=[
+                    "application_selection",
+                    "basic_info",
+                    "technical_details",
+                    "infrastructure",
+                    "compliance",
+                ],
+                questions=[
+                    _convert_template_field_to_question(field, selected_app_name)
+                    for field in bootstrap_template["form_fields"]
+                ],
+                validation_rules=bootstrap_template["validation_rules"],
+                completion_status="fallback",
+                responses_collected={},
+                created_at=datetime.fromisoformat(
+                    bootstrap_template["created_at"].replace("Z", "+00:00")
+                ),
+                completed_at=None,
+            )
+
+            logger.info("Returning bootstrap questionnaire with fallback status")
+            return [bootstrap_questionnaire]
+
+        # If no fallback available
+        logger.warning(
+            f"No questionnaire generation method available for flow {flow_id}"
         )
-
-        collection_scope = "engagement"
-        if flow.collection_config:
-            collection_scope = flow.collection_config.get("scope", "engagement")
-
-        bootstrap_template = get_bootstrap_questionnaire_template(
-            flow_id=flow_id,
-            selected_application_id=selected_app_id,
-            selected_application_name=selected_app_name,
-            existing_assets=existing_assets,
-            scope=collection_scope,
-        )
-
-        bootstrap_questionnaire = AdaptiveQuestionnaireResponse(
-            id=bootstrap_template["id"],
-            collection_flow_id=bootstrap_template["flow_id"],
-            title=f"{bootstrap_template['title']} (Bootstrap)",
-            description=f"{bootstrap_template['description']} - Generated using bootstrap template",
-            target_gaps=[
-                "application_selection",
-                "basic_info",
-                "technical_details",
-                "infrastructure",
-                "compliance",
-            ],
-            questions=[
-                _convert_template_field_to_question(field, selected_app_name)
-                for field in bootstrap_template["form_fields"]
-            ],
-            validation_rules=bootstrap_template["validation_rules"],
-            completion_status="pending",
-            responses_collected={},
-            created_at=datetime.fromisoformat(
-                bootstrap_template["created_at"].replace("Z", "+00:00")
-            ),
-            completed_at=None,
-        )
-
-        logger.info("Returning bootstrap questionnaire")
-        return [bootstrap_questionnaire]
+        return []
 
     except HTTPException:
         raise
@@ -260,6 +265,266 @@ def _convert_template_field_to_question(
     return question
 
 
+async def _start_agent_generation(
+    flow_id: str,
+    flow: CollectionFlow,
+    existing_assets: List[Asset],
+    context: RequestContext,
+    db: AsyncSession,
+) -> List[AdaptiveQuestionnaireResponse]:
+    """
+    Start agent generation in background and return pending questionnaire record.
+
+    Creates a pending questionnaire record in database and starts background task
+    to generate actual questionnaires. Returns immediately with pending status.
+    """
+    try:
+        # Create pending questionnaire record with tenant fields
+        questionnaire_id = uuid4()
+        pending_questionnaire = AdaptiveQuestionnaire(
+            id=questionnaire_id,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            collection_flow_id=flow.id,
+            title="AI-Generated Data Collection Questionnaire",
+            description="Generating tailored questionnaire using AI agent analysis...",
+            template_name="agent_generated",
+            template_type="detailed",
+            version="2.0",
+            applicable_tiers=["tier_1", "tier_2", "tier_3", "tier_4"],
+            question_set={},
+            questions=[],
+            validation_rules={},
+            completion_status="pending",
+            responses_collected={},
+            is_active=True,
+            is_template=False,
+            created_at=datetime.utcnow(),
+        )
+
+        # Insert pending record with tenant isolation
+        db.add(pending_questionnaire)
+        await db.commit()
+        await db.refresh(pending_questionnaire)
+
+        logger.info(
+            f"Created pending questionnaire {questionnaire_id} for flow {flow_id}"
+        )
+
+        # Start background generation task
+        asyncio.create_task(
+            _background_generate(
+                questionnaire_id, flow_id, flow, existing_assets, context
+            )
+        )
+
+        # Return pending response
+        return [
+            collection_serializers.build_questionnaire_response(pending_questionnaire)
+        ]
+
+    except Exception as e:
+        logger.error(f"Failed to start agent generation for flow {flow_id}: {e}")
+        return []
+
+
+async def _background_generate(
+    questionnaire_id: UUID,
+    flow_id: str,
+    flow: CollectionFlow,
+    existing_assets: List[Asset],
+    context: RequestContext,
+) -> None:
+    """
+    Background task to generate questionnaire using agent.
+
+    Uses fresh AsyncSession to avoid session conflicts with main request.
+    Updates completion_status based on generation outcome.
+    """
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as fresh_db:
+        try:
+            logger.info(
+                f"Starting background agent generation for questionnaire {questionnaire_id}"
+            )
+
+            # Generate questionnaires with timeout
+            agent_questionnaires = await asyncio.wait_for(
+                _generate_agent_questionnaires(flow_id, flow, existing_assets, context),
+                timeout=30.0,
+            )
+
+            if agent_questionnaires and len(agent_questionnaires) > 0:
+                # Extract questions from first generated questionnaire
+                first_questionnaire = agent_questionnaires[0]
+                questions = first_questionnaire.questions
+                validation_rules = first_questionnaire.validation_rules
+
+                # Update questionnaire with generated content (with tenant guard)
+                update_result = await fresh_db.execute(
+                    update(AdaptiveQuestionnaire)
+                    .where(
+                        AdaptiveQuestionnaire.id == questionnaire_id,
+                        AdaptiveQuestionnaire.client_account_id
+                        == context.client_account_id,
+                        AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+                    )
+                    .values(
+                        questions=questions,
+                        validation_rules=validation_rules,
+                        completion_status="ready",
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+
+                if update_result.rowcount > 0:
+                    await fresh_db.commit()
+                    logger.info(
+                        f"Successfully generated questionnaire {questionnaire_id}"
+                    )
+                else:
+                    logger.warning(
+                        f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
+                    )
+                    await fresh_db.rollback()
+
+            else:
+                # No questionnaires generated - use fallback
+                from app.core.feature_flags import is_feature_enabled
+
+                bootstrap_fallback = is_feature_enabled(
+                    "collection.gaps.bootstrap_fallback", True
+                )
+
+                if bootstrap_fallback:
+                    # Update to fallback status (with tenant guard)
+                    update_result = await fresh_db.execute(
+                        update(AdaptiveQuestionnaire)
+                        .where(
+                            AdaptiveQuestionnaire.id == questionnaire_id,
+                            AdaptiveQuestionnaire.client_account_id
+                            == context.client_account_id,
+                            AdaptiveQuestionnaire.engagement_id
+                            == context.engagement_id,
+                        )
+                        .values(
+                            completion_status="fallback",
+                            updated_at=datetime.utcnow(),
+                        )
+                    )
+
+                    if update_result.rowcount > 0:
+                        await fresh_db.commit()
+                        logger.info(
+                            f"Updated questionnaire {questionnaire_id} to fallback status"
+                        )
+                    else:
+                        logger.warning(
+                            f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
+                        )
+                        await fresh_db.rollback()
+                else:
+                    # Mark as failed
+                    update_result = await fresh_db.execute(
+                        update(AdaptiveQuestionnaire)
+                        .where(
+                            AdaptiveQuestionnaire.id == questionnaire_id,
+                            AdaptiveQuestionnaire.client_account_id
+                            == context.client_account_id,
+                            AdaptiveQuestionnaire.engagement_id
+                            == context.engagement_id,
+                        )
+                        .values(
+                            completion_status="failed",
+                            updated_at=datetime.utcnow(),
+                        )
+                    )
+
+                    if update_result.rowcount > 0:
+                        await fresh_db.commit()
+                        logger.warning(
+                            f"Marked questionnaire {questionnaire_id} as failed"
+                        )
+                    else:
+                        logger.warning(
+                            f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
+                        )
+                        await fresh_db.rollback()
+
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"Agent generation timed out for questionnaire {questionnaire_id}"
+            )
+            # Update to failed status (with tenant guard)
+            try:
+                update_result = await fresh_db.execute(
+                    update(AdaptiveQuestionnaire)
+                    .where(
+                        AdaptiveQuestionnaire.id == questionnaire_id,
+                        AdaptiveQuestionnaire.client_account_id
+                        == context.client_account_id,
+                        AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+                    )
+                    .values(
+                        completion_status="failed",
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+
+                if update_result.rowcount > 0:
+                    await fresh_db.commit()
+                    logger.info(
+                        f"Updated questionnaire {questionnaire_id} to failed due to timeout"
+                    )
+                else:
+                    logger.warning(
+                        f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
+                    )
+                    await fresh_db.rollback()
+
+            except Exception as commit_error:
+                logger.error(
+                    f"Failed to update questionnaire status after timeout: {commit_error}"
+                )
+
+        except Exception as e:
+            logger.error(
+                f"Background generation failed for questionnaire {questionnaire_id}: {e}"
+            )
+            # Update to failed status (with tenant guard)
+            try:
+                update_result = await fresh_db.execute(
+                    update(AdaptiveQuestionnaire)
+                    .where(
+                        AdaptiveQuestionnaire.id == questionnaire_id,
+                        AdaptiveQuestionnaire.client_account_id
+                        == context.client_account_id,
+                        AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+                    )
+                    .values(
+                        completion_status="failed",
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+
+                if update_result.rowcount > 0:
+                    await fresh_db.commit()
+                    logger.info(
+                        f"Updated questionnaire {questionnaire_id} to failed due to error"
+                    )
+                else:
+                    logger.warning(
+                        f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
+                    )
+                    await fresh_db.rollback()
+
+            except Exception as commit_error:
+                logger.error(
+                    f"Failed to update questionnaire status after error: {commit_error}"
+                )
+
+
 async def _generate_agent_questionnaires(
     flow_id: str,
     flow: CollectionFlow,
@@ -284,7 +549,7 @@ async def _generate_agent_questionnaires(
         agents = agent_manager.create_agents()
 
         # Create task inputs for questionnaire generation
-        task_inputs = {
+        task_inputs: dict[str, Any] = {
             "gap_analysis": flow.gap_analysis_results or {},
             "business_context": flow.collection_config or {},
             "collection_flow_id": flow_id,

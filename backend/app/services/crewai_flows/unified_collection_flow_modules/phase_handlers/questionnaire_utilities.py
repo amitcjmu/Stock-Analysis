@@ -422,11 +422,104 @@ async def handle_no_questionnaires_generated(
 def should_skip_detailed_questionnaire(
     state: CollectionFlowState, questionnaire_type: str
 ) -> bool:
-    """Check if detailed questionnaire generation should be skipped for Tier 1 flows"""
-    return (
-        state.automation_tier == AutomationTier.TIER_1
-        and questionnaire_type != "bootstrap"
+    """
+    Check if questionnaire generation should be skipped based on smart logic.
+
+    Rules:
+    - Never skip if gaps exist
+    - TIER_1 always needs questionnaires
+    - TIER_3 can skip only with no gaps AND feature flag enabled
+    - Always generate for TIER_2 and TIER_4
+
+    Args:
+        state: Current collection flow state
+        questionnaire_type: Type of questionnaire (bootstrap or detailed)
+
+    Returns:
+        True if questionnaire generation should be skipped, False otherwise
+    """
+    from app.core.feature_flags import is_feature_enabled
+    from app.core.security.secure_logging import safe_log_format
+
+    # Extract gaps from state
+    gaps_exist = False
+    gap_count = 0
+
+    if hasattr(state, "gap_analysis_results") and state.gap_analysis_results:
+        if isinstance(state.gap_analysis_results, dict):
+            # Check for identified_gaps in gap analysis results
+            identified_gaps = state.gap_analysis_results.get("identified_gaps", [])
+            gap_count = len(identified_gaps) if identified_gaps else 0
+            gaps_exist = gap_count > 0
+        elif isinstance(state.gap_analysis_results, list):
+            gap_count = len(state.gap_analysis_results)
+            gaps_exist = gap_count > 0
+
+    # Log decision inputs for audit trail
+    logger.info(
+        safe_log_format(
+            "Questionnaire skip decision inputs: flow_id={flow_id}, tier={tier}, "
+            "questionnaire_type={q_type}, gaps_exist={gaps_exist}, gap_count={gap_count}",
+            flow_id=str(state.flow_id),
+            tier=state.automation_tier.value,
+            q_type=questionnaire_type,
+            gaps_exist=gaps_exist,
+            gap_count=gap_count,
+        )
     )
+
+    # Never skip if gaps exist
+    if gaps_exist:
+        logger.info(
+            safe_log_format(
+                "Not skipping questionnaire: gaps exist (count={gap_count}) for flow {flow_id}",
+                gap_count=gap_count,
+                flow_id=str(state.flow_id),
+            )
+        )
+        return False
+
+    # TIER_1 always needs questionnaires (except bootstrap which might already exist)
+    if state.automation_tier == AutomationTier.TIER_1:
+        should_skip = questionnaire_type == "bootstrap"
+        logger.info(
+            safe_log_format(
+                "TIER_1 questionnaire decision: type={q_type}, skip={skip} for flow {flow_id}",
+                q_type=questionnaire_type,
+                skip=should_skip,
+                flow_id=str(state.flow_id),
+            )
+        )
+        return should_skip
+
+    # TIER_3 can skip only with no gaps AND feature flag enabled
+    if state.automation_tier == AutomationTier.TIER_3:
+        skip_flag_enabled = is_feature_enabled(
+            "collection.gaps.skip_tier3_no_gaps", False
+        )
+        should_skip = not gaps_exist and skip_flag_enabled
+
+        logger.info(
+            safe_log_format(
+                "TIER_3 questionnaire decision: no_gaps={no_gaps}, flag_enabled={flag}, "
+                "skip={skip} for flow {flow_id}",
+                no_gaps=not gaps_exist,
+                flag=skip_flag_enabled,
+                skip=should_skip,
+                flow_id=str(state.flow_id),
+            )
+        )
+        return should_skip
+
+    # TIER_2 and TIER_4 always generate questionnaires
+    logger.info(
+        safe_log_format(
+            "Not skipping questionnaire: {tier} always generates for flow {flow_id}",
+            tier=state.automation_tier.value,
+            flow_id=str(state.flow_id),
+        )
+    )
+    return False
 
 
 def determine_questionnaire_type(identified_gaps: list) -> str:

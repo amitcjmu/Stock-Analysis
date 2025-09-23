@@ -6,6 +6,7 @@ following enterprise patterns for gradual rollouts and A/B testing.
 """
 
 import logging
+import os
 from functools import wraps
 from typing import Dict, Set
 from fastapi import HTTPException, status
@@ -21,6 +22,7 @@ FEATURE_FLAGS: Dict[str, bool] = {
     "collection.gaps.v2": True,  # Enable asset selection and enhanced questionnaires
     "collection.gaps.v2_agent_questionnaires": True,  # Use agent-driven questionnaire generation
     "collection.gaps.bootstrap_fallback": True,  # Allow bootstrap fallback if agent times out
+    "collection.gaps.skip_tier3_no_gaps": False,  # Allow TIER_3 to skip when no gaps
     "collection.gaps.conflict_detection": True,  # Enable conflict detection features
     "collection.gaps.advanced_analytics": False,  # Future analytics features
     # Other feature flags can be added here
@@ -37,7 +39,11 @@ PERMANENT_FEATURES: Set[str] = {
 
 def is_feature_enabled(feature_name: str, default: bool = False) -> bool:
     """
-    Check if a feature flag is enabled.
+    Check if a feature flag is enabled with environment variable override support.
+
+    Environment variables override configured flags using the pattern:
+    FEATURE_FLAG_<FEATURE_NAME> where dots are replaced with underscores and uppercased.
+    Example: collection.gaps.v2 -> FEATURE_FLAG_COLLECTION_GAPS_V2
 
     Args:
         feature_name: The name of the feature to check
@@ -49,6 +55,18 @@ def is_feature_enabled(feature_name: str, default: bool = False) -> bool:
     # Permanent features are always enabled
     if feature_name in PERMANENT_FEATURES:
         return True
+
+    # Check for environment variable override
+    env_var_name = f"FEATURE_FLAG_{feature_name.replace('.', '_').upper()}"
+    env_override = os.getenv(env_var_name)
+
+    if env_override is not None:
+        # Parse environment override (support various formats)
+        env_enabled = env_override.lower() in ["true", "1", "yes", "on", "enabled"]
+        logger.debug(
+            f"Feature flag '{feature_name}' overridden by {env_var_name}={env_override} -> {env_enabled}"
+        )
+        return env_enabled
 
     # Check configured feature flags
     enabled = FEATURE_FLAGS.get(feature_name, default)
@@ -154,3 +172,54 @@ def disable_feature(feature_name: str) -> bool:
             return True
 
     return False
+
+
+def log_feature_flags() -> None:
+    """
+    Log current feature flag configuration for startup audit trail.
+
+    Logs both configured flags and any environment overrides for observability.
+    """
+    logger.info("🚩 Feature Flags Configuration:")
+
+    # Log configured feature flags
+    for feature_name, default_value in FEATURE_FLAGS.items():
+        # Check if environment override exists
+        env_var_name = f"FEATURE_FLAG_{feature_name.replace('.', '_').upper()}"
+        env_override = os.getenv(env_var_name)
+
+        if env_override is not None:
+            env_enabled = env_override.lower() in ["true", "1", "yes", "on", "enabled"]
+            logger.info(
+                f"  {feature_name}: {env_enabled} "
+                f"(ENV override: {env_var_name}={env_override}, default: {default_value})"
+            )
+        else:
+            logger.info(f"  {feature_name}: {default_value}")
+
+    # Log permanent features
+    if PERMANENT_FEATURES:
+        logger.info("🔒 Permanent Features (always enabled):")
+        for feature_name in sorted(PERMANENT_FEATURES):
+            logger.info(f"  {feature_name}: True (permanent)")
+
+    # Check for unknown environment overrides
+    unknown_overrides = []
+    for env_var in os.environ:
+        if env_var.startswith("FEATURE_FLAG_"):
+            # Convert back to feature name
+            feature_name = (
+                env_var.replace("FEATURE_FLAG_", "").replace("_", ".").lower()
+            )
+            if (
+                feature_name not in FEATURE_FLAGS
+                and feature_name not in PERMANENT_FEATURES
+            ):
+                unknown_overrides.append((env_var, os.getenv(env_var)))
+
+    if unknown_overrides:
+        logger.warning("⚠️ Unknown feature flag environment overrides detected:")
+        for env_var, value in unknown_overrides:
+            logger.warning(f"  {env_var}={value}")
+
+    logger.info("✅ Feature flag configuration loaded successfully")
