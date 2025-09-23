@@ -6,7 +6,7 @@ Questionnaire-specific read operations for collection flows.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -29,6 +29,9 @@ from app.api.v1.endpoints.questionnaire_templates import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Track background tasks to prevent memory leaks
+_background_tasks: set = set()
 
 
 async def _get_flow_by_id(
@@ -112,7 +115,8 @@ def _get_selected_application_info(
                     break
             else:
                 logger.warning(
-                    f"Selected application {selected_application_id} not found in asset inventory"
+                    f"Selected application {selected_application_id} "
+                    f"not found in asset inventory"
                 )
 
     return selected_application_name, selected_application_id
@@ -127,7 +131,8 @@ async def get_adaptive_questionnaires(
     """
     Get adaptive questionnaires for a collection flow with tenant-scoped queries.
 
-    Implements agent-first generation with background processing and fallback strategies.
+    Implements agent-first generation with background processing and fallback
+    strategies.
     """
     try:
         # Get and validate flow
@@ -191,7 +196,10 @@ async def get_adaptive_questionnaires(
                 id=bootstrap_template["id"],
                 collection_flow_id=bootstrap_template["flow_id"],
                 title=f"{bootstrap_template['title']} (Bootstrap)",
-                description=f"{bootstrap_template['description']} - Generated using bootstrap template",
+                description=(
+                    f"{bootstrap_template['description']} - "
+                    "Generated using bootstrap template"
+                ),
                 target_gaps=[
                     "application_selection",
                     "basic_info",
@@ -312,11 +320,20 @@ async def _start_agent_generation(
         )
 
         # Start background generation task
-        asyncio.create_task(
+        task = asyncio.create_task(
             _background_generate(
-                questionnaire_id, flow_id, flow, existing_assets, context
+                questionnaire_id,
+                flow_id,
+                flow,
+                existing_assets,
+                context.client_account_id,
+                context.engagement_id,
             )
         )
+
+        # Track task to prevent memory leaks
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
 
         # Return pending response
         return [
@@ -328,12 +345,56 @@ async def _start_agent_generation(
         return []
 
 
+async def _update_questionnaire_status(
+    db: AsyncSession,
+    questionnaire_id: UUID,
+    context_client_id: UUID,
+    context_engagement_id: UUID,
+    status: str,
+    values: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Update the status and other values of a questionnaire."""
+    update_values = {"completion_status": status, "updated_at": datetime.utcnow()}
+    if values:
+        update_values.update(values)
+
+    try:
+        result = await db.execute(
+            update(AdaptiveQuestionnaire)
+            .where(
+                AdaptiveQuestionnaire.id == questionnaire_id,
+                AdaptiveQuestionnaire.client_account_id == context_client_id,
+                AdaptiveQuestionnaire.engagement_id == context_engagement_id,
+            )
+            .values(**update_values)
+        )
+        if result.rowcount > 0:
+            await db.commit()
+            logger.info(
+                f"Updated questionnaire {questionnaire_id} to status '{status}'"
+            )
+        else:
+            await db.rollback()
+            logger.warning(
+                f"Failed to update questionnaire {questionnaire_id} to "
+                f"status '{status}': tenant guard failed or record not found"
+            )
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            f"DB error updating questionnaire {questionnaire_id} to "
+            f"status '{status}': {e}"
+        )
+        raise  # Re-raise to ensure the background task failure is visible
+
+
 async def _background_generate(
     questionnaire_id: UUID,
     flow_id: str,
     flow: CollectionFlow,
     existing_assets: List[Asset],
-    context: RequestContext,
+    client_account_id: UUID,
+    engagement_id: UUID,
 ) -> None:
     """
     Background task to generate questionnaire using agent.
@@ -343,10 +404,24 @@ async def _background_generate(
     """
     from app.core.database import AsyncSessionLocal
 
+    status_to_set = "failed"  # Default status if anything goes wrong
+    update_values: Optional[Dict[str, Any]] = None
+
     async with AsyncSessionLocal() as fresh_db:
         try:
             logger.info(
-                f"Starting background agent generation for questionnaire {questionnaire_id}"
+                f"Starting background agent generation for "
+                f"questionnaire {questionnaire_id}"
+            )
+
+            # Create RequestContext for backwards compatibility with
+            # _generate_agent_questionnaires
+            from app.core.context import RequestContext
+
+            context = RequestContext(
+                client_account_id=str(client_account_id),
+                engagement_id=str(engagement_id),
+                user_id="system",  # Background task user
             )
 
             # Generate questionnaires with timeout
@@ -361,33 +436,13 @@ async def _background_generate(
                 questions = first_questionnaire.questions
                 validation_rules = first_questionnaire.validation_rules
 
-                # Update questionnaire with generated content (with tenant guard)
-                update_result = await fresh_db.execute(
-                    update(AdaptiveQuestionnaire)
-                    .where(
-                        AdaptiveQuestionnaire.id == questionnaire_id,
-                        AdaptiveQuestionnaire.client_account_id
-                        == context.client_account_id,
-                        AdaptiveQuestionnaire.engagement_id == context.engagement_id,
-                    )
-                    .values(
-                        questions=questions,
-                        validation_rules=validation_rules,
-                        completion_status="ready",
-                        updated_at=datetime.utcnow(),
-                    )
-                )
-
-                if update_result.rowcount > 0:
-                    await fresh_db.commit()
-                    logger.info(
-                        f"Successfully generated questionnaire {questionnaire_id}"
-                    )
-                else:
-                    logger.warning(
-                        f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
-                    )
-                    await fresh_db.rollback()
+                # Set success status and values
+                status_to_set = "ready"
+                update_values = {
+                    "questions": questions,
+                    "validation_rules": validation_rules,
+                }
+                logger.info(f"Successfully generated questionnaire {questionnaire_id}")
 
             else:
                 # No questionnaires generated - use fallback
@@ -398,130 +453,42 @@ async def _background_generate(
                 )
 
                 if bootstrap_fallback:
-                    # Update to fallback status (with tenant guard)
-                    update_result = await fresh_db.execute(
-                        update(AdaptiveQuestionnaire)
-                        .where(
-                            AdaptiveQuestionnaire.id == questionnaire_id,
-                            AdaptiveQuestionnaire.client_account_id
-                            == context.client_account_id,
-                            AdaptiveQuestionnaire.engagement_id
-                            == context.engagement_id,
-                        )
-                        .values(
-                            completion_status="fallback",
-                            updated_at=datetime.utcnow(),
-                        )
+                    status_to_set = "fallback"
+                    logger.info(
+                        f"Updated questionnaire {questionnaire_id} to fallback status"
                     )
-
-                    if update_result.rowcount > 0:
-                        await fresh_db.commit()
-                        logger.info(
-                            f"Updated questionnaire {questionnaire_id} to fallback status"
-                        )
-                    else:
-                        logger.warning(
-                            f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
-                        )
-                        await fresh_db.rollback()
                 else:
-                    # Mark as failed
-                    update_result = await fresh_db.execute(
-                        update(AdaptiveQuestionnaire)
-                        .where(
-                            AdaptiveQuestionnaire.id == questionnaire_id,
-                            AdaptiveQuestionnaire.client_account_id
-                            == context.client_account_id,
-                            AdaptiveQuestionnaire.engagement_id
-                            == context.engagement_id,
-                        )
-                        .values(
-                            completion_status="failed",
-                            updated_at=datetime.utcnow(),
-                        )
-                    )
-
-                    if update_result.rowcount > 0:
-                        await fresh_db.commit()
-                        logger.warning(
-                            f"Marked questionnaire {questionnaire_id} as failed"
-                        )
-                    else:
-                        logger.warning(
-                            f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
-                        )
-                        await fresh_db.rollback()
+                    status_to_set = "failed"
+                    logger.warning(f"Marked questionnaire {questionnaire_id} as failed")
 
         except asyncio.TimeoutError:
             logger.warning(
                 f"Agent generation timed out for questionnaire {questionnaire_id}"
             )
-            # Update to failed status (with tenant guard)
-            try:
-                update_result = await fresh_db.execute(
-                    update(AdaptiveQuestionnaire)
-                    .where(
-                        AdaptiveQuestionnaire.id == questionnaire_id,
-                        AdaptiveQuestionnaire.client_account_id
-                        == context.client_account_id,
-                        AdaptiveQuestionnaire.engagement_id == context.engagement_id,
-                    )
-                    .values(
-                        completion_status="failed",
-                        updated_at=datetime.utcnow(),
-                    )
-                )
-
-                if update_result.rowcount > 0:
-                    await fresh_db.commit()
-                    logger.info(
-                        f"Updated questionnaire {questionnaire_id} to failed due to timeout"
-                    )
-                else:
-                    logger.warning(
-                        f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
-                    )
-                    await fresh_db.rollback()
-
-            except Exception as commit_error:
-                logger.error(
-                    f"Failed to update questionnaire status after timeout: {commit_error}"
-                )
+            status_to_set = "failed"
 
         except Exception as e:
             logger.error(
-                f"Background generation failed for questionnaire {questionnaire_id}: {e}"
+                f"Background generation failed for "
+                f"questionnaire {questionnaire_id}: {e}"
             )
-            # Update to failed status (with tenant guard)
+            status_to_set = "failed"
+
+        finally:
+            # Always update status in finally block to ensure it happens
             try:
-                update_result = await fresh_db.execute(
-                    update(AdaptiveQuestionnaire)
-                    .where(
-                        AdaptiveQuestionnaire.id == questionnaire_id,
-                        AdaptiveQuestionnaire.client_account_id
-                        == context.client_account_id,
-                        AdaptiveQuestionnaire.engagement_id == context.engagement_id,
-                    )
-                    .values(
-                        completion_status="failed",
-                        updated_at=datetime.utcnow(),
-                    )
+                await _update_questionnaire_status(
+                    fresh_db,
+                    questionnaire_id,
+                    client_account_id,
+                    engagement_id,
+                    status_to_set,
+                    update_values,
                 )
-
-                if update_result.rowcount > 0:
-                    await fresh_db.commit()
-                    logger.info(
-                        f"Updated questionnaire {questionnaire_id} to failed due to error"
-                    )
-                else:
-                    logger.warning(
-                        f"No rows updated for questionnaire {questionnaire_id} - tenant guard failed"
-                    )
-                    await fresh_db.rollback()
-
-            except Exception as commit_error:
+            except Exception as final_error:
                 logger.error(
-                    f"Failed to update questionnaire status after error: {commit_error}"
+                    f"Failed to update questionnaire status in "
+                    f"finally block: {final_error}"
                 )
 
 

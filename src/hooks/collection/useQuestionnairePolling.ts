@@ -18,15 +18,18 @@ export interface QuestionnairePollingState {
   error: Error | null;
   completionStatus: "pending" | "ready" | "fallback" | "failed" | null;
   statusLine: string | null;
+  checkStatus: () => void;
 }
 
 export interface QuestionnairePollingOptions {
   flowId: string;
   enabled?: boolean;
-  onReady?: (questionnaires: AdaptiveQuestionnaireResponse[]) => void;
-  onFallback?: (questionnaires: AdaptiveQuestionnaireResponse[]) => void;
-  onFailed?: (error: string) => void;
+  onReady?: (_questionnaires: AdaptiveQuestionnaireResponse[]) => void;
+  onFallback?: (_questionnaires: AdaptiveQuestionnaireResponse[]) => void;
+  onFailed?: (_errorMessage: string) => void;
 }
+
+const MAX_POLL_ATTEMPTS = 12; // 1 minute max at 5 second intervals
 
 export const useQuestionnairePolling = ({
   flowId,
@@ -39,6 +42,7 @@ export const useQuestionnairePolling = ({
   const [error, setError] = useState<Error | null>(null);
   const [completionStatus, setCompletionStatus] = useState<"pending" | "ready" | "fallback" | "failed" | null>(null);
   const [statusLine, setStatusLine] = useState<string | null>(null);
+  const [pollAttempts, setPollAttempts] = useState(0);
   const callbacksRef = useRef({ onReady, onFallback, onFailed });
 
   // Update callbacks ref when they change
@@ -140,9 +144,10 @@ export const useQuestionnairePolling = ({
     queryFn: fetchQuestionnaires,
     enabled: enabled && !!flowId,
     // Polling configuration based on completion status
-    refetchInterval: (data, query) => {
-      // Only poll if status is pending
-      if (completionStatus === 'pending' && isPolling) {
+    refetchInterval: () => {
+      // Only poll if status is pending and within attempt limits
+      if (completionStatus === 'pending' && isPolling && pollAttempts < MAX_POLL_ATTEMPTS) {
+        setPollAttempts(prev => prev + 1);
         return 5000; // Poll every 5 seconds
       }
       return false; // Stop polling
@@ -168,14 +173,29 @@ export const useQuestionnairePolling = ({
 
   // Start polling when enabled and we have a flow ID
   useEffect(() => {
-    if (enabled && flowId && !questionnaires.length) {
+    if (enabled && flowId && !questionnaires.length && pollAttempts < MAX_POLL_ATTEMPTS) {
       console.log('🔄 Starting questionnaire polling for flow:', flowId);
       setIsPolling(true);
       setError(null);
       setCompletionStatus('pending');
       setStatusLine('Checking questionnaire status...');
+      // Reset poll attempts when starting fresh
+      if (pollAttempts === 0) {
+        setPollAttempts(0);
+      }
+    } else if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+      setIsPolling(false);
+      setCompletionStatus('failed');
+      setStatusLine('Questionnaire generation timed out. Please try again.');
+      setError(new Error('Questionnaire generation timed out'));
+      callbacksRef.current.onFailed?.('Questionnaire generation timed out. Please try again.');
     }
-  }, [enabled, flowId, questionnaires.length]);
+  }, [enabled, flowId, questionnaires.length, pollAttempts]);
+
+  // Reset poll attempts when flowId changes
+  useEffect(() => {
+    setPollAttempts(0);
+  }, [flowId]);
 
   // Expose method to manually trigger a status check
   const checkStatus = useCallback(() => {
@@ -189,6 +209,7 @@ export const useQuestionnairePolling = ({
     isPolling: isPolling || isLoading,
     error,
     completionStatus,
-    statusLine
+    statusLine,
+    checkStatus
   };
 };
