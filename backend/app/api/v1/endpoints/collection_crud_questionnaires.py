@@ -285,11 +285,7 @@ async def _generate_agent_questionnaires(
 
         # Create task inputs for questionnaire generation
         task_inputs = {
-            "gap_analysis": (
-                flow.persistence_data.get("gap_analysis", {})
-                if flow.persistence_data
-                else {}
-            ),
+            "gap_analysis": flow.gap_analysis_results or {},
             "business_context": flow.collection_config or {},
             "collection_flow_id": flow_id,
             "stakeholder_context": {},

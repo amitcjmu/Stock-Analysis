@@ -72,9 +72,9 @@ async def create_master_flow_for_orphan(
             flow_type="collection",
             flow_name=f"Recovered Collection Flow - {collection_flow.flow_name}",
             flow_status="running",  # Resume as running
-            current_phase=collection_flow.current_phase or "initialization",
-            progress_percentage=collection_flow.progress_percentage or 0.0,
             flow_configuration={
+                "current_phase": collection_flow.current_phase or "initialization",
+                "progress_percentage": collection_flow.progress_percentage or 0.0,
                 "recovery_mode": True,
                 "original_collection_flow_id": str(collection_flow.flow_id),
                 "recovery_timestamp": datetime.now(timezone.utc).isoformat(),
@@ -212,7 +212,8 @@ async def execute_collection_flow(
 
                 logger.info(
                     safe_log_format(
-                        "Successfully created master flow {master_flow_id} for orphaned collection flow {flow_id} during execution",
+                        "Successfully created master flow {master_flow_id} for orphaned "
+                        "collection flow {flow_id} during execution",
                         master_flow_id=str(master_flow.flow_id),
                         flow_id=flow_id,
                     )
@@ -607,7 +608,8 @@ async def rerun_gap_analysis(
 
                 logger.info(
                     safe_log_format(
-                        "Successfully created master flow {master_flow_id} for orphaned collection flow {flow_id} during gap analysis",
+                        "Successfully created master flow {master_flow_id} for orphaned "
+                        "collection flow {flow_id} during gap analysis",
                         master_flow_id=str(master_flow.flow_id),
                         flow_id=flow_id,
                     )
