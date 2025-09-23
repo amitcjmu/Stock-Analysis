@@ -19,9 +19,17 @@ from app.schemas.collection_flow import (
 )
 from app.api.v1.endpoints import collection_crud
 
+# Import agent questionnaires router
+from app.api.v1.endpoints.collection_agent_questionnaires import (
+    router as agent_questionnaires_router,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Include agent questionnaires endpoints
+router.include_router(agent_questionnaires_router)
 
 
 @router.get(

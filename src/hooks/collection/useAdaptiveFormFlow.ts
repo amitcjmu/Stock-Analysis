@@ -143,6 +143,7 @@ export interface UseAdaptiveFormFlowOptions {
   applicationId?: string | null;
   flowId?: string | null;
   autoInitialize?: boolean;
+  onQuestionnaireGenerationStart?: () => void;
 }
 
 export interface CollectionQuestionnaire {
@@ -184,6 +185,7 @@ export const useAdaptiveFormFlow = (
     applicationId,
     flowId: optionsFlowId,
     autoInitialize = true,
+    onQuestionnaireGenerationStart,
   } = options;
 
   const [searchParams] = useSearchParams();
@@ -280,6 +282,9 @@ export const useAdaptiveFormFlow = (
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
+    // Declare hasExistingData at the function scope
+    let hasExistingData = false;
+
     try {
       let flowResponse;
 
@@ -326,7 +331,6 @@ export const useAdaptiveFormFlow = (
         });
 
         // Check if this flow already has questionnaires
-        let hasExistingData = false;
         try {
           const existingQuestionnaires =
             await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
@@ -588,12 +592,17 @@ export const useAdaptiveFormFlow = (
 
       // Wait for CrewAI agents to complete gap analysis and generate questionnaires
       // Using HTTP polling instead of WebSocket for Vercel/Railway compatibility
-      const INITIALIZATION_TIMEOUT = 10000; // 10 seconds max wait time
+      const INITIALIZATION_TIMEOUT = 30000; // 30 seconds max wait time to match backend
 
       let agentQuestionnaires = [];
       let timeoutReached = false;
       // CRITICAL FIX: Store polling interval ID for cleanup
       let pollingIntervalId: NodeJS.Timeout | null = null;
+
+      // Trigger modal if callback provided
+      if (onQuestionnaireGenerationStart && !hasExistingData) {
+        onQuestionnaireGenerationStart();
+      }
 
       console.log(
         "⏳ Waiting for CrewAI agents to process through phases and generate questionnaires...",
@@ -907,6 +916,7 @@ export const useAdaptiveFormFlow = (
     user,
     toast,
     updateFlowId,
+    onQuestionnaireGenerationStart,
   ]);
 
   /**

@@ -43,7 +43,7 @@ class ExecutionEngineCollectionCrews:
 
             # Add metadata about persistent agent usage
             result["agent_pool_info"] = {
-                "agent_count": len(agent_pool),
+                "agent_pool_type": "TenantScopedAgentPool" if agent_pool else "none",
                 "client_account_id": str(master_flow.client_account_id),
                 "engagement_id": str(master_flow.engagement_id),
             }
@@ -70,7 +70,7 @@ class ExecutionEngineCollectionCrews:
 
     async def _initialize_collection_agent_pool(
         self, master_flow: CrewAIFlowStateExtensions
-    ) -> Dict[str, Any]:
+    ) -> Any:
         """Initialize persistent agent pool for collection tasks"""
         try:
             # Import here to avoid circular dependencies
@@ -95,9 +95,9 @@ class ExecutionEngineCollectionCrews:
             safe_client = str(client_id)
             safe_eng = str(engagement_id)
 
-            # Initialize the tenant pool with collection-relevant agents
+            # Initialize the tenant pool (returns None but sets up the pool)
             try:
-                agent_pool = await TenantScopedAgentPool.initialize_tenant_pool(
+                await TenantScopedAgentPool.initialize_tenant_pool(
                     client_id=safe_client,
                     engagement_id=safe_eng,
                 )
@@ -113,11 +113,9 @@ class ExecutionEngineCollectionCrews:
                 str(engagement_id),
             )
 
-            # For collection, we might want specific agents
-            # The base pool includes: data_analyst, field_mapper, quality_assessor, etc.
-            # These can be used for gap analysis and questionnaire generation
-
-            return agent_pool
+            # Return the TenantScopedAgentPool class itself for agent access
+            # The pool has been initialized and agents can be retrieved via get_agent()
+            return TenantScopedAgentPool
 
         except Exception as e:
             logger.error(f"❌ Failed to initialize collection agent pool: {e}")
@@ -135,7 +133,7 @@ class ExecutionEngineCollectionCrews:
         return phase_mapping.get(phase_name, phase_name)
 
     async def _execute_collection_mapped_phase(
-        self, mapped_phase: str, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+        self, mapped_phase: str, agent_pool: Any, phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute mapped collection phase with appropriate agents"""
         phase_methods = {
@@ -150,16 +148,31 @@ class ExecutionEngineCollectionCrews:
         return await method(agent_pool, phase_input)
 
     async def _execute_platform_detection(
-        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+        self, agent_pool: Any, phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute platform detection phase using data analyst agent"""
         logger.info("🔍 Executing platform detection with persistent agents")
 
         # Use data_analyst agent for platform detection
-        data_analyst = agent_pool.get("data_analyst")
-        if data_analyst:
-            # In a real implementation, we'd use the agent to analyze platform characteristics
-            logger.info("📊 Using persistent data_analyst agent for platform detection")
+        if agent_pool:
+            try:
+                # Create context from phase_input
+                from app.core.context import RequestContext
+
+                context = RequestContext(
+                    client_account_id=phase_input.get("client_account_id", "1"),
+                    engagement_id=phase_input.get("engagement_id", "1"),
+                )
+
+                data_analyst = await agent_pool.get_agent(
+                    context=context, agent_type="data_analyst"
+                )
+                if data_analyst:
+                    logger.info(
+                        "📊 Using persistent data_analyst agent for platform detection"
+                    )
+            except Exception as e:
+                logger.warning(f"Could not get data_analyst agent: {e}")
 
         return {
             "phase": "platform_detection",
@@ -170,17 +183,30 @@ class ExecutionEngineCollectionCrews:
         }
 
     async def _execute_automated_collection(
-        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+        self, agent_pool: Any, phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute automated collection phase"""
         logger.info("🤖 Executing automated collection with persistent agents")
 
         # Use quality_assessor agent for automated data collection
-        quality_assessor = agent_pool.get("quality_assessor")
-        if quality_assessor:
-            logger.info(
-                "✅ Using persistent quality_assessor agent for automated collection"
-            )
+        if agent_pool:
+            try:
+                from app.core.context import RequestContext
+
+                context = RequestContext(
+                    client_account_id=phase_input.get("client_account_id", "1"),
+                    engagement_id=phase_input.get("engagement_id", "1"),
+                )
+
+                quality_assessor = await agent_pool.get_agent(
+                    context=context, agent_type="quality_assessor"
+                )
+                if quality_assessor:
+                    logger.info(
+                        "✅ Using persistent quality_assessor agent for automated collection"
+                    )
+            except Exception as e:
+                logger.warning(f"Could not get quality_assessor agent: {e}")
 
         return {
             "phase": "automated_collection",
@@ -191,18 +217,31 @@ class ExecutionEngineCollectionCrews:
         }
 
     async def _execute_gap_analysis(
-        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+        self, agent_pool: Any, phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute gap analysis phase using business value analyst"""
         logger.info("📊 Executing gap analysis with persistent agents")
 
         # Use business_value_analyst for gap analysis
-        analyst = agent_pool.get("business_value_analyst")
-        if analyst:
-            logger.info(
-                "💼 Using persistent business_value_analyst agent for gap analysis"
-            )
-            # The agent would remember patterns from previous gap analyses for this tenant
+        if agent_pool:
+            try:
+                from app.core.context import RequestContext
+
+                context = RequestContext(
+                    client_account_id=phase_input.get("client_account_id", "1"),
+                    engagement_id=phase_input.get("engagement_id", "1"),
+                )
+
+                analyst = await agent_pool.get_agent(
+                    context=context, agent_type="business_value_analyst"
+                )
+                if analyst:
+                    logger.info(
+                        "💼 Using persistent business_value_analyst agent for gap analysis"
+                    )
+                    # The agent would remember patterns from previous gap analyses for this tenant
+            except Exception as e:
+                logger.warning(f"Could not get business_value_analyst agent: {e}")
 
         # Simulate gap analysis results
         gaps_identified = [
@@ -229,7 +268,7 @@ class ExecutionEngineCollectionCrews:
         }
 
     async def _execute_questionnaire_generation(
-        self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
+        self, agent_pool: Any, phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute questionnaire generation phase using field mapper and pattern discovery agents"""
         logger.info("📝 Executing questionnaire generation with persistent agents")

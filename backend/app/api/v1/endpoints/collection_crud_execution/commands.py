@@ -57,7 +57,10 @@ async def execute_collection_flow(
         await collection_validators.validate_flow_can_be_executed(collection_flow)
 
         # Execute the current phase using the master flow ID if available
-        current_phase = collection_flow.current_phase or "initialization"
+        # If no current_phase is set or if it's the status value "initialized", use "initialization"
+        current_phase = collection_flow.current_phase
+        if not current_phase or current_phase == "initialized":
+            current_phase = "initialization"
 
         # Use master_flow_id if it exists, otherwise try with collection flow_id
         execute_flow_id = (

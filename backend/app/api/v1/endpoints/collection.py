@@ -167,7 +167,7 @@ async def update_collection_flow(
     """Update collection flow (e.g., provide user input, continue flow)"""
     return await collection_crud.update_collection_flow(
         flow_id=flow_id,
-        flow_data=update_data,  # Fixed: parameter name should be flow_data
+        flow_update=update_data,  # Fixed: parameter name should be flow_update
         db=db,
         current_user=current_user,
         context=context,

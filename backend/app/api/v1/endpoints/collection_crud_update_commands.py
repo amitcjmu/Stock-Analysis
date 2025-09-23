@@ -78,14 +78,10 @@ async def update_collection_flow(
         await db.commit()
         await db.refresh(flow)
 
-        return {
-            "id": str(flow.id),
-            "status": flow.status,
-            "collection_config": flow.collection_config,
-            "automation_tier": flow.automation_tier,
-            "updated_at": flow.updated_at.isoformat(),
-            "message": "Collection flow updated successfully",
-        }
+        # Build proper CollectionFlowResponse
+        from app.api.v1.endpoints import collection_serializers
+
+        return collection_serializers.build_flow_response(flow)
 
     except Exception as e:
         await db.rollback()

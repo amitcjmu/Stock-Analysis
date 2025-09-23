@@ -11,6 +11,8 @@ import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormCon
 import { CollectionUploadBlocker } from "@/components/collection/CollectionUploadBlocker";
 import { CollectionWorkflowError } from "@/components/collection/CollectionWorkflowError";
 import { ApplicationSelectionUI } from "@/components/collection/ApplicationSelectionUI";
+import { QuestionnaireGenerationModal } from "@/components/collection/QuestionnaireGenerationModal";
+import { QuestionnaireReloadButton } from "@/components/collection/QuestionnaireReloadButton";
 
 // Import custom hooks
 import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
@@ -41,6 +43,16 @@ interface CollectionFlow {
   progress?: number;
   current_phase?: string;
   collection_config?: CollectionFlowConfig;
+}
+
+interface QuestionnaireData {
+  questions: Array<{
+    id: string;
+    text: string;
+    type: string;
+    options?: string[];
+  }>;
+  metadata?: Record<string, unknown>;
 }
 
 // Import UI components
@@ -75,6 +87,29 @@ const AdaptiveForms: React.FC = () => {
   const [showAppSelectionPrompt, setShowAppSelectionPrompt] = useState(false);
   const [showInlineAppSelection, setShowInlineAppSelection] = useState(false);
   const [hasRedirectedForApps, setHasRedirectedForApps] = useState(false);
+
+  // State for questionnaire generation modal
+  const [showGenerationModal, setShowGenerationModal] = useState(false);
+  const [isFallbackQuestionnaire, setIsFallbackQuestionnaire] = useState(false);
+
+  // Show questionnaire generation modal when flow starts
+  const handleQuestionnaireGeneration = React.useCallback(() => {
+    setShowGenerationModal(true);
+  }, []);
+
+  // Handle questionnaire ready from modal
+  const handleQuestionnaireReady = React.useCallback((questionnaire: QuestionnaireData) => {
+    setShowGenerationModal(false);
+    setIsFallbackQuestionnaire(false);
+    // Reload the form with the new questionnaire
+    window.location.reload();
+  }, []);
+
+  // Handle fallback to template questionnaire
+  const handleQuestionnaireFallback = React.useCallback(() => {
+    setShowGenerationModal(false);
+    setIsFallbackQuestionnaire(true);
+  }, []);
 
   // Check for incomplete flows that would block new collection processes
   // Skip checking if we're continuing a specific flow (flowId provided)
@@ -185,6 +220,7 @@ const AdaptiveForms: React.FC = () => {
     flowId,
     // CRITICAL FIX: Allow auto-initialization when continuing a specific flow
     autoInitialize: shouldAutoInitialize,
+    onQuestionnaireGenerationStart: handleQuestionnaireGeneration,
   });
 
   // Use HTTP polling for real-time updates during workflow initialization
@@ -714,6 +750,13 @@ const AdaptiveForms: React.FC = () => {
           : "Asset-agnostic data collection"
       }
     >
+      {isFallbackQuestionnaire && activeFlowId && (
+        <QuestionnaireReloadButton
+          flowId={activeFlowId}
+          onQuestionnaireReady={handleQuestionnaireReady}
+          className="mb-6"
+        />
+      )}
       <AdaptiveFormContainer
         formData={formData}
         formValues={formValues}
@@ -757,6 +800,18 @@ const AdaptiveForms: React.FC = () => {
             });
             return next;
           });
+        }}
+      />
+
+      {/* Questionnaire Generation Modal */}
+      <QuestionnaireGenerationModal
+        isOpen={showGenerationModal}
+        flowId={activeFlowId}
+        onComplete={handleQuestionnaireReady}
+        onFallback={handleQuestionnaireFallback}
+        onRetry={() => {
+          // Check for questionnaire again
+          window.location.reload();
         }}
       />
     </CollectionPageLayout>
