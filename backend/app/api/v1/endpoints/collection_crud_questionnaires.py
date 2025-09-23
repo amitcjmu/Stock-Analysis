@@ -4,6 +4,7 @@ Questionnaire-specific read operations for collection flows.
 """
 
 import logging
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -108,12 +109,28 @@ async def get_adaptive_questionnaires(
             )
             return []
 
-        # No questionnaires found - generate bootstrap questionnaire
+        # No questionnaires found - generate asset-aware bootstrap questionnaire
         logger.info(
-            f"No questionnaires found for flow {flow_id}, generating bootstrap questionnaire"
+            f"No questionnaires found for flow {flow_id}, generating asset-aware bootstrap questionnaire"
         )
 
-        # Extract selected application info from flow config
+        # Fetch ALL existing assets from the database for this engagement
+        # This implements the asset-agnostic collection approach from Phase 2
+        from app.models.asset import Asset
+
+        assets_result = await db.execute(
+            select(Asset)
+            .where(Asset.engagement_id == context.engagement_id)
+            .where(Asset.client_account_id == context.client_account_id)
+            .order_by(Asset.created_at.desc())
+        )
+        existing_assets = assets_result.scalars().all()
+
+        logger.info(
+            f"Found {len(existing_assets)} existing assets in the database for engagement {context.engagement_id}"
+        )
+
+        # Extract selected application info from flow config if already selected
         selected_application_name: Optional[str] = None
         selected_application_id = None
 
@@ -126,34 +143,34 @@ async def get_adaptive_questionnaires(
             if selected_app_ids:
                 selected_application_id = selected_app_ids[0]  # Use first selected app
 
-                # Fetch the asset details to get the application name
-                from app.models.asset import Asset
-
-                asset_result = await db.execute(
-                    select(Asset)
-                    .where(Asset.id == selected_application_id)
-                    .where(Asset.engagement_id == context.engagement_id)
-                )
-                selected_asset = asset_result.scalar_one_or_none()
-
-                if selected_asset:
-                    selected_application_name = str(
-                        selected_asset.name or selected_asset.application_name or ""
-                    )
-                    logger.info(
-                        f"Pre-populating questionnaire with application: "
-                        f"{selected_application_name} (ID: {selected_application_id})"
-                    )
+                # Find the selected asset from our existing assets
+                for asset in existing_assets:
+                    if str(asset.id) == str(selected_application_id):
+                        selected_application_name = str(
+                            asset.name or asset.application_name or ""
+                        )
+                        logger.info(
+                            f"Pre-populating questionnaire with application: "
+                            f"{selected_application_name} (ID: {selected_application_id})"
+                        )
+                        break
                 else:
                     logger.warning(
                         f"Selected application {selected_application_id} not found in asset inventory"
                     )
 
-        # Get bootstrap questionnaire template
+        # Determine collection scope from flow config
+        collection_scope = "engagement"  # Default scope
+        if flow.collection_config:
+            collection_scope = flow.collection_config.get("scope", "engagement")
+
+        # Get bootstrap questionnaire template with asset list
         bootstrap_template = get_bootstrap_questionnaire_template(
             flow_id=flow_id,
             selected_application_id=selected_application_id,
             selected_application_name=selected_application_name,
+            existing_assets=existing_assets,  # Pass the assets list
+            scope=collection_scope,  # Pass the collection scope
         )
 
         # Convert template to AdaptiveQuestionnaireResponse
@@ -174,10 +191,12 @@ async def get_adaptive_questionnaires(
                 for field in bootstrap_template["form_fields"]
             ],
             validation_rules=bootstrap_template["validation_rules"],
-            completion_status=bootstrap_template["completion_status"],
-            responses_collected=bootstrap_template["responses_collected"],
-            created_at=bootstrap_template["created_at"],
-            completed_at=bootstrap_template["completed_at"],
+            completion_status="pending",  # Fixed: String instead of dict
+            responses_collected={},  # Fixed: Dict instead of int
+            created_at=datetime.fromisoformat(
+                bootstrap_template["created_at"].replace("Z", "+00:00")
+            ),
+            completed_at=None,  # Template returns None, keep it None
         )
 
         logger.info(
@@ -212,10 +231,18 @@ def _convert_template_field_to_question(
         "category": field["category"],
         "options": field.get("options", []),
         "help_text": field.get("help_text", ""),
+        "multiple": field.get("multiple", False),
+        "metadata": field.get("metadata", {}),
     }
 
-    # Pre-fill application name if available
+    # Pre-fill values if available
     if field["field_id"] == "application_name" and selected_application_name:
         question["default_value"] = selected_application_name
+    elif field["field_id"] == "asset_name" and selected_application_name:
+        question["default_value"] = selected_application_name
+
+    # Handle default values for asset selector
+    if field.get("default_value"):
+        question["default_value"] = field["default_value"]
 
     return question

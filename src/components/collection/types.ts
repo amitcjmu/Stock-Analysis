@@ -38,11 +38,24 @@ export interface FormField {
   order: number;
   helpText?: string;
   businessImpactScore: number;
+  metadata?: FieldMetadata;
 }
 
 export interface FieldOption {
   value: string;
   label: string;
+  metadata?: {
+    type?: string;
+    completeness?: number;
+    gap_count?: number;
+  };
+}
+
+export interface FieldMetadata {
+  multiple?: boolean;
+  show_completeness?: boolean;
+  show_type_filter?: boolean;
+  allow_search?: boolean;
 }
 
 export interface ValidationRules {
@@ -75,7 +88,8 @@ export type FieldType =
   | 'date_input'
   | 'numeric_input'
   | 'multi_select'
-  | 'technology_selection';
+  | 'technology_selection'
+  | 'asset_selector';
 
 // CC: Form value type based on field types
 type FieldValue = string | number | boolean | Date | File | string[];

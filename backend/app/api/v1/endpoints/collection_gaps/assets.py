@@ -5,11 +5,12 @@ These endpoints enable starting collection for any asset type without requiring
 application-specific configuration, and provide conflict detection and resolution.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -84,6 +85,29 @@ class ConflictResolutionResponse(BaseModel):
 
     status: str = Field(..., description="Resolution status")
     resolved_value: str = Field(..., description="The value that was resolved")
+
+
+class AssetSummary(BaseModel):
+    """Minimal asset data for selection UI"""
+
+    id: str
+    name: str
+    asset_type: str  # 'application', 'database', 'server', etc.
+    status: str
+    completeness_score: float = Field(0.0, ge=0.0, le=1.0)  # 0.0 to 1.0
+    gap_count: int = 0
+    last_updated: Optional[datetime] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AssetListResponse(BaseModel):
+    """Paginated asset listing response"""
+
+    assets: List[AssetSummary]
+    total_count: int
+    page: int
+    page_size: int
+    has_more: bool
 
 
 @router.post("/start", response_model=AssetCollectionStartResponse)
@@ -296,4 +320,121 @@ async def resolve_asset_conflict(
 
     return ConflictResolutionResponse(
         status="resolved", resolved_value=resolution.value
+    )
+
+
+@router.get("/available", response_model=AssetListResponse)
+@require_feature("collection.gaps.v2")
+async def get_available_assets(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    asset_type: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_request_context),
+) -> AssetListResponse:
+    """
+    Get available assets for selection in collection flows.
+
+    Returns paginated list of assets with completeness scores and gap counts.
+    Properly scoped to tenant/engagement context.
+    """
+    # Convert context IDs to UUID for database queries
+    client_account_uuid, engagement_uuid = _convert_context_ids_to_uuid(context)
+
+    # Base query with tenant scoping
+    query = select(Asset).where(
+        Asset.client_account_id == client_account_uuid,
+        Asset.engagement_id == engagement_uuid,
+        Asset.status != "decommissioned",  # Only active-ish assets
+    )
+
+    # Apply asset type filter if provided
+    if asset_type:
+        query = query.where(Asset.asset_type == asset_type)
+
+    # Apply search filter if provided
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.where(
+            or_(
+                Asset.name.ilike(search_pattern),
+                Asset.application_name.ilike(search_pattern),
+                Asset.asset_type.ilike(search_pattern),
+                Asset.hostname.ilike(search_pattern),
+            )
+        )
+
+    # Get total count before pagination
+    count_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    total_count = count_result.scalar() or 0
+
+    # Apply pagination
+    offset = (page - 1) * page_size
+    query = query.order_by(Asset.created_at.desc()).offset(offset).limit(page_size)
+
+    # Execute query
+    result = await db.execute(query)
+    assets = result.scalars().all()
+
+    # Calculate completeness for each asset
+    asset_summaries = []
+    for asset in assets:
+        # Calculate completeness based on populated fields
+        required_fields = [
+            "name",
+            "asset_type",
+            "status",
+            "business_owner",
+            "business_criticality",
+        ]
+        optional_fields = [
+            "technical_details",
+            "custom_attributes",
+            "dependencies",
+            "description",
+            "operating_system",
+        ]
+
+        populated_required = sum(
+            1 for field in required_fields if getattr(asset, field, None)
+        )
+        populated_optional = sum(
+            1 for field in optional_fields if getattr(asset, field, None)
+        )
+
+        completeness = (populated_required / len(required_fields)) * 0.7 + (
+            populated_optional / len(optional_fields)
+        ) * 0.3
+
+        # Count gaps (simplified - in real implementation, query collection_data_gaps table)
+        gap_count = len(required_fields) - populated_required
+
+        asset_summaries.append(
+            AssetSummary(
+                id=str(asset.id),
+                name=asset.name
+                or asset.application_name
+                or f"Asset {str(asset.id)[:8]}",
+                asset_type=asset.asset_type or "unknown",
+                status=asset.status or "active",
+                completeness_score=min(completeness, 1.0),
+                gap_count=gap_count,
+                last_updated=asset.updated_at,
+                metadata={
+                    "business_criticality": asset.business_criticality,
+                    "business_owner": asset.business_owner,
+                    "technical_owner": asset.technical_owner,
+                    "has_dependencies": bool(asset.dependencies),
+                    "environment": asset.environment,
+                },
+            )
+        )
+
+    return AssetListResponse(
+        assets=asset_summaries,
+        total_count=total_count,
+        page=page,
+        page_size=page_size,
+        has_more=(offset + len(assets)) < total_count,
     )

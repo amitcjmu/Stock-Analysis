@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 FEATURE_FLAGS: Dict[str, bool] = {
     # Collection Gaps Phase 2 features
     "collection.gaps.v1": True,  # Enable asset-agnostic collection endpoints
+    "collection.gaps.v2": True,  # Enable asset selection and enhanced questionnaires
     "collection.gaps.conflict_detection": True,  # Enable conflict detection features
     "collection.gaps.advanced_analytics": False,  # Future analytics features
     # Other feature flags can be added here
@@ -28,6 +29,7 @@ FEATURE_FLAGS: Dict[str, bool] = {
 # Features that are permanently enabled (cannot be disabled)
 PERMANENT_FEATURES: Set[str] = {
     "collection.gaps.v1",  # Core Collection Gaps Phase 2 functionality
+    "collection.gaps.v2",  # Asset selection and enhanced questionnaires
 }
 
 

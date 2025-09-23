@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import type { FormFieldProps, FieldValue, VendorProduct } from '../types';
 import { FieldType } from '../types';
 import { TechnologyPicker } from './TechnologyPicker';
+import { AssetSelector } from '../AssetSelector';
 
 export const FormField: React.FC<FormFieldProps> = ({
   field,
@@ -312,6 +313,21 @@ export const FormField: React.FC<FormFieldProps> = ({
             multiple={field.description?.includes('multiple') || false}
             disabled={disabled}
             helpText={field.helpText}
+          />
+        );
+
+      case 'asset_selector':
+        return (
+          <AssetSelector
+            options={field.options || []}
+            value={value}
+            onChange={handleChange}
+            multiple={field.metadata?.multiple}
+            required={field.validation?.required}
+            showCompleteness={field.metadata?.show_completeness}
+            showTypeFilter={field.metadata?.show_type_filter}
+            allowSearch={field.metadata?.allow_search}
+            placeholder={field.placeholder || "Select assets..."}
           />
         );
 
