@@ -107,8 +107,8 @@ class ProfileOperations(BaseRBACHandler):
             )
 
             # Update profile fields
-            await self._update_user_fields(user_profile, profile_updates)
-            await self._update_profile_fields(user_profile, profile_updates)
+            self._update_user_fields(user_profile, profile_updates)
+            self._update_profile_fields(user_profile, profile_updates)
 
             # Extract new client and engagement IDs for access creation
             new_client_id = self._extract_new_client_id(profile_updates)
@@ -190,7 +190,7 @@ class ProfileOperations(BaseRBACHandler):
             "is_active": (user_profile.user.is_active if user_profile.user else False),
         }
 
-    async def _update_user_fields(
+    def _update_user_fields(
         self, user_profile: UserProfile, profile_updates: Dict[str, Any]
     ) -> None:
         """Update User model fields."""
@@ -224,13 +224,13 @@ class ProfileOperations(BaseRBACHandler):
                         "default_client_id",
                         "default_engagement_id",
                     ]:
-                        await self._update_uuid_field(
+                        self._update_uuid_field(
                             user_profile.user, db_field, value
                         )
                     elif db_field and hasattr(user_profile.user, db_field):
                         secure_setattr(user_profile.user, db_field, value)
 
-    async def _update_profile_fields(
+    def _update_profile_fields(
         self, user_profile: UserProfile, profile_updates: Dict[str, Any]
     ) -> None:
         """Update UserProfile model fields."""
@@ -252,7 +252,7 @@ class ProfileOperations(BaseRBACHandler):
                 if hasattr(user_profile, db_field):
                     secure_setattr(user_profile, db_field, value)
 
-    async def _update_uuid_field(self, user_obj, field_name: str, value: str) -> None:
+    def _update_uuid_field(self, user_obj, field_name: str, value: str) -> None:
         """Update UUID field with proper validation."""
         # Special handling for UUID fields - convert 'none' to None
         if value == "none" or value == "":

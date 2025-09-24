@@ -53,17 +53,16 @@ class RegistrationOperations(BaseRBACHandler):
             first_name = name_parts[0] if name_parts else ""
             last_name = name_parts[1] if len(name_parts) > 1 else ""
 
-            # Hash the password if provided
-            password_hash = None
-            if user_data.get("password"):
-                password_hash = bcrypt.hashpw(
-                    user_data["password"].encode("utf-8"), bcrypt.gensalt()
-                ).decode("utf-8")
-                logger.info(f"Password hash created for user {user_data['user_id']}")
-            else:
-                logger.warning(
-                    f"No password provided for user {user_data['user_id']} during registration"
-                )
+            # Password is mandatory for user registration
+            if not user_data.get("password"):
+                logger.error(f"Password is required for registration for user {user_data.get('user_id')}")
+                return {"status": "error", "message": "Password is required for registration"}
+
+            # Hash the password
+            password_hash = bcrypt.hashpw(
+                user_data["password"].encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
+            logger.info(f"Password hash created for user {user_data['user_id']}")
 
             # First create the base User record
             user = User(
