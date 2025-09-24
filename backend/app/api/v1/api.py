@@ -36,11 +36,11 @@ async def health_check():
     try:
         # Try to get a database connection - get_db() is an async generator
         db_gen = get_db()
-        session = await anext(db_gen)  # Get the database session asynchronously
+        session = await db_gen.__anext__()  # Get the database session asynchronously
         database_status = True
         # Properly close the database session
         try:
-            await anext(db_gen)
+            await db_gen.__anext__()
         except StopAsyncIteration:
             pass  # Async generator exhausted, session closed
         finally:
