@@ -140,9 +140,9 @@ class UserRegistrationRequest(BaseModel):
         "weekly_reports": True,
     }
 
-    # Admin user creation fields
+    # Password field - required for self-registration, optional for admin-created users
     password: Optional[str] = Field(
-        None, min_length=8, description="Password for admin-created users"
+        None, min_length=8, description="Password for user registration"
     )
     access_level: Optional[AccessLevelEnum] = None
     role_name: Optional[str] = Field(

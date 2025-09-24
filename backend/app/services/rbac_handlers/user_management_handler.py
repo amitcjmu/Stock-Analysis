@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
+import bcrypt
 from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload, joinedload
 
@@ -59,10 +60,23 @@ class UserManagementHandler(BaseRBACHandler):
             first_name = name_parts[0] if name_parts else ""
             last_name = name_parts[1] if len(name_parts) > 1 else ""
 
+            # Hash the password if provided
+            password_hash = None
+            if user_data.get("password"):
+                password_hash = bcrypt.hashpw(
+                    user_data["password"].encode("utf-8"), bcrypt.gensalt()
+                ).decode("utf-8")
+                logger.info(f"Password hash created for user {user_data['user_id']}")
+            else:
+                logger.warning(
+                    f"No password provided for user {user_data['user_id']} during registration"
+                )
+
             # First create the base User record
             user = User(
                 id=user_data["user_id"],
                 email=user_data.get("email", ""),
+                password_hash=password_hash,  # Store the hashed password
                 first_name=first_name,
                 last_name=last_name,
                 is_active=False,  # Not active until approved
