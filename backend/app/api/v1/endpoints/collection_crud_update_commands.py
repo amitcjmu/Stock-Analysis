@@ -81,7 +81,7 @@ async def update_collection_flow(
         # Build proper CollectionFlowResponse
         from app.api.v1.endpoints import collection_serializers
 
-        return collection_serializers.build_flow_response(flow)
+        return collection_serializers.build_collection_flow_response(flow)
 
     except Exception as e:
         await db.rollback()
