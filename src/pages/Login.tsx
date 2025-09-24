@@ -46,7 +46,7 @@ const Login: React.FC = () => {
     requested_access: {
       client_accounts: [],
       engagements: [],
-      access_level: 'read'
+      access_level: 'read_only'
     }
   });
 
@@ -274,11 +274,11 @@ const Login: React.FC = () => {
         email: registerData.email,
         password: registerData.password,
         full_name: registerData.full_name,
-        username: registerData.username,
+        username: registerData.username || undefined,
         organization: registerData.organization,
         role_description: registerData.role_description,
-        justification: registerData.justification,
-        requested_access: registerData.requested_access
+        registration_reason: registerData.justification, // Backend expects registration_reason
+        requested_access_level: registerData.requested_access.access_level // Backend expects flat field, not nested
       });
 
       setRegistrationSuccess(true);
@@ -646,7 +646,7 @@ const Login: React.FC = () => {
                       <SelectValue placeholder="Select access level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="read">Read Only</SelectItem>
+                      <SelectItem value="read_only">Read Only</SelectItem>
                       <SelectItem value="read_write">Read & Write</SelectItem>
                       <SelectItem value="admin">Administrator</SelectItem>
                     </SelectContent>
