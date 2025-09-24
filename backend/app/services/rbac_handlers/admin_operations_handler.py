@@ -142,7 +142,6 @@ class AdminOperationsHandler(BaseRBACHandler):
                 last_name=last_name,
                 is_active=user_data.get("is_active", True),
                 is_verified=True,
-                is_mock=False,
                 # Use provided values or default to demo IDs
                 default_client_id=user_data.get(
                     "default_client_id", "11111111-1111-1111-1111-111111111111"

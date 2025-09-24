@@ -67,7 +67,6 @@ class UserManagementHandler(BaseRBACHandler):
                 last_name=last_name,
                 is_active=False,  # Not active until approved
                 is_verified=False,
-                is_mock=False,
                 # Use provided default client/engagement IDs, fallback to demo IDs for sandbox access
                 default_client_id=user_data.get(
                     "default_client_id", "11111111-1111-1111-1111-111111111111"
