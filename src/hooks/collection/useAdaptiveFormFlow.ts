@@ -14,9 +14,11 @@ import {
   useCollectionFlowManagement,
   useIncompleteCollectionFlows,
 } from "./useCollectionFlowManagement";
+import { useQuestionnairePolling } from "./useQuestionnairePolling";
 
 // Import API services
 import { collectionFlowApi } from "@/services/api/collection-flow";
+import type { AdaptiveQuestionnaireResponse } from "@/services/api/collection-flow";
 import { apiCall } from "@/config/api";
 
 // Import form data transformation utilities
@@ -167,6 +169,10 @@ export interface AdaptiveFormFlowState {
   isSaving: boolean;
   isCompleted: boolean;
   error: Error | null;
+  // New polling state fields
+  isPolling: boolean;
+  completionStatus: "pending" | "ready" | "fallback" | "failed" | null;
+  statusLine: string | null;
 }
 
 export interface AdaptiveFormFlowActions {
@@ -213,6 +219,10 @@ export const useAdaptiveFormFlow = (
     isSaving: false,
     isCompleted: false,
     error: null,
+    // New polling state fields
+    isPolling: false,
+    completionStatus: null,
+    statusLine: null,
   });
 
   // CRITICAL FIX: Centralized flow ID management
@@ -255,6 +265,87 @@ export const useAdaptiveFormFlow = (
       });
 
   const hasBlockingFlows = blockingFlows.length > 0;
+
+  // Use the new questionnaire polling hook with completion_status support
+  const questionnairePollingState = useQuestionnairePolling({
+    flowId: state.flowId || '',
+    enabled: !!state.flowId && !state.formData,
+    onReady: useCallback((questionnaires) => {
+      console.log('🎉 Questionnaire ready from new polling hook:', questionnaires);
+      // Convert questionnaires and update state
+      if (questionnaires.length > 0) {
+        try {
+          const adaptiveFormData = convertQuestionnairesToFormData(
+            questionnaires[0],
+            applicationId,
+          );
+
+          if (validateFormDataStructure(adaptiveFormData)) {
+            setState((prev) => ({
+              ...prev,
+              formData: adaptiveFormData,
+              questionnaires: questionnaires,
+              isLoading: false,
+              error: null
+            }));
+
+            toast({
+              title: "Adaptive Form Ready",
+              description: `Agent-generated questionnaire is ready for data collection.`,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to convert questionnaire:', error);
+        }
+      }
+    }, [applicationId, toast]),
+    onFallback: useCallback((questionnaires) => {
+      console.log('⚠️ Using fallback questionnaire from new polling hook:', questionnaires);
+      // Handle fallback questionnaire
+      if (questionnaires.length > 0) {
+        try {
+          const adaptiveFormData = convertQuestionnairesToFormData(
+            questionnaires[0],
+            applicationId,
+          );
+
+          setState((prev) => ({
+            ...prev,
+            formData: adaptiveFormData,
+            questionnaires: questionnaires,
+            isLoading: false,
+            error: null
+          }));
+
+          toast({
+            title: "Bootstrap Form Loaded",
+            description: "Using comprehensive template questionnaire while AI agents work in the background.",
+            variant: "default",
+          });
+        } catch (error) {
+          console.error('Failed to convert fallback questionnaire:', error);
+        }
+      }
+    }, [applicationId, toast]),
+    onFailed: useCallback((errorMessage) => {
+      console.error('❌ Questionnaire generation failed:', errorMessage);
+      // Use local fallback
+      const fallback = createFallbackFormData(applicationId || null);
+      setState((prev) => ({
+        ...prev,
+        formData: fallback,
+        questionnaires: [],
+        isLoading: false,
+        error: null,
+      }));
+
+      toast({
+        title: "Fallback Form Loaded",
+        description: `Questionnaire generation failed: ${errorMessage}. Using basic adaptive form.`,
+        variant: "default",
+      });
+    }, [applicationId, toast])
+  });
 
   /**
    * Initialize the adaptive collection flow
@@ -1251,6 +1342,10 @@ export const useAdaptiveFormFlow = (
       isSaving: false,
       isCompleted: false,
       error: null,
+      // New polling state fields
+      isPolling: false,
+      completionStatus: null,
+      statusLine: null,
     });
     currentFlowIdRef.current = null;
     setCurrentFlow(null);
@@ -1391,8 +1486,12 @@ export const useAdaptiveFormFlow = (
   }, [state.flowId, state.formData, handleSave]); // Only log when key values change
 
   return {
-    // State
+    // State - merge main state with polling state
     ...state,
+    // Override polling-related fields with data from the new polling hook
+    isPolling: questionnairePollingState.isPolling,
+    completionStatus: questionnairePollingState.completionStatus,
+    statusLine: questionnairePollingState.statusLine,
 
     // Actions
     initializeFlow,

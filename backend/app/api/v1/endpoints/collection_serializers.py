@@ -198,9 +198,29 @@ def build_questionnaire_response(
         questionnaire: Questionnaire model instance
 
     Returns:
-        AdaptiveQuestionnaireResponse object
+        AdaptiveQuestionnaireResponse object with completion_status and optional status_line
     """
-    return AdaptiveQuestionnaireResponse(
+    # Generate status line for UI display based on completion_status
+    status_line = None
+    if questionnaire.completion_status == "pending":
+        # Calculate estimated time (simple heuristic)
+        from datetime import datetime
+
+        if questionnaire.created_at:
+            elapsed = datetime.utcnow() - questionnaire.created_at
+            estimated_remaining = max(0, 30 - elapsed.total_seconds())  # 30s timeout
+            status_line = f"Generating AI questionnaire... (Est. {int(estimated_remaining)}s remaining)"
+        else:
+            status_line = "Generating AI questionnaire... (Est. 30s remaining)"
+    elif questionnaire.completion_status == "ready":
+        status_line = "Questionnaire ready for completion"
+    elif questionnaire.completion_status == "fallback":
+        status_line = "Using bootstrap questionnaire template"
+    elif questionnaire.completion_status == "failed":
+        status_line = "Questionnaire generation failed - please try again"
+
+    # Build base response
+    response = AdaptiveQuestionnaireResponse(
         id=str(questionnaire.id),
         collection_flow_id=str(questionnaire.collection_flow_id),
         title=questionnaire.title,
@@ -209,10 +229,13 @@ def build_questionnaire_response(
         questions=questionnaire.questions,
         validation_rules=questionnaire.validation_rules,
         completion_status=questionnaire.completion_status,
+        status_line=status_line,
         responses_collected=questionnaire.responses_collected,
         created_at=questionnaire.created_at,
         completed_at=questionnaire.completed_at,
     )
+
+    return response
 
 
 def build_collection_status_response(collection_flow: CollectionFlow) -> Dict[str, Any]:

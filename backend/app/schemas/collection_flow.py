@@ -143,6 +143,7 @@ class AdaptiveQuestionnaireResponse(BaseModel):
     questions: List[Dict[str, Any]]
     validation_rules: Optional[Dict[str, Any]] = None
     completion_status: str
+    status_line: Optional[str] = None
     responses_collected: Optional[Dict[str, Any]] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
