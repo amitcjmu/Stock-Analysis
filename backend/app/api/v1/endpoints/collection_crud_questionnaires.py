@@ -152,6 +152,57 @@ async def get_adaptive_questionnaires(
 
         # Get existing assets needed for both agent and bootstrap generation
         existing_assets = await _get_existing_assets(db, context)
+        logger.info(f"Found {len(existing_assets)} existing assets for engagement")
+
+        # CRITICAL: Collection flows must have assets selected before generating questionnaires
+        # Check if any assets are selected in the flow configuration
+        selected_asset_ids = []
+        selected_application_name = None
+        selected_application_id = None
+
+        if flow.collection_config:
+            selected_asset_ids = (
+                flow.collection_config.get("selected_application_ids", []) or
+                flow.collection_config.get("selected_asset_ids", [])
+            )
+            # If assets are selected, get the first one's details
+            if selected_asset_ids:
+                for asset in existing_assets:
+                    if str(asset.id) in selected_asset_ids:
+                        selected_application_id = str(asset.id)
+                        selected_application_name = asset.name or asset.application_name
+                        logger.info(
+                            f"Using selected asset: {selected_application_name} (ID: {selected_application_id})"
+                        )
+                        break
+
+        if not selected_asset_ids:
+            logger.warning(
+                f"No assets selected for collection flow {flow_id}. "
+                "Assets must be selected before generating questionnaires."
+            )
+            # Return an informative error as a questionnaire response
+            return [
+                AdaptiveQuestionnaireResponse(
+                    id="error-no-assets",
+                    client_account_id=str(context.client_account_id),
+                    engagement_id=str(context.engagement_id),
+                    collection_flow_id=str(flow.id),  # Convert UUID to string
+                    title="Asset Selection Required",
+                    description=(
+                        "Please select specific assets or applications before generating questionnaires. "
+                        "Collection flows must be centered around specific assets to ensure data correlation "
+                        "with the database and proper gap analysis."
+                    ),
+                    target_gaps=["asset_selection"],
+                    questions=[],
+                    validation_rules={},
+                    completion_status="error",
+                    responses_collected={},
+                    created_at=datetime.now(timezone.utc),
+                    completed_at=None,
+                )
+            ]
 
         # Check agent generation feature flag
         from app.core.feature_flags import is_feature_enabled
@@ -176,9 +227,7 @@ async def get_adaptive_questionnaires(
         # Fallback to bootstrap if agent generation not enabled or failed to start
         if bootstrap_fallback:
             logger.info(f"Generating bootstrap questionnaire for flow {flow_id}")
-            selected_app_name, selected_app_id = _get_selected_application_info(
-                flow, existing_assets
-            )
+            # selected_app_name and selected_app_id are already extracted above
 
             collection_scope = "engagement"
             if flow.collection_config:
@@ -186,8 +235,8 @@ async def get_adaptive_questionnaires(
 
             bootstrap_template = get_bootstrap_questionnaire_template(
                 flow_id=flow_id,
-                selected_application_id=selected_app_id,
-                selected_application_name=selected_app_name,
+                selected_application_id=selected_application_id,
+                selected_application_name=selected_application_name,
                 existing_assets=existing_assets,
                 scope=collection_scope,
             )
@@ -208,7 +257,7 @@ async def get_adaptive_questionnaires(
                     "compliance",
                 ],
                 questions=[
-                    _convert_template_field_to_question(field, selected_app_name)
+                    _convert_template_field_to_question(field, selected_application_name)
                     for field in bootstrap_template["form_fields"]
                 ],
                 validation_rules=bootstrap_template["validation_rules"],
@@ -259,6 +308,11 @@ def _convert_template_field_to_question(
         "multiple": field.get("multiple", False),
         "metadata": field.get("metadata", {}),
     }
+
+    # Add asset_id to maintain asset-question relationship
+    if selected_application_name and "metadata" in question:
+        # Find asset ID from the name
+        question["metadata"]["asset_name"] = selected_application_name
 
     # Pre-fill values if available
     if field["field_id"] == "application_name" and selected_application_name:
@@ -495,17 +549,213 @@ async def _background_generate(
                 )
 
 
+def _suggest_field_mapping(field_name: str) -> str:
+    """Suggest potential mapping for unmapped field."""
+    field_lower = field_name.lower()
+
+    # Common field mappings
+    mapping_suggestions = {
+        "app": "application_name",
+        "application": "application_name",
+        "server": "hostname",
+        "host": "hostname",
+        "ip": "ip_address",
+        "owner": "business_owner",
+        "tech_owner": "technical_owner",
+        "tech_lead": "technical_owner",
+        "os": "operating_system",
+        "env": "environment",
+        "environment": "environment",
+        "location": "location",
+        "dc": "datacenter",
+        "data_center": "datacenter",
+        "cpu": "cpu_cores",
+        "memory": "memory_gb",
+        "ram": "memory_gb",
+        "storage": "storage_gb",
+        "disk": "storage_gb",
+        "criticality": "criticality",
+        "priority": "migration_priority",
+        "complexity": "migration_complexity",
+        "strategy": "six_r_strategy",
+        "6r": "six_r_strategy",
+    }
+
+    for key, value in mapping_suggestions.items():
+        if key in field_lower:
+            return value
+
+    return "custom_attribute"
+
+
 async def _generate_agent_questionnaires(
     flow_id: str,
     flow: CollectionFlow,
     existing_assets: List[Asset],
     context: RequestContext,
 ) -> List[AdaptiveQuestionnaireResponse]:
-    """Generate questionnaires using AI agent with hybrid fallback."""
+    """Generate questionnaires using persistent multi-tenant AI agent."""
     try:
+        # Try to use the persistent agent pool first
+        from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
+        from app.services.persistent_agents.config.agent_wrapper import AgentWrapper
+
+        logger.info(f"Attempting to use persistent questionnaire agent for tenant {context.client_account_id}")
+
+        # Extract and analyze selected assets from flow configuration
+        selected_assets = []
+        asset_analysis = {
+            "total_assets": 0,
+            "assets_with_gaps": [],
+            "unmapped_attributes": {},
+            "failed_mappings": {},
+            "missing_critical_fields": {},
+            "data_quality_issues": {}
+        }
+
+        if flow.collection_config:
+            selected_app_ids = flow.collection_config.get("selected_application_ids", [])
+            selected_asset_ids = flow.collection_config.get("selected_asset_ids", [])
+            all_selected_ids = selected_app_ids + selected_asset_ids
+
+            for asset in existing_assets:
+                if str(asset.id) in all_selected_ids:
+                    asset_id_str = str(asset.id)
+
+                    # Basic asset information
+                    asset_info = {
+                        "asset_id": asset_id_str,
+                        "asset_name": asset.name or asset.application_name,
+                        "asset_type": getattr(asset, "asset_type", "application"),
+                        "criticality": getattr(asset, "criticality", "unknown"),
+                        "environment": getattr(asset, "environment", "unknown"),
+                        "technology_stack": getattr(asset, "technology_stack", "unknown"),
+                    }
+                    selected_assets.append(asset_info)
+
+                    # Analyze unmapped attributes from raw data
+                    raw_data = getattr(asset, "raw_data", {}) or {}
+                    field_mappings = getattr(asset, "field_mappings_used", {}) or {}
+                    custom_attributes = getattr(asset, "custom_attributes", {}) or {}
+                    technical_details = getattr(asset, "technical_details", {}) or {}
+
+                    # Find unmapped attributes (in raw data but not in mapped fields)
+                    unmapped = []
+                    if raw_data:
+                        mapped_fields = set(field_mappings.values()) if field_mappings else set()
+                        for key, value in raw_data.items():
+                            if key not in mapped_fields and value:
+                                unmapped.append({
+                                    "field": key,
+                                    "value": str(value)[:100],  # Truncate long values
+                                    "potential_mapping": _suggest_field_mapping(key)
+                                })
+
+                    if unmapped:
+                        asset_analysis["unmapped_attributes"][asset_id_str] = unmapped
+
+                    # Identify failed mappings and data quality issues
+                    mapping_status = getattr(asset, "mapping_status", None)
+                    if mapping_status and mapping_status != "complete":
+                        asset_analysis["failed_mappings"][asset_id_str] = {
+                            "status": mapping_status,
+                            "reason": "Incomplete field mapping during import"
+                        }
+
+                    # Check for missing critical fields
+                    critical_fields = [
+                        "business_owner", "technical_owner", "six_r_strategy",
+                        "migration_complexity", "dependencies", "operating_system"
+                    ]
+                    missing_fields = []
+                    for field in critical_fields:
+                        if not getattr(asset, field, None):
+                            missing_fields.append(field)
+
+                    if missing_fields:
+                        asset_analysis["missing_critical_fields"][asset_id_str] = missing_fields
+                        asset_analysis["assets_with_gaps"].append(asset_id_str)
+
+                    # Assess data quality
+                    completeness_score = getattr(asset, "completeness_score", 0.0) or 0.0
+                    confidence_score = getattr(asset, "confidence_score", 0.0) or 0.0
+                    if completeness_score < 0.8 or confidence_score < 0.7:
+                        asset_analysis["data_quality_issues"][asset_id_str] = {
+                            "completeness": completeness_score,
+                            "confidence": confidence_score,
+                            "needs_validation": True
+                        }
+
+        asset_analysis["total_assets"] = len(selected_assets)
+
+        # Get or create the questionnaire generator agent for this tenant
+        questionnaire_agent = await TenantScopedAgentPool.get_or_create_agent(
+            client_id=str(context.client_account_id),
+            engagement_id=str(context.engagement_id),
+            agent_type="questionnaire_generator",
+            context_info={
+                "flow_id": flow_id,
+                "collection_flow": flow,
+                "gap_analysis_results": getattr(flow, "gap_analysis_results", {}),
+                "selected_assets": selected_assets,
+                "asset_analysis": asset_analysis,
+            }
+        )
+
+        # Wrap the agent for execution compatibility
+        wrapped_agent = AgentWrapper(questionnaire_agent, "questionnaire_generator")
+
+        # Create comprehensive task inputs for questionnaire generation
+        task_inputs: dict[str, Any] = {
+            "gap_analysis": getattr(flow, "gap_analysis_results", {}) or {},
+            "business_context": getattr(flow, "collection_config", {}) or {},
+            "collection_flow_id": flow_id,
+            "stakeholder_context": {},
+            "automation_tier": getattr(flow, "automation_tier", "tier_2") or "tier_2",
+            "persistence_data": getattr(flow, "persistence_data", {}) or {},
+            "selected_assets": selected_assets,
+            "asset_analysis": asset_analysis,  # Comprehensive asset analysis
+            "task": (
+                f"Analyze {len(selected_assets)} selected assets and generate adaptive questionnaires "
+                f"to resolve data gaps. {len(asset_analysis['assets_with_gaps'])} assets have critical gaps. "
+                f"{len(asset_analysis['unmapped_attributes'])} assets have unmapped attributes. "
+                f"Focus on collecting missing critical fields and validating uncertain data."
+            )
+        }
+
+        # Execute the agent
+        agent_result = await wrapped_agent.execute_async(inputs=task_inputs)
+
+        # Check if agent execution was successful
+        if isinstance(agent_result, dict):
+            if agent_result.get("status") == "success":
+                logger.info("Persistent agent executed successfully")
+                # Extract questionnaires from agent result
+                # The agent may return questionnaires in different formats
+                questionnaires_data = agent_result.get("questionnaires", [])
+                if not questionnaires_data and agent_result.get("agent_output"):
+                    # Try to parse from agent output
+                    questionnaires_data = []
+            elif agent_result.get("status") == "error":
+                logger.warning(f"Agent execution error: {agent_result.get('error')}")
+                raise Exception(f"Agent execution failed: {agent_result.get('error')}")
+            else:
+                # Agent returned results but not in expected format
+                # Fall back to service generation
+                logger.info("Agent result format unexpected, using fallback")
+                raise Exception("Agent result format unexpected")
+        else:
+            logger.warning(f"Agent returned non-dict result: {type(agent_result)}")
+            raise Exception("Agent returned unexpected result type")
+
+    except Exception as agent_error:
+        logger.warning(f"Persistent agent execution failed, using fallback service: {agent_error}")
+
+        # Fall back to the original service-based generation
         from app.services.ai_analysis.questionnaire_generator import (
             QuestionnaireService,
             QuestionnaireProcessor,
+            AdaptiveQuestionnaireGenerator,
         )
         from app.services.ai_analysis.questionnaire_generator.agents import (
             QuestionnaireAgentManager,
@@ -518,13 +768,100 @@ async def _generate_agent_questionnaires(
         agent_manager = QuestionnaireAgentManager()
         agents = agent_manager.create_agents()
 
-        # Create task inputs for questionnaire generation
+        # Reuse the same comprehensive asset analysis logic
+        selected_assets = []
+        asset_analysis = {
+            "total_assets": 0,
+            "assets_with_gaps": [],
+            "unmapped_attributes": {},
+            "failed_mappings": {},
+            "missing_critical_fields": {},
+            "data_quality_issues": {}
+        }
+
+        if flow.collection_config:
+            selected_app_ids = flow.collection_config.get("selected_application_ids", [])
+            selected_asset_ids = flow.collection_config.get("selected_asset_ids", [])
+            all_selected_ids = selected_app_ids + selected_asset_ids
+
+            for asset in existing_assets:
+                if str(asset.id) in all_selected_ids:
+                    asset_id_str = str(asset.id)
+
+                    # Basic asset information
+                    asset_info = {
+                        "asset_id": asset_id_str,
+                        "asset_name": asset.name or asset.application_name,
+                        "asset_type": getattr(asset, "asset_type", "application"),
+                        "criticality": getattr(asset, "criticality", "unknown"),
+                        "environment": getattr(asset, "environment", "unknown"),
+                        "technology_stack": getattr(asset, "technology_stack", "unknown"),
+                    }
+                    selected_assets.append(asset_info)
+
+                    # Analyze unmapped attributes from raw data
+                    raw_data = getattr(asset, "raw_data", {}) or {}
+                    field_mappings = getattr(asset, "field_mappings_used", {}) or {}
+
+                    # Find unmapped attributes
+                    unmapped = []
+                    if raw_data:
+                        mapped_fields = set(field_mappings.values()) if field_mappings else set()
+                        for key, value in raw_data.items():
+                            if key not in mapped_fields and value:
+                                unmapped.append({
+                                    "field": key,
+                                    "value": str(value)[:100],
+                                    "potential_mapping": _suggest_field_mapping(key)
+                                })
+
+                    if unmapped:
+                        asset_analysis["unmapped_attributes"][asset_id_str] = unmapped
+
+                    # Check mapping status
+                    mapping_status = getattr(asset, "mapping_status", None)
+                    if mapping_status and mapping_status != "complete":
+                        asset_analysis["failed_mappings"][asset_id_str] = {
+                            "status": mapping_status,
+                            "reason": "Incomplete field mapping during import"
+                        }
+
+                    # Check for missing critical fields
+                    critical_fields = [
+                        "business_owner", "technical_owner", "six_r_strategy",
+                        "migration_complexity", "dependencies", "operating_system"
+                    ]
+                    missing_fields = []
+                    for field in critical_fields:
+                        if not getattr(asset, field, None):
+                            missing_fields.append(field)
+
+                    if missing_fields:
+                        asset_analysis["missing_critical_fields"][asset_id_str] = missing_fields
+                        asset_analysis["assets_with_gaps"].append(asset_id_str)
+
+                    # Assess data quality
+                    completeness_score = getattr(asset, "completeness_score", 0.0) or 0.0
+                    confidence_score = getattr(asset, "confidence_score", 0.0) or 0.0
+                    if completeness_score < 0.8 or confidence_score < 0.7:
+                        asset_analysis["data_quality_issues"][asset_id_str] = {
+                            "completeness": completeness_score,
+                            "confidence": confidence_score,
+                            "needs_validation": True
+                        }
+
+        asset_analysis["total_assets"] = len(selected_assets)
+
+        # Create comprehensive task inputs for questionnaire generation
         task_inputs: dict[str, Any] = {
-            "gap_analysis": flow.gap_analysis_results or {},
-            "business_context": flow.collection_config or {},
+            "gap_analysis": getattr(flow, "gap_analysis_results", {}) or {},
+            "business_context": getattr(flow, "collection_config", {}) or {},
             "collection_flow_id": flow_id,
             "stakeholder_context": {},
-            "automation_tier": "tier_2",
+            "automation_tier": getattr(flow, "automation_tier", "tier_2") or "tier_2",
+            "persistence_data": getattr(flow, "persistence_data", {}) or {},
+            "selected_assets": selected_assets,
+            "asset_analysis": asset_analysis,  # Include comprehensive analysis
         }
 
         task_manager = QuestionnaireTaskManager(agents)
@@ -533,7 +870,10 @@ async def _generate_agent_questionnaires(
         processor = QuestionnaireProcessor(
             agents=agents, tasks=tasks, name="questionnaire_generation"
         )
-        service = QuestionnaireService(processor)
+
+        # Pass the AdaptiveQuestionnaireGenerator instance which has kickoff_async
+        questionnaire_generator = AdaptiveQuestionnaireGenerator()
+        service = QuestionnaireService(processor, crew_instance=questionnaire_generator)
 
         # Prepare data gaps context
         data_gaps = [
@@ -545,16 +885,34 @@ async def _generate_agent_questionnaires(
         ]
 
         # Generate questionnaires
+        # Use actual automation tier from flow
+        actual_tier = getattr(flow, "automation_tier", "tier_2") or "tier_2"
         questionnaires_data = await service.generate_questionnaires(
             data_gaps=data_gaps,
-            business_context={"flow_id": flow_id, "scope": "engagement"},
-            automation_tier="tier_2",
+            business_context={
+                "flow_id": flow_id,
+                "scope": "engagement",
+                "persistence_data": getattr(flow, "persistence_data", {}) or {},
+            },
+            automation_tier=actual_tier,
             collection_flow_id=flow_id,
         )
 
         # Convert to response format
         result = []
         for idx, q_data in enumerate(questionnaires_data):
+            # Handle case where q_data might be a string instead of dict
+            if isinstance(q_data, str):
+                logger.warning(
+                    f"Skipping invalid questionnaire data (string): {q_data[:100]}"
+                )
+                continue
+            if not isinstance(q_data, dict):
+                logger.warning(
+                    f"Skipping invalid questionnaire data (type {type(q_data)})"
+                )
+                continue
+
             questionnaire = AdaptiveQuestionnaireResponse(
                 id=q_data.get("id", f"agent-generated-{idx}"),
                 collection_flow_id=flow_id,
@@ -572,7 +930,7 @@ async def _generate_agent_questionnaires(
                 validation_rules=q_data.get("validation_rules", {}),
                 completion_status="pending",
                 responses_collected={},
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
                 completed_at=None,
             )
             result.append(questionnaire)

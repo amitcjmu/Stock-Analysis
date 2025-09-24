@@ -51,6 +51,16 @@ AGENT_TYPE_CONFIGS = {
         "max_retries": 3,
         "memory_enabled": True,
     },
+    "questionnaire_generator": {
+        "role": "Adaptive Questionnaire Generation Agent",
+        "goal": "Generate intelligent, context-aware questionnaires for data collection based on gaps and asset types",
+        "backstory": "Expert in adaptive form generation with deep understanding of migration requirements, "
+        "specializing in creating targeted questions that resolve data gaps for all asset types including "
+        "applications, infrastructure, databases, and cloud resources.",
+        "tools": ["questionnaire_generation", "gap_analysis", "asset_intelligence"],
+        "max_retries": 3,
+        "memory_enabled": True,
+    },
 }
 
 # Memory monitoring settings
@@ -80,6 +90,8 @@ TOOL_MAPPINGS = {
     "dependency_analysis": "create_dependency_analysis_tools",
     "mapping_confidence": "MappingConfidenceTool",
     "asset_intelligence": "get_asset_intelligence_tools",
+    "questionnaire_generation": "create_questionnaire_generation_tools",
+    "gap_analysis": "create_gap_analysis_tools",
 }
 
 

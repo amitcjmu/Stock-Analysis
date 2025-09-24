@@ -79,7 +79,7 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
         self.agents = self.agent_manager.create_agents()
         self.task_manager = QuestionnaireTaskManager(self.agents)
         self.processor = QuestionnaireProcessor(self.agents, [], self.name)
-        self.service = QuestionnaireService(self.processor)
+        self.service = QuestionnaireService(self.processor, crew_instance=self)
 
     def create_agents(self) -> List[Any]:
         """Create specialized AI agents for questionnaire generation"""

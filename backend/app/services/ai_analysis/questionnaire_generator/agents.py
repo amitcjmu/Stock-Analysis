@@ -13,6 +13,14 @@ except ImportError:
     CREWAI_AVAILABLE = False
     Agent = object
 
+# Import the tools we just created
+from .tools import (
+    QuestionnaireGenerationTool,
+    GapAnalysisTool,
+    AssetIntelligenceTool,
+    create_questionnaire_generation_tools,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,13 +29,17 @@ class QuestionnaireAgentManager:
 
     def __init__(self, llm=None):
         self.llm = llm
+        # Initialize tools for agents to use
+        self.questionnaire_tool = QuestionnaireGenerationTool()
+        self.gap_analysis_tool = GapAnalysisTool()
+        self.asset_intelligence_tool = AssetIntelligenceTool()
 
     def create_agents(self) -> List[Any]:
         """Create specialized AI agents for questionnaire generation"""
         agents = []
 
         try:
-            # Primary Questionnaire Designer
+            # Primary Questionnaire Designer with tools
             questionnaire_designer = Agent(
                 role="Intelligent Questionnaire Designer",
                 goal="Generate adaptive questionnaires that efficiently collect missing critical migration data",
@@ -58,11 +70,11 @@ class QuestionnaireAgentManager:
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[],
+                tools=[self.questionnaire_tool, self.gap_analysis_tool, self.asset_intelligence_tool],
             )
             agents.append(questionnaire_designer)
 
-            # Business Context Specialist
+            # Business Context Specialist with tools
             context_specialist = Agent(
                 role="Business Context Analysis Specialist",
                 goal=(
@@ -89,7 +101,7 @@ class QuestionnaireAgentManager:
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[],
+                tools=[self.gap_analysis_tool, self.asset_intelligence_tool],
             )
             agents.append(context_specialist)
 

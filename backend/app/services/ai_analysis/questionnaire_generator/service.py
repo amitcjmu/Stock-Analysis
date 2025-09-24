@@ -238,8 +238,9 @@ class QuestionnaireProcessor:
 class QuestionnaireService:
     """Main questionnaire generation service"""
 
-    def __init__(self, processor: QuestionnaireProcessor):
+    def __init__(self, processor: QuestionnaireProcessor, crew_instance=None):
         self.processor = processor
+        self.crew_instance = crew_instance
 
     async def generate_questionnaires(
         self,
@@ -265,10 +266,32 @@ class QuestionnaireService:
         try:
             logger.info(f"Starting questionnaire generation for {len(data_gaps)} gaps")
 
-            # Process results using mock data for now
-            # In real implementation, this would call kickoff_async
-            processed_results = self.processor.process_results(
-                {
+            # Try to use actual CrewAI if available
+            raw_results = None
+            if self.crew_instance and hasattr(self.crew_instance, 'kickoff_async'):
+                try:
+                    # Prepare inputs for crew
+                    crew_inputs = {
+                        "gap_analysis": {"data_gaps": data_gaps} if data_gaps else {},
+                        "business_context": business_context or {},
+                        "automation_tier": automation_tier,
+                        "collection_flow_id": str(collection_flow_id) if collection_flow_id else None,
+                        "stakeholder_context": stakeholder_context or {},
+                        "persistence_data": {}
+                    }
+
+                    logger.info("Attempting to execute questionnaire generation crew with real agents")
+                    raw_results = await self.crew_instance.kickoff_async(crew_inputs)
+                    logger.info("CrewAI questionnaire generation completed successfully")
+
+                except Exception as crew_error:
+                    logger.warning(f"CrewAI execution failed, falling back to mock data: {crew_error}")
+                    raw_results = None
+
+            # If crew execution failed or not available, use mock data
+            if raw_results is None:
+                logger.info("Using fallback questionnaire generation with mock data")
+                raw_results = {
                     "questionnaire_metadata": {
                         "id": f"questionnaire-{collection_flow_id}",
                         "title": "Migration Data Collection Questionnaire",
@@ -420,7 +443,9 @@ class QuestionnaireService:
                         "minimum_completion": 0.8,
                     },
                 }
-            )
+
+            # Process the results (either from crew or mock)
+            processed_results = self.processor.process_results(raw_results)
 
             # Extract questionnaires from processed results
             questionnaire_data = processed_results.get("questionnaire", {})
