@@ -373,23 +373,28 @@ export const useProgressMonitoring = (
 
         // Transform API response to match our CollectionFlow interface
         // Fix field mapping: backend returns 'id' as UUID and 'progress' not 'progress_percentage'
+        // Add proper data validation to prevent undefined/null issues
+        if (!flowDetails || !flowDetails.id) {
+          throw new Error('Invalid flow details received from API');
+        }
+
         const flow: CollectionFlow = {
           id: flowDetails.id,
           flow_id: flowDetails.id,  // Use id as flow_id for consistency
-          name: `Collection Flow - ${flowDetails.automation_tier}`,
+          name: `Collection Flow - ${flowDetails.automation_tier || 'unknown'}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
                   flowDetails.status === 'gap_analysis' || flowDetails.status === 'automated_collection' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
-                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
-          progress: flowDetails.progress || 0,  // Fixed: use 'progress' not 'progress_percentage'
+                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'completed',
+          progress: typeof flowDetails.progress === 'number' ? flowDetails.progress : 0,  // Validate numeric progress
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
           estimated_completion: flowDetails.estimated_completion,
-          application_count: flowDetails.collection_metrics?.platforms_detected || 0,
-          completed_applications: flowDetails.collection_metrics?.data_collected || 0,
+          application_count: typeof flowDetails.collection_metrics?.platforms_detected === 'number' ? flowDetails.collection_metrics.platforms_detected : 0,
+          completed_applications: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0,
           // Phase 1 fix: Add assessment readiness from API response
           assessment_ready: flowDetails.assessment_ready || false
         };
@@ -403,7 +408,7 @@ export const useProgressMonitoring = (
           total_applications: flow.application_count,
           completed_applications: flow.completed_applications,
           average_completion_time: 0,
-          data_quality_score: flowDetails.collection_metrics?.data_collected || 0
+          data_quality_score: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0
         };
 
         // Phase 1 fix: Check if flow should show assessment CTA
@@ -435,23 +440,26 @@ export const useProgressMonitoring = (
         const allFlows = await collectionFlowApi.getAllFlows();
 
         // Transform flows (REAL data only; remove any mock generation)
-        const flows: CollectionFlow[] = allFlows.map(flowDetails => ({
+        // Add validation for each flow detail
+        const flows: CollectionFlow[] = allFlows
+          .filter(flowDetails => flowDetails && flowDetails.id) // Filter out invalid entries
+          .map(flowDetails => ({
           id: flowDetails.id,
           flow_id: flowDetails.id,  // Use id as flow_id for consistency
-          name: `Collection Flow - ${flowDetails.automation_tier}`,
+          name: `Collection Flow - ${flowDetails.automation_tier || 'unknown'}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
                   flowDetails.status === 'gap_analysis' || flowDetails.status === 'automated_collection' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
-                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
-          progress: flowDetails.progress || 0,  // Fixed: use 'progress' not 'progress_percentage'
+                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'completed',
+          progress: typeof flowDetails.progress === 'number' ? flowDetails.progress : 0,  // Validate numeric progress
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
           estimated_completion: flowDetails.estimated_completion,
-          application_count: flowDetails.collection_metrics?.platforms_detected || 10,
-          completed_applications: flowDetails.collection_metrics?.data_collected || 0,
+          application_count: typeof flowDetails.collection_metrics?.platforms_detected === 'number' ? flowDetails.collection_metrics.platforms_detected : 0,
+          completed_applications: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0,
           // Phase 1 fix: Add assessment readiness from API response
           assessment_ready: flowDetails.assessment_ready || false
         }));

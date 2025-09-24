@@ -73,7 +73,7 @@ export const UserApprovalsMain: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [showDataFetchErrorToast]); // Include showDataFetchErrorToast dependency
+  }, []); // Remove showDataFetchErrorToast dependency - it's memoized in useAdminToasts
 
   const fetchActiveUsers = useCallback(async () => {
     try {
@@ -89,7 +89,7 @@ export const UserApprovalsMain: React.FC = () => {
       console.error('Error fetching active users:', error);
       showDataFetchErrorToast();
     }
-  }, [showDataFetchErrorToast]); // Include showDataFetchErrorToast dependency
+  }, []); // Remove showDataFetchErrorToast dependency - it's memoized in useAdminToasts
 
   // Initialize data on component mount
   useEffect(() => {
@@ -185,7 +185,7 @@ export const UserApprovalsMain: React.FC = () => {
     }
   };
 
-  const handleReject = async (): JSX.Element => {
+  const handleReject = async (): Promise<void> => {
     if (!selectedUser || !rejectionData.rejection_reason || rejectionData.rejection_reason.length < 10) {
       return;
     }
