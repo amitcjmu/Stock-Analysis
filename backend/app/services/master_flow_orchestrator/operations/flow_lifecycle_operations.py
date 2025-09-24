@@ -242,8 +242,9 @@ class FlowLifecycleOperations:
 
                     if orphaned_collection:
                         logger.warning(
-                            f"⚠️ Resume operation failed: Found orphaned collection flow {flow_id} without master_flow_id. "
-                            f"Status: {orphaned_collection.status}, Phase: {orphaned_collection.current_phase}. "
+                            f"⚠️ Resume operation failed: Found orphaned collection flow {flow_id} "
+                            f"without master_flow_id. Status: {orphaned_collection.status}, "
+                            f"Phase: {orphaned_collection.current_phase}. "
                             f"This flow needs repair before it can be resumed."
                         )
                         return {
@@ -252,7 +253,8 @@ class FlowLifecycleOperations:
                             "error": "orphaned_collection_flow",
                             "message": (
                                 f"Cannot resume flow {flow_id} because it exists as an orphaned collection flow "
-                                f"without a master flow entry. Use the collection continue endpoint to repair this flow."
+                                f"without a master flow entry. Use the collection continue endpoint to repair "
+                                f"this flow."
                             ),
                             "suggested_action": "use_collection_continue_endpoint",
                             "collection_flow_status": (

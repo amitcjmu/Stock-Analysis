@@ -6,7 +6,7 @@ These exceptions provide fine-grained error handling for different
 storage operations and backend failures.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 
 class StorageError(Exception):
@@ -215,7 +215,7 @@ def wrap_storage_exception(
     storage_type: Optional[str] = None,
     operation_id: Optional[str] = None,
     key: Optional[str] = None,
-) -> callable:
+) -> Callable:
     """
     Decorator factory to wrap functions with storage exception handling.
 

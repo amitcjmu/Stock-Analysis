@@ -301,11 +301,11 @@ def get_status_info(status_code: int) -> Dict[str, str]:
         "code": str(status_code),
         "message": get_status_message(status_code) or "Unknown",
         "category": get_status_category(status_code),
-        "is_success": is_success_code(status_code),
-        "is_error": is_error_code(status_code),
-        "is_client_error": is_client_error(status_code),
-        "is_server_error": is_server_error(status_code),
-        "is_redirection": is_redirection(status_code),
+        "is_success": str(is_success_code(status_code)),
+        "is_error": str(is_error_code(status_code)),
+        "is_client_error": str(is_client_error(status_code)),
+        "is_server_error": str(is_server_error(status_code)),
+        "is_redirection": str(is_redirection(status_code)),
     }
 
 

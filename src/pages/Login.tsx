@@ -278,7 +278,7 @@ const Login: React.FC = () => {
         organization: registerData.organization,
         role_description: registerData.role_description,
         registration_reason: registerData.justification, // Backend expects registration_reason
-        requested_access_level: registerData.requested_access.access_level // Backend expects flat field, not nested
+        requested_access_level: registerData.requested_access.access_level // Backend expects flat field, not nested object
       });
 
       setRegistrationSuccess(true);
