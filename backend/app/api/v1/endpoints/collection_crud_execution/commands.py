@@ -110,7 +110,7 @@ async def create_master_flow_for_orphan(
             },
             client_account_id=collection_flow.client_account_id,
             engagement_id=collection_flow.engagement_id,
-            user_id=collection_flow.user_id or context.user_id,
+            user_id=str(collection_flow.user_id or context.user_id),
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )
