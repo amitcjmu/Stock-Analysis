@@ -63,8 +63,10 @@ class InitializationHandler:
                 },
             )
 
-            # Persist initial state
-            await self.state_manager.save_state(state.to_dict())
+            # Persist initial state - use store.save_state method
+            await self.state_manager.store.save_state(
+                flow_id=state.flow_id, state=state.to_dict(), phase="initialization"
+            )
 
             # Log initialization
             await self.services.audit_logging.log_flow_event(

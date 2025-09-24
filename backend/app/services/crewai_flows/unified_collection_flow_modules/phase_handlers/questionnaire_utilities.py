@@ -6,7 +6,7 @@ extracted from questionnaire_generation_handler.py for better modularity.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from app.core.security.secure_logging import safe_log_format
@@ -126,7 +126,7 @@ def prepare_questionnaire_config(
         "workflow_context": {
             "phase": state.current_phase.value,
             "progress": state.progress,
-            "generation_timestamp": datetime.utcnow().isoformat(),
+            "generation_timestamp": datetime.now(timezone.utc).isoformat(),
         },
     }
 
@@ -228,7 +228,7 @@ async def save_and_update_state(
         "questionnaires": saved_questionnaires,
         "form_configs": form_configs,
         "questionnaire_type": questionnaire_type,
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "gap_count": len(identified_gaps),
         "orchestrated": True,  # Mark as orchestrated generation
     }
@@ -531,4 +531,4 @@ def update_state_for_generation(state: CollectionFlowState) -> None:
     """Update state for questionnaire generation phase"""
     state.status = CollectionStatus.GENERATING_QUESTIONNAIRES
     state.current_phase = CollectionPhase.QUESTIONNAIRE_GENERATION
-    state.updated_at = datetime.utcnow()
+    state.updated_at = datetime.now(timezone.utc)

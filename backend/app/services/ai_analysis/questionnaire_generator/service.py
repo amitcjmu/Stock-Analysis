@@ -42,44 +42,114 @@ class QuestionnaireProcessor:
     def process_results(self, raw_results: Any) -> Dict[str, Any]:
         """Process questionnaire generation results"""
         try:
-            # Extract and parse results
+            # Extract and parse results with enhanced type handling
             if isinstance(raw_results, str):
                 try:
                     import re
 
-                    json_match = re.search(r"\{.*\}", raw_results, re.DOTALL)
-                    if json_match:
-                        parsed_results = json.loads(json_match.group())
-                    else:
-                        parsed_results = parse_text_results(raw_results)
+                    # First attempt: direct JSON parsing
+                    try:
+                        parsed_results = json.loads(raw_results)
+                    except json.JSONDecodeError:
+                        # Second attempt: extract JSON from string
+                        json_match = re.search(r"\{.*\}", raw_results, re.DOTALL)
+                        if json_match:
+                            parsed_results = json.loads(json_match.group())
+                        else:
+                            # Third attempt: use text parser as fallback
+                            parsed_results = parse_text_results(raw_results)
+
                 except Exception as e:
                     logger.warning(
                         f"Could not parse JSON from questionnaire generation results: {e}"
                     )
                     parsed_results = parse_text_results(raw_results)
-            else:
+            elif isinstance(raw_results, dict):
+                # Results are already a dictionary, use directly
                 parsed_results = raw_results
+            elif hasattr(raw_results, "__dict__"):
+                # Results are an object, convert to dict
+                parsed_results = vars(raw_results)
+            else:
+                # Try to convert other types to dict
+                try:
+                    parsed_results = dict(raw_results) if raw_results else {}
+                except (TypeError, ValueError):
+                    parsed_results = {"raw_data": str(raw_results)}
 
-            # Ensure required structure
+            # Enhanced type validation and structure guarantee
             if not isinstance(parsed_results, dict):
-                parsed_results = {"error": "Unexpected result format"}
+                logger.warning(
+                    f"Unexpected result type: {type(parsed_results)}, converting to dict"
+                )
+                parsed_results = {
+                    "error": "Unexpected result format",
+                    "original_type": str(type(parsed_results)),
+                }
 
-            # Extract key components
+            # Extract key components with type validation
             metadata = parsed_results.get("questionnaire_metadata", {})
-            sections = parsed_results.get("questionnaire_sections", [])
-            adaptive_logic = parsed_results.get("adaptive_logic", {})
-            completion_criteria = parsed_results.get("completion_criteria", {})
+            if not isinstance(metadata, dict):
+                logger.warning(
+                    f"Invalid metadata type: {type(metadata)}, using empty dict"
+                )
+                metadata = {}
 
-            # Calculate questionnaire metrics
-            total_questions = sum(
-                len(section.get("questions", [])) for section in sections
-            )
+            sections = parsed_results.get("questionnaire_sections", [])
+            if not isinstance(sections, list):
+                logger.warning(
+                    f"Invalid sections type: {type(sections)}, converting to list"
+                )
+                sections = [sections] if sections else []
+
+            adaptive_logic = parsed_results.get("adaptive_logic", {})
+            if not isinstance(adaptive_logic, dict):
+                logger.warning(
+                    f"Invalid adaptive_logic type: {type(adaptive_logic)}, using empty dict"
+                )
+                adaptive_logic = {}
+
+            completion_criteria = parsed_results.get("completion_criteria", {})
+            if not isinstance(completion_criteria, dict):
+                logger.warning(
+                    f"Invalid completion_criteria type: {type(completion_criteria)}, using empty dict"
+                )
+                completion_criteria = {}
+
+            # Calculate questionnaire metrics with enhanced validation
+            total_questions = 0
             critical_questions = 0
-            for section in sections:
-                for question in section.get("questions", []):
-                    pr = question.get("priority")
-                    if isinstance(pr, str) and pr.lower() == "critical":
-                        critical_questions += 1
+
+            try:
+                # Ensure sections is iterable and contains valid data
+                for section in sections:
+                    if not isinstance(section, dict):
+                        logger.warning(
+                            f"Invalid section type: {type(section)}, skipping"
+                        )
+                        continue
+
+                    questions = section.get("questions", [])
+                    if not isinstance(questions, list):
+                        logger.warning(
+                            f"Invalid questions type: {type(questions)}, treating as empty"
+                        )
+                        questions = []
+
+                    total_questions += len(questions)
+
+                    for question in questions:
+                        if not isinstance(question, dict):
+                            continue
+                        pr = question.get("priority")
+                        if isinstance(pr, str) and pr.lower() == "critical":
+                            critical_questions += 1
+            except Exception as metrics_error:
+                logger.error(
+                    f"Error calculating questionnaire metrics: {metrics_error}"
+                )
+                total_questions = 0
+                critical_questions = 0
 
             # Generate questionnaire deployment package
             deployment_package = create_deployment_package(

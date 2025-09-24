@@ -24,6 +24,8 @@ export interface CollectionFlow {
   completed_applications: number;
   // Add assessment readiness fields for Phase 1 fix
   assessment_ready?: boolean;
+  // Add current_phase field for phase-based milestone logic
+  current_phase?: string;
 }
 
 export interface CollectionMetrics {
@@ -101,9 +103,31 @@ export interface ProgressMonitoringActions {
 
 /**
  * Gets milestone configuration for different flow types
+ * Updated to use phase-based logic instead of hardcoded percentage thresholds
  */
 export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => {
-  const baseProgress = flow.progress;
+  const currentPhase = flow.current_phase;
+  const status = flow.status;
+  const isCompleted = status === 'completed';
+
+  // Define phase order for collection flows
+  const phaseOrder = ['platform_detection', 'automated_collection', 'gap_analysis', 'questionnaire_generation', 'manual_collection', 'synthesis'];
+  const currentPhaseIndex = currentPhase ? phaseOrder.indexOf(currentPhase) : -1;
+
+  // Helper function to determine if a phase is achieved based on current phase progression
+  const isPhaseAchieved = (targetPhaseIndex: number): boolean => {
+    if (isCompleted) return true;
+
+    // Fallback to progress-based logic if no current_phase information is available
+    if (currentPhaseIndex === -1 || !currentPhase) {
+      // Map target phase index to approximate progress percentage
+      const progressThresholds = [10, 25, 40, 60, 80, 100];
+      const threshold = progressThresholds[targetPhaseIndex] || 0;
+      return flow.progress >= threshold;
+    }
+
+    return currentPhaseIndex >= targetPhaseIndex;
+  };
 
   switch (flow.type) {
     case 'adaptive':
@@ -112,8 +136,8 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'initialization',
           title: 'Flow Initialization',
           description: 'Collection flow setup and configuration',
-          achieved: baseProgress >= 10,
-          achievedAt: baseProgress >= 10 ? flow.started_at : undefined,
+          achieved: isPhaseAchieved(0), // platform_detection phase
+          achievedAt: isPhaseAchieved(0) ? flow.started_at : undefined,
           weight: 0.1,
           required: true
         },
@@ -121,7 +145,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'form-generation',
           title: 'Form Generation',
           description: 'Adaptive forms generated for applications',
-          achieved: baseProgress >= 25,
+          achieved: isPhaseAchieved(3), // questionnaire_generation phase
           weight: 0.15,
           required: true
         },
@@ -129,7 +153,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'data-collection',
           title: 'Data Collection',
           description: 'Collecting application data via forms',
-          achieved: baseProgress >= 75,
+          achieved: isPhaseAchieved(4), // manual_collection phase
           weight: 0.5,
           required: true
         },
@@ -137,7 +161,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'validation',
           title: 'Data Validation',
           description: 'Validating collected data quality',
-          achieved: baseProgress >= 90,
+          achieved: isPhaseAchieved(5), // synthesis phase
           weight: 0.15,
           required: true
         },
@@ -145,7 +169,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'completion',
           title: 'Flow Completion',
           description: 'Collection process completed',
-          achieved: baseProgress >= 100,
+          achieved: isCompleted,
           achievedAt: flow.completed_at,
           weight: 0.1,
           required: true
@@ -158,7 +182,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'upload',
           title: 'File Upload',
           description: 'Bulk data file uploaded',
-          achieved: baseProgress >= 20,
+          achieved: isPhaseAchieved(0), // platform_detection phase
           weight: 0.2,
           required: true
         },
@@ -166,7 +190,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'parsing',
           title: 'Data Parsing',
           description: 'File data parsed and structured',
-          achieved: baseProgress >= 40,
+          achieved: isPhaseAchieved(1), // automated_collection phase
           weight: 0.2,
           required: true
         },
@@ -174,7 +198,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'processing',
           title: 'Data Processing',
           description: 'Processing and normalizing data',
-          achieved: baseProgress >= 80,
+          achieved: isPhaseAchieved(4), // manual_collection phase
           weight: 0.4,
           required: true
         },
@@ -182,7 +206,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'completion',
           title: 'Processing Complete',
           description: 'Bulk processing completed',
-          achieved: baseProgress >= 100,
+          achieved: isCompleted,
           achievedAt: flow.completed_at,
           weight: 0.2,
           required: true
@@ -195,7 +219,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'source-analysis',
           title: 'Source Analysis',
           description: 'Analyzing data from multiple sources',
-          achieved: baseProgress >= 25,
+          achieved: isPhaseAchieved(1), // automated_collection phase
           weight: 0.25,
           required: true
         },
@@ -203,7 +227,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'conflict-detection',
           title: 'Conflict Detection',
           description: 'Identifying data conflicts',
-          achieved: baseProgress >= 50,
+          achieved: isPhaseAchieved(2), // gap_analysis phase
           weight: 0.25,
           required: true
         },
@@ -211,7 +235,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'resolution',
           title: 'Conflict Resolution',
           description: 'Resolving data conflicts',
-          achieved: baseProgress >= 85,
+          achieved: isPhaseAchieved(4), // manual_collection phase
           weight: 0.35,
           required: true
         },
@@ -219,7 +243,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'integration',
           title: 'Data Integration',
           description: 'Final data integration and validation',
-          achieved: baseProgress >= 100,
+          achieved: isCompleted,
           achievedAt: flow.completed_at,
           weight: 0.15,
           required: true

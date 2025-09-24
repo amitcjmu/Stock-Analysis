@@ -5,7 +5,7 @@ Questionnaire-specific read operations for collection flows.
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
@@ -307,7 +307,7 @@ async def _start_agent_generation(
             responses_collected={},
             is_active=True,
             is_template=False,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         # Insert pending record with tenant isolation
@@ -354,7 +354,10 @@ async def _update_questionnaire_status(
     values: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Update the status and other values of a questionnaire."""
-    update_values = {"completion_status": status, "updated_at": datetime.utcnow()}
+    update_values = {
+        "completion_status": status,
+        "updated_at": datetime.now(timezone.utc),
+    }
     if values:
         update_values.update(values)
 

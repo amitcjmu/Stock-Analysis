@@ -351,8 +351,13 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                 <TableRow>
                   <TableHead className="w-[50px] sticky left-0 bg-background border-r">
                     <Checkbox
-                      checked={selectedRowCount === totalRows && totalRows > 0}
-                      indeterminate={selectedRowCount > 0 && selectedRowCount < totalRows}
+                      checked={
+                        selectedRowCount === totalRows && totalRows > 0
+                          ? true
+                          : selectedRowCount > 0 && selectedRowCount < totalRows
+                            ? "indeterminate"
+                            : false
+                      }
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
