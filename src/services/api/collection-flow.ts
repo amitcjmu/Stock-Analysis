@@ -198,22 +198,9 @@ class CollectionFlowApi {
   }
 
   async getFlowQuestionnaires(flowId: string): Promise<AdaptiveQuestionnaireResponse[]> {
-    try {
-      return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
-    } catch (err: unknown) {
-      // Stabilize error handling - check multiple possible error shapes
-      const error = err as ApiError;
-      const status = error?.status ?? error?.response?.status;
-      const detail = error?.response?.data?.detail ?? error?.response?.detail;
-      const errorCode = typeof detail === 'object' ? detail?.error : undefined;
-
-      if (status === 422 && errorCode === 'no_applications_selected') {
-        // Do not hard-redirect. Let callers render an in-form application selection.
-        throw Object.assign(new Error('no_applications_selected'), { code: 'no_applications_selected', status });
-      }
-      // Properly reject with the original error
-      return Promise.reject(err);
-    }
+    // Simply return the response from the backend - it now returns a bootstrap questionnaire
+    // when no assets are selected, no need for special error handling
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
   }
 
   async submitQuestionnaireResponse(

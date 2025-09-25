@@ -40,7 +40,7 @@ for key, value in raw_data.items():
         })
 
 # Check critical fields
-critical_fields = ["business_owner", "technical_owner", "six_r_strategy", 
+critical_fields = ["business_owner", "technical_owner", "six_r_strategy",
                   "migration_complexity", "dependencies", "operating_system"]
 missing_fields = [f for f in critical_fields if not getattr(asset, f, None)]
 ```

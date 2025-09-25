@@ -18,7 +18,6 @@ from .tools import (
     QuestionnaireGenerationTool,
     GapAnalysisTool,
     AssetIntelligenceTool,
-    create_questionnaire_generation_tools,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,7 +69,11 @@ class QuestionnaireAgentManager:
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[self.questionnaire_tool, self.gap_analysis_tool, self.asset_intelligence_tool],
+                tools=[
+                    self.questionnaire_tool,
+                    self.gap_analysis_tool,
+                    self.asset_intelligence_tool,
+                ],
             )
             agents.append(questionnaire_designer)
 

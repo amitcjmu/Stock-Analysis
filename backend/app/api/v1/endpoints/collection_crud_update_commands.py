@@ -223,6 +223,46 @@ async def submit_questionnaire_response(
         form_metadata = request_data.form_metadata or {}
         validation_results = request_data.validation_results or {}
 
+        # Special handling for asset selection bootstrap questionnaire
+        if questionnaire_id == "bootstrap_asset_selection":
+            logger.info("Processing asset selection from bootstrap questionnaire")
+
+            # Extract selected asset IDs from the response
+            selected_assets_response = form_responses.get("selected_assets", [])
+            if selected_assets_response:
+                # Parse asset IDs from the response (format: "Name (ID: uuid)")
+                import re
+
+                selected_asset_ids = []
+                for asset_str in selected_assets_response:
+                    match = re.search(r"\(ID:\s*([a-f0-9-]+)\)", str(asset_str))
+                    if match:
+                        selected_asset_ids.append(match.group(1))
+
+                if selected_asset_ids:
+                    # Update the collection flow configuration with selected assets
+                    if not flow.collection_config:
+                        flow.collection_config = {}
+
+                    flow.collection_config["selected_application_ids"] = (
+                        selected_asset_ids
+                    )
+                    flow.collection_config["selected_asset_ids"] = selected_asset_ids
+
+                    await db.commit()
+                    logger.info(
+                        f"Updated flow {flow_id} with selected assets: {selected_asset_ids}"
+                    )
+
+                    # Return success response prompting questionnaire regeneration
+                    return {
+                        "success": True,
+                        "message": "Assets selected successfully. Please refresh to generate targeted questionnaires.",
+                        "flow_id": str(flow.flow_id),
+                        "selected_assets": selected_asset_ids,
+                        "next_action": "regenerate_questionnaires",
+                    }
+
         # Extract and validate asset_id for optional linking to asset inventory
         asset_id = form_metadata.get("application_id") or form_metadata.get("asset_id")
         validated_asset = await validate_asset_access(asset_id, context, db)

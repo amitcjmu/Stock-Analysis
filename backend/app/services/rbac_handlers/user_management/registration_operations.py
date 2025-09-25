@@ -55,8 +55,13 @@ class RegistrationOperations(BaseRBACHandler):
 
             # Password is mandatory for user registration
             if not user_data.get("password"):
-                logger.error(f"Password is required for registration for user {user_data.get('user_id')}")
-                return {"status": "error", "message": "Password is required for registration"}
+                logger.error(
+                    f"Password is required for registration for user {user_data.get('user_id')}"
+                )
+                return {
+                    "status": "error",
+                    "message": "Password is required for registration",
+                }
 
             # Hash the password
             password_hash = bcrypt.hashpw(

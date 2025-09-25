@@ -123,10 +123,14 @@ export const convertQuestionToFormField = (
 
   const fieldOptions = normalizeOptions(question.options) || (defaultKey ? getDefaultFieldOptions(defaultKey) : undefined);
 
+  // Ensure multiselect questions have proper field type mapping
+  const questionType = question.field_type || question.question_type || question.type || 'text';
+  const mappedFieldType = mapQuestionTypeToFieldType(questionType);
+
   return {
     id: fieldId,
-    label: question.question_text || question.label || 'Field',
-    fieldType: mapQuestionTypeToFieldType(question.field_type || question.question_type || 'text'),
+    label: question.question_text || question.question || question.label || 'Field',
+    fieldType: mappedFieldType,
     criticalAttribute: question.critical_attribute || 'unknown',
     validation: {
       required: question.required !== false,
@@ -138,7 +142,7 @@ export const convertQuestionToFormField = (
     options: fieldOptions,
     helpText: question.help_text || question.description,
     metadata: question.metadata,  // Pass through metadata for asset selector
-    multiple: question.multiple,  // Pass through multiple selection flag
+    multiple: question.multiple || mappedFieldType === 'multiselect',  // Ensure multiselect is flagged
     placeholder: question.placeholder  // Pass through placeholder text
   };
 };
@@ -304,8 +308,40 @@ export const convertQuestionnairesToFormData = (
     const questions = questionnaire.questions || [];
     console.log('🔍 Converting questionnaire with questions:', questions.map(q => ({
       field_id: q.field_id,
-      question_text: q.question_text
+      question_text: q.question_text,
+      id: q.id || q.field_id
     })));
+
+    // Special handling for bootstrap_asset_selection questionnaire
+    const questionnaireId = questionnaire.id || 'agent-form-001';
+    const isAssetSelectionBootstrap = questionnaireId === 'bootstrap_asset_selection';
+
+    if (isAssetSelectionBootstrap) {
+      console.log('🎯 Converting bootstrap_asset_selection questionnaire');
+
+      // For bootstrap asset selection, ensure we have the correct structure
+      const assetSelectionQuestions = questions.map(q => ({
+        ...q,
+        field_id: q.id || q.field_id || 'selected_assets',
+        field_type: q.type || q.field_type || 'multiselect',
+        category: 'asset_selection',
+        required: q.required !== false
+      }));
+
+      const sections = groupQuestionsIntoSections(assetSelectionQuestions);
+
+      return {
+        formId: questionnaireId,
+        applicationId: applicationId || 'app-new',
+        sections,
+        totalFields: questions.length,
+        requiredFields: questions.filter((q: any) => q.required !== false).length,
+        estimatedCompletionTime: 5, // Asset selection should be quick
+        confidenceImpactScore: 1.0 // High confidence for asset selection
+      };
+    }
+
+    // Regular questionnaire processing
     const sections = groupQuestionsIntoSections(questions);
     console.log('🔍 Generated sections with fields:');
     sections.forEach(s => {
@@ -319,7 +355,7 @@ export const convertQuestionnairesToFormData = (
     const requiredFields = questions.filter((q: QuestionData) => q.required !== false).length;
 
     return {
-      formId: questionnaire.id || 'agent-form-001',
+      formId: questionnaireId,
       applicationId: applicationId || 'app-new',
       sections,
       totalFields,

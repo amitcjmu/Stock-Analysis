@@ -403,12 +403,8 @@ const AdaptiveForms: React.FC = () => {
     }
   }, [activeFlowId, flowId, refetchCollectionFlow]);
 
-  // Check for 422 'no_applications_selected' error in useAdaptiveFormFlow
-  useEffect(() => {
-    if (error && error.message === 'no_applications_selected') {
-      setShowInlineAppSelection(true);
-    }
-  }, [error]);
+  // No longer need to check for 'no_applications_selected' error
+  // The backend now returns a bootstrap questionnaire instead
 
   // Function to detect if applications are selected in the collection flow
   const hasApplicationsSelected = (collectionFlow: CollectionFlow | null): boolean => {

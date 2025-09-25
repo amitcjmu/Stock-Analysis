@@ -224,9 +224,7 @@ class ProfileOperations(BaseRBACHandler):
                         "default_client_id",
                         "default_engagement_id",
                     ]:
-                        self._update_uuid_field(
-                            user_profile.user, db_field, value
-                        )
+                        self._update_uuid_field(user_profile.user, db_field, value)
                     elif db_field and hasattr(user_profile.user, db_field):
                         secure_setattr(user_profile.user, db_field, value)
 
