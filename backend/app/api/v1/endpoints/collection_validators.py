@@ -220,8 +220,7 @@ async def validate_flow_can_be_deleted(
         return  # Force delete bypasses validation
 
     active_statuses = [
-        CollectionFlowStatus.PLATFORM_DETECTION.value,
-        CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+        CollectionFlowStatus.ASSET_SELECTION.value,
         CollectionFlowStatus.GAP_ANALYSIS.value,
     ]
 

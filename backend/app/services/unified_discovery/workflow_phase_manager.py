@@ -121,7 +121,7 @@ class WorkflowPhaseManager:
 
         # Set collection status and phase
         state.status = CollectionStatus.COLLECTING_DATA
-        state.current_phase = CollectionPhase.AUTOMATED_COLLECTION
+        state.current_phase = CollectionPhase.ASSET_SELECTION
 
         # Initialize phase results if not exists
         if "basic_collection" not in state.phase_results:

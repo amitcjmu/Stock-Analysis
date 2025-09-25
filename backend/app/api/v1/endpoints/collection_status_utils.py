@@ -49,17 +49,16 @@ def determine_next_phase_status(next_phase: str, current_status: str = None) -> 
 
     phase_status_mapping = {
         "initialization": CollectionFlowStatus.INITIALIZED.value,
-        "platform_detection": CollectionFlowStatus.PLATFORM_DETECTION.value,
-        "automated_collection": CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+        "asset_selection": CollectionFlowStatus.ASSET_SELECTION.value,
         "gap_analysis": CollectionFlowStatus.GAP_ANALYSIS.value,
         "manual_collection": CollectionFlowStatus.MANUAL_COLLECTION.value,
-        # Legacy phase names
-        CollectionPhase.PLATFORM_DETECTION.value: CollectionFlowStatus.PLATFORM_DETECTION.value,
+        # Phase names using enum values
+        CollectionPhase.ASSET_SELECTION.value: CollectionFlowStatus.ASSET_SELECTION.value,
         CollectionPhase.GAP_ANALYSIS.value: CollectionFlowStatus.GAP_ANALYSIS.value,
     }
 
     return phase_status_mapping.get(
-        next_phase, CollectionFlowStatus.AUTOMATED_COLLECTION.value
+        next_phase, CollectionFlowStatus.ASSET_SELECTION.value
     )
 
 

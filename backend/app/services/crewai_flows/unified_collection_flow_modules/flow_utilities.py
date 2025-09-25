@@ -38,8 +38,7 @@ def get_previous_phase(current_phase: CollectionPhase) -> Optional[CollectionPha
     """Get the previous phase in sequence"""
     phase_order = [
         CollectionPhase.INITIALIZATION,
-        CollectionPhase.PLATFORM_DETECTION,
-        CollectionPhase.AUTOMATED_COLLECTION,
+        CollectionPhase.ASSET_SELECTION,
         CollectionPhase.GAP_ANALYSIS,
         CollectionPhase.QUESTIONNAIRE_GENERATION,
         CollectionPhase.MANUAL_COLLECTION,
