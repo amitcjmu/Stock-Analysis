@@ -105,6 +105,30 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   const completedMilestones = safeMilestones.filter(m => m?.achieved === true);
   const nextMilestone = safeMilestones.find(m => m?.achieved !== true);
 
+  // Handler for View Detailed Progress button
+  const handleViewDetailedProgress = () => {
+    // For now, log to console as requested in requirements
+    // This can be extended to show a modal or navigate to detailed progress page
+    console.log('View Detailed Progress clicked', {
+      formId,
+      totalSections: safeTotalSections,
+      completedSections: safeCompletedSections,
+      overallCompletion: safeOverallCompletion,
+      confidenceScore: safeConfidenceScore,
+      milestones: safeMilestones,
+      timeSpent: safeTimeSpent,
+      estimatedTimeRemaining: safeEstimatedTimeRemaining,
+      completedMilestones: completedMilestones.length,
+      nextMilestone: nextMilestone?.title
+    });
+
+    // TODO: Implement modal or navigation to detailed progress view
+    // Example implementations could include:
+    // - Opening a modal with detailed progress breakdown
+    // - Navigating to a dedicated progress analytics page
+    // - Showing expanded progress details in a sidebar
+  };
+
   return (
     <Card className={cn('w-full max-w-sm', className)}>
       <CardHeader className="pb-3">
@@ -273,6 +297,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             size="sm"
             className="w-full transition-colors hover:bg-primary/5"
             disabled={!formId}
+            onClick={() => handleViewDetailedProgress()}
             aria-label="View detailed progress analytics"
           >
             <TrendingUp className="h-4 w-4 mr-2" />

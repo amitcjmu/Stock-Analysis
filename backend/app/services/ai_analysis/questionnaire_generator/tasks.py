@@ -30,6 +30,11 @@ class QuestionnaireTaskManager:
 
         tasks = []
 
+        # Import tools for tasks
+        tools = []
+        if hasattr(self.agents[0], "tools"):
+            tools = self.agents[0].tools
+
         # Task 1: Questionnaire Design
         questionnaire_design_task = Task(
             description=f"""
@@ -184,6 +189,7 @@ class QuestionnaireTaskManager:
             }}
             """,
             agent=self.agents[0],
+            tools=tools,
             expected_output=(
                 "Comprehensive adaptive questionnaire specification with "
                 "conditional logic and stakeholder targeting"

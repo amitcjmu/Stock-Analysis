@@ -24,6 +24,8 @@ export interface CollectionFlow {
   completed_applications: number;
   // Add assessment readiness fields for Phase 1 fix
   assessment_ready?: boolean;
+  // Add current_phase field for phase-based milestone logic
+  current_phase?: string;
 }
 
 export interface CollectionMetrics {
@@ -101,9 +103,32 @@ export interface ProgressMonitoringActions {
 
 /**
  * Gets milestone configuration for different flow types
+ * Updated to use phase-based logic instead of hardcoded percentage thresholds
  */
 export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => {
-  const baseProgress = flow.progress;
+  const currentPhase = flow.current_phase;
+  const status = flow.status;
+  const isCompleted = status === 'completed';
+
+  // Define phase order for collection flows (aligned with backend CollectionPhase enum)
+  const phaseOrder = ['initialization', 'asset_selection', 'gap_analysis', 'questionnaire_generation', 'manual_collection', 'data_validation', 'finalization'];
+  const currentPhaseIndex = currentPhase ? phaseOrder.indexOf(currentPhase) : -1;
+
+  // Helper function to determine if a phase is achieved based on current phase progression
+  const isPhaseAchieved = (targetPhaseIndex: number): boolean => {
+    if (isCompleted) return true;
+
+    // Fallback to progress-based logic if no current_phase information is available
+    if (currentPhaseIndex === -1 || !currentPhase) {
+      if (isCompleted) return true;
+      // Map target phase index to approximate progress percentage
+      const progressThresholds = [10, 25, 40, 60, 80, 100];
+      const threshold = progressThresholds[targetPhaseIndex] || 0;
+      return flow.progress >= threshold;
+    }
+
+    return currentPhaseIndex >= targetPhaseIndex;
+  };
 
   switch (flow.type) {
     case 'adaptive':
@@ -112,16 +137,24 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'initialization',
           title: 'Flow Initialization',
           description: 'Collection flow setup and configuration',
-          achieved: baseProgress >= 10,
-          achievedAt: baseProgress >= 10 ? flow.started_at : undefined,
+          achieved: isPhaseAchieved(0), // initialization phase
+          achievedAt: isPhaseAchieved(0) ? flow.started_at : undefined,
           weight: 0.1,
+          required: true
+        },
+        {
+          id: 'asset-selection',
+          title: 'Asset Selection',
+          description: 'Select assets for collection analysis',
+          achieved: isPhaseAchieved(1), // asset_selection phase
+          weight: 0.15,
           required: true
         },
         {
           id: 'form-generation',
           title: 'Form Generation',
           description: 'Adaptive forms generated for applications',
-          achieved: baseProgress >= 25,
+          achieved: isPhaseAchieved(3), // questionnaire_generation phase
           weight: 0.15,
           required: true
         },
@@ -129,15 +162,15 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'data-collection',
           title: 'Data Collection',
           description: 'Collecting application data via forms',
-          achieved: baseProgress >= 75,
-          weight: 0.5,
+          achieved: isPhaseAchieved(4), // manual_collection phase
+          weight: 0.35,
           required: true
         },
         {
           id: 'validation',
           title: 'Data Validation',
           description: 'Validating collected data quality',
-          achieved: baseProgress >= 90,
+          achieved: isPhaseAchieved(5), // data_validation phase
           weight: 0.15,
           required: true
         },
@@ -145,7 +178,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'completion',
           title: 'Flow Completion',
           description: 'Collection process completed',
-          achieved: baseProgress >= 100,
+          achieved: isCompleted,
           achievedAt: flow.completed_at,
           weight: 0.1,
           required: true
@@ -158,7 +191,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'upload',
           title: 'File Upload',
           description: 'Bulk data file uploaded',
-          achieved: baseProgress >= 20,
+          achieved: isPhaseAchieved(1), // asset_selection phase
           weight: 0.2,
           required: true
         },
@@ -166,7 +199,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'parsing',
           title: 'Data Parsing',
           description: 'File data parsed and structured',
-          achieved: baseProgress >= 40,
+          achieved: isPhaseAchieved(2), // gap_analysis phase
           weight: 0.2,
           required: true
         },
@@ -174,7 +207,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'processing',
           title: 'Data Processing',
           description: 'Processing and normalizing data',
-          achieved: baseProgress >= 80,
+          achieved: isPhaseAchieved(4), // manual_collection phase
           weight: 0.4,
           required: true
         },
@@ -182,7 +215,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'completion',
           title: 'Processing Complete',
           description: 'Bulk processing completed',
-          achieved: baseProgress >= 100,
+          achieved: isCompleted,
           achievedAt: flow.completed_at,
           weight: 0.2,
           required: true
@@ -195,7 +228,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'source-analysis',
           title: 'Source Analysis',
           description: 'Analyzing data from multiple sources',
-          achieved: baseProgress >= 25,
+          achieved: isPhaseAchieved(1), // asset_selection phase
           weight: 0.25,
           required: true
         },
@@ -203,7 +236,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'conflict-detection',
           title: 'Conflict Detection',
           description: 'Identifying data conflicts',
-          achieved: baseProgress >= 50,
+          achieved: isPhaseAchieved(2), // gap_analysis phase
           weight: 0.25,
           required: true
         },
@@ -211,7 +244,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'resolution',
           title: 'Conflict Resolution',
           description: 'Resolving data conflicts',
-          achieved: baseProgress >= 85,
+          achieved: isPhaseAchieved(4), // manual_collection phase
           weight: 0.35,
           required: true
         },
@@ -219,7 +252,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
           id: 'integration',
           title: 'Data Integration',
           description: 'Final data integration and validation',
-          achieved: baseProgress >= 100,
+          achieved: isCompleted,
           achievedAt: flow.completed_at,
           weight: 0.15,
           required: true
@@ -349,25 +382,32 @@ export const useProgressMonitoring = (
 
         // Transform API response to match our CollectionFlow interface
         // Fix field mapping: backend returns 'id' as UUID and 'progress' not 'progress_percentage'
+        // Add proper data validation to prevent undefined/null issues
+        if (!flowDetails || !flowDetails.id) {
+          throw new Error('Invalid flow details received from API');
+        }
+
         const flow: CollectionFlow = {
           id: flowDetails.id,
           flow_id: flowDetails.id,  // Use id as flow_id for consistency
-          name: `Collection Flow - ${flowDetails.automation_tier}`,
+          name: `Collection Flow - ${flowDetails.automation_tier || 'unknown'}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
-                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'automated_collection' ? 'running' :
+                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'asset_selection' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
-                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
-          progress: flowDetails.progress || 0,  // Fixed: use 'progress' not 'progress_percentage'
+                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'completed',
+          progress: typeof flowDetails.progress === 'number' ? flowDetails.progress : 0,  // Validate numeric progress
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
           estimated_completion: flowDetails.estimated_completion,
-          application_count: flowDetails.collection_metrics?.platforms_detected || 0,
-          completed_applications: flowDetails.collection_metrics?.data_collected || 0,
+          application_count: typeof flowDetails.collection_metrics?.platforms_detected === 'number' ? flowDetails.collection_metrics.platforms_detected : 0,
+          completed_applications: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0,
           // Phase 1 fix: Add assessment readiness from API response
-          assessment_ready: flowDetails.assessment_ready || false
+          assessment_ready: flowDetails.assessment_ready || false,
+          // Add current_phase field from API response
+          current_phase: flowDetails.current_phase || null
         };
 
         // Create metrics from single flow
@@ -379,7 +419,7 @@ export const useProgressMonitoring = (
           total_applications: flow.application_count,
           completed_applications: flow.completed_applications,
           average_completion_time: 0,
-          data_quality_score: flowDetails.collection_metrics?.data_collected || 0
+          data_quality_score: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0
         };
 
         // Phase 1 fix: Check if flow should show assessment CTA
@@ -411,25 +451,30 @@ export const useProgressMonitoring = (
         const allFlows = await collectionFlowApi.getAllFlows();
 
         // Transform flows (REAL data only; remove any mock generation)
-        const flows: CollectionFlow[] = allFlows.map(flowDetails => ({
+        // Add validation for each flow detail
+        const flows: CollectionFlow[] = allFlows
+          .filter(flowDetails => flowDetails && flowDetails.id) // Filter out invalid entries
+          .map(flowDetails => ({
           id: flowDetails.id,
           flow_id: flowDetails.id,  // Use id as flow_id for consistency
-          name: `Collection Flow - ${flowDetails.automation_tier}`,
+          name: `Collection Flow - ${flowDetails.automation_tier || 'unknown'}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
           status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
-                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'automated_collection' ? 'running' :
+                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'asset_selection' ? 'running' :
                   flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
-                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'running',
-          progress: flowDetails.progress || 0,  // Fixed: use 'progress' not 'progress_percentage'
+                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'completed',
+          progress: typeof flowDetails.progress === 'number' ? flowDetails.progress : 0,  // Validate numeric progress
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
           estimated_completion: flowDetails.estimated_completion,
-          application_count: flowDetails.collection_metrics?.platforms_detected || 10,
-          completed_applications: flowDetails.collection_metrics?.data_collected || 0,
+          application_count: typeof flowDetails.collection_metrics?.platforms_detected === 'number' ? flowDetails.collection_metrics.platforms_detected : 0,
+          completed_applications: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0,
           // Phase 1 fix: Add assessment readiness from API response
-          assessment_ready: flowDetails.assessment_ready || false
+          assessment_ready: flowDetails.assessment_ready || false,
+          // Add current_phase field from API response
+          current_phase: flowDetails.current_phase || null
         }));
 
         // Calculate metrics from actual flows
@@ -706,4 +751,4 @@ export const useProgressMonitoring = (
     toggleAutoRefresh,
     setShowAssessmentCTA
   };
-};;
+};

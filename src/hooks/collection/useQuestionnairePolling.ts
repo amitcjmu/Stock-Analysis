@@ -60,10 +60,35 @@ export const useQuestionnairePolling = ({
       const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flowId);
       console.log('📋 Fetched questionnaires:', questionnaires);
 
-      // Check completion status from the first questionnaire
+      // If we have questionnaires, use them immediately
       if (questionnaires.length > 0) {
-        const status = questionnaires[0].completion_status;
-        const statusMessage = questionnaires[0].status_line;
+        const firstQuestionnaire = questionnaires[0];
+
+        // Check if this is a bootstrap questionnaire for asset selection
+        if (firstQuestionnaire.id === 'bootstrap_asset_selection') {
+          console.log('🎯 Bootstrap questionnaire detected - using immediately');
+          setIsPolling(false);
+          setError(null);
+          setCompletionStatus('ready');
+          setStatusLine('Asset selection questionnaire ready');
+          callbacksRef.current.onReady?.(questionnaires);
+          return questionnaires;
+        }
+
+        // For regular questionnaires, check completion status if provided
+        const status = firstQuestionnaire.completion_status;
+        const statusMessage = firstQuestionnaire.status_line;
+
+        // If no completion_status field, treat as ready
+        if (!status) {
+          console.log('✅ Questionnaire ready (no status field)');
+          setIsPolling(false);
+          setError(null);
+          setCompletionStatus('ready');
+          setStatusLine(statusMessage || 'Questionnaire ready');
+          callbacksRef.current.onReady?.(questionnaires);
+          return questionnaires;
+        }
 
         setCompletionStatus(status);
         setStatusLine(statusMessage || null);
@@ -96,14 +121,17 @@ export const useQuestionnairePolling = ({
           }
 
           case 'pending':
-            // Continue polling
+            // Continue polling only if explicitly pending
             setIsPolling(true);
             setError(null);
             break;
 
           default:
-            console.warn('Unknown completion status:', status);
+            // Unknown status - treat as ready
+            console.log('✅ Questionnaire ready (unknown status)');
             setIsPolling(false);
+            setError(null);
+            callbacksRef.current.onReady?.(questionnaires);
             break;
         }
       } else {
@@ -132,7 +160,7 @@ export const useQuestionnairePolling = ({
       setStatusLine('Failed to fetch questionnaire status');
       throw err;
     }
-  }, [flowId]);
+  }, [flowId]);;
 
   // Use React Query for data fetching with conditional polling
   const {

@@ -5,7 +5,7 @@ Handles questionnaire generation and adaptive form creation.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from app.models.collection_flow import CollectionPhase, CollectionStatus
@@ -40,7 +40,7 @@ class QuestionnaireHandler:
         # Update state
         flow_state.status = CollectionStatus.GENERATING_QUESTIONNAIRES
         flow_state.current_phase = CollectionPhase.QUESTIONNAIRE_GENERATION
-        flow_state.updated_at = datetime.utcnow()
+        flow_state.updated_at = datetime.now(timezone.utc)
 
         # Get gap analysis results
         identified_gaps = flow_state.gap_analysis_results.get("identified_gaps", [])
@@ -67,7 +67,7 @@ class QuestionnaireHandler:
         flow_state.phase_results["questionnaire_generation"] = {
             "questionnaires": questionnaires,
             "form_configs": form_configs,
-            "generation_timestamp": datetime.utcnow().isoformat(),
+            "generation_timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Update progress

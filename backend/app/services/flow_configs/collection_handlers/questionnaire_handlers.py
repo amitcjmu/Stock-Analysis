@@ -7,7 +7,7 @@ Provides handler functions for questionnaire generation and response processing 
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,8 +71,8 @@ class QuestionnaireHandlers(CollectionHandlerBase):
                         "priority": gap.priority,
                         "suggested_resolution": gap.suggested_resolution,
                     },
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow(),
+                    "created_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc),
                 }
 
                 insert_query = """
@@ -144,8 +144,8 @@ class QuestionnaireHandlers(CollectionHandlerBase):
                             else "pending"
                         ),
                         "responded_by": context["user_id"],
-                        "responded_at": datetime.utcnow(),
-                        "updated_at": datetime.utcnow(),
+                        "responded_at": datetime.now(timezone.utc),
+                        "updated_at": datetime.now(timezone.utc),
                         "collection_flow_id": collection_flow["id"],
                         "gap_id": gap_id,
                     },
@@ -163,7 +163,7 @@ class QuestionnaireHandlers(CollectionHandlerBase):
 
                     await db.execute(
                         gap_update_query,
-                        {"resolved_at": datetime.utcnow(), "gap_id": gap_id},
+                        {"resolved_at": datetime.now(timezone.utc), "gap_id": gap_id},
                     )
 
             await db.commit()

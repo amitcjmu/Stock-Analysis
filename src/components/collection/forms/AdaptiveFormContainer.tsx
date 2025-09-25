@@ -6,13 +6,14 @@
  */
 
 import React from 'react';
-import { Save, Send } from 'lucide-react';
+import { Save, Send, ArrowLeft } from 'lucide-react';
 
 // Import collection components
 import { AdaptiveForm } from '@/components/collection/AdaptiveForm';
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
 import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { BulkDataGrid } from '@/components/collection/BulkDataGrid';
+import { AssetSelectionForm } from '@/components/collection/AssetSelectionForm';
 
 // Import types
 import type {
@@ -66,6 +67,24 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
     return (
       <div className="flex items-center justify-center p-8">
         <p className="text-gray-500">No form data available. Please try refreshing the page.</p>
+      </div>
+    );
+  }
+
+  // Check if this is an asset selection bootstrap questionnaire
+  // This happens when a collection flow has no assets selected yet
+  // The conversion function sets formId to 'bootstrap_asset_selection'
+  if (formData.formId === 'bootstrap_asset_selection') {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <AssetSelectionForm
+          formData={formData}
+          formValues={formValues}
+          onFieldChange={onFieldChange}
+          onSubmit={onSubmit}
+          isSubmitting={isSubmitting}
+          className="space-y-6"
+        />
       </div>
     );
   }

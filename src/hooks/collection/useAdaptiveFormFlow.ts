@@ -269,7 +269,7 @@ export const useAdaptiveFormFlow = (
   // Use the new questionnaire polling hook with completion_status support
   const questionnairePollingState = useQuestionnairePolling({
     flowId: state.flowId || '',
-    enabled: !!state.flowId && !state.formData,
+    enabled: !!state.flowId && !state.formData && !state.questionnaires?.length,
     onReady: useCallback((questionnaires) => {
       console.log('🎉 Questionnaire ready from new polling hook:', questionnaires);
       // Convert questionnaires and update state
@@ -329,20 +329,29 @@ export const useAdaptiveFormFlow = (
     }, [applicationId, toast]),
     onFailed: useCallback((errorMessage) => {
       console.error('❌ Questionnaire generation failed:', errorMessage);
-      // Use local fallback
-      const fallback = createFallbackFormData(applicationId || null);
-      setState((prev) => ({
-        ...prev,
-        formData: fallback,
-        questionnaires: [],
-        isLoading: false,
-        error: null,
-      }));
+      // Only use fallback if we don't already have form data
+      setState((prev) => {
+        if (prev.formData) {
+          console.log('✅ Already have form data, skipping fallback');
+          return prev;
+        }
 
-      toast({
-        title: "Fallback Form Loaded",
-        description: `Questionnaire generation failed: ${errorMessage}. Using basic adaptive form.`,
-        variant: "default",
+        // Use local fallback
+        const fallback = createFallbackFormData(applicationId || null);
+
+        toast({
+          title: "Fallback Form Loaded",
+          description: `Questionnaire generation failed: ${errorMessage}. Using basic adaptive form.`,
+          variant: "default",
+        });
+
+        return {
+          ...prev,
+          formData: fallback,
+          questionnaires: [],
+          isLoading: false,
+          error: null,
+        };
       });
     }, [applicationId, toast])
   });
@@ -505,22 +514,6 @@ export const useAdaptiveFormFlow = (
             }
           }
         } catch (error: unknown) {
-          // Handle 422 'no_applications_selected' error specifically
-          const errorObj = error as { status?: number; code?: string };
-          if (
-            errorObj?.status === 422 &&
-            errorObj?.code === "no_applications_selected"
-          ) {
-            console.log(
-              "⚠️ No applications selected for flow, need application selection",
-            );
-            setState((prev) => ({
-              ...prev,
-              error: new Error("no_applications_selected"),
-              isLoading: false,
-            }));
-            return;
-          }
           console.log(
             "🔍 No existing questionnaires found or error fetching:",
             error.message || error,
@@ -751,9 +744,19 @@ export const useAdaptiveFormFlow = (
                 agentQuestionnaires =
                   await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
                 if (agentQuestionnaires.length > 0) {
-                  console.log(
-                    `✅ Found ${agentQuestionnaires.length} agent-generated questionnaires after ${elapsed}ms`,
-                  );
+                  // Check if this is a bootstrap questionnaire for asset selection
+                  const isBootstrap = agentQuestionnaires[0].id === 'bootstrap_asset_selection';
+
+                  if (isBootstrap) {
+                    console.log(
+                      `🎯 Found bootstrap asset selection questionnaire - using immediately`,
+                    );
+                  } else {
+                    console.log(
+                      `✅ Found ${agentQuestionnaires.length} agent-generated questionnaires after ${elapsed}ms`,
+                    );
+                  }
+
                   if (pollingIntervalId) {
                     clearInterval(pollingIntervalId);
                     pollingIntervalId = null;
@@ -762,32 +765,10 @@ export const useAdaptiveFormFlow = (
                   return;
                 }
               } catch (fetchError: unknown) {
-                // Handle 422 'no_applications_selected' error during polling
+                // For errors, continue polling
                 const fetchErrorObj = fetchError as {
-                  status?: number;
-                  code?: string;
                   message?: string;
                 };
-                if (
-                  fetchErrorObj?.status === 422 &&
-                  fetchErrorObj?.code === "no_applications_selected"
-                ) {
-                  console.log(
-                    "⚠️ No applications selected during polling, stopping",
-                  );
-                  setState((prev) => ({
-                    ...prev,
-                    error: new Error("no_applications_selected"),
-                    isLoading: false,
-                  }));
-                  if (pollingIntervalId) {
-                    clearInterval(pollingIntervalId);
-                    pollingIntervalId = null;
-                  }
-                  resolve();
-                  return;
-                }
-                // For other errors, continue polling
                 console.log(
                   `⏳ Error fetching questionnaires, continuing to poll: ${fetchErrorObj.message || String(fetchError)}`,
                 );
@@ -1192,6 +1173,78 @@ export const useAdaptiveFormFlow = (
       const actualFlowId = submitResponse.flow_id || state.flowId;
       if (actualFlowId !== state.flowId) {
         updateFlowId(actualFlowId);
+      }
+
+      // Special handling for asset selection submission
+      if (questionnaireId === "bootstrap_asset_selection") {
+        if (submitResponse.success && submitResponse.next_action === "regenerate_questionnaires") {
+          console.log("🎯 Asset selection successful, regenerating questionnaires...");
+
+          toast({
+            title: "Assets Selected Successfully",
+            description: "Generating targeted questionnaires based on your selected assets...",
+          });
+
+          // Clear current form data to trigger questionnaire regeneration
+          setState((prev) => ({
+            ...prev,
+            formData: null,
+            questionnaires: [],
+            isLoading: true,
+          }));
+
+          // Wait a moment for backend to process, then fetch new questionnaires
+          setTimeout(async () => {
+            try {
+              const newQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(actualFlowId);
+              console.log(`📋 Retrieved ${newQuestionnaires.length} new questionnaires after asset selection`);
+
+              if (newQuestionnaires.length > 0 && newQuestionnaires[0].id !== "bootstrap_asset_selection") {
+                // Successfully got real questionnaires, convert and load them
+                const adaptiveFormData = convertQuestionnairesToFormData(
+                  newQuestionnaires[0],
+                  applicationId,
+                );
+
+                if (validateFormDataStructure(adaptiveFormData)) {
+                  setState((prev) => ({
+                    ...prev,
+                    formData: adaptiveFormData,
+                    questionnaires: newQuestionnaires,
+                    isLoading: false,
+                    error: null
+                  }));
+
+                  toast({
+                    title: "Questionnaires Generated",
+                    description: "AI-powered questionnaires are ready based on your selected assets.",
+                  });
+                } else {
+                  throw new Error("Generated questionnaire data structure is invalid");
+                }
+              } else {
+                // Still getting bootstrap questionnaire, something went wrong
+                throw new Error("Asset selection did not trigger questionnaire regeneration");
+              }
+            } catch (refreshError) {
+              console.error("Failed to regenerate questionnaires after asset selection:", refreshError);
+              toast({
+                title: "Asset Selection Completed",
+                description: "Assets selected successfully, but questionnaire regeneration failed. Please refresh the page.",
+                variant: "default",
+              });
+              setState((prev) => ({
+                ...prev,
+                isLoading: false,
+                error: new Error("Failed to regenerate questionnaires after asset selection")
+              }));
+            }
+          }, 2000);
+
+          return; // Exit early for asset selection
+        } else {
+          throw new Error("Asset selection failed or returned unexpected response");
+        }
       }
 
       toast({

@@ -33,11 +33,17 @@ class AgentWrapper:
         """Initialize the wrapper with the CrewAI agent and its type."""
         self._agent = agent
         self._agent_type = agent_type
+        self._context = {}  # Initialize context storage in wrapper
         logger.info(f"✅ Created AgentWrapper for {agent_type}")
 
     def __getattr__(self, name):
         """Delegate all other attributes to the wrapped agent."""
         return getattr(self._agent, name)
+
+    @property
+    def context(self):
+        """Access to the wrapper's context storage."""
+        return self._context
 
     def execute(self, task: str = None, **kwargs) -> Any:
         """
@@ -110,11 +116,8 @@ class AgentWrapper:
                 expected_output="Structured analysis with processed data, insights, and classifications in JSON format",
             )
 
-            # Store data in agent context for tools to access
-            if hasattr(self._agent, "context"):
-                self._agent.context.update({"data": data})
-            else:
-                self._agent.context = {"data": data}
+            # Store data in wrapper context for tools to access
+            self._context = {"data": data}
 
             # Execute the task using crew
             from crewai import Crew
