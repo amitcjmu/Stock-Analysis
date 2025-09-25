@@ -21,8 +21,9 @@ class CollectionFlowStatus(str, Enum):
     """Collection Flow status values"""
 
     INITIALIZED = "initialized"
-    PLATFORM_DETECTION = "platform_detection"
-    AUTOMATED_COLLECTION = "automated_collection"
+    ASSET_SELECTION = (
+        "asset_selection"  # Replaces platform_detection and automated_collection
+    )
     GAP_ANALYSIS = "gap_analysis"
     MANUAL_COLLECTION = "manual_collection"
     COMPLETED = "completed"
@@ -34,8 +35,9 @@ class CollectionPhase(str, Enum):
     """Collection flow phases"""
 
     INITIALIZATION = "initialization"
-    PLATFORM_DETECTION = "platform_detection"
-    AUTOMATED_COLLECTION = "automated_collection"
+    ASSET_SELECTION = (
+        "asset_selection"  # Replaces platform_detection and automated_collection
+    )
     GAP_ANALYSIS = "gap_analysis"
     QUESTIONNAIRE_GENERATION = "questionnaire_generation"
     MANUAL_COLLECTION = "manual_collection"
@@ -47,8 +49,9 @@ class CollectionStatus(str, Enum):
     """Collection flow status for in-memory state management"""
 
     INITIALIZING = "initializing"
-    DETECTING_PLATFORMS = "detecting_platforms"
-    COLLECTING_DATA = "collecting_data"
+    SELECTING_ASSETS = (
+        "selecting_assets"  # Replaces detecting_platforms and collecting_data
+    )
     ANALYZING_GAPS = "analyzing_gaps"
     GENERATING_QUESTIONNAIRES = "generating_questionnaires"
     MANUAL_COLLECTION = "manual_collection"
