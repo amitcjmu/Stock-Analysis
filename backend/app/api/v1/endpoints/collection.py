@@ -9,7 +9,7 @@ delegating to modular components while maintaining 100% backward compatibility.
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -302,6 +302,12 @@ async def bulk_import_collection_data(
     flow_id = request.get("flow_id")
     asset_type = request.get("asset_type", "applications")
     csv_data = request.get("csv_data", [])
+
+    # Validate required parameters
+    if not flow_id:
+        raise HTTPException(
+            status_code=400, detail="flow_id is required for bulk import operation"
+        )
 
     # Process directly with CSV data if provided, otherwise use file_path
     if csv_data:

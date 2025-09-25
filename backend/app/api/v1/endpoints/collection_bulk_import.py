@@ -21,8 +21,11 @@ from app.models.collection_flow import (
     CollectionFlowStatus,
     CollectionPhase,
 )
-from app.models.collection_questionnaire import CollectionQuestionnaireResponse
-from app.api.v1.endpoints.collection_bulk_import_assets import create_or_update_asset
+from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
+from app.config.asset_mappings import (
+    create_or_update_asset,
+    map_csv_to_questionnaire as config_map_csv_to_questionnaire,
+)
 
 # Import removed - unused in this module
 
@@ -80,7 +83,7 @@ async def _process_csv_rows(
     for row_idx, row_data in enumerate(csv_data):
         try:
             # Map CSV row to questionnaire format
-            questionnaire_data = map_csv_to_questionnaire(row_data, asset_type)
+            questionnaire_data = config_map_csv_to_questionnaire(row_data, asset_type)
 
             # Create/update asset based on type
             asset = await create_or_update_asset(
@@ -146,16 +149,21 @@ def _update_flow_after_import(
     if asset_key not in collection_flow.collection_config["selected_assets"]:
         collection_flow.collection_config["selected_assets"][asset_key] = []
 
-    collection_flow.collection_config["selected_assets"][asset_key].extend(
-        [str(asset.id) for asset in created_assets]
-    )
+    # Use set to prevent duplicate asset IDs before extending
+    existing_ids = set(collection_flow.collection_config["selected_assets"][asset_key])
+    new_ids = [
+        str(asset.id) for asset in created_assets if str(asset.id) not in existing_ids
+    ]
+    collection_flow.collection_config["selected_assets"][asset_key].extend(new_ids)
 
-    # Update flow status and phase after successful import
+    # Update flow status and phase after successful import to maintain consistency
+    # Move from INITIALIZED -> ASSET_SELECTION or stay in current state
     if collection_flow.status == CollectionFlowStatus.INITIALIZED.value:
         collection_flow.status = CollectionFlowStatus.ASSET_SELECTION.value
 
-    # After successful asset import, set current phase to GAP_ANALYSIS
+    # After successful asset import, set both phase and status to GAP_ANALYSIS for consistency
     collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
+    collection_flow.status = CollectionFlowStatus.GAP_ANALYSIS.value
     collection_flow.updated_at = datetime.now(timezone.utc)
 
 
@@ -167,28 +175,40 @@ async def _trigger_gap_analysis_if_needed(
     db: AsyncSession,
     context: RequestContext,
 ) -> bool:
-    """Trigger gap analysis if assets were imported."""
+    """Trigger gap analysis if assets were imported.
+
+    This function is called after the import transaction is committed,
+    so gap analysis failure won't affect the import success.
+    """
     if processed_count == 0:
         return False
 
     try:
         # Trigger gap analysis through MFO
+        # Note: This function may not exist yet, but the try/except ensures graceful handling
         from app.api.v1.endpoints import collection_utils
 
-        gap_result = await collection_utils.trigger_gap_analysis(
-            flow_id=flow_id,
-            asset_ids=[str(asset.id) for asset in created_assets],
-            asset_type=asset_type,
-            db=db,
-            context=context,
-        )
-        gap_analysis_triggered = bool(gap_result)
-        logger.info(f"Gap analysis triggered for flow {flow_id}: {gap_result}")
-        return gap_analysis_triggered
+        # Check if the function exists before calling
+        if hasattr(collection_utils, "trigger_gap_analysis"):
+            gap_result = await collection_utils.trigger_gap_analysis(
+                flow_id=flow_id,
+                asset_ids=[str(asset.id) for asset in created_assets],
+                asset_type=asset_type,
+                db=db,
+                context=context,
+            )
+            gap_analysis_triggered = bool(gap_result)
+            logger.info(f"Gap analysis triggered for flow {flow_id}: {gap_result}")
+            return gap_analysis_triggered
+        else:
+            logger.warning(
+                f"Gap analysis function not available, skipping for flow {flow_id}"
+            )
+            return False
 
     except Exception as e:
-        logger.error(f"Failed to trigger gap analysis: {e}")
-        # Don't fail the import if gap analysis fails
+        logger.error(f"Failed to trigger gap analysis for flow {flow_id}: {e}")
+        # Don't fail the import if gap analysis fails - import has already succeeded
         return False
 
 
@@ -210,6 +230,9 @@ async def process_bulk_import(
     4. Updating flow configuration and status
     5. Triggering gap analysis for all imported assets
 
+    All database operations are performed within a single atomic transaction
+    to ensure consistency. Gap analysis is triggered after successful commit.
+
     Args:
         flow_id: The Collection flow ID to import data into
         file_path: Path to the uploaded CSV file (unused - for future compatibility)
@@ -225,7 +248,7 @@ async def process_bulk_import(
     require_role(current_user, COLLECTION_CREATE_ROLES, "bulk import collection data")
 
     try:
-        # 1. Validate Collection flow
+        # 1. Validate Collection flow (outside transaction for early validation)
         collection_flow = await _validate_collection_flow_for_import(
             flow_id, db, context
         )
@@ -243,19 +266,28 @@ async def process_bulk_import(
                 "warnings": [],
             }
 
-        # 3. Process CSV rows and create assets
-        processed_count, errors, created_assets = await _process_csv_rows(
-            csv_data, asset_type, flow_id, db, current_user, context
-        )
+        # Atomic transaction for all database operations
+        async with db.begin():
+            # 3. Process CSV rows and create assets
+            processed_count, errors, created_assets = await _process_csv_rows(
+                csv_data, asset_type, flow_id, db, current_user, context
+            )
 
-        # 4. Update flow configuration and status
-        _update_flow_after_import(
-            collection_flow, asset_type, processed_count, created_assets, current_user
-        )
+            # 4. Update flow configuration and status
+            _update_flow_after_import(
+                collection_flow,
+                asset_type,
+                processed_count,
+                created_assets,
+                current_user,
+            )
 
-        await db.commit()
+            # Flush to make changes available for gap analysis trigger
+            await db.flush()
 
-        # 5. Trigger gap analysis
+        # Transaction committed successfully - now trigger gap analysis
+        # Gap analysis is triggered after commit to avoid transaction boundary issues
+        # If gap analysis fails, the import has already succeeded
         gap_analysis_triggered = await _trigger_gap_analysis_if_needed(
             flow_id, created_assets, asset_type, processed_count, db, context
         )
@@ -283,84 +315,15 @@ async def process_bulk_import(
         raise HTTPException(status_code=500, detail=f"Bulk import failed: {str(e)}")
 
 
+# Legacy map_csv_to_questionnaire function - replaced by config-driven approach
+# Kept for backward compatibility if needed
 def map_csv_to_questionnaire(
     csv_row: Dict[str, Any], asset_type: str
 ) -> Dict[str, Any]:
-    """Map CSV row data to questionnaire response format.
+    """Legacy CSV to questionnaire mapping - use config_map_csv_to_questionnaire instead.
 
-    This maps the CSV fields to the format expected by the Collection
-    questionnaire system for each asset type.
+    This function is deprecated in favor of the data-driven approach in
+    app.config.asset_mappings.map_csv_to_questionnaire.
     """
-    questionnaire_data = {
-        "metadata": {
-            "source": "bulk_import",
-            "imported_at": datetime.now(timezone.utc).isoformat(),
-        }
-    }
-
-    if asset_type == "applications":
-        questionnaire_data.update(
-            {
-                "application_name": csv_row.get("Application Name", ""),
-                "business_criticality": csv_row.get("Business Criticality", "Medium"),
-                "application_owner": csv_row.get("Application Owner", ""),
-                "technical_owner": csv_row.get("Technical Owner", ""),
-                "description": csv_row.get("Description", ""),
-                "technology_stack": (
-                    csv_row.get("Technology Stack", "").split(",")
-                    if csv_row.get("Technology Stack")
-                    else []
-                ),
-                "deployment_type": csv_row.get("Deployment Type", "On-Premise"),
-                "migration_priority": csv_row.get("Migration Priority", "Medium"),
-                "dependencies": csv_row.get("Dependencies", ""),
-                "compliance_requirements": csv_row.get("Compliance Requirements", ""),
-            }
-        )
-    elif asset_type == "servers":
-        questionnaire_data.update(
-            {
-                "server_name": csv_row.get("Server Name", ""),
-                "hostname": csv_row.get("Hostname", ""),
-                "ip_address": csv_row.get("IP Address", ""),
-                "operating_system": csv_row.get("Operating System", ""),
-                "os_version": csv_row.get("OS Version", ""),
-                "cpu_cores": csv_row.get("CPU Cores", ""),
-                "memory_gb": csv_row.get("Memory (GB)", ""),
-                "storage_gb": csv_row.get("Storage (GB)", ""),
-                "environment": csv_row.get("Environment", "Production"),
-                "virtualization": csv_row.get("Virtualization", "Physical"),
-            }
-        )
-    elif asset_type == "databases":
-        questionnaire_data.update(
-            {
-                "database_name": csv_row.get("Database Name", ""),
-                "database_type": csv_row.get("Database Type", ""),
-                "version": csv_row.get("Version", ""),
-                "size_gb": csv_row.get("Size (GB)", ""),
-                "criticality": csv_row.get("Criticality", "Medium"),
-                "backup_frequency": csv_row.get("Backup Frequency", ""),
-                "recovery_time_objective": csv_row.get("RTO", ""),
-                "recovery_point_objective": csv_row.get("RPO", ""),
-                "compliance_requirements": csv_row.get("Compliance Requirements", ""),
-                "hosted_on_server": csv_row.get("Hosted On Server", ""),
-            }
-        )
-    elif asset_type == "devices":
-        questionnaire_data.update(
-            {
-                "device_name": csv_row.get("Device Name", ""),
-                "device_type": csv_row.get("Device Type", ""),
-                "manufacturer": csv_row.get("Manufacturer", ""),
-                "model": csv_row.get("Model", ""),
-                "serial_number": csv_row.get("Serial Number", ""),
-                "location": csv_row.get("Location", ""),
-                "network_connectivity": csv_row.get("Network Connectivity", ""),
-                "management_interface": csv_row.get("Management Interface", ""),
-                "criticality": csv_row.get("Criticality", "Medium"),
-                "migration_approach": csv_row.get("Migration Approach", ""),
-            }
-        )
-
-    return questionnaire_data
+    # Delegate to the new configuration-driven implementation
+    return config_map_csv_to_questionnaire(csv_row, asset_type)

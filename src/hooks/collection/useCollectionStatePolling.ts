@@ -82,9 +82,10 @@ export const useCollectionStatePolling = (
       return 15000; // 15 seconds for waiting states
     },
     staleTime: 0, // Always consider stale for real-time updates
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Don't retry on 404 (flow not found)
-      if (error?.status === 404) {
+      if (error && typeof error === 'object' && 'status' in error &&
+          (error as { status: number }).status === 404) {
         return false;
       }
 

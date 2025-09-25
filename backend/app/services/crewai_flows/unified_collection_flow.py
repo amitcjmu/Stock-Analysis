@@ -377,8 +377,6 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             CollectionPhase.QUESTIONNAIRE_GENERATION: self.generate_questionnaires,
             CollectionPhase.MANUAL_COLLECTION: self.manual_collection,
             CollectionPhase.DATA_VALIDATION: self.validate_data,
-            # Legacy handlers for backward compatibility - updated to use ASSET_SELECTION
-            CollectionPhase.ASSET_SELECTION: self.asset_selection,
             CollectionPhase.FINALIZATION: self.finalize_collection,
         }
 

@@ -1,6 +1,11 @@
 """
 Collection Bulk Import Asset Management
 Handles asset creation and updates for bulk import operations.
+
+DEPRECATED: This module is being replaced by app.config.asset_mappings.
+
+The functions in this module are now wrappers around the data-driven
+configuration system for backward compatibility.
 """
 
 import uuid
@@ -16,22 +21,50 @@ from app.models.server import Server
 from app.models.database import Database
 from app.models.device import Device
 
+# Import the new configuration-driven implementation
+from app.config.asset_mappings import (
+    create_or_update_asset as config_create_or_update_asset,
+)
+
+
+def _safe_int_cast(value: Any, default: int = 0) -> int:
+    """Safely cast a value to integer, returning default if conversion fails.
+
+    Args:
+        value: The value to convert to integer
+        default: Default value to return if conversion fails
+
+    Returns:
+        Integer value or default if conversion fails
+
+    Raises:
+        None - always returns a valid integer
+    """
+    if value is None or value == "":
+        return default
+
+    try:
+        # Handle string values that might have whitespace
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return default
+
+        return int(float(value))  # Use float first to handle decimal strings
+    except (ValueError, TypeError, OverflowError):
+        return default
+
 
 async def create_or_update_asset(
     asset_type: str, data: Dict[str, Any], db: AsyncSession, context: RequestContext
 ) -> Any:
-    """Create or update an asset based on type and data."""
+    """Create or update an asset based on type and data.
 
-    if asset_type == "applications":
-        return await _handle_application(data, db, context)
-    elif asset_type == "servers":
-        return await _handle_server(data, db, context)
-    elif asset_type == "databases":
-        return await _handle_database(data, db, context)
-    elif asset_type == "devices":
-        return await _handle_device(data, db, context)
-
-    return None
+    DEPRECATED: This function now delegates to the configuration-driven
+    implementation in app.config.asset_mappings for maintainability.
+    """
+    # Delegate to the new configuration-driven implementation
+    return await config_create_or_update_asset(asset_type, data, db, context)
 
 
 async def _handle_application(
@@ -100,11 +133,9 @@ async def _handle_server(
             hostname=data.get("hostname", ""),
             ip_address=data.get("ip_address", ""),
             operating_system=data.get("operating_system", ""),
-            cpu_cores=(int(data.get("cpu_cores", 0)) if data.get("cpu_cores") else 0),
-            memory_gb=(int(data.get("memory_gb", 0)) if data.get("memory_gb") else 0),
-            storage_gb=(
-                int(data.get("storage_gb", 0)) if data.get("storage_gb") else 0
-            ),
+            cpu_cores=_safe_int_cast(data.get("cpu_cores"), 0),
+            memory_gb=_safe_int_cast(data.get("memory_gb"), 0),
+            storage_gb=_safe_int_cast(data.get("storage_gb"), 0),
             environment=data.get("environment", "Production"),
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
@@ -142,7 +173,7 @@ async def _handle_database(
             name=db_name,
             database_type=data.get("database_type", ""),
             version=data.get("version", ""),
-            size_gb=int(data.get("size_gb", 0)) if data.get("size_gb") else 0,
+            size_gb=_safe_int_cast(data.get("size_gb"), 0),
             criticality=data.get("criticality", "Medium"),
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,

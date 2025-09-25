@@ -73,7 +73,7 @@ export const UserApprovalsMain: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // Remove showDataFetchErrorToast dependency - it's memoized in useAdminToasts
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- showDataFetchErrorToast is memoized in useAdminToasts
 
   const fetchActiveUsers = useCallback(async () => {
     try {
@@ -89,7 +89,7 @@ export const UserApprovalsMain: React.FC = () => {
       console.error('Error fetching active users:', error);
       showDataFetchErrorToast();
     }
-  }, []); // Remove showDataFetchErrorToast dependency - it's memoized in useAdminToasts
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- showDataFetchErrorToast is memoized in useAdminToasts
 
   // Initialize data on component mount
   useEffect(() => {

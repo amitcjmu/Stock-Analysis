@@ -50,6 +50,49 @@ const DataIntegration: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [resolvedConflicts, setResolvedConflicts] = useState<string[]>([]);
 
+  // Fetch real conflicts data from the API - MUST be at top level
+  const { data: conflictsData, isLoading, error, refetch } = useQuery({
+    queryKey: ['asset-conflicts', asset_id],
+    queryFn: async () => {
+      if (!asset_id) {
+        throw new Error('Asset ID is required');
+      }
+      try {
+        const response = await collectionFlowApi.getAssetConflicts(asset_id);
+        return response;
+      } catch (err) {
+        console.error('Failed to fetch asset conflicts:', err);
+        // Return empty array if API fails, rather than showing error
+        return [];
+      }
+    },
+    enabled: !!asset_id,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: false // Only refetch manually
+  });
+
+  // Transform API conflicts data to match frontend DataConflict interface - MUST be at top level
+  useEffect(() => {
+    if (conflictsData) {
+      const transformedConflicts: DataConflict[] = conflictsData.map(apiConflict => ({
+        id: apiConflict.id,
+        attributeName: apiConflict.field_name,
+        attributeLabel: apiConflict.field_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        conflictingValues: apiConflict.conflicting_values.map(value => ({
+          value: value.value,
+          source: value.source === 'custom_attributes' ? 'manual' :
+                  value.source === 'discovery_scan' ? 'discovery' :
+                  value.source === 'cmdb_import' ? 'cmdb' : 'unknown',
+          confidence: value.confidence_score || 0.5
+        })),
+        status: apiConflict.resolution_status || 'pending',
+        selectedValue: apiConflict.selected_value || undefined,
+        selectedSource: apiConflict.selected_source || undefined
+      }));
+      setConflicts(transformedConflicts);
+    }
+  }, [conflictsData]);
+
   // Early return if no asset_id is provided
   if (!asset_id) {
     return (
@@ -103,69 +146,6 @@ const DataIntegration: React.FC = () => {
       </div>
     );
   }
-
-  // Fetch real conflicts data from the API
-  const { data: conflictsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['asset-conflicts', asset_id],
-    queryFn: async () => {
-      try {
-        const response = await collectionFlowApi.getAssetConflicts(asset_id);
-        return response;
-      } catch (err) {
-        console.error('Failed to fetch asset conflicts:', err);
-        // Return empty array if API fails, rather than showing error
-        return [];
-      }
-    },
-    enabled: !!asset_id,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: false // Only refetch manually
-  });
-
-  // Transform API conflicts data to match frontend DataConflict interface
-  useEffect(() => {
-    if (conflictsData) {
-      const transformedConflicts: DataConflict[] = conflictsData.map(apiConflict => ({
-        id: apiConflict.id,
-        attributeName: apiConflict.field_name,
-        attributeLabel: apiConflict.field_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        conflictingValues: apiConflict.conflicting_values.map(value => ({
-          value: value.value,
-          source: value.source === 'custom_attributes' ? 'manual' :
-                  value.source === 'technical_details' ? 'automated' :
-                  value.source.startsWith('import:') ? 'bulk' : 'automated',
-          sourceId: value.source,
-          confidenceScore: value.confidence,
-          collectedAt: value.timestamp
-        })),
-        recommendedResolution: undefined, // API doesn't provide this yet
-        requiresUserReview: apiConflict.resolution_status === 'pending'
-      }));
-
-      setConflicts(transformedConflicts);
-
-      // Generate validation result based on conflicts
-      const mockValidation: FormValidationResult = {
-        formId: 'data-integration',
-        isValid: transformedConflicts.length === 0,
-        overallConfidenceScore: transformedConflicts.length > 0 ? 0.75 : 1.0,
-        completionPercentage: Math.round(((transformedConflicts.length - transformedConflicts.filter(c => c.requiresUserReview).length) / Math.max(transformedConflicts.length, 1)) * 100),
-        fieldResults: {},
-        crossFieldErrors: transformedConflicts
-          .filter(conflict => conflict.requiresUserReview)
-          .map(conflict => ({
-            fieldId: conflict.attributeName,
-            fieldLabel: conflict.attributeLabel,
-            errorCode: 'CONFLICTING_VALUES',
-            errorMessage: 'Multiple conflicting values detected from different sources',
-            severity: 'warning' as const
-          })),
-        businessRuleViolations: []
-      };
-
-      setValidation(mockValidation);
-    }
-  }, [conflictsData]);
 
   // Progress milestones
   const progressMilestones: ProgressMilestone[] = [

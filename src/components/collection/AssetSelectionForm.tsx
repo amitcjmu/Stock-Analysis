@@ -87,37 +87,11 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
   isSubmitting = false,
   className = ''
 }) => {
-  // Find the selected_assets question from the form data
-  const assetQuestion = formData.sections
-    .flatMap(section => section.fields)
-    .find(field => field.id === 'selected_assets');
-
-  if (!assetQuestion || !assetQuestion.options) {
-    return (
-      <Alert className="m-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Unable to load asset selection options. Please contact support if this issue persists.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Parse asset options
-  const assetOptions = parseAssetOptions(assetQuestion.options.map(opt =>
-    typeof opt === 'string' ? opt : opt.label
-  ));
-
+  // All hooks MUST be declared at the top level before any conditional logic
   // State for search and selection
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>(
     Array.isArray(formValues.selected_assets) ? formValues.selected_assets : []
-  );
-
-  // Filter assets based on search
-  const filteredAssets = assetOptions.filter(asset =>
-    asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    asset.displayText.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Handle asset selection toggle
@@ -144,6 +118,33 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
 
     onSubmit(submissionData);
   }, [selectedAssets, onSubmit]);
+
+  // Find the selected_assets question from the form data
+  const assetQuestion = formData.sections
+    .flatMap(section => section.fields)
+    .find(field => field.id === 'selected_assets');
+
+  if (!assetQuestion || !assetQuestion.options) {
+    return (
+      <Alert className="m-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Unable to load asset selection options. Please contact support if this issue persists.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Parse asset options
+  const assetOptions = parseAssetOptions(assetQuestion.options.map(opt =>
+    typeof opt === 'string' ? opt : opt.label
+  ));
+
+  // Filter assets based on search
+  const filteredAssets = assetOptions.filter(asset =>
+    asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    asset.displayText.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Check if form is valid
   const isValid = selectedAssets.length > 0;

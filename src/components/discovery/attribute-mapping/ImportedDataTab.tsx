@@ -123,9 +123,10 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
       };
 
       const hasResponseStatus = (err: unknown): err is { response: { status: number } } => {
-        return typeof err === 'object' && err !== null && 'response' in err &&
-               typeof (err as any).response === 'object' && (err as any).response !== null &&
-               'status' in (err as any).response;
+        if (typeof err !== 'object' || err === null) return false;
+        if (!('response' in err)) return false;
+        const response = (err as Record<string, unknown>).response;
+        return typeof response === 'object' && response !== null && 'status' in response;
       };
 
       if ((hasErrorStatus(error) && error.status === 404) ||

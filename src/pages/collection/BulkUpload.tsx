@@ -83,7 +83,7 @@ const BulkUpload: React.FC = () => {
     };
 
     ensureCollectionFlow();
-  }, [toast]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mock field definitions for bulk collection
   const bulkFields: FormField[] = [
@@ -200,19 +200,57 @@ const BulkUpload: React.FC = () => {
 
       setUploadProgress(30);
 
-      // Parse CSV content
+      // Parse CSV content with proper quoted field handling
       const lines = fileContent.trim().split("\n");
-      const headers = lines[0]
-        .split(",")
-        .map((h) => h.trim().replace(/"/g, ""));
-      const dataRows = lines.slice(1).map((line) => {
-        const values = line.split(",").map((v) => v.trim().replace(/"/g, ""));
-        const row: Record<string, string> = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index] || "";
+
+      // Enhanced CSV parser that handles quoted fields with commas
+      const parseCsvLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = "";
+        let inQuotes = false;
+        let i = 0;
+
+        while (i < line.length) {
+          const char = line[i];
+
+          if (char === '"' && (i === 0 || line[i - 1] === ',' || line[i - 1] === ' ')) {
+            // Start of quoted field
+            inQuotes = true;
+          } else if (char === '"' && inQuotes) {
+            // Check for escaped quotes (double quotes)
+            if (i + 1 < line.length && line[i + 1] === '"') {
+              current += '"';
+              i++; // Skip the next quote
+            } else {
+              // End of quoted field
+              inQuotes = false;
+            }
+          } else if (char === ',' && !inQuotes) {
+            // Field separator outside quotes
+            result.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+          i++;
+        }
+
+        // Add the last field
+        result.push(current.trim());
+        return result;
+      };
+
+      const headers = parseCsvLine(lines[0]).map((h) => h.replace(/^"|"$/g, ""));
+      const dataRows = lines.slice(1)
+        .filter(line => line.trim().length > 0) // Skip empty lines
+        .map((line) => {
+          const values = parseCsvLine(line).map((v) => v.replace(/^"|"$/g, ""));
+          const row: Record<string, string> = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || "";
+          });
+          return row;
         });
-        return row;
-      });
 
       setUploadProgress(50);
 
@@ -261,9 +299,11 @@ const BulkUpload: React.FC = () => {
         validationIssues: result.errors || [],
         processingTime: 2500, // Estimated processing time
         dataQualityScore:
-          result.errors && result.errors.length > 0
-            ? Math.round((result.processed_count / dataRows.length) * 100)
-            : 100,
+          dataRows.length > 0
+            ? result.errors && result.errors.length > 0
+              ? Math.round((result.processed_count / dataRows.length) * 100)
+              : 100
+            : 0,
       };
 
       // Create applications from uploaded data

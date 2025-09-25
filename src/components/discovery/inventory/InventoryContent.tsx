@@ -144,10 +144,28 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           return response;
         };
 
+        // Define response type for better type safety
+        interface AssetApiResponse {
+          data_source?: string;
+          assets?: Asset[];
+          pagination?: unknown;
+          needsClassification?: boolean;
+        }
+
         // Helper function to handle both structured and legacy response formats
-        const parseResponse = (response: any) => {
+        const parseResponse = (response: AssetApiResponse | Asset[]) => {
+          // Check if this is an array (legacy format)
+          if (Array.isArray(response)) {
+            return {
+              assets: response,
+              pagination: null,
+              needsClassification: false,
+              isError: false
+            };
+          }
+
           // Check if the response indicates an error
-          if (response && response.data_source === 'error') {
+          if (response && 'data_source' in response && response.data_source === 'error') {
             console.warn('⚠️ Assets API returned error state. Backend may have failed to fetch assets.');
             return {
               assets: [],
@@ -259,7 +277,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         if (viewMode === 'all' && totalPages > 1) {
           console.log(`📊 Fetching remaining ${Math.min(totalPages - 1, safetyLimit - 1)} pages...`);
 
-          const pagePromises: Array<Promise<any>> = [];
+          const pagePromises: Array<Promise<AssetApiResponse | Asset[]>> = [];
           for (let page = 2; page <= safetyLimit; page++) {
             pagePromises.push(fetchPage(page, serverPageSize));
           }
