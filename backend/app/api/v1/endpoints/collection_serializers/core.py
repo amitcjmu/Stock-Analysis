@@ -225,19 +225,34 @@ def build_questionnaire_response(
         status_line = "Questionnaire generation failed - please try again"
 
     # Extract target_gaps from questions if not a direct attribute
+    # This handles backward compatibility with older questionnaire models
     target_gaps = []
-    if hasattr(questionnaire, "target_gaps"):
+    if hasattr(questionnaire, "target_gaps") and questionnaire.target_gaps is not None:
         target_gaps = questionnaire.target_gaps
     else:
-        # Extract unique target gaps from individual questions
+        # Log that we're using fallback extraction
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(
+            f"Questionnaire {questionnaire.id} missing target_gaps attribute, extracting from questions"
+        )
+
+        # Extract unique target gaps from individual questions while preserving order
         seen_gaps = set()
-        for question in questionnaire.questions:
+        for question in questionnaire.questions or []:
             if isinstance(question, dict):
                 question_gaps = question.get("target_gaps", [])
                 for gap in question_gaps:
                     if gap not in seen_gaps:
                         target_gaps.append(gap)
                         seen_gaps.add(gap)
+
+        # Log if no gaps were found
+        if not target_gaps:
+            logger.debug(
+                f"No target_gaps found in questionnaire {questionnaire.id} questions"
+            )
 
     # Build base response
     response = AdaptiveQuestionnaireResponse(

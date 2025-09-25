@@ -145,18 +145,24 @@ async def get_adaptive_questionnaires(
             )
             questions.append(question)
 
+        # Include optional template metadata for backward compatibility
+        # Some frontend components may rely on these fields
         return [
             AdaptiveQuestionnaireResponse(
                 id=str(UUID("00000000-0000-0000-0000-000000000001")),
                 collection_flow_id=flow_id,
-                title="Bootstrap Data Collection Questionnaire",
-                description="Initial questionnaire to gather essential asset information",
-                target_gaps=[],
+                title=template.get("title", "Bootstrap Data Collection Questionnaire"),
+                description=template.get(
+                    "description",
+                    "Initial questionnaire to gather essential asset information",
+                ),
+                target_gaps=[],  # Bootstrap templates typically don't have specific gaps
                 questions=questions,
-                validation_rules={},
+                validation_rules=template.get("validation_rules", {}),
                 completion_status="pending",
                 responses_collected={},
                 created_at=datetime.now(timezone.utc),
+                completed_at=None,  # Explicitly set for clarity
             )
         ]
 

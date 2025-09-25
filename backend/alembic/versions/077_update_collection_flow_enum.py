@@ -23,9 +23,28 @@ def upgrade() -> None:
     """
 
     # PostgreSQL doesn't allow direct modification of enums, so we need to:
-    # 1. Create a new enum type
-    # 2. Update the column to use the new enum
-    # 3. Drop the old enum
+    # 1. Update any old values to new values
+    # 2. Create a new enum type
+    # 3. Update the column to use the new enum
+    # 4. Drop the old enum
+
+    # First, cast the column to text temporarily to allow value updates
+    op.execute(
+        """
+        ALTER TABLE migration.collection_flows
+        ALTER COLUMN status TYPE text
+    """
+    )
+
+    # IMPORTANT: Remap old values to new values BEFORE changing the enum type
+    # This assumes migration 076 may not have run or may have been incomplete
+    op.execute(
+        """
+        UPDATE migration.collection_flows
+        SET status = 'asset_selection'
+        WHERE status IN ('platform_detection', 'automated_collection')
+    """
+    )
 
     # Create new enum type with updated values
     op.execute(
@@ -39,15 +58,6 @@ def upgrade() -> None:
             'failed',
             'cancelled'
         )
-    """
-    )
-
-    # Update the column to use the new enum type
-    # First, cast the column to text temporarily
-    op.execute(
-        """
-        ALTER TABLE migration.collection_flows
-        ALTER COLUMN status TYPE text
     """
     )
 
