@@ -405,7 +405,9 @@ export const useProgressMonitoring = (
           application_count: typeof flowDetails.collection_metrics?.platforms_detected === 'number' ? flowDetails.collection_metrics.platforms_detected : 0,
           completed_applications: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0,
           // Phase 1 fix: Add assessment readiness from API response
-          assessment_ready: flowDetails.assessment_ready || false
+          assessment_ready: flowDetails.assessment_ready || false,
+          // Add current_phase field from API response
+          current_phase: flowDetails.current_phase || null
         };
 
         // Create metrics from single flow
@@ -470,7 +472,9 @@ export const useProgressMonitoring = (
           application_count: typeof flowDetails.collection_metrics?.platforms_detected === 'number' ? flowDetails.collection_metrics.platforms_detected : 0,
           completed_applications: typeof flowDetails.collection_metrics?.data_collected === 'number' ? flowDetails.collection_metrics.data_collected : 0,
           // Phase 1 fix: Add assessment readiness from API response
-          assessment_ready: flowDetails.assessment_ready || false
+          assessment_ready: flowDetails.assessment_ready || false,
+          // Add current_phase field from API response
+          current_phase: flowDetails.current_phase || null
         }));
 
         // Calculate metrics from actual flows
@@ -747,4 +751,4 @@ export const useProgressMonitoring = (
     toggleAutoRefresh,
     setShowAssessmentCTA
   };
-};;
+};

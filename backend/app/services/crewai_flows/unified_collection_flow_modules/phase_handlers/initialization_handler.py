@@ -79,8 +79,8 @@ class InitializationHandler:
             )
 
             # Update phase
-            state.current_phase = CollectionPhase.PLATFORM_DETECTION
-            state.next_phase = CollectionPhase.AUTOMATED_COLLECTION
+            state.current_phase = CollectionPhase.ASSET_SELECTION
+            state.next_phase = CollectionPhase.GAP_ANALYSIS
             state.progress = 5.0
 
             # Update database status to prevent blocking
@@ -90,8 +90,8 @@ class InitializationHandler:
                         update(CollectionFlow)
                         .where(CollectionFlow.id == uuid.UUID(state.flow_id))
                         .values(
-                            status=CollectionFlowStatus.PLATFORM_DETECTION.value,
-                            current_phase=CollectionPhase.PLATFORM_DETECTION.value,
+                            status=CollectionFlowStatus.ASSET_SELECTION.value,
+                            current_phase=CollectionPhase.ASSET_SELECTION.value,
                             progress_percentage=5.0,
                             updated_at=datetime.utcnow(),
                         )
@@ -99,7 +99,7 @@ class InitializationHandler:
                     await self.flow_context.db_session.execute(stmt)
                     await self.flow_context.db_session.commit()
                     logger.info(
-                        f"✅ Updated flow {state.flow_id} status from INITIALIZED to PLATFORM_DETECTION"
+                        f"✅ Updated flow {state.flow_id} status from INITIALIZED to ASSET_SELECTION"
                     )
                 except Exception as e:
                     logger.error(f"Failed to update flow status in database: {e}")
@@ -108,7 +108,7 @@ class InitializationHandler:
             return {
                 "phase": "initialization",
                 "status": "completed",
-                "next_phase": "platform_detection",
+                "next_phase": "asset_selection",
                 "flow_id": state.flow_id,
             }
 

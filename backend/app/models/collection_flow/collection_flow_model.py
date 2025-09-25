@@ -197,11 +197,10 @@ class CollectionFlow(Base, TimestampMixin):
         """Calculate progress percentage based on current phase"""
         phase_weights = {
             CollectionPhase.INITIALIZATION.value: 0,
-            CollectionPhase.PLATFORM_DETECTION.value: 15,
-            CollectionPhase.AUTOMATED_COLLECTION.value: 40,
-            CollectionPhase.GAP_ANALYSIS.value: 55,
-            CollectionPhase.QUESTIONNAIRE_GENERATION.value: 70,
-            CollectionPhase.MANUAL_COLLECTION.value: 85,
+            CollectionPhase.ASSET_SELECTION.value: 15,
+            CollectionPhase.GAP_ANALYSIS.value: 40,
+            CollectionPhase.QUESTIONNAIRE_GENERATION.value: 60,
+            CollectionPhase.MANUAL_COLLECTION.value: 80,
             CollectionPhase.DATA_VALIDATION.value: 95,
             CollectionPhase.FINALIZATION.value: 100,
         }
@@ -218,8 +217,7 @@ class CollectionFlow(Base, TimestampMixin):
         """Get the next phase in the collection flow"""
         phase_order = [
             CollectionPhase.INITIALIZATION,
-            CollectionPhase.PLATFORM_DETECTION,
-            CollectionPhase.AUTOMATED_COLLECTION,
+            CollectionPhase.ASSET_SELECTION,
             CollectionPhase.GAP_ANALYSIS,
             CollectionPhase.QUESTIONNAIRE_GENERATION,
             CollectionPhase.MANUAL_COLLECTION,
