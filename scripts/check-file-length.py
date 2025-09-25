@@ -93,15 +93,15 @@ def check_file_lengths() -> Tuple[List[str], List[str], List[str]]:
 
         if line_count > MAX_LINES_ERROR:
             errors.append(
-                f"ERROR: {file_path}: {line_count} lines (exceeds {MAX_LINES_ERROR} line limit)"
+                f"❌ {file_path}: {line_count} lines (exceeds {MAX_LINES_ERROR} line limit)"
             )
         elif line_count > MAX_LINES_WARNING:
             warnings.append(
-                f"WARNING: {file_path}: {line_count} lines (exceeds recommended {MAX_LINES_WARNING} lines)"
+                f"⚠️  {file_path}: {line_count} lines (exceeds recommended {MAX_LINES_WARNING} lines)"
             )
         elif line_count > IDEAL_MAX_LINES:
             info.append(
-                f"INFO: {file_path}: {line_count} lines (consider keeping under {IDEAL_MAX_LINES} lines)"
+                f"ℹ️  {file_path}: {line_count} lines (consider keeping under {IDEAL_MAX_LINES} lines)"
             )
 
     return errors, warnings, info
@@ -110,8 +110,8 @@ def check_file_lengths() -> Tuple[List[str], List[str], List[str]]:
 def print_modularization_tips():
     """Print helpful tips for modularizing large files."""
     tips = """
-Modularization Tips:
---------------------
+📚 Modularization Tips:
+-----------------------
 1. Split by responsibility (queries, commands, handlers)
 2. Extract utility functions to separate modules
 3. Use mixins for shared functionality
@@ -129,7 +129,7 @@ def main():
 
     # Always show errors
     if errors:
-        print("\nFILE LENGTH VIOLATIONS (Commit Blocked):")
+        print("\n🚨 FILE LENGTH VIOLATIONS (Commit Blocked):")
         print("=" * 50)
         for error in errors:
             print(error)
@@ -139,7 +139,7 @@ def main():
 
     # Show warnings (don't block commit)
     if warnings:
-        print("\nWARNING: FILE LENGTH WARNINGS (Consider Modularizing):")
+        print("\n⚠️  FILE LENGTH WARNINGS (Consider Modularizing):")
         print("=" * 50)
         for warning in warnings:
             print(warning)
@@ -147,7 +147,7 @@ def main():
 
     # Optionally show info messages
     if info and len(info) <= 3:  # Only show a few info messages to avoid noise
-        print("\nINFO: Files approaching size limit:")
+        print("\nℹ️  Files approaching size limit:")
         for msg in info[:3]:
             print(msg)
 
@@ -155,7 +155,7 @@ def main():
     if not errors and not warnings and not info:
         staged_count = len(get_staged_python_files())
         if staged_count > 0:
-            print(f"OK: All {staged_count} staged Python files are within size limits.")
+            print(f"✅ All {staged_count} staged Python files are within size limits.")
 
     return 0  # Success (warnings don't block commit)
 

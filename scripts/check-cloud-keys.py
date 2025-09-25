@@ -36,11 +36,11 @@ def check_file_for_cloud_keys(file_path):
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
 
-        # AWS Access Key pattern: AKIA followed by 16 alphanumeric characters
-        # AWS Secret pattern: ASCP followed by base64 characters
+        # AWS Access Key ID pattern
+        # AWS Secret Access Key: 40-character base64 string
         patterns = [
             r'AKIA[0-9A-Z]{16}',
-            r'ASCP[A-Za-z0-9/+=]{8,}'
+            r'(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'
         ]
 
         for pattern in patterns:

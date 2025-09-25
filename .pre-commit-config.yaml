@@ -149,23 +149,23 @@ repos:
       # Check for AWS/cloud service keys in staged files only
       - id: check-cloud-keys-staged
         name: Check for exposed cloud service keys in staged files
-        entry: python scripts/check-cloud-keys.py
-        language: python
+        entry: scripts/check-cloud-keys.sh
+        language: system
         pass_filenames: false
 
       # Architectural Policy Enforcement (replaces GitHub CI)
       - id: policy-enforcement
         name: Enforce architectural policies
-        entry: python scripts/policy-checks.py
-        language: python
+        entry: scripts/policy-checks.sh
+        language: system
         pass_filenames: false
         stages: [pre-commit]
 
       # File Length Check - Enforce modularization (400 line limit)
       - id: check-file-length
         name: Check Python file length (max 400 lines)
-        entry: python scripts/check-file-length.py
-        language: python
+        entry: /opt/homebrew/bin/python3.11 scripts/check-file-length.py
+        language: system
         pass_filenames: false
         stages: [pre-commit]
         types: [python]
