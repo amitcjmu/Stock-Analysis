@@ -46,8 +46,7 @@ class CollectionFlowLifecycleManager:
             # Get all active flows for the engagement
             active_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.PLATFORM_DETECTION.value,
-                CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+                CollectionFlowStatus.ASSET_SELECTION.value,
                 CollectionFlowStatus.GAP_ANALYSIS.value,
                 CollectionFlowStatus.MANUAL_COLLECTION.value,
             ]
@@ -126,8 +125,7 @@ class CollectionFlowLifecycleManager:
             # Find flows that should be completed
             active_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.PLATFORM_DETECTION.value,
-                CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+                CollectionFlowStatus.ASSET_SELECTION.value,
                 CollectionFlowStatus.GAP_ANALYSIS.value,
                 CollectionFlowStatus.MANUAL_COLLECTION.value,
             ]
@@ -271,8 +269,7 @@ class CollectionFlowLifecycleManager:
             # Check if flow is in a state that can be completed
             completable_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.PLATFORM_DETECTION.value,
-                CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+                CollectionFlowStatus.ASSET_SELECTION.value,
                 CollectionFlowStatus.GAP_ANALYSIS.value,
                 CollectionFlowStatus.MANUAL_COLLECTION.value,
             ]
@@ -361,8 +358,7 @@ class CollectionFlowLifecycleManager:
             # Find stale flows
             active_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.PLATFORM_DETECTION.value,
-                CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+                CollectionFlowStatus.ASSET_SELECTION.value,
                 CollectionFlowStatus.GAP_ANALYSIS.value,
                 CollectionFlowStatus.MANUAL_COLLECTION.value,
             ]

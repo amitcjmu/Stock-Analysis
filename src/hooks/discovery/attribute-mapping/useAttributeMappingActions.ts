@@ -252,7 +252,7 @@ export const useAttributeMappingActions = (
         (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
     }
-  }, [fieldMappings, getAuthHeaders, refetchFieldMappings]);
+  }, [fieldMappings, getAuthHeaders, refetchFieldMappings, flow?.flow_id, flow?.id]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
@@ -315,7 +315,7 @@ export const useAttributeMappingActions = (
         (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
     }
-  }, [fieldMappings, getAuthHeaders, refetchFieldMappings]);
+  }, [fieldMappings, getAuthHeaders, refetchFieldMappings, flow?.flow_id, flow?.id]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {

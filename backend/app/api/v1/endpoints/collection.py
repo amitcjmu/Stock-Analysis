@@ -9,7 +9,7 @@ delegating to modular components while maintaining 100% backward compatibility.
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -38,6 +38,7 @@ from app.api.v1.endpoints.collection_conflict_resolution import (
 from app.api.v1.endpoints.collection_questionnaires import (
     router as questionnaires_router,
 )
+from app.api.v1.endpoints.collection_bulk_import import process_bulk_import
 
 logger = logging.getLogger(__name__)
 
@@ -271,6 +272,66 @@ async def update_collection_flow_applications(
         current_user=current_user,
         context=context,
     )
+
+
+@router.post("/bulk-import")
+async def bulk_import_collection_data(
+    request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Process bulk CSV import for Collection flow.
+
+    This endpoint:
+    1. Validates the Collection flow exists and is in correct state
+    2. Validates the CSV file using ImportStorageHandler
+    3. Processes each row through the Collection questionnaire system
+    4. Creates/updates assets in the database
+    5. Triggers gap analysis for all imported assets
+
+    Args:
+        flow_id: The Collection flow ID to import data into
+        file_path: Path to the uploaded CSV file
+        asset_type: Type of assets being imported (applications/servers/databases/devices)
+
+    Returns:
+        Dict with import results including processed count and any errors
+    """
+    # Extract parameters from request body
+    flow_id = request.get("flow_id")
+    asset_type = request.get("asset_type", "applications")
+    csv_data = request.get("csv_data", [])
+
+    # Validate required parameters
+    if not flow_id:
+        raise HTTPException(
+            status_code=400, detail="flow_id is required for bulk import operation"
+        )
+
+    # Process directly with CSV data if provided, otherwise use file_path
+    if csv_data:
+        return await process_bulk_import(
+            flow_id=flow_id,
+            file_path=None,
+            csv_data=csv_data,
+            asset_type=asset_type,
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
+    else:
+        # Legacy path for file-based import
+        file_path = request.get("file_path")
+        return await process_bulk_import(
+            flow_id=flow_id,
+            file_path=file_path,
+            csv_data=None,
+            asset_type=asset_type,
+            db=db,
+            current_user=current_user,
+            context=context,
+        )
 
 
 @router.post("/flows/{flow_id}/continue")

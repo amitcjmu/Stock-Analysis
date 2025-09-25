@@ -334,7 +334,7 @@ class CollectionOrchestrator:
         if current_phase == CollectionPhase.INITIALIZATION:
             return True  # Always ready to progress from initialization
 
-        elif current_phase == CollectionPhase.AUTOMATED_COLLECTION:
+        elif current_phase == CollectionPhase.ASSET_SELECTION:
             # Ready if bootstrap is completed or if no automated collection possible
             return (
                 checks["bootstrap"]["completed"]

@@ -51,7 +51,15 @@ export const ClassificationCards: React.FC<ClassificationCardsProps> = ({
     }
   ];
 
-  const handleCardClick = (card: any) => {
+  interface ClassificationCard {
+    id: string;
+    title: string;
+    count: number;
+    color: string;
+    filterValue: string;
+  }
+
+  const handleCardClick = (card: ClassificationCard) => {
     // Trigger the filter behavior - toggle if already selected, otherwise select
     onAssetTypeSelect(
       selectedAssetType === card.filterValue ? 'all' : card.filterValue

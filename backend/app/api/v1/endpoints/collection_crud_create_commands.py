@@ -188,7 +188,7 @@ async def create_collection_from_discovery(
 
         logger.info(
             "Created collection flow %s from discovery flow %s with %d applications",
-            collection_flow.id,
+            collection_flow.flow_id,
             discovery_flow_id,
             len(selected_application_ids),
         )
@@ -218,9 +218,9 @@ async def create_collection_from_discovery(
         logger.error(
             safe_log_format(
                 "Error creating collection from discovery: "
-                "discovery_flow_id={discovery_flow_id}, error_type={error_type}",
+                "discovery_flow_id={discovery_flow_id}, error={error}",
                 discovery_flow_id=discovery_flow_id,
-                error_type=type(e).__name__,
+                error=str(e),
             )
         )
         raise HTTPException(status_code=500, detail="Collection creation failed")
@@ -264,8 +264,7 @@ async def create_collection_flow(
                 CollectionFlow.status.in_(
                     [
                         CollectionFlowStatus.INITIALIZED.value,
-                        CollectionFlowStatus.PLATFORM_DETECTION.value,
-                        CollectionFlowStatus.AUTOMATED_COLLECTION.value,
+                        CollectionFlowStatus.ASSET_SELECTION.value,
                         CollectionFlowStatus.GAP_ANALYSIS.value,
                         CollectionFlowStatus.MANUAL_COLLECTION.value,
                     ]
@@ -481,8 +480,8 @@ async def create_collection_flow(
 
         logger.error(
             safe_log_format(
-                "Error creating collection flow: error_type={error_type}",
-                error_type=type(e).__name__,
+                "Error creating collection flow: error={error}",
+                error=str(e),
             )
         )
         raise HTTPException(status_code=500, detail="Collection flow creation failed")

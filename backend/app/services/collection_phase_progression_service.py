@@ -45,9 +45,8 @@ class CollectionPhaseProgressionService:
             stmt = select(CollectionFlow).where(
                 CollectionFlow.client_account_id == self.context.client_account_id,
                 CollectionFlow.engagement_id == self.context.engagement_id,
-                CollectionFlow.current_phase
-                == CollectionPhase.PLATFORM_DETECTION.value,
-                CollectionFlow.status == CollectionFlowStatus.PLATFORM_DETECTION.value,
+                CollectionFlow.current_phase == CollectionPhase.ASSET_SELECTION.value,
+                CollectionFlow.status == CollectionFlowStatus.ASSET_SELECTION.value,
                 CollectionFlow.master_flow_id.isnot(None),  # Must have MFO integration
             )
 

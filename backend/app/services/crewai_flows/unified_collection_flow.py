@@ -14,8 +14,7 @@ The Collection Flow handles adaptive data collection for migration readiness and
 
 Flow Phases:
 - INITIALIZATION: Setup flow state and load configuration
-- PLATFORM_DETECTION: Detect and identify platforms in the environment
-- AUTOMATED_COLLECTION: Automated data collection via adapters
+- ASSET_SELECTION: Asset selection and platform identification (replaces platform_detection and automated_collection)
 - GAP_ANALYSIS: Analyze data completeness and quality gaps
 - QUESTIONNAIRE_GENERATION: Generate adaptive questionnaires for gaps
 - MANUAL_COLLECTION: Collect data through manual processes
@@ -261,8 +260,29 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
         )
 
     @listen("initialization")
+    async def asset_selection(self, initialization_result):
+        """
+        Combined Phase: Asset selection and platform identification.
+        Replaces platform_detection and automated_collection phases.
+        """
+        config = {
+            "client_requirements": self.client_requirements,
+            "environment_config": self.environment_config,
+        }
+
+        # First detect platforms
+        platform_result = await self.platform_detection_handler.detect_platforms(
+            self.state, config, initialization_result
+        )
+
+        # Then perform automated collection
+        return await self.automated_collection_handler.automated_collection(
+            self.state, config, platform_result
+        )
+
+    # Legacy methods kept for backward compatibility
     async def detect_platforms(self, initialization_result):
-        """Phase 1: Detect platforms in the environment"""
+        """Legacy Phase 1: Detect platforms in the environment (deprecated, use asset_selection)"""
         config = {
             "client_requirements": self.client_requirements,
             "environment_config": self.environment_config,
@@ -271,9 +291,9 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             self.state, config, initialization_result
         )
 
-    @listen("platform_detection")
+    @listen("asset_selection")
     async def automated_collection(self, platform_result):
-        """Phase 2: Automated data collection"""
+        """Legacy Phase 2: Automated data collection (deprecated, use asset_selection)"""
         config = {
             "client_requirements": self.client_requirements,
             "environment_config": self.environment_config,
@@ -282,7 +302,7 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             self.state, config, platform_result
         )
 
-    @listen("automated_collection")
+    @listen("asset_selection")
     async def analyze_gaps(self, collection_result):
         """Phase 3: Gap analysis"""
         config = {
@@ -352,8 +372,7 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
         # Resume based on current phase
         phase_handlers = {
             CollectionPhase.INITIALIZATION: self.initialize_collection,
-            CollectionPhase.PLATFORM_DETECTION: self.detect_platforms,
-            CollectionPhase.AUTOMATED_COLLECTION: self.automated_collection,
+            CollectionPhase.ASSET_SELECTION: self.asset_selection,
             CollectionPhase.GAP_ANALYSIS: self.analyze_gaps,
             CollectionPhase.QUESTIONNAIRE_GENERATION: self.generate_questionnaires,
             CollectionPhase.MANUAL_COLLECTION: self.manual_collection,

@@ -35,16 +35,16 @@ const ArchitecturePage: React.FC = () => {
     }
   }, [flowId, navigate]);
 
-  // Prevent rendering until flow is hydrated
-  if (!flowId || state.status === 'idle') {
-    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
-  }
-
-  // Update local state when flow state changes
+  // Update local state when flow state changes - MUST be at top level
   useEffect(() => {
     setStandards(state.engagementStandards);
     setOverrides(state.applicationOverrides);
   }, [state.engagementStandards, state.applicationOverrides]);
+
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
 
   const handleSaveDraft = async (): void => {
     setIsDraft(true);

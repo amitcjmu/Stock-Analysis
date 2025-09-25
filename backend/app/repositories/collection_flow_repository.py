@@ -47,8 +47,7 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
         all_flows = await self.get_by_filters()
         active_statuses = [
             CollectionFlowStatus.INITIALIZED,
-            CollectionFlowStatus.PLATFORM_DETECTION,
-            CollectionFlowStatus.AUTOMATED_COLLECTION,
+            CollectionFlowStatus.ASSET_SELECTION,
             CollectionFlowStatus.GAP_ANALYSIS,
             CollectionFlowStatus.MANUAL_COLLECTION,
         ]
