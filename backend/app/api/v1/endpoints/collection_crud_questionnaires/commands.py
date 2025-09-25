@@ -6,7 +6,7 @@ Write operations and background task management for questionnaire generation.
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -100,12 +100,12 @@ async def _start_agent_generation(
 async def _update_questionnaire_status(
     questionnaire_id: UUID,
     status: str,
-    questions: List[dict] = None,
-    error_message: str = None,
-    db: AsyncSession = None,
+    questions: Optional[List[dict]] = None,
+    error_message: Optional[str] = None,
+    db: Optional[AsyncSession] = None,
 ) -> None:
     """Update questionnaire status and optionally add questions."""
-    from app.database import AsyncSessionLocal
+    from app.core.database import AsyncSessionLocal
 
     # Use provided db session or create new one
     if db is None:
@@ -123,8 +123,8 @@ async def _do_update_questionnaire_status(
     db: AsyncSession,
     questionnaire_id: UUID,
     status: str,
-    questions: List[dict] = None,
-    error_message: str = None,
+    questions: Optional[List[dict]] = None,
+    error_message: Optional[str] = None,
 ) -> None:
     """Internal helper to update questionnaire status."""
     try:
@@ -168,7 +168,7 @@ async def _background_generate(
     This runs in background and updates the pending questionnaire record
     when generation is complete or fails.
     """
-    from app.database import AsyncSessionLocal
+    from app.core.database import AsyncSessionLocal
 
     try:
         logger.info(f"Starting background questionnaire generation for {flow_id}")

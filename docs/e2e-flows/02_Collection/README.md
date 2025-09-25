@@ -80,6 +80,17 @@ The Collection Flow uses a multi-table architecture:
 
 ## Flow Phases
 
+The Collection Flow has been optimized from 8 phases to 7 phases by consolidating platform detection and automated collection into a single "Asset Selection" phase.
+
+### Updated Phase Progression:
+1. **Initialization** - Setup flow state and load configuration
+2. **Asset Selection** - Identify assets and collect data (consolidates former platform_detection and automated_collection)
+3. **Gap Analysis** - Analyze data completeness and quality gaps
+4. **Questionnaire Generation** - Generate adaptive questionnaires for gap filling
+5. **Manual Collection** - Collect data through manual processes
+6. **Data Validation** - Validate all collected data
+7. **Finalization** - Prepare data for Discovery Flow handoff
+
 ### Phase 1: Initialization
 **Purpose**: Setup flow state and load configuration
 
@@ -94,25 +105,14 @@ The Collection Flow uses a multi-table architecture:
 - `FlowStateManager` - Handles state persistence
 - `ServiceInitializer` - Initializes required services
 
-### Phase 2: Platform Detection
-**Purpose**: Detect and identify platforms in the environment
+### Phase 2: Asset Selection
+**Purpose**: Identify assets and collect data from selected platforms and systems
 
 **Activities**:
 - Scan environment for known platform signatures
 - Identify platform types (cloud, on-premise, hybrid)
 - Catalog platform versions and configurations
 - Build platform inventory for collection
-
-**CrewAI Agents**:
-- Platform Detection Agent - Scans and identifies platforms
-- Configuration Analyzer - Extracts platform settings
-
-**Output**: List of detected platforms with metadata
-
-### Phase 3: Automated Collection
-**Purpose**: Automated data collection via platform adapters
-
-**Activities**:
 - Connect to identified platforms using adapters
 - Extract application metadata and configurations
 - Collect performance metrics and dependencies
@@ -124,9 +124,16 @@ The Collection Flow uses a multi-table architecture:
 - Configuration file parsing
 - Database queries for metadata
 
-**Output**: Raw collected data per platform
+**CrewAI Agents**:
+- Platform Detection Agent - Scans and identifies platforms
+- Configuration Analyzer - Extracts platform settings
+- Data Collection Agent - Orchestrates automated data gathering
 
-### Phase 4: Gap Analysis
+**Output**: Complete asset inventory with collected data per platform
+
+**Note**: This phase consolidates the former "Platform Detection" and "Automated Collection" phases for improved efficiency.
+
+### Phase 3: Gap Analysis
 **Purpose**: Analyze data completeness and quality gaps
 
 **Activities**:
@@ -145,7 +152,7 @@ The Collection Flow uses a multi-table architecture:
 - Compliance gaps (regulatory requirements)
 - Migration readiness gaps
 
-### Phase 5: Questionnaire Generation
+### Phase 4: Questionnaire Generation
 **Purpose**: Generate adaptive questionnaires for gap filling
 
 **Activities**:
@@ -164,7 +171,7 @@ The Collection Flow uses a multi-table architecture:
 - Validation rules ensure data quality
 - Skip logic minimizes user effort
 
-### Phase 6: Manual Collection
+### Phase 5: Manual Collection
 **Purpose**: Collect data through manual processes
 
 **Activities**:
@@ -179,7 +186,7 @@ The Collection Flow uses a multi-table architecture:
 - Auto-save functionality
 - Context-sensitive help
 
-### Phase 7: Data Validation
+### Phase 6: Data Validation
 **Purpose**: Validate all collected data
 
 **Activities**:
@@ -194,7 +201,7 @@ The Collection Flow uses a multi-table architecture:
 - Business rule validation
 - Dependency verification
 
-### Phase 8: Finalization
+### Phase 7: Finalization
 **Purpose**: Prepare data for Discovery Flow handoff
 
 **Activities**:
@@ -460,9 +467,64 @@ def safe_serialize_metrics(data):
    - Mobile-responsive forms
    - Bulk data import capabilities
 
+## Migration Notes and Backward Compatibility
+
+### Phase Consolidation (Migration 076_remap_collection_flow_phases)
+
+**Background**: To improve efficiency and reduce complexity, the Collection Flow has been updated to consolidate two phases into one:
+
+- **Old Phases Removed**:
+  - `platform_detection` - Phase that identified platforms in the environment
+  - `automated_collection` - Phase that collected data from identified platforms
+
+- **New Consolidated Phase**:
+  - `asset_selection` - Combined phase that both identifies assets and collects their data
+
+### Database Migration Details
+
+- **Migration ID**: 076_remap_collection_flow_phases
+- **Applied**: Automatically remaps existing flows from old phases to new phase
+- **Idempotent**: Can be run multiple times safely
+- **Backward Compatibility**: Existing flows are automatically migrated
+
+### New SQLAlchemy Relationships Added
+
+The CollectionFlow model now includes additional relationships to support enhanced functionality:
+
+```python
+# New relationships added in recent updates
+gap_analyses = relationship(
+    "CollectionGapAnalysis",
+    back_populates="collection_flow",
+    cascade="all, delete-orphan",
+)
+adaptive_questionnaires = relationship(
+    "AdaptiveQuestionnaire",
+    back_populates="collection_flow",
+    cascade="all, delete-orphan",
+)
+```
+
+### API Compatibility
+
+- **Frontend**: All existing API calls continue to work unchanged
+- **Phase References**: Old phase names in UI are automatically handled
+- **Progress Calculation**: Updated to reflect 7-phase structure
+- **Error Messages**: Updated to reference new phase names
+
+### Testing Considerations
+
+When testing Collection Flow functionality:
+
+1. **New Flows**: Will use the 7-phase structure with `asset_selection`
+2. **Migrated Flows**: Existing flows will show `asset_selection` instead of old phase names
+3. **Progress**: Progress percentages recalculated for 7-phase flow
+4. **Phase Transitions**: Skip logic updated to handle consolidated phase
+
 ## Related Documentation
 
 - [Master Flow Overview](../01_Master/README.md)
 - [Discovery Flow](../03_Discovery/README.md)
 - [Assessment Flow](../04_Assessment/README.md)
 - [Architecture Decision Records](../../adr/)
+- [Migration 076_remap_collection_flow_phases](../../../backend/alembic/versions/076_remap_collection_flow_phases.py)

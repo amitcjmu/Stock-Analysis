@@ -184,6 +184,16 @@ class CollectionFlow(Base, TimestampMixin):
         back_populates="collection_flow",
         cascade="all, delete-orphan",
     )
+    gap_analyses = relationship(
+        "CollectionGapAnalysis",
+        back_populates="collection_flow",
+        cascade="all, delete-orphan",
+    )
+    adaptive_questionnaires = relationship(
+        "AdaptiveQuestionnaire",
+        back_populates="collection_flow",
+        cascade="all, delete-orphan",
+    )
     questionnaire_responses = relationship(
         "CollectionQuestionnaireResponse",
         back_populates="collection_flow",

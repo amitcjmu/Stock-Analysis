@@ -13,8 +13,7 @@ from app.services.flow_type_registry import (
 
 # Import phase configurations from modular files
 from .collection_phases import (
-    get_platform_detection_phase,
-    get_automated_collection_phase,
+    get_asset_selection_phase,
     get_gap_analysis_phase,
     get_questionnaire_generation_phase,
     get_manual_collection_phase,
@@ -37,19 +36,18 @@ except ImportError:
 
 def get_collection_flow_config() -> FlowTypeConfig:
     """
-    Get the Collection flow configuration with all 5 phases
+    Get the Collection flow configuration with all phases
 
     Phases:
-    1. Platform Detection - Detect and identify target platforms
-    2. Automated Collection - Automated data collection using adapters
-    3. Gap Analysis - Analyze missing data and quality issues
+    1. Asset Selection - Detect platforms and select assets for collection
+    2. Gap Analysis - Analyze missing data and quality issues
+    3. Questionnaire Generation - Generate questionnaires for missing data
     4. Manual Collection - Collect data through questionnaires and manual processes
     5. Synthesis - Synthesize and validate all collected data
     """
 
     # Get all phase configurations from modular files
-    platform_detection_phase = get_platform_detection_phase()
-    automated_collection_phase = get_automated_collection_phase()
+    asset_selection_phase = get_asset_selection_phase()
     gap_analysis_phase = get_gap_analysis_phase()
     questionnaire_generation_phase = get_questionnaire_generation_phase()
     manual_collection_phase = get_manual_collection_phase()
@@ -83,8 +81,7 @@ def get_collection_flow_config() -> FlowTypeConfig:
         ),
         version="2.0.0",
         phases=[
-            platform_detection_phase,
-            automated_collection_phase,
+            asset_selection_phase,
             gap_analysis_phase,
             questionnaire_generation_phase,
             manual_collection_phase,

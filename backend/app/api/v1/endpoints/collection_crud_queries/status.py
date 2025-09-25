@@ -1,0 +1,127 @@
+"""
+Collection Flow Status Operations
+Basic status and flow retrieval operations.
+"""
+
+import logging
+from typing import Any, Dict
+from uuid import UUID
+
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
+from app.core.security.secure_logging import safe_log_format
+from app.models import User
+from app.models.collection_flow import (
+    CollectionFlow,
+    CollectionFlowStatus,
+)
+from app.schemas.collection_flow import (
+    CollectionFlowResponse,
+)
+
+# Import modular functions
+from app.api.v1.endpoints import collection_serializers
+
+logger = logging.getLogger(__name__)
+
+
+async def get_collection_status(
+    db: AsyncSession,
+    current_user: User,
+    context: RequestContext,
+) -> Dict[str, Any]:
+    """Get collection flow status for current engagement.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+        context: Request context
+
+    Returns:
+        Dictionary with collection status information
+    """
+    try:
+        # Get active collection flow - use first() to handle multiple rows
+        result = await db.execute(
+            select(CollectionFlow)
+            .where(
+                CollectionFlow.engagement_id == context.engagement_id,
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.COMPLETED.value,
+                        CollectionFlowStatus.CANCELLED.value,
+                        CollectionFlowStatus.FAILED.value,
+                    ]
+                ),
+            )
+            .order_by(CollectionFlow.created_at.desc())
+            .limit(1)  # Ensure we only get one row
+        )
+        collection_flow = result.scalar_one_or_none()
+
+        if not collection_flow:
+            return collection_serializers.build_no_active_flow_response()
+
+        return collection_serializers.build_collection_status_response(collection_flow)
+
+    except Exception as e:
+        logger.error(safe_log_format("Error getting collection status: {e}", e=e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def get_collection_flow(
+    flow_id: str,
+    db: AsyncSession,
+    current_user: User,
+    context: RequestContext,
+) -> CollectionFlowResponse:
+    """Get collection flow by ID with authorization.
+
+    Args:
+        flow_id: Collection flow ID
+        db: Database session
+        current_user: Current authenticated user
+        context: Request context
+
+    Returns:
+        Collection flow details
+
+    Raises:
+        HTTPException: If flow not found or unauthorized
+    """
+    try:
+        result = await db.execute(
+            select(CollectionFlow).where(
+                CollectionFlow.flow_id == UUID(flow_id),
+                CollectionFlow.engagement_id == context.engagement_id,
+            )
+        )
+        collection_flow = result.scalar_one_or_none()
+
+        if not collection_flow:
+            logger.warning(
+                safe_log_format(
+                    "Collection flow not found: flow_id={flow_id}, "
+                    "engagement_id={engagement_id}",
+                    flow_id=flow_id,
+                    engagement_id=context.engagement_id,
+                )
+            )
+            raise HTTPException(status_code=404, detail="Collection flow not found")
+
+        return collection_serializers.serialize_collection_flow(collection_flow)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Error getting collection flow: flow_id={flow_id}, error={e}",
+                flow_id=flow_id,
+                e=e,
+            )
+        )
+        raise HTTPException(status_code=500, detail=str(e))

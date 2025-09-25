@@ -1,7 +1,6 @@
 """
-Collection Flow Query Operations
-Read-only database operations for collection flows including status, flow details,
-gaps, and readiness assessments.
+Collection Flow Analysis Operations
+Complex analysis operations including gap analysis and readiness assessments.
 """
 
 import logging
@@ -22,128 +21,10 @@ from app.models.collection_flow import (
     CollectionFlowStatus,
 )
 from app.schemas.collection_flow import (
-    CollectionFlowResponse,
     CollectionGapAnalysisSummaryResponse,
 )
 
-# Import modular functions
-from app.api.v1.endpoints import collection_serializers
-
-# Re-export questionnaire functions for backward compatibility
-from app.api.v1.endpoints.collection_crud_questionnaires import (
-    get_adaptive_questionnaires,
-)
-
-__all__ = [
-    "get_adaptive_questionnaires",
-    "get_collection_status",
-    "get_collection_flow",
-    "get_collection_gaps",
-    "get_collection_readiness",
-    "get_incomplete_flows",
-    "get_all_flows",
-]
-
 logger = logging.getLogger(__name__)
-
-
-async def get_collection_status(
-    db: AsyncSession,
-    current_user: User,
-    context: RequestContext,
-) -> Dict[str, Any]:
-    """Get collection flow status for current engagement.
-
-    Args:
-        db: Database session
-        current_user: Current authenticated user
-        context: Request context
-
-    Returns:
-        Dictionary with collection status information
-    """
-    try:
-        # Get active collection flow - use first() to handle multiple rows
-        result = await db.execute(
-            select(CollectionFlow)
-            .where(
-                CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status.notin_(
-                    [
-                        CollectionFlowStatus.COMPLETED.value,
-                        CollectionFlowStatus.CANCELLED.value,
-                        CollectionFlowStatus.FAILED.value,
-                    ]
-                ),
-            )
-            .order_by(CollectionFlow.created_at.desc())
-            .limit(1)  # Ensure we only get one row
-        )
-        collection_flow = result.scalar_one_or_none()
-
-        if not collection_flow:
-            return collection_serializers.build_no_active_flow_response()
-
-        return collection_serializers.build_collection_status_response(collection_flow)
-
-    except Exception as e:
-        logger.error(safe_log_format("Error getting collection status: {e}", e=e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-async def get_collection_flow(
-    flow_id: str,
-    db: AsyncSession,
-    current_user: User,
-    context: RequestContext,
-) -> CollectionFlowResponse:
-    """Get collection flow by ID with authorization.
-
-    Args:
-        flow_id: Collection flow ID
-        db: Database session
-        current_user: Current authenticated user
-        context: Request context
-
-    Returns:
-        Collection flow details
-
-    Raises:
-        HTTPException: If flow not found or unauthorized
-    """
-    try:
-        result = await db.execute(
-            select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id,
-            )
-        )
-        collection_flow = result.scalar_one_or_none()
-
-        if not collection_flow:
-            logger.warning(
-                safe_log_format(
-                    "Collection flow not found: flow_id={flow_id}, "
-                    "engagement_id={engagement_id}",
-                    flow_id=flow_id,
-                    engagement_id=context.engagement_id,
-                )
-            )
-            raise HTTPException(status_code=404, detail="Collection flow not found")
-
-        return collection_serializers.serialize_collection_flow(collection_flow)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(
-            safe_log_format(
-                "Error getting collection flow: flow_id={flow_id}, error={e}",
-                flow_id=flow_id,
-                e=e,
-            )
-        )
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 async def get_collection_gaps(
@@ -413,87 +294,6 @@ async def get_collection_readiness(
         raise
     except Exception as e:
         logger.error(safe_log_format("Error assessing collection readiness: {e}", e=e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-async def get_incomplete_flows(
-    db: AsyncSession,
-    current_user: User,
-    context: RequestContext,
-    limit: int = 50,
-) -> List[CollectionFlowResponse]:
-    """Get incomplete collection flows for current engagement.
-
-    Args:
-        db: Database session
-        current_user: Current authenticated user
-        context: Request context
-        limit: Maximum number of flows to return
-
-    Returns:
-        List of incomplete collection flows
-    """
-    try:
-        result = await db.execute(
-            select(CollectionFlow)
-            .where(
-                CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status.in_(
-                    [
-                        CollectionFlowStatus.INITIALIZED.value,
-                        CollectionFlowStatus.PLATFORM_DETECTION.value,
-                        CollectionFlowStatus.AUTOMATED_COLLECTION.value,
-                        CollectionFlowStatus.GAP_ANALYSIS.value,
-                        CollectionFlowStatus.MANUAL_COLLECTION.value,
-                        CollectionFlowStatus.FAILED.value,
-                    ]
-                ),
-            )
-            .order_by(CollectionFlow.created_at.desc())
-            .limit(limit)
-        )
-        flows = result.scalars().all()
-
-        return [
-            collection_serializers.serialize_collection_flow(flow) for flow in flows
-        ]
-
-    except Exception as e:
-        logger.error(safe_log_format("Error getting incomplete flows: {e}", e=e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-async def get_all_flows(
-    db: AsyncSession,
-    current_user: User,
-    context: RequestContext,
-    limit: int = 50,
-) -> List[CollectionFlowResponse]:
-    """Get all collection flows for current engagement (including completed ones).
-    Args:
-        db: Database session
-        current_user: Current authenticated user
-        context: Request context
-        limit: Maximum number of flows to return
-    Returns:
-        List of all collection flows
-    """
-    try:
-        result = await db.execute(
-            select(CollectionFlow)
-            .where(
-                CollectionFlow.client_account_id == context.client_account_id,
-                CollectionFlow.engagement_id == context.engagement_id,
-            )
-            .order_by(CollectionFlow.created_at.desc())
-            .limit(limit)
-        )
-        flows = result.scalars().all()
-        return [
-            collection_serializers.serialize_collection_flow(flow) for flow in flows
-        ]
-    except Exception as e:
-        logger.error(safe_log_format("Error getting all flows: {e}", e=e))
         raise HTTPException(status_code=500, detail=str(e))
 
 

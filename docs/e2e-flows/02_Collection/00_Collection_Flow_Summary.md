@@ -2,9 +2,16 @@
 
 This document outlines the end-to-end user and data flow for the **Collection** phase of the migration process, which is fully integrated with the Master Flow Orchestrator (MFO) architecture.
 
+## Recent Updates
+
+**Migration 076_remap_collection_flow_phases** has consolidated the Collection Flow from 8 phases to 7 phases:
+- **Removed**: `platform_detection` and `automated_collection` phases
+- **Added**: `asset_selection` phase (combines functionality of removed phases)
+- **Benefit**: Improved efficiency and reduced complexity
+
 ## 1. Objective
 
-The primary objective of the Collection flow is to gather detailed information about the assets identified during the **Discovery** phase. This involves a combination of automated data collection, manual data entry through adaptive forms, and bulk data uploads. The goal is to enrich the asset inventory with the necessary details to perform a comprehensive assessment.
+The primary objective of the Collection flow is to gather detailed information about the assets identified during the **Discovery** phase. This involves a combination of automated asset identification, data collection, manual data entry through adaptive forms, and bulk data uploads. The goal is to enrich the asset inventory with the necessary details to perform a comprehensive assessment.
 
 ## 🏗️ MFO Integration Architecture
 
