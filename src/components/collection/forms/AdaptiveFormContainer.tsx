@@ -57,11 +57,13 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   onCancel,
   className = ''
 }) => {
-  // CC: Component initialization effect
-  const onSaveType = typeof onSave;
+  // CC: Component initialization effect - check if save function is available
   React.useEffect(() => {
     // AdaptiveFormContainer initialized with save functionality
-  }, [onSaveType]);
+    if (typeof onSave === 'function') {
+      // Save functionality is available
+    }
+  }, [onSave]);
   // Defensive checks
   if (!formData) {
     return (
@@ -89,10 +91,58 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
     );
   }
 
+  // If no sections are available, this likely means no assets have been selected
+  // OR questionnaire generation timed out/failed
+  // Show asset selection form to allow user to proceed
   if (!formData.sections || formData.sections.length === 0) {
+    // Create a bootstrap asset selection form
+    const assetSelectionFormData = {
+      formId: 'bootstrap_asset_selection',
+      title: 'Asset Selection Required',
+      description: 'Please select assets to continue with data collection',
+      sections: [{
+        id: 'asset_selection',
+        title: 'Select Applications',
+        description: 'Choose which applications to collect data for',
+        fields: [{
+          id: 'selected_applications',
+          name: 'Applications',
+          type: 'multi_select',
+          required: true,
+          options: [],
+          helpText: 'Select one or more applications for data collection'
+        }]
+      }],
+      estimatedCompletionTime: 5
+    };
+
     return (
-      <div className="flex items-center justify-center p-8">
-        <p className="text-gray-500">Form sections are not available. Please contact support if this issue persists.</p>
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Asset Selection Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                No assets have been selected for this collection flow.
+                Please select assets to continue with data collection.
+              </p>
+              <AssetSelectionForm
+                formData={assetSelectionFormData}
+                formValues={formValues}
+                onFieldChange={onFieldChange}
+                onSubmit={onSubmit}
+                isSubmitting={isSubmitting}
+                className="space-y-6"
+              />
+              <div className="text-sm text-gray-500 mt-4">
+                Note: If you were expecting questionnaires here, they may still be generating.
+                You can refresh the page in a few moments to check again.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

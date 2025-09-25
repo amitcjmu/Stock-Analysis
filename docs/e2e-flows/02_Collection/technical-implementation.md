@@ -1,5 +1,12 @@
 # Collection Flow Technical Implementation Guide
 
+## Recent Updates
+
+**Phase Consolidation**: The Collection Flow has been optimized from 8 phases to 7 phases:
+- **Removed**: `platform_detection` and `automated_collection` phases
+- **Added**: `asset_selection` phase (consolidates functionality of both removed phases)
+- **Impact**: Updated handlers, progress calculation, and state management
+
 ## Core Implementation Files
 
 ### Backend Structure
@@ -70,30 +77,56 @@ class CollectionFlowState(BaseModel):
 
 ```python
 class UnifiedCollectionFlow(Flow[CollectionFlowState]):
-    """Main collection flow orchestrator"""
-    
+    """Main collection flow orchestrator with optimized 7-phase structure"""
+
     @start()
     async def initialize_collection(self):
         """Phase 1: Initialize flow"""
         return await self.initialization_handler.initialize_collection(
             self.state, config
         )
-    
+
     @listen("initialization")
-    async def detect_platforms(self, initialization_result):
-        """Phase 2: Platform detection"""
-        return await self.platform_detection_handler.detect_platforms(
+    async def asset_selection(self, initialization_result):
+        """Phase 2: Asset selection (consolidates platform detection and automated collection)"""
+        return await self.asset_selection_handler.process_asset_selection(
             self.state, config, initialization_result
         )
-    
-    @listen("platform_detection")
-    async def automated_collection(self, platform_result):
-        """Phase 3: Automated collection"""
-        return await self.automated_collection_handler.automated_collection(
-            self.state, config, platform_result
+
+    @listen("asset_selection")
+    async def gap_analysis(self, asset_result):
+        """Phase 3: Gap analysis"""
+        return await self.gap_analysis_handler.analyze_gaps(
+            self.state, config, asset_result
         )
-    
-    # Additional phases follow similar pattern
+
+    @listen("gap_analysis")
+    async def questionnaire_generation(self, gap_result):
+        """Phase 4: Questionnaire generation"""
+        return await self.questionnaire_handler.generate_questionnaires(
+            self.state, config, gap_result
+        )
+
+    @listen("questionnaire_generation")
+    async def manual_collection(self, questionnaire_result):
+        """Phase 5: Manual collection"""
+        return await self.manual_collection_handler.collect_manual_data(
+            self.state, config, questionnaire_result
+        )
+
+    @listen("manual_collection")
+    async def data_validation(self, collection_result):
+        """Phase 6: Data validation"""
+        return await self.validation_handler.validate_data(
+            self.state, config, collection_result
+        )
+
+    @listen("data_validation")
+    async def finalization(self, validation_result):
+        """Phase 7: Finalization"""
+        return await self.finalization_handler.finalize_collection(
+            self.state, config, validation_result
+        )
 ```
 
 ### Adaptive Questionnaire Generation
@@ -479,8 +512,7 @@ Calculate progress based on multiple factors:
 ```python
 def calculate_progress(flow: CollectionFlow) -> int:
     weights = {
-        'platform_detection': 0.1,
-        'automated_collection': 0.3,
+        'asset_selection': 0.4,  # Consolidated from platform_detection (0.1) + automated_collection (0.3)
         'gap_analysis': 0.1,
         'manual_collection': 0.4,
         'validation': 0.1

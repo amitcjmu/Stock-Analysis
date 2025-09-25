@@ -46,7 +46,6 @@ async def get_adaptive_questionnaires(
     return await collection_crud.get_adaptive_questionnaires(
         flow_id=flow_id,
         db=db,
-        current_user=current_user,
         context=context,
     )
 

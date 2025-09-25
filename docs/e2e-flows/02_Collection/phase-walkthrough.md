@@ -9,18 +9,16 @@ This document provides a detailed walkthrough of each phase in the Collection Fl
 ```mermaid
 stateDiagram-v2
     [*] --> Initialization
-    Initialization --> PlatformDetection: Flow initialized
-    PlatformDetection --> AutomatedCollection: Platforms identified
-    AutomatedCollection --> GapAnalysis: Data collected
+    Initialization --> AssetSelection: Flow initialized
+    AssetSelection --> GapAnalysis: Assets identified and data collected
     GapAnalysis --> QuestionnaireGeneration: Gaps identified
     GapAnalysis --> DataValidation: No critical gaps
     QuestionnaireGeneration --> ManualCollection: Questions ready
     ManualCollection --> DataValidation: Responses submitted
     DataValidation --> Finalization: Data validated
     Finalization --> [*]: Complete
-    
-    PlatformDetection --> [*]: Error/Cancel
-    AutomatedCollection --> [*]: Error/Cancel
+
+    AssetSelection --> [*]: Error/Cancel
     GapAnalysis --> [*]: Error/Cancel
     ManualCollection --> [*]: Error/Cancel
     DataValidation --> [*]: Error/Cancel
@@ -84,80 +82,30 @@ Content-Type: application/json
 - Initial configuration stored
 - Ready for platform detection
 
-## Phase 2: Platform Detection (10-15% of total time)
+## Phase 2: Asset Selection (25-40% of total time)
 
 ### What Happens
-The system identifies and catalogs platforms in the environment:
+The system identifies assets and automatically collects comprehensive data from selected platforms and systems. This consolidated phase combines platform detection with automated data collection for improved efficiency.
 
-1. **Environment Scanning**
+1. **Environment Scanning & Platform Detection**
    - Query cloud provider APIs (AWS, Azure, GCP)
    - Detect on-premise platforms
    - Identify containerized environments
-
-2. **Platform Identification**
    - Match platform signatures
    - Determine platform versions
    - Assess API accessibility
 
-3. **Capability Assessment**
+2. **Capability Assessment & Connection Setup**
    - Check available APIs
    - Verify authentication methods
    - Determine data extraction capabilities
-
-4. **Inventory Creation**
-   - Build platform registry
-   - Map platforms to applications
-   - Store connection metadata
-
-### CrewAI Agent Actions
-```python
-# Platform Detection Agent analyzes environment
-detected_platforms = [
-    {
-        "type": "aws",
-        "region": "us-east-1",
-        "services": ["EC2", "RDS", "S3"],
-        "api_version": "2023-01-01",
-        "accessibility": "full"
-    },
-    {
-        "type": "kubernetes",
-        "cluster": "prod-cluster",
-        "version": "1.28",
-        "accessibility": "read-only"
-    },
-    {
-        "type": "vmware",
-        "datacenter": "DC1",
-        "version": "7.0",
-        "accessibility": "limited"
-    }
-]
-```
-
-### Decision Points
-- **Platform Priority**: Which platforms to collect from first
-- **Authentication Strategy**: How to securely access each platform
-- **Collection Depth**: How much detail to gather per platform
-
-### Outcomes
-- Complete platform inventory
-- Connection strategies defined
-- Ready for automated collection
-
-## Phase 3: Automated Collection (25-35% of total time)
-
-### What Happens
-The system automatically collects data from identified platforms:
-
-1. **Adapter Activation**
    - Initialize platform-specific adapters
    - Establish secure connections
    - Verify access permissions
 
-2. **Data Extraction**
+3. **Automated Data Collection**
    ```python
-   # For each platform, collect:
+   # For each identified platform, collect:
    - Application metadata (names, versions, dependencies)
    - Configuration details (settings, parameters)
    - Performance metrics (CPU, memory, I/O)
@@ -166,17 +114,49 @@ The system automatically collects data from identified platforms:
    - Compliance data (tags, labels, policies)
    ```
 
-3. **Data Processing**
+4. **Data Processing & Storage**
    - Normalize data formats
    - Resolve entity references
    - Calculate derived metrics
-
-4. **Storage Operations**
    - Store raw data in collection_data table
    - Update application inventory
    - Link data to assets
 
-### Platform-Specific Collection
+### CrewAI Agent Actions
+```python
+# Integrated Asset Selection Agent workflow
+asset_selection_result = {
+    "detected_platforms": [
+        {
+            "type": "aws",
+            "region": "us-east-1",
+            "services": ["EC2", "RDS", "S3"],
+            "api_version": "2023-01-01",
+            "accessibility": "full"
+        },
+        {
+            "type": "kubernetes",
+            "cluster": "prod-cluster",
+            "version": "1.28",
+            "accessibility": "read-only"
+        },
+        {
+            "type": "vmware",
+            "datacenter": "DC1",
+            "version": "7.0",
+            "accessibility": "limited"
+        }
+    ],
+    "collected_data": {
+        "applications": 42,
+        "instances": 38,
+        "databases": 12,
+        "network_connections": 156
+    }
+}
+```
+
+### Platform-Specific Collection Examples
 
 #### AWS Collection
 ```python
@@ -210,6 +190,12 @@ for pod in pods:
     store_container_data(container_data)
 ```
 
+### Decision Points
+- **Platform Priority**: Which platforms to collect from first
+- **Authentication Strategy**: How to securely access each platform
+- **Collection Depth**: How much detail to gather per platform
+- **Data Quality Threshold**: Minimum acceptable data completeness
+
 ### Error Handling
 - **Connection Failures**: Retry with exponential backoff
 - **Rate Limiting**: Implement throttling and queuing
@@ -217,11 +203,16 @@ for pod in pods:
 - **Data Corruption**: Validate and quarantine bad data
 
 ### Outcomes
+- Complete platform inventory with connection strategies
 - Raw data collected from all accessible platforms
 - Initial application inventory populated
 - Metrics and configurations stored
+- Asset relationships mapped
+- Ready for gap analysis
 
-## Phase 4: Gap Analysis (10-15% of total time)
+**Note**: This consolidated phase replaces the former "Platform Detection" and "Automated Collection" phases, reducing overall flow complexity while maintaining full functionality.
+
+## Phase 3: Gap Analysis (10-15% of total time)
 
 ### What Happens
 CrewAI agents analyze collected data to identify gaps:
@@ -301,7 +292,7 @@ class GapAnalysisAgent:
 - Prioritized list of missing data
 - Collection strategy for each gap
 
-## Phase 5: Questionnaire Generation (5-10% of total time)
+## Phase 4: Questionnaire Generation (5-10% of total time)
 
 ### What Happens
 CrewAI agents generate adaptive questionnaires based on gaps:
@@ -398,7 +389,7 @@ def generate_adaptive_questionnaire(gaps, context):
 - Questions mapped to specific gaps
 - Validation rules configured
 
-## Phase 6: Manual Collection (15-25% of total time)
+## Phase 5: Manual Collection (15-25% of total time)
 
 ### What Happens
 Users complete adaptive questionnaires:
@@ -462,7 +453,7 @@ Users complete adaptive questionnaires:
 - Gaps filled with manual data
 - Progress updated in real-time
 
-## Phase 7: Data Validation (10-15% of total time)
+## Phase 6: Data Validation (10-15% of total time)
 
 ### What Happens
 All collected data is validated and synthesized:
@@ -534,7 +525,7 @@ class ValidationEngine:
 - Quality scores calculated
 - Ready for finalization
 
-## Phase 8: Finalization (5-10% of total time)
+## Phase 7: Finalization (5-10% of total time)
 
 ### What Happens
 The flow prepares data for handoff to Discovery Flow:
@@ -681,13 +672,14 @@ class ErrorRecoveryHandler:
 
 ### Phase Timing Breakdown
 - **Initialization**: 1-2 minutes
-- **Platform Detection**: 2-5 minutes
-- **Automated Collection**: 10-30 minutes (depends on platform size)
+- **Asset Selection**: 15-35 minutes (consolidates platform detection and data collection)
 - **Gap Analysis**: 2-5 minutes
 - **Questionnaire Generation**: 1-3 minutes
 - **Manual Collection**: 10-60 minutes (depends on user)
 - **Data Validation**: 3-10 minutes
 - **Finalization**: 1-3 minutes
+
+**Total Estimated Time**: 32-116 minutes (reduced from previous 8-phase structure)
 
 ### Success Metrics
 - **Coverage Rate**: Percentage of required data collected
@@ -758,3 +750,5 @@ The Collection Flow represents a sophisticated orchestration of automated and ma
 4. **JSON Safety** - Handle NaN/Infinity values in serialization
 5. **Config Injection** - CrewAI configs injected through dependency injection
 6. **Router Navigation** - Use navigate() instead of window.location.href
+7. **Phase Consolidation** - Optimized 7-phase structure for improved efficiency
+8. **Backward Compatibility** - Automatic migration from legacy 8-phase structure

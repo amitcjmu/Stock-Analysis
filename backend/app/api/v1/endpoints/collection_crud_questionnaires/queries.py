@@ -133,10 +133,13 @@ async def get_adaptive_questionnaires(
         )
 
         # Get template
-        template = get_bootstrap_questionnaire_template()
+        template = get_bootstrap_questionnaire_template(
+            flow_id, selected_application_id, selected_application_name, existing_assets
+        )
 
         questions = []
-        for field in template.get("fields", []):
+        # Note: template returns "form_fields" not "fields"
+        for field in template.get("form_fields", []):
             question = _convert_template_field_to_question(
                 field, selected_application_name
             )
@@ -145,21 +148,15 @@ async def get_adaptive_questionnaires(
         return [
             AdaptiveQuestionnaireResponse(
                 id=str(UUID("00000000-0000-0000-0000-000000000001")),
+                collection_flow_id=flow_id,
                 title="Bootstrap Data Collection Questionnaire",
                 description="Initial questionnaire to gather essential asset information",
-                template_name=template.get("template_name", "bootstrap"),
-                template_type=template.get("template_type", "basic"),
-                version=template.get("version", "1.0"),
-                applicable_tiers=template.get(
-                    "applicable_tiers", ["tier_1", "tier_2", "tier_3", "tier_4"]
-                ),
+                target_gaps=[],
                 questions=questions,
+                validation_rules={},
                 completion_status="pending",
                 responses_collected={},
-                is_active=True,
-                is_template=False,
                 created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
             )
         ]
 
