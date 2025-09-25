@@ -6,8 +6,6 @@ Aligned with Master Flow Orchestrator (MFO) pattern and TenantScopedAgentPool.
 Generated with CC for MFO integration and proper tenant isolation.
 """
 
-import asyncio
-import json
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -24,17 +22,16 @@ from tests.fixtures.mfo_fixtures import (
     MockRequestContext,
     MockServiceRegistry,
 )
+
 # Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.core.database import Base
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow import (
-    UnifiedDiscoveryFlow,
-)
-from app.services.flow_orchestration.status_manager import FlowStatusManager
 from app.services.master_flow_orchestrator import CrewAIFlowStateExtensionsOrchestrator
-from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
+from app.services.persistent_agents.tenant_scoped_agent_pool import (
+    TenantScopedAgentPool,
+)
 
 
 # Test database setup
@@ -87,25 +84,29 @@ def mock_tenant_scoped_agent_pool():
 
     # Mock agent instances
     mock_agent = MagicMock()
-    mock_agent.execute = AsyncMock(return_value={
-        "status": "completed",
-        "result": {
-            "decision": "approve",
-            "confidence": 0.95,
-            "reasoning": "High quality mapping with strong semantic alignment",
-            "suggestions": ["Consider adding additional context for edge cases"],
-        },
-        "execution_time": 1.23,
-    })
+    mock_agent.execute = AsyncMock(
+        return_value={
+            "status": "completed",
+            "result": {
+                "decision": "approve",
+                "confidence": 0.95,
+                "reasoning": "High quality mapping with strong semantic alignment",
+                "suggestions": ["Consider adding additional context for edge cases"],
+            },
+            "execution_time": 1.23,
+        }
+    )
 
     # Mock pool methods
     mock_pool.get_agent = AsyncMock(return_value=mock_agent)
     mock_pool.release_agent = AsyncMock()
-    mock_pool.get_pool_stats = AsyncMock(return_value={
-        "active_agents": 2,
-        "total_agents": 5,
-        "memory_usage": 128.5,
-    })
+    mock_pool.get_pool_stats = AsyncMock(
+        return_value={
+            "active_agents": 2,
+            "total_agents": 5,
+            "memory_usage": 128.5,
+        }
+    )
 
     return mock_pool
 
@@ -148,8 +149,12 @@ class TestAgenticDiscoveryFlowMFO:
     @pytest.mark.async_test
     @pytest.mark.discovery_flow
     async def test_no_hardcoded_thresholds_with_mfo(
-        self, test_session, demo_context, mock_tenant_scoped_agent_pool,
-        mock_service_registry, sample_mapping_data
+        self,
+        test_session,
+        demo_context,
+        mock_tenant_scoped_agent_pool,
+        mock_service_registry,
+        sample_mapping_data,
     ):
         """Test that hardcoded thresholds are removed and agents make dynamic decisions through MFO."""
         # Create master flow with proper tenant scoping
@@ -191,11 +196,13 @@ class TestAgenticDiscoveryFlowMFO:
             )
 
             # Execute agent task through MFO pattern
-            result = await agent.execute({
-                "task_type": "field_mapping",
-                "data": sample_mapping_data,
-                "context": demo_context.to_dict(),
-            })
+            result = await agent.execute(
+                {
+                    "task_type": "field_mapping",
+                    "data": sample_mapping_data,
+                    "context": demo_context.to_dict(),
+                }
+            )
 
             # Verify agent was called through TenantScopedAgentPool
             mock_tenant_scoped_agent_pool.get_agent.assert_called_once()
@@ -220,8 +227,12 @@ class TestAgenticDiscoveryFlowMFO:
     @pytest.mark.tenant_isolation
     @pytest.mark.async_test
     async def test_agent_dynamic_decision_making_with_mfo(
-        self, test_session, demo_context, mock_tenant_scoped_agent_pool,
-        mock_service_registry, sample_mapping_data
+        self,
+        test_session,
+        demo_context,
+        mock_tenant_scoped_agent_pool,
+        mock_service_registry,
+        sample_mapping_data,
     ):
         """Test that agents make contextual decisions based on data quality through MFO."""
         # Test different confidence scenarios with proper tenant isolation
@@ -246,16 +257,18 @@ class TestAgenticDiscoveryFlowMFO:
         for scenario in test_scenarios:
             # Update mock agent response for scenario
             mock_agent = MagicMock()
-            mock_agent.execute = AsyncMock(return_value={
-                "status": "completed",
-                "result": {
-                    "decision": scenario["decision"],
-                    "confidence": scenario["confidence"],
-                    "reasoning": scenario["reasoning"],
-                    "suggestions": [],
-                },
-                "execution_time": 1.23,
-            })
+            mock_agent.execute = AsyncMock(
+                return_value={
+                    "status": "completed",
+                    "result": {
+                        "decision": scenario["decision"],
+                        "confidence": scenario["confidence"],
+                        "reasoning": scenario["reasoning"],
+                        "suggestions": [],
+                    },
+                    "execution_time": 1.23,
+                }
+            )
 
             mock_tenant_scoped_agent_pool.get_agent = AsyncMock(return_value=mock_agent)
 
@@ -271,12 +284,14 @@ class TestAgenticDiscoveryFlowMFO:
                 )
 
                 # Execute through MFO pattern
-                result = await agent.execute({
-                    "task_type": "field_mapping",
-                    "data": sample_mapping_data,
-                    "context": demo_context.to_dict(),
-                    "scenario": scenario["decision"],
-                })
+                result = await agent.execute(
+                    {
+                        "task_type": "field_mapping",
+                        "data": sample_mapping_data,
+                        "context": demo_context.to_dict(),
+                        "scenario": scenario["decision"],
+                    }
+                )
 
                 # Verify agent decision matches scenario with proper tenant isolation
                 assert result["result"]["decision"] == scenario["decision"]
@@ -290,8 +305,12 @@ class TestAgenticDiscoveryFlowMFO:
     @pytest.mark.tenant_isolation
     @pytest.mark.async_test
     async def test_agent_learning_from_feedback_with_mfo(
-        self, test_session, demo_context, mock_tenant_scoped_agent_pool,
-        mock_service_registry, sample_mapping_data
+        self,
+        test_session,
+        demo_context,
+        mock_tenant_scoped_agent_pool,
+        mock_service_registry,
+        sample_mapping_data,
     ):
         """Test that agents incorporate user feedback for improved decisions through persistent memory."""
         # Create a single persistent agent instance with memory
@@ -321,7 +340,10 @@ class TestAgenticDiscoveryFlowMFO:
                 }
 
             # Second execution - with memory of user feedback, confident decision
-            elif persistent_agent.execution_count == 2 and len(persistent_agent.memory) > 0:
+            elif (
+                persistent_agent.execution_count == 2
+                and len(persistent_agent.memory) > 0
+            ):
                 return {
                     "status": "completed",
                     "result": {
@@ -348,7 +370,9 @@ class TestAgenticDiscoveryFlowMFO:
         persistent_agent.execute = AsyncMock(side_effect=execute_with_memory)
 
         # Return the SAME agent instance for both calls (persistent memory)
-        mock_tenant_scoped_agent_pool.get_agent = AsyncMock(return_value=persistent_agent)
+        mock_tenant_scoped_agent_pool.get_agent = AsyncMock(
+            return_value=persistent_agent
+        )
 
         with patch(
             "app.services.persistent_agents.tenant_scoped_agent_pool.TenantScopedAgentPool",
@@ -361,11 +385,13 @@ class TestAgenticDiscoveryFlowMFO:
                 service_registry=mock_service_registry,
             )
 
-            result1 = await agent1.execute({
-                "task_type": "field_mapping",
-                "data": sample_mapping_data,
-                "context": demo_context.to_dict(),
-            })
+            result1 = await agent1.execute(
+                {
+                    "task_type": "field_mapping",
+                    "data": sample_mapping_data,
+                    "context": demo_context.to_dict(),
+                }
+            )
 
             assert result1["result"]["decision"] == "review"
             assert persistent_agent.execution_count == 1
@@ -396,11 +422,13 @@ class TestAgenticDiscoveryFlowMFO:
             mapping_with_feedback = sample_mapping_data.copy()
             mapping_with_feedback["user_feedback"] = user_feedback
 
-            result2 = await agent2.execute({
-                "task_type": "field_mapping",
-                "data": mapping_with_feedback,
-                "context": demo_context.to_dict(),
-            })
+            result2 = await agent2.execute(
+                {
+                    "task_type": "field_mapping",
+                    "data": mapping_with_feedback,
+                    "context": demo_context.to_dict(),
+                }
+            )
 
             # Verify agent learned from feedback through persistent memory
             assert result2["result"]["decision"] == "approve"
@@ -418,8 +446,12 @@ class TestAgenticDiscoveryFlowMFO:
     @pytest.mark.async_test
     @pytest.mark.discovery_flow
     async def test_master_flow_integration_with_tenant_scoped_agents(
-        self, test_session, demo_context, mock_tenant_scoped_agent_pool,
-        mock_service_registry, sample_mapping_data
+        self,
+        test_session,
+        demo_context,
+        mock_tenant_scoped_agent_pool,
+        mock_service_registry,
+        sample_mapping_data,
     ):
         """Test integration with master flow orchestrator and TenantScopedAgentPool."""
         # Create master flow through orchestrator with proper tenant scoping
@@ -467,13 +499,15 @@ class TestAgenticDiscoveryFlowMFO:
             )
 
             # Execute through MFO pattern with tenant context
-            result = await agent.execute({
-                "task_type": "field_mapping",
-                "data": sample_mapping_data,
-                "context": demo_context.to_dict(),
-                "flow_id": discovery_flow.flow_id,
-                "master_flow_id": master_flow.flow_id,
-            })
+            result = await agent.execute(
+                {
+                    "task_type": "field_mapping",
+                    "data": sample_mapping_data,
+                    "context": demo_context.to_dict(),
+                    "flow_id": discovery_flow.flow_id,
+                    "master_flow_id": master_flow.flow_id,
+                }
+            )
 
             # Verify agent made decision through TenantScopedAgentPool
             assert "result" in result
@@ -529,11 +563,13 @@ class TestAgenticDiscoveryFlowMFO:
                 )
 
                 # Execute should handle error gracefully through MFO
-                result = await agent.execute({
-                    "task_type": "field_mapping",
-                    "data": {},
-                    "context": demo_context.to_dict(),
-                })
+                await agent.execute(
+                    {
+                        "task_type": "field_mapping",
+                        "data": {},
+                        "context": demo_context.to_dict(),
+                    }
+                )
 
                 # Should not reach here
                 assert False, "Expected exception was not raised"
@@ -545,15 +581,8 @@ class TestAgenticDiscoveryFlowMFO:
                 assert "threshold" not in error_msg.lower()
 
                 # Verify proper error structure (would be handled by MFO in real implementation)
-                expected_error_response = {
-                    "status": "error",
-                    "error_code": "AGENT_EXECUTION_FAILED",
-                    "details": {
-                        "agent_type": "field_mapping_agent",
-                        "tenant_context": demo_context.to_dict(),
-                        "fallback_action": "manual_review"
-                    }
-                }
+                # Verify proper error structure (would be handled by MFO in real implementation)
+                # Error structure is validated through agent behavior, not return value assertion
                 # In real MFO implementation, this would be the structured error response
                 assert "Agent execution failed" in str(e)
 

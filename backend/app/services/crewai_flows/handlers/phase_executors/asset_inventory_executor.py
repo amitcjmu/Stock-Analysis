@@ -383,22 +383,47 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         app_name = str(flattened_data.get("application_name", "")).lower()
         asset_type = str(flattened_data.get("type", "")).lower()
 
-        # Check CI Type field which is common in CMDB imports
-        ci_type = str(flattened_data.get("CI Type", "")).lower()
+        # CRITICAL FIX: Check CI Type field with both common field names and case-insensitive matching
+        ci_type = (
+            str(flattened_data.get("CI Type", "")).lower()
+            or str(flattened_data.get("ci_type", "")).lower()
+            or str(flattened_data.get("CI_Type", "")).lower()
+            or str(flattened_data.get("asset_type", "")).lower()
+        )
 
         # Combine all name fields for comprehensive checking
         all_names = f"{resolved_name} {name} {hostname} {server_name} {asset_name} {app_name}".lower()
 
+        # Add debug logging to track classification process
+        has_os = bool(flattened_data.get("OS") or flattened_data.get("os"))
+        logger.debug(
+            f"🔍 Classifying asset: name='{name}', ci_type='{ci_type}', has_os={has_os}"
+        )
+
+        # CRITICAL FIX: Enhanced CI Type detection with better pattern matching
         # Priority 1: Check explicit CI Type first (most reliable for CMDB data)
         if ci_type:
-            if ci_type in ["application", "app"]:
-                return "Application"
-            elif ci_type in ["server", "srv"]:
-                return "Server"
-            elif ci_type in ["database", "db"]:
-                return "Database"
-            elif ci_type in ["network", "switch", "router", "firewall"]:
-                return "Network Device"
+            # Application detection
+            if any(app_pattern in ci_type for app_pattern in ["application", "app"]):
+                logger.debug(f"✅ Classified as 'application' via CI Type: '{ci_type}'")
+                return "application"
+            # Server detection
+            elif any(srv_pattern in ci_type for srv_pattern in ["server", "srv"]):
+                logger.debug(f"✅ Classified as 'server' via CI Type: '{ci_type}'")
+                return "server"
+            # Database detection
+            elif any(db_pattern in ci_type for db_pattern in ["database", "db"]):
+                logger.debug(f"✅ Classified as 'database' via CI Type: '{ci_type}'")
+                return "database"
+            # Network device detection
+            elif any(
+                net_pattern in ci_type
+                for net_pattern in ["network", "switch", "router", "firewall", "device"]
+            ):
+                logger.debug(
+                    f"✅ Classified as 'network_device' via CI Type: '{ci_type}'"
+                )
+                return "network_device"
 
         # Priority 2: Database detection (specific patterns)
         database_keywords = [
@@ -416,9 +441,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             "sqlite",
         ]
         if any(keyword in all_names for keyword in database_keywords):
-            return "Database"
+            return "database"
         if any(keyword in asset_type for keyword in ["db", "database"]):
-            return "Database"
+            return "database"
 
         # Priority 3: Application detection (enhanced patterns)
         application_keywords = [
@@ -443,9 +468,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             "pipeline",
         ]
         if any(keyword in all_names for keyword in application_keywords):
-            return "Application"
+            return "application"
         if flattened_data.get("application_name") or flattened_data.get("app_name"):
-            return "Application"
+            return "application"
 
         # Priority 4: Network device detection
         network_keywords = [
@@ -462,28 +487,36 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             "hub",
         ]
         if any(keyword in all_names for keyword in network_keywords):
-            return "Network Device"
+            return "network_device"
         if any(keyword in asset_type for keyword in ["network", "switch", "router"]):
-            return "Network Device"
+            return "network_device"
 
         # Priority 5: Server detection (most conservative) - ENHANCED WITH FLATTENED DATA
         server_keywords = ["server", "srv", "host", "vm", "virtual", "node"]
-        # Check for operating system (both 'os' and 'operating_system')
-        has_os = flattened_data.get("os") or flattened_data.get("operating_system")
+        # CRITICAL FIX: Check for operating system with multiple field names (both 'OS' and 'operating_system')
+        has_os = (
+            flattened_data.get("os")
+            or flattened_data.get("OS")
+            or flattened_data.get("operating_system")
+            or flattened_data.get("Operating System")
+        )
 
         if (
             any(keyword in all_names for keyword in server_keywords)
             or hostname
             or has_os
         ):
-            return "Server"
+            return "server"
 
         # Priority 6: Storage detection
         storage_keywords = ["storage", "san", "nas", "disk", "volume"]
         if any(keyword in all_names for keyword in storage_keywords):
-            return "Storage"
+            return "storage"
 
-        return "Infrastructure"  # Default fallback
+        logger.debug(
+            f"⚠️ Using default classification 'infrastructure' for asset: '{name}'"
+        )
+        return "infrastructure"  # Default fallback
 
 
 __all__ = ["AssetInventoryExecutor"]
