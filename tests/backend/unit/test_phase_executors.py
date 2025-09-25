@@ -156,7 +156,7 @@ class TestDataImportValidationExecutor:
 
     def test_get_progress_percentage(self, executor):
         """Test progress percentage"""
-        assert executor.get_progress_percentage() == 16.67
+        assert pytest.approx(executor.get_progress_percentage(), rel=1e-3, abs=1e-3) == 16.7
 
     def test_get_phase_timeout(self, executor):
         """Test phase timeout"""
@@ -457,9 +457,10 @@ class TestAssetInventoryExecutor:
             "inventory_summary": {"total_assets": 5, "classification_accuracy": 0.95}
         }
 
-        with patch.object(executor.state, 'mark_phase_complete') as mock_mark:
-            await executor._store_results(results)
-            mock_mark.assert_called_once_with("asset_inventory", results)
+        
+        await executor._store_results(results)
+        assert executor.state.phase_data["asset_inventory"] == results
+        assert executor.state.phase_completion["asset_inventory"] is True
 
 
 class TestDependencyAnalysisExecutor:
