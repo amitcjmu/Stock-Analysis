@@ -24,17 +24,17 @@ from tests.fixtures.mfo_fixtures import (
     MockRequestContext,
     MockServiceRegistry,
 )
+
 # Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.core.database import Base
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.services.crewai_flows.unified_discovery_flow.unified_discovery_flow import (
+from app.services.crewai_flows.unified_discovery_flow import (
     UnifiedDiscoveryFlow,
 )
 from app.services.flow_orchestration.status_manager import FlowStatusManager
-from app.services.master_flow_orchestrator import CrewAIFlowStateExtensionsOrchestrator
-from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScopedAgentPool
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 
 # Test database setup
@@ -87,25 +87,29 @@ def mock_tenant_scoped_agent_pool():
 
     # Mock agent instances
     mock_agent = MagicMock()
-    mock_agent.execute = AsyncMock(return_value={
-        "status": "completed",
-        "result": {
-            "decision": "approve",
-            "confidence": 0.95,
-            "reasoning": "High quality mapping with strong semantic alignment",
-            "suggestions": ["Consider adding additional context for edge cases"],
-        },
-        "execution_time": 1.23,
-    })
+    mock_agent.execute = AsyncMock(
+        return_value={
+            "status": "completed",
+            "result": {
+                "decision": "approve",
+                "confidence": 0.95,
+                "reasoning": "High quality mapping with strong semantic alignment",
+                "suggestions": ["Consider adding additional context for edge cases"],
+            },
+            "execution_time": 1.23,
+        }
+    )
 
     # Mock pool methods
     mock_pool.get_agent = AsyncMock(return_value=mock_agent)
     mock_pool.release_agent = AsyncMock()
-    mock_pool.get_pool_stats = AsyncMock(return_value={
-        "active_agents": 2,
-        "total_agents": 5,
-        "memory_usage": 128.5,
-    })
+    mock_pool.get_pool_stats = AsyncMock(
+        return_value={
+            "active_agents": 2,
+            "total_agents": 5,
+            "memory_usage": 128.5,
+        }
+    )
 
     return mock_pool
 
@@ -440,7 +444,7 @@ class TestAgenticDiscoveryFlow:
     async def test_master_flow_integration(self, test_session, mock_openai_client):
         """Test integration with master flow orchestrator."""
         # Create master flow through orchestrator
-        orchestrator = CrewAIFlowStateExtensionsOrchestrator(test_session)
+        orchestrator = MasterFlowOrchestrator(test_session)
 
         master_flow = await orchestrator.create_master_flow(
             flow_type="discovery",
@@ -534,7 +538,7 @@ async def test_complete_flow_execution(
 ):
     """Test complete discovery flow execution with all phases."""
     # Setup
-    orchestrator = CrewAIFlowStateExtensionsOrchestrator(test_session)
+    orchestrator = MasterFlowOrchestrator(test_session)
 
     # Create master flow
     master_flow = await orchestrator.create_master_flow(

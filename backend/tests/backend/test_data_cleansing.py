@@ -20,7 +20,8 @@ async def setup_cleansing_tables(db_session):
     This fixture ensures the required database tables exist for data cleansing tests.
     """
     # Create test_cleansing_rules table
-    await db_session.execute('''
+    await db_session.execute(
+        """
         CREATE TABLE IF NOT EXISTS test_cleansing_rules (
             id UUID PRIMARY KEY,
             client_account_id UUID NOT NULL,
@@ -29,13 +30,14 @@ async def setup_cleansing_tables(db_session):
             rule_type VARCHAR(50),
             configuration JSONB
         )
-    ''')
+    """
+    )
     await db_session.commit()
 
     yield
 
     # Cleanup - drop test tables after tests complete
-    await db_session.execute('DROP TABLE IF EXISTS test_cleansing_rules')
+    await db_session.execute("DROP TABLE IF EXISTS test_cleansing_rules")
     await db_session.commit()
 
 
@@ -70,8 +72,8 @@ def sample_cleansing_rule():
         "configuration": {
             "field": "hostname",
             "pattern": "^[a-zA-Z0-9.-]+$",
-            "error_message": "Invalid hostname format"
-        }
+            "error_message": "Invalid hostname format",
+        },
     }
 
 
@@ -79,7 +81,9 @@ class TestDataCleansingRules:
     """Test suite for data cleansing rules functionality."""
 
     @pytest.mark.asyncio
-    async def test_apply_cleansing_rules(self, setup_cleansing_tables, db_session, sample_cleansing_rule):
+    async def test_apply_cleansing_rules(
+        self, setup_cleansing_tables, db_session, sample_cleansing_rule
+    ):
         """
         Test applying cleansing rules to data.
 
@@ -90,17 +94,17 @@ class TestDataCleansingRules:
         test_data = {
             "hostname": "test-server-01",
             "ip_address": "192.168.1.10",
-            "status": "active"
+            "status": "active",
         }
 
         # Mock the rule insertion
         db_session.execute.return_value.rowcount = 1
 
         # Simulate inserting a cleansing rule
-        insert_query = '''
+        insert_query = """
             INSERT INTO test_cleansing_rules (id, client_account_id, engagement_id, rule_name, rule_type, configuration)
             VALUES (:id, :client_account_id, :engagement_id, :rule_name, :rule_type, :configuration)
-        '''
+        """
 
         await db_session.execute(insert_query, sample_cleansing_rule)
         await db_session.commit()
@@ -126,7 +130,9 @@ class TestDataCleansingRules:
         assert sample_cleansing_rule["rule_type"] == "validation"
 
     @pytest.mark.asyncio
-    async def test_cleansing_rules_table_creation(self, setup_cleansing_tables, db_session):
+    async def test_cleansing_rules_table_creation(
+        self, setup_cleansing_tables, db_session
+    ):
         """
         Test that the test_cleansing_rules table can be created and used.
 
@@ -162,7 +168,7 @@ class TestDataCleansingRules:
                 "engagement_id": str(uuid.uuid4()),
                 "rule_name": "hostname_format",
                 "rule_type": "validation",
-                "configuration": {"field": "hostname", "pattern": "^[a-zA-Z0-9.-]+$"}
+                "configuration": {"field": "hostname", "pattern": "^[a-zA-Z0-9.-]+$"},
             },
             {
                 "id": str(uuid.uuid4()),
@@ -170,18 +176,22 @@ class TestDataCleansingRules:
                 "engagement_id": str(uuid.uuid4()),
                 "rule_name": "ip_format",
                 "rule_type": "validation",
-                "configuration": {"field": "ip_address", "pattern": r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"}
-            }
+                "configuration": {
+                    "field": "ip_address",
+                    "pattern": r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",
+                },
+            },
         ]
 
         # Mock successful inserts
         db_session.execute.return_value.rowcount = 1
 
         for rule in rules:
-            insert_query = '''
-                INSERT INTO test_cleansing_rules (id, client_account_id, engagement_id, rule_name, rule_type, configuration)
+            insert_query = """
+                INSERT INTO test_cleansing_rules (id, client_account_id, engagement_id,
+                rule_name, rule_type, configuration)
                 VALUES (:id, :client_account_id, :engagement_id, :rule_name, :rule_type, :configuration)
-            '''
+            """
             await db_session.execute(insert_query, rule)
 
         await db_session.commit()
@@ -204,15 +214,15 @@ class TestDataCleansingRules:
             "engagement_id": str(uuid.uuid4()),
             "rule_name": "invalid_rule",
             "rule_type": "unknown",
-            "configuration": {}
+            "configuration": {},
         }
 
         # Test successful insert first (baseline)
         db_session.execute.return_value.rowcount = 1
-        insert_query = '''
+        insert_query = """
             INSERT INTO test_cleansing_rules (id, client_account_id, engagement_id, rule_name, rule_type, configuration)
             VALUES (:id, :client_account_id, :engagement_id, :rule_name, :rule_type, :configuration)
-        '''
+        """
         await db_session.execute(insert_query, invalid_rule)
 
         # Verify the operation was attempted
@@ -257,6 +267,7 @@ class TestDataCleansingRules:
 
         # Test regex pattern validation
         import re
+
         try:
             re.compile(config["pattern"])
             print(f"   ✅ Regex pattern '{config['pattern']}' is valid")

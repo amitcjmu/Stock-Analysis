@@ -14,7 +14,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.collection_gaps.conflict_detection_service import ConflictDetectionService
+from app.services.collection_gaps.conflict_detection_service import (
+    ConflictDetectionService,
+)
 from app.models.asset import Asset
 from app.models.asset_agnostic.asset_field_conflicts import AssetFieldConflict
 from app.models.data_import.core import RawImportRecord
@@ -137,7 +139,9 @@ class TestConflictDetectionService:
         mock_import_result.scalars.return_value.all.return_value = sample_import_records
 
         mock_existing_conflict_result = MagicMock()
-        mock_existing_conflict_result.scalar_one_or_none.return_value = None  # No existing conflicts
+        mock_existing_conflict_result.scalar_one_or_none.return_value = (
+            None  # No existing conflicts
+        )
 
         mock_db_session.execute.side_effect = [
             mock_asset_result,  # Asset lookup
@@ -164,9 +168,7 @@ class TestConflictDetectionService:
         assert mock_db_session.refresh.called
 
     @pytest.mark.asyncio
-    async def test_detect_conflicts_asset_not_found(
-        self, service, mock_db_session
-    ):
+    async def test_detect_conflicts_asset_not_found(self, service, mock_db_session):
         """Test conflict detection when asset is not found."""
         asset_id = uuid.uuid4()
 
@@ -213,7 +215,9 @@ class TestConflictDetectionService:
         mock_asset_result.scalar_one_or_none.return_value = asset
 
         mock_import_result = MagicMock()
-        mock_import_result.scalars.return_value.all.return_value = []  # No import records
+        mock_import_result.scalars.return_value.all.return_value = (
+            []
+        )  # No import records
 
         mock_db_session.execute.side_effect = [
             mock_asset_result,  # Asset lookup
@@ -250,11 +254,14 @@ class TestConflictDetectionService:
         mock_db_session.execute.return_value = mock_assets_result
 
         # Mock detect_conflicts to return different numbers of conflicts
-        with patch.object(service, 'detect_conflicts') as mock_detect:
+        with patch.object(service, "detect_conflicts") as mock_detect:
             mock_detect.side_effect = [
                 [MagicMock(field_name="field1")],  # 1 conflict for asset 1
                 [],  # 0 conflicts for asset 2
-                [MagicMock(field_name="field2"), MagicMock(field_name="field3")],  # 2 conflicts for asset 3
+                [
+                    MagicMock(field_name="field2"),
+                    MagicMock(field_name="field3"),
+                ],  # 2 conflicts for asset 3
             ]
 
             # Execute
@@ -278,7 +285,7 @@ class TestConflictDetectionService:
         mock_assets_result.scalars.return_value.all.return_value = assets
         mock_db_session.execute.return_value = mock_assets_result
 
-        with patch.object(service, 'detect_conflicts') as mock_detect:
+        with patch.object(service, "detect_conflicts") as mock_detect:
             mock_detect.return_value = []
 
             # Execute
@@ -302,7 +309,7 @@ class TestConflictDetectionService:
         mock_assets_result.scalars.return_value.all.return_value = assets
         mock_db_session.execute.return_value = mock_assets_result
 
-        with patch.object(service, 'detect_conflicts') as mock_detect:
+        with patch.object(service, "detect_conflicts") as mock_detect:
             mock_detect.return_value = [MagicMock(field_name="test_field")]
 
             # Execute
@@ -326,7 +333,7 @@ class TestConflictDetectionService:
         mock_assets_result.scalars.return_value.all.return_value = assets
         mock_db_session.execute.return_value = mock_assets_result
 
-        with patch.object(service, 'detect_conflicts') as mock_detect:
+        with patch.object(service, "detect_conflicts") as mock_detect:
             mock_detect.return_value = []
 
             # Execute
@@ -351,7 +358,9 @@ class TestConflictDetectionService:
             )
 
     @pytest.mark.asyncio
-    async def test_aggregate_field_data(self, service, sample_asset, sample_import_records):
+    async def test_aggregate_field_data(
+        self, service, sample_asset, sample_import_records
+    ):
         """Test field data aggregation from multiple sources."""
         # Set asset_id for import records
         for record in sample_import_records:
@@ -446,8 +455,18 @@ class TestConflictDetectionService:
         asset_id = uuid.uuid4()
         field_name = "test_field"
         sources = [
-            {"value": "value1", "source": "source1", "timestamp": datetime.utcnow(), "confidence": 0.8},
-            {"value": "value2", "source": "source2", "timestamp": datetime.utcnow(), "confidence": 0.9},
+            {
+                "value": "value1",
+                "source": "source1",
+                "timestamp": datetime.utcnow(),
+                "confidence": 0.8,
+            },
+            {
+                "value": "value2",
+                "source": "source2",
+                "timestamp": datetime.utcnow(),
+                "confidence": 0.9,
+            },
         ]
 
         # Mock no existing conflict
@@ -456,7 +475,9 @@ class TestConflictDetectionService:
         mock_db_session.execute.return_value = mock_existing_result
 
         # Execute
-        conflict = await service._create_or_update_conflict(asset_id, field_name, sources)
+        conflict = await service._create_or_update_conflict(
+            asset_id, field_name, sources
+        )
 
         # Verify
         assert conflict is not None
@@ -480,7 +501,12 @@ class TestConflictDetectionService:
         asset_id = uuid.uuid4()
         field_name = "test_field"
         sources = [
-            {"value": "new_value1", "source": "source1", "timestamp": datetime.utcnow(), "confidence": 0.8},
+            {
+                "value": "new_value1",
+                "source": "source1",
+                "timestamp": datetime.utcnow(),
+                "confidence": 0.8,
+            },
         ]
 
         # Mock existing unresolved conflict
@@ -499,7 +525,9 @@ class TestConflictDetectionService:
         mock_db_session.execute.return_value = mock_existing_result
 
         # Execute
-        conflict = await service._create_or_update_conflict(asset_id, field_name, sources)
+        conflict = await service._create_or_update_conflict(
+            asset_id, field_name, sources
+        )
 
         # Verify
         assert conflict is existing_conflict
@@ -518,7 +546,12 @@ class TestConflictDetectionService:
         asset_id = uuid.uuid4()
         field_name = "test_field"
         sources = [
-            {"value": "value1", "source": "source1", "timestamp": datetime.utcnow(), "confidence": 0.8},
+            {
+                "value": "value1",
+                "source": "source1",
+                "timestamp": datetime.utcnow(),
+                "confidence": 0.8,
+            },
         ]
 
         # Mock existing resolved conflict
@@ -537,7 +570,9 @@ class TestConflictDetectionService:
         mock_db_session.execute.return_value = mock_existing_result
 
         # Execute
-        conflict = await service._create_or_update_conflict(asset_id, field_name, sources)
+        conflict = await service._create_or_update_conflict(
+            asset_id, field_name, sources
+        )
 
         # Verify
         assert conflict is None  # Should return None for resolved conflicts
@@ -566,7 +601,9 @@ class TestConflictDetectionService:
         assert result == conflicts
 
     @pytest.mark.asyncio
-    async def test_resolve_conflict_success(self, service, mock_db_session, sample_context):
+    async def test_resolve_conflict_success(
+        self, service, mock_db_session, sample_context
+    ):
         """Test successfully resolving a conflict."""
         conflict_id = uuid.uuid4()
         resolved_value = "Resolved value"

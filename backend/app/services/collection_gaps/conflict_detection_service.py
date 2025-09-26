@@ -28,7 +28,7 @@ class ConflictDetectionService:
     This service aggregates data from:
     - Asset.custom_attributes (JSON field)
     - Asset.technical_details (JSON field)
-    - RawImportRecord.data (JSON field from imports)
+    - RawImportRecord.raw_data (JSON field from imports)
 
     When the same field has different values across sources, it creates
     an AssetFieldConflict record for manual resolution.
@@ -162,7 +162,8 @@ class ConflictDetectionService:
         # Source 1: custom_attributes JSON field
         if asset.custom_attributes:
             for field, value in asset.custom_attributes.items():
-                if value is not None and value != "":  # Skip empty values
+                # Skip empty values, None, and whitespace-only strings
+                if value is not None and str(value).strip():
                     field_sources.setdefault(field, []).append(
                         {
                             "value": str(value),
@@ -175,7 +176,8 @@ class ConflictDetectionService:
         # Source 2: technical_details JSON field
         if asset.technical_details:
             for field, value in asset.technical_details.items():
-                if value is not None and value != "":  # Skip empty values
+                # Skip empty values, None, and whitespace-only strings
+                if value is not None and str(value).strip():
                     field_sources.setdefault(field, []).append(
                         {
                             "value": str(value),
@@ -195,17 +197,23 @@ class ConflictDetectionService:
         import_records = import_records_result.scalars().all()
 
         for record in import_records:
-            if record.data:
-                for field, value in record.data.items():
-                    if value is not None and value != "":  # Skip empty values
-                        field_sources.setdefault(field, []).append(
-                            {
-                                "value": str(value),
-                                "source": f"import:{record.source_file or 'unknown'}",
-                                "timestamp": record.created_at,
-                                "confidence": 0.9,  # High confidence for imported data
-                            }
-                        )
+            if record.raw_data:
+                # Extract source file from raw_data if available
+                source_file = record.raw_data.get("_source_file", "unknown")
+
+                for field, value in record.raw_data.items():
+                    # Skip internal metadata fields and empty/whitespace values
+                    if field.startswith("_") or value is None or not str(value).strip():
+                        continue
+
+                    field_sources.setdefault(field, []).append(
+                        {
+                            "value": str(value),
+                            "source": f"import:{source_file}",
+                            "timestamp": record.created_at,
+                            "confidence": 0.9,  # High confidence for imported data
+                        }
+                    )
 
         return field_sources
 
@@ -366,7 +374,7 @@ class ConflictDetectionService:
         # Resolve the conflict
         conflict.resolve_conflict(
             resolved_value=resolved_value,
-            resolved_by=self.context.user_id,
+            resolved_by=UUID(self.context.user_id),
             rationale=rationale,
             auto_resolved=auto_resolved,
         )

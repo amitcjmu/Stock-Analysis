@@ -189,12 +189,12 @@ class UnifiedDiscoveryFlow(
         self.state_manager = StateManager(self.state)
 
         # Initialize unified flow management for lifecycle operations
-        from ..handlers.unified_flow_management import UnifiedFlowManagement
+        from ...handlers.unified_flow_management import UnifiedFlowManagement
 
         self.unified_flow_management = UnifiedFlowManagement(self.state)
 
         # Initialize UnifiedFlowCrewManager instead of CrewCoordinator
-        from ..handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+        from ...handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
 
         self.crew_manager = UnifiedFlowCrewManager(
             self.crewai_service, self.state, callback_handler=None, context=self.context

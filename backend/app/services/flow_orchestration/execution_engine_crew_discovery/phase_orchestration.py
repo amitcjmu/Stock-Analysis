@@ -64,7 +64,7 @@ class PhaseOrchestrationMixin:
         logger.info(f"🔄 Executing phase '{phase_config.name}' with persistent agents")
 
         # Prepare phase input with flow context
-        self._prepare_phase_input(master_flow, phase_input)
+        await self._prepare_phase_input(master_flow, phase_input)
 
         # Load raw data from persistence if available
         self._load_raw_data_from_persistence(master_flow, phase_input)
@@ -86,24 +86,68 @@ class PhaseOrchestrationMixin:
             logger.error(f"❌ Discovery phase failed: {e}")
             return self.crew_utils.build_error_response(phase_config.name, str(e))
 
-    def _prepare_phase_input(
+    async def _prepare_phase_input(
         self, master_flow: CrewAIFlowStateExtensions, phase_input: Dict[str, Any]
     ) -> None:
         """Prepare phase input with flow context data"""
         # Ensure flow_id is set (may already be set by execution_engine_core)
         if "flow_id" not in phase_input:
             phase_input["flow_id"] = master_flow.id
+        if "master_flow_id" not in phase_input:
+            phase_input["master_flow_id"] = master_flow.flow_id
         if "client_account_id" not in phase_input:
             phase_input["client_account_id"] = master_flow.client_account_id
         if "engagement_id" not in phase_input:
             phase_input["engagement_id"] = master_flow.engagement_id
 
-        # Get data_import_id from flow_metadata if available
-        if "data_import_id" not in phase_input:
-            if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
-                if isinstance(master_flow.flow_metadata, dict):
-                    phase_input["data_import_id"] = master_flow.flow_metadata.get(
-                        "data_import_id"
+        # Get data_import_id and discovery_flow_id from discovery_flows table
+        if (
+            "data_import_id" not in phase_input
+            or "discovery_flow_id" not in phase_input
+        ):
+            # First check flow_metadata for data_import_id
+            if "data_import_id" not in phase_input:
+                if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
+                    if isinstance(master_flow.flow_metadata, dict):
+                        phase_input["data_import_id"] = master_flow.flow_metadata.get(
+                            "data_import_id"
+                        )
+
+            # Get both data_import_id and discovery_flow_id from discovery_flows table
+            if (
+                not phase_input.get("data_import_id")
+                or "discovery_flow_id" not in phase_input
+            ):
+                try:
+                    from sqlalchemy import select
+                    from app.models.discovery_flow import DiscoveryFlow
+
+                    result = await self.db_session.execute(
+                        select(
+                            DiscoveryFlow.data_import_id, DiscoveryFlow.flow_id
+                        ).where(
+                            DiscoveryFlow.master_flow_id == master_flow.flow_id,
+                            DiscoveryFlow.client_account_id
+                            == master_flow.client_account_id,
+                            DiscoveryFlow.engagement_id == master_flow.engagement_id,
+                        )
+                    )
+                    discovery_flow = result.first()
+                    if discovery_flow:
+                        if not phase_input.get("data_import_id"):
+                            phase_input["data_import_id"] = str(
+                                discovery_flow.data_import_id
+                            )
+                            logger.info(
+                                f"✅ Retrieved data_import_id from discovery_flows: {discovery_flow.data_import_id}"
+                            )
+                        phase_input["discovery_flow_id"] = str(discovery_flow.flow_id)
+                        logger.info(
+                            f"✅ Retrieved discovery_flow_id from discovery_flows: {discovery_flow.flow_id}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"⚠️ Failed to retrieve flow IDs from discovery_flows: {e}"
                     )
 
     def _load_raw_data_from_persistence(
