@@ -121,17 +121,33 @@ class BaseFieldSuggestionTool(BaseTool):
         super().__init__()
         self._context_info = context_info
 
-    def _run(self, mapping_request: Dict[str, Any]) -> str:
+    def _run(self, **kwargs) -> str:
         """Generate field mapping suggestions"""
-        # Handle both parameter formats for backward compatibility:
-        # - Direct format: {'source_fields': [...], 'target_schema': {...}}
-        # - Wrapped format: {'mapping_request': {'source_fields': [...], 'target_schema': {...}}}
-        if "mapping_request" in mapping_request:
-            # Wrapped format - extract the inner mapping_request
-            actual_request = mapping_request["mapping_request"]
+        # Handle multiple parameter formats for maximum compatibility
+        # The agent might pass data in various formats, so we accept **kwargs
+        # and figure out the actual data structure
+
+        # Check if 'mapping_request' key exists (expected format)
+        if "mapping_request" in kwargs:
+            # Could be nested or direct
+            mapping_data = kwargs["mapping_request"]
+            if isinstance(mapping_data, dict) and "mapping_request" in mapping_data:
+                # Double wrapped - extract inner
+                actual_request = mapping_data["mapping_request"]
+            else:
+                # Single wrapped - use directly
+                actual_request = mapping_data
+        # Check if data is passed directly with source_fields
+        elif "source_fields" in kwargs:
+            # Direct format - agent passed data directly
+            actual_request = kwargs
+        # Try first positional argument if exists
+        elif len(kwargs) == 1:
+            # Single dict passed, use it
+            actual_request = next(iter(kwargs.values()))
         else:
-            # Direct format - use as-is
-            actual_request = mapping_request
+            # Fallback - use all kwargs as the request
+            actual_request = kwargs
 
         result = FieldSuggestionImpl.generate_suggestions(actual_request)
         return json.dumps(result)

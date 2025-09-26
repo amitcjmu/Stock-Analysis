@@ -25,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
+import type { DiscoveryFlowData } from '@/types/discovery';
 import type { FlowUpdate } from '../../useFlowUpdates'
 import { useFlowUpdates } from '../../useFlowUpdates'
 
@@ -142,7 +143,7 @@ export const useAttributeMappingActions = (
       console.log('📋 Flow object:', flow);
 
       // Fix: Use flow_id instead of id (property name mismatch)
-      const flowId = (flow as any)?.flow_id || (flow as any)?.id;
+      const flowId = (flow as FlowUpdate | DiscoveryFlowData | { id: string })?.flow_id || ('id' in flow ? flow.id : undefined);
       console.log('🆔 Flow ID:', flowId);
 
       if (flowId) {
@@ -418,13 +419,7 @@ export const useAttributeMappingActions = (
 
   // Practical validation for continuing to data cleansing - no dependency on agent decisions
   const canContinueToDataCleansing = useCallback(() => {
-    // Check if flow phase is already complete
-    if (flow?.phases?.attribute_mapping === true) {
-      console.log('✅ Flow phase already complete - can continue');
-      return true;
-    }
-
-    // Ensure we have field mappings
+    // Ensure we have field mappings first - critical check
     if (!fieldMappings || fieldMappings.length === 0) {
       console.log('❌ No field mappings available - cannot continue');
       return false;
@@ -433,10 +428,17 @@ export const useAttributeMappingActions = (
     // Get approved mappings
     const approvedMappings = fieldMappings.filter(m => m.status === 'approved');
 
-    // Must have at least some approved mappings
+    // Must have at least some approved mappings - even if phase was previously completed
     if (approvedMappings.length === 0) {
       console.log('❌ No approved mappings - need at least some fields approved');
+      // Don't allow continuing even if the phase was marked complete before
       return false;
+    }
+
+    // Check if flow phase is already complete (moved after approval check)
+    if (flow?.phases?.attribute_mapping === true) {
+      console.log('✅ Flow phase already complete and has approved mappings - can continue');
+      return true;
     }
 
     // Check for minimum required fields: name and asset_type

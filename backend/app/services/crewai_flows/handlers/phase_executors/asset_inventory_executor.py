@@ -70,9 +70,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Extract context information
             flow_id = flow_context.get("flow_id")
             master_flow_id = flow_context.get("master_flow_id") or flow_id
-            discovery_flow_id = flow_context.get(
-                "discovery_flow_id"
-            )  # The actual discovery flow ID
+            # Get the actual discovery flow ID - this is what assets should be linked to
+            discovery_flow_id = flow_context.get("discovery_flow_id") or flow_id
             client_account_id = flow_context.get("client_account_id")
             engagement_id = flow_context.get("engagement_id")
 
@@ -111,9 +110,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
 
             # Create RequestContext for AssetService
             request_context = RequestContext(
-                client_account_id=UUID(client_account_id),
-                engagement_id=UUID(engagement_id),
-                flow_id=UUID(master_flow_id),
+                client_account_id=str(client_account_id),
+                engagement_id=str(engagement_id),
+                flow_id=str(master_flow_id),
                 user_id=flow_context.get("user_id"),
             )
 
@@ -239,7 +238,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         try:
             # CC: CRITICAL FIX - Use cleansed_data instead of raw_data to leverage data cleansing phase
             # This ensures assets are created from processed, validated data rather than raw imports
-            cleansed_data = record.cleansed_data or record.raw_data or {}
+            cleansed_data: Dict[str, Any] = (
+                record.cleansed_data or record.raw_data or {}
+            )
             # Use cleansed data for asset creation, fallback to raw_data if cleansing hasn't occurred
             asset_data_source = cleansed_data
 
@@ -420,10 +421,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 net_pattern in ci_type
                 for net_pattern in ["network", "switch", "router", "firewall", "device"]
             ):
-                logger.debug(
-                    f"✅ Classified as 'network_device' via CI Type: '{ci_type}'"
-                )
-                return "network_device"
+                logger.debug(f"✅ Classified as 'network' via CI Type: '{ci_type}'")
+                return "network"  # Use valid AssetType enum value
 
         # Priority 2: Database detection (specific patterns)
         database_keywords = [
@@ -487,9 +486,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             "hub",
         ]
         if any(keyword in all_names for keyword in network_keywords):
-            return "network_device"
+            return "network"  # Use valid AssetType enum value
         if any(keyword in asset_type for keyword in ["network", "switch", "router"]):
-            return "network_device"
+            return "network"  # Use valid AssetType enum value
 
         # Priority 5: Server detection (most conservative) - ENHANCED WITH FLATTENED DATA
         server_keywords = ["server", "srv", "host", "vm", "virtual", "node"]
@@ -513,10 +512,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         if any(keyword in all_names for keyword in storage_keywords):
             return "storage"
 
-        logger.debug(
-            f"⚠️ Using default classification 'infrastructure' for asset: '{name}'"
-        )
-        return "infrastructure"  # Default fallback
+        logger.debug(f"⚠️ Using default classification 'other' for asset: '{name}'")
+        return "other"  # Default fallback using valid AssetType enum value
 
 
 __all__ = ["AssetInventoryExecutor"]

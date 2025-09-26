@@ -177,7 +177,7 @@ const AttributeMappingContainer: React.FC = () => {
                 <AttributeMappingHeader
                   mappingProgress={mappingProgress}
                   isAgenticLoading={isAgenticLoading}
-                  canContinueToDataCleansing={canContinueToDataCleansing}
+                  canContinueToDataCleansing={canContinueToDataCleansing()}
                   onRefetch={refetchAgentic}
                   onTriggerAnalysis={handleTriggerFieldMappingCrew}
                   onContinueToDataCleansing={handleContinueToDataCleansing}

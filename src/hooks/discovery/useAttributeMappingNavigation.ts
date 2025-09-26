@@ -125,14 +125,24 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
           }
         }
 
+        // Prepare mapping data with defaults for unmapped fields
+        const processedMappingData = {
+          ...mappingProgress,
+          // Add instruction to map unmapped fields to custom_attributes
+          default_unmapped_target: 'custom_attributes',
+          apply_defaults_to_unmapped: true
+        };
+
         // Execute the next phase with mapping approval data using discovery flow service
         await masterFlowService.executePhase(
           flowId,
           'data_cleansing',
           {
             approved_mappings: true,
-            mapping_data: mappingProgress,
-            phase_transition: 'field_mapping_approval_to_data_cleansing'
+            mapping_data: processedMappingData,
+            phase_transition: 'field_mapping_approval_to_data_cleansing',
+            // Include instruction for handling unmapped fields
+            unmapped_fields_strategy: 'map_to_custom_attributes'
           },
           clientAccountId,
           engagementId

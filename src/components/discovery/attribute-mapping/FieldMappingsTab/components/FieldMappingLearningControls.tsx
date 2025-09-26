@@ -197,7 +197,7 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
           onClick={handleApprovalClick}
           disabled={isProcessing || isSubmitting}
           className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Approve and learn"
+          title="Approve"
         >
           {(isProcessing || isSubmitting) ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,7 +210,7 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
           onClick={handleRejectionClick}
           disabled={isProcessing || isSubmitting}
           className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Reject and learn"
+          title="Reject"
         >
           <XCircle className="h-4 w-4" />
         </button>
@@ -240,7 +240,7 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
           ) : (
             <CheckCircle className="h-4 w-4" />
           )}
-          <span>Approve & Learn</span>
+          <span>Approve</span>
         </button>
 
         <button
@@ -249,7 +249,7 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
           className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
         >
           <XCircle className="h-4 w-4" />
-          <span>Reject & Learn</span>
+          <span>Reject</span>
         </button>
       </div>
 
@@ -258,7 +258,7 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
         <div className="border rounded-lg p-4 bg-green-50 border-green-200">
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle className="h-5 w-5 text-green-600" />
-            <h4 className="font-medium text-green-800">Approve Mapping & Learn</h4>
+            <h4 className="font-medium text-green-800">Approve Mapping</h4>
           </div>
 
           <div className="space-y-3">
@@ -318,7 +318,7 @@ const FieldMappingLearningControls: React.FC<FieldMappingLearningControlsProps> 
         <div className="border rounded-lg p-4 bg-red-50 border-red-200">
           <div className="flex items-center gap-2 mb-3">
             <XCircle className="h-5 w-5 text-red-600" />
-            <h4 className="font-medium text-red-800">Reject Mapping & Learn</h4>
+            <h4 className="font-medium text-red-800">Reject Mapping</h4>
           </div>
 
           <div className="space-y-3">
