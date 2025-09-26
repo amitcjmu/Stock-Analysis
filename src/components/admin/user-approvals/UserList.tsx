@@ -88,7 +88,13 @@ export const UserList: React.FC<UserListProps> = ({
                           {user.requested_access_level.replace('_', ' ')}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          Requested {formatDate(user.created_at || user.registration_requested_at || '')}
+                          {(() => {
+                            const requestDate = user.created_at || user.registration_requested_at;
+                            if (requestDate) {
+                              return <>Requested {formatDate(requestDate)}</>;
+                            }
+                            return <>Request date not available</>;
+                          })()}
                         </span>
                       </div>
 

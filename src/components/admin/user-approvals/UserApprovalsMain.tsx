@@ -60,15 +60,7 @@ export const UserApprovalsMain: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiCall('/auth/pending-approvals', {}, false);
-      console.log('📊 Pending approvals API response:', response);
-
       if (response.status === 'success') {
-        console.log('✅ Pending users data:', response.pending_approvals);
-        // Log the actual data structure for debugging
-        if (response.pending_approvals && response.pending_approvals.length > 0) {
-          console.log('📊 First pending user structure:', response.pending_approvals[0]);
-          console.log('📊 Keys in first user:', Object.keys(response.pending_approvals[0]));
-        }
         setPendingUsers(response.pending_approvals || []);
       } else {
         console.warn('Failed to load pending users from API:', response.message);
@@ -107,7 +99,7 @@ export const UserApprovalsMain: React.FC = () => {
   useEffect(() => {
     // Listen for user creation events
     const handleUserCreated = (event: CustomEvent): void => {
-      console.log('User created event received:', event.detail);
+      // User created event handled
       // Refresh the user lists
       fetchPendingUsers();
       fetchActiveUsers();

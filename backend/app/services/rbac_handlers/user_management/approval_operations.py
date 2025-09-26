@@ -202,6 +202,14 @@ class ApprovalOperations(BaseRBACHandler):
                     first = profile.user.first_name or ""
                     last = profile.user.last_name or ""
                     full_name = f"{first} {last}".strip()
+                    # Fallback to username or email prefix if no name provided
+                    if not full_name:
+                        if profile.user.username:
+                            full_name = profile.user.username
+                        elif profile.user.email:
+                            full_name = profile.user.email.split("@")[0]
+                        else:
+                            full_name = "Unknown User"
 
                 user_info = {
                     "user_id": str(profile.user_id),
