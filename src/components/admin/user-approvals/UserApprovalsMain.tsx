@@ -60,7 +60,6 @@ export const UserApprovalsMain: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiCall('/auth/pending-approvals', {}, false);
-
       if (response.status === 'success') {
         setPendingUsers(response.pending_approvals || []);
       } else {
@@ -100,7 +99,7 @@ export const UserApprovalsMain: React.FC = () => {
   useEffect(() => {
     // Listen for user creation events
     const handleUserCreated = (event: CustomEvent): void => {
-      console.log('User created event received:', event.detail);
+      // User created event handled
       // Refresh the user lists
       fetchPendingUsers();
       fetchActiveUsers();
@@ -134,7 +133,7 @@ export const UserApprovalsMain: React.FC = () => {
           access_level: approvalData.access_level,
           role_name: approvalData.role_name,
           client_access: approvalData.client_access,
-          notes: approvalData.notes
+          approval_notes: approvalData.notes
         })
       }, false);
 

@@ -14,8 +14,9 @@ export interface PendingUser {
   phone_number?: string;
   manager_email?: string;
   linkedin_profile?: string;
-  registration_requested_at: string;
-  status: string;
+  created_at?: string;
+  registration_requested_at?: string;  // For backward compatibility
+  status?: string;
 }
 
 export interface ActiveUser {

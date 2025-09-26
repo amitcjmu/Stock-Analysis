@@ -169,7 +169,7 @@ class ApprovalOperations(BaseRBACHandler):
                 "status": "success",
                 "message": "User registration rejected",
                 "user_id": user_id,
-                "rejection_reason": rejection_reason,
+                "reason": rejection_reason,  # Changed to match schema
             }
 
         except Exception as e:
@@ -196,25 +196,48 @@ class ApprovalOperations(BaseRBACHandler):
 
             pending_users = []
             for profile in pending_profiles:
+                # Build full name from user first/last name
+                full_name = ""
+                if profile.user:
+                    first = profile.user.first_name or ""
+                    last = profile.user.last_name or ""
+                    full_name = f"{first} {last}".strip()
+                    # Fallback to username or email prefix if no name provided
+                    if not full_name:
+                        if profile.user.username:
+                            full_name = profile.user.username
+                        elif profile.user.email:
+                            full_name = profile.user.email.split("@")[0]
+                        else:
+                            full_name = "Unknown User"
+
                 user_info = {
                     "user_id": str(profile.user_id),
                     "email": profile.user.email if profile.user else "",
-                    "full_name": (
-                        f"{profile.user.first_name} {profile.user.last_name}".strip()
-                        if profile.user
+                    "username": (
+                        profile.user.username
+                        if profile.user and profile.user.username
                         else ""
                     ),
-                    "organization": profile.organization,
-                    "role_description": profile.role_description,
-                    "registration_reason": profile.registration_reason,
-                    "requested_access_level": profile.requested_access_level,
-                    "phone_number": profile.phone_number,
-                    "manager_email": profile.manager_email,
-                    "linkedin_profile": profile.linkedin_profile,
+                    "full_name": full_name,
+                    "first_name": profile.user.first_name if profile.user else "",
+                    "last_name": profile.user.last_name if profile.user else "",
+                    "organization": profile.organization or "",
+                    "role_description": profile.role_description or "",
+                    "registration_reason": profile.registration_reason or "",
+                    "requested_access_level": profile.requested_access_level
+                    or "read_only",
+                    "phone_number": profile.phone_number or "",
+                    "manager_email": profile.manager_email or "",
+                    "linkedin_profile": profile.linkedin_profile or "",
                     "created_at": (
                         profile.created_at.isoformat() if profile.created_at else None
                     ),
-                    "notification_preferences": profile.notification_preferences,
+                    "registration_requested_at": (
+                        profile.created_at.isoformat() if profile.created_at else None
+                    ),  # For frontend compatibility
+                    "notification_preferences": profile.notification_preferences or {},
+                    "status": "pending_approval",  # Explicitly set status
                 }
                 pending_users.append(user_info)
 

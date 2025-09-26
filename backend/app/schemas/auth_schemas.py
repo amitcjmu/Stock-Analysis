@@ -215,8 +215,7 @@ class UserApprovalRequest(BaseModel):
     def validate_client_access(
         cls, v: List[ClientAccessRequest]
     ) -> List[ClientAccessRequest]:
-        if not v:
-            raise ValueError("At least one client access must be specified")
+        # Allow empty list - client access can be granted separately
         return v
 
 
@@ -262,13 +261,23 @@ class PendingUserProfile(BaseModel):
     """Schema for pending user profile."""
 
     user_id: str
+    email: str  # Added - required for display
+    username: Optional[str] = None  # Added - may be None
+    full_name: str  # Added - required for display
+    first_name: Optional[str] = None  # Added - for building full name
+    last_name: Optional[str] = None  # Added - for building full name
     organization: str
     role_description: str
     registration_reason: str
     requested_access_level: str
     manager_email: Optional[str] = None
     phone_number: Optional[str] = None
-    requested_at: Optional[str] = None
+    linkedin_profile: Optional[str] = None  # Added - was missing
+    created_at: Optional[str] = None  # Added - for display
+    registration_requested_at: Optional[str] = None  # Added - for compatibility
+    requested_at: Optional[str] = None  # Kept for backward compatibility
+    notification_preferences: Optional[Dict[str, Any]] = None  # Added
+    status: Optional[str] = None  # Added - explicitly set status
 
 
 class PendingApprovalsResponse(BaseModel):

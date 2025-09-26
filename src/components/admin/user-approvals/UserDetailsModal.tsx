@@ -33,16 +33,20 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <Label className="text-sm font-medium">User ID</Label>
+              <p className="text-sm font-mono text-xs">{user.user_id || 'Not provided'}</p>
+            </div>
+            <div>
               <Label className="text-sm font-medium">Full Name</Label>
-              <p className="text-sm">{user.full_name}</p>
+              <p className="text-sm">{user.full_name || 'Not provided'}</p>
             </div>
             <div>
               <Label className="text-sm font-medium">Username</Label>
-              <p className="text-sm">{user.username}</p>
+              <p className="text-sm">{user.username || 'Not provided'}</p>
             </div>
             <div>
               <Label className="text-sm font-medium">Email</Label>
-              <p className="text-sm">{user.email}</p>
+              <p className="text-sm">{user.email || 'Not provided'}</p>
             </div>
             <div>
               <Label className="text-sm font-medium">Phone</Label>
@@ -50,21 +54,21 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
             </div>
             <div>
               <Label className="text-sm font-medium">Organization</Label>
-              <p className="text-sm">{user.organization}</p>
+              <p className="text-sm">{user.organization || 'Not provided'}</p>
             </div>
             <div>
               <Label className="text-sm font-medium">Role</Label>
-              <p className="text-sm">{user.role_description}</p>
+              <p className="text-sm">{user.role_description || 'Not provided'}</p>
             </div>
             <div>
               <Label className="text-sm font-medium">Requested Access</Label>
-              <Badge className={getAccessLevelColor(user.requested_access_level)}>
-                {user.requested_access_level.replace('_', ' ')}
+              <Badge className={getAccessLevelColor(user.requested_access_level || 'read_only')}>
+                {(user.requested_access_level || 'read_only').replace('_', ' ')}
               </Badge>
             </div>
             <div>
               <Label className="text-sm font-medium">Requested On</Label>
-              <p className="text-sm">{formatDate(user.registration_requested_at)}</p>
+              <p className="text-sm">{(user.created_at || user.registration_requested_at) ? formatDate(user.created_at || user.registration_requested_at || '') : 'Invalid Date'}</p>
             </div>
           </div>
 
