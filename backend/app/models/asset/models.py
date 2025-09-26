@@ -395,7 +395,8 @@ class Asset(
     questionnaire_responses = relationship(
         "CollectionQuestionnaireResponse", back_populates="asset"
     )
-    field_conflicts = relationship("AssetFieldConflict", back_populates="asset")
+    # field_conflicts = relationship("AssetFieldConflict", back_populates="asset")
+    # Removed - causing circular dependency
 
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"

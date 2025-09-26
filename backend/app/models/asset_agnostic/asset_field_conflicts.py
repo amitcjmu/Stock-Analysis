@@ -93,7 +93,7 @@ class AssetFieldConflict(Base, TimestampMixin):
     )
 
     # Relationships
-    asset = relationship("Asset", back_populates="field_conflicts")
+    asset = relationship("Asset")  # One-way relationship only
 
     def __init__(self, **kwargs):
         """Initialize with default resolution_status if not provided."""

@@ -73,6 +73,7 @@ class RegistrationOperations(BaseRBACHandler):
             user = User(
                 id=user_data["user_id"],
                 email=user_data.get("email", ""),
+                username=user_data.get("username"),  # Store the username if provided
                 password_hash=password_hash,  # Store the hashed password
                 first_name=first_name,
                 last_name=last_name,

@@ -62,16 +62,22 @@ export const UserList: React.FC<UserListProps> = ({
                           <User className="w-5 h-5 text-gray-600" />
                         </div>
                         <div>
-                          <h4 className="font-medium">{user.full_name}</h4>
+                          <h4 className="font-medium">
+                            {user.full_name || 'N/A'}
+                            {user.username && <span className="text-sm text-muted-foreground ml-2">@{user.username}</span>}
+                          </h4>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Mail className="w-3 h-3" />
-                              {user.email}
+                              {user.email || 'No email'}
                             </div>
                             <div className="flex items-center gap-1">
                               <Building2 className="w-3 h-3" />
-                              {user.organization}
+                              {user.organization || 'No organization'}
                             </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            ID: {user.user_id || 'No ID'}
                           </div>
                         </div>
                       </div>
@@ -82,7 +88,7 @@ export const UserList: React.FC<UserListProps> = ({
                           {user.requested_access_level.replace('_', ' ')}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          Requested {formatDate(user.registration_requested_at)}
+                          Requested {formatDate(user.created_at || user.registration_requested_at || '')}
                         </span>
                       </div>
 

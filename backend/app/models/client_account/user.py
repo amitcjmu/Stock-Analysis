@@ -38,6 +38,13 @@ class User(Base):
         index=True,
         comment="The user's email address, used for login. This is PII.",
     )
+    username = Column(
+        String(50),
+        unique=True,
+        nullable=True,
+        index=True,
+        comment="Optional username for the user.",
+    )
     password_hash = Column(
         String(255),
         nullable=True,
