@@ -391,9 +391,22 @@ export const UserApprovalsMain: React.FC = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="access-level">Access Level</Label>
-              <Select value={approvalData.access_level} onValueChange={(value) =>
-                setApprovalData(prev => ({ ...prev, access_level: value }))
-              }>
+              <Select value={approvalData.access_level} onValueChange={(value) => {
+                setApprovalData(prev => {
+                  // If changing from admin to non-admin and role is Administrator, reset role
+                  if (value !== 'admin' && prev.role_name === 'Administrator') {
+                    // Show toast to inform user of automatic role change
+                    toast({
+                      title: "Role Updated",
+                      description: "Role has been reset to Analyst as Administrator role requires admin access level",
+                      variant: "default"
+                    });
+                    return { ...prev, access_level: value, role_name: 'Analyst' };
+                  } else {
+                    return { ...prev, access_level: value };
+                  }
+                });
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -417,7 +430,10 @@ export const UserApprovalsMain: React.FC = () => {
                   <SelectItem value="Analyst">Analyst</SelectItem>
                   <SelectItem value="Project Manager">Project Manager</SelectItem>
                   <SelectItem value="Architect">Architect</SelectItem>
-                  <SelectItem value="Administrator">Administrator</SelectItem>
+                  {/* Only show Administrator role if admin access level is selected */}
+                  {approvalData.access_level === 'admin' && (
+                    <SelectItem value="Administrator">Administrator</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

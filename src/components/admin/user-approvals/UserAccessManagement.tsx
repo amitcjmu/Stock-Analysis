@@ -69,21 +69,7 @@ export const UserAccessManagement: React.FC = () => {
   const [selectedResource, setSelectedResource] = useState('');
   const [selectedAccessLevel, setSelectedAccessLevel] = useState<'read_only' | 'read_write' | 'admin'>('read_only');
 
-  // Load initial data
-  useEffect(() => {
-    loadUsers();
-    loadClients();
-    loadEngagements(); // Load all engagements initially
-    loadAccessGrants();
-  }, [loadUsers, loadClients, loadEngagements, loadAccessGrants]); // Include all functions
-
-  // Reload engagements when selected client changes
-  useEffect(() => {
-    if (selectedClient) {
-      loadEngagements(selectedClient);
-    }
-  }, [selectedClient, loadEngagements]); // Include loadEngagements function
-
+  // Define callback functions before using them in useEffect
   const loadUsers = useCallback(async () => {
     try {
       const response = await apiCall('/auth/active-users');
@@ -147,7 +133,7 @@ export const UserAccessManagement: React.FC = () => {
     }
   }, []); // Keep empty dependency array
 
-  const loadAccessGrants = useCallback(async () => {
+  const loadAccessGrants = useCallback(() => {
     try {
       // TODO: Implement real API call for access grants
       // const response = await apiCall('/api/v1/admin/access-grants/');
@@ -157,6 +143,18 @@ export const UserAccessManagement: React.FC = () => {
       console.error('Error loading access grants:', error);
     }
   }, []); // Keep empty dependency array
+
+  // Load initial data (except engagements which depend on client)
+  useEffect(() => {
+    loadUsers();
+    loadClients();
+    loadAccessGrants();
+  }, [loadUsers, loadClients, loadAccessGrants]);
+
+  // Load engagements based on selected client (consolidates loading logic)
+  useEffect(() => {
+    loadEngagements(selectedClient || undefined);
+  }, [selectedClient, loadEngagements]);
 
   const handleGrantAccess = async (): void => {
     if (!selectedUser || !selectedResource || !selectedAccessLevel) {
