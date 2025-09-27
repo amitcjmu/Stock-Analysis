@@ -91,7 +91,8 @@ def upgrade() -> None:
         return
 
     # Update current_phase field (idempotent - only affects rows that haven't been migrated)
-    op.execute(
+    bind = op.get_bind()
+    bind.execute(
         text(
             """
             UPDATE migration.collection_flows
@@ -104,7 +105,7 @@ def upgrade() -> None:
     )
 
     # Update next_phase field (idempotent)
-    op.execute(
+    bind.execute(
         text(
             """
             UPDATE migration.collection_flows
@@ -116,21 +117,11 @@ def upgrade() -> None:
         {"revision_id": revision},
     )
 
-    # Update status field (idempotent)
-    op.execute(
-        text(
-            """
-            UPDATE migration.collection_flows
-            SET status = 'asset_selection'
-            WHERE status IN ('platform_detection', 'automated_collection')
-              AND (metadata->>'phase_migration' IS NULL OR metadata->>'phase_migration' != :revision_id)
-            """
-        ),
-        {"revision_id": revision},
-    )
+    # Skip status field update - this is handled in migration 077 after enum is updated
+    # The status column uses an enum that doesn't have 'asset_selection' yet
 
     # Update phase_state JSON field (idempotent - only process untouched rows)
-    op.execute(
+    bind.execute(
         text(
             """
             UPDATE migration.collection_flows
@@ -157,26 +148,21 @@ def upgrade() -> None:
     )
 
     # Update metadata JSON field to track migration (only for affected rows)
-    op.execute(
+    # Using simplified approach to avoid complex jsonb operations with parameters
+    bind.execute(
         text(
             """
             UPDATE migration.collection_flows
             SET metadata =
                 CASE
-                    WHEN metadata IS NULL THEN jsonb_build_object(
-                        'phase_migration', :revision_id,
-                        'migrated_at', now()
-                    )
-                    ELSE jsonb_set(
-                        jsonb_set(metadata, '{phase_migration}', to_jsonb(:revision_id::text)),
-                        '{migrated_at}',
-                        to_jsonb(now())
-                    )
+                    WHEN metadata IS NULL THEN
+                        jsonb_build_object('phase_migration', :revision_id, 'migrated_at', now())
+                    ELSE
+                        metadata || jsonb_build_object('phase_migration', :revision_id, 'migrated_at', now())
                 END
             WHERE (
                 current_phase = 'asset_selection'
                 OR next_phase = 'asset_selection'
-                OR status = 'asset_selection'
                 OR (phase_state IS NOT NULL AND phase_state ? 'asset_selection')
             )
             AND (metadata->>'phase_migration' IS NULL OR metadata->>'phase_migration' != :revision_id)
@@ -254,18 +240,7 @@ def downgrade() -> None:
         {"revision_id": revision},
     ).rowcount
 
-    status_reverted = bind.execute(
-        text(
-            """
-            UPDATE migration.collection_flows
-            SET status = 'platform_detection'
-            WHERE status = 'asset_selection'
-              AND metadata->>'phase_migration' = :revision_id
-            RETURNING id
-            """
-        ),
-        {"revision_id": revision},
-    ).rowcount
+    # Skip status revert - this is handled in migration 077
 
     # Revert phase_state JSON (only for rows migrated by this migration)
     phase_state_reverted = bind.execute(
@@ -298,8 +273,9 @@ def downgrade() -> None:
             UPDATE migration.collection_flows
             SET metadata =
                 CASE
-                    WHEN jsonb_object_keys(metadata) = '{phase_migration,migrated_at}' OR
-                         jsonb_object_keys(metadata) = '{migrated_at,phase_migration}'
+                    WHEN metadata IS NOT NULL AND
+                         jsonb_typeof(metadata) = 'object' AND
+                         (metadata - 'phase_migration' - 'migrated_at')::text = '{}'
                     THEN NULL
                     ELSE metadata - 'phase_migration' - 'migrated_at'
                 END
@@ -313,6 +289,6 @@ def downgrade() -> None:
     print("✅ Downgrade completed:")
     print(f"   - Current phase reverted: {current_phase_reverted} rows")
     print(f"   - Next phase reverted: {next_phase_reverted} rows")
-    print(f"   - Status reverted: {status_reverted} rows")
+    print("   - Status reverted: skipped (handled in migration 077)")
     print(f"   - Phase state reverted: {phase_state_reverted} rows")
     print(f"   - Metadata cleaned: {metadata_cleaned} rows")
