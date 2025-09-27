@@ -347,25 +347,25 @@ async def create_collection_flow(
         # Create flow record
         flow_id = uuid.uuid4()
 
-        # Initialize phase state with gap analysis phase
+        # Initialize phase state with asset selection phase for non-Discovery flows
         phase_state = {
-            "current_phase": CollectionPhase.GAP_ANALYSIS.value,
+            "current_phase": CollectionPhase.ASSET_SELECTION.value,
             "phase_history": [
                 {
-                    "phase": CollectionPhase.GAP_ANALYSIS.value,
+                    "phase": CollectionPhase.ASSET_SELECTION.value,
                     "started_at": datetime.now(timezone.utc).isoformat(),
                     "status": "active",
                     "metadata": {
                         "started_directly": True,
-                        "reason": "Default collection flow starts at gap analysis phase",
+                        "reason": "Collection flow starts with asset selection for user to choose assets",
                     },
                 }
             ],
             "phase_metadata": {
-                "gap_analysis": {
+                "asset_selection": {
                     "started_directly": True,
-                    "skip_platform_detection": True,
-                    "skip_automated_collection": True,
+                    "requires_user_selection": True,
+                    "source": "collection_overview",
                 }
             },
         }
@@ -377,10 +377,10 @@ async def create_collection_flow(
             engagement_id=context.engagement_id,
             user_id=current_user.id,
             created_by=current_user.id,
-            status=CollectionFlowStatus.GAP_ANALYSIS.value,
+            status=CollectionFlowStatus.ASSET_SELECTION.value,
             automation_tier=flow_data.automation_tier,
             collection_config=flow_data.collection_config or {},
-            current_phase=CollectionPhase.GAP_ANALYSIS.value,
+            current_phase=CollectionPhase.ASSET_SELECTION.value,
             phase_state=phase_state,
         )
 
@@ -393,7 +393,7 @@ async def create_collection_flow(
             "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
             "collection_config": collection_flow.collection_config,
-            "start_phase": "gap_analysis",
+            "start_phase": "asset_selection",
         }
 
         # Create the flow through MFO with atomic=True to prevent internal commits

@@ -336,21 +336,41 @@ async def update_flow_applications(
         # Commit all changes up to this point
         await db.commit()
 
-        # Trigger questionnaire generation (if MFO exists)
+        # Transition to GAP_ANALYSIS phase after asset selection (if in ASSET_SELECTION phase)
         if collection_flow.master_flow_id:
             try:
                 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+                from app.models.collection_flow.schemas import CollectionPhase
 
                 orchestrator = MasterFlowOrchestrator(db, context)
 
-                # Execute data import phase for collection flow (which generates questionnaires)
-                # CC: Collection flows use DATA_IMPORT phase to generate questionnaires based on selected applications
-                execution_result = await orchestrator.execute_phase(
-                    flow_id=str(collection_flow.master_flow_id),
-                    phase_name="DATA_IMPORT",
-                )
+                # Only transition if currently in ASSET_SELECTION phase
+                if (
+                    collection_flow.current_phase
+                    == CollectionPhase.ASSET_SELECTION.value
+                ):
+                    # Execute gap analysis phase now that assets are selected
+                    execution_result = await orchestrator.execute_phase(
+                        flow_id=str(collection_flow.master_flow_id),
+                        phase_name="gap_analysis",
+                    )
 
-                # Sync master flow changes back to collection flow after data import
+                    # Update collection flow phase to match
+                    collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
+                    collection_flow.status = CollectionPhase.GAP_ANALYSIS.value
+                    await db.commit()
+
+                    logger.info(
+                        f"Transitioned collection flow {flow_id} from ASSET_SELECTION to GAP_ANALYSIS"
+                    )
+                else:
+                    # If not in asset_selection, just trigger execution of current phase
+                    execution_result = await orchestrator.execute_phase(
+                        flow_id=str(collection_flow.master_flow_id),
+                        phase_name=collection_flow.current_phase,
+                    )
+
+                # Sync master flow changes back to collection flow after phase execution
                 try:
                     sync_service = MasterFlowSyncService(db, context)
                     await sync_service.sync_master_to_collection_flow(
@@ -359,11 +379,11 @@ async def update_flow_applications(
                     )
                 except Exception as sync_error:
                     logger.warning(
-                        f"Failed to sync master flow after data import: {sync_error}"
+                        f"Failed to sync master flow after phase execution: {sync_error}"
                     )
 
                 logger.info(
-                    f"Triggered questionnaire generation for master flow {collection_flow.master_flow_id}"
+                    f"Triggered phase execution for master flow {collection_flow.master_flow_id}"
                 )
 
                 return {
@@ -371,7 +391,7 @@ async def update_flow_applications(
                     "message": (
                         f"Successfully updated collection flow with {processed_count} "
                         f"applications, created {len(deduplication_results)} normalized records, "
-                        "and triggered questionnaire generation"
+                        "and transitioned to gap analysis phase"
                     ),
                     "flow_id": flow_id,
                     "selected_application_count": processed_count,
@@ -387,7 +407,7 @@ async def update_flow_applications(
                     "message": (
                         f"Successfully updated collection flow with {processed_count} "
                         f"applications, created {len(deduplication_results)} normalized records "
-                        "(questionnaire generation trigger failed)"
+                        "(phase transition failed)"
                     ),
                     "flow_id": flow_id,
                     "selected_application_count": processed_count,

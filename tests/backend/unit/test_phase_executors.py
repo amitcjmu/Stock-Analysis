@@ -457,7 +457,7 @@ class TestAssetInventoryExecutor:
             "inventory_summary": {"total_assets": 5, "classification_accuracy": 0.95}
         }
 
-        
+
         await executor._store_results(results)
         assert executor.state.phase_data["asset_inventory"] == results
         assert executor.state.phase_completion["asset_inventory"] is True
