@@ -391,9 +391,14 @@ export const UserApprovalsMain: React.FC = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="access-level">Access Level</Label>
-              <Select value={approvalData.access_level} onValueChange={(value) =>
-                setApprovalData(prev => ({ ...prev, access_level: value }))
-              }>
+              <Select value={approvalData.access_level} onValueChange={(value) => {
+                // If changing from admin to non-admin and role is Administrator, reset role
+                if (value !== 'admin' && approvalData.role_name === 'Administrator') {
+                  setApprovalData(prev => ({ ...prev, access_level: value, role_name: 'Analyst' }));
+                } else {
+                  setApprovalData(prev => ({ ...prev, access_level: value }));
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -417,7 +422,10 @@ export const UserApprovalsMain: React.FC = () => {
                   <SelectItem value="Analyst">Analyst</SelectItem>
                   <SelectItem value="Project Manager">Project Manager</SelectItem>
                   <SelectItem value="Architect">Architect</SelectItem>
-                  <SelectItem value="Administrator">Administrator</SelectItem>
+                  {/* Only show Administrator role if admin access level is selected */}
+                  {approvalData.access_level === 'admin' && (
+                    <SelectItem value="Administrator">Administrator</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
