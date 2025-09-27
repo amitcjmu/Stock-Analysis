@@ -392,12 +392,20 @@ export const UserApprovalsMain: React.FC = () => {
             <div>
               <Label htmlFor="access-level">Access Level</Label>
               <Select value={approvalData.access_level} onValueChange={(value) => {
-                // If changing from admin to non-admin and role is Administrator, reset role
-                if (value !== 'admin' && approvalData.role_name === 'Administrator') {
-                  setApprovalData(prev => ({ ...prev, access_level: value, role_name: 'Analyst' }));
-                } else {
-                  setApprovalData(prev => ({ ...prev, access_level: value }));
-                }
+                setApprovalData(prev => {
+                  // If changing from admin to non-admin and role is Administrator, reset role
+                  if (value !== 'admin' && prev.role_name === 'Administrator') {
+                    // Show toast to inform user of automatic role change
+                    toast({
+                      title: "Role Updated",
+                      description: "Role has been reset to Analyst as Administrator role requires admin access level",
+                      variant: "default"
+                    });
+                    return { ...prev, access_level: value, role_name: 'Analyst' };
+                  } else {
+                    return { ...prev, access_level: value };
+                  }
+                });
               }}>
                 <SelectTrigger>
                   <SelectValue />
