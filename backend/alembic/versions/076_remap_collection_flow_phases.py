@@ -148,31 +148,27 @@ def upgrade() -> None:
     )
 
     # Update metadata JSON field to track migration (only for affected rows)
-    # Using separate queries to avoid complex parameter binding issues
+    # Using simplified approach to avoid complex jsonb operations with parameters
     bind.execute(
         text(
-            f"""
+            """
             UPDATE migration.collection_flows
             SET metadata =
                 CASE
-                    WHEN metadata IS NULL THEN jsonb_build_object(
-                        'phase_migration', '{revision}',
-                        'migrated_at', now()
-                    )
-                    ELSE jsonb_set(
-                        jsonb_set(metadata, '{{phase_migration}}', '"{revision}"'::jsonb),
-                        '{{migrated_at}}',
-                        to_jsonb(now())
-                    )
+                    WHEN metadata IS NULL THEN
+                        jsonb_build_object('phase_migration', :revision_id, 'migrated_at', now())
+                    ELSE
+                        metadata || jsonb_build_object('phase_migration', :revision_id, 'migrated_at', now())
                 END
             WHERE (
                 current_phase = 'asset_selection'
                 OR next_phase = 'asset_selection'
                 OR (phase_state IS NOT NULL AND phase_state ? 'asset_selection')
             )
-            AND (metadata->>'phase_migration' IS NULL OR metadata->>'phase_migration' != '{revision}')
+            AND (metadata->>'phase_migration' IS NULL OR metadata->>'phase_migration' != :revision_id)
             """
-        )
+        ),
+        {"revision_id": revision},
     )
 
     print("✅ Phase remapping migration completed successfully")
