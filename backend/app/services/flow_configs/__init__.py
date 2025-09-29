@@ -114,6 +114,7 @@ from .collection_handlers import (
     response_processing,
     synthesis_preparation,
 )
+from .collection_handler_extensions import register_collection_extension_handlers
 from .collection_validators import (
     collection_validation,
     completeness_validation,
@@ -362,6 +363,13 @@ class FlowConfigurationManager:
             except Exception as e:
                 logger.error(f"Failed to register handler {name}: {e}")
                 results["errors"].append(f"Handler {name}: {str(e)}")
+
+        # Register collection extension handlers
+        extension_results = register_collection_extension_handlers(
+            self.handler_registry
+        )
+        results["handlers_registered"].extend(extension_results.get("registered", []))
+        results["errors"].extend(extension_results.get("errors", []))
 
     def _register_all_flows(self, results: Dict[str, Any]) -> None:
         """Register all flow types with the flow registry"""
