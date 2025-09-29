@@ -198,21 +198,59 @@ class CollectionFlowApi {
   }
 
   async getFlowQuestionnaires(flowId: string): Promise<AdaptiveQuestionnaireResponse[]> {
-    // Simply return the response from the backend - it now returns a bootstrap questionnaire
-    // when no assets are selected, no need for special error handling
-    return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
+    try {
+      // Simply return the response from the backend - it now returns a bootstrap questionnaire
+      // when no assets are selected, but add better error handling
+      return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
+    } catch (error: unknown) {
+      // Enhanced error handling for questionnaire fetching
+      if (error && typeof error === 'object') {
+        const apiError = error as ApiError;
+
+        if (apiError.status === 404 || apiError.response?.status === 404) {
+          throw new Error('Collection flow not found. The flow may have been deleted or you may not have access.');
+        }
+
+        if (apiError.status === 422 || apiError.response?.status === 422) {
+          // Check for specific 422 error about asset selection
+          const detail = apiError.response?.data?.detail || apiError.response?.detail;
+          if (detail && typeof detail === 'string' && detail.includes('no_applications_selected')) {
+            const enhancedError = new Error('No applications selected for collection. Please select assets first.') as Error & { code: string; status: number };
+            enhancedError.code = 'no_applications_selected';
+            enhancedError.status = 422;
+            throw enhancedError;
+          }
+          throw new Error('Invalid request. Please check your flow configuration.');
+        }
+
+        if (apiError.status === 403 || apiError.response?.status === 403) {
+          throw new Error('Access denied. You do not have permission to access this collection flow.');
+        }
+
+        if (apiError.status === 500 || apiError.response?.status === 500) {
+          throw new Error('Server error occurred while fetching questionnaires. Please try again.');
+        }
+      }
+
+      // Re-throw other errors as-is
+      throw error;
+    }
   }
 
   async submitQuestionnaireResponse(
     flowId: string,
     questionnaireId: string,
-    responses: QuestionnaireResponse[]
+    requestData: {
+      responses: Record<string, unknown>;
+      form_metadata?: Record<string, unknown>;
+      validation_results?: Record<string, unknown>;
+    }
   ): Promise<{ status: string; message: string; questionnaire_id: string; flow_id: string; progress: number }> {
     return await apiCall(
       `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/submit`,
       {
         method: 'POST',
-        body: JSON.stringify(responses)
+        body: JSON.stringify(requestData)
       }
     );
   }
@@ -241,10 +279,32 @@ class CollectionFlowApi {
     next_phase?: string;
     requires_user_input?: boolean;
   }> {
-    return await apiCall(`${this.baseUrl}/flows/${flowId}/execute`, {
-      method: 'POST',
-      body: JSON.stringify(phaseInput || {})
-    });
+    try {
+      return await apiCall(`${this.baseUrl}/flows/${flowId}/execute`, {
+        method: 'POST',
+        body: JSON.stringify(phaseInput || {})
+      });
+    } catch (error: unknown) {
+      // Enhanced error handling for flow execution
+      if (error && typeof error === 'object') {
+        const apiError = error as ApiError;
+
+        if (apiError.status === 404 || apiError.response?.status === 404) {
+          throw new Error('Collection flow not found in Master Flow Orchestrator. The flow may be corrupted.');
+        }
+
+        if (apiError.status === 409 || apiError.response?.status === 409) {
+          throw new Error('Flow execution conflict. Another operation may be in progress.');
+        }
+
+        if (apiError.status === 422 || apiError.response?.status === 422) {
+          throw new Error('Flow execution failed due to invalid state or missing requirements.');
+        }
+      }
+
+      // Re-throw other errors as-is
+      throw error;
+    }
   }
 
   // Flow Management Endpoints

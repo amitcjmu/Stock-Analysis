@@ -4,9 +4,7 @@ Functions for setting up and executing AI agents for questionnaire generation.
 """
 
 import logging
-from datetime import datetime, timezone
 from typing import Any, List
-from uuid import UUID
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
@@ -21,18 +19,37 @@ async def _setup_persistent_agent(
     context: RequestContext, flow_id: str
 ) -> tuple[Any, dict]:
     """Setup persistent agent and prepare inputs."""
-    from app.services.persistent_agents.tenant_scoped_agent_pool import (
-        TenantScopedAgentPool,
-    )
+    try:
+        from app.services.persistent_agents.tenant_scoped_agent_pool import (
+            TenantScopedAgentPool,
+        )
 
-    logger.info(f"Attempting to use persistent questionnaire agent for flow {flow_id}")
+        logger.info(
+            f"Attempting to use persistent questionnaire agent for flow {flow_id}"
+        )
+        logger.info(
+            f"Context: client_account_id={context.client_account_id}, engagement_id={context.engagement_id}"
+        )
 
-    # Get the persistent questionnaire agent for this tenant
-    questionnaire_agent = await TenantScopedAgentPool.get_agent(
-        context=context, agent_type="questionnaire_generator"
-    )
+        # Get the persistent questionnaire agent for this tenant
+        questionnaire_agent = await TenantScopedAgentPool.get_agent(
+            context=context, agent_type="questionnaire_generator"
+        )
 
-    return questionnaire_agent, {}
+        if not questionnaire_agent:
+            logger.error(f"Failed to get questionnaire agent for flow {flow_id}")
+            raise Exception("Questionnaire agent not available")
+
+        logger.info(f"Successfully obtained questionnaire agent for flow {flow_id}")
+        return questionnaire_agent, {}
+
+    except Exception as e:
+        logger.error(
+            f"Error setting up persistent agent for flow {flow_id}: {e}", exc_info=True
+        )
+        logger.error(f"Setup error type: {type(e).__name__}")
+        logger.error(f"Setup error details: {str(e)}")
+        raise
 
 
 async def _execute_questionnaire_tool(
@@ -48,15 +65,47 @@ async def _execute_questionnaire_tool(
 
     if questionnaire_tool:
         # Execute questionnaire generation tool directly
-        return await questionnaire_tool._arun(
-            data_gaps=agent_inputs["gap_analysis"]["data_gaps"],
+        # Build data_gaps from the gap_analysis data
+        gap_analysis = agent_inputs.get("gap_analysis", {})
+        data_gaps = {
+            "missing_critical_fields": gap_analysis.get("missing_critical_fields", {}),
+            "unmapped_attributes": gap_analysis.get("unmapped_attributes", {}),
+            "data_quality_issues": gap_analysis.get("data_quality_issues", {}),
+            "assets_with_gaps": gap_analysis.get("assets_with_gaps", []),
+        }
+        result = await questionnaire_tool._arun(
+            data_gaps=data_gaps,
             business_context=agent_inputs["business_context"],
         )
+        logger.info(f"Tool returned type: {type(result)}, value: {result}")
+        # Ensure result is a dict
+        if isinstance(result, str):
+            # Try to parse as JSON if it's a string
+            import json
+
+            try:
+                result = json.loads(result)
+            except json.JSONDecodeError:
+                # If not JSON, wrap in a dict
+                result = {"status": "success", "message": result, "questionnaires": []}
+        return result
     else:
         logger.warning(
             f"No questionnaire generation tool found on agent for flow {flow_id}, using generic process"
         )
-        return await questionnaire_agent.process(agent_inputs)
+        result = await questionnaire_agent.process(agent_inputs)
+        logger.info(f"Agent process returned type: {type(result)}, value: {result}")
+        # Ensure result is a dict
+        if isinstance(result, str):
+            # Try to parse as JSON if it's a string
+            import json
+
+            try:
+                result = json.loads(result)
+            except json.JSONDecodeError:
+                # If not JSON, wrap in a dict
+                result = {"status": "success", "message": result, "questionnaires": []}
+        return result
 
 
 async def _process_agent_results(
@@ -85,88 +134,9 @@ async def _process_agent_results(
         )
 
 
-async def _fallback_service_generation(
-    flow_id: str, selected_assets: List[Asset], context: RequestContext
-) -> List[AdaptiveQuestionnaireResponse]:
-    """Fallback to service-based questionnaire generation when agent fails."""
-    try:
-        logger.info(f"Using fallback service generation for flow {flow_id}")
-        from app.services.ai_analysis.questionnaire_generator.service import (
-            QuestionnaireGeneratorService,
-        )
-
-        # Initialize the service
-        service = QuestionnaireGeneratorService()
-
-        # Analyze selected assets
-        _, asset_analysis = _analyze_selected_assets(selected_assets)
-
-        # Build service inputs
-        service_inputs = {
-            "flow_id": flow_id,
-            "assets": [
-                {
-                    "id": str(asset.id),
-                    "name": asset.name,
-                    "asset_type": asset.asset_type,
-                    "business_criticality": asset.business_criticality,
-                    "custom_attributes": asset.custom_attributes or {},
-                }
-                for asset in selected_assets
-            ],
-            "gap_analysis": asset_analysis,
-            "business_context": {
-                "engagement_id": context.engagement_id,
-                "client_account_id": context.client_account_id,
-            },
-        }
-
-        # Generate questionnaires using service
-        logger.info("Generating questionnaires using service")
-        questionnaires_result = await service.generate_questionnaires(service_inputs)
-
-        if (
-            not questionnaires_result
-            or questionnaires_result.get("status") != "success"
-        ):
-            logger.warning("Service generation failed or returned no results")
-            raise Exception("Service generation failed")
-
-        # Extract questionnaires from service result
-        questionnaires_data = questionnaires_result.get("questionnaires", [])
-        if not questionnaires_data:
-            logger.warning("Service returned no questionnaires")
-            raise Exception("No questionnaires generated by service")
-
-        # Convert to AdaptiveQuestionnaireResponse format
-        questionnaires = []
-        for idx, q_data in enumerate(questionnaires_data):
-            questionnaire = AdaptiveQuestionnaireResponse(
-                id=str(UUID(int=hash(f"{flow_id}-{idx}") & 0x7FFFFFFF)),
-                title=q_data.get("title", f"Service Generated Questionnaire {idx + 1}"),
-                description=q_data.get(
-                    "description", "Generated using fallback service"
-                ),
-                template_name="service_generated",
-                template_type="detailed",
-                version="2.0",
-                applicable_tiers=["tier_1", "tier_2", "tier_3", "tier_4"],
-                questions=q_data.get("questions", []),
-                completion_status="pending",
-                responses_collected={},
-                is_active=True,
-                is_template=False,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
-            )
-            questionnaires.append(questionnaire)
-
-        logger.info(f"Service generated {len(questionnaires)} questionnaires")
-        return questionnaires
-
-    except Exception as e:
-        logger.error(f"Fallback service generation failed for flow {flow_id}: {e}")
-        raise
+# FALLBACK REMOVED - NO FALLBACKS ALLOWED
+# This function was intentionally removed to ensure we only use agent-based generation
+# and can properly debug issues without fallback masking the real problems
 
 
 async def _generate_agent_questionnaires(
@@ -205,24 +175,18 @@ async def _generate_agent_questionnaires(
 
         # Try persistent agent generation first
         try:
+            logger.info(f"Setting up persistent agent for flow {flow_id}")
             questionnaire_agent, base_inputs = await _setup_persistent_agent(
                 context, flow_id
             )
+            logger.info(f"Successfully set up persistent agent for flow {flow_id}")
 
             # Build comprehensive inputs for agent
+            # Note: selected_assets is a list of dicts from _analyze_selected_assets, not Asset objects
             agent_inputs = {
                 **base_inputs,
                 "flow_id": flow_id,
-                "assets": [
-                    {
-                        "id": str(asset.id),
-                        "name": asset.name,
-                        "asset_type": asset.asset_type,
-                        "business_criticality": asset.business_criticality,
-                        "custom_attributes": asset.custom_attributes or {},
-                    }
-                    for asset in selected_assets
-                ],
+                "assets": selected_assets,  # Already formatted as list of dicts
                 "gap_analysis": asset_analysis,
                 "business_context": {
                     "engagement_id": context.engagement_id,
@@ -246,16 +210,21 @@ async def _generate_agent_questionnaires(
             return questionnaires
 
         except Exception as agent_error:
-            logger.warning(
-                f"Persistent agent generation failed for flow {flow_id}: {agent_error}"
+            # Log with full stack trace for debugging
+            logger.error(
+                f"Persistent agent generation failed for flow {flow_id}: {agent_error}",
+                exc_info=True,
             )
-            logger.info("Falling back to service generation")
-
-            # Fallback to service generation
-            return await _fallback_service_generation(flow_id, selected_assets, context)
+            logger.error(f"Agent error type: {type(agent_error).__name__}")
+            logger.error(f"Agent error details: {str(agent_error)}")
+            # NO FALLBACK - raise the actual error to fix root cause
+            raise agent_error
 
     except Exception as e:
         logger.error(
-            f"All questionnaire generation methods failed for flow {flow_id}: {e}"
+            f"All questionnaire generation methods failed for flow {flow_id}: {e}",
+            exc_info=True,
         )
+        logger.error(f"Final error type: {type(e).__name__}")
+        logger.error(f"Final error details: {str(e)}")
         raise

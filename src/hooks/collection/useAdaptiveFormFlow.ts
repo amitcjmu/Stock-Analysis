@@ -173,6 +173,10 @@ export interface AdaptiveFormFlowState {
   isPolling: boolean;
   completionStatus: "pending" | "ready" | "fallback" | "failed" | null;
   statusLine: string | null;
+  // Enhanced error recovery
+  canRetry: boolean;
+  isStuck: boolean;
+  stuckReason: string | null;
 }
 
 export interface AdaptiveFormFlowActions {
@@ -182,6 +186,8 @@ export interface AdaptiveFormFlowActions {
   handleSave: () => Promise<void>;
   handleSubmit: (data: CollectionFormData) => Promise<void>;
   resetFlow: () => void;
+  retryFlow: () => Promise<void>;
+  forceRefresh: () => Promise<void>;
 }
 
 export const useAdaptiveFormFlow = (
@@ -223,6 +229,10 @@ export const useAdaptiveFormFlow = (
     isPolling: false,
     completionStatus: null,
     statusLine: null,
+    // Enhanced error recovery
+    canRetry: false,
+    isStuck: false,
+    stuckReason: null,
   });
 
   // CRITICAL FIX: Centralized flow ID management
@@ -272,7 +282,7 @@ export const useAdaptiveFormFlow = (
     enabled: !!state.flowId && !state.formData && !state.questionnaires?.length,
     onReady: useCallback((questionnaires) => {
       console.log('🎉 Questionnaire ready from new polling hook:', questionnaires);
-      // Convert questionnaires and update state
+      // Convert questionnaires and update state - use timeout to prevent React warning
       if (questionnaires.length > 0) {
         try {
           const adaptiveFormData = convertQuestionnairesToFormData(
@@ -281,13 +291,16 @@ export const useAdaptiveFormFlow = (
           );
 
           if (validateFormDataStructure(adaptiveFormData)) {
-            setState((prev) => ({
-              ...prev,
-              formData: adaptiveFormData,
-              questionnaires: questionnaires,
-              isLoading: false,
-              error: null
-            }));
+            // Use setTimeout to prevent "Cannot update a component while rendering" warning
+            setTimeout(() => {
+              setState((prev) => ({
+                ...prev,
+                formData: adaptiveFormData,
+                questionnaires: questionnaires,
+                isLoading: false,
+                error: null
+              }));
+            }, 0);
 
             toast({
               title: "Adaptive Form Ready",
@@ -301,7 +314,7 @@ export const useAdaptiveFormFlow = (
     }, [applicationId, toast]),
     onFallback: useCallback((questionnaires) => {
       console.log('⚠️ Using fallback questionnaire from new polling hook:', questionnaires);
-      // Handle fallback questionnaire
+      // Handle fallback questionnaire - use timeout to prevent React warning
       if (questionnaires.length > 0) {
         try {
           const adaptiveFormData = convertQuestionnairesToFormData(
@@ -309,13 +322,16 @@ export const useAdaptiveFormFlow = (
             applicationId,
           );
 
-          setState((prev) => ({
-            ...prev,
-            formData: adaptiveFormData,
-            questionnaires: questionnaires,
-            isLoading: false,
-            error: null
-          }));
+          // Use setTimeout to prevent "Cannot update a component while rendering" warning
+          setTimeout(() => {
+            setState((prev) => ({
+              ...prev,
+              formData: adaptiveFormData,
+              questionnaires: questionnaires,
+              isLoading: false,
+              error: null
+            }));
+          }, 0);
 
           toast({
             title: "Bootstrap Form Loaded",
@@ -329,19 +345,24 @@ export const useAdaptiveFormFlow = (
     }, [applicationId, toast]),
     onFailed: useCallback((errorMessage) => {
       console.error('❌ Questionnaire generation failed:', errorMessage);
-      // Only use fallback if we don't already have form data
+      // Enhanced error handling with retry capabilities
       setState((prev) => {
         if (prev.formData) {
           console.log('✅ Already have form data, skipping fallback');
           return prev;
         }
 
-        // Use local fallback
+        // Determine if this is a retryable error
+        const isRetryable = !errorMessage.includes('permission') &&
+                           !errorMessage.includes('forbidden') &&
+                           !errorMessage.includes('unauthorized');
+
+        // Use local fallback but keep error info for retry
         const fallback = createFallbackFormData(applicationId || null);
 
         toast({
           title: "Fallback Form Loaded",
-          description: `Questionnaire generation failed: ${errorMessage}. Using basic adaptive form.`,
+          description: `Questionnaire generation failed: ${errorMessage}. Using basic adaptive form.${isRetryable ? ' You can try again later.' : ''}`,
           variant: "default",
         });
 
@@ -350,7 +371,10 @@ export const useAdaptiveFormFlow = (
           formData: fallback,
           questionnaires: [],
           isLoading: false,
-          error: null,
+          error: new Error(errorMessage),
+          canRetry: isRetryable,
+          isStuck: true,
+          stuckReason: errorMessage,
         };
       });
     }, [applicationId, toast])
@@ -1146,11 +1170,15 @@ export const useAdaptiveFormFlow = (
         ? 100
         : state.validation?.completionPercentage || 0;
 
+      // Extract asset_id from the form data if present (it's typically in the "selected_assets" field)
+      const assetId = data?.selected_assets || data?.asset_id || null;
+
       const submissionData = {
         responses: data,
         form_metadata: {
           form_id: state.formData?.formId,
           application_id: applicationId,
+          asset_id: assetId, // Include asset_id in metadata for proper backend processing
           completion_percentage: completionPercentage,
           confidence_score: state.validation?.overallConfidenceScore,
           submitted_at: new Date().toISOString(),
@@ -1399,10 +1427,109 @@ export const useAdaptiveFormFlow = (
       isPolling: false,
       completionStatus: null,
       statusLine: null,
+      // Enhanced error recovery
+      canRetry: false,
+      isStuck: false,
+      stuckReason: null,
     });
     currentFlowIdRef.current = null;
     setCurrentFlow(null);
   };
+
+  /**
+   * Retry flow initialization after failure
+   */
+  const retryFlow = useCallback(async (): Promise<void> => {
+    console.log('🔄 Retrying flow initialization...');
+    setState(prev => ({
+      ...prev,
+      error: null,
+      canRetry: false,
+      isStuck: false,
+      stuckReason: null,
+      isLoading: true
+    }));
+
+    try {
+      await initializeFlow();
+      toast({
+        title: "Retry Successful",
+        description: "Flow initialization completed successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('❌ Retry failed:', error);
+      setState(prev => ({
+        ...prev,
+        error: error as Error,
+        canRetry: true,
+        isStuck: true,
+        stuckReason: (error as Error).message,
+        isLoading: false
+      }));
+    }
+  }, [initializeFlow, toast]);
+
+  /**
+   * Force refresh questionnaires and flow state
+   */
+  const forceRefresh = useCallback(async (): Promise<void> => {
+    if (!state.flowId) {
+      console.warn('⚠️ No flow ID available for refresh');
+      return;
+    }
+
+    console.log('🔄 Force refreshing flow state...');
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      // Re-fetch questionnaires
+      const questionnaires = await collectionFlowApi.getFlowQuestionnaires(state.flowId);
+
+      if (questionnaires.length > 0) {
+        const adaptiveFormData = convertQuestionnairesToFormData(
+          questionnaires[0],
+          applicationId,
+        );
+
+        if (validateFormDataStructure(adaptiveFormData)) {
+          setState(prev => ({
+            ...prev,
+            formData: adaptiveFormData,
+            questionnaires: questionnaires,
+            isLoading: false,
+            error: null,
+            canRetry: false,
+            isStuck: false,
+            stuckReason: null,
+          }));
+
+          toast({
+            title: "Refresh Successful",
+            description: "Flow data has been refreshed successfully.",
+          });
+        } else {
+          throw new Error('Refreshed questionnaire data structure is invalid');
+        }
+      } else {
+        throw new Error('No questionnaires found after refresh');
+      }
+    } catch (error) {
+      console.error('❌ Force refresh failed:', error);
+      setState(prev => ({
+        ...prev,
+        error: error as Error,
+        isLoading: false,
+        canRetry: true,
+      }));
+
+      toast({
+        title: "Refresh Failed",
+        description: `Failed to refresh flow data: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    }
+  }, [state.flowId, applicationId, toast]);
 
   // Track if we've attempted initialization for this flowId
   const [hasAttemptedInit, setHasAttemptedInit] = useState<string | null>(null);
@@ -1545,6 +1672,8 @@ export const useAdaptiveFormFlow = (
     isPolling: questionnairePollingState.isPolling,
     completionStatus: questionnairePollingState.completionStatus,
     statusLine: questionnairePollingState.statusLine,
+    // Enhanced retry capabilities from polling
+    canRetry: state.canRetry || questionnairePollingState.canRetry,
 
     // Actions
     initializeFlow,
@@ -1553,5 +1682,9 @@ export const useAdaptiveFormFlow = (
     handleSave,
     handleSubmit,
     resetFlow,
+    retryFlow,
+    forceRefresh,
+    // Expose polling retry for direct questionnaire issues
+    retryPolling: questionnairePollingState.retryPolling,
   };
 };;

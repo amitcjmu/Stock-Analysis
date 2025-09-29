@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.request_context import RequestContext
+from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow
 from app.models.collection_flow.schemas import CollectionPhase
 from app.models.asset import Asset
@@ -36,16 +36,35 @@ async def generate_asset_selection_bootstrap(
         Dict containing bootstrap questionnaire or status
     """
     try:
-        # Check if assets are already selected
-        selected_apps = flow.collection_config.get("selected_application_ids", [])
+        # Check if assets are already selected - could be a stuck flow recovery scenario
+        selected_apps = (
+            flow.collection_config.get("selected_application_ids", [])
+            if flow.collection_config
+            else []
+        )
         if selected_apps:
             logger.info(
                 f"Flow {flow.flow_id} already has {len(selected_apps)} selected assets"
             )
-            return {"status": "assets_already_selected", "count": len(selected_apps)}
+            # Check if bootstrap was generated but might be missing (stuck flow case)
+            if not flow.collection_config.get(
+                "bootstrap_questionnaire_generated"
+            ) or not flow.collection_config.get("bootstrap_questionnaire"):
+                logger.warning(
+                    f"Flow {flow.flow_id} has selected assets but missing bootstrap "
+                    f"questionnaire - possible stuck flow recovery"
+                )
+                # Continue with bootstrap generation for recovery
+            else:
+                return {
+                    "status": "assets_already_selected",
+                    "count": len(selected_apps),
+                }
 
         # Check if bootstrap was already generated
-        if flow.collection_config.get("bootstrap_questionnaire_generated"):
+        if flow.collection_config and flow.collection_config.get(
+            "bootstrap_questionnaire_generated"
+        ):
             logger.info(
                 f"Bootstrap questionnaire already generated for flow {flow.flow_id}"
             )
@@ -151,7 +170,8 @@ async def get_available_assets(
             select(Asset)
             .where(Asset.client_account_id == context.client_account_id)
             .where(Asset.engagement_id == context.engagement_id)
-            .where(Asset.is_deleted is False)  # Exclude soft-deleted assets
+            # Note: Asset model doesn't have is_deleted field, using status field instead
+            .where(Asset.status != "decommissioned")  # Filter out decommissioned assets
             .order_by(Asset.name)
         )
 

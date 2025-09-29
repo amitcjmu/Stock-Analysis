@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { CheckSquare, Square, Search, Building, Server, Database, ArrowRight, AlertCircle } from 'lucide-react';
+import { CheckSquare, Square, Search, Building, Server, Database, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,10 @@ export interface AssetSelectionFormProps {
   formValues: CollectionFormData;
   onFieldChange: (fieldId: string, value: unknown) => void;
   onSubmit: (data: CollectionFormData) => void;
+  onRetry?: () => void;
   isSubmitting?: boolean;
+  isLoading?: boolean;
+  error?: Error | null;
   className?: string;
 }
 
@@ -84,7 +87,10 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
   formValues,
   onFieldChange,
   onSubmit,
+  onRetry,
   isSubmitting = false,
+  isLoading = false,
+  error = null,
   className = ''
 }) => {
   // All hooks MUST be declared at the top level before any conditional logic
@@ -126,12 +132,42 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
 
   if (!assetQuestion || !assetQuestion.options) {
     return (
-      <Alert className="m-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Unable to load asset selection options. Please contact support if this issue persists.
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4 m-4">
+        <Alert variant={error ? "destructive" : "default"}>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error ?
+              `Failed to load asset selection options: ${error.message}` :
+              'Unable to load asset selection options. This may be because no assets were found or there was a temporary error.'
+            }
+          </AlertDescription>
+        </Alert>
+
+        {onRetry && (
+          <div className="flex justify-center">
+            <Button
+              onClick={onRetry}
+              disabled={isLoading}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Loading...' : 'Retry Loading Assets'}
+            </Button>
+          </div>
+        )}
+
+        <Alert>
+          <AlertDescription>
+            If this problem persists, please:
+            <ul className="list-disc ml-4 mt-2">
+              <li>Check that you have applications configured in your account</li>
+              <li>Verify your network connection</li>
+              <li>Contact support if the issue continues</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
@@ -156,8 +192,45 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
     ? `Please select no more than ${maxSelections} assets`
     : null;
 
+  // Show loading state while fetching assets
+  if (isLoading) {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="h-5 w-5 animate-spin" />
+              <span>Loading available assets...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error.message}</span>
+            {onRetry && (
+              <Button
+                onClick={onRetry}
+                variant="outline"
+                size="sm"
+                className="ml-4"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <Card>
         <CardHeader>

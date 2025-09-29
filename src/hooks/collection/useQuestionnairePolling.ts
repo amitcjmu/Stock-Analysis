@@ -18,7 +18,10 @@ export interface QuestionnairePollingState {
   error: Error | null;
   completionStatus: "pending" | "ready" | "fallback" | "failed" | null;
   statusLine: string | null;
+  retryCount: number;
+  canRetry: boolean;
   checkStatus: () => void;
+  retryPolling: () => void;
 }
 
 export interface QuestionnairePollingOptions {
@@ -30,6 +33,8 @@ export interface QuestionnairePollingOptions {
 }
 
 const MAX_POLL_ATTEMPTS = 12; // 1 minute max at 5 second intervals
+const MAX_RETRY_ATTEMPTS = 3; // Allow up to 3 manual retries
+const RETRY_DELAY_BASE = 2000; // Base delay for exponential backoff
 
 export const useQuestionnairePolling = ({
   flowId,
@@ -43,6 +48,7 @@ export const useQuestionnairePolling = ({
   const [completionStatus, setCompletionStatus] = useState<"pending" | "ready" | "fallback" | "failed" | null>(null);
   const [statusLine, setStatusLine] = useState<string | null>(null);
   const [pollAttempts, setPollAttempts] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
   const callbacksRef = useRef({ onReady, onFallback, onFailed });
 
   // Update callbacks ref when they change
@@ -150,15 +156,42 @@ export const useQuestionnairePolling = ({
         const error = err as { code: string; status?: number };
         if (error.code === 'no_applications_selected' && error.status === 422) {
           // This is a specific error case, not a polling failure
+          setError(err as Error);
+          setIsPolling(false);
+          setCompletionStatus('failed');
+          setStatusLine('No applications selected for collection. Please select assets first.');
           throw err;
         }
+      }
+
+      // Categorize errors for better user experience
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      let userFriendlyMessage = 'Failed to fetch questionnaire status';
+      let canRetryError = true;
+
+      if (errorMessage.includes('Network Error') || errorMessage.includes('fetch')) {
+        userFriendlyMessage = 'Network connection error. Please check your connection and try again.';
+      } else if (errorMessage.includes('timeout')) {
+        userFriendlyMessage = 'Request timed out. The server may be busy, please try again.';
+      } else if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
+        userFriendlyMessage = 'Server error occurred. Please try again in a moment.';
+      } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+        userFriendlyMessage = 'Flow not found. The collection flow may have been removed.';
+        canRetryError = false;
+      } else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+        userFriendlyMessage = 'Access denied. You may not have permission to access this flow.';
+        canRetryError = false;
       }
 
       setError(err as Error);
       setIsPolling(false);
       setCompletionStatus('failed');
-      setStatusLine('Failed to fetch questionnaire status');
-      throw err;
+      setStatusLine(userFriendlyMessage);
+
+      // Don't throw if it's a retryable error to allow graceful handling
+      if (!canRetryError) {
+        throw err;
+      }
     }
   }, [flowId]);;
 
@@ -174,9 +207,21 @@ export const useQuestionnairePolling = ({
     // Polling configuration based on completion status
     refetchInterval: () => {
       // Only poll if status is pending and within attempt limits
-      if (completionStatus === 'pending' && isPolling && pollAttempts < MAX_POLL_ATTEMPTS) {
-        setPollAttempts(prev => prev + 1);
-        return 5000; // Poll every 5 seconds
+      if (completionStatus === 'pending' && isPolling) {
+        // Check if we're still within attempt limits
+        if (pollAttempts < MAX_POLL_ATTEMPTS) {
+          // Increment attempts for next poll
+          setPollAttempts(prev => {
+            const newAttempts = prev + 1;
+            console.log('📊 Poll attempt', newAttempts, 'of', MAX_POLL_ATTEMPTS);
+            return newAttempts;
+          });
+          return 5000; // Poll every 5 seconds
+        } else {
+          // We've reached max attempts, stop polling
+          console.log('⏰ Max poll attempts reached, stopping polling');
+          return false;
+        }
       }
       return false; // Stop polling
     },
@@ -201,28 +246,34 @@ export const useQuestionnairePolling = ({
 
   // Start polling when enabled and we have a flow ID
   useEffect(() => {
-    if (enabled && flowId && !questionnaires.length && pollAttempts < MAX_POLL_ATTEMPTS) {
-      console.log('🔄 Starting questionnaire polling for flow:', flowId);
-      setIsPolling(true);
-      setError(null);
-      setCompletionStatus('pending');
-      setStatusLine('Checking questionnaire status...');
-      // Reset poll attempts when starting fresh
-      if (pollAttempts === 0) {
-        setPollAttempts(0);
+    if (enabled && flowId && !questionnaires.length) {
+      // Only check timeout if we're actually polling
+      if (isPolling && pollAttempts >= MAX_POLL_ATTEMPTS) {
+        console.log('⏰ Polling timeout reached after', pollAttempts, 'attempts');
+        setIsPolling(false);
+        setCompletionStatus('failed');
+        setStatusLine('Questionnaire generation timed out. Please try again.');
+        setError(new Error('Questionnaire generation timed out'));
+        callbacksRef.current.onFailed?.('Questionnaire generation timed out. Please try again.');
+      } else if (!isPolling && pollAttempts < MAX_POLL_ATTEMPTS) {
+        // Start polling if not already polling and within attempt limits
+        console.log('🔄 Starting questionnaire polling for flow:', flowId);
+        setIsPolling(true);
+        setError(null);
+        setCompletionStatus('pending');
+        setStatusLine('Checking questionnaire status...');
       }
-    } else if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-      setIsPolling(false);
-      setCompletionStatus('failed');
-      setStatusLine('Questionnaire generation timed out. Please try again.');
-      setError(new Error('Questionnaire generation timed out'));
-      callbacksRef.current.onFailed?.('Questionnaire generation timed out. Please try again.');
     }
-  }, [enabled, flowId, questionnaires.length, pollAttempts]);
+  }, [enabled, flowId, questionnaires.length, pollAttempts, isPolling]);
 
-  // Reset poll attempts when flowId changes
+  // Reset poll attempts and polling state when flowId changes
   useEffect(() => {
+    console.log('🔄 Flow ID changed, resetting polling state for:', flowId);
     setPollAttempts(0);
+    setIsPolling(false);
+    setError(null);
+    setCompletionStatus(null);
+    setStatusLine(null);
   }, [flowId]);
 
   // Expose method to manually trigger a status check
@@ -232,12 +283,31 @@ export const useQuestionnairePolling = ({
     }
   }, [flowId, refetch]);
 
+  // Expose method to retry polling after failure
+  const retryPolling = useCallback(() => {
+    if (retryCount < MAX_RETRY_ATTEMPTS) {
+      console.log(`🔄 Retrying questionnaire polling (attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
+      setRetryCount(prev => prev + 1);
+      setPollAttempts(0);
+      setError(null);
+      setIsPolling(true);
+      setCompletionStatus('pending');
+      setStatusLine('Retrying questionnaire status check...');
+      refetch();
+    }
+  }, [retryCount, refetch]);
+
+  const canRetry = retryCount < MAX_RETRY_ATTEMPTS && completionStatus === 'failed' && !!error;
+
   return {
     questionnaires,
     isPolling: isPolling || isLoading,
     error,
     completionStatus,
     statusLine,
-    checkStatus
+    retryCount,
+    canRetry,
+    checkStatus,
+    retryPolling
   };
 };

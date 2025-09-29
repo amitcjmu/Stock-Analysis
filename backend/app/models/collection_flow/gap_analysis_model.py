@@ -14,7 +14,6 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
-    String,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -63,17 +62,23 @@ class CollectionGapAnalysis(Base):
 
     # Quality metrics
     data_quality_score = Column(Float, nullable=True)
-    confidence_level = Column(String(50), nullable=True)  # low, medium, high
+    confidence_level = Column(Float, nullable=True)  # Changed to Float to match DB
+    automation_coverage = Column(Float, nullable=True)
 
-    # Gap details
-    missing_critical_fields = Column(JSONB, nullable=False, default=list)
-    data_quality_issues = Column(JSONB, nullable=False, default=list)
+    # Gap details (using actual DB column names)
+    critical_gaps = Column(JSONB, nullable=False, default=list)
+    optional_gaps = Column(JSONB, nullable=False, default=list)
+    gap_categories = Column(JSONB, nullable=False, default=dict)
     recommended_actions = Column(JSONB, nullable=False, default=list)
+    questionnaire_requirements = Column(JSONB, nullable=False, default=dict)
 
-    # Analysis metadata
-    analysis_type = Column(String(100), nullable=False, default="automated")
-    analysis_version = Column(String(50), nullable=True)
-    analysis_config = Column(JSONB, nullable=False, default=dict)
+    # Missing field from DB (added to match actual schema)
+    fields_missing = Column(Integer, nullable=False, default=0)
+
+    # Analysis metadata - commented out as these columns don't exist in DB
+    # analysis_type = Column(String(100), nullable=False, default="automated")
+    # analysis_version = Column(String(50), nullable=True)
+    # analysis_config = Column(JSONB, nullable=False, default=dict)
 
     # Timestamps
     analyzed_at = Column(
@@ -98,6 +103,60 @@ class CollectionGapAnalysis(Base):
             return 0.0
         return round((self.fields_collected / self.total_fields_required) * 100, 2)
 
+    @property
+    def missing_critical_fields(self):
+        """Computed property for backward compatibility - returns critical_gaps"""
+        return self.critical_gaps
+
+    @missing_critical_fields.setter
+    def missing_critical_fields(self, value):
+        """Setter for backward compatibility - sets critical_gaps"""
+        self.critical_gaps = value
+
+    @property
+    def data_quality_issues(self):
+        """
+        Computed property that extracts quality issues from gap data.
+        Combines information from critical_gaps and optional_gaps.
+        """
+        issues = []
+
+        # Extract quality issues from critical gaps
+        if isinstance(self.critical_gaps, list):
+            for gap in self.critical_gaps:
+                if isinstance(gap, dict) and gap.get("quality_issue"):
+                    issues.append(
+                        {
+                            "field": gap.get("field_name", "unknown"),
+                            "issue": gap.get("quality_issue"),
+                            "severity": "critical",
+                        }
+                    )
+
+        # Extract quality issues from optional gaps
+        if isinstance(self.optional_gaps, list):
+            for gap in self.optional_gaps:
+                if isinstance(gap, dict) and gap.get("quality_issue"):
+                    issues.append(
+                        {
+                            "field": gap.get("field_name", "unknown"),
+                            "issue": gap.get("quality_issue"),
+                            "severity": "optional",
+                        }
+                    )
+
+        # Add general quality metrics if score is low
+        if self.data_quality_score is not None and self.data_quality_score < 0.7:
+            issues.append(
+                {
+                    "field": "_overall",
+                    "issue": f"Low data quality score: {self.data_quality_score}",
+                    "severity": "warning",
+                }
+            )
+
+        return issues
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert model to dictionary representation."""
         return {
@@ -113,9 +172,10 @@ class CollectionGapAnalysis(Base):
             "missing_critical_fields": self.missing_critical_fields,
             "data_quality_issues": self.data_quality_issues,
             "recommended_actions": self.recommended_actions,
-            "analysis_type": self.analysis_type,
-            "analysis_version": self.analysis_version,
-            "analysis_config": self.analysis_config,
+            # Commented out fields that don't exist in database
+            # "analysis_type": self.analysis_type,
+            # "analysis_version": self.analysis_version,
+            # "analysis_config": self.analysis_config,
             "analyzed_at": self.analyzed_at.isoformat() if self.analyzed_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

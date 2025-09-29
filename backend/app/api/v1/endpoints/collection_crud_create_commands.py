@@ -118,6 +118,9 @@ async def create_collection_from_discovery(
             status=CollectionFlowStatus.INITIALIZED.value,
             automation_tier=collection_config["automation_tier"],
             collection_config=collection_config,
+            flow_metadata={
+                "use_agent_generation": True
+            },  # Enable CrewAI agent generation
             current_phase=CollectionPhase.GAP_ANALYSIS.value,  # Start with gap analysis
             discovery_flow_id=uuid.UUID(discovery_flow_id),  # Link to Discovery flow
         )
@@ -380,6 +383,9 @@ async def create_collection_flow(
             status=CollectionFlowStatus.ASSET_SELECTION.value,
             automation_tier=flow_data.automation_tier,
             collection_config=flow_data.collection_config or {},
+            flow_metadata={
+                "use_agent_generation": True
+            },  # Enable CrewAI agent generation
             current_phase=CollectionPhase.ASSET_SELECTION.value,
             phase_state=phase_state,
         )

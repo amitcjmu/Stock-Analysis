@@ -93,7 +93,14 @@ async def _start_agent_generation(
         ]
 
     except Exception as e:
-        logger.error(f"Error starting agent generation for flow {flow_id}: {e}")
+        logger.error(
+            f"Error starting agent generation for flow {flow_id}: {e}", exc_info=True
+        )
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception details: {str(e)}")
+        # Store error information for debugging
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        logger.error(f"Failed to start agent generation - error: {error_msg}")
         raise
 
 
@@ -151,7 +158,12 @@ async def _do_update_questionnaire_status(
 
         logger.info(f"Updated questionnaire {questionnaire_id} status to {status}")
     except Exception as e:
-        logger.error(f"Error updating questionnaire {questionnaire_id} status: {e}")
+        logger.error(
+            f"Error updating questionnaire {questionnaire_id} status: {e}",
+            exc_info=True,
+        )
+        logger.error(f"Update error type: {type(e).__name__}")
+        logger.error(f"Update error details: {str(e)}")
         raise
 
 
@@ -205,14 +217,23 @@ async def _background_generate(
             logger.warning(f"No questionnaires generated for flow {flow_id}")
 
     except Exception as e:
-        logger.error(f"Background generation failed for flow {flow_id}: {e}")
+        # Log full exception with stack trace for debugging
+        logger.error(
+            f"Background generation failed for flow {flow_id}: {e}", exc_info=True
+        )
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception details: {str(e)}")
+
         try:
-            # Mark questionnaire as failed
+            # Mark questionnaire as failed with detailed error
+            error_msg = f"{type(e).__name__}: {str(e)}"
             async with AsyncSessionLocal() as db:
                 await _update_questionnaire_status(
-                    questionnaire_id, "failed", error_message=str(e), db=db
+                    questionnaire_id, "failed", error_message=error_msg, db=db
                 )
         except Exception as update_error:
-            logger.error(f"Failed to update questionnaire status: {update_error}")
+            logger.error(
+                f"Failed to update questionnaire status: {update_error}", exc_info=True
+            )
     finally:
         logger.info(f"Background generation completed for flow {flow_id}")

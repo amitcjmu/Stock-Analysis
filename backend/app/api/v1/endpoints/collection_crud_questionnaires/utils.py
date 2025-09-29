@@ -119,6 +119,91 @@ def _suggest_field_mapping(field_name: str) -> str:
     return "custom_attribute"
 
 
+def _get_asset_raw_data_safely(asset, asset_id_str: str) -> tuple:
+    """Safely extract raw_data and field_mappings from asset."""
+    try:
+        raw_data = getattr(asset, "raw_data", {}) or {}
+        # Ensure raw_data is a dict, not a string or other type
+        if not isinstance(raw_data, dict):
+            if isinstance(raw_data, str):
+                logger.debug(
+                    f"Asset {asset_id_str} has raw_data as string, converting to empty dict"
+                )
+            else:
+                logger.debug(
+                    f"Asset {asset_id_str} has raw_data as {type(raw_data)}, converting to empty dict"
+                )
+            raw_data = {}
+
+        field_mappings = getattr(asset, "field_mappings_used", {}) or {}
+        # Ensure field_mappings is a dict
+        if not isinstance(field_mappings, dict):
+            if isinstance(field_mappings, str):
+                logger.debug(
+                    f"Asset {asset_id_str} has field_mappings_used as string, converting to empty dict"
+                )
+            else:
+                field_type = type(field_mappings)
+                logger.debug(
+                    f"Asset {asset_id_str} has field_mappings_used as {field_type}, "
+                    f"converting to empty dict"
+                )
+            field_mappings = {}
+    except Exception as e:
+        logger.warning(f"Error processing asset {asset_id_str} data: {e}")
+        raw_data = {}
+        field_mappings = {}
+
+    return raw_data, field_mappings
+
+
+def _find_unmapped_attributes(raw_data: dict, field_mappings: dict) -> List[dict]:
+    """Find unmapped attributes in raw data."""
+    unmapped = []
+    if raw_data:
+        mapped_fields = set(field_mappings.values()) if field_mappings else set()
+        for key, value in raw_data.items():
+            if key not in mapped_fields and value:
+                unmapped.append(
+                    {
+                        "field": key,
+                        "value": str(value)[:100],  # Truncate long values
+                        "potential_mapping": _suggest_field_mapping(key),
+                    }
+                )
+    return unmapped
+
+
+def _check_missing_critical_fields(asset) -> List[str]:
+    """Check for missing critical fields in asset."""
+    critical_fields = [
+        "business_owner",
+        "technical_owner",
+        "six_r_strategy",
+        "migration_complexity",
+        "dependencies",
+        "operating_system",
+    ]
+    missing_fields = []
+    for field in critical_fields:
+        if not getattr(asset, field, None):
+            missing_fields.append(field)
+    return missing_fields
+
+
+def _assess_data_quality(asset) -> dict:
+    """Assess data quality of asset."""
+    completeness_score = getattr(asset, "completeness_score", 0.0) or 0.0
+    confidence_score = getattr(asset, "confidence_score", 0.0) or 0.0
+    if completeness_score < 0.8 or confidence_score < 0.7:
+        return {
+            "completeness": completeness_score,
+            "confidence": confidence_score,
+            "needs_validation": True,
+        }
+    return {}
+
+
 def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], dict]:
     """
     Analyze selected assets and extract comprehensive analysis.
@@ -155,28 +240,15 @@ def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], 
         }
         selected_assets.append(asset_info)
 
-        # Analyze unmapped attributes from raw data
-        raw_data = getattr(asset, "raw_data", {}) or {}
-        field_mappings = getattr(asset, "field_mappings_used", {}) or {}
+        # Get raw data safely
+        raw_data, field_mappings = _get_asset_raw_data_safely(asset, asset_id_str)
 
-        # Find unmapped attributes (in raw data but not in mapped fields)
-        unmapped = []
-        if raw_data:
-            mapped_fields = set(field_mappings.values()) if field_mappings else set()
-            for key, value in raw_data.items():
-                if key not in mapped_fields and value:
-                    unmapped.append(
-                        {
-                            "field": key,
-                            "value": str(value)[:100],  # Truncate long values
-                            "potential_mapping": _suggest_field_mapping(key),
-                        }
-                    )
-
+        # Find unmapped attributes
+        unmapped = _find_unmapped_attributes(raw_data, field_mappings)
         if unmapped:
             asset_analysis["unmapped_attributes"][asset_id_str] = unmapped
 
-        # Identify failed mappings and data quality issues
+        # Identify failed mappings
         mapping_status = getattr(asset, "mapping_status", None)
         if mapping_status and mapping_status != "complete":
             asset_analysis["failed_mappings"][asset_id_str] = {
@@ -185,32 +257,15 @@ def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], 
             }
 
         # Check for missing critical fields
-        critical_fields = [
-            "business_owner",
-            "technical_owner",
-            "six_r_strategy",
-            "migration_complexity",
-            "dependencies",
-            "operating_system",
-        ]
-        missing_fields = []
-        for field in critical_fields:
-            if not getattr(asset, field, None):
-                missing_fields.append(field)
-
+        missing_fields = _check_missing_critical_fields(asset)
         if missing_fields:
             asset_analysis["missing_critical_fields"][asset_id_str] = missing_fields
             asset_analysis["assets_with_gaps"].append(asset_id_str)
 
         # Assess data quality
-        completeness_score = getattr(asset, "completeness_score", 0.0) or 0.0
-        confidence_score = getattr(asset, "confidence_score", 0.0) or 0.0
-        if completeness_score < 0.8 or confidence_score < 0.7:
-            asset_analysis["data_quality_issues"][asset_id_str] = {
-                "completeness": completeness_score,
-                "confidence": confidence_score,
-                "needs_validation": True,
-            }
+        quality_issues = _assess_data_quality(asset)
+        if quality_issues:
+            asset_analysis["data_quality_issues"][asset_id_str] = quality_issues
 
     asset_analysis["total_assets"] = len(selected_assets)
     return selected_assets, asset_analysis

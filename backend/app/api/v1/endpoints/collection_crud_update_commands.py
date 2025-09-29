@@ -199,6 +199,9 @@ async def submit_questionnaire_response(
             f"Engagement ID: {context.engagement_id}"
         )
 
+        # Add debug logging for tracking questionnaire processing
+        logger.info(f"Processing questionnaire {questionnaire_id} for flow {flow_id}")
+
         # Verify flow exists and belongs to engagement with proper multi-tenant validation
         flow_result = await db.execute(
             select(CollectionFlow)
@@ -224,11 +227,17 @@ async def submit_questionnaire_response(
         validation_results = request_data.validation_results or {}
 
         # Special handling for asset selection bootstrap questionnaire
-        if questionnaire_id == "bootstrap_asset_selection":
+        # Check for bootstrap asset selection questionnaire (either by ID or special UUID)
+        if questionnaire_id in [
+            "bootstrap_asset_selection",
+            "00000000-0000-0000-0000-000000000001",
+        ]:
             logger.info("Processing asset selection from bootstrap questionnaire")
 
             # Extract selected asset IDs from the response
             selected_assets_response = form_responses.get("selected_assets", [])
+            logger.info(f"Raw selected_assets_response: {selected_assets_response}")
+
             if selected_assets_response:
                 # Parse asset IDs from the response (format: "Name (ID: uuid)")
                 import re
@@ -238,6 +247,8 @@ async def submit_questionnaire_response(
                     match = re.search(r"\(ID:\s*([a-f0-9-]+)\)", str(asset_str))
                     if match:
                         selected_asset_ids.append(match.group(1))
+
+                logger.info(f"Extracted asset IDs: {selected_asset_ids}")
 
                 if selected_asset_ids:
                     # Update the collection flow configuration with selected assets
@@ -254,14 +265,73 @@ async def submit_questionnaire_response(
                         f"Updated flow {flow_id} with selected assets: {selected_asset_ids}"
                     )
 
+                    # CRITICAL FIX: Check if we need to transition from asset_selection to gap_analysis phase
+                    from app.models.collection_flow.schemas import CollectionPhase
+                    from app.services.master_flow_orchestrator import (
+                        MasterFlowOrchestrator,
+                    )
+
+                    if flow.current_phase == CollectionPhase.ASSET_SELECTION.value:
+                        try:
+                            logger.info(
+                                f"Transitioning flow {flow_id} from asset_selection to gap_analysis phase"
+                            )
+
+                            # Initialize MFO to execute phase transition
+                            orchestrator = MasterFlowOrchestrator(db, context)
+
+                            # Execute gap_analysis phase via MFO
+                            await orchestrator.execute_phase(
+                                flow_id=str(flow.master_flow_id),
+                                phase_name="gap_analysis",
+                            )
+
+                            # Update collection flow phase and status
+                            flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
+                            flow.status = CollectionPhase.GAP_ANALYSIS.value
+
+                            await db.commit()
+                            logger.info(
+                                f"Successfully transitioned flow {flow_id} to gap_analysis phase"
+                            )
+
+                        except Exception as phase_error:
+                            logger.error(
+                                f"Failed to transition flow {flow_id} to gap_analysis phase: {phase_error}",
+                                exc_info=True,
+                            )
+                            # Don't fail the entire request if phase transition fails
+                            # The asset selection was successful, just log the error
+
                     # Return success response prompting questionnaire regeneration
                     return {
                         "success": True,
-                        "message": "Assets selected successfully. Please refresh to generate targeted questionnaires.",
+                        "message": "Assets selected successfully. Gap analysis phase initiated.",
                         "flow_id": str(flow.flow_id),
                         "selected_assets": selected_asset_ids,
                         "next_action": "regenerate_questionnaires",
+                        "current_phase": flow.current_phase,
                     }
+                else:
+                    logger.warning(
+                        f"No asset IDs extracted from selected_assets_response: {selected_assets_response}"
+                    )
+                    return {
+                        "success": False,
+                        "message": "No valid assets found in selection. Please try again.",
+                        "flow_id": str(flow.flow_id),
+                        "next_action": "retry_asset_selection",
+                        "current_phase": flow.current_phase,
+                    }
+            else:
+                logger.warning("No selected_assets found in form responses")
+                return {
+                    "success": False,
+                    "message": "No assets selected. Please select at least one asset to continue.",
+                    "flow_id": str(flow.flow_id),
+                    "next_action": "retry_asset_selection",
+                    "current_phase": flow.current_phase,
+                }
 
         # Extract and validate asset_id for optional linking to asset inventory
         asset_id = form_metadata.get("application_id") or form_metadata.get("asset_id")
