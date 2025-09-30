@@ -6,7 +6,7 @@ transaction management, or tenant isolation complexity.
 
 Coverage:
 - store_import_data endpoint
-- get_latest_import endpoint  
+- get_latest_import endpoint
 - get_import_by_id endpoint
 - get_import_data_by_flow_id endpoint
 - get_import_status endpoint
