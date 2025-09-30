@@ -343,6 +343,12 @@ class TestImportStorageHandler:
         with patch("app.services.data_import.import_storage_handler.ImportTransactionManager") as mock_transaction_manager_class:
             mock_transaction_manager = AsyncMock()
             mock_transaction_manager_class.return_value = mock_transaction_manager
+            +
+            # Properly mock async context manager for transaction()
+            cm = AsyncMock()
+            cm.__aenter__.return_value = None
+            cm.__aexit__.return_value = None
+            mock_transaction_manager.transaction.return_value = cm
 
             with patch("app.services.data_import.import_storage_handler.ImportStorageOperations") as mock_storage_ops_class:
                 mock_storage_ops = AsyncMock()
@@ -367,11 +373,7 @@ class TestImportStorageHandler:
                             mock_background_service = AsyncMock()
                             mock_background_service.start_background_flow_execution.return_value = None
                             mock_background_service_class.return_value = mock_background_service
-
-                            # Mock the transaction context manager
-                            mock_transaction_manager.transaction.return_value.__aenter__ = AsyncMock()
-                            mock_transaction_manager.transaction.return_value.__aexit__ = AsyncMock()
-
+                            
                             result = await handler.handle_import(sample_store_request, mock_context)
 
                             assert result["success"] is True

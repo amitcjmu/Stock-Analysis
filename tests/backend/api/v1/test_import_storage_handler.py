@@ -188,8 +188,7 @@ class TestGetLatestImport:
     @pytest.mark.asyncio
     async def test_get_latest_import_missing_context(self, mock_db_session, mock_request):
         """Test handling of missing context"""
-        mock_request.headers = {}  # Empty headers
-
+       
         with patch(
             "app.api.v1.endpoints.data_import.handlers.import_storage_handler.extract_context_from_request"
         ) as mock_extract_context:
