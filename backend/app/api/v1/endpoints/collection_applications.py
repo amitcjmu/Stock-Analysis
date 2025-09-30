@@ -58,9 +58,23 @@ async def update_flow_applications(
     """
     # Use proper transaction management without nested contexts
     try:
+        # DEBUG LOGGING: Log raw request data received
+        logger.debug(
+            f"update_flow_applications called - Flow ID: {flow_id}, "
+            f"User ID: {current_user.id}, Engagement ID: {context.engagement_id}, "
+            f"Raw request data: {request_data.dict()}"
+        )
+
         # Extract validated data from Pydantic model
         selected_application_ids = request_data.selected_application_ids
         action = request_data.action
+
+        # DEBUG LOGGING: Log parsed application_ids after validation
+        logger.debug(
+            f"Parsed application IDs after initial extraction - "
+            f"Count: {len(selected_application_ids)}, IDs: {selected_application_ids}, "
+            f"Action: {action}"
+        )
 
         # CC: Normalize and deduplicate application IDs while preserving order
         normalized_ids = []
@@ -77,6 +91,14 @@ async def update_flow_applications(
             if normalized_id not in seen_ids:
                 normalized_ids.append(normalized_id)
                 seen_ids.add(normalized_id)
+
+        # DEBUG LOGGING: Log normalized application IDs after deduplication
+        logger.debug(
+            f"Normalized application IDs after deduplication - "
+            f"Original count: {len(selected_application_ids)}, "
+            f"Normalized count: {len(normalized_ids)}, "
+            f"Normalized IDs: {normalized_ids}"
+        )
 
         if not normalized_ids:
             logger.warning(f"No valid application IDs provided for flow {flow_id}")
@@ -242,7 +264,7 @@ async def update_flow_applications(
                     # CRITICAL BUG FIX: Create CollectionFlowApplication record
                     # This was missing and causing no records in collection_flow_applications table
                     collection_flow_app = CollectionFlowApplication(
-                        collection_flow_id=collection_flow.flow_id,
+                        collection_flow_id=collection_flow.id,  # FIXED: Use .id (PK) not .flow_id
                         asset_id=asset_id,
                         application_name=application_name,
                         canonical_application_id=canonical_app_id,
@@ -265,33 +287,33 @@ async def update_flow_applications(
                     )
 
                     # Also update asset table with collection reference if needed
-                    asset.collection_flow_id = collection_flow.flow_id
+                    asset.collection_flow_id = (
+                        collection_flow.id
+                    )  # FIXED: Use .id (PK) not .flow_id
                     asset.updated_at = datetime.now(timezone.utc)
-                except Exception as e:
-                    logger.error(
-                        f"Deduplication persistence failed for asset {asset_id}: {e}"
-                    )
-                    continue
 
+                    # CRITICAL FIX: Add to results BEFORE the except block
                     deduplication_results.append(
                         {
                             "asset_id": str(asset_id),
-                            "canonical_application_id": str(
-                                dedup_result.canonical_application.id
-                            ),
+                            "canonical_application_id": str(canonical_app_id),
                             "application_name": application_name,
-                            "match_method": dedup_result.match_method.value,
-                            "similarity_score": dedup_result.similarity_score,
-                            "confidence_score": dedup_result.confidence_score,
-                            "is_new_canonical": dedup_result.is_new_canonical,
+                            "match_method": getattr(match_method, "value", "unknown"),
+                            "similarity_score": similarity if similarity else 0.0,
+                            "confidence_score": getattr(
+                                dedup_result, "confidence_score", 0.0
+                            ),
+                            "is_new_canonical": getattr(
+                                dedup_result, "is_new_canonical", False
+                            ),
                             "created_at": datetime.now(timezone.utc).isoformat(),
                         }
                     )
 
                     logger.info(
                         f"Successfully deduplicated application '{application_name}' -> "
-                        f"canonical: '{dedup_result.canonical_application.canonical_name}' "
-                        f"(method: {dedup_result.match_method.value}, score: {dedup_result.similarity_score:.3f})"
+                        f"canonical app ID: {canonical_app_id} "
+                        f"(method: {getattr(match_method, 'value', 'unknown')}, score: {similarity if similarity else 0.0:.3f})"
                     )
 
                 except Exception as dedup_error:
@@ -333,8 +355,22 @@ async def update_flow_applications(
             f"created {len(deduplication_results)} normalized records"
         )
 
+        # DEBUG LOGGING: Log database update attempt
+        logger.debug(
+            f"Attempting database commit for flow {flow_id} - "
+            f"Processed applications: {processed_count}, "
+            f"Normalized records: {len(deduplication_results)}"
+        )
+
         # Commit all changes up to this point
         await db.commit()
+
+        # DEBUG LOGGING: Log successful database update
+        logger.debug(
+            f"Database update successful for flow {flow_id} - "
+            f"Collection config updated, {processed_count} applications processed, "
+            f"{len(deduplication_results)} normalized records created"
+        )
 
         # Transition to GAP_ANALYSIS phase after asset selection (if in ASSET_SELECTION phase)
         if collection_flow.master_flow_id:
@@ -436,6 +472,12 @@ async def update_flow_applications(
         # HTTPExceptions should propagate as-is
         raise
     except Exception as e:
+        # DEBUG LOGGING: Log detailed failure information
+        logger.debug(
+            f"Database update failed for flow {flow_id} - "
+            f"User: {current_user.id}, Engagement: {context.engagement_id}, "
+            f"Exception type: {type(e).__name__}, Exception: {str(e)}"
+        )
         logger.error(f"Error updating collection flow {flow_id} applications: {str(e)}")
         # CC: Don't echo exception text in responses (security concern)
         raise HTTPException(

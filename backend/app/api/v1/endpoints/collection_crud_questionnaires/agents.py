@@ -77,7 +77,11 @@ async def _execute_questionnaire_tool(
             data_gaps=data_gaps,
             business_context=agent_inputs["business_context"],
         )
-        logger.info(f"Tool returned type: {type(result)}, value: {result}")
+        logger.info(f"🔍 Tool _arun returned type: {type(result)}")
+        logger.info(
+            f"🔍 Tool _arun returned keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}"
+        )
+        logger.info(f"🔍 Tool _arun returned value: {result}")
         # Ensure result is a dict
         if isinstance(result, str):
             # Try to parse as JSON if it's a string

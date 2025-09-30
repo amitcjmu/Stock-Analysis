@@ -107,9 +107,8 @@ async def get_adaptive_questionnaires(
             return existing_questionnaires
 
         # Get existing assets for this engagement
-        existing_assets = await _get_existing_assets(db, context)
-
-        logger.info(f"Found {len(existing_assets)} existing assets for engagement")
+        all_assets = await _get_existing_assets(db, context)
+        logger.info(f"Found {len(all_assets)} total assets for engagement")
 
         # Debug logging for metadata check
         logger.info(f"flow.flow_metadata = {flow.flow_metadata}")
@@ -121,7 +120,9 @@ async def get_adaptive_questionnaires(
         )
         logger.info(f"use_agent_generation = {use_agent_gen}")
 
-        # Check if we're in asset_selection phase and need bootstrap questionnaire
+        # CRITICAL FIX: Check if we're in asset_selection phase FIRST
+        # This phase DOES NOT require selected_application_ids yet - it generates the bootstrap questionnaire
+        # that allows users TO SELECT assets
         if flow.current_phase == "asset_selection":
             logger.info(
                 f"Flow {flow_id} is in asset_selection phase - checking for bootstrap questionnaire or recovery needs"
@@ -140,7 +141,9 @@ async def get_adaptive_questionnaires(
                 # Convert bootstrap format to AdaptiveQuestionnaireResponse format
                 return [
                     AdaptiveQuestionnaireResponse(
-                        id=str(UUID("00000000-0000-0000-0000-000000000001")),
+                        id=bootstrap_q.get(
+                            "questionnaire_id", "bootstrap_asset_selection"
+                        ),
                         collection_flow_id=flow_id,
                         title=bootstrap_q.get(
                             "title", "Select Applications for Collection"
@@ -183,7 +186,9 @@ async def get_adaptive_questionnaires(
                         )
                         return [
                             AdaptiveQuestionnaireResponse(
-                                id=str(UUID("00000000-0000-0000-0000-000000000001")),
+                                id=bootstrap_q.get(
+                                    "questionnaire_id", "bootstrap_asset_selection"
+                                ),
                                 collection_flow_id=flow_id,
                                 title=bootstrap_q.get(
                                     "title", "Select Applications for Collection"
@@ -268,6 +273,39 @@ async def get_adaptive_questionnaires(
                         status_code=500,
                         detail=f"Failed to generate bootstrap questionnaire: {str(e)}",
                     )
+
+        # CRITICAL: For non-asset-selection phases, require selected assets
+        # Filter to only the selected assets from the collection flow
+        selected_asset_ids = []
+        if flow.collection_config and flow.collection_config.get(
+            "selected_application_ids"
+        ):
+            selected_asset_ids = flow.collection_config["selected_application_ids"]
+            logger.info(f"Flow has {len(selected_asset_ids)} selected application IDs")
+
+        # Filter assets to only those that were selected
+        existing_assets = []
+        if selected_asset_ids:
+            for asset in all_assets:
+                if str(asset.id) in selected_asset_ids:
+                    existing_assets.append(asset)
+            logger.info(
+                f"Filtered to {len(existing_assets)} selected assets for questionnaire generation"
+            )
+        else:
+            # CRITICAL: Do NOT generate questionnaires without asset selection
+            # This prevents generating irrelevant questions for all assets
+            logger.warning(
+                f"Flow {flow_id} in {flow.current_phase} phase but no assets selected. "
+                "Cannot generate questionnaire without asset selection."
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Asset selection required before questionnaire generation. "
+                    "Please select at least one asset first."
+                ),
+            )
 
         # AI agent generation should be the ONLY approach for non-asset-selection phases
         # Disable fallback mechanism to identify actual issues

@@ -16,6 +16,186 @@ class QuestionnaireGenerationTool:
         self.name = "questionnaire_generation"
         self.description = "Generate adaptive questions based on asset gaps and context"
 
+    async def _arun(
+        self,
+        data_gaps: Dict[str, Any],
+        business_context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Async method for generating comprehensive questionnaires from data gaps.
+
+        This is the PRIMARY method called by agents. It generates multiple sections
+        with targeted questions based on gap analysis.
+
+        Args:
+            data_gaps: Dict containing missing_critical_fields, unmapped_attributes, etc.
+            business_context: Context about the engagement, assets, etc.
+
+        Returns:
+            Structured dict with status and questionnaires containing sections and questions
+        """
+        try:
+            logger.info(
+                f"Generating questionnaires from data gaps for {business_context.get('total_assets', 0)} assets"
+            )
+
+            sections = []
+
+            # Section 1: Basic Information (always included)
+            basic_questions = []
+            basic_questions.append(
+                {
+                    "field_id": "collection_date",
+                    "question_text": "When was this information collected?",
+                    "field_type": "date",
+                    "required": False,
+                    "category": "metadata",
+                    "help_text": "Date when this data collection occurred",
+                }
+            )
+
+            sections.append(
+                {
+                    "section_id": "basic_information",
+                    "section_title": "Basic Information",
+                    "section_description": "General information about the assets being collected",
+                    "questions": basic_questions,
+                }
+            )
+
+            # Section 2: Critical Missing Fields
+            missing_fields = data_gaps.get("missing_critical_fields", {})
+            if missing_fields:
+                critical_questions = []
+                for asset_id, fields in missing_fields.items():
+                    for field in fields:
+                        # Generate question for each missing field
+                        asset_context = {
+                            "asset_id": asset_id,
+                            "asset_name": f"Asset {asset_id[:8]}",
+                            "field_name": field,
+                        }
+                        question = self._generate_missing_field_question(
+                            {}, asset_context
+                        )
+                        critical_questions.append(question)
+
+                if critical_questions:
+                    sections.append(
+                        {
+                            "section_id": "critical_fields",
+                            "section_title": "Critical Missing Information",
+                            "section_description": (
+                                "Please provide the following critical information "
+                                "required for migration planning"
+                            ),
+                            "questions": critical_questions,
+                        }
+                    )
+
+            # Section 3: Data Quality Issues
+            quality_issues = data_gaps.get("data_quality_issues", {})
+            if quality_issues:
+                quality_questions = []
+                for asset_id, issue_data in quality_issues.items():
+                    asset_context = {
+                        "asset_id": asset_id,
+                        "asset_name": f"Asset {asset_id[:8]}",
+                        "quality_issue": (
+                            f"Completeness: {issue_data.get('completeness', 0):.0%}, "
+                            f"Confidence: {issue_data.get('confidence', 0):.0%}"
+                        ),
+                    }
+                    question = self._generate_data_quality_question({}, asset_context)
+                    quality_questions.append(question)
+
+                if quality_questions:
+                    sections.append(
+                        {
+                            "section_id": "data_quality",
+                            "section_title": "Data Quality Verification",
+                            "section_description": "Please verify or correct the following information",
+                            "questions": quality_questions,
+                        }
+                    )
+
+            # Section 4: Unmapped Attributes
+            unmapped = data_gaps.get("unmapped_attributes", {})
+            if unmapped:
+                unmapped_questions = []
+                for asset_id, attributes in unmapped.items():
+                    for attr in attributes[
+                        :5
+                    ]:  # Limit to 5 per asset to avoid overwhelming
+                        asset_context = {
+                            "asset_id": asset_id,
+                            "asset_name": f"Asset {asset_id[:8]}",
+                            "attribute_name": attr.get("field"),
+                            "attribute_value": attr.get("value"),
+                            "suggested_mapping": attr.get("potential_mapping"),
+                        }
+                        question = self._generate_unmapped_attribute_question(
+                            {}, asset_context
+                        )
+                        unmapped_questions.append(question)
+
+                if unmapped_questions:
+                    sections.append(
+                        {
+                            "section_id": "unmapped_attributes",
+                            "section_title": "Unmapped Data Fields",
+                            "section_description": "Help us map the following fields from your data",
+                            "questions": unmapped_questions,
+                        }
+                    )
+
+            # Section 5: Technical Details (for assets with gaps)
+            assets_with_gaps = data_gaps.get("assets_with_gaps", [])
+            if assets_with_gaps:
+                technical_questions = []
+                for asset_id in assets_with_gaps[:3]:  # Limit to first 3 assets
+                    asset_context = {
+                        "asset_id": asset_id,
+                        "asset_name": f"Asset {asset_id[:8]}",
+                        "asset_type": "application",  # Default, should come from actual asset data
+                    }
+                    question = self._generate_technical_detail_question(
+                        {}, asset_context
+                    )
+                    technical_questions.append(question)
+
+                if technical_questions:
+                    sections.append(
+                        {
+                            "section_id": "technical_details",
+                            "section_title": "Technical Details",
+                            "section_description": "Additional technical information needed for migration planning",
+                            "questions": technical_questions,
+                        }
+                    )
+
+            # Return structured response
+            result = {
+                "status": "success",
+                "questionnaires": sections,  # Note: using 'questionnaires' key as expected by parser
+                "metadata": {
+                    "total_sections": len(sections),
+                    "total_questions": sum(len(s["questions"]) for s in sections),
+                    "assets_analyzed": business_context.get("total_assets", 0),
+                    "assets_with_gaps": len(assets_with_gaps),
+                },
+            }
+
+            logger.info(
+                f"Generated {len(sections)} sections with {result['metadata']['total_questions']} total questions"
+            )
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in _arun questionnaire generation: {e}", exc_info=True)
+            # Return error response
+            return {"status": "error", "error": str(e), "questionnaires": []}
+
     def _run(
         self,
         asset_analysis: Dict[str, Any],

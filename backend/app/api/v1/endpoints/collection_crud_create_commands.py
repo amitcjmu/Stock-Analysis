@@ -160,34 +160,49 @@ async def create_collection_from_discovery(
         collection_flow.master_flow_id = uuid.UUID(master_flow_id)
         # Transaction context manager will handle the final commit
 
-        # Initialize background execution for the collection flow (outside transaction)
-        logger.info(
-            f"🚀 Initializing background execution for collection flow {flow_id}"
-        )
-        try:
-            execution_result = await collection_utils.initialize_mfo_flow_execution(
-                db=db,
-                context=context,
-                master_flow_id=uuid.UUID(master_flow_id),
-                flow_type="collection",
-                initial_state=flow_input,
-            )
+        # Check if initial phase requires user input before executing
+        # Phases like asset_selection need user interaction before agents can proceed
+        PHASES_REQUIRING_USER_INPUT = [
+            CollectionPhase.ASSET_SELECTION.value,
+        ]
 
-            # Check execution result status
-            if execution_result.get("status") == "failed":
+        if collection_flow.current_phase in PHASES_REQUIRING_USER_INPUT:
+            logger.info(
+                f"⏸️  Phase '{collection_flow.current_phase}' requires user input - "
+                f"skipping automatic execution for flow {flow_id}"
+            )
+            # Flow is created and ready - execution will happen after user provides input
+        else:
+            # Initialize background execution for the collection flow (outside transaction)
+            logger.info(
+                f"🚀 Initializing background execution for collection flow {flow_id}"
+            )
+            try:
+                execution_result = await collection_utils.initialize_mfo_flow_execution(
+                    db=db,
+                    context=context,
+                    master_flow_id=uuid.UUID(master_flow_id),
+                    flow_type="collection",
+                    initial_state=flow_input,
+                )
+
+                # Check execution result status
+                if execution_result.get("status") == "failed":
+                    logger.error(
+                        f"❌ Failed to initialize background execution: "
+                        f"{execution_result.get('error', 'Unknown error')}"
+                    )
+                    # Don't fail the entire flow creation, just log the error
+                else:
+                    logger.info(
+                        f"✅ Background execution initialized for collection flow: "
+                        f"{execution_result}"
+                    )
+            except Exception as exec_error:
                 logger.error(
-                    f"❌ Failed to initialize background execution: "
-                    f"{execution_result.get('error', 'Unknown error')}"
+                    f"❌ Background execution initialization failed: {exec_error}"
                 )
-                # Don't fail the entire flow creation, just log the error
-            else:
-                logger.info(
-                    f"✅ Background execution initialized for collection flow: "
-                    f"{execution_result}"
-                )
-        except Exception as exec_error:
-            logger.error(f"❌ Background execution initialization failed: {exec_error}")
-            # Don't fail the entire flow creation - flow is already committed
+                # Don't fail the entire flow creation - flow is already committed
 
         logger.info(
             "Created collection flow %s from discovery flow %s with %d applications",
@@ -424,34 +439,49 @@ async def create_collection_flow(
         collection_flow.master_flow_id = uuid.UUID(master_flow_id)
         # Transaction context manager will handle the final commit
 
-        # Initialize background execution for the collection flow (outside transaction)
-        logger.info(
-            f"🚀 Initializing background execution for collection flow {flow_id}"
-        )
-        try:
-            execution_result = await collection_utils.initialize_mfo_flow_execution(
-                db=db,
-                context=context,
-                master_flow_id=uuid.UUID(master_flow_id),
-                flow_type="collection",
-                initial_state=flow_input,
-            )
+        # Check if initial phase requires user input before executing
+        # Phases like asset_selection need user interaction before agents can proceed
+        PHASES_REQUIRING_USER_INPUT = [
+            CollectionPhase.ASSET_SELECTION.value,
+        ]
 
-            # Check execution result status
-            if execution_result.get("status") == "failed":
+        if collection_flow.current_phase in PHASES_REQUIRING_USER_INPUT:
+            logger.info(
+                f"⏸️  Phase '{collection_flow.current_phase}' requires user input - "
+                f"skipping automatic execution for flow {flow_id}"
+            )
+            # Flow is created and ready - execution will happen after user provides input
+        else:
+            # Initialize background execution for the collection flow (outside transaction)
+            logger.info(
+                f"🚀 Initializing background execution for collection flow {flow_id}"
+            )
+            try:
+                execution_result = await collection_utils.initialize_mfo_flow_execution(
+                    db=db,
+                    context=context,
+                    master_flow_id=uuid.UUID(master_flow_id),
+                    flow_type="collection",
+                    initial_state=flow_input,
+                )
+
+                # Check execution result status
+                if execution_result.get("status") == "failed":
+                    logger.error(
+                        f"❌ Failed to initialize background execution: "
+                        f"{execution_result.get('error', 'Unknown error')}"
+                    )
+                    # Don't fail the entire flow creation, just log the error
+                else:
+                    logger.info(
+                        f"✅ Background execution initialized for collection flow: "
+                        f"{execution_result}"
+                    )
+            except Exception as exec_error:
                 logger.error(
-                    f"❌ Failed to initialize background execution: "
-                    f"{execution_result.get('error', 'Unknown error')}"
+                    f"❌ Background execution initialization failed: {exec_error}"
                 )
-                # Don't fail the entire flow creation, just log the error
-            else:
-                logger.info(
-                    f"✅ Background execution initialized for collection flow: "
-                    f"{execution_result}"
-                )
-        except Exception as exec_error:
-            logger.error(f"❌ Background execution initialization failed: {exec_error}")
-            # Don't fail the entire flow creation - flow is already committed
+                # Don't fail the entire flow creation - flow is already committed
 
         logger.info(
             safe_log_format(

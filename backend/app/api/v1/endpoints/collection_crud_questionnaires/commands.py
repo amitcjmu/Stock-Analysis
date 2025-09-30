@@ -142,6 +142,9 @@ async def _do_update_questionnaire_status(
 
         if questions:
             update_data["questions"] = questions
+            update_data["question_count"] = len(
+                questions
+            )  # Update question_count column
             update_data["description"] = (
                 f"AI-Generated questionnaire with {len(questions)} targeted questions"
             )
@@ -196,11 +199,38 @@ async def _background_generate(
             # Extract questions from first questionnaire
             questions = questionnaires[0].questions if questionnaires else []
 
-            # Update questionnaire with generated questions
+            # Update questionnaire with generated questions AND progress flow status
             async with AsyncSessionLocal() as db:
                 await _update_questionnaire_status(
                     questionnaire_id, "completed", questions, db=db
                 )
+
+                # Progress flow to manual_collection phase now that questionnaire is ready
+                from sqlalchemy import select, update as sql_update
+
+                flow_result = await db.execute(
+                    select(CollectionFlow).where(
+                        CollectionFlow.flow_id == UUID(flow_id)
+                    )
+                )
+                current_flow = flow_result.scalar_one_or_none()
+
+                if current_flow and current_flow.current_phase in [
+                    "initialized",
+                    "gap_analysis",
+                ]:
+                    await db.execute(
+                        sql_update(CollectionFlow)
+                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        .values(
+                            current_phase="manual_collection",
+                            status="manual_collection",
+                            progress_percentage=50.0,  # Questionnaire generated = 50% progress
+                            updated_at=datetime.now(timezone.utc),
+                        )
+                    )
+                    await db.commit()
+                    logger.info(f"Progressed flow {flow_id} to manual_collection phase")
 
             logger.info(
                 f"Successfully generated {len(questions)} questions for flow {flow_id}"

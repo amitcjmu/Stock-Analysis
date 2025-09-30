@@ -317,7 +317,7 @@ export const convertQuestionnairesToFormData = (
     const isAssetSelectionBootstrap = questionnaireId === 'bootstrap_asset_selection';
 
     if (isAssetSelectionBootstrap) {
-      console.log('🎯 Converting bootstrap_asset_selection questionnaire');
+      console.log('🎯 Converting bootstrap_asset_selection questionnaire (ID:', questionnaireId, ')');
 
       // For bootstrap asset selection, ensure we have the correct structure
       const assetSelectionQuestions = questions.map(q => ({
@@ -331,7 +331,7 @@ export const convertQuestionnairesToFormData = (
       const sections = groupQuestionsIntoSections(assetSelectionQuestions);
 
       return {
-        formId: questionnaireId,
+        formId: 'bootstrap_asset_selection', // Always use this ID for asset selection forms
         applicationId: applicationId || 'app-new',
         sections,
         totalFields: questions.length,

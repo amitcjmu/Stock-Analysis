@@ -35,6 +35,10 @@ try:
     from app.services.tools.asset_intelligence_tools import (
         get_asset_intelligence_tools,
     )
+    from app.services.ai_analysis.questionnaire_generator.tools import (
+        create_questionnaire_generation_tools,
+        create_gap_analysis_tools,
+    )
 
     TOOLS_AVAILABLE = True
 except ImportError as e:
@@ -49,6 +53,8 @@ except ImportError as e:
     create_dependency_analysis_tools = None
     MappingConfidenceTool = None
     get_asset_intelligence_tools = None
+    create_questionnaire_generation_tools = None
+    create_gap_analysis_tools = None
 
 logger = logging.getLogger(__name__)
 
@@ -145,9 +151,39 @@ class AgentToolManager:
                 )
 
             elif agent_type == "questionnaire_generator":
-                # Questionnaire tools
+                # Questionnaire generation tools
                 tools_added += cls._safe_extend_tools(
-                    tools, create_task_completion_tools, "task completion", context_info
+                    tools,
+                    create_questionnaire_generation_tools,
+                    "questionnaire generation",
+                    context_info,
+                )
+                tools_added += cls._safe_extend_tools(
+                    tools, create_gap_analysis_tools, "gap analysis", context_info
+                )
+                tools_added += cls._safe_extend_tools(
+                    tools,
+                    get_asset_intelligence_tools,
+                    "asset intelligence",
+                    context_info,
+                )
+
+            elif agent_type == "business_value_analyst":
+                # Business value analysis tools for gap analysis and questionnaire generation
+                tools_added += cls._safe_extend_tools(
+                    tools, create_gap_analysis_tools, "gap analysis", context_info
+                )
+                tools_added += cls._safe_extend_tools(
+                    tools,
+                    create_questionnaire_generation_tools,
+                    "questionnaire generation",
+                    context_info,
+                )
+                tools_added += cls._safe_extend_tools(
+                    tools,
+                    get_asset_intelligence_tools,
+                    "asset intelligence",
+                    context_info,
                 )
 
             elif agent_type == "six_r_analyzer":
@@ -315,6 +351,7 @@ class AgentToolManager:
     ) -> int:
         """Safely extend tools list with error handling."""
         if not getter:
+            logger.warning(f"Skipping {tool_name} - getter is None or False")
             return 0
 
         try:
@@ -324,6 +361,8 @@ class AgentToolManager:
             sig = inspect.signature(getter)
             params = sig.parameters
 
+            logger.debug(f"Tool {tool_name} - signature params: {list(params.keys())}")
+
             # CC: Check if function requires registry parameter (for new tool pattern)
             if "registry" in params:
                 # Extract service_registry from context_info if available
@@ -331,8 +370,8 @@ class AgentToolManager:
                     context_info.get("service_registry") if context_info else None
                 )
                 # Debug logging for ServiceRegistry
-                logger.debug(
-                    f"Tool {tool_name} requires registry. "
+                logger.warning(
+                    f"Tool {tool_name} requires registry parameter. "
                     f"ServiceRegistry available: {service_registry is not None}"
                 )
                 # Skip tools that require ServiceRegistry when none is available
@@ -348,16 +387,26 @@ class AgentToolManager:
                 else:
                     new_tools = getter(registry=service_registry)
             elif "context_info" in params and context_info is not None:
+                logger.debug(
+                    f"Tool {tool_name} requires context_info - calling with context"
+                )
                 new_tools = getter(context_info)
             else:
+                logger.debug(f"Tool {tool_name} requires no params - calling getter()")
                 new_tools = getter()
+
+            logger.info(
+                f"Tool {tool_name} returned {len(new_tools) if new_tools else 0} tools"
+            )
 
             if new_tools:
                 tools.extend(new_tools)
-                logger.debug(f"Added {len(new_tools)} {tool_name}")
+                logger.info(f"Successfully added {len(new_tools)} {tool_name}")
                 return len(new_tools)
+            else:
+                logger.warning(f"Tool {tool_name} getter returned None or empty list")
         except Exception as e:
-            logger.warning(f"Failed to add {tool_name}: {e}")
+            logger.error(f"Failed to add {tool_name}: {e}", exc_info=True)
 
         return 0
 

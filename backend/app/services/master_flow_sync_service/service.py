@@ -263,15 +263,18 @@ class MasterFlowSyncService:
             return
 
         # Map and update collection flow with master flow data
+        # Per ADR-012: Child flows OWN their current_phase progression
+        # Master flow only tracks high-level lifecycle status
         update_fields = {
             "status": self.mapper.map_master_to_child_status(master_flow.flow_status),
             "progress_percentage": self.mapper.extract_progress_from_metadata(
                 master_flow.flow_metadata
             )
             or 0,
-            "current_phase": self.mapper.extract_phase_from_metadata(
-                master_flow.flow_metadata
-            ),
+            # ADR-012: Do NOT overwrite current_phase - child flow owns operational phase
+            # "current_phase": self.mapper.extract_phase_from_metadata(
+            #     master_flow.flow_metadata
+            # ),
             "updated_at": datetime.utcnow(),
         }
 

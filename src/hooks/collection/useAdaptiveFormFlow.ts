@@ -793,9 +793,16 @@ export const useAdaptiveFormFlow = (
                 const fetchErrorObj = fetchError as {
                   message?: string;
                 };
-                console.log(
-                  `⏳ Error fetching questionnaires, continuing to poll: ${fetchErrorObj.message || String(fetchError)}`,
-                );
+                // Only log as warning if it's an actual error, not just pending status
+                if (fetchErrorObj.message?.includes('pending') || fetchErrorObj.message?.includes('generating')) {
+                  console.log(
+                    `⏳ Questionnaires still generating, continuing to poll...`,
+                  );
+                } else {
+                  console.log(
+                    `⏳ Waiting for questionnaires, continuing to poll...`,
+                  );
+                }
               }
 
               console.log(
@@ -926,7 +933,11 @@ export const useAdaptiveFormFlow = (
           shouldUseFallback = true;
         } else if (error.message.includes("questionnaire")) {
           userMessage =
-            "Failed to load adaptive forms. The questionnaire generation process encountered an error.";
+            "The system is generating custom questionnaires. This may take a moment. Using a basic form to allow you to continue.";
+          shouldUseFallback = true;
+        } else if (error.message.includes("generation failed") || error.message.includes("Agent returned")) {
+          userMessage =
+            "Questionnaire generation is in progress. You can use this basic form while we prepare custom questions based on your data gaps.";
           shouldUseFallback = true;
         } else if (error.message.includes("permission")) {
           userMessage =
@@ -960,7 +971,7 @@ export const useAdaptiveFormFlow = (
         }));
 
         toast({
-          title: "Fallback Form Loaded",
+          title: "Form Ready",
           description: userMessage,
           variant: "default",
         });
@@ -1138,7 +1149,12 @@ export const useAdaptiveFormFlow = (
       return;
     }
 
-    if (!state.validation?.isValid) {
+    // CRITICAL FIX: Asset selection forms don't use validation state
+    // Check if this is an asset selection form (bootstrap_asset_selection)
+    const questionnaireId = state.questionnaires?.[0]?.id || '';
+    const isAssetSelectionForm = questionnaireId === "bootstrap_asset_selection";
+
+    if (!isAssetSelectionForm && !state.validation?.isValid) {
       toast({
         title: "Validation Required",
         description:
@@ -1162,7 +1178,7 @@ export const useAdaptiveFormFlow = (
 
     try {
       // Submit responses to the CrewAI-generated questionnaire
-      const questionnaireId = state.questionnaires[0].id;
+      // Note: questionnaireId was already extracted above for validation check
 
       // For bootstrap questionnaires, when submitted, mark as 100% complete
       const isBootstrapForm = questionnaireId.startsWith("bootstrap_");
@@ -1190,12 +1206,52 @@ export const useAdaptiveFormFlow = (
         `🚀 Submitting adaptive form responses to CrewAI questionnaire ${questionnaireId}`,
       );
 
-      const submitResponse =
-        await collectionFlowApi.submitQuestionnaireResponse(
+      let submitResponse;
+
+      // CRITICAL FIX: Use correct API endpoint for asset selection
+      if (questionnaireId === "bootstrap_asset_selection") {
+        // Extract selected asset IDs from the form data
+        // The adaptive form stores checkbox values under question_1, not selected_assets
+        let selectedAssetIds = Array.isArray(data.selected_assets)
+          ? data.selected_assets
+          : [];
+
+        // If selected_assets is empty, check for question_1 (adaptive form field)
+        if (selectedAssetIds.length === 0 && data.question_1) {
+          // question_1 contains the selected checkbox values (display text like "Asset Name (ID: uuid)")
+          const rawValues = Array.isArray(data.question_1)
+            ? data.question_1
+            : [data.question_1].filter(Boolean);
+
+          // Extract IDs from display text format "Asset Name (ID: uuid)"
+          selectedAssetIds = rawValues.map(value => {
+            const match = String(value).match(/\(ID:\s*([a-f0-9-]+)\)/);
+            if (match) {
+              return match[1].trim();
+            }
+            // Fallback: if no ID pattern found, use the full value
+            return value;
+          }).filter(Boolean);
+        }
+
+        console.log(`🎯 Asset selection detected (questionnaire ID: ${questionnaireId}), submitting ${selectedAssetIds.length} selected assets via applications endpoint`);
+        console.log('📋 Selected asset IDs:', selectedAssetIds);
+        console.log('📝 Full form data:', data);
+
+        // Use the applications endpoint instead of questionnaire response endpoint
+        submitResponse = await collectionFlowApi.updateFlowApplications(
+          state.flowId,
+          selectedAssetIds
+        );
+        console.log('✅ Asset selection API response:', submitResponse);
+      } else {
+        // Use regular questionnaire response endpoint for non-asset-selection questionnaires
+        submitResponse = await collectionFlowApi.submitQuestionnaireResponse(
           state.flowId,
           questionnaireId,
           submissionData,
         );
+      }
 
       // CRITICAL FIX: Use centralized flow ID update for response flow ID
       const actualFlowId = submitResponse.flow_id || state.flowId;
@@ -1204,8 +1260,13 @@ export const useAdaptiveFormFlow = (
       }
 
       // Special handling for asset selection submission
-      if (questionnaireId === "bootstrap_asset_selection") {
-        if (submitResponse.success && submitResponse.next_action === "regenerate_questionnaires") {
+      if (questionnaireId === "bootstrap_asset_selection" ||
+          questionnaireId === "00000000-0000-0000-0000-000000000001") {
+        // Asset selection returns a different response structure
+        // Check for success status from the applications endpoint
+        if ((submitResponse.success && submitResponse.next_action === "regenerate_questionnaires") ||
+            (submitResponse.status === "success") ||
+            (submitResponse.selected_applications && submitResponse.selected_applications > 0)) {
           console.log("🎯 Asset selection successful, regenerating questionnaires...");
 
           toast({

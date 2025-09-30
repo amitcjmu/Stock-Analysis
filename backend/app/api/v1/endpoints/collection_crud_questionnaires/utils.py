@@ -175,14 +175,21 @@ def _find_unmapped_attributes(raw_data: dict, field_mappings: dict) -> List[dict
 
 
 def _check_missing_critical_fields(asset) -> List[str]:
-    """Check for missing critical fields in asset."""
+    """
+    Check for missing critical fields in asset.
+
+    NOTE: Only includes fields that need to be COLLECTED from users.
+    Computed fields (six_r_strategy, migration_complexity) are excluded
+    as they are calculated by the system based on collected data.
+
+    business_owner and technical_owner are included as they provide
+    essential accountability and contact information for migration planning.
+    """
     critical_fields = [
-        "business_owner",
-        "technical_owner",
-        "six_r_strategy",
-        "migration_complexity",
-        "dependencies",
-        "operating_system",
+        "business_owner",  # Essential for accountability and approvals
+        "technical_owner",  # Essential for technical decisions and implementation
+        "dependencies",  # Critical for sequencing and risk assessment
+        "operating_system",  # Critical for compatibility and platform planning
     ]
     missing_fields = []
     for field in critical_fields:
@@ -275,8 +282,54 @@ def _extract_questionnaire_data(
     agent_result: dict, flow_id: str
 ) -> List[AdaptiveQuestionnaireResponse]:
     """Extract and convert questionnaire data from agent results."""
+    # Log the keys we received for debugging
+    logger.info(f"Agent result keys: {list(agent_result.keys())}")
+
+    # CRITICAL DEBUG: Log the full agent result structure to identify format
+    import json
+
+    try:
+        result_json = json.dumps(agent_result, indent=2, default=str)
+        logger.info(f"🔍 FULL AGENT RESULT STRUCTURE:\n{result_json}")
+    except Exception as e:
+        logger.warning(f"Could not serialize agent result: {e}")
+        logger.info(
+            f"🔍 AGENT RESULT TYPE: {type(agent_result)}, STR: {str(agent_result)[:500]}"
+        )
+
+    # Try multiple paths to find questionnaire data
     questionnaires_data = agent_result.get("questionnaires", [])
     sections_data = agent_result.get("sections", [])
+
+    # Check for common alternative structures
+    if not questionnaires_data and not sections_data:
+        # Check for result wrapper
+        if "result" in agent_result:
+            result_data = agent_result["result"]
+            if isinstance(result_data, dict):
+                questionnaires_data = result_data.get("questionnaires", [])
+                sections_data = result_data.get("sections", [])
+
+        # Check for data wrapper
+        if not questionnaires_data and not sections_data and "data" in agent_result:
+            data = agent_result["data"]
+            if isinstance(data, dict):
+                questionnaires_data = data.get("questionnaires", [])
+                sections_data = data.get("sections", [])
+
+        # Check for forms or items
+        if not questionnaires_data and not sections_data:
+            questionnaires_data = agent_result.get("forms", [])
+            if not questionnaires_data:
+                items = agent_result.get("items", [])
+                if items:
+                    # Convert items to sections format
+                    sections_data = [
+                        {"questions": items, "section_title": "Data Collection"}
+                    ]
+
+    # Initialize data_to_process to avoid UnboundLocalError
+    data_to_process = None
 
     # Handle different result formats
     if questionnaires_data:
@@ -288,8 +341,62 @@ def _extract_questionnaire_data(
         agent_output = agent_result.get("agent_output", {})
         if isinstance(agent_output, dict):
             data_to_process = agent_output.get("sections", [])
-        else:
-            logger.warning("No questionnaire data found in agent result")
+            if not data_to_process:
+                # Check result.sections in agent_output
+                if "result" in agent_output and isinstance(
+                    agent_output["result"], dict
+                ):
+                    data_to_process = agent_output["result"].get("sections", [])
+
+        # If still no data, check if we have processed_data with gap_analysis
+        if not data_to_process and "processed_data" in agent_result:
+            processed = agent_result["processed_data"]
+            if isinstance(processed, dict) and "gap_analysis" in processed:
+                # Generate questionnaire from gap analysis
+                logger.info("Generating questionnaire from gap_analysis data")
+                gap_analysis = processed["gap_analysis"]
+
+                # Create default questionnaire structure from gaps
+                questions = []
+
+                # Add questions for missing critical fields
+                if isinstance(gap_analysis, dict) and gap_analysis.get(
+                    "missing_critical_fields"
+                ):
+                    for asset_id, fields in gap_analysis[
+                        "missing_critical_fields"
+                    ].items():
+                        for field in fields:
+                            questions.append(
+                                {
+                                    "field_id": field,
+                                    "question_text": f"Please provide {field.replace('_', ' ').title()}",
+                                    "field_type": "text",
+                                    "required": True,
+                                    "category": "critical_field",
+                                    "metadata": {"asset_id": asset_id},
+                                }
+                            )
+
+                # Create a section with the questions
+                if questions:
+                    data_to_process = [
+                        {
+                            "section_id": "gap_resolution",
+                            "section_title": "Data Gap Resolution",
+                            "section_description": "Please provide missing critical information",
+                            "questions": questions,
+                        }
+                    ]
+
+        if not data_to_process:
+            logger.warning(
+                f"No questionnaire data found in agent result. Keys available: {list(agent_result.keys())}"
+            )
+            if agent_result:
+                # Log a sample of the structure for debugging (sanitized)
+                sample = str(agent_result)[:500] if agent_result else "Empty result"
+                logger.warning(f"Agent result sample: {sample}")
             raise Exception("Agent returned success but no questionnaire data")
 
     # Convert agent results to AdaptiveQuestionnaireResponse format

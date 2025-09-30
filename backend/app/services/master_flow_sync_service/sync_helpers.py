@@ -82,15 +82,24 @@ class SyncHelpers:
         master_phase: Optional[str],
         error_message: Optional[str] = None,
     ):
-        """Sync master flow data to collection flow"""
+        """
+        Sync master flow data to collection flow.
+
+        Per ADR-012: Master flow tracks lifecycle (running/completed/failed),
+        while child flow owns operational phase progression (asset_selection/gap_analysis/etc).
+        We sync lifecycle status but DO NOT overwrite current_phase.
+        """
         update_fields = {
             "status": self.mapper.map_master_to_child_status(master_status),
             "progress_percentage": master_progress,
             "updated_at": datetime.utcnow(),
         }
 
-        if master_phase:
-            update_fields["current_phase"] = master_phase
+        # ADR-012: Do NOT overwrite current_phase from master flow
+        # Child flows own their operational phase progression
+        # Only sync lifecycle status, not operational phases
+        # if master_phase:
+        #     update_fields["current_phase"] = master_phase  # REMOVED per ADR-012
 
         if error_message:
             update_fields["error_message"] = error_message
@@ -165,15 +174,23 @@ class SyncHelpers:
         master_phase: Optional[str],
         error_message: Optional[str] = None,
     ):
-        """Sync master flow data to assessment flow"""
+        """
+        Sync master flow data to assessment flow.
+
+        Per ADR-012: Master flow tracks lifecycle (running/completed/failed),
+        while child flow owns operational phase progression.
+        We sync lifecycle status but DO NOT overwrite current_phase.
+        """
         update_fields = {
             "status": self.mapper.map_master_to_child_status(master_status),
             "progress": master_progress,
             "updated_at": datetime.utcnow(),
         }
 
-        if master_phase:
-            update_fields["current_phase"] = master_phase
+        # ADR-012: Do NOT overwrite current_phase from master flow
+        # Child flows own their operational phase progression
+        # if master_phase:
+        #     update_fields["current_phase"] = master_phase  # REMOVED per ADR-012
 
         if error_message:
             update_fields["error_message"] = error_message
