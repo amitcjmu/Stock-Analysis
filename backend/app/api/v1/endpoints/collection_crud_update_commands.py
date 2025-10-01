@@ -236,8 +236,9 @@ async def submit_questionnaire_response(
 
             # Return clear error message directing to proper endpoint
             raise HTTPException(
-                status_code=400,
+                status_code=422,  # Changed from 400 to align with frontend error handling
                 detail={
+                    "code": "invalid_asset_selection_endpoint",
                     "error": "Invalid endpoint for asset selection",
                     "message": (
                         "Asset selection must be done through the dedicated applications endpoint, "
@@ -246,12 +247,7 @@ async def submit_questionnaire_response(
                     "correct_endpoint": f"/api/v1/collection/flows/{flow_id}/applications",
                     "method": "POST",
                     "expected_payload": {
-                        "selected_application_ids": [
-                            "list",
-                            "of",
-                            "application",
-                            "ids",
-                        ],
+                        "selected_application_ids": ["<application-id>", "..."],
                         "action": "select_applications",
                     },
                     "flow_id": flow_id,

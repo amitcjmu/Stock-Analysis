@@ -255,13 +255,15 @@ async def update_flow_applications(
                     match_method = getattr(dedup_result, "match_method", None)
                     similarity = getattr(dedup_result, "similarity_score", None)
 
+                    # CC: Create CollectionFlowApplication record even for non-application assets
+                    # or when canonical deduplication fails, to ensure all selected assets are tracked
                     if not canonical_app_id:
                         logger.warning(
-                            f"No canonical application for {application_name}, skipping persistence"
+                            f"No canonical application ID for {application_name} (asset type: {getattr(asset, 'asset_type', 'unknown')}), "
+                            f"creating CollectionFlowApplication record without canonical reference"
                         )
-                        continue
 
-                    # CRITICAL BUG FIX: Create CollectionFlowApplication record
+                    # CRITICAL: Create CollectionFlowApplication record for ALL asset types
                     # This was missing and causing no records in collection_flow_applications table
                     collection_flow_app = CollectionFlowApplication(
                         collection_flow_id=collection_flow.id,  # FIXED: Use .id (PK) not .flow_id
@@ -291,6 +293,10 @@ async def update_flow_applications(
                         collection_flow.id
                     )  # FIXED: Use .id (PK) not .flow_id
                     asset.updated_at = datetime.now(timezone.utc)
+                    db.add(asset)  # Persist asset FK update
+
+                    # Flush to catch FK integrity issues early
+                    await db.flush()
 
                     # CRITICAL FIX: Add to results BEFORE the except block
                     deduplication_results.append(

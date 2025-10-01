@@ -84,11 +84,12 @@ async def generate_questionnaires_core(
 
     except Exception as generation_error:
         logger.error(
-            f"❌ Questionnaire generation service error: {type(generation_error).__name__}"
+            f"❌ Questionnaire generation service error: {type(generation_error).__name__}",
+            exc_info=True,  # Include stack trace for debugging
         )
         raise CollectionFlowError(
-            f"Questionnaire generation failed: {type(generation_error).__name__}"
-        )
+            f"Questionnaire generation failed: {type(generation_error).__name__}: {str(generation_error)}"
+        ) from generation_error  # Preserve original exception context
 
 
 async def create_adaptive_forms(

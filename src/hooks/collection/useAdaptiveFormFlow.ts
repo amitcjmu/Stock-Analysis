@@ -1186,15 +1186,19 @@ export const useAdaptiveFormFlow = (
         ? 100
         : state.validation?.completionPercentage || 0;
 
-      // Extract asset_id from the form data if present (it's typically in the "selected_assets" field)
-      const assetId = data?.selected_assets || data?.asset_id || null;
+      // Extract a single asset_id only when applicable (non-asset-selection forms)
+      // Prevent type mismatch: asset_id should be a single string, not an array
+      let assetId: string | null = null;
+      if (questionnaireId !== "bootstrap_asset_selection" && typeof data?.asset_id === "string") {
+        assetId = data.asset_id;
+      }
 
       const submissionData = {
         responses: data,
         form_metadata: {
           form_id: state.formData?.formId,
           application_id: applicationId,
-          asset_id: assetId, // Include asset_id in metadata for proper backend processing
+          ...(assetId ? { asset_id: assetId } : {}), // Only include when a single ID is present
           completion_percentage: completionPercentage,
           confidence_score: state.validation?.overallConfidenceScore,
           submitted_at: new Date().toISOString(),
@@ -1264,9 +1268,10 @@ export const useAdaptiveFormFlow = (
           questionnaireId === "00000000-0000-0000-0000-000000000001") {
         // Asset selection returns a different response structure
         // Check for success status from the applications endpoint
-        if ((submitResponse.success && submitResponse.next_action === "regenerate_questionnaires") ||
-            (submitResponse.status === "success") ||
-            (submitResponse.selected_applications && submitResponse.selected_applications > 0)) {
+        // CRITICAL FIX: Match actual backend response structure from collection_applications.py
+        // Backend returns: { success: true, selected_application_count: number, ... }
+        if (submitResponse.success === true &&
+            (submitResponse.selected_application_count > 0 || submitResponse.selected_applications > 0)) {
           console.log("🎯 Asset selection successful, regenerating questionnaires...");
 
           toast({
@@ -1387,9 +1392,34 @@ export const useAdaptiveFormFlow = (
               const nextFormData =
                 convertQuestionnaireToFormData(nextQuestionnaire);
 
-              // Extract any existing responses for this questionnaire
-              const existingResponses =
-                extractExistingResponses(nextQuestionnaire);
+              // CRITICAL FIX: Fetch saved responses from API instead of extracting from questionnaire object
+              // Responses are stored in collection_questionnaire_responses table, not in the questionnaire
+              let existingResponses: CollectionFormData = {};
+              try {
+                const savedResponsesData =
+                  await collectionFlowApi.getQuestionnaireResponses(
+                    actualFlowId,
+                    nextQuestionnaire.id,
+                  );
+
+                if (
+                  savedResponsesData?.responses &&
+                  Object.keys(savedResponsesData.responses).length > 0
+                ) {
+                  existingResponses = savedResponsesData.responses;
+                  console.log(
+                    `📝 Loaded ${Object.keys(existingResponses).length} saved responses from API:`,
+                    existingResponses,
+                  );
+                } else {
+                  console.log("📝 No existing responses found for this questionnaire");
+                }
+              } catch (err) {
+                console.warn(
+                  "Failed to fetch saved responses, form will start empty:",
+                  err,
+                );
+              }
 
               setState((prev) => ({
                 ...prev,
@@ -1398,10 +1428,18 @@ export const useAdaptiveFormFlow = (
                 validation: null,
               }));
 
-              toast({
-                title: "Next Section Ready",
-                description: `Please continue with: ${nextQuestionnaire.title || "Next questionnaire"}`,
-              });
+              // Show appropriate toast based on whether this is a new or existing questionnaire
+              if (Object.keys(existingResponses).length > 0) {
+                toast({
+                  title: "Questionnaire Loaded",
+                  description: `Loaded your previously saved responses. You can review and update them.`,
+                });
+              } else {
+                toast({
+                  title: "Next Section Ready",
+                  description: `Please continue with: ${nextQuestionnaire.title || "Next questionnaire"}`,
+                });
+              }
             }
           } else {
             // No more questionnaires returned - collection is complete

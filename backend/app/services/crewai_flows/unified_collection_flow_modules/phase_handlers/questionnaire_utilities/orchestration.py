@@ -28,8 +28,14 @@ async def check_loop_prevention(
             f"Skipping questionnaire generation due to loop prevention for flow {state.flow_id}"
         )
 
-        # Get appropriate next phase
-        next_phase = get_next_phase_name(state, "")
+        # Determine questionnaire type for proper next phase
+        from .utils import determine_questionnaire_type
+
+        identified_gaps = gap_result.get("identified_gaps", []) if gap_result else []
+        questionnaire_type = determine_questionnaire_type(identified_gaps)
+
+        # Get appropriate next phase based on questionnaire type
+        next_phase = get_next_phase_name(state, questionnaire_type)
 
         return {
             "phase": "questionnaire_generation",

@@ -266,10 +266,11 @@ export const useQuestionnairePolling = ({
     }
   }, [enabled, flowId, questionnaires.length, pollAttempts, isPolling]);
 
-  // Reset poll attempts and polling state when flowId changes
+  // Reset poll attempts, retry count, and polling state when flowId changes
   useEffect(() => {
     console.log('🔄 Flow ID changed, resetting polling state for:', flowId);
     setPollAttempts(0);
+    setRetryCount(0);  // Reset retry count on flow change
     setIsPolling(false);
     setError(null);
     setCompletionStatus(null);
