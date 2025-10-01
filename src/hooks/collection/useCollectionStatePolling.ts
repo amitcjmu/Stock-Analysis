@@ -23,7 +23,7 @@ interface CollectionFlowState {
   updated_at?: string;
   questionnaire_count?: number;
   error?: string;
-  [key: string]: any; // Allow additional fields from backend
+  [key: string]: unknown; // Allow additional fields from backend
 }
 
 interface CollectionStatePollingOptions {
@@ -37,9 +37,21 @@ interface CollectionStatePollingOptions {
 /**
  * Hook for polling collection flow state using HTTP with smart intervals
  */
+interface UseCollectionStatePollingReturn {
+  flowState: CollectionFlowState | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  isConnected: boolean;
+  isActive: boolean;
+  requestStatusUpdate: () => Promise<unknown>;
+  lastUpdate: CollectionFlowState | undefined;
+  flowId: string | undefined;
+}
+
 export const useCollectionStatePolling = (
   options: CollectionStatePollingOptions = {}
-) => {
+): UseCollectionStatePollingReturn => {
   const { flowId, enabled = true, onStatusUpdate, onQuestionnaireReady, onError } = options;
 
   // Query for flow state with smart polling intervals

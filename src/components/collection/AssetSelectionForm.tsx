@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { CheckSquare, Square, Search, Building, Server, Database, ArrowRight, AlertCircle } from 'lucide-react';
+import { CheckSquare, Square, Search, Building, Server, Database, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,10 @@ export interface AssetSelectionFormProps {
   formValues: CollectionFormData;
   onFieldChange: (fieldId: string, value: unknown) => void;
   onSubmit: (data: CollectionFormData) => void;
+  onRetry?: () => void;
   isSubmitting?: boolean;
+  isLoading?: boolean;
+  error?: Error | null;
   className?: string;
 }
 
@@ -84,7 +87,10 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
   formValues,
   onFieldChange,
   onSubmit,
+  onRetry,
   isSubmitting = false,
+  isLoading = false,
+  error = null,
   className = ''
 }) => {
   // All hooks MUST be declared at the top level before any conditional logic
@@ -93,31 +99,40 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
   const [selectedAssets, setSelectedAssets] = useState<string[]>(
     Array.isArray(formValues.selected_assets) ? formValues.selected_assets : []
   );
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Handle asset selection toggle
-  const handleAssetToggle = useCallback((assetDisplayText: string) => {
-    const newSelection = selectedAssets.includes(assetDisplayText)
-      ? selectedAssets.filter(id => id !== assetDisplayText)
-      : [...selectedAssets, assetDisplayText];
+  // Handle asset selection toggle - store just the ID, not the display text
+  const handleAssetToggle = useCallback((assetId: string) => {
+    const newSelection = selectedAssets.includes(assetId)
+      ? selectedAssets.filter(id => id !== assetId)
+      : [...selectedAssets, assetId];
 
     setSelectedAssets(newSelection);
-    // Update form values with the backend-expected format
+    // Update form values with just the IDs for backend
     onFieldChange('selected_assets', newSelection);
+    // Clear validation error when assets are selected
+    if (newSelection.length > 0) {
+      setValidationError(null);
+    }
   }, [selectedAssets, onFieldChange]);
 
   // Handle form submission
   const handleSubmit = useCallback(() => {
     if (selectedAssets.length === 0) {
       // Validation - at least one asset must be selected
+      setValidationError('Please select at least one asset to continue');
       return;
     }
 
+    // CRITICAL FIX: Merge current selection with existing form values to ensure completeness
+    // This prevents the backend from receiving empty selected_assets_response
     const submissionData = {
+      ...formValues,
       selected_assets: selectedAssets
     };
 
     onSubmit(submissionData);
-  }, [selectedAssets, onSubmit]);
+  }, [selectedAssets, onSubmit, formValues]);
 
   // Find the selected_assets question from the form data
   const assetQuestion = formData.sections
@@ -126,19 +141,80 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
 
   if (!assetQuestion || !assetQuestion.options) {
     return (
-      <Alert className="m-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Unable to load asset selection options. Please contact support if this issue persists.
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4 m-4">
+        <Alert variant={error ? "destructive" : "default"}>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error ?
+              `Failed to load asset selection options: ${error.message}` :
+              'Unable to load asset selection options. This may be because no assets were found or there was a temporary error.'
+            }
+          </AlertDescription>
+        </Alert>
+
+        {onRetry && (
+          <div className="flex justify-center">
+            <Button
+              onClick={onRetry}
+              disabled={isLoading}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Loading...' : 'Retry Loading Assets'}
+            </Button>
+          </div>
+        )}
+
+        <Alert>
+          <AlertDescription>
+            If this problem persists, please:
+            <ul className="list-disc ml-4 mt-2">
+              <li>Check that you have applications configured in your account</li>
+              <li>Verify your network connection</li>
+              <li>Contact support if the issue continues</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
-  // Parse asset options
-  const assetOptions = parseAssetOptions(assetQuestion.options.map(opt =>
-    typeof opt === 'string' ? opt : opt.label
-  ));
+  // Parse asset options - handle both string and object formats
+  const assetOptions = React.useMemo(() => {
+    return assetQuestion.options.map((opt, index) => {
+      if (typeof opt === 'string') {
+        // String format: try to parse ID from "Name (ID: uuid)" format
+        const match = opt.match(/^(.+?)\s*\(ID:\s*([a-f0-9-]+)\)$/);
+        if (match) {
+          const [, name, id] = match;
+          return {
+            id: id.trim(),
+            name: name.trim(),
+            displayText: opt,
+            type: 'application'
+          };
+        }
+        // Fallback for strings without ID format
+        return {
+          id: `asset-${index}`,
+          name: opt,
+          displayText: opt,
+          type: 'unknown'
+        };
+      } else {
+        // Object format from backend with metadata
+        const assetId = opt.metadata?.asset_id || opt.value || `asset-${index}`;
+        const name = opt.label?.split(' - ')[0] || opt.label || opt.value || '';
+        return {
+          id: assetId,
+          name: name,
+          displayText: opt.label || opt.value || '',
+          type: opt.metadata?.type || 'application'
+        };
+      }
+    });
+  }, [assetQuestion.options]);
 
   // Filter assets based on search
   const filteredAssets = assetOptions.filter(asset =>
@@ -150,14 +226,60 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
   const isValid = selectedAssets.length > 0;
   const minSelections = assetQuestion.validation?.min_selections || 1;
   const maxSelections = assetQuestion.validation?.max_selections || 10;
-  const validationError = selectedAssets.length < minSelections
-    ? `Please select at least ${minSelections} asset${minSelections > 1 ? 's' : ''}`
-    : selectedAssets.length > maxSelections
-    ? `Please select no more than ${maxSelections} assets`
-    : null;
+
+  // Update validation error based on selection count
+  React.useEffect(() => {
+    if (selectedAssets.length < minSelections && selectedAssets.length > 0) {
+      setValidationError(`Please select at least ${minSelections} asset${minSelections > 1 ? 's' : ''}`);
+    } else if (selectedAssets.length > maxSelections) {
+      setValidationError(`Please select no more than ${maxSelections} assets`);
+    } else if (selectedAssets.length === 0) {
+      // Don't show error initially when nothing is selected
+      setValidationError(null);
+    } else {
+      setValidationError(null);
+    }
+  }, [selectedAssets, minSelections, maxSelections]);
+
+  // Show loading state while fetching assets
+  if (isLoading) {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="h-5 w-5 animate-spin" />
+              <span>Loading available assets...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error.message}</span>
+            {onRetry && (
+              <Button
+                onClick={onRetry}
+                variant="outline"
+                size="sm"
+                className="ml-4"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <Card>
         <CardHeader>
@@ -222,7 +344,7 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
                 </div>
               ) : (
                 filteredAssets.map((asset) => {
-                  const isSelected = selectedAssets.includes(asset.displayText);
+                  const isSelected = selectedAssets.includes(asset.id);
                   return (
                     <div
                       key={asset.id}
@@ -231,7 +353,7 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
                           ? 'border-blue-500 bg-blue-50 hover:bg-blue-100'
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
-                      onClick={() => handleAssetToggle(asset.displayText)}
+                      onClick={() => handleAssetToggle(asset.id)}
                     >
                       {/* Checkbox */}
                       <div className="flex-shrink-0">

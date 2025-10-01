@@ -106,6 +106,32 @@ async def execute_collection_flow(
 
         execute_flow_id = str(collection_flow.master_flow_id)
 
+        # Check if phase requires user input before executing
+        # Get phase configuration from flow type registry
+        from app.services.flow_type_registry import FlowTypeRegistry
+
+        flow_registry = FlowTypeRegistry()
+        flow_config = flow_registry.get_flow_config("collection")
+        phase_config = (
+            flow_config.get_phase_config(current_phase) if flow_config else None
+        )
+
+        if phase_config and phase_config.requires_user_input:
+            logger.info(
+                safe_log_format(
+                    "⏸️  Phase {phase} requires user input - skipping automatic execution for flow {flow_id}",
+                    phase=current_phase,
+                    flow_id=flow_id,
+                )
+            )
+            return {
+                "status": "awaiting_user_input",
+                "phase": current_phase,
+                "flow_id": flow_id,
+                "message": f"Phase '{current_phase}' requires user input before proceeding",
+                "requires_user_input": True,
+            }
+
         logger.info(
             safe_log_format(
                 "Executing phase {phase} for collection flow {flow_id} "

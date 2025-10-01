@@ -244,7 +244,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  {primaryFlow.can_resume && (primaryFlow.flow_id || primaryFlow.id) && (
+                  {(primaryFlow.flow_id || primaryFlow.id) && (
                     <Button
                       size="sm"
                       onClick={() => onContinueFlow(primaryFlow.flow_id || primaryFlow.id)}

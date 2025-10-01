@@ -118,6 +118,9 @@ async def create_collection_from_discovery(
             status=CollectionFlowStatus.INITIALIZED.value,
             automation_tier=collection_config["automation_tier"],
             collection_config=collection_config,
+            flow_metadata={
+                "use_agent_generation": True
+            },  # Enable CrewAI agent generation
             current_phase=CollectionPhase.GAP_ANALYSIS.value,  # Start with gap analysis
             discovery_flow_id=uuid.UUID(discovery_flow_id),  # Link to Discovery flow
         )
@@ -157,34 +160,49 @@ async def create_collection_from_discovery(
         collection_flow.master_flow_id = uuid.UUID(master_flow_id)
         # Transaction context manager will handle the final commit
 
-        # Initialize background execution for the collection flow (outside transaction)
-        logger.info(
-            f"🚀 Initializing background execution for collection flow {flow_id}"
-        )
-        try:
-            execution_result = await collection_utils.initialize_mfo_flow_execution(
-                db=db,
-                context=context,
-                master_flow_id=uuid.UUID(master_flow_id),
-                flow_type="collection",
-                initial_state=flow_input,
-            )
+        # Check if initial phase requires user input before executing
+        # Phases like asset_selection need user interaction before agents can proceed
+        PHASES_REQUIRING_USER_INPUT = [
+            CollectionPhase.ASSET_SELECTION.value,
+        ]
 
-            # Check execution result status
-            if execution_result.get("status") == "failed":
+        if collection_flow.current_phase in PHASES_REQUIRING_USER_INPUT:
+            logger.info(
+                f"⏸️  Phase '{collection_flow.current_phase}' requires user input - "
+                f"skipping automatic execution for flow {flow_id}"
+            )
+            # Flow is created and ready - execution will happen after user provides input
+        else:
+            # Initialize background execution for the collection flow (outside transaction)
+            logger.info(
+                f"🚀 Initializing background execution for collection flow {flow_id}"
+            )
+            try:
+                execution_result = await collection_utils.initialize_mfo_flow_execution(
+                    db=db,
+                    context=context,
+                    master_flow_id=uuid.UUID(master_flow_id),
+                    flow_type="collection",
+                    initial_state=flow_input,
+                )
+
+                # Check execution result status
+                if execution_result.get("status") == "failed":
+                    logger.error(
+                        f"❌ Failed to initialize background execution: "
+                        f"{execution_result.get('error', 'Unknown error')}"
+                    )
+                    # Don't fail the entire flow creation, just log the error
+                else:
+                    logger.info(
+                        f"✅ Background execution initialized for collection flow: "
+                        f"{execution_result}"
+                    )
+            except Exception as exec_error:
                 logger.error(
-                    f"❌ Failed to initialize background execution: "
-                    f"{execution_result.get('error', 'Unknown error')}"
+                    f"❌ Background execution initialization failed: {exec_error}"
                 )
-                # Don't fail the entire flow creation, just log the error
-            else:
-                logger.info(
-                    f"✅ Background execution initialized for collection flow: "
-                    f"{execution_result}"
-                )
-        except Exception as exec_error:
-            logger.error(f"❌ Background execution initialization failed: {exec_error}")
-            # Don't fail the entire flow creation - flow is already committed
+                # Don't fail the entire flow creation - flow is already committed
 
         logger.info(
             "Created collection flow %s from discovery flow %s with %d applications",
@@ -347,25 +365,25 @@ async def create_collection_flow(
         # Create flow record
         flow_id = uuid.uuid4()
 
-        # Initialize phase state with gap analysis phase
+        # Initialize phase state with asset selection phase for non-Discovery flows
         phase_state = {
-            "current_phase": CollectionPhase.GAP_ANALYSIS.value,
+            "current_phase": CollectionPhase.ASSET_SELECTION.value,
             "phase_history": [
                 {
-                    "phase": CollectionPhase.GAP_ANALYSIS.value,
+                    "phase": CollectionPhase.ASSET_SELECTION.value,
                     "started_at": datetime.now(timezone.utc).isoformat(),
                     "status": "active",
                     "metadata": {
                         "started_directly": True,
-                        "reason": "Default collection flow starts at gap analysis phase",
+                        "reason": "Collection flow starts with asset selection for user to choose assets",
                     },
                 }
             ],
             "phase_metadata": {
-                "gap_analysis": {
+                "asset_selection": {
                     "started_directly": True,
-                    "skip_platform_detection": True,
-                    "skip_automated_collection": True,
+                    "requires_user_selection": True,
+                    "source": "collection_overview",
                 }
             },
         }
@@ -377,10 +395,13 @@ async def create_collection_flow(
             engagement_id=context.engagement_id,
             user_id=current_user.id,
             created_by=current_user.id,
-            status=CollectionFlowStatus.GAP_ANALYSIS.value,
+            status=CollectionFlowStatus.ASSET_SELECTION.value,
             automation_tier=flow_data.automation_tier,
             collection_config=flow_data.collection_config or {},
-            current_phase=CollectionPhase.GAP_ANALYSIS.value,
+            flow_metadata={
+                "use_agent_generation": True
+            },  # Enable CrewAI agent generation
+            current_phase=CollectionPhase.ASSET_SELECTION.value,
             phase_state=phase_state,
         )
 
@@ -393,7 +414,7 @@ async def create_collection_flow(
             "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
             "collection_config": collection_flow.collection_config,
-            "start_phase": "gap_analysis",
+            "start_phase": "asset_selection",
         }
 
         # Create the flow through MFO with atomic=True to prevent internal commits
@@ -418,34 +439,49 @@ async def create_collection_flow(
         collection_flow.master_flow_id = uuid.UUID(master_flow_id)
         # Transaction context manager will handle the final commit
 
-        # Initialize background execution for the collection flow (outside transaction)
-        logger.info(
-            f"🚀 Initializing background execution for collection flow {flow_id}"
-        )
-        try:
-            execution_result = await collection_utils.initialize_mfo_flow_execution(
-                db=db,
-                context=context,
-                master_flow_id=uuid.UUID(master_flow_id),
-                flow_type="collection",
-                initial_state=flow_input,
-            )
+        # Check if initial phase requires user input before executing
+        # Phases like asset_selection need user interaction before agents can proceed
+        PHASES_REQUIRING_USER_INPUT = [
+            CollectionPhase.ASSET_SELECTION.value,
+        ]
 
-            # Check execution result status
-            if execution_result.get("status") == "failed":
+        if collection_flow.current_phase in PHASES_REQUIRING_USER_INPUT:
+            logger.info(
+                f"⏸️  Phase '{collection_flow.current_phase}' requires user input - "
+                f"skipping automatic execution for flow {flow_id}"
+            )
+            # Flow is created and ready - execution will happen after user provides input
+        else:
+            # Initialize background execution for the collection flow (outside transaction)
+            logger.info(
+                f"🚀 Initializing background execution for collection flow {flow_id}"
+            )
+            try:
+                execution_result = await collection_utils.initialize_mfo_flow_execution(
+                    db=db,
+                    context=context,
+                    master_flow_id=uuid.UUID(master_flow_id),
+                    flow_type="collection",
+                    initial_state=flow_input,
+                )
+
+                # Check execution result status
+                if execution_result.get("status") == "failed":
+                    logger.error(
+                        f"❌ Failed to initialize background execution: "
+                        f"{execution_result.get('error', 'Unknown error')}"
+                    )
+                    # Don't fail the entire flow creation, just log the error
+                else:
+                    logger.info(
+                        f"✅ Background execution initialized for collection flow: "
+                        f"{execution_result}"
+                    )
+            except Exception as exec_error:
                 logger.error(
-                    f"❌ Failed to initialize background execution: "
-                    f"{execution_result.get('error', 'Unknown error')}"
+                    f"❌ Background execution initialization failed: {exec_error}"
                 )
-                # Don't fail the entire flow creation, just log the error
-            else:
-                logger.info(
-                    f"✅ Background execution initialized for collection flow: "
-                    f"{execution_result}"
-                )
-        except Exception as exec_error:
-            logger.error(f"❌ Background execution initialization failed: {exec_error}")
-            # Don't fail the entire flow creation - flow is already committed
+                # Don't fail the entire flow creation - flow is already committed
 
         logger.info(
             safe_log_format(

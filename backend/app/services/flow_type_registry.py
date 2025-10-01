@@ -61,6 +61,9 @@ class PhaseConfig:
     can_pause: bool = True
     can_skip: bool = False
     can_rollback: bool = False
+    requires_user_input: bool = (
+        False  # True if phase needs user interaction before agent execution
+    )
     retry_config: Optional[RetryConfig] = None
     timeout_seconds: int = 300
     metadata: Dict[str, Any] = field(default_factory=dict)

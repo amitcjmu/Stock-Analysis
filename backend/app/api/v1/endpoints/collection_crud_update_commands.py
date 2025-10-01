@@ -199,6 +199,9 @@ async def submit_questionnaire_response(
             f"Engagement ID: {context.engagement_id}"
         )
 
+        # Add debug logging for tracking questionnaire processing
+        logger.info(f"Processing questionnaire {questionnaire_id} for flow {flow_id}")
+
         # Verify flow exists and belongs to engagement with proper multi-tenant validation
         flow_result = await db.execute(
             select(CollectionFlow)
@@ -223,45 +226,35 @@ async def submit_questionnaire_response(
         form_metadata = request_data.form_metadata or {}
         validation_results = request_data.validation_results or {}
 
-        # Special handling for asset selection bootstrap questionnaire
+        # CRITICAL FIX: Asset selection should NOT be handled through questionnaire submission
+        # Check for asset selection questionnaire attempts and redirect to proper endpoint
         if questionnaire_id == "bootstrap_asset_selection":
-            logger.info("Processing asset selection from bootstrap questionnaire")
+            logger.warning(
+                f"Asset selection attempt through questionnaire submission for flow {flow_id}. "
+                "Redirecting to proper endpoint."
+            )
 
-            # Extract selected asset IDs from the response
-            selected_assets_response = form_responses.get("selected_assets", [])
-            if selected_assets_response:
-                # Parse asset IDs from the response (format: "Name (ID: uuid)")
-                import re
-
-                selected_asset_ids = []
-                for asset_str in selected_assets_response:
-                    match = re.search(r"\(ID:\s*([a-f0-9-]+)\)", str(asset_str))
-                    if match:
-                        selected_asset_ids.append(match.group(1))
-
-                if selected_asset_ids:
-                    # Update the collection flow configuration with selected assets
-                    if not flow.collection_config:
-                        flow.collection_config = {}
-
-                    flow.collection_config["selected_application_ids"] = (
-                        selected_asset_ids
-                    )
-                    flow.collection_config["selected_asset_ids"] = selected_asset_ids
-
-                    await db.commit()
-                    logger.info(
-                        f"Updated flow {flow_id} with selected assets: {selected_asset_ids}"
-                    )
-
-                    # Return success response prompting questionnaire regeneration
-                    return {
-                        "success": True,
-                        "message": "Assets selected successfully. Please refresh to generate targeted questionnaires.",
-                        "flow_id": str(flow.flow_id),
-                        "selected_assets": selected_asset_ids,
-                        "next_action": "regenerate_questionnaires",
-                    }
+            # Return clear error message directing to proper endpoint
+            raise HTTPException(
+                status_code=422,  # Changed from 400 to align with frontend error handling
+                detail={
+                    "code": "invalid_asset_selection_endpoint",
+                    "error": "Invalid endpoint for asset selection",
+                    "message": (
+                        "Asset selection must be done through the dedicated applications endpoint, "
+                        "not through questionnaire submission."
+                    ),
+                    "correct_endpoint": f"/api/v1/collection/flows/{flow_id}/applications",
+                    "method": "POST",
+                    "expected_payload": {
+                        "selected_application_ids": ["<application-id>", "..."],
+                        "action": "select_applications",
+                    },
+                    "flow_id": flow_id,
+                    "questionnaire_id": questionnaire_id,
+                    "reason": "Separation of concerns - asset selection vs questionnaire responses",
+                },
+            )
 
         # Extract and validate asset_id for optional linking to asset inventory
         asset_id = form_metadata.get("application_id") or form_metadata.get("asset_id")

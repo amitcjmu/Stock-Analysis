@@ -19,11 +19,13 @@ class FlowStatusMapper:
         which would indicate a synchronization issue.
         """
         # Define status hierarchy (higher index = more advanced)
+        # FIXED: Using only valid enum values from database
+        # Valid enum: initialized, asset_selection, gap_analysis, manual_collection, completed, failed, cancelled
         status_hierarchy = {
             "pending": 0,
             "initialized": 1,
             "running": 2,
-            "automated_collection": 2,
+            "asset_selection": 2,
             "manual_collection": 2,
             "data_validation": 3,
             "gap_analysis": 3,
@@ -51,10 +53,12 @@ class FlowStatusMapper:
     @staticmethod
     def map_child_to_master_status(child_status: str) -> str:
         """Map collection flow status to master flow status"""
+        # FIXED: Using only valid enum values
+        # Valid enum: initialized, asset_selection, gap_analysis, manual_collection, completed, failed, cancelled
         status_mapping = {
             "initialized": "pending",
+            "asset_selection": "running",
             "platform_detection": "running",
-            "automated_collection": "running",
             "manual_collection": "running",
             "data_validation": "running",
             "gap_analysis": "running",
@@ -81,9 +85,10 @@ class FlowStatusMapper:
     @staticmethod
     def map_child_to_master_phase(child_phase: str) -> str:
         """Map collection flow phase to master flow phase"""
+        # FIXED: Removed "automated_collection" which doesn't exist in enum
         phase_mapping = {
             "platform_detection": "discovery",
-            "automated_collection": "collection",
+            "asset_selection": "collection",
             "manual_collection": "collection",
             "data_validation": "validation",
             "gap_analysis": "analysis",
@@ -105,14 +110,25 @@ class FlowStatusMapper:
     @staticmethod
     def map_master_to_child_status(master_status: str) -> str:
         """
-        Map master flow status to collection flow status.
-        Master flow uses generic statuses while collection flow uses domain-specific statuses.
+        Map master flow LIFECYCLE status to child flow STATUS.
+
+        IMPORTANT (Per ADR-012): This maps lifecycle STATUS to STATUS, NOT status to phase.
+        - Master flow tracks: pending → running → completed/failed (lifecycle envelope)
+        - Child flows track: asset_selection → gap_analysis → manual_collection (operational phases)
+
+        Child flows OWN their current_phase progression. This function only maps
+        the high-level lifecycle status for monitoring and coordination.
+
+        Valid child flow statuses: initialized, asset_selection, gap_analysis,
+        manual_collection, completed, failed, cancelled
         """
+        # Map master lifecycle status to child lifecycle status
+        # Note: Child flows may be in different operational phases while in same lifecycle status
         status_mapping = {
-            "running": "automated_collection",
+            "running": "gap_analysis",  # Generic "running" maps to mid-flow status
             "completed": "completed",
             "failed": "failed",
-            "paused": "paused",
+            "paused": "gap_analysis",  # Paused flows maintain their last active status
             "pending": "initialized",
         }
         return status_mapping.get(master_status, "initialized")

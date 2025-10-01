@@ -76,6 +76,9 @@ class AdaptiveQuestionnaire(Base):
     question_set = Column(JSONB, nullable=False, default=dict)
     questions = Column(JSONB, nullable=False, default=list)  # List of question objects
 
+    # Question metadata
+    question_count = Column(Integer, nullable=False, default=0)
+
     # Questionnaire configuration
     validation_rules = Column(JSONB, nullable=False, default=dict)
     scoring_rules = Column(JSONB, nullable=False, default=dict)
@@ -153,6 +156,7 @@ class AdaptiveQuestionnaire(Base):
             "applicable_tiers": self.applicable_tiers,
             "question_set": self.question_set,
             "questions": self.questions,
+            "question_count": self.question_count,
             "validation_rules": self.validation_rules,
             "scoring_rules": self.scoring_rules,
             "completion_status": self.completion_status,

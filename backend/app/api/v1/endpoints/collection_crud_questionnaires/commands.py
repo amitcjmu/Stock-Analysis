@@ -46,7 +46,7 @@ async def _start_agent_generation(
             id=questionnaire_id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
-            collection_flow_id=flow.id,
+            collection_flow_id=flow.id,  # FIXED: Use .id (PK) not .flow_id per ADR
             title="AI-Generated Data Collection Questionnaire",
             description="Generating tailored questionnaire using AI agent analysis...",
             template_name="agent_generated",
@@ -93,7 +93,14 @@ async def _start_agent_generation(
         ]
 
     except Exception as e:
-        logger.error(f"Error starting agent generation for flow {flow_id}: {e}")
+        logger.error(
+            f"Error starting agent generation for flow {flow_id}: {e}", exc_info=True
+        )
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception details: {str(e)}")
+        # Store error information for debugging
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        logger.error(f"Failed to start agent generation - error: {error_msg}")
         raise
 
 
@@ -135,6 +142,9 @@ async def _do_update_questionnaire_status(
 
         if questions:
             update_data["questions"] = questions
+            update_data["question_count"] = len(
+                questions
+            )  # Update question_count column
             update_data["description"] = (
                 f"AI-Generated questionnaire with {len(questions)} targeted questions"
             )
@@ -151,7 +161,12 @@ async def _do_update_questionnaire_status(
 
         logger.info(f"Updated questionnaire {questionnaire_id} status to {status}")
     except Exception as e:
-        logger.error(f"Error updating questionnaire {questionnaire_id} status: {e}")
+        logger.error(
+            f"Error updating questionnaire {questionnaire_id} status: {e}",
+            exc_info=True,
+        )
+        logger.error(f"Update error type: {type(e).__name__}")
+        logger.error(f"Update error details: {str(e)}")
         raise
 
 
@@ -184,11 +199,38 @@ async def _background_generate(
             # Extract questions from first questionnaire
             questions = questionnaires[0].questions if questionnaires else []
 
-            # Update questionnaire with generated questions
+            # Update questionnaire with generated questions AND progress flow status
             async with AsyncSessionLocal() as db:
                 await _update_questionnaire_status(
                     questionnaire_id, "completed", questions, db=db
                 )
+
+                # Progress flow to manual_collection phase now that questionnaire is ready
+                from sqlalchemy import select, update as sql_update
+
+                flow_result = await db.execute(
+                    select(CollectionFlow).where(
+                        CollectionFlow.flow_id == UUID(flow_id)
+                    )
+                )
+                current_flow = flow_result.scalar_one_or_none()
+
+                if current_flow and current_flow.current_phase in [
+                    "initialized",
+                    "gap_analysis",
+                ]:
+                    await db.execute(
+                        sql_update(CollectionFlow)
+                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        .values(
+                            current_phase="manual_collection",
+                            status="manual_collection",
+                            progress_percentage=50.0,  # Questionnaire generated = 50% progress
+                            updated_at=datetime.now(timezone.utc),
+                        )
+                    )
+                    await db.commit()
+                    logger.info(f"Progressed flow {flow_id} to manual_collection phase")
 
             logger.info(
                 f"Successfully generated {len(questions)} questions for flow {flow_id}"
@@ -205,14 +247,23 @@ async def _background_generate(
             logger.warning(f"No questionnaires generated for flow {flow_id}")
 
     except Exception as e:
-        logger.error(f"Background generation failed for flow {flow_id}: {e}")
+        # Log full exception with stack trace for debugging
+        logger.error(
+            f"Background generation failed for flow {flow_id}: {e}", exc_info=True
+        )
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception details: {str(e)}")
+
         try:
-            # Mark questionnaire as failed
+            # Mark questionnaire as failed with detailed error
+            error_msg = f"{type(e).__name__}: {str(e)}"
             async with AsyncSessionLocal() as db:
                 await _update_questionnaire_status(
-                    questionnaire_id, "failed", error_message=str(e), db=db
+                    questionnaire_id, "failed", error_message=error_msg, db=db
                 )
         except Exception as update_error:
-            logger.error(f"Failed to update questionnaire status: {update_error}")
+            logger.error(
+                f"Failed to update questionnaire status: {update_error}", exc_info=True
+            )
     finally:
         logger.info(f"Background generation completed for flow {flow_id}")

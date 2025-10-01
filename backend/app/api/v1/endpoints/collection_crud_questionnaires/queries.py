@@ -19,15 +19,8 @@ from app.schemas.collection_flow import AdaptiveQuestionnaireResponse
 
 # Import modular functions
 from app.api.v1.endpoints import collection_serializers
-from app.api.v1.endpoints.questionnaire_templates import (
-    get_bootstrap_questionnaire_template,
-)
 
 from .commands import _start_agent_generation
-from .utils import (
-    _convert_template_field_to_question,
-    _get_selected_application_info,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -114,57 +107,223 @@ async def get_adaptive_questionnaires(
             return existing_questionnaires
 
         # Get existing assets for this engagement
-        existing_assets = await _get_existing_assets(db, context)
+        all_assets = await _get_existing_assets(db, context)
+        logger.info(f"Found {len(all_assets)} total assets for engagement")
 
-        logger.info(f"Found {len(existing_assets)} existing assets for engagement")
+        # Debug logging for metadata check
+        logger.info(f"flow.flow_metadata = {flow.flow_metadata}")
+        logger.info(f"flow.current_phase = {flow.current_phase}")
+        use_agent_gen = (
+            flow.flow_metadata.get("use_agent_generation", True)
+            if flow.flow_metadata
+            else True
+        )
+        logger.info(f"use_agent_generation = {use_agent_gen}")
 
-        # AI agent generation should be preferred approach
-        if flow.flow_metadata and flow.flow_metadata.get("use_agent_generation", True):
-            logger.info("Using AI agent generation for questionnaires")
-            return await _start_agent_generation(
-                flow_id, flow, existing_assets, context, db
+        # CRITICAL FIX: Check if we're in asset_selection phase FIRST
+        # This phase DOES NOT require selected_application_ids yet - it generates the bootstrap questionnaire
+        # that allows users TO SELECT assets
+        if flow.current_phase == "asset_selection":
+            logger.info(
+                f"Flow {flow_id} is in asset_selection phase - checking for bootstrap questionnaire or recovery needs"
             )
 
-        logger.info("Falling back to template-based questionnaire generation")
-
-        # Fall back to template-based generation
-        selected_application_name, selected_application_id = (
-            _get_selected_application_info(flow, existing_assets)
-        )
-
-        # Get template
-        template = get_bootstrap_questionnaire_template(
-            flow_id, selected_application_id, selected_application_name, existing_assets
-        )
-
-        questions = []
-        # Note: template returns "form_fields" not "fields"
-        for field in template.get("form_fields", []):
-            question = _convert_template_field_to_question(
-                field, selected_application_name
+            # Check if flow has bootstrap questionnaire in collection_config
+            bootstrap_q = (
+                flow.collection_config.get("bootstrap_questionnaire")
+                if flow.collection_config
+                else None
             )
-            questions.append(question)
+            if bootstrap_q:
+                logger.info(
+                    "Returning existing bootstrap questionnaire for asset selection phase"
+                )
+                # Convert bootstrap format to AdaptiveQuestionnaireResponse format
+                return [
+                    AdaptiveQuestionnaireResponse(
+                        id=bootstrap_q.get(
+                            "questionnaire_id", "bootstrap_asset_selection"
+                        ),
+                        collection_flow_id=flow_id,
+                        title=bootstrap_q.get(
+                            "title", "Select Applications for Collection"
+                        ),
+                        description=bootstrap_q.get(
+                            "description",
+                            "Choose which applications you want to collect detailed information about.",
+                        ),
+                        target_gaps=[],
+                        questions=bootstrap_q.get("fields", []),
+                        validation_rules=bootstrap_q.get("validation_rules", {}),
+                        completion_status="pending",
+                        responses_collected={},
+                        created_at=datetime.now(timezone.utc),
+                        completed_at=None,
+                    )
+                ]
+            else:
+                # Generate bootstrap questionnaire for asset selection (including stuck flow recovery)
+                logger.info(
+                    "No bootstrap questionnaire found - generating new one (handles stuck flows)"
+                )
+                from app.services.collection.asset_selection_bootstrap import (
+                    generate_asset_selection_bootstrap,
+                )
 
-        # Include optional template metadata for backward compatibility
-        # Some frontend components may rely on these fields
-        return [
-            AdaptiveQuestionnaireResponse(
-                id=str(UUID("00000000-0000-0000-0000-000000000001")),
-                collection_flow_id=flow_id,
-                title=template.get("title", "Bootstrap Data Collection Questionnaire"),
-                description=template.get(
-                    "description",
-                    "Initial questionnaire to gather essential asset information",
+                try:
+                    bootstrap_result = await generate_asset_selection_bootstrap(
+                        flow, db, context
+                    )
+
+                    if bootstrap_result.get(
+                        "status"
+                    ) == "bootstrap_generated" and bootstrap_result.get(
+                        "questionnaire"
+                    ):
+                        bootstrap_q = bootstrap_result["questionnaire"]
+                        logger.info(
+                            f"Successfully generated bootstrap questionnaire for flow {flow_id}"
+                        )
+                        return [
+                            AdaptiveQuestionnaireResponse(
+                                id=bootstrap_q.get(
+                                    "questionnaire_id", "bootstrap_asset_selection"
+                                ),
+                                collection_flow_id=flow_id,
+                                title=bootstrap_q.get(
+                                    "title", "Select Applications for Collection"
+                                ),
+                                description=bootstrap_q.get(
+                                    "description",
+                                    "Choose which applications you want to collect detailed information about.",
+                                ),
+                                target_gaps=[],
+                                questions=bootstrap_q.get("fields", []),
+                                validation_rules=bootstrap_q.get(
+                                    "validation_rules", {}
+                                ),
+                                completion_status="pending",
+                                responses_collected={},
+                                created_at=datetime.now(timezone.utc),
+                                completed_at=None,
+                            )
+                        ]
+                    elif bootstrap_result.get("status") == "no_assets_available":
+                        # Handle case where no assets are available
+                        logger.warning(
+                            f"No assets available for flow {flow_id} - creating informational questionnaire"
+                        )
+                        return [
+                            AdaptiveQuestionnaireResponse(
+                                id=str(UUID("00000000-0000-0000-0000-000000000002")),
+                                collection_flow_id=flow_id,
+                                title="No Applications Available",
+                                description=bootstrap_result.get(
+                                    "message",
+                                    (
+                                        "No applications found. Please run Discovery flow first "
+                                        "or add applications manually."
+                                    ),
+                                ),
+                                target_gaps=[],
+                                questions=[
+                                    {
+                                        "id": "no_assets_message",
+                                        "question_text": (
+                                            "No applications are currently available for collection. "
+                                            "Please ensure you have run a Discovery flow or manually "
+                                            "added applications to your engagement."
+                                        ),
+                                        "field_type": "informational",
+                                        "required": False,
+                                        "category": "system_message",
+                                    }
+                                ],
+                                validation_rules={},
+                                completion_status="pending",
+                                responses_collected={},
+                                created_at=datetime.now(timezone.utc),
+                                completed_at=None,
+                            )
+                        ]
+                    elif bootstrap_result.get("status") == "assets_already_selected":
+                        # Flow has assets but bootstrap wasn't generated - recovery scenario
+                        logger.info(
+                            f"Flow {flow_id} has assets already selected but no bootstrap - triggering recovery"
+                        )
+                        # This is a stuck flow recovery case - let it continue to agent generation
+                        pass
+                    else:
+                        # Handle other bootstrap generation failures
+                        logger.error(
+                            f"Bootstrap generation failed for flow {flow_id}: {bootstrap_result}"
+                        )
+                        error_msg = bootstrap_result.get("error", "Unknown error")
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to generate bootstrap questionnaire: {error_msg}",
+                        )
+
+                except Exception as e:
+                    logger.error(
+                        f"Error generating bootstrap questionnaire for flow {flow_id}: {e}",
+                        exc_info=True,
+                    )
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to generate bootstrap questionnaire: {str(e)}",
+                    )
+
+        # CRITICAL: For non-asset-selection phases, require selected assets
+        # Filter to only the selected assets from the collection flow
+        selected_asset_ids = []
+        if flow.collection_config and flow.collection_config.get(
+            "selected_application_ids"
+        ):
+            selected_asset_ids = flow.collection_config["selected_application_ids"]
+            logger.info(f"Flow has {len(selected_asset_ids)} selected application IDs")
+
+        # Filter assets to only those that were selected
+        existing_assets = []
+        if selected_asset_ids:
+            for asset in all_assets:
+                if str(asset.id) in selected_asset_ids:
+                    existing_assets.append(asset)
+            logger.info(
+                f"Filtered to {len(existing_assets)} selected assets for questionnaire generation"
+            )
+        else:
+            # CRITICAL: Do NOT generate questionnaires without asset selection
+            # This prevents generating irrelevant questions for all assets
+            logger.warning(
+                f"Flow {flow_id} in {flow.current_phase} phase but no assets selected. "
+                "Cannot generate questionnaire without asset selection."
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Asset selection required before questionnaire generation. "
+                    "Please select at least one asset first."
                 ),
-                target_gaps=[],  # Bootstrap templates typically don't have specific gaps
-                questions=questions,
-                validation_rules=template.get("validation_rules", {}),
-                completion_status="pending",
-                responses_collected={},
-                created_at=datetime.now(timezone.utc),
-                completed_at=None,  # Explicitly set for clarity
             )
-        ]
+
+        # AI agent generation should be the ONLY approach for non-asset-selection phases
+        # Disable fallback mechanism to identify actual issues
+        if not flow.flow_metadata or not flow.flow_metadata.get(
+            "use_agent_generation", True
+        ):
+            logger.error(
+                f"Flow {flow_id} does not have agent generation enabled in metadata"
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Flow must have agent generation enabled. No fallback allowed.",
+            )
+
+        logger.info("Using AI agent generation for questionnaires - NO FALLBACKS")
+        return await _start_agent_generation(
+            flow_id, flow, existing_assets, context, db
+        )
 
     except HTTPException:
         raise

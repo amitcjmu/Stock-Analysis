@@ -16,6 +16,19 @@ class GapAnalysisTool:
         self.name = "gap_analysis"
         self.description = "Analyze assets to identify data gaps and prioritize them"
 
+    async def _arun(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Async method for analyzing an asset to identify and prioritize data gaps.
+        This is the PRIMARY method called by agents.
+
+        Args:
+            asset_data: Asset information including mapped and unmapped data
+
+        Returns:
+            Gap analysis results with prioritized gaps
+        """
+        return self._run(asset_data)
+
     def _run(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Analyze an asset to identify and prioritize data gaps.
@@ -34,12 +47,13 @@ class GapAnalysisTool:
         }
 
         # Check for missing critical fields
+        # ONLY include fields that need to be COLLECTED from users
+        # Computed fields (six_r_strategy, migration_complexity) are excluded
         critical_fields = [
-            "business_owner",
-            "technical_owner",
-            "six_r_strategy",
-            "migration_complexity",
-            "dependencies",
+            "business_owner",  # Essential for accountability
+            "technical_owner",  # Essential for technical decisions
+            "dependencies",  # Critical for sequencing
+            "operating_system",  # Critical for compatibility
         ]
 
         for field in critical_fields:

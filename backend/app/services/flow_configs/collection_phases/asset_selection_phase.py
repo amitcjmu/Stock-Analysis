@@ -40,6 +40,7 @@ def get_asset_selection_phase() -> PhaseConfig:
         validators=["platform_validation", "asset_validation"],
         pre_handlers=["asset_selection_preparation"],
         post_handlers=["asset_collection_initiation"],
+        requires_user_input=True,  # Phase requires user to select assets before proceeding
         crew_config={
             "crew_type": "asset_selection_crew",
             "crew_factory": "create_asset_selection_crew",
