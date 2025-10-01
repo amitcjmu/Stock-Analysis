@@ -14,42 +14,124 @@ from app.schemas.collection_flow import AdaptiveQuestionnaireResponse
 logger = logging.getLogger(__name__)
 
 
+def _try_extract_from_wrapper(agent_result: dict, key: str) -> Optional[dict]:
+    """Try to extract data from common wrapper keys."""
+    wrapper_data = agent_result.get(key, {})
+    if isinstance(wrapper_data, dict):
+        return wrapper_data
+    return None
+
+
+def _find_questionnaires_in_result(agent_result: dict) -> Tuple[list, list]:
+    """Find questionnaire or section data in agent result. Returns (questionnaires_data, sections_data)"""
+
+    def get_data(source, q_key="questionnaires", s_key="sections"):
+        return source.get(q_key, []), source.get(s_key, [])
+
+    q_data, s_data = get_data(agent_result)
+    if q_data or s_data:
+        return q_data, s_data
+
+    for wrapper_key in ["result", "data"]:
+        wrapper = _try_extract_from_wrapper(agent_result, wrapper_key)
+        if wrapper:
+            q_data, s_data = get_data(wrapper)
+            if q_data or s_data:
+                return q_data, s_data
+
+    if forms := agent_result.get("forms", []):
+        return forms, []
+
+    if items := agent_result.get("items", []):
+        return [], [{"questions": items, "section_title": "Data Collection"}]
+
+    return [], []
+
+
+def _extract_from_agent_output(agent_result: dict) -> Optional[list]:
+    """Extract sections from agent_output field."""
+    agent_output = agent_result.get("agent_output", {})
+    if not isinstance(agent_output, dict):
+        return None
+
+    sections = agent_output.get("sections", [])
+    if sections:
+        return sections
+
+    # Check result.sections in agent_output
+    result_data = _try_extract_from_wrapper(agent_output, "result")
+    if result_data:
+        sections = result_data.get("sections", [])
+        if sections:
+            return sections
+
+    return None
+
+
+def _generate_from_gap_analysis(agent_result: dict) -> Optional[list]:
+    """Generate questionnaire sections from gap_analysis data."""
+    processed = agent_result.get("processed_data", {})
+    if not isinstance(processed, dict):
+        return None
+
+    gap_analysis = processed.get("gap_analysis")
+    if not gap_analysis or not isinstance(gap_analysis, dict):
+        return None
+
+    logger.info("Generating questionnaire from gap_analysis data")
+    questions = []
+    for asset_id, fields in gap_analysis.get("missing_critical_fields", {}).items():
+        for field in fields:
+            questions.append(
+                {
+                    "field_id": field,
+                    "question_text": f"Please provide {field.replace('_', ' ').title()}",
+                    "field_type": "text",
+                    "required": True,
+                    "category": "critical_field",
+                    "metadata": {"asset_id": asset_id},
+                }
+            )
+
+    return (
+        [
+            {
+                "section_id": "gap_resolution",
+                "section_title": "Data Gap Resolution",
+                "section_description": "Please provide missing critical information",
+                "questions": questions,
+            }
+        ]
+        if questions
+        else None
+    )
+
+
 def _get_selected_application_info(
     flow: CollectionFlow, existing_assets: List[Asset]
 ) -> tuple[Optional[str], Optional[str]]:
     """Extract selected application info from flow config."""
-    selected_application_name: Optional[str] = None
-    selected_application_id: Optional[str] = None
-
-    if flow.collection_config and flow.collection_config.get(
-        "selected_application_ids"
+    if not (
+        flow.collection_config
+        and flow.collection_config.get("selected_application_ids")
     ):
-        selected_app_ids = flow.collection_config["selected_application_ids"]
-        if selected_app_ids:
-            # Get the first selected application
-            selected_application_id = selected_app_ids[0]
+        return None, None
 
-            # Find the asset name from the assets list
-            for asset in existing_assets:
-                if str(asset.id) == selected_application_id:
-                    selected_application_name = asset.name or asset.application_name
-                    break
+    selected_app_ids = flow.collection_config["selected_application_ids"]
+    if not selected_app_ids:
+        return None, None
 
-    return selected_application_name, selected_application_id
+    selected_id = selected_app_ids[0]
+    for asset in existing_assets:
+        if str(asset.id) == selected_id:
+            return asset.name or asset.application_name, selected_id
+    return None, selected_id
 
 
 def _convert_template_field_to_question(
     field: dict, selected_application_name: Optional[str] = None
 ) -> dict:
-    """Convert a template field to a questionnaire question format.
-
-    Args:
-        field: Field from questionnaire template
-        selected_application_name: Name of pre-selected application
-
-    Returns:
-        Question dictionary
-    """
+    """Convert a template field to a questionnaire question format."""
     question = {
         "field_id": field["field_id"],
         "question_text": field["question_text"],
@@ -62,18 +144,11 @@ def _convert_template_field_to_question(
         "metadata": field.get("metadata", {}),
     }
 
-    # Add asset_id to maintain asset-question relationship
-    if selected_application_name and "metadata" in question:
-        # Find asset ID from the name
+    if selected_application_name:
         question["metadata"]["asset_name"] = selected_application_name
+        if field["field_id"] in ("application_name", "asset_name"):
+            question["default_value"] = selected_application_name
 
-    # Pre-fill values if available
-    if field["field_id"] == "application_name" and selected_application_name:
-        question["default_value"] = selected_application_name
-    elif field["field_id"] == "asset_name" and selected_application_name:
-        question["default_value"] = selected_application_name
-
-    # Handle default values for asset selector
     if field.get("default_value"):
         question["default_value"] = field["default_value"]
 
@@ -83,9 +158,7 @@ def _convert_template_field_to_question(
 def _suggest_field_mapping(field_name: str) -> str:
     """Suggest potential mapping for unmapped field."""
     field_lower = field_name.lower()
-
-    # Common field mappings
-    mapping_suggestions = {
+    mappings = {
         "app": "application_name",
         "application": "application_name",
         "server": "hostname",
@@ -111,11 +184,9 @@ def _suggest_field_mapping(field_name: str) -> str:
         "strategy": "six_r_strategy",
         "6r": "six_r_strategy",
     }
-
-    for key, value in mapping_suggestions.items():
+    for key, value in mappings.items():
         if key in field_lower:
             return value
-
     return "custom_attribute"
 
 
@@ -123,31 +194,17 @@ def _get_asset_raw_data_safely(asset, asset_id_str: str) -> tuple:
     """Safely extract raw_data and field_mappings from asset."""
     try:
         raw_data = getattr(asset, "raw_data", {}) or {}
-        # Ensure raw_data is a dict, not a string or other type
         if not isinstance(raw_data, dict):
-            if isinstance(raw_data, str):
-                logger.debug(
-                    f"Asset {asset_id_str} has raw_data as string, converting to empty dict"
-                )
-            else:
-                logger.debug(
-                    f"Asset {asset_id_str} has raw_data as {type(raw_data)}, converting to empty dict"
-                )
+            logger.debug(
+                f"Asset {asset_id_str} raw_data is {type(raw_data)}, using empty dict"
+            )
             raw_data = {}
 
         field_mappings = getattr(asset, "field_mappings_used", {}) or {}
-        # Ensure field_mappings is a dict
         if not isinstance(field_mappings, dict):
-            if isinstance(field_mappings, str):
-                logger.debug(
-                    f"Asset {asset_id_str} has field_mappings_used as string, converting to empty dict"
-                )
-            else:
-                field_type = type(field_mappings)
-                logger.debug(
-                    f"Asset {asset_id_str} has field_mappings_used as {field_type}, "
-                    f"converting to empty dict"
-                )
+            logger.debug(
+                f"Asset {asset_id_str} field_mappings is {type(field_mappings)}, using empty dict"
+            )
             field_mappings = {}
     except Exception as e:
         logger.warning(f"Error processing asset {asset_id_str} data: {e}")
@@ -175,27 +232,54 @@ def _find_unmapped_attributes(raw_data: dict, field_mappings: dict) -> List[dict
 
 
 def _check_missing_critical_fields(asset) -> List[str]:
-    """
-    Check for missing critical fields in asset.
+    """Check for missing critical fields using 22-attribute assessment system."""
+    try:
+        from app.services.crewai_flows.tools.critical_attributes_tool.base import (
+            CriticalAttributesDefinition,
+        )
 
-    NOTE: Only includes fields that need to be COLLECTED from users.
-    Computed fields (six_r_strategy, migration_complexity) are excluded
-    as they are calculated by the system based on collected data.
+        attribute_mapping = CriticalAttributesDefinition.get_attribute_mapping()
+        missing_attributes = []
 
-    business_owner and technical_owner are included as they provide
-    essential accountability and contact information for migration planning.
-    """
-    critical_fields = [
-        "business_owner",  # Essential for accountability and approvals
-        "technical_owner",  # Essential for technical decisions and implementation
-        "dependencies",  # Critical for sequencing and risk assessment
-        "operating_system",  # Critical for compatibility and platform planning
-    ]
-    missing_fields = []
-    for field in critical_fields:
-        if not getattr(asset, field, None):
-            missing_fields.append(field)
-    return missing_fields
+        for attr_name, attr_config in attribute_mapping.items():
+            if not attr_config.get("required", False):
+                continue
+
+            has_value = False
+            for field_path in attr_config.get("asset_fields", []):
+                if "." in field_path:
+                    value = asset
+                    for part in field_path.split("."):
+                        value = getattr(value, part, None) or {}
+                        if not isinstance(value, dict):
+                            break
+                    if value and value != {}:
+                        has_value = True
+                        break
+                else:
+                    field_value = getattr(asset, field_path, None)
+                    if field_value and not (
+                        isinstance(field_value, (list, dict)) and len(field_value) == 0
+                    ):
+                        has_value = True
+                        break
+
+            if not has_value:
+                missing_attributes.append(attr_name)
+
+        return missing_attributes
+
+    except ImportError as e:
+        logger.warning(
+            f"Could not import CriticalAttributesDefinition, using fallback: {e}"
+        )
+        critical_fields = [
+            "business_owner",
+            "technical_owner",
+            "dependencies",
+            "operating_system",
+        ]
+        return [field for field in critical_fields if not getattr(asset, field, None)]
 
 
 def _assess_data_quality(asset) -> dict:
@@ -212,17 +296,7 @@ def _assess_data_quality(asset) -> dict:
 
 
 def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], dict]:
-    """
-    Analyze selected assets and extract comprehensive analysis.
-
-    Modified to work with asset list directly instead of flow configuration.
-
-    Args:
-        existing_assets: List of assets to analyze
-
-    Returns:
-        Tuple of (selected_assets_info, asset_analysis_data)
-    """
+    """Analyze selected assets and extract comprehensive analysis."""
     selected_assets = []
     asset_analysis = {
         "total_assets": 0,
@@ -236,26 +310,23 @@ def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], 
     for asset in existing_assets:
         asset_id_str = str(asset.id)
 
-        # Basic asset information
-        asset_info = {
-            "asset_id": asset_id_str,
-            "asset_name": asset.name or getattr(asset, "application_name", None),
-            "asset_type": getattr(asset, "asset_type", "application"),
-            "criticality": getattr(asset, "criticality", "unknown"),
-            "environment": getattr(asset, "environment", "unknown"),
-            "technology_stack": getattr(asset, "technology_stack", "unknown"),
-        }
-        selected_assets.append(asset_info)
+        selected_assets.append(
+            {
+                "asset_id": asset_id_str,
+                "asset_name": asset.name or getattr(asset, "application_name", None),
+                "asset_type": getattr(asset, "asset_type", "application"),
+                "criticality": getattr(asset, "criticality", "unknown"),
+                "environment": getattr(asset, "environment", "unknown"),
+                "technology_stack": getattr(asset, "technology_stack", "unknown"),
+            }
+        )
 
-        # Get raw data safely
         raw_data, field_mappings = _get_asset_raw_data_safely(asset, asset_id_str)
 
-        # Find unmapped attributes
         unmapped = _find_unmapped_attributes(raw_data, field_mappings)
         if unmapped:
             asset_analysis["unmapped_attributes"][asset_id_str] = unmapped
 
-        # Identify failed mappings
         mapping_status = getattr(asset, "mapping_status", None)
         if mapping_status and mapping_status != "complete":
             asset_analysis["failed_mappings"][asset_id_str] = {
@@ -263,13 +334,11 @@ def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], 
                 "reason": "Incomplete field mapping during import",
             }
 
-        # Check for missing critical fields
         missing_fields = _check_missing_critical_fields(asset)
         if missing_fields:
             asset_analysis["missing_critical_fields"][asset_id_str] = missing_fields
             asset_analysis["assets_with_gaps"].append(asset_id_str)
 
-        # Assess data quality
         quality_issues = _assess_data_quality(asset)
         if quality_issues:
             asset_analysis["data_quality_issues"][asset_id_str] = quality_issues
@@ -282,131 +351,29 @@ def _extract_questionnaire_data(
     agent_result: dict, flow_id: str
 ) -> List[AdaptiveQuestionnaireResponse]:
     """Extract and convert questionnaire data from agent results."""
-    # Log the keys we received for debugging
     logger.info(f"Agent result keys: {list(agent_result.keys())}")
 
-    # CRITICAL DEBUG: Log the full agent result structure to identify format
-    import json
+    # Try to find questionnaire data using helper functions
+    questionnaires_data, sections_data = _find_questionnaires_in_result(agent_result)
 
-    try:
-        result_json = json.dumps(agent_result, indent=2, default=str)
-        logger.info(f"🔍 FULL AGENT RESULT STRUCTURE:\n{result_json}")
-    except Exception as e:
-        logger.warning(f"Could not serialize agent result: {e}")
-        logger.info(
-            f"🔍 AGENT RESULT TYPE: {type(agent_result)}, STR: {str(agent_result)[:500]}"
+    # Determine which data to process
+    data_to_process = (
+        questionnaires_data
+        or sections_data
+        or _extract_from_agent_output(agent_result)
+        or _generate_from_gap_analysis(agent_result)
+    )
+
+    if not data_to_process:
+        logger.warning(
+            f"No questionnaire data found. Keys: {list(agent_result.keys())}"
         )
-
-    # Try multiple paths to find questionnaire data
-    questionnaires_data = agent_result.get("questionnaires", [])
-    sections_data = agent_result.get("sections", [])
-
-    # Check for common alternative structures
-    if not questionnaires_data and not sections_data:
-        # Check for result wrapper
-        if "result" in agent_result:
-            result_data = agent_result["result"]
-            if isinstance(result_data, dict):
-                questionnaires_data = result_data.get("questionnaires", [])
-                sections_data = result_data.get("sections", [])
-
-        # Check for data wrapper
-        if not questionnaires_data and not sections_data and "data" in agent_result:
-            data = agent_result["data"]
-            if isinstance(data, dict):
-                questionnaires_data = data.get("questionnaires", [])
-                sections_data = data.get("sections", [])
-
-        # Check for forms or items
-        if not questionnaires_data and not sections_data:
-            questionnaires_data = agent_result.get("forms", [])
-            if not questionnaires_data:
-                items = agent_result.get("items", [])
-                if items:
-                    # Convert items to sections format
-                    sections_data = [
-                        {"questions": items, "section_title": "Data Collection"}
-                    ]
-
-    # Initialize data_to_process to avoid UnboundLocalError
-    data_to_process = None
-
-    # Handle different result formats
-    if questionnaires_data:
-        data_to_process = questionnaires_data
-    elif sections_data:
-        data_to_process = sections_data
-    else:
-        # Try to extract from agent output or raw response
-        agent_output = agent_result.get("agent_output", {})
-        if isinstance(agent_output, dict):
-            data_to_process = agent_output.get("sections", [])
-            if not data_to_process:
-                # Check result.sections in agent_output
-                if "result" in agent_output and isinstance(
-                    agent_output["result"], dict
-                ):
-                    data_to_process = agent_output["result"].get("sections", [])
-
-        # If still no data, check if we have processed_data with gap_analysis
-        if not data_to_process and "processed_data" in agent_result:
-            processed = agent_result["processed_data"]
-            if isinstance(processed, dict) and "gap_analysis" in processed:
-                # Generate questionnaire from gap analysis
-                logger.info("Generating questionnaire from gap_analysis data")
-                gap_analysis = processed["gap_analysis"]
-
-                # Create default questionnaire structure from gaps
-                questions = []
-
-                # Add questions for missing critical fields
-                if isinstance(gap_analysis, dict) and gap_analysis.get(
-                    "missing_critical_fields"
-                ):
-                    for asset_id, fields in gap_analysis[
-                        "missing_critical_fields"
-                    ].items():
-                        for field in fields:
-                            questions.append(
-                                {
-                                    "field_id": field,
-                                    "question_text": f"Please provide {field.replace('_', ' ').title()}",
-                                    "field_type": "text",
-                                    "required": True,
-                                    "category": "critical_field",
-                                    "metadata": {"asset_id": asset_id},
-                                }
-                            )
-
-                # Create a section with the questions
-                if questions:
-                    data_to_process = [
-                        {
-                            "section_id": "gap_resolution",
-                            "section_title": "Data Gap Resolution",
-                            "section_description": "Please provide missing critical information",
-                            "questions": questions,
-                        }
-                    ]
-
-        if not data_to_process:
-            logger.warning(
-                f"No questionnaire data found in agent result. Keys available: {list(agent_result.keys())}"
-            )
-            if agent_result:
-                # Log a sample of the structure for debugging (sanitized)
-                sample = str(agent_result)[:500] if agent_result else "Empty result"
-                logger.warning(f"Agent result sample: {sample}")
-            raise Exception("Agent returned success but no questionnaire data")
+        raise Exception("Agent returned success but no questionnaire data")
 
     # Convert agent results to AdaptiveQuestionnaireResponse format
     result = []
     for idx, section in enumerate(data_to_process):
-        if not isinstance(section, dict):
-            continue
-
-        questions = section.get("questions", [])
-        if not questions:
+        if not isinstance(section, dict) or not section.get("questions"):
             continue
 
         questionnaire = AdaptiveQuestionnaireResponse(
@@ -422,7 +389,7 @@ def _extract_questionnaire_data(
                 "unmapped_attributes",
                 "data_quality_issues",
             ],
-            questions=questions,
+            questions=section["questions"],
             validation_rules=section.get("validation_rules", {}),
             completion_status="pending",
             responses_collected={},
@@ -431,10 +398,10 @@ def _extract_questionnaire_data(
         )
         result.append(questionnaire)
 
-    if result:
-        logger.info(
-            f"Successfully generated {len(result)} questionnaires using persistent agent"
-        )
-        return result
-    else:
+    if not result:
         raise Exception("No valid questionnaires generated from agent result")
+
+    logger.info(
+        f"Successfully generated {len(result)} questionnaires using persistent agent"
+    )
+    return result

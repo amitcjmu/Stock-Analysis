@@ -11,50 +11,9 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 if TYPE_CHECKING:
     from app.services.service_registry import ServiceRegistry
 
-# Move all tool imports to module level to avoid per-call dynamic imports
-# This improves performance and avoids repeated import overhead
-try:
-    from app.services.crewai_flows.tools.asset_creation_tool import (
-        create_asset_creation_tools,
-    )
-    from app.services.crewai_flows.tools.task_completion_tools import (
-        create_task_completion_tools,
-    )
-    from app.services.crewai_flows.tools.data_validation_tool import (
-        create_data_validation_tools,
-    )
-    from app.services.crewai_flows.tools.critical_attributes_tool import (
-        create_critical_attributes_tools,
-    )
-    from app.services.crewai_flows.tools.dependency_analysis_tool import (
-        create_dependency_analysis_tools,
-    )
-    from app.services.crewai_flows.tools.mapping_confidence_tool import (
-        MappingConfidenceTool,
-    )
-    from app.services.tools.asset_intelligence_tools import (
-        get_asset_intelligence_tools,
-    )
-    from app.services.ai_analysis.questionnaire_generator.tools import (
-        create_questionnaire_generation_tools,
-        create_gap_analysis_tools,
-    )
-
-    TOOLS_AVAILABLE = True
-except ImportError as e:
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Some tools not available: {e}")
-    TOOLS_AVAILABLE = False
-    # Define placeholders for missing imports
-    create_asset_creation_tools = None
-    create_task_completion_tools = None
-    create_data_validation_tools = None
-    create_critical_attributes_tools = None
-    create_dependency_analysis_tools = None
-    MappingConfidenceTool = None
-    get_asset_intelligence_tools = None
-    create_questionnaire_generation_tools = None
-    create_gap_analysis_tools = None
+# CC: Use lazy imports to avoid circular dependency with tenant_scoped_agent_pool
+# Tools are imported inside functions when needed, not at module level
+TOOLS_AVAILABLE = True  # Set to True since we'll handle import errors per-tool
 
 logger = logging.getLogger(__name__)
 
@@ -122,14 +81,18 @@ class AgentToolManager:
         cls, agent_type: str, context_info: Dict[str, Any], tools: List
     ) -> int:
         """Add tools specific to the agent type."""
-        if not TOOLS_AVAILABLE:
-            return 0
-
         tools_added = 0
 
         try:
             if agent_type == "discovery":
-                # Discovery-specific tools
+                # Discovery-specific tools - lazy import
+                from app.services.crewai_flows.tools.asset_creation_tool import (
+                    create_asset_creation_tools,
+                )
+                from app.services.crewai_flows.tools.data_validation_tool import (
+                    create_data_validation_tools,
+                )
+
                 tools_added += cls._safe_extend_tools(
                     tools, create_asset_creation_tools, "asset creation", context_info
                 )
@@ -138,10 +101,16 @@ class AgentToolManager:
                 )
 
             elif agent_type == "field_mapper":
-                # Field mapping tools
-                if MappingConfidenceTool:
-                    tools.append(MappingConfidenceTool(context_info=context_info))
-                    tools_added += 1
+                # Field mapping tools - lazy import
+                from app.services.crewai_flows.tools.mapping_confidence_tool import (
+                    MappingConfidenceTool,
+                )
+                from app.services.crewai_flows.tools.critical_attributes_tool import (
+                    create_critical_attributes_tools,
+                )
+
+                tools.append(MappingConfidenceTool(context_info=context_info))
+                tools_added += 1
 
                 tools_added += cls._safe_extend_tools(
                     tools,
@@ -151,7 +120,15 @@ class AgentToolManager:
                 )
 
             elif agent_type == "questionnaire_generator":
-                # Questionnaire generation tools
+                # Questionnaire generation tools - lazy import
+                from app.services.ai_analysis.questionnaire_generator.tools import (
+                    create_questionnaire_generation_tools,
+                    create_gap_analysis_tools,
+                )
+                from app.services.tools.asset_intelligence_tools import (
+                    get_asset_intelligence_tools,
+                )
+
                 tools_added += cls._safe_extend_tools(
                     tools,
                     create_questionnaire_generation_tools,
@@ -169,7 +146,15 @@ class AgentToolManager:
                 )
 
             elif agent_type == "business_value_analyst":
-                # Business value analysis tools for gap analysis and questionnaire generation
+                # Business value analysis tools - lazy import
+                from app.services.ai_analysis.questionnaire_generator.tools import (
+                    create_questionnaire_generation_tools,
+                    create_gap_analysis_tools,
+                )
+                from app.services.tools.asset_intelligence_tools import (
+                    get_asset_intelligence_tools,
+                )
+
                 tools_added += cls._safe_extend_tools(
                     tools, create_gap_analysis_tools, "gap analysis", context_info
                 )
@@ -187,7 +172,14 @@ class AgentToolManager:
                 )
 
             elif agent_type == "six_r_analyzer":
-                # 6R analysis tools
+                # 6R analysis tools - lazy import
+                from app.services.crewai_flows.tools.dependency_analysis_tool import (
+                    create_dependency_analysis_tools,
+                )
+                from app.services.tools.asset_intelligence_tools import (
+                    get_asset_intelligence_tools,
+                )
+
                 tools_added += cls._safe_extend_tools(
                     tools,
                     create_dependency_analysis_tools,
@@ -202,7 +194,14 @@ class AgentToolManager:
                 )
 
             elif agent_type == "asset_inventory":
-                # Asset inventory-specific tools for database asset creation
+                # Asset inventory tools - lazy import
+                from app.services.crewai_flows.tools.asset_creation_tool import (
+                    create_asset_creation_tools,
+                )
+                from app.services.crewai_flows.tools.data_validation_tool import (
+                    create_data_validation_tools,
+                )
+
                 tools_added += cls._safe_extend_tools(
                     tools, create_asset_creation_tools, "asset creation", context_info
                 )
@@ -219,11 +218,16 @@ class AgentToolManager:
     @classmethod
     def add_legacy_tools(cls, context_info: Dict[str, Any], tools: List) -> int:
         """Add legacy tools for backward compatibility."""
-        if not TOOLS_AVAILABLE:
-            return 0
-
         tools_added = 0
         try:
+            # Lazy import legacy tools
+            from app.services.crewai_flows.tools.asset_creation_tool import (
+                create_asset_creation_tools,
+            )
+            from app.services.crewai_flows.tools.task_completion_tools import (
+                create_task_completion_tools,
+            )
+
             # Add common legacy tools
             tools_added += cls._safe_extend_tools(
                 tools,
@@ -247,11 +251,16 @@ class AgentToolManager:
     @classmethod
     def add_data_analysis_tools(cls, context_info: Dict[str, Any], tools: List) -> int:
         """Add data analysis and validation tools."""
-        if not TOOLS_AVAILABLE:
-            return 0
-
         tools_added = 0
         try:
+            # Lazy import data analysis tools
+            from app.services.crewai_flows.tools.data_validation_tool import (
+                create_data_validation_tools,
+            )
+            from app.services.crewai_flows.tools.critical_attributes_tool import (
+                create_critical_attributes_tools,
+            )
+
             tools_added += cls._safe_extend_tools(
                 tools, create_data_validation_tools, "data validation", context_info
             )
@@ -271,10 +280,12 @@ class AgentToolManager:
     @classmethod
     def add_quality_tools(cls, context_info: Dict[str, Any], tools: List) -> None:
         """Add quality assurance and validation tools."""
-        if not TOOLS_AVAILABLE:
-            return
-
         try:
+            # Lazy import quality tools
+            from app.services.crewai_flows.tools.data_validation_tool import (
+                create_data_validation_tools,
+            )
+
             # Add quality-focused tools
             cls._safe_extend_tools(
                 tools, create_data_validation_tools, "quality validation", context_info
@@ -288,11 +299,16 @@ class AgentToolManager:
         cls, context_info: Dict[str, Any], tools: List
     ) -> int:
         """Add business analysis and decision support tools."""
-        if not TOOLS_AVAILABLE:
-            return 0
-
         tools_added = 0
         try:
+            # Lazy import business analysis tools
+            from app.services.crewai_flows.tools.dependency_analysis_tool import (
+                create_dependency_analysis_tools,
+            )
+            from app.services.tools.asset_intelligence_tools import (
+                get_asset_intelligence_tools,
+            )
+
             tools_added += cls._safe_extend_tools(
                 tools,
                 create_dependency_analysis_tools,
@@ -321,6 +337,14 @@ class AgentToolManager:
         tools_added = 0
 
         try:
+            # Lazy import field mapping tools
+            from app.services.crewai_flows.tools.mapping_confidence_tool import (
+                MappingConfidenceTool,
+            )
+            from app.services.crewai_flows.tools.critical_attributes_tool import (
+                create_critical_attributes_tools,
+            )
+
             # Add mapping confidence tool
             if MappingConfidenceTool:
                 tools.append(MappingConfidenceTool(context_info=context_info))
@@ -391,6 +415,13 @@ class AgentToolManager:
                     f"Tool {tool_name} requires context_info - calling with context"
                 )
                 new_tools = getter(context_info)
+            elif "field_mapper" in params:
+                logger.debug(
+                    f"Tool {tool_name} requires field_mapper - calling with None"
+                )
+                # CC: get_asset_intelligence_tools requires field_mapper parameter
+                # Pass None as it's optional and tools work without it
+                new_tools = getter(field_mapper=None)
             else:
                 logger.debug(f"Tool {tool_name} requires no params - calling getter()")
                 new_tools = getter()

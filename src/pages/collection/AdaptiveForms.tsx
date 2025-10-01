@@ -439,8 +439,8 @@ const AdaptiveForms: React.FC = () => {
   // Flow management handlers for incomplete flows
   const handleContinueFlow = async (flowId: string): void => {
     try {
-      // Navigate to appropriate collection phase
-      navigate(`/collection/progress/${flowId}`);
+      // Navigate to adaptive forms page with flowId to resume the flow
+      navigate(`/collection/adaptive-forms?flowId=${flowId}`);
     } catch (error) {
       console.error("Failed to continue collection flow:", error);
     }
