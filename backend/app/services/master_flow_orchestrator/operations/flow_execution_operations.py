@@ -16,6 +16,7 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 )
 from app.services.flow_orchestration import FlowAuditLogger
 from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLevel
+from app.services.crewai_flows.flow_state_manager import FlowStateManager
 
 from .enums import FlowOperationType
 from .mock_monitor import MockFlowPerformanceMonitor
@@ -43,6 +44,8 @@ class FlowExecutionOperations:
         self.performance_monitor = performance_monitor
         self.audit_logger = audit_logger
         self.execution_engine = execution_engine
+        # Initialize FlowStateManager for centralized state transitions
+        self.state_manager = FlowStateManager(db, context)
 
     async def execute_phase(
         self,
@@ -178,7 +181,7 @@ class FlowExecutionOperations:
     ) -> None:
         """Update flow state after successful phase execution"""
         try:
-            # Update phase completion status
+            # Update phase completion status in master flow persistence data
             if "phase_completion" not in master_flow.flow_persistence_data:
                 master_flow.flow_persistence_data["phase_completion"] = {}
 
@@ -199,11 +202,19 @@ class FlowExecutionOperations:
                     "progress_percentage"
                 ]
 
-            # Update status if execution result indicates status change
+            # Use FlowStateManager for status updates (ADR-012)
             if execution_result.get("flow_status"):
-                master_flow.flow_status = execution_result["flow_status"]
+                await self.state_manager.update_master_flow_status(
+                    flow_id=str(master_flow.flow_id),
+                    new_status=execution_result["flow_status"],
+                    metadata={
+                        "event": "phase_execution_status_change",
+                        "phase_name": phase_name,
+                        "result_summary": execution_result.get("summary", ""),
+                    },
+                )
 
-            # Persist changes
+            # Persist changes (excluding status which was handled by state_manager)
             await self.db.commit()
 
             logger.info(f"✅ Flow state updated after phase '{phase_name}' execution")

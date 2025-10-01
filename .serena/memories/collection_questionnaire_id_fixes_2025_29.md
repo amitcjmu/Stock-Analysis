@@ -11,7 +11,7 @@ Date: 2025-01-29
 return [
     AdaptiveQuestionnaireResponse(
         id=str(UUID("00000000-0000-0000-0000-000000000001")),  # BAD!
-        
+
 # CORRECT - Preserve original ID:
 return [
     AdaptiveQuestionnaireResponse(
@@ -29,12 +29,12 @@ def _extract_questionnaire_data(agent_result: dict, flow_id: str):
     # Try multiple paths
     questionnaires_data = agent_result.get("questionnaires", [])
     sections_data = agent_result.get("sections", [])
-    
+
     # Check wrappers
     if not questionnaires_data and "result" in agent_result:
         result_data = agent_result["result"]
         questionnaires_data = result_data.get("questionnaires", [])
-    
+
     # Generate from gap_analysis if no questionnaire data
     if not data_to_process and "processed_data" in agent_result:
         if "gap_analysis" in agent_result["processed_data"]:

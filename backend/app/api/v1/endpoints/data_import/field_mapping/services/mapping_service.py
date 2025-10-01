@@ -1,10 +1,12 @@
 """
 Core field mapping service containing business logic.
 Enhanced to use CrewAI agents for intelligent field mapping.
+
+This service handles CRUD operations for ImportFieldMapping records
+and delegates mapping intelligence to the canonical FieldMappingService.
 """
 
 import logging
-import os
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -15,6 +17,9 @@ from app.core.context import RequestContext
 from app.models.data_import import ImportFieldMapping
 from app.utils.json_utils import safe_json_dumps
 
+# Import canonical FieldMappingService for agent-driven mapping intelligence
+from app.services.field_mapping_service import FieldMappingService
+
 from ..models.mapping_schemas import (
     FieldMappingCreate,
     FieldMappingResponse,
@@ -22,37 +27,34 @@ from ..models.mapping_schemas import (
     MappingValidationRequest,
     MappingValidationResponse,
 )
-
-# Legacy hardcoded mapping helpers removed - using CrewAI agents only
-# from ..utils.mapping_helpers import (
-#     intelligent_field_mapping, calculate_mapping_confidence
-# )
 from ..validators.mapping_validators import MappingValidator
-
-# CrewAI integration for intelligent field mapping
-CREWAI_FIELD_MAPPING_ENABLED = (
-    os.getenv("CREWAI_FIELD_MAPPING_ENABLED", "true").lower() == "true"
-)
-try:
-    # Imports for future CrewAI integration - currently not used but structure ready
-    CREWAI_AVAILABLE = True
-    logger = logging.getLogger(__name__)
-    logger.info("✅ CrewAI field mapping components ready for integration")
-except ImportError as e:
-    CREWAI_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-    logger.warning(f"CrewAI components not available, using fallback: {e}")
 
 logger = logging.getLogger(__name__)
 
 
 class MappingService:
-    """Service for field mapping operations."""
+    """
+    Service for field mapping CRUD operations.
+
+    This service handles database operations for ImportFieldMapping records
+    and delegates mapping intelligence to the canonical FieldMappingService.
+    Follows ADR-015 by using agent-driven logic instead of hardcoded heuristics.
+    """
 
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
         self.context = context
         self.validator = MappingValidator()
+
+        # Initialize canonical FieldMappingService for agent-driven mapping intelligence
+        self._field_mapping_service: FieldMappingService = None
+
+    @property
+    def field_mapping_service(self) -> FieldMappingService:
+        """Lazy initialization of canonical FieldMappingService."""
+        if self._field_mapping_service is None:
+            self._field_mapping_service = FieldMappingService(self.db, self.context)
+        return self._field_mapping_service
 
     async def get_field_mappings(
         self, import_id: str
