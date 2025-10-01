@@ -125,7 +125,7 @@ class SixRStrategyCrew:
             class DependencyOptimizer:
                 pass
 
-        component_strategy_expert = Agent(
+        component_strategy_expert = create_agent(
             role="Component Modernization Strategist",
             goal=(
                 "Determine optimal 6R strategy for each application component based on "
@@ -165,7 +165,7 @@ class SixRStrategyCrew:
             allow_delegation=True,
         )
 
-        compatibility_validator = Agent(
+        compatibility_validator = create_agent(
             role="Architecture Compatibility Validator",
             goal="Validate treatment compatibility between dependent components and identify integration risks",
             backstory="""You are an integration architecture expert specializing in validating that
@@ -202,7 +202,7 @@ class SixRStrategyCrew:
             allow_delegation=False,
         )
 
-        move_group_advisor = Agent(
+        move_group_advisor = create_agent(
             role="Migration Wave Planning Advisor",
             goal="Identify move group hints based on technology proximity, dependencies, and migration logistics",
             backstory="""You are a migration logistics expert who understands how to group applications
@@ -243,7 +243,7 @@ class SixRStrategyCrew:
     def _create_crew(self) -> Crew:
         """Create crew with 6R strategy tasks"""
 
-        determine_component_strategies_task = Task(
+        determine_component_strategies_task = create_task(
             description="""Analyze each component and determine the optimal 6R strategy based on comprehensive
             assessment of technical and business factors:
 
@@ -371,7 +371,7 @@ class SixRStrategyCrew:
             agent=self.agents[0] if self.agents else None,
         )
 
-        validate_component_compatibility_task = Task(
+        validate_component_compatibility_task = create_task(
             description="""Validate compatibility between component 6R strategies within the application
             and identify potential integration issues:
 
@@ -448,7 +448,7 @@ class SixRStrategyCrew:
             context=[determine_component_strategies_task],
         )
 
-        generate_move_group_hints_task = Task(
+        generate_move_group_hints_task = create_task(
             description="""Analyze component 6R strategies and generate move group hints for Planning Flow
             wave coordination:
 
@@ -539,7 +539,7 @@ class SixRStrategyCrew:
         if not CREWAI_AVAILABLE:
             return None
 
-        return Crew(
+        return create_crew(
             agents=self.agents,
             tasks=[
                 determine_component_strategies_task,

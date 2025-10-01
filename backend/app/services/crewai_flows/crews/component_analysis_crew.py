@@ -116,7 +116,7 @@ class ComponentAnalysisCrew:
             class TechDebtCalculator:
                 pass
 
-        component_discovery_agent = Agent(
+        component_discovery_agent = create_agent(
             role="Component Architecture Analyst",
             goal="Identify and catalog all application components beyond traditional 3-tier architecture",
             backstory="""You are a modern application architecture expert specializing in component
@@ -148,7 +148,7 @@ class ComponentAnalysisCrew:
             allow_delegation=True,
         )
 
-        metadata_analyst_agent = Agent(
+        metadata_analyst_agent = create_agent(
             role="Technical Debt Assessment Specialist",
             goal="Analyze technical debt from discovered application metadata and identify modernization opportunities",
             backstory="""You are a technical debt analysis expert with extensive experience in code
@@ -175,7 +175,7 @@ class ComponentAnalysisCrew:
             allow_delegation=False,
         )
 
-        dependency_mapper_agent = Agent(
+        dependency_mapper_agent = create_agent(
             role="Dependency Analysis Expert",
             goal="Map component dependencies and identify coupling patterns for migration grouping",
             backstory="""You are a systems integration specialist with expertise in dependency analysis
@@ -215,7 +215,7 @@ class ComponentAnalysisCrew:
     def _create_crew(self) -> Crew:
         """Create crew with component analysis tasks"""
 
-        identify_components_task = Task(
+        identify_components_task = create_task(
             description="""Analyze the application metadata to identify all components within the application
             architecture. Go beyond traditional frontend/middleware/backend categories to identify modern
             architectural patterns and component types:
@@ -327,7 +327,7 @@ class ComponentAnalysisCrew:
             agent=self.agents[0] if self.agents else None,
         )
 
-        analyze_technical_debt_task = Task(
+        analyze_technical_debt_task = create_task(
             description="""Analyze technical debt for each identified component based on available
             metadata and discovery data. Focus on comprehensive debt assessment across multiple dimensions:
 
@@ -425,7 +425,7 @@ class ComponentAnalysisCrew:
             context=[identify_components_task] if identify_components_task else [],
         )
 
-        map_dependencies_task = Task(
+        map_dependencies_task = create_task(
             description="""Map dependencies between identified components and analyze coupling patterns
             that will influence migration strategies. Perform comprehensive dependency analysis:
 
@@ -525,7 +525,7 @@ class ComponentAnalysisCrew:
         if not CREWAI_AVAILABLE:
             return None
 
-        return Crew(
+        return create_crew(
             agents=self.agents,
             tasks=[
                 identify_components_task,

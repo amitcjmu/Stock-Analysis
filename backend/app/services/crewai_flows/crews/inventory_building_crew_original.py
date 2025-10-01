@@ -21,7 +21,13 @@ Legacy implementation details (no longer used):
 import logging
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 # Import advanced CrewAI features with fallbacks
 try:
@@ -113,7 +119,7 @@ class InventoryBuildingCrew:
         """Create agents with hierarchical management and domain expertise"""
 
         # Manager Agent for multi-domain coordination with enhanced role boundaries
-        inventory_manager = Agent(
+        inventory_manager = create_agent(
             role="IT Asset Inventory Coordination Manager",
             goal=(
                 "Coordinate comprehensive IT asset inventory building across "
@@ -176,7 +182,7 @@ class InventoryBuildingCrew:
         )
 
         # Server Classification Expert - infrastructure domain specialist
-        server_expert = Agent(
+        server_expert = create_agent(
             role="Enterprise Server & Infrastructure Classification Expert",
             goal=(
                 "Classify server and infrastructure assets with detailed "
@@ -240,7 +246,7 @@ class InventoryBuildingCrew:
         )
 
         # Application Discovery Expert - application domain
-        app_expert = Agent(
+        app_expert = create_agent(
             role="Application Discovery Expert",
             goal="Identify and categorize application assets with business context and dependencies",
             backstory="""You are an application portfolio expert with deep knowledge of enterprise
@@ -257,7 +263,7 @@ class InventoryBuildingCrew:
         )
 
         # Device Classification Expert - network/device domain
-        device_expert = Agent(
+        device_expert = create_agent(
             role="Device Classification Expert",
             goal="Classify network devices and infrastructure components for migration planning",
             backstory="""You are a network infrastructure expert with knowledge of enterprise device
@@ -288,7 +294,7 @@ class InventoryBuildingCrew:
 
         # Step 1: The Triage Task
         # A single, fast task for the manager to sort assets into domains.
-        triage_task = Task(
+        triage_task = create_task(
             description=(
                 "Triage the entire list of assets. Your job is to sort each asset "
                 "into one of three lists: 'servers', 'applications', or 'devices' "
@@ -305,7 +311,7 @@ class InventoryBuildingCrew:
 
         # Step 2: Parallel Classification Tasks
         # These tasks depend on the triage_task and run in parallel.
-        server_classification_task = Task(
+        server_classification_task = create_task(
             description=(
                 "Perform a detailed classification of the server assets provided. "
                 "Identify OS, function, and virtual/physical status.\n\n"
@@ -322,7 +328,7 @@ class InventoryBuildingCrew:
             async_execution=True,
         )
 
-        app_classification_task = Task(
+        app_classification_task = create_task(
             description=(
                 "Perform a detailed classification of the application assets "
                 "provided. Identify version, type, and business context.\n\n"
@@ -340,7 +346,7 @@ class InventoryBuildingCrew:
             async_execution=True,
         )
 
-        device_classification_task = Task(
+        device_classification_task = create_task(
             description=(
                 "Perform a detailed classification of the device assets "
                 "provided. Identify device type and network role.\n\n"
@@ -359,7 +365,7 @@ class InventoryBuildingCrew:
 
         # Step 3: Final Consolidation and Relationship Mapping
         # This task runs last, after all experts have finished.
-        consolidation_task = Task(
+        consolidation_task = create_task(
             description=(
                 "Consolidate the outputs from the server, application, and device "
                 "experts into a single, unified asset inventory.\n\n"
@@ -461,7 +467,7 @@ class InventoryBuildingCrew:
         logger.info(
             f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
         )
-        return Crew(**crew_config)
+        return create_crew(**crew_config)
 
     def _identify_asset_type_indicators(
         self, data: List[Dict[str, Any]]

@@ -8,7 +8,13 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from crewai import Agent, Crew, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 from crewai.tools import BaseTool
 from pydantic import BaseModel
 
@@ -194,7 +200,7 @@ class DependencyAnalysisCrew:
 
         llm = get_crewai_llm()
 
-        return Agent(
+        return create_agent(
             role="Network Architecture Specialist",
             goal="Analyze network topology and architecture patterns to identify connectivity "
             "dependencies and migration requirements",
@@ -217,7 +223,7 @@ class DependencyAnalysisCrew:
 
         llm = get_crewai_llm()
 
-        return Agent(
+        return create_agent(
             role="Application Dependency Analyst",
             goal="Analyze application-to-application dependencies and integration patterns",
             backstory="""You are an application dependency expert who understands how applications
@@ -237,7 +243,7 @@ class DependencyAnalysisCrew:
 
         llm = get_crewai_llm()
 
-        return Agent(
+        return create_agent(
             role="Infrastructure Dependency Mapper",
             goal="Map infrastructure dependencies and identify critical migration paths",
             backstory="""You are an infrastructure dependency specialist who maps out
@@ -330,7 +336,7 @@ class DependencyAnalysisCrew:
             tasks = self._create_tasks(assets_data)
 
             # Create and execute the crew
-            self.crew = Crew(
+            self.crew = create_crew(
                 agents=[
                     self.network_architecture_specialist,
                     self.application_dependency_analyst,
@@ -382,7 +388,7 @@ class DependencyAnalysisCrew:
                 )
 
         # Task 1: Network dependency analysis
-        network_analysis_task = Task(
+        network_analysis_task = create_task(
             description=f"""Analyze network dependencies and topology for {len(assets_data)} REAL assets.
 
             CRITICAL INSTRUCTIONS:
@@ -413,7 +419,7 @@ class DependencyAnalysisCrew:
         tasks.append(network_analysis_task)
 
         # Task 2: Application dependency analysis
-        app_dependency_task = Task(
+        app_dependency_task = create_task(
             description=f"""Analyze application-to-application dependencies based on the network analysis.
 
             CRITICAL INSTRUCTIONS:
@@ -449,7 +455,7 @@ class DependencyAnalysisCrew:
         tasks.append(app_dependency_task)
 
         # Task 3: Infrastructure dependency mapping and migration sequence
-        infrastructure_mapping_task = Task(
+        infrastructure_mapping_task = create_task(
             description=f"""Map infrastructure dependencies and create migration sequence based on
             network and application analysis of {len(assets_data)} REAL assets.
 

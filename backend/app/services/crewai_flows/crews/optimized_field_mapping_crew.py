@@ -13,7 +13,12 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Process, Task
+from typing import TYPE_CHECKING
+
+from crewai import Crew, Process
+
+if TYPE_CHECKING:
+    from crewai import Agent, Task
 
 from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.enhanced_agent_memory import enhanced_agent_memory

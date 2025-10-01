@@ -104,7 +104,7 @@ class ArchitectureStandardsCrew:
             class StandardsTemplateGenerator:
                 pass
 
-        architecture_standards_agent = Agent(
+        architecture_standards_agent = create_agent(
             role="Architecture Standards Specialist",
             goal=(
                 "Define and evaluate engagement-level architecture minimums based on "
@@ -138,7 +138,7 @@ class ArchitectureStandardsCrew:
             allow_delegation=True,
         )
 
-        technology_stack_analyst = Agent(
+        technology_stack_analyst = create_agent(
             role="Technology Stack Analyst",
             goal="Assess application technology stacks against supported versions and identify upgrade paths",
             backstory="""You are a technology lifecycle expert who tracks the evolution of programming
@@ -164,7 +164,7 @@ class ArchitectureStandardsCrew:
             allow_delegation=False,
         )
 
-        exception_handler_agent = Agent(
+        exception_handler_agent = create_agent(
             role="Business Constraint Analyst",
             goal=(
                 "Identify and document valid architecture exceptions based on "
@@ -199,7 +199,7 @@ class ArchitectureStandardsCrew:
     def _create_crew(self) -> Crew:
         """Create crew with architecture standards tasks"""
 
-        capture_standards_task = Task(
+        capture_standards_task = create_task(
             description="""Analyze the engagement requirements and client context to capture comprehensive
             architecture standards. Consider the following key areas:
 
@@ -279,7 +279,7 @@ class ArchitectureStandardsCrew:
             agent=self.agents[0] if self.agents else None,
         )
 
-        analyze_application_stacks_task = Task(
+        analyze_application_stacks_task = create_task(
             description="""For each selected application, analyze its current technology stack against
             the captured architecture standards. Perform a comprehensive assessment including:
 
@@ -356,7 +356,7 @@ class ArchitectureStandardsCrew:
             context=[capture_standards_task] if capture_standards_task else [],
         )
 
-        evaluate_exceptions_task = Task(
+        evaluate_exceptions_task = create_task(
             description="""Evaluate potential exceptions to architecture standards based on business
             constraints and technical realities. Conduct a thorough analysis including:
 
@@ -438,7 +438,7 @@ class ArchitectureStandardsCrew:
         if not CREWAI_AVAILABLE:
             return None
 
-        return Crew(
+        return create_crew(
             agents=self.agents,
             tasks=[
                 capture_standards_task,

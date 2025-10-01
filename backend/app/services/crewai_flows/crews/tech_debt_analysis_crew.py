@@ -8,7 +8,10 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from crewai import Agent, Crew
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from crewai import Agent, Crew
 from crewai.tools import BaseTool
 from pydantic import BaseModel
 
@@ -456,7 +459,7 @@ class TechDebtAnalysisCrew:
         self.risk_assessment_specialist = self._create_risk_assessment_specialist()
 
         # Create crew with debate-driven consensus building
-        self.crew = Crew(
+        self.crew = create_crew(
             agents=[
                 self.legacy_modernization_expert,
                 self.cloud_migration_strategist,
@@ -473,7 +476,7 @@ class TechDebtAnalysisCrew:
 
     def _create_legacy_modernization_expert(self) -> Agent:
         """Create the Legacy Systems Modernization Expert agent"""
-        return Agent(
+        return create_agent(
             role="Legacy Systems Modernization Expert",
             goal=(
                 "Analyze legacy systems and provide comprehensive modernization recommendations "
@@ -492,7 +495,7 @@ class TechDebtAnalysisCrew:
 
     def _create_cloud_migration_strategist(self) -> Agent:
         """Create the Cloud Migration Strategist agent"""
-        return Agent(
+        return create_agent(
             role="Cloud Migration Strategist",
             goal=(
                 "Develop optimal cloud migration strategies using 6R framework and provide "
@@ -511,7 +514,7 @@ class TechDebtAnalysisCrew:
 
     def _create_risk_assessment_specialist(self) -> Agent:
         """Create the Risk Assessment Specialist agent"""
-        return Agent(
+        return create_agent(
             role="Risk Assessment Specialist",
             goal=(
                 "Assess migration risks and provide comprehensive risk mitigation strategies "

@@ -8,7 +8,10 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from crewai import Agent, Crew
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from crewai import Agent, Crew
 from crewai.tools import BaseTool
 from pydantic import BaseModel
 
@@ -149,7 +152,7 @@ class AssetIntelligenceCrew:
         self.asset_classification_expert = self._create_asset_classification_expert()
 
         # Create crew with sequential collaboration
-        self.crew = Crew(
+        self.crew = create_crew(
             agents=[self.asset_classification_expert],
             tasks=[],  # Tasks will be created dynamically
             verbose=True,
@@ -162,7 +165,7 @@ class AssetIntelligenceCrew:
 
     def _create_asset_classification_expert(self) -> Agent:
         """Create the Asset Classification Expert agent"""
-        return Agent(
+        return create_agent(
             role="Asset Classification Expert",
             goal=(
                 "Provide precise and comprehensive asset classification using advanced "

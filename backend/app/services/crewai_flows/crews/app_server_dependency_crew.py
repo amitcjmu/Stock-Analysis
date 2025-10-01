@@ -10,7 +10,13 @@ Enhanced implementation with CrewAI best practices:
 import logging
 from typing import Any, Dict, Optional
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 from .crew_config import get_optimized_agent_config
 
@@ -101,7 +107,7 @@ class AppServerDependencyCrew:
 
         # Manager Agent for dependency coordination
         manager_config = get_optimized_agent_config(allow_delegation=True)
-        dependency_manager = Agent(
+        dependency_manager = create_agent(
             role="Dependency Analysis Manager",
             goal="Coordinate comprehensive app-server hosting relationship mapping for migration planning",
             backstory="""You are a systems architect with expertise in enterprise application hosting
@@ -117,7 +123,7 @@ class AppServerDependencyCrew:
 
         # Hosting Relationship Expert - specialist agent (no delegation)
         specialist_config = get_optimized_agent_config(allow_delegation=False)
-        hosting_expert = Agent(
+        hosting_expert = create_agent(
             role="Hosting Relationship Expert",
             goal="Identify and map application-to-server hosting relationships with migration impact analysis",
             backstory="""You are an expert in application hosting with deep knowledge of enterprise
@@ -133,7 +139,7 @@ class AppServerDependencyCrew:
         )
 
         # Migration Impact Analyst - specialist agent (no delegation)
-        migration_impact_analyst = Agent(
+        migration_impact_analyst = create_agent(
             role="Migration Impact Analyst",
             goal="Assess migration complexity and risk based on app-server dependencies",
             backstory="""You are a migration specialist with extensive experience in assessing the
@@ -158,7 +164,7 @@ class AppServerDependencyCrew:
         applications = asset_inventory.get("applications", [])
 
         # Planning Task - Manager coordinates dependency analysis approach
-        planning_task = Task(
+        planning_task = create_task(
             description=f"""Plan comprehensive app-server dependency analysis strategy.
 
             Available assets for analysis:
@@ -182,7 +188,7 @@ class AppServerDependencyCrew:
         )
 
         # Hosting Relationship Discovery Task
-        hosting_discovery_task = Task(
+        hosting_discovery_task = create_task(
             description=f"""Identify and map application-to-server hosting relationships.
 
             Assets to analyze:
@@ -208,7 +214,7 @@ class AppServerDependencyCrew:
         )
 
         # Migration Impact Assessment Task
-        impact_assessment_task = Task(
+        impact_assessment_task = create_task(
             description=f"""Assess migration complexity and risk based on hosting dependencies.
 
             Hosting relationships: Use insights from hosting expert
@@ -283,7 +289,7 @@ class AppServerDependencyCrew:
         logger.info(
             f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
         )
-        return Crew(**crew_config)
+        return create_crew(**crew_config)
 
     def _create_hosting_analysis_tools(self):
         """Create tools for hosting relationship analysis"""
@@ -312,7 +318,7 @@ def create_app_server_dependency_crew(
 
     try:
         # Dependency Manager - Enhanced with inventory context
-        dependency_manager = Agent(
+        dependency_manager = create_agent(
             role="Dependency Manager",
             goal="Orchestrate comprehensive app-to-server dependency mapping using asset inventory intelligence",
             backstory="""Senior infrastructure architect with 15+ years managing enterprise hosting relationships.
@@ -329,7 +335,7 @@ def create_app_server_dependency_crew(
         )
 
         # Hosting Relationship Expert - Enhanced with inventory intelligence
-        hosting_expert = Agent(
+        hosting_expert = create_agent(
             role="Hosting Relationship Expert",
             goal="Map application-to-server hosting relationships using inventory intelligence",
             backstory="""Expert in hosting relationship analysis with deep knowledge of application deployment patterns.
@@ -347,7 +353,7 @@ def create_app_server_dependency_crew(
         )
 
         # Migration Impact Analyst - Enhanced with hosting context
-        migration_analyst = Agent(
+        migration_analyst = create_agent(
             role="Migration Impact Analyst",
             goal="Analyze migration complexity using hosting relationship context",
             backstory="""Specialist in migration impact assessment with expertise in hosting dependency analysis.
@@ -365,7 +371,7 @@ def create_app_server_dependency_crew(
         )
 
         # Enhanced planning task that leverages inventory intelligence
-        planning_task = Task(
+        planning_task = create_task(
             description=f"""
             Plan comprehensive app-server dependency mapping using asset inventory intelligence.
 
@@ -392,7 +398,7 @@ def create_app_server_dependency_crew(
         )
 
         # Inventory-aware hosting analysis task
-        hosting_analysis_task = Task(
+        hosting_analysis_task = create_task(
             description=f"""
             Execute comprehensive hosting relationship mapping using asset inventory intelligence.
 
@@ -425,7 +431,7 @@ def create_app_server_dependency_crew(
         )
 
         # Inventory-aware migration impact task
-        migration_impact_task = Task(
+        migration_impact_task = create_task(
             description="""
             Analyze migration complexity and impact using hosting relationship intelligence.
 
@@ -456,7 +462,7 @@ def create_app_server_dependency_crew(
         )
 
         # Create crew with hierarchical process and shared memory
-        crew = Crew(
+        crew = create_crew(
             agents=[dependency_manager, hosting_expert, migration_analyst],
             tasks=[planning_task, hosting_analysis_task, migration_impact_task],
             process=Process.hierarchical,

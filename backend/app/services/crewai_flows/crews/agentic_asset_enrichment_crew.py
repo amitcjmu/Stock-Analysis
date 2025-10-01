@@ -19,7 +19,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 try:
-    from crewai import Agent, Crew, Process, Task
+    from crewai import Process
+
+    from app.services.crewai_flows.config.crew_factory import (
+        create_agent,
+        create_crew,
+        create_task,
+    )
 
     CREWAI_AVAILABLE = True
 except ImportError:
@@ -91,7 +97,7 @@ class AgenticAssetEnrichmentCrew:
         )
 
         # Asset Intelligence Agent - Uses patterns and memory for business value assessment
-        asset_intelligence_agent = Agent(
+        asset_intelligence_agent = create_agent(
             role="Asset Intelligence Specialist",
             goal="Analyze assets using discovered patterns and memory to determine "
             "business value, risk, and modernization potential",
@@ -109,7 +115,7 @@ class AgenticAssetEnrichmentCrew:
         )
 
         # Pattern Discovery Agent - Identifies new patterns for future learning
-        pattern_discovery_agent = Agent(
+        pattern_discovery_agent = create_agent(
             role="Pattern Discovery Specialist",
             goal="Identify and record new patterns in asset data that can improve future enrichment decisions",
             backstory="""You are a pattern recognition expert who analyzes asset enrichment results
@@ -156,7 +162,7 @@ class AgenticAssetEnrichmentCrew:
 
         # Task 1: Intelligent Asset Enrichment
         # This is not SQL, it's a task description for an AI agent
-        enrichment_task = Task(  # nosec B608
+        enrichment_task = create_task(  # nosec B608
             description=f"""
             Perform intelligent asset enrichment for {len(assets_data)} assets using pattern-based reasoning.
 
@@ -193,7 +199,7 @@ class AgenticAssetEnrichmentCrew:
         )
 
         # Task 2: Pattern Discovery and Learning
-        pattern_discovery_task = Task(
+        pattern_discovery_task = create_task(
             description="""
             Analyze the enrichment results to discover and record new patterns for future learning.
 
@@ -266,7 +272,7 @@ class AgenticAssetEnrichmentCrew:
         logger.info(
             f"✅ Creating Agentic Asset Enrichment Crew with {len(agents)} agents and {len(tasks)} tasks"
         )
-        return Crew(**crew_config)
+        return create_crew(**crew_config)
 
     async def enrich_assets_with_agents(
         self, assets_data: List[Dict[str, Any]]

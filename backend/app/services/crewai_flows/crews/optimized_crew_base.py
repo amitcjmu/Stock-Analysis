@@ -13,7 +13,13 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 from crewai.memory import LongTermMemory, ShortTermMemory
 
 from app.services.agent_learning_system import LearningContext
@@ -132,7 +138,7 @@ class OptimizedCrewBase:
         agent_config.update(kwargs)
 
         # Create agent
-        agent = Agent(**agent_config)
+        agent = create_agent(**agent_config)
 
         # Initialize agent-specific memory context
         if self.enable_memory:
@@ -193,7 +199,7 @@ class OptimizedCrewBase:
         if self.enable_caching:
             task_config["callback"] = self._create_cached_callback(agent.role)
 
-        return Task(**task_config)
+        return create_task(**task_config)
 
     def _create_cached_callback(self, agent_role: str):
         """Create a cached callback for task execution"""
@@ -243,7 +249,7 @@ class OptimizedCrewBase:
         # Apply any additional kwargs
         crew_config.update(kwargs)
 
-        crew = Crew(**crew_config)
+        crew = create_crew(**crew_config)
 
         # Add performance monitoring
         self._add_performance_monitoring(crew)
