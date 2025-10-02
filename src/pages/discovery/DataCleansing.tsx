@@ -211,6 +211,9 @@ const DataCleansing: React.FC = () => {
       // Call backend PATCH endpoint with request body (NOT query params)
       await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           status: status,
           resolution_notes: `Issue ${status} by user at ${new Date().toISOString()}`

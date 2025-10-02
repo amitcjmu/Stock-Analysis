@@ -353,9 +353,9 @@ async def resolve_quality_issue(
         flow.crewai_state_data = existing_data
 
         # Commit changes using atomic transaction
+        # The context manager handles flush and commit automatically
         async with db.begin():
             await db.flush()
-            await db.commit()
 
         logger.info(
             f"✅ Quality issue {issue_id} resolved with status '{resolution.status}' for flow {flow_id}"

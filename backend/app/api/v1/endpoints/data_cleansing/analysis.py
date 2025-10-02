@@ -108,11 +108,17 @@ def _analyze_raw_data_quality(
 
 def _generate_quality_issues_from_stats(
     field_stats: Dict[str, Dict[str, Any]],
+    total_records: int,
+    sample_size: int,
 ) -> List[DataQualityIssue]:
     """
     Generate DataQualityIssue objects from field statistics.
+    Extrapolates affected record counts from sample to full dataset.
     """
     quality_issues = []
+
+    if sample_size == 0:
+        return []
 
     for field_name, stats in field_stats.items():
         total = stats["total_count"]
@@ -126,6 +132,8 @@ def _generate_quality_issues_from_stats(
                 if (missing_count / total) > 0.5
                 else ("high" if (missing_count / total) > 0.25 else "medium")
             )
+            # Extrapolate to full dataset
+            estimated_affected = int(total_records * (missing_count / sample_size))
 
             quality_issues.append(
                 DataQualityIssue(
@@ -134,10 +142,10 @@ def _generate_quality_issues_from_stats(
                     issue_type="missing_values",
                     severity=severity,
                     description=(
-                        f"Field '{field_name}' has {missing_count} missing values "
-                        f"({(missing_count/total)*100:.1f}%)"
+                        f"Field '{field_name}' has an estimated {missing_count} missing values "
+                        f"in a sample of {total} records ({(missing_count/total)*100:.1f}%)"
                     ),
-                    affected_records=missing_count,
+                    affected_records=estimated_affected,
                     recommendation=(
                         f"Consider filling missing values for '{field_name}' with "
                         f"default values or remove incomplete records"
@@ -149,6 +157,8 @@ def _generate_quality_issues_from_stats(
         # Generate issue for invalid formats (if > 5%)
         if invalid_count > 0 and (invalid_count / total) > 0.05:
             severity = "high" if (invalid_count / total) > 0.25 else "medium"
+            # Extrapolate to full dataset
+            estimated_affected = int(total_records * (invalid_count / sample_size))
 
             quality_issues.append(
                 DataQualityIssue(
@@ -157,10 +167,10 @@ def _generate_quality_issues_from_stats(
                     issue_type="invalid_format",
                     severity=severity,
                     description=(
-                        f"Field '{field_name}' has {invalid_count} records with "
-                        f"invalid format ({(invalid_count/total)*100:.1f}%)"
+                        f"Field '{field_name}' has an estimated {invalid_count} records with "
+                        f"invalid format in a sample of {total} records ({(invalid_count/total)*100:.1f}%)"
                     ),
-                    affected_records=invalid_count,
+                    affected_records=estimated_affected,
                     recommendation=f"Standardize format for '{field_name}' to ensure data consistency",
                     auto_fixable=True,
                 )
@@ -264,7 +274,9 @@ async def _perform_data_cleansing_analysis(
                 field_stats = _analyze_raw_data_quality(raw_records, total_records)
 
                 # Generate quality issues from analysis
-                quality_issues = _generate_quality_issues_from_stats(field_stats)
+                quality_issues = _generate_quality_issues_from_stats(
+                    field_stats, total_records, len(raw_records)
+                )
 
                 # Calculate field quality scores
                 field_quality_scores = {
