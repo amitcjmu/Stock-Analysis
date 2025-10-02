@@ -139,7 +139,10 @@ class QuestionnaireAgentManager:
             agents.append(quality_validator)
 
         except Exception as e:
-            logger.error(f"Failed to create questionnaire generation agents: {e}")
+            # FIXED: Add exc_info=True for detailed error logging
+            logger.error(f"Failed to create questionnaire generation agents: {e}", exc_info=True)
+            # FIXED: Clear agents list before adding fallback to prevent partial state
+            agents.clear()
             # Create minimal fallback agent
             fallback_agent = Agent(
                 role="Questionnaire Generator",

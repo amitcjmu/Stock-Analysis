@@ -31,9 +31,14 @@ class QuestionnaireTaskManager:
         tasks = []
 
         # Import tools for tasks
+        # FIXED: Check if agents list is not empty before accessing first agent
         tools = []
-        if hasattr(self.agents[0], "tools"):
+        if self.agents and len(self.agents) > 0 and hasattr(self.agents[0], "tools"):
             tools = self.agents[0].tools
+
+        # FIXED: Ensure we have at least one agent before creating tasks
+        if not self.agents or len(self.agents) == 0:
+            raise ValueError("No agents available for task creation")
 
         # Task 1: Questionnaire Design
         questionnaire_design_task = Task(

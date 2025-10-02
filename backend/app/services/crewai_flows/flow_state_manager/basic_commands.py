@@ -263,11 +263,31 @@ class FlowStateBasicCommands:
     async def cleanup_flow_state(
         self, flow_id: str, archive: bool = True
     ) -> Dict[str, Any]:
-        """Clean up flow state with optional archiving"""
+        """
+        Clean up flow state with optional archiving
+
+        FIXED: Use secure_checkpoint_manager instead of store.create_checkpoint,
+        and load current state before creating checkpoint.
+        """
         try:
+            checkpoint_id = None
             if archive:
-                # Create final checkpoint before cleanup
-                await self.store.create_checkpoint(flow_id, "cleanup")
+                # Load current state first
+                current_state = await self.store.load_state(flow_id)
+                if current_state:
+                    # Create final checkpoint before cleanup using secure checkpoint manager
+                    checkpoint_id = (
+                        await self.secure_checkpoint_manager.create_checkpoint(
+                            flow_id=flow_id,
+                            phase="cleanup",
+                            state=current_state,
+                            metadata={"cleanup_archive": True},
+                            context=self.context,
+                        )
+                    )
+                    logger.info(f"✅ Created cleanup checkpoint: {checkpoint_id}")
+                else:
+                    logger.warning(f"⚠️ No state found for {flow_id}, skipping archive")
 
             # Clean up old versions (keep last 2)
             cleaned_versions = await self.store.cleanup_old_versions(
@@ -280,6 +300,7 @@ class FlowStateBasicCommands:
             return {
                 "flow_id": flow_id,
                 "archived": archive,
+                "checkpoint_id": checkpoint_id,
                 "versions_cleaned": cleaned_versions,
                 "cleaned_at": datetime.utcnow().isoformat(),
             }

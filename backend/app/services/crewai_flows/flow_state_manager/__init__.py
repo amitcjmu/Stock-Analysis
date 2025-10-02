@@ -9,6 +9,7 @@ This module has been modularized for maintainability:
 """
 
 import logging
+from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -198,12 +199,23 @@ class FlowStateManager:
 # Utility functions for flow state management
 
 
-async def create_flow_manager(context: RequestContext) -> FlowStateManager:
-    """Create a flow state manager with database session"""
+@asynccontextmanager
+async def create_flow_manager(context: RequestContext):
+    """
+    Create a flow state manager with database session as async context manager.
+
+    FIXED: Converted to async context manager to properly manage database session lifecycle.
+    Use with 'async with' pattern:
+        async with create_flow_manager(context) as manager:
+            await manager.update_flow_state(...)
+
+    Yields:
+        FlowStateManager: Configured flow state manager instance
+    """
     from app.core.database import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        return FlowStateManager(db, context)
+        yield FlowStateManager(db, context)
 
 
 # Export all public APIs

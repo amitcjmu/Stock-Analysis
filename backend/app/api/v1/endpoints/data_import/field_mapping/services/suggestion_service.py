@@ -95,14 +95,29 @@ class SuggestionService:
             raise ValueError("No sample data found for analysis")
 
         # Extract source fields and sample data
+        # CRITICAL: Establish field order from first record to prevent data corruption
         source_fields = []
         sample_data_rows = []
 
-        for record in sample_records:
+        for idx, record in enumerate(sample_records):
             if record.raw_data:
-                sample_data_rows.append(list(record.raw_data.values()))
-                if not source_fields:  # Get field names from first record
+                if idx == 0:
+                    # Establish consistent field order from first record
                     source_fields = list(record.raw_data.keys())
+                    logger.info(
+                        f"Established field order from first record: {source_fields}"
+                    )
+
+                # Ensure values align with established field order
+                if source_fields:
+                    # Extract values in the same order as source_fields
+                    ordered_values = [
+                        record.raw_data.get(field) for field in source_fields
+                    ]
+                    sample_data_rows.append(ordered_values)
+                else:
+                    # Fallback: if source_fields not established yet (should not happen)
+                    sample_data_rows.append(list(record.raw_data.values()))
 
         if not source_fields:
             raise ValueError("No source fields found in data")
