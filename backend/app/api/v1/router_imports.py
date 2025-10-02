@@ -54,12 +54,14 @@ except ImportError:
 platform_admin_router: Optional[APIRouter]
 security_audit_router: Optional[APIRouter]
 llm_usage_router: Optional[APIRouter]
+memory_management_router: Optional[APIRouter]
 try:
     from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
     from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import (
         router as security_audit_router,
     )
     from app.api.v1.admin.llm_usage import router as llm_usage_router
+    from app.api.v1.admin.memory_management import router as memory_management_router
 
     ADMIN_ENDPOINTS_AVAILABLE = True
 except ImportError:
@@ -67,6 +69,7 @@ except ImportError:
     platform_admin_router = None
     security_audit_router = None
     llm_usage_router = None
+    memory_management_router = None
 
 # Discovery endpoints - REMOVED: Legacy discovery endpoints are deprecated
 # All discovery functionality must use MFO (/api/v1/flows/*) or unified-discovery

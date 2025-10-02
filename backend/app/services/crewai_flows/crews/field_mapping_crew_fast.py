@@ -15,27 +15,26 @@ from typing import Any, Dict, List
 
 # CrewAI imports with graceful fallback
 try:
-    from crewai import Agent, Crew, Process, Task
+    from crewai import Crew, Process
 
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
 
     # Fallback classes
-    class Agent:
-        pass
-
-    class Task:
-        pass
-
-    class Crew:
-        pass
-
-    class Process:
+    class Process:  # type: ignore
         sequential = "sequential"
+
+    class Crew:  # type: ignore
+        pass
 
 
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -115,63 +114,17 @@ def create_fast_field_mapping_crew(
             max_execution_time=300,  # Task-level timeout - 300 seconds
         )
 
-        # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead
-        # Enable memory with proper embedder configuration
-        from app.services.crewai_memory_patch import apply_memory_patch
-        import os
-
-        try:
-            # Apply the memory patch for DeepInfra compatibility
-            patch_success = apply_memory_patch()
-            if not patch_success:
-                logger.warning(
-                    "⚠️ Memory patch not fully applied, memory may have issues"
-                )
-
-            # Create custom embedder configuration for DeepInfra
-            # This overrides CrewAI's default OpenAI embeddings with DeepInfra
-            custom_embedder = {
-                "provider": "openai",
-                "config": {
-                    "model": "thenlper/gte-large",  # DeepInfra embedding model
-                    "api_key": os.getenv("DEEPINFRA_API_KEY"),
-                    "api_base": "https://api.deepinfra.com/v1/openai",
-                    "encoding_format": "float",
-                },
-            }
-            # Log embedder config without exposing the API key
-            embedder_info = {
-                "provider": custom_embedder["provider"],
-                "model": custom_embedder["config"]["model"],
-                "api_base": custom_embedder["config"]["api_base"],
-                "has_api_key": bool(custom_embedder["config"].get("api_key")),
-            }
-            logger.info(f"Using custom DeepInfra embedder: {embedder_info}")
-
-            crew = create_crew(
-                agents=[field_mapping_specialist],
-                tasks=[mapping_task],
-                process=Process.sequential,  # CRITICAL: No hierarchical overhead
-                verbose=False,  # Reduce logging
-                max_execution_time=300,  # Crew-level timeout - 300 seconds
-                memory=True,  # RE-ENABLED: Using custom DeepInfra embeddings
-                embedder=custom_embedder,  # Custom DeepInfra embedder config
-            )
-            logger.info("✅ CrewAI memory enabled with custom DeepInfra embeddings")
-
-        except Exception as mem_error:
-            logger.warning(f"⚠️ Could not enable memory: {mem_error}")
-            # Fallback without memory if embedder fails
-            crew = create_crew(
-                agents=[field_mapping_specialist],
-                tasks=[mapping_task],
-                process=Process.sequential,
-                verbose=False,
-                max_execution_time=300,
-                memory=False,
-                embedder=None,
-            )
-            logger.info("⚠️ CrewAI memory disabled due to embedder error")
+        # 🚀 OPTIMIZED CREW: Sequential process, minimal overhead, NO memory
+        # Memory disabled per ADR-024 - use TenantMemoryManager instead
+        crew = create_crew(
+            agents=[field_mapping_specialist],
+            tasks=[mapping_task],
+            process=Process.sequential,  # CRITICAL: No hierarchical overhead
+            verbose=False,  # Reduce logging
+            max_execution_time=300,  # Crew-level timeout - 300 seconds
+            memory=False,  # ✅ DISABLED per ADR-024 - use TenantMemoryManager
+        )
+        logger.info("✅ Field Mapping Crew created without CrewAI memory (ADR-024)")
 
         logger.info("✅ FAST Field Mapping Crew created - single agent, 20s timeout")
         return crew

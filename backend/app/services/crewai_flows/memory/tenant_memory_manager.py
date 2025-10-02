@@ -684,3 +684,115 @@ class TenantMemoryManager:
     ) -> Dict[str, Any]:
         """Apply privacy filters to analytics data"""
         return analytics
+
+    # Public API methods for pattern storage/retrieval (ADR-024)
+
+    async def store_learning(
+        self,
+        client_account_id: int,
+        engagement_id: int,
+        scope: LearningScope,
+        pattern_type: str,
+        pattern_data: Dict[str, Any],
+    ) -> str:
+        """
+        Store agent learning pattern with multi-tenant isolation.
+
+        Args:
+            client_account_id: Client account ID
+            engagement_id: Engagement ID
+            scope: Learning scope (ENGAGEMENT, CLIENT, GLOBAL)
+            pattern_type: Type of pattern (e.g., "field_mapping", "asset_classification")
+            pattern_data: Pattern data to store
+
+        Returns:
+            Pattern ID (UUID as string)
+        """
+        from app.utils.vector_utils import VectorUtils
+
+        vector_utils = VectorUtils()
+
+        # Generate pattern text for embedding
+        pattern_text = f"{pattern_type}: {str(pattern_data)}"
+        pattern_name = pattern_data.get("name", pattern_type)
+
+        # Store pattern with tenant scoping
+        pattern_id = await vector_utils.store_pattern_embedding(
+            pattern_text=pattern_text,
+            pattern_type=pattern_type,
+            pattern_name=pattern_name,
+            client_account_id=str(client_account_id),
+            engagement_id=(
+                str(engagement_id) if scope == LearningScope.ENGAGEMENT else None
+            ),
+            pattern_context=pattern_data,
+            confidence_score=pattern_data.get("confidence", 0.5),
+        )
+
+        logger.info(
+            f"Stored learning pattern: {pattern_type} for client {client_account_id}, "
+            f"engagement {engagement_id}, scope {scope.value}"
+        )
+
+        return pattern_id
+
+    async def retrieve_similar_patterns(
+        self,
+        client_account_id: int,
+        engagement_id: int,
+        pattern_type: str,
+        query_context: Dict[str, Any],
+        limit: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve similar patterns for agent context.
+
+        Args:
+            client_account_id: Client account ID
+            engagement_id: Engagement ID
+            pattern_type: Type of pattern to retrieve
+            query_context: Context for similarity search
+            limit: Maximum number of results
+
+        Returns:
+            List of similar patterns with similarity scores
+        """
+        from app.services.embedding_service import EmbeddingService
+        from app.utils.vector_utils import VectorUtils
+
+        vector_utils = VectorUtils()
+        embedding_service = EmbeddingService()
+
+        # Generate query embedding
+        query_text = f"{pattern_type}: {str(query_context)}"
+        query_embedding = await embedding_service.embed_text(query_text)
+
+        # Find similar patterns
+        similar_patterns = await vector_utils.find_similar_patterns(
+            query_embedding=query_embedding,
+            client_account_id=str(client_account_id),
+            pattern_type=pattern_type,
+            limit=limit,
+            similarity_threshold=0.7,
+        )
+
+        # Format results
+        results = []
+        for pattern, similarity in similar_patterns:
+            results.append(
+                {
+                    "pattern_id": str(pattern.id),
+                    "pattern_type": pattern.pattern_type,
+                    "pattern_name": pattern.pattern_name,
+                    "pattern_data": pattern.pattern_metadata,
+                    "confidence": pattern.confidence_score,
+                    "similarity": similarity,
+                }
+            )
+
+        logger.info(
+            f"Retrieved {len(results)} similar patterns for {pattern_type} "
+            f"(client {client_account_id}, engagement {engagement_id})"
+        )
+
+        return results

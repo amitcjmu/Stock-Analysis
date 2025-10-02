@@ -12,13 +12,13 @@ Use the explicit factory pattern instead:
         role="Analyst",
         goal="Analyze data",
         backstory="Expert analyst",
-        # Explicit defaults: allow_delegation=False, max_iter=1, memory=True
+        # Explicit defaults: allow_delegation=False, max_iter=1, memory=False (ADR-024)
     )
 
     crew = create_crew(
         agents=[agent],
         tasks=[task],
-        # Explicit defaults: max_iterations=1, timeout=600s, memory=True
+        # Explicit defaults: max_iterations=1, timeout=600s, memory=False (ADR-024)
     )
 
 See crew_factory.py for full migration guide and usage examples.

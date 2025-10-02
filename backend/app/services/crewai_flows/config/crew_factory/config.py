@@ -93,9 +93,11 @@ class CrewConfig:
         if verbose is not None:
             config["verbose"] = verbose
 
-        # Memory is enabled by default, but can be disabled per agent
+        # Memory is DISABLED by default per ADR-024 (use TenantMemoryManager)
         if memory is not None:
             config["memory"] = memory
+        else:
+            config["memory"] = False
 
         return config
 
@@ -137,11 +139,11 @@ class CrewConfig:
         if process is not None:
             config["process"] = process
 
-        # Memory configuration (embedder will be set separately)
+        # Memory configuration - DISABLED per ADR-024 (use TenantMemoryManager)
         if memory is not None:
             config["memory"] = memory
         else:
-            # Memory is enabled by default
-            config["memory"] = True
+            # Memory is DISABLED by default per ADR-024
+            config["memory"] = False
 
         return config
