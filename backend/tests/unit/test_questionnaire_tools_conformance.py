@@ -5,7 +5,6 @@ These tests ensure that all questionnaire generation tools properly inherit from
 BaseTool and can be used with CrewAI agents without validation errors.
 """
 
-import pytest
 from crewai import Agent
 from crewai.tools import BaseTool
 
