@@ -7,7 +7,13 @@ Performs ONLY essential tasks: file type analysis, security validation, PII dete
 import logging
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Crew, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +47,7 @@ def create_data_import_validation_crew(
         from .crew_config import DEFAULT_AGENT_CONFIG
 
         # Create focused data validation agent with NO delegation
-        data_validation_agent = Agent(
+        data_validation_agent = create_agent(
             role="Data Import Validation Specialist",
             goal=(
                 "Quickly validate imported data for security, PII, file type, and relevance "
@@ -62,7 +68,7 @@ def create_data_import_validation_crew(
         )
 
         # Create focused validation task
-        validation_task = Task(
+        validation_task = create_task(
             description=f"""Perform focused validation on the imported data:
 
             Data to validate:
@@ -104,7 +110,7 @@ def create_data_import_validation_crew(
         if callback_handler:
             crew_config["callbacks"] = [callback_handler]
 
-        crew = Crew(
+        crew = create_crew(
             agents=[data_validation_agent],
             tasks=[validation_task],
             process="sequential",  # Simple sequential process

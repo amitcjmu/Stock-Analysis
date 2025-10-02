@@ -6,7 +6,13 @@ ADCS: Crew for analyzing collected data gaps using intelligent agents
 import logging
 from typing import Any, Dict, Optional
 
-from crewai import Agent, Crew, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +46,7 @@ def create_gap_analysis_crew(
         from ..crew_config import DEFAULT_AGENT_CONFIG
 
         # Create gap analysis specialist agent
-        gap_specialist = Agent(
+        gap_specialist = create_agent(
             role="Data Gap Analysis Specialist",
             goal=(
                 "Identify critical data gaps that impact 6R migration strategy accuracy "
@@ -66,7 +72,7 @@ def create_gap_analysis_crew(
         )
 
         # Create 6R impact assessor agent
-        sixr_impact_assessor = Agent(
+        sixr_impact_assessor = create_agent(
             role="6R Strategy Impact Assessment Expert",
             goal="Evaluate how identified gaps affect each 6R strategy option and calculate confidence impacts",
             backstory="""You are a 6R strategy expert who understands how data gaps affect migration decisions.
@@ -85,7 +91,7 @@ def create_gap_analysis_crew(
         )
 
         # Create gap prioritization agent
-        gap_prioritizer = Agent(
+        gap_prioritizer = create_agent(
             role="Gap Prioritization and Resolution Expert",
             goal="Prioritize identified gaps and recommend optimal resolution strategies for each",
             backstory="""You are a gap resolution expert who prioritizes and plans gap remediation.
@@ -120,7 +126,7 @@ def create_gap_analysis_crew(
         )
 
         # Create gap analysis task
-        gap_analysis_task = Task(
+        gap_analysis_task = create_task(
             description=f"""Analyze collected data to identify critical gaps:
 
             COLLECTION SUMMARY:
@@ -191,7 +197,7 @@ def create_gap_analysis_crew(
         )
 
         # Create 6R impact assessment task
-        sixr_impact_task = Task(
+        sixr_impact_task = create_task(
             description="""Assess how identified gaps impact 6R strategy decisions:
 
             6R STRATEGY REQUIREMENTS:
@@ -258,7 +264,7 @@ def create_gap_analysis_crew(
         )
 
         # Create gap prioritization task
-        gap_prioritization_task = Task(
+        gap_prioritization_task = create_task(
             description=f"""Prioritize gaps and recommend resolution strategies:
 
             BUSINESS PRIORITIES:
@@ -334,7 +340,7 @@ def create_gap_analysis_crew(
 
         # Create crew with optimized settings
         crew_config = get_optimized_crew_config()
-        crew = Crew(
+        crew = create_crew(
             agents=[gap_specialist, sixr_impact_assessor, gap_prioritizer],
             tasks=[gap_analysis_task, sixr_impact_task, gap_prioritization_task],
             process="sequential",

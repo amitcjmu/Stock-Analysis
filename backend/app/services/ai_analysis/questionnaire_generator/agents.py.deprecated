@@ -1,0 +1,158 @@
+"""
+Questionnaire Generator Agents Module
+"""
+
+import logging
+from typing import Any, List
+
+try:
+    from crewai import Agent
+
+    CREWAI_AVAILABLE = True
+except ImportError:
+    CREWAI_AVAILABLE = False
+    Agent = object
+
+# Import the tools we just created
+from .tools import (
+    QuestionnaireGenerationTool,
+    GapAnalysisTool,
+    AssetIntelligenceTool,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class QuestionnaireAgentManager:
+    """Manager for questionnaire generation agents"""
+
+    def __init__(self, llm=None):
+        self.llm = llm
+        # Initialize tools for agents to use
+        self.questionnaire_tool = QuestionnaireGenerationTool()
+        self.gap_analysis_tool = GapAnalysisTool()
+        self.asset_intelligence_tool = AssetIntelligenceTool()
+
+    def create_agents(self) -> List[Any]:
+        """Create specialized AI agents for questionnaire generation"""
+        agents = []
+
+        try:
+            # Primary Questionnaire Designer with tools
+            questionnaire_designer = Agent(
+                role="Intelligent Questionnaire Designer",
+                goal="Generate adaptive questionnaires that efficiently collect missing critical migration data",
+                backstory="""You are an expert AI agent specializing in intelligent questionnaire design
+                for enterprise migration projects. Your expertise combines:
+
+                - Deep understanding of the 22 critical attributes framework for migration planning
+                - Knowledge of 6R migration strategies and their data requirements
+                - Expertise in questionnaire design psychology and user experience
+                - Understanding of business stakeholder roles and knowledge areas
+                - Experience with progressive disclosure and adaptive questioning techniques
+
+                Your questionnaires are designed to:
+                - Minimize respondent fatigue while maximizing data quality
+                - Use conditional logic to show only relevant questions
+                - Provide context and help text for complex technical questions
+                - Sequence questions logically from simple to complex
+                - Adapt based on previous responses and stakeholder role
+                - Include validation rules to ensure data quality
+
+                You understand that different stakeholders have different knowledge areas:
+                - Infrastructure teams know technical details but not business impact
+                - Business owners know criticality but not technical architecture
+                - Application teams know dependencies but not infrastructure details
+                - Compliance teams know regulatory requirements but not technical implementation
+
+                Your questionnaires bridge these knowledge gaps efficiently.""",
+                llm=self.llm,
+                verbose=True,
+                allow_delegation=False,
+                tools=[
+                    self.questionnaire_tool,
+                    self.gap_analysis_tool,
+                    self.asset_intelligence_tool,
+                ],
+            )
+            agents.append(questionnaire_designer)
+
+            # Business Context Specialist with tools
+            context_specialist = Agent(
+                role="Business Context Analysis Specialist",
+                goal=(
+                    "Ensure questionnaires are contextually relevant to the "
+                    "business environment and stakeholder roles"
+                ),
+                backstory="""You are a business analysis AI agent that ensures questionnaires
+                are properly contextualized for the specific business environment and stakeholder roles.
+
+                Your specializations include:
+                - Analyzing business context to determine appropriate question complexity
+                - Identifying the right stakeholders for specific types of questions
+                - Understanding organizational structures and decision-making processes
+                - Adapting questionnaire language and terminology for different audiences
+                - Ensuring questions align with business objectives and migration goals
+                - Balancing thoroughness with practical time constraints
+
+                You work with the Questionnaire Designer to ensure questions are:
+                - Appropriate for the target audience's knowledge level
+                - Aligned with business priorities and migration objectives
+                - Sensitive to organizational culture and change management needs
+                - Realistic in terms of effort and expertise required to answer
+                - Structured to support business decision-making processes""",
+                llm=self.llm,
+                verbose=True,
+                allow_delegation=False,
+                tools=[self.gap_analysis_tool, self.asset_intelligence_tool],
+            )
+            agents.append(context_specialist)
+
+            # Question Quality Validator
+            quality_validator = Agent(
+                role="Questionnaire Quality Assurance Expert",
+                goal="Validate questionnaire quality, usability, and effectiveness for gap resolution",
+                backstory="""You are a quality assurance AI agent specializing in questionnaire
+                validation and optimization for enterprise data collection.
+
+                Your validation expertise covers:
+                - Question clarity and unambiguous wording
+                - Logical flow and conditional branching validation
+                - Response format consistency and data validation rules
+                - User experience and accessibility considerations
+                - Completeness of gap coverage for migration planning
+                - Integration with existing systems and workflows
+
+                You ensure questionnaires meet high standards for:
+                - Data quality and reliability
+                - User experience and completion rates
+                - Business value and actionable insights
+                - Technical integration and data processing
+                - Compliance with data privacy and security requirements
+
+                You provide the final quality check before questionnaires are deployed.""",
+                llm=self.llm,
+                verbose=True,
+                allow_delegation=False,
+                tools=[],
+            )
+            agents.append(quality_validator)
+
+        except Exception as e:
+            # FIXED: Add exc_info=True for detailed error logging
+            logger.error(f"Failed to create questionnaire generation agents: {e}", exc_info=True)
+            # FIXED: Clear agents list before adding fallback to prevent partial state
+            agents.clear()
+            # Create minimal fallback agent
+            fallback_agent = Agent(
+                role="Questionnaire Generator",
+                goal="Generate questionnaires for data collection",
+                backstory="You generate questionnaires to collect missing data.",
+                llm=self.llm,
+                verbose=True,
+                allow_delegation=False,
+                tools=[],
+            )
+            agents.append(fallback_agent)
+
+        return agents

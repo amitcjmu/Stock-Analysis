@@ -1,72 +1,56 @@
 """
-CrewAI Crews Package - Performance Optimized
+CrewAI Crews Package
 
-This package enforces global performance optimizations:
-- NO delegation between agents
-- Single pass execution (no iterations)
-- 10 minute timeout for complex analysis workflows (configurable via CREWAI_TIMEOUT_SECONDS)
+This package provides crew implementations for various workflows.
+
+IMPORTANT: Global monkey patches have been REMOVED as of 2025-10-01.
+Use the explicit factory pattern instead:
+
+    from app.services.crewai_flows.config.crew_factory import create_agent, create_crew
+
+    agent = create_agent(
+        role="Analyst",
+        goal="Analyze data",
+        backstory="Expert analyst",
+        # Explicit defaults: allow_delegation=False, max_iter=1, memory=True
+    )
+
+    crew = create_crew(
+        agents=[agent],
+        tasks=[task],
+        # Explicit defaults: max_iterations=1, timeout=600s, memory=True
+    )
+
+See crew_factory.py for full migration guide and usage examples.
+
+Configuration via environment variables:
+- CREWAI_TIMEOUT_SECONDS: Default crew execution timeout (default: 600)
+- CREWAI_DISABLE_MEMORY: Disable memory globally (default: false)
+- CREWAI_VERBOSE: Enable verbose logging (default: false)
+- DEEPINFRA_API_KEY: Required for memory/embeddings support
+
+References:
+- docs/code-reviews/2025-10-01_discovery_flow_over_abstraction_review.md
+- ADR-019: CrewAI DeepInfra Embeddings (separate embedder adapter, still active)
 """
 
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 
-# Monkey patch CrewAI to enforce performance settings
+# NO MORE MONKEY PATCHES
+# Use explicit factory pattern from app.services.crewai_flows.config.crew_factory
+
 try:
-    from crewai import Agent, Crew
+    import crewai  # noqa: F401 - Import check only
 
-    # Store original constructors
-    _original_agent_init = Agent.__init__
-    _original_crew_init = Crew.__init__
-
-    def optimized_agent_init(self, *args, **kwargs):
-        """Force all agents to have no delegation"""
-        # Override delegation settings
-        kwargs["allow_delegation"] = False
-        kwargs["max_delegation"] = 0
-        kwargs["max_iter"] = 1
-        kwargs["verbose"] = kwargs.get("verbose", False)
-
-        # Call original constructor
-        _original_agent_init(self, *args, **kwargs)
-
-    def optimized_crew_init(self, *args, **kwargs):
-        """Force all crews to have single iteration and configurable timeout"""
-        # Override crew settings
-        kwargs["max_iterations"] = 1
-        kwargs["verbose"] = kwargs.get("verbose", False)
-        # MEMORY RE-ENABLED: Remove global memory disable
-        # kwargs['memory'] = False  # REMOVED - Memory system is working correctly
-        kwargs["embedder"] = None  # No embedding overhead
-
-        # Set timeout if not specified - Allow longer timeouts for complex analysis
-        if "max_execution_time" not in kwargs:
-            # Default to 10 minutes, but allow override via environment variable
-            # For specific long-running agents, set max_execution_time explicitly when creating the crew
-            default_timeout = int(os.getenv("CREWAI_TIMEOUT_SECONDS", "600"))
-            kwargs["max_execution_time"] = default_timeout
-
-        # Call original constructor
-        _original_crew_init(self, *args, **kwargs)
-
-    # Apply monkey patches
-    Agent.__init__ = optimized_agent_init
-    Crew.__init__ = optimized_crew_init
-
-    # Log the actual configured timeout
-    default_timeout = int(os.getenv("CREWAI_TIMEOUT_SECONDS", "600"))
-    timeout_minutes = default_timeout // 60
-
-    logger.info("✅ CrewAI performance optimizations applied globally")
-    logger.info("   - No delegation allowed")
-    logger.info("   - Single pass execution")
+    logger.info("✅ CrewAI available - use factory pattern for configuration")
     logger.info(
-        f"   - {timeout_minutes} minute timeout for complex analysis (CREWAI_TIMEOUT_SECONDS={default_timeout})"
+        "   Import: from app.services.crewai_flows.config.crew_factory import create_agent, create_crew"
     )
-    logger.info("   - Memory system RE-ENABLED (global disable removed)")
+    logger.info("   See crew_factory.py for migration guide")
 
 except ImportError:
-    logger.warning("CrewAI not available - performance optimizations not applied")
+    logger.warning("CrewAI not available")
 except Exception as e:
-    logger.error(f"Failed to apply CrewAI optimizations: {e}")
+    logger.error(f"Error importing CrewAI: {e}")

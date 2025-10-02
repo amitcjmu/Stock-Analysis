@@ -6,7 +6,13 @@ ADCS: Crew for manual data collection through intelligent questionnaire generati
 import logging
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Crew, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +46,7 @@ def create_manual_collection_crew(
         from ..crew_config import DEFAULT_AGENT_CONFIG
 
         # Create questionnaire generation agent
-        questionnaire_generator = Agent(
+        questionnaire_generator = create_agent(
             role="Dynamic Questionnaire Generation Expert",
             goal="Generate targeted, user-friendly questionnaires that efficiently collect missing critical data",
             backstory="""You are a questionnaire design expert specializing in technical data collection.
@@ -60,7 +66,7 @@ def create_manual_collection_crew(
         )
 
         # Create response validation agent
-        response_validator = Agent(
+        response_validator = create_agent(
             role="Data Validation and Quality Assurance Specialist",
             goal="Validate user responses for completeness, accuracy, and consistency with existing data",
             backstory="""You are a data validation expert who ensures collected data meets quality standards.
@@ -79,7 +85,7 @@ def create_manual_collection_crew(
         )
 
         # Create collection progress agent
-        collection_coordinator = Agent(
+        collection_coordinator = create_agent(
             role="Manual Collection Coordination Expert",
             goal="Coordinate manual collection efforts, track progress, and optimize the collection process",
             backstory="""You are a collection coordination expert who manages manual data gathering.
@@ -115,7 +121,7 @@ def create_manual_collection_crew(
                 }
             )
 
-        questionnaire_task = Task(
+        questionnaire_task = create_task(
             description=f"""Generate targeted questionnaires for gap resolution:
 
             PRIORITIZED GAPS TO ADDRESS:
@@ -196,7 +202,7 @@ def create_manual_collection_crew(
 
         # Create response validation task
         # This is not SQL, it's a task description for an AI agent
-        validation_task = Task(  # nosec B608
+        validation_task = create_task(  # nosec B608
             description=f"""
             Validate responses as they are submitted:
 
@@ -280,7 +286,7 @@ def create_manual_collection_crew(
         )
 
         # Create collection coordination task
-        coordination_task = Task(
+        coordination_task = create_task(
             description=f"""Coordinate and optimize the manual collection process:
 
             COLLECTION TARGETS:
@@ -366,7 +372,7 @@ def create_manual_collection_crew(
 
         # Create crew with optimized settings
         crew_config = get_optimized_crew_config()
-        crew = Crew(
+        crew = create_crew(
             agents=[
                 questionnaire_generator,
                 response_validator,

@@ -51,17 +51,25 @@ class AgentWrapper:
         This provides synchronous execution compatibility.
         """
         try:
-            from crewai import Crew, Task
+            from app.services.crewai_flows.config.crew_factory import (
+                create_crew,
+                create_task,
+            )
 
             # Create a task for the agent
-            agent_task = Task(
+            agent_task = create_task(
                 description=task or "Execute assigned task",
                 agent=self._agent,
                 expected_output="Structured analysis and recommendations based on the given task",
             )
 
-            # Create a single-agent crew
-            crew = Crew(agents=[self._agent], tasks=[agent_task], verbose=False)
+            # Create a single-agent crew with explicit configuration
+            crew = create_crew(
+                agents=[self._agent],
+                tasks=[agent_task],
+                verbose=False,
+                # Factory applies defaults: max_iterations=1, timeout=600s, memory=True
+            )
 
             # Execute the crew
             result = crew.kickoff()
@@ -119,10 +127,10 @@ class AgentWrapper:
             # Store data in wrapper context for tools to access
             self._context = {"data": data}
 
-            # Execute the task using crew
-            from crewai import Crew
+            # Execute the task using crew factory
+            from app.services.crewai_flows.config.crew_factory import create_crew
 
-            crew = Crew(agents=[self._agent], tasks=[task], verbose=False)
+            crew = create_crew(agents=[self._agent], tasks=[task], verbose=False)
             result = crew.kickoff()
 
             # Return structured response

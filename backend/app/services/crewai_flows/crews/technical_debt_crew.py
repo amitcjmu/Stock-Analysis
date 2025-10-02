@@ -10,7 +10,13 @@ Enhanced implementation with CrewAI best practices:
 import logging
 from typing import Any, Dict, Optional
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 # Import advanced CrewAI features with fallbacks
 try:
@@ -98,7 +104,7 @@ class TechnicalDebtCrew:
         """Create agents with hierarchical management for technical debt analysis"""
 
         # Manager Agent for technical debt coordination with enhanced boundaries
-        tech_debt_manager = Agent(
+        tech_debt_manager = create_agent(
             role="Enterprise Technical Debt Assessment Manager",
             goal=(
                 "Coordinate comprehensive technical debt analysis and 6R migration "
@@ -154,7 +160,7 @@ class TechnicalDebtCrew:
         )
 
         # Legacy Systems Analyst - specialist agent
-        legacy_analyst = Agent(
+        legacy_analyst = create_agent(
             role="Legacy Systems Analyst",
             goal="Identify legacy systems and assess technical debt for migration planning",
             backstory="""You are an expert in legacy system analysis with deep knowledge of enterprise
@@ -169,7 +175,7 @@ class TechnicalDebtCrew:
         )
 
         # Modernization Expert - specialist agent
-        modernization_expert = Agent(
+        modernization_expert = create_agent(
             role="Modernization Expert",
             goal="Assess modernization opportunities and recommend 6R strategies for each asset",
             backstory="""You are a cloud modernization expert with extensive experience in 6R migration
@@ -184,7 +190,7 @@ class TechnicalDebtCrew:
         )
 
         # Risk Assessment Specialist - specialist agent
-        risk_specialist = Agent(
+        risk_specialist = create_agent(
             role="Risk Assessment Specialist",
             goal="Assess migration risks and complexity factors for 6R strategy validation",
             backstory="""You are a migration risk specialist with expertise in assessing technical and
@@ -219,7 +225,7 @@ class TechnicalDebtCrew:
         app_app_deps = dependencies.get("app_app_dependencies", {})
 
         # Planning Task - Manager coordinates technical debt analysis approach
-        planning_task = Task(
+        planning_task = create_task(
             description=f"""Plan comprehensive technical debt analysis and 6R strategy preparation.
 
             Available assets for analysis:
@@ -244,7 +250,7 @@ class TechnicalDebtCrew:
         )
 
         # Legacy Systems Analysis Task
-        legacy_analysis_task = Task(
+        legacy_analysis_task = create_task(
             description=f"""Identify legacy systems and assess technical debt for migration planning.
 
             Assets to analyze:
@@ -272,7 +278,7 @@ class TechnicalDebtCrew:
         )
 
         # 6R Strategy Assessment Task
-        modernization_task = Task(
+        modernization_task = create_task(
             description=f"""Assess modernization opportunities and recommend 6R strategies.
 
             Legacy context: Use insights from legacy analyst
@@ -303,7 +309,7 @@ class TechnicalDebtCrew:
         )
 
         # Risk Assessment Task
-        risk_assessment_task = Task(
+        risk_assessment_task = create_task(
             description="""Assess migration risks and complexity factors for 6R strategy validation.
 
             6R strategies: Use recommendations from modernization expert
@@ -382,7 +388,7 @@ class TechnicalDebtCrew:
         logger.info(
             f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
         )
-        return Crew(**crew_config)
+        return create_crew(**crew_config)
 
     def _create_legacy_analysis_tools(self):
         """Create tools for legacy systems analysis"""

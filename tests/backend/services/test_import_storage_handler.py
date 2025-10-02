@@ -373,7 +373,7 @@ class TestImportStorageHandler:
                             mock_background_service = AsyncMock()
                             mock_background_service.start_background_flow_execution.return_value = None
                             mock_background_service_class.return_value = mock_background_service
-                            
+
                             result = await handler.handle_import(sample_store_request, mock_context)
 
                             assert result["success"] is True

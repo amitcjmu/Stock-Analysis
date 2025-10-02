@@ -12,7 +12,13 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 from crewai.tools import BaseTool
 from pydantic import Field
 
@@ -292,9 +298,9 @@ class FieldMappingCrew:
             "memory": True,
         }
 
-        data_analyst = Agent(**data_analyst_config)
-        schema_expert = Agent(**schema_expert_config)
-        synthesis_specialist = Agent(**synthesis_specialist_config)
+        data_analyst = create_agent(**data_analyst_config)
+        schema_expert = create_agent(**schema_expert_config)
+        synthesis_specialist = create_agent(**synthesis_specialist_config)
 
         return [data_analyst, schema_expert, synthesis_specialist]
 
@@ -325,7 +331,7 @@ class FieldMappingCrew:
                 )
 
         # Task 1: Analyze Data Patterns (OPTIMIZED for rate limits)
-        data_analysis_task = Task(
+        data_analysis_task = create_task(
             description=f"""
             Analyze the source data headers to understand patterns and semantic meaning.
 
@@ -351,7 +357,7 @@ class FieldMappingCrew:
         )
 
         # Task 2: Create Intelligent Mappings (OPTIMIZED for rate limits)
-        mapping_task = Task(
+        mapping_task = create_task(
             description=f"""
             Create field mappings from source headers to Asset model fields.
 
@@ -398,7 +404,7 @@ class FieldMappingCrew:
         )
 
         # Task 3: Design Complex Transformations (commented out to reduce LLM calls)
-        # synthesis_task = Task(...)
+        # synthesis_task = create_task(...)
         # Synthesis task was removed to reduce LLM calls and prevent output override
 
         # Return only mapping task - synthesis task output was overriding the actual mappings
@@ -427,7 +433,7 @@ class FieldMappingCrew:
         logger.info(
             "Creating FULL Agentic Field Mapping Crew with complete capabilities"
         )
-        return Crew(**crew_config)
+        return create_crew(**crew_config)
 
     def get_audit_metadata(self) -> Dict[str, Any]:
         """Get metadata for audit trail"""
