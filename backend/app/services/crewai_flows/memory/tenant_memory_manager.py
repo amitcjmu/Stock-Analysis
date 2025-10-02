@@ -767,10 +767,12 @@ class TenantMemoryManager:
         query_text = f"{pattern_type}: {str(query_context)}"
         query_embedding = await embedding_service.embed_text(query_text)
 
-        # Find similar patterns
+        # Find similar patterns with engagement-level isolation
+        # Per Qodo Bot review: engagement_id ensures proper data isolation between engagements
         similar_patterns = await vector_utils.find_similar_patterns(
             query_embedding=query_embedding,
             client_account_id=str(client_account_id),
+            engagement_id=str(engagement_id),  # Enforce engagement-level isolation
             pattern_type=pattern_type,
             limit=limit,
             similarity_threshold=0.7,

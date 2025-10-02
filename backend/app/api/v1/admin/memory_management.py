@@ -2,6 +2,9 @@
 Memory Management Admin API Endpoints (ADR-024)
 
 Provides administrative endpoints for managing tenant memory and learning patterns.
+
+AUTHORIZATION: All endpoints require authenticated admin users (is_admin=True).
+Per Qodo Bot review: RBAC enforced at route level via require_admin dependency.
 """
 
 import logging
@@ -23,11 +26,34 @@ router = APIRouter(
 )
 
 
+# Admin authorization dependency
+async def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to enforce admin access for memory management endpoints.
+
+    Raises:
+        HTTPException: 403 Forbidden if user is not an admin
+
+    Returns:
+        User: The authenticated admin user
+    """
+    if not current_user.is_admin:
+        logger.warning(
+            f"Non-admin user {current_user.username} (ID: {current_user.id}) "
+            f"attempted to access admin memory management endpoint"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required for memory management operations",
+        )
+    return current_user
+
+
 @router.get("/stats")
 async def get_memory_statistics(
     client_account_id: Optional[UUID] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),  # Admin-only endpoint
 ):
     """
     Get learning statistics and pattern counts.
@@ -121,7 +147,7 @@ async def update_memory_scope(
     client_account_id: UUID,
     scope: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),  # Admin-only endpoint
 ):
     """
     Update learning scope for a client.
@@ -221,7 +247,7 @@ async def update_memory_scope(
 async def purge_client_memory(
     client_account_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),  # Admin-only endpoint
 ):
     """
     Purge all learning data for a client (GDPR compliance).

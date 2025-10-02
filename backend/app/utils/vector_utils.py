@@ -54,11 +54,22 @@ class VectorUtils:
             # Generate embedding for the pattern text
             embedding = await self.embedding_service.embed_text(pattern_text)
 
-            # Ensure embedding is 1536 dimensions for pgvector
-            if len(embedding) < 1536:
-                embedding.extend([0.0] * (1536 - len(embedding)))
-            elif len(embedding) > 1536:
-                embedding = embedding[:1536]
+            # Ensure embedding matches expected 1024 dimensions from thenlper/gte-large
+            # TODO: Create Alembic migration to change DB schema from vector(1536) to vector(1024)
+            # WARNING: Padding/truncation corrupts similarity search quality
+            expected_dims = 1024
+            if len(embedding) != expected_dims:
+                logger.warning(
+                    f"Embedding dimension mismatch: got {len(embedding)}, expected {expected_dims}. "
+                    f"This may corrupt similarity search results. "
+                    f"Model: {self.embedding_service.model}"
+                )
+                if len(embedding) < expected_dims:
+                    # Pad with zeros (not ideal, but prevents errors)
+                    embedding.extend([0.0] * (expected_dims - len(embedding)))
+                elif len(embedding) > expected_dims:
+                    # Truncate (loses information)
+                    embedding = embedding[:expected_dims]
 
             async with AsyncSessionLocal() as session:
                 # Create new pattern
