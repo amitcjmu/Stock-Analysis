@@ -1,9 +1,10 @@
 # ADR-019: CrewAI DeepInfra Embeddings Monkey Patch
 
 ## Status
-**SUPERSEDED** (2025-10-01)
-Monkey patches for Agent/Crew defaults have been replaced by factory pattern.
-DeepInfra embeddings patch remains active (see Embeddings Patch Status below).
+**FULLY SUPERSEDED** (2025-10-02)
+- Agent/Crew monkey patches replaced by factory pattern (2025-10-01)
+- DeepInfra embeddings patch replaced by TenantMemoryManager (2025-10-02)
+- See **ADR-024** for full migration to TenantMemoryManager architecture
 
 ## Context
 During implementation of GitHub Issue #89 (field mappings not being auto-generated), we discovered that CrewAI's memory system defaults to OpenAI embeddings (`text-embedding-3-small`) which is incompatible with our DeepInfra-based infrastructure. This caused:

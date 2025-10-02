@@ -24,9 +24,12 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-016](016-collection-flow-intelligent-data-enrichment.md) | Collection Flow for Intelligent Data Enrichment | Accepted | 2025-08-08 |
 | [ADR-017](017-redis-backed-failure-journal-and-dlq.md) | Redis-Backed Failure Journal and DLQ | Accepted | 2025 |
 | [ADR-018](018-service-registry-for-crewai-tools.md) | Service Registry for CrewAI Tools | Proposed | 2025-01-13 |
-| [ADR-019](019-crewai-deepinfra-embeddings-monkey-patch.md) | CrewAI DeepInfra Embeddings Monkey Patch | Accepted | 2025 |
+| [ADR-019](019-crewai-deepinfra-embeddings-monkey-patch.md) | CrewAI DeepInfra Embeddings Monkey Patch | Fully Superseded | 2025-08-14 |
 | [ADR-020](020-flow-type-aware-phase-transitions.md) | Flow-Type Aware Phase Transition Architecture | Proposed | 2025-08-22 |
 | [ADR-021](021-flow-endpoint-plural-convention.md) | Flow Endpoint Plural Convention Consolidation | Accepted | 2025-08-29 |
+| [ADR-022](022-asset-inventory-persistent-agent-architecture.md) | Asset Inventory Persistent Agent Architecture | Implemented | 2025-09-10 |
+| [ADR-023](023-collection-flow-phase-redesign.md) | Collection Flow Phase Redesign | Accepted | 2025-09-25 |
+| [ADR-024](024-tenant-memory-manager-architecture.md) | TenantMemoryManager Architecture - Replacing CrewAI Memory | Accepted | 2025-10-02 |
 
 ## ADR Template
 
@@ -77,15 +80,19 @@ For new team members, we recommend reading ADRs in this order:
 7. **ADR-021** - Flow Endpoint Plural Convention Consolidation - Standardized endpoint patterns
 8. **ADR-008** - Agentic Intelligence System - AI/ML integration patterns
 9. **ADR-015** - Persistent Multi-Tenant Agent Architecture - Agent persistence and memory systems
-10. **ADR-018** - Service Registry for CrewAI Tools - Service layer architecture for agent tools
-11. **ADR-020** - Flow-Type Aware Phase Transition Architecture - Dynamic phase management across flow types
-12. **ADR-013** - Adaptive Data Collection System Integration - Automated data collection capabilities
-13. **ADR-016** - Collection Flow for Intelligent Data Enrichment - Bridge between Discovery and Assessment flows
-14. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
-15. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
+10. **ADR-024** - TenantMemoryManager Architecture - Enterprise memory management (supersedes ADR-019)
+11. **ADR-022** - Asset Inventory Persistent Agent Architecture - Simplified persistent agent pattern
+12. **ADR-018** - Service Registry for CrewAI Tools - Service layer architecture for agent tools
+13. **ADR-020** - Flow-Type Aware Phase Transition Architecture - Dynamic phase management across flow types
+14. **ADR-013** - Adaptive Data Collection System Integration - Automated data collection capabilities
+15. **ADR-016** - Collection Flow for Intelligent Data Enrichment - Bridge between Discovery and Assessment flows
+16. **ADR-023** - Collection Flow Phase Redesign - Removing unimplemented platform detection phases
+17. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
+18. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
 
 ### Legacy Context
-16. **ADR-005** - Database Consolidation Architecture - Historical database decisions
-17. **ADR-002** - API Consolidation Strategy - API versioning and migration
-18. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
-19. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)
+19. **ADR-005** - Database Consolidation Architecture - Historical database decisions
+20. **ADR-002** - API Consolidation Strategy - API versioning and migration
+21. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
+22. **ADR-019** - CrewAI DeepInfra Embeddings Monkey Patch - Historical memory patch approach (superseded by ADR-024)
+23. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)

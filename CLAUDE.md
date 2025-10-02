@@ -154,6 +154,58 @@ async with llm_tracker.track_llm_call(
 - `app/services/litellm_tracking_callback.py` - LiteLLM callback for CrewAI tracking
 - `app/app_setup/lifecycle.py:113-120` - Callback installation at startup
 
+#### TenantMemoryManager - Enterprise Agent Memory (October 2025)
+**CrewAI built-in memory is DISABLED** (ADR-024). All agent learning uses TenantMemoryManager:
+
+```python
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    TenantMemoryManager,
+    LearningScope
+)
+
+# Store agent learnings after task completion
+memory_manager = TenantMemoryManager(
+    crewai_service=crewai_service,
+    database_session=db
+)
+
+await memory_manager.store_learning(
+    client_account_id=client_account_id,
+    engagement_id=engagement_id,
+    scope=LearningScope.ENGAGEMENT,  # or CLIENT, GLOBAL
+    pattern_type="field_mapping",
+    pattern_data={
+        "source_field": "cust_name",
+        "target_field": "customer_name",
+        "confidence": 0.95
+    }
+)
+```
+
+**Why TenantMemoryManager over CrewAI Memory:**
+- ✅ Multi-tenant isolation (engagement/client/global scopes)
+- ✅ PostgreSQL + pgvector (native to our stack, no external ChromaDB)
+- ✅ Enterprise features: data classification, audit trails, encryption
+- ✅ DeepInfra compatibility without monkey patches
+- ❌ CrewAI memory causes 401 errors (DeepInfra key → OpenAI endpoint)
+
+**IMPORTANT:** When creating crews, **ALWAYS** set `memory=False`:
+```python
+from app.services.crewai_flows.config.crew_factory import create_crew
+
+crew = create_crew(
+    agents=[agent],
+    tasks=[task],
+    memory=False,  # ✅ REQUIRED - Use TenantMemoryManager instead
+    verbose=False
+)
+```
+
+**Reference:**
+- ADR-024 - TenantMemoryManager architecture (supersedes ADR-019)
+- `/docs/development/TENANT_MEMORY_STRATEGY.md` - Implementation strategy
+- `app/services/crewai_flows/memory/tenant_memory_manager.py` - Implementation
+
 ### CrewAI Agent Architecture
 
 #### Agent Types & Responsibilities
