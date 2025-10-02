@@ -6,15 +6,36 @@ Tools for gathering intelligence about assets including patterns and relationshi
 import logging
 from typing import Any, Dict, List
 
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+
 logger = logging.getLogger(__name__)
 
 
-class AssetIntelligenceTool:
-    """Tool for gathering intelligence about assets."""
+class AssetIntelligenceInput(BaseModel):
+    """Input schema for asset intelligence tool."""
 
-    def __init__(self):
-        self.name = "asset_intelligence"
-        self.description = "Gather comprehensive intelligence about assets including patterns and relationships"
+    asset_id: str = Field(..., description="ID of the asset to analyze")
+    asset_collection: List[Dict[str, Any]] = Field(
+        ..., description="Collection of all assets for relationship analysis"
+    )
+
+
+class AssetIntelligenceTool(BaseTool):
+    """
+    CrewAI tool for gathering intelligence about assets.
+
+    This tool must inherit from BaseTool to be compatible with CrewAI's Agent validation.
+    It analyzes asset patterns, relationships, and provides intelligence for questionnaire generation.
+
+    TODO: Future enhancement - delegate to Asset Intelligence Agent for agentic-first architecture
+    """
+
+    name: str = "asset_intelligence"
+    description: str = (
+        "Gather comprehensive intelligence about assets including patterns and relationships"
+    )
+    args_schema: type[BaseModel] = AssetIntelligenceInput
 
     def _run(
         self, asset_id: str, asset_collection: List[Dict[str, Any]]
