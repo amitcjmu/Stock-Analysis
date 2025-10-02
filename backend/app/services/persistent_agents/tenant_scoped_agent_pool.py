@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 try:
     from crewai import Agent, Crew
+    from app.services.crewai_flows.config.crew_factory import create_agent
 
     CREWAI_AVAILABLE = True
 except ImportError:
@@ -31,6 +32,9 @@ except ImportError:
     class Crew:
         def __init__(self, **kwargs):
             pass
+
+    def create_agent(**kwargs):
+        return Agent(**kwargs)
 
 
 # Import modular components
@@ -245,7 +249,7 @@ class TenantScopedAgentPool:
             config = AgentConfigManager.get_agent_config(agent_type)
             tools = AgentToolManager.get_agent_tools(agent_type, {})
 
-            agent = Agent(
+            agent = create_agent(
                 role=config["role"],
                 goal=config["goal"],
                 backstory=config["backstory"],

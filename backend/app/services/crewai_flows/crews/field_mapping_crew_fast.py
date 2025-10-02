@@ -72,7 +72,7 @@ def create_fast_field_mapping_crew(
             ]  # Limit to first 10 fields
 
         # 🎯 SINGLE OPTIMIZED AGENT: Direct field mapping specialist
-        field_mapping_specialist = Agent(
+        field_mapping_specialist = create_agent(
             role="Field Mapping Specialist",
             goal="Rapidly map data fields to standard migration attributes",
             backstory="""You are an expert field mapping specialist who quickly identifies
@@ -86,7 +86,7 @@ def create_fast_field_mapping_crew(
         )
 
         # 🎯 SINGLE OPTIMIZED TASK: Direct field mapping
-        mapping_task = Task(
+        mapping_task = create_task(
             description=f"""
             Map these EXACT CSV fields to standard attributes:
 
@@ -148,7 +148,7 @@ def create_fast_field_mapping_crew(
             }
             logger.info(f"Using custom DeepInfra embedder: {embedder_info}")
 
-            crew = Crew(
+            crew = create_crew(
                 agents=[field_mapping_specialist],
                 tasks=[mapping_task],
                 process=Process.sequential,  # CRITICAL: No hierarchical overhead
@@ -162,7 +162,7 @@ def create_fast_field_mapping_crew(
         except Exception as mem_error:
             logger.warning(f"⚠️ Could not enable memory: {mem_error}")
             # Fallback without memory if embedder fails
-            crew = Crew(
+            crew = create_crew(
                 agents=[field_mapping_specialist],
                 tasks=[mapping_task],
                 process=Process.sequential,
@@ -193,7 +193,7 @@ def _create_minimal_mapping_fallback(
             model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         )
 
-        minimal_agent = Agent(
+        minimal_agent = create_agent(
             role="Field Mapper",
             goal="Map fields quickly",
             backstory="Fast field mapping specialist",
@@ -203,13 +203,13 @@ def _create_minimal_mapping_fallback(
             max_iter=1,
         )
 
-        minimal_task = Task(
+        minimal_task = create_task(
             description=f"Quick field mapping for {len(state.raw_data)} records. Return: MAPPED",
             agent=minimal_agent,
             expected_output="MAPPED",
         )
 
-        return Crew(
+        return create_crew(
             agents=[minimal_agent],
             tasks=[minimal_task],
             process=Process.sequential,

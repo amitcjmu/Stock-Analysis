@@ -20,12 +20,12 @@ Successfully fixed the core questionnaire generation issue. The agent now genera
 **File**: `backend/app/services/persistent_agents/tool_manager.py`
 
 **Problem**: `questionnaire_generator` agent type only loaded `task_completion` tools, not questionnaire tools
-**Solution**: 
+**Solution**:
 - Added imports for `create_questionnaire_generation_tools` and `create_gap_analysis_tools`
 - Updated `add_agent_specific_tools()` to load proper tools for questionnaire_generator
 - Now loads: questionnaire_generation, gap_analysis, and asset_intelligence tools
 
-### Issue #3: UnboundLocalError ✅ FIXED  
+### Issue #3: UnboundLocalError ✅ FIXED
 **File**: `backend/app/api/v1/endpoints/collection_crud_questionnaires/utils.py`
 
 **Problem**: `data_to_process` variable used before initialization in extraction logic
@@ -39,7 +39,7 @@ Generated questionnaires: 1
 Total questions: 155
 All questions properly formatted with:
 - field_id
-- question_text  
+- question_text
 - field_type
 - required
 - category
@@ -69,7 +69,7 @@ Frontend blocking logic prevents form display even though questionnaire is ready
 
 ### Evidence
 1. `question_count` column shows 0 (should be 155)
-2. Flow remains in "initialized" phase  
+2. Flow remains in "initialized" phase
 3. Progress stuck at 0%
 4. UI shows "Collection Blocked" warning
 
@@ -158,10 +158,10 @@ Updated questionnaire 9688861e... status to completed
 
 ### Database Query
 ```sql
-SELECT 
+SELECT
     jsonb_array_length(questions) as count,
-    completion_status 
-FROM migration.adaptive_questionnaires 
+    completion_status
+FROM migration.adaptive_questionnaires
 WHERE id = '9688861e-3f9c-4d14-ada1-80454514b97e';
 
 -- Results:

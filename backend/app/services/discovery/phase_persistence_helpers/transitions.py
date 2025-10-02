@@ -1,10 +1,17 @@
 """
 Phase transition logic and state management.
 
+DEPRECATED: This module is being phased out in favor of FlowStateManager.
+New code should use FlowStateManager.update_child_flow_phase() instead.
+
+See ADR-012 for rationale: FlowStateManager provides centralized,
+validated state transitions for both master and child flows.
+
 Contains the core logic for atomic phase transitions with state machine validation.
 """
 
 import logging
+import warnings
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -19,6 +26,15 @@ from app.models.discovery_flow import DiscoveryFlow
 from .base import PHASE_FLAG_MAP, PhaseTransitionResult, is_valid_transition
 
 logger = logging.getLogger(__name__)
+
+# Deprecation warning
+warnings.warn(
+    "discovery.phase_persistence_helpers.transitions is deprecated. "
+    "Use FlowStateManager.update_child_flow_phase() instead. "
+    "See ADR-012 for details.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 async def advance_phase(  # noqa: C901

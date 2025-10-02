@@ -227,7 +227,8 @@ class FieldMappingOperationsMixin:
             )
 
             result = await self.db.execute(delete_query)
-            await self.db.commit()
+            # Flush without committing - let caller own transaction
+            await self.db.flush()
 
             removed_count = result.rowcount
 

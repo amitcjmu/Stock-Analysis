@@ -10,7 +10,13 @@ Enhanced implementation with CrewAI best practices:
 import logging
 from typing import Any, Dict, Optional
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Crew, Process
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
 
 # Import advanced CrewAI features with fallbacks
 try:
@@ -98,7 +104,7 @@ class AppAppDependencyCrew:
         """Create agents with hierarchical management for integration analysis"""
 
         # Manager Agent for integration coordination
-        integration_manager = Agent(
+        integration_manager = create_agent(
             role="Integration Analysis Manager",
             goal="Coordinate comprehensive app-to-app integration dependency mapping for migration planning",
             backstory="""You are an enterprise integration architect with expertise in application
@@ -114,7 +120,7 @@ class AppAppDependencyCrew:
         )
 
         # Integration Pattern Expert - specialist agent
-        integration_expert = Agent(
+        integration_expert = create_agent(
             role="Integration Pattern Expert",
             goal="Identify and map application integration patterns and dependencies",
             backstory="""You are an expert in enterprise application integration with deep knowledge of
@@ -129,7 +135,7 @@ class AppAppDependencyCrew:
         )
 
         # Business Flow Analyst - specialist agent
-        business_flow_analyst = Agent(
+        business_flow_analyst = create_agent(
             role="Business Flow Analyst",
             goal="Map business process flows and critical application dependencies for migration sequencing",
             backstory="""You are a business process expert with extensive experience in analyzing business
@@ -170,7 +176,7 @@ class AppAppDependencyCrew:
                 )
 
         # Planning Task - Manager coordinates integration analysis approach
-        planning_task = Task(
+        planning_task = create_task(
             description=f"""Plan comprehensive app-to-app integration dependency analysis strategy.
 
             CRITICAL: You must analyze ONLY the {len(applications)} REAL applications provided.
@@ -195,7 +201,7 @@ class AppAppDependencyCrew:
         )
 
         # Integration Pattern Discovery Task
-        integration_discovery_task = Task(
+        integration_discovery_task = create_task(
             description=f"""Identify and map application integration patterns and dependencies.
 
             CRITICAL INSTRUCTIONS:
@@ -237,7 +243,7 @@ class AppAppDependencyCrew:
         )
 
         # Business Flow Analysis Task
-        business_flow_task = Task(
+        business_flow_task = create_task(
             description=f"""Map business process flows and critical application dependencies.
 
             CRITICAL INSTRUCTIONS:
@@ -338,7 +344,7 @@ class AppAppDependencyCrew:
         logger.info(
             f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
         )
-        return Crew(**crew_config)
+        return create_crew(**crew_config)
 
     def _create_integration_analysis_tools(self):
         """Create tools for integration pattern analysis"""

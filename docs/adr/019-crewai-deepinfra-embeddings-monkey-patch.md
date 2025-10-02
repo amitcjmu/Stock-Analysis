@@ -1,7 +1,9 @@
 # ADR-019: CrewAI DeepInfra Embeddings Monkey Patch
 
 ## Status
-Accepted
+**SUPERSEDED** (2025-10-01)
+Monkey patches for Agent/Crew defaults have been replaced by factory pattern.
+DeepInfra embeddings patch remains active (see Embeddings Patch Status below).
 
 ## Context
 During implementation of GitHub Issue #89 (field mappings not being auto-generated), we discovered that CrewAI's memory system defaults to OpenAI embeddings (`text-embedding-3-small`) which is incompatible with our DeepInfra-based infrastructure. This caused:
@@ -151,6 +153,147 @@ Consider migrating to official solution when available:
 
 ---
 
-**Decision Date**: 2025-08-14  
-**Decision Makers**: Development Team  
+**Decision Date**: 2025-08-14
+**Decision Makers**: Development Team
 **Review Date**: 2025-11-14 (or upon next major CrewAI release)
+
+---
+
+## UPDATE: Migration to Factory Pattern (2025-10-01)
+
+### Changes Implemented
+
+As part of addressing over-abstraction issues identified in the Discovery Flow architectural review, **Agent and Crew default monkey patches have been removed** and replaced with an explicit factory pattern.
+
+### What Was Removed
+
+1. **Agent Default Monkey Patches** (`app/services/crewai_flows/crews/__init__.py` lines 41-73):
+   - Global override of `Agent.__init__()` for default configurations
+   - Automatic `allow_delegation=False` and `max_delegation=0` settings
+   - Verbose=False defaults
+
+2. **Crew Default Monkey Patches**:
+   - Global override of `Crew.__init__()` for default configurations
+   - Automatic process and memory settings
+
+### What Was Replaced
+
+Created **explicit factory pattern** in `app/services/crewai_flows/config/crew_factory/`:
+
+```python
+# New factory pattern approach
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
+
+# Explicit configuration via CrewConfig
+DEFAULT_AGENT_CONFIG = {
+    "allow_delegation": False,
+    "max_delegation": 0,
+    "max_iter": 1,
+    "verbose": False,
+}
+
+DEFAULT_CREW_CONFIG = {
+    "manager_llm": configured_llm,
+    "planning_llm": configured_llm,
+    "verbose": False,
+}
+```
+
+### What Remains Active
+
+**DeepInfra Embeddings Patch** (`app/core/memory/crewai_deepinfra_patch.py`):
+- Still required for memory system functionality
+- Redirects CrewAI embedding calls to DeepInfra API
+- Applied at application startup
+- No changes to this critical patch
+
+### Migration Impact
+
+**Files Migrated** (Phase 2 - October 2025):
+- 20 crew implementation files migrated to factory pattern
+- 9 files modularized to comply with <400 line requirement
+- All crews now use explicit `create_agent()`, `create_crew()`, `create_task()` functions
+
+**Benefits of Factory Pattern**:
+- ✅ **Explicit over Implicit**: Configuration is visible at call sites
+- ✅ **Testability**: Easier to test with dependency injection
+- ✅ **Maintainability**: No hidden global state modifications
+- ✅ **Debuggability**: Stack traces show actual configuration points
+- ✅ **Type Safety**: Better IDE support and type checking
+
+**Reduced Risks**:
+- ✅ CrewAI version updates less likely to break agent creation
+- ✅ No hidden side effects from global monkey patches
+- ✅ Configuration changes are explicit and traceable
+
+### Embeddings Patch Status
+
+The DeepInfra embeddings monkey patch **REMAINS NECESSARY** and active because:
+- CrewAI memory system still hardcodes OpenAI embedding calls
+- No official configuration API for custom embedding providers
+- Factory pattern cannot solve embedding provider selection
+- Patch continues to provide critical memory functionality
+
+### Updated Risks
+
+#### CrewAI Version Updates
+**Risk Reduced**: With Agent/Crew monkey patches removed, version updates only affect embeddings patch.
+
+**Remaining Risk Area**: Embeddings API changes in CrewAI
+**Mitigation**: Continue monitoring CrewAI releases for memory system changes
+
+### Updated Testing Strategy
+
+```python
+# Factory pattern tests
+def test_agent_creation_with_factory():
+    agent = create_agent(role="Test", goal="Test", backstory="Test")
+    assert agent.allow_delegation == False
+    assert agent.max_delegation == 0
+    assert agent.verbose == False
+
+# Embeddings patch still tested
+def test_embeddings_patch():
+    assert "thenlper/gte-large" in embedding_request.model
+    assert embedding_request.encoding_format == "float"
+```
+
+### Migration Guide
+
+For new crew implementations:
+
+```python
+# ❌ OLD (relied on monkey patches)
+from crewai import Agent, Crew, Task
+agent = Agent(role="...", goal="...", backstory="...")
+
+# ✅ NEW (explicit factory pattern)
+from crewai import Crew, Process  # For type hints only
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+    create_task,
+)
+
+agent = create_agent(
+    role="...",
+    goal="...",
+    backstory="...",
+    # Explicit configuration options visible
+)
+```
+
+### References
+
+- **Phase 2 Implementation**: PR #480 - Monkey Patch Removal
+- **Factory Pattern Guide**: `docs/guides/CREWAI_FACTORY_PATTERN_MIGRATION.md`
+- **Original Code Review**: `docs/code-reviews/2025-10-01_discovery_flow_over_abstraction_review.md`
+- **Modularization Summary**: `docs/code-reviews/2025-10-01_monkey_patch_removal_summary.md`
+
+**Update Date**: 2025-10-01
+**Updated By**: Development Team (via Claude Code)
+**Next Review**: 2025-11-14 (embeddings patch only)
