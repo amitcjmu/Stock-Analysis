@@ -24,6 +24,6 @@ class AgentMetadata:
     required_tools: List[str]
     capabilities: List[str]
     max_iter: int = 15
-    memory: bool = True
+    memory: bool = False  # Per ADR-024: Use TenantMemoryManager for enterprise memory
     verbose: bool = True
     allow_delegation: bool = False

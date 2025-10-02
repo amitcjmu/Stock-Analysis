@@ -321,7 +321,7 @@ class AppAppDependencyCrew:
                     "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
                     "planning": True,
                     "planning_llm": self.llm_model,  # Force planning to use our LLM too
-                    "memory": True,
+                    "memory": False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
                     "knowledge": self.knowledge_base,
                     "share_crew": True,
                     "collaboration": True,

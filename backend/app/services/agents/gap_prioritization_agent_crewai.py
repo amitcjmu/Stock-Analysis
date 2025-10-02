@@ -10,6 +10,11 @@ from typing import Any, Dict, List, Tuple
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    TenantMemoryManager,
+    LearningScope,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +68,7 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
             tools=tools,
             llm=llm,
             max_iter=10,
-            memory=True,
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             verbose=True,
             allow_delegation=False,
             **kwargs,
@@ -90,10 +95,116 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
                 "roi_calculation",
             ],
             max_iter=10,
-            memory=True,
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             verbose=True,
             allow_delegation=False,
         )
+
+    async def prioritize_gaps_with_memory(
+        self,
+        gaps: List[Dict[str, Any]],
+        context: Dict[str, Any],
+        crewai_service: Any,
+        client_account_id: int,
+        engagement_id: int,
+        db: AsyncSession,
+    ) -> Dict[str, Any]:
+        """
+        Prioritize identified gaps with TenantMemoryManager integration.
+
+        This method:
+        1. Retrieves historical gap prioritization patterns from TenantMemoryManager
+        2. Prioritizes gaps based on business impact and collection feasibility
+        3. Stores discovered prioritization patterns back to TenantMemoryManager
+        4. Returns prioritized gap list with recommendations
+
+        Args:
+            gaps: List of identified attribute gaps
+            context: Business and technical context for prioritization
+            crewai_service: CrewAI service instance
+            client_account_id: Client account ID
+            engagement_id: Engagement ID
+            db: Database session for TenantMemoryManager
+
+        Returns:
+            Prioritized gap list with recommendations and historical patterns
+        """
+        try:
+            logger.info(f"📊 Prioritizing {len(gaps)} identified gaps with memory")
+
+            # Step 1: Initialize TenantMemoryManager
+            memory_manager = TenantMemoryManager(
+                crewai_service=crewai_service, database_session=db
+            )
+
+            # Step 2: Retrieve historical gap prioritization patterns
+            logger.info("📚 Retrieving historical gap prioritization patterns...")
+            query_context = {
+                "asset_type": context.get("asset_type"),
+                "gap_count": len(gaps),
+                "primary_migration_strategy": context.get("primary_migration_strategy"),
+            }
+
+            historical_patterns = await memory_manager.retrieve_similar_patterns(
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                pattern_type="gap_prioritization",
+                query_context=query_context,
+                limit=10,
+            )
+
+            logger.info(f"✅ Found {len(historical_patterns)} historical patterns")
+
+            # Step 3: Perform gap prioritization (use existing logic)
+            prioritization_result = self.prioritize_gaps(gaps, context)
+
+            # Step 4: Store discovered patterns if prioritization was successful
+            if prioritization_result.get("prioritized_gaps"):
+                logger.info("💾 Storing discovered gap prioritization patterns...")
+                pattern_data = {
+                    "name": f"gap_prioritization_{engagement_id}_{datetime.now(timezone.utc).isoformat()}",
+                    "total_gaps": prioritization_result.get("total_gaps"),
+                    "priority_distribution": prioritization_result.get(
+                        "priority_distribution"
+                    ),
+                    "collection_strategy": prioritization_result.get(
+                        "collection_strategy"
+                    ),
+                    "asset_type": context.get("asset_type"),
+                    "primary_migration_strategy": context.get(
+                        "primary_migration_strategy"
+                    ),
+                    "top_priority_gaps": [
+                        g["attribute"]
+                        for g in prioritization_result.get("prioritized_gaps", [])[:5]
+                    ],
+                    "historical_patterns_used": len(historical_patterns),
+                }
+
+                pattern_id = await memory_manager.store_learning(
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    scope=LearningScope.ENGAGEMENT,
+                    pattern_type="gap_prioritization",
+                    pattern_data=pattern_data,
+                )
+
+                logger.info(f"✅ Stored pattern with ID: {pattern_id}")
+                prioritization_result["pattern_id"] = pattern_id
+                prioritization_result["historical_patterns_used"] = len(
+                    historical_patterns
+                )
+
+            logger.info(
+                f"✅ Gap prioritization completed - {prioritization_result.get('total_gaps')} gaps processed"
+            )
+
+            return prioritization_result
+
+        except Exception as e:
+            logger.error(f"❌ Gap prioritization with memory failed: {e}")
+            # Fallback to basic prioritization without memory
+            return self.prioritize_gaps(gaps, context)
 
     def prioritize_gaps(
         self, gaps: List[Dict[str, Any]], context: Dict[str, Any]

@@ -28,10 +28,14 @@ from app.services.agentic_intelligence.agent_reasoning_patterns import (
     AgentReasoning,
     AgentReasoningEngine,
 )
-from app.services.agentic_memory import ThreeTierMemoryManager
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    TenantMemoryManager,
+    LearningScope,
+)
 from app.services.agentic_memory.agent_tools_functional import (
     create_functional_agent_tools,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +64,12 @@ class RiskAssessmentAgent:
         self.engagement_id = engagement_id
         self.flow_id = flow_id
 
-        # Initialize agentic memory system
-        self.memory_manager = ThreeTierMemoryManager(client_account_id, engagement_id)
-
         # Initialize reasoning engine
+        # Note: TenantMemoryManager will be initialized per-method with AsyncSession
         self.reasoning_engine = AgentReasoningEngine(
-            self.memory_manager, client_account_id, engagement_id
+            None,
+            client_account_id,
+            engagement_id,  # Will use TenantMemoryManager in methods
         )
 
         # Get configured LLM
@@ -130,7 +134,7 @@ class RiskAssessmentAgent:
             allow_delegation=False,
             llm=self.llm,
             tools=self.agent_tools,
-            memory=True,  # Use agent memory for threat intelligence
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             max_iter=3,
             max_execution_time=60,
         )
@@ -247,27 +251,62 @@ class RiskAssessmentAgent:
             tasks=[task],
             process=Process.sequential,
             verbose=True,
-            memory=True,  # Enable crew-level memory for threat intelligence
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             max_execution_time=90,
         )
 
         return crew
 
-    async def analyze_asset_risk(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze_asset_risk(
+        self, asset_data: Dict[str, Any], db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Main method to analyze risk of an asset using agentic intelligence.
 
         This method:
-        1. Creates a specialized risk assessment crew with threat intelligence tools
-        2. Executes comprehensive security, operational, and compliance risk analysis
-        3. Returns structured results with risk levels, threat analysis, and mitigation plans
+        1. Retrieves historical risk patterns from TenantMemoryManager
+        2. Creates a specialized risk assessment crew with threat intelligence tools
+        3. Executes comprehensive security, operational, and compliance risk analysis
+        4. Stores discovered patterns back to TenantMemoryManager
+        5. Returns structured results with risk levels, threat analysis, and mitigation plans
+
+        Args:
+            asset_data: Asset data to analyze
+            db: Database session for TenantMemoryManager
+
+        Returns:
+            Risk assessment with levels, threats, and mitigation recommendations
         """
         try:
             logger.info(
                 f"🛡️ Starting agentic risk assessment for asset: {asset_data.get('name')}"
             )
 
-            # Create and execute the risk assessment crew
+            # Step 1: Initialize TenantMemoryManager
+            memory_manager = TenantMemoryManager(
+                crewai_service=self.crewai_service, database_session=db
+            )
+
+            # Step 2: Retrieve historical risk patterns
+            logger.info("📚 Retrieving historical risk assessment patterns...")
+            query_context = {
+                "technology_stack": asset_data.get("technology_stack"),
+                "network_exposure": asset_data.get("network_exposure"),
+                "data_sensitivity": asset_data.get("data_sensitivity"),
+            }
+
+            historical_patterns = await memory_manager.retrieve_similar_patterns(
+                client_account_id=int(self.client_account_id),
+                engagement_id=int(self.engagement_id),
+                pattern_type="risk_assessment",
+                query_context=query_context,
+                limit=10,
+            )
+
+            logger.info(f"✅ Found {len(historical_patterns)} historical patterns")
+
+            # Step 3: Create and execute the risk assessment crew
+            # TODO: Pass historical_patterns to crew context
             crew = self.create_risk_assessment_crew(asset_data)
 
             # Execute the crew (this will run the agent with all memory tools)
@@ -275,6 +314,37 @@ class RiskAssessmentAgent:
 
             # Parse the agent's output
             parsed_result = self._parse_risk_assessment_output(result, asset_data)
+
+            # Step 4: Store discovered patterns if analysis was successful
+            if parsed_result.get("risk_assessment"):
+                logger.info("💾 Storing discovered risk assessment patterns...")
+                pattern_data = {
+                    "name": f"risk_assessment_{asset_data.get('name')}_{datetime.utcnow().isoformat()}",
+                    "risk_assessment": parsed_result.get("risk_assessment"),
+                    "security_risk_score": parsed_result.get("security_risk_score"),
+                    "operational_risk_score": parsed_result.get(
+                        "operational_risk_score"
+                    ),
+                    "compliance_risk_score": parsed_result.get("compliance_risk_score"),
+                    "technology_stack": asset_data.get("technology_stack"),
+                    "primary_threats": parsed_result.get("primary_threats"),
+                    "vulnerability_summary": parsed_result.get("vulnerability_summary"),
+                    "immediate_actions": parsed_result.get("immediate_actions", []),
+                    "historical_patterns_used": len(historical_patterns),
+                    "confidence": parsed_result.get("confidence_level", "medium"),
+                }
+
+                pattern_id = await memory_manager.store_learning(
+                    client_account_id=int(self.client_account_id),
+                    engagement_id=int(self.engagement_id),
+                    scope=LearningScope.ENGAGEMENT,
+                    pattern_type="risk_assessment",
+                    pattern_data=pattern_data,
+                )
+
+                logger.info(f"✅ Stored pattern with ID: {pattern_id}")
+                parsed_result["pattern_id"] = pattern_id
+                parsed_result["historical_patterns_used"] = len(historical_patterns)
 
             logger.info(
                 f"✅ Risk assessment completed - Level: {parsed_result.get('risk_assessment')}"
@@ -514,13 +584,26 @@ async def analyze_asset_risk_agentic(
     crewai_service,
     client_account_id: uuid.UUID,
     engagement_id: uuid.UUID,
+    db: AsyncSession,
     flow_id: Optional[uuid.UUID] = None,
 ) -> Dict[str, Any]:
     """
     Main function to analyze asset risk using agentic intelligence.
 
     This function creates a RiskAssessmentAgent and executes comprehensive threat analysis
-    including security, operational, and compliance risk assessment.
+    including security, operational, and compliance risk assessment with TenantMemoryManager
+    integration.
+
+    Args:
+        asset_data: Asset data to analyze
+        crewai_service: CrewAI service instance
+        client_account_id: Client account ID
+        engagement_id: Engagement ID
+        db: Database session for TenantMemoryManager
+        flow_id: Optional flow ID
+
+    Returns:
+        Risk assessment with levels, threats, and mitigation recommendations
     """
 
     agent = RiskAssessmentAgent(
@@ -530,7 +613,7 @@ async def analyze_asset_risk_agentic(
         flow_id=flow_id,
     )
 
-    return await agent.analyze_asset_risk(asset_data)
+    return await agent.analyze_asset_risk(asset_data, db)
 
 
 # Example usage pattern for integration with discovery flow
@@ -539,6 +622,7 @@ async def enrich_assets_with_risk_intelligence(
     crewai_service,
     client_account_id: uuid.UUID,
     engagement_id: uuid.UUID,
+    db: AsyncSession,
     flow_id: Optional[uuid.UUID] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -549,6 +633,17 @@ async def enrich_assets_with_risk_intelligence(
     - Security, operational, and compliance risk scores
     - Threat analysis and vulnerability summaries
     - Immediate actions and long-term mitigation recommendations
+
+    Args:
+        assets: List of assets to analyze
+        crewai_service: CrewAI service instance
+        client_account_id: Client account ID
+        engagement_id: Engagement ID
+        db: Database session for TenantMemoryManager
+        flow_id: Optional flow ID
+
+    Returns:
+        List of enriched assets with risk assessments
     """
 
     enriched_assets = []
@@ -567,8 +662,8 @@ async def enrich_assets_with_risk_intelligence(
                 f"🛡️ Assessing risk for asset {i+1}/{len(assets)}: {asset.get('name')}"
             )
 
-            # Perform agentic risk assessment
-            assessment_result = await agent.analyze_asset_risk(asset)
+            # Perform agentic risk assessment with TenantMemoryManager
+            assessment_result = await agent.analyze_asset_risk(asset, db)
 
             # Merge assessment results with asset data
             enriched_asset = {**asset}

@@ -31,9 +31,9 @@ class AgentOptimizationConfig:
     enable_timeout_protection: bool = True
 
     # Memory settings
-    enable_long_term_memory: bool = True
-    enable_short_term_memory: bool = True
-    enable_entity_memory: bool = True
+    enable_long_term_memory: bool = False  # Per ADR-024: Use TenantMemoryManager
+    enable_short_term_memory: bool = False  # Per ADR-024: Use TenantMemoryManager
+    enable_entity_memory: bool = False  # Per ADR-024: Use TenantMemoryManager
     memory_similarity_threshold: float = 0.7
     max_memory_items: int = 1000
 

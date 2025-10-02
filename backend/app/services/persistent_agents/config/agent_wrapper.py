@@ -68,7 +68,7 @@ class AgentWrapper:
                 agents=[self._agent],
                 tasks=[agent_task],
                 verbose=False,
-                # Factory applies defaults: max_iterations=1, timeout=600s, memory=True
+                # Factory applies defaults: max_iterations=1, timeout=600s, memory=False (ADR-024)
             )
 
             # Execute the crew

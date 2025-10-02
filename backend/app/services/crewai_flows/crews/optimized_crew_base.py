@@ -37,7 +37,7 @@ class OptimizedCrewBase:
         self,
         crewai_service,
         context: Optional[LearningContext] = None,
-        enable_memory: bool = True,
+        enable_memory: bool = False,  # Per ADR-024: Use TenantMemoryManager
         enable_caching: bool = True,
         enable_parallel: bool = True,
     ):
@@ -86,7 +86,7 @@ class OptimizedCrewBase:
         try:
             # Use CrewAI's native memory with our enhanced backend
             memory_config = {
-                "memory": True,
+                "memory": False,  # Per ADR-024: Use TenantMemoryManager
                 "long_term_memory": LongTermMemory(
                     storage_type="chroma",
                     embedder_config={
@@ -102,7 +102,7 @@ class OptimizedCrewBase:
 
         except Exception as e:
             logger.warning(f"Failed to configure CrewAI memory: {e}")
-            return {"memory": True}  # Fallback to basic memory
+            return {"memory": False}  # Per ADR-024: Use TenantMemoryManager
 
     def create_optimized_agent(
         self,
@@ -132,7 +132,7 @@ class OptimizedCrewBase:
 
         # Add memory configuration if enabled
         if self.enable_memory and self.memory_config:
-            agent_config["memory"] = True
+            agent_config["memory"] = False  # Per ADR-024: Use TenantMemoryManager
 
         # Apply any additional kwargs
         agent_config.update(kwargs)

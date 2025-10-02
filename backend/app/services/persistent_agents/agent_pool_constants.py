@@ -16,7 +16,7 @@ AGENT_TYPE_CONFIGS = {
         "with deep knowledge of asset identification and dependency mapping.",
         "tools": ["asset_creation", "data_validation", "critical_attributes"],
         "max_retries": 3,
-        "memory_enabled": True,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },
     "gap_analysis_specialist": {
         "role": "Gap Analysis Specialist Agent",
@@ -25,7 +25,7 @@ AGENT_TYPE_CONFIGS = {
         "for successful cloud migration planning and 6R strategy development.",
         "tools": ["data_validation", "critical_attributes"],
         "max_retries": 3,
-        "memory_enabled": True,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },
     "business_impact_assessor": {
         "role": "Business Impact Assessment Agent",
@@ -33,7 +33,7 @@ AGENT_TYPE_CONFIGS = {
         "backstory": "Senior business analyst specializing in migration impact assessment and readiness evaluation.",
         "tools": ["task_completion", "mapping_confidence"],
         "max_retries": 2,
-        "memory_enabled": True,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },
     "quality_validator": {
         "role": "Quality Validation Agent",
@@ -41,7 +41,7 @@ AGENT_TYPE_CONFIGS = {
         "backstory": "Quality assurance specialist focused on migration data validation and consistency checks.",
         "tools": ["data_validation"],
         "max_retries": 2,
-        "memory_enabled": True,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },
     "dependency_analyst": {
         "role": "Dependency Analysis Agent",
@@ -49,7 +49,7 @@ AGENT_TYPE_CONFIGS = {
         "backstory": "Expert in mapping complex system dependencies and integration points for migration planning.",
         "tools": ["dependency_analysis", "asset_intelligence"],
         "max_retries": 3,
-        "memory_enabled": True,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },
     "questionnaire_generator": {
         "role": "Adaptive Questionnaire Generation Agent",
@@ -59,7 +59,7 @@ AGENT_TYPE_CONFIGS = {
         "applications, infrastructure, databases, and cloud resources.",
         "tools": ["questionnaire_generation", "gap_analysis", "asset_intelligence"],
         "max_retries": 3,
-        "memory_enabled": True,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },
 }
 

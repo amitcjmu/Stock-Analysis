@@ -218,7 +218,7 @@ class AgentExecutor:
                 tasks=[task],
                 process=Process.sequential,
                 verbose=False,
-                memory=True,  # Use memory from the persistent agent
+                memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             )
 
             # Execute the crew - kickoff_async returns a result object

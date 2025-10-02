@@ -28,10 +28,14 @@ from app.services.agentic_intelligence.agent_reasoning_patterns import (
     AgentReasoning,
     AgentReasoningEngine,
 )
-from app.services.agentic_memory import ThreeTierMemoryManager
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    TenantMemoryManager,
+    LearningScope,
+)
 from app.services.agentic_memory.agent_tools_functional import (
     create_functional_agent_tools,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +63,12 @@ class BusinessValueAgent:
         self.engagement_id = engagement_id
         self.flow_id = flow_id
 
-        # Initialize agentic memory system
-        self.memory_manager = ThreeTierMemoryManager(client_account_id, engagement_id)
-
         # Initialize reasoning engine
+        # Note: TenantMemoryManager will be initialized per-method with AsyncSession
         self.reasoning_engine = AgentReasoningEngine(
-            self.memory_manager, client_account_id, engagement_id
+            None,
+            client_account_id,
+            engagement_id,  # Will use TenantMemoryManager in methods
         )
 
         # Get configured LLM
@@ -118,7 +122,7 @@ class BusinessValueAgent:
             allow_delegation=False,
             llm=self.llm,
             tools=self.agent_tools,
-            memory=True,  # Use agent memory for learning
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             max_iter=3,
             max_execution_time=60,
         )
@@ -209,29 +213,62 @@ class BusinessValueAgent:
             tasks=[task],
             process=Process.sequential,
             verbose=True,
-            memory=True,  # Enable crew-level memory
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             max_execution_time=90,
         )
 
         return crew
 
     async def analyze_asset_business_value(
-        self, asset_data: Dict[str, Any]
+        self, asset_data: Dict[str, Any], db: AsyncSession
     ) -> Dict[str, Any]:
         """
         Main method to analyze business value of an asset using agentic intelligence.
 
         This method:
-        1. Creates a specialized CrewAI crew with memory tools
-        2. Executes the agent reasoning process
-        3. Returns structured results with business value score and reasoning
+        1. Retrieves historical business value patterns from TenantMemoryManager
+        2. Creates a specialized CrewAI crew with memory tools
+        3. Executes the agent reasoning process
+        4. Stores discovered patterns back to TenantMemoryManager
+        5. Returns structured results with business value score and reasoning
+
+        Args:
+            asset_data: Asset data to analyze
+            db: Database session for TenantMemoryManager
+
+        Returns:
+            Business value assessment with score and reasoning
         """
         try:
             logger.info(
                 f"🧠 Starting agentic business value analysis for asset: {asset_data.get('name')}"
             )
 
-            # Create and execute the business value crew
+            # Step 1: Initialize TenantMemoryManager
+            memory_manager = TenantMemoryManager(
+                crewai_service=self.crewai_service, database_session=db
+            )
+
+            # Step 2: Retrieve historical business value patterns
+            logger.info("📚 Retrieving historical business value patterns...")
+            query_context = {
+                "environment": asset_data.get("environment"),
+                "criticality": asset_data.get("business_criticality"),
+                "asset_type": asset_data.get("asset_type"),
+            }
+
+            historical_patterns = await memory_manager.retrieve_similar_patterns(
+                client_account_id=int(self.client_account_id),
+                engagement_id=int(self.engagement_id),
+                pattern_type="business_value_assessment",
+                query_context=query_context,
+                limit=10,
+            )
+
+            logger.info(f"✅ Found {len(historical_patterns)} historical patterns")
+
+            # Step 3: Create and execute the business value crew
+            # TODO: Pass historical_patterns to crew context
             crew = self.create_business_value_crew(asset_data)
 
             # Execute the crew (this will run the agent with all memory tools)
@@ -239,6 +276,33 @@ class BusinessValueAgent:
 
             # Parse the agent's output
             parsed_result = self._parse_agent_output(result, asset_data)
+
+            # Step 4: Store discovered patterns if analysis was successful
+            if parsed_result.get("business_value_score", 0) > 0:
+                logger.info("💾 Storing discovered business value patterns...")
+                pattern_data = {
+                    "name": f"business_value_analysis_{asset_data.get('name')}_{datetime.utcnow().isoformat()}",
+                    "business_value_score": parsed_result.get("business_value_score"),
+                    "confidence_level": parsed_result.get("confidence_level"),
+                    "reasoning": parsed_result.get("reasoning"),
+                    "environment": asset_data.get("environment"),
+                    "asset_type": asset_data.get("asset_type"),
+                    "business_criticality": asset_data.get("business_criticality"),
+                    "recommendations": parsed_result.get("recommendations", []),
+                    "historical_patterns_used": len(historical_patterns),
+                }
+
+                pattern_id = await memory_manager.store_learning(
+                    client_account_id=int(self.client_account_id),
+                    engagement_id=int(self.engagement_id),
+                    scope=LearningScope.ENGAGEMENT,
+                    pattern_type="business_value_assessment",
+                    pattern_data=pattern_data,
+                )
+
+                logger.info(f"✅ Stored pattern with ID: {pattern_id}")
+                parsed_result["pattern_id"] = pattern_id
+                parsed_result["historical_patterns_used"] = len(historical_patterns)
 
             logger.info(
                 f"✅ Business value analysis completed - Score: {parsed_result.get('business_value_score')}"
@@ -373,13 +437,26 @@ async def analyze_asset_business_value_agentic(
     crewai_service,
     client_account_id: uuid.UUID,
     engagement_id: uuid.UUID,
+    db: AsyncSession,
     flow_id: Optional[uuid.UUID] = None,
 ) -> Dict[str, Any]:
     """
     Main function to analyze asset business value using agentic intelligence.
 
     This function creates a BusinessValueAgent and executes the full agentic analysis
-    including pattern search, evidence gathering, and memory-based learning.
+    including pattern search, evidence gathering, and memory-based learning with
+    TenantMemoryManager integration.
+
+    Args:
+        asset_data: Asset data to analyze
+        crewai_service: CrewAI service instance
+        client_account_id: Client account ID
+        engagement_id: Engagement ID
+        db: Database session for TenantMemoryManager
+        flow_id: Optional flow ID
+
+    Returns:
+        Business value assessment with score and reasoning
     """
 
     agent = BusinessValueAgent(
@@ -389,7 +466,7 @@ async def analyze_asset_business_value_agentic(
         flow_id=flow_id,
     )
 
-    return await agent.analyze_asset_business_value(asset_data)
+    return await agent.analyze_asset_business_value(asset_data, db)
 
 
 # Example usage pattern for integration with discovery flow
@@ -398,6 +475,7 @@ async def enrich_assets_with_business_value_intelligence(
     crewai_service,
     client_account_id: uuid.UUID,
     engagement_id: uuid.UUID,
+    db: AsyncSession,
     flow_id: Optional[uuid.UUID] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -409,6 +487,17 @@ async def enrich_assets_with_business_value_intelligence(
     - Detailed reasoning
     - Pattern-based insights
     - Recommendations
+
+    Args:
+        assets: List of assets to analyze
+        crewai_service: CrewAI service instance
+        client_account_id: Client account ID
+        engagement_id: Engagement ID
+        db: Database session for TenantMemoryManager
+        flow_id: Optional flow ID
+
+    Returns:
+        List of enriched assets with business value assessments
     """
 
     enriched_assets = []
@@ -425,8 +514,8 @@ async def enrich_assets_with_business_value_intelligence(
         try:
             logger.info(f"🧠 Analyzing asset {i+1}/{len(assets)}: {asset.get('name')}")
 
-            # Perform agentic business value analysis
-            analysis_result = await agent.analyze_asset_business_value(asset)
+            # Perform agentic business value analysis with TenantMemoryManager
+            analysis_result = await agent.analyze_asset_business_value(asset, db)
 
             # Merge analysis results with asset data
             enriched_asset = {**asset}

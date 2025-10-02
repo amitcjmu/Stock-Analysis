@@ -86,7 +86,15 @@ This document consolidates key learnings from troubleshooting and development se
 *   **Agent-UI-Bridge:** Use the `agent-ui-bridge` system as the primary mechanism for agents to communicate with the frontend, request user clarification (via the `AgentClarificationPanel`), and store insights.
 *   **Data for Agents:** Agents require operational data from **child flows**, not lifecycle data from master flows, to make accurate decisions.
 *   **Dynamic Thresholds:** Agents, not hardcoded values, should determine critical thresholds (e.g., field mapping approval percentages) based on data quality, complexity, and other contextual factors.
-*   **Memory is ENABLED:** Memory works with DeepInfra patch. The system is NOT memory-disabled.
+*   **CrewAI Memory is DISABLED (ADR-024 - October 2025):**
+    *   **RULE:** CrewAI's built-in memory system is **DISABLED** by default. Use `TenantMemoryManager` for all agent learning.
+    *   **Why:** ADR-024 replaced CrewAI's ChromaDB-based memory with enterprise `TenantMemoryManager` to eliminate 401/422 errors, provide multi-tenant isolation, and use native PostgreSQL+pgvector.
+    *   **Configuration:** `memory=False` in `CrewConfig.DEFAULT_AGENT_CONFIG` and `DEFAULT_CREW_CONFIG` (crew_factory/config.py:100, 147).
+    *   **NEVER Override:** Do NOT set `memory=True` in agent/crew creation or enable in `agent_pool_constants.py`.
+    *   **Legacy Code:** If you see `memory=True`, change to `memory=False` with comment: `# Per ADR-024: Use TenantMemoryManager`.
+    *   **Agent Learning:** Use `TenantMemoryManager.store_learning()` after agent tasks and `retrieve_similar_patterns()` before execution.
+    *   **Common Mistakes:** Do NOT re-enable memory patches at startup, use `EmbedderConfig` for CrewAI memory, or propose "fixing" CrewAI memory.
+    *   **References:** `/docs/adr/024-tenant-memory-manager-architecture.md`, `/docs/development/TENANT_MEMORY_STRATEGY.md`
 
 ## 6. Security
 

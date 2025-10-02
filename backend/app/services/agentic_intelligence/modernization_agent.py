@@ -28,10 +28,14 @@ from app.services.agentic_intelligence.agent_reasoning_patterns import (
     AgentReasoning,
     AgentReasoningEngine,
 )
-from app.services.agentic_memory import ThreeTierMemoryManager
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    TenantMemoryManager,
+    LearningScope,
+)
 from app.services.agentic_memory.agent_tools_functional import (
     create_functional_agent_tools,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +64,12 @@ class ModernizationAgent:
         self.engagement_id = engagement_id
         self.flow_id = flow_id
 
-        # Initialize agentic memory system
-        self.memory_manager = ThreeTierMemoryManager(client_account_id, engagement_id)
-
         # Initialize reasoning engine
+        # Note: TenantMemoryManager will be initialized per-method with AsyncSession
         self.reasoning_engine = AgentReasoningEngine(
-            self.memory_manager, client_account_id, engagement_id
+            None,
+            client_account_id,
+            engagement_id,  # Will use TenantMemoryManager in methods
         )
 
         # Get configured LLM
@@ -132,7 +136,7 @@ class ModernizationAgent:
             allow_delegation=False,
             llm=self.llm,
             tools=self.agent_tools,
-            memory=True,  # Use agent memory for modernization intelligence
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             max_iter=3,
             max_execution_time=60,
         )
@@ -254,29 +258,62 @@ class ModernizationAgent:
             tasks=[task],
             process=Process.sequential,
             verbose=True,
-            memory=True,  # Enable crew-level memory for modernization intelligence
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             max_execution_time=90,
         )
 
         return crew
 
     async def analyze_modernization_potential(
-        self, asset_data: Dict[str, Any]
+        self, asset_data: Dict[str, Any], db: AsyncSession
     ) -> Dict[str, Any]:
         """
         Main method to analyze modernization potential of an asset using agentic intelligence.
 
         This method:
-        1. Creates a specialized modernization crew with architectural intelligence tools
-        2. Executes comprehensive cloud readiness and modernization strategy analysis
-        3. Returns structured results with modernization scores, strategies, and migration roadmaps
+        1. Retrieves historical modernization patterns from TenantMemoryManager
+        2. Creates a specialized modernization crew with architectural intelligence tools
+        3. Executes comprehensive cloud readiness and modernization strategy analysis
+        4. Stores discovered patterns back to TenantMemoryManager
+        5. Returns structured results with modernization scores, strategies, and migration roadmaps
+
+        Args:
+            asset_data: Asset data to analyze
+            db: Database session for TenantMemoryManager
+
+        Returns:
+            Modernization assessment with scores and recommendations
         """
         try:
             logger.info(
                 f"☁️ Starting agentic modernization analysis for asset: {asset_data.get('name')}"
             )
 
-            # Create and execute the modernization crew
+            # Step 1: Initialize TenantMemoryManager
+            memory_manager = TenantMemoryManager(
+                crewai_service=self.crewai_service, database_session=db
+            )
+
+            # Step 2: Retrieve historical modernization patterns
+            logger.info("📚 Retrieving historical modernization patterns...")
+            query_context = {
+                "asset_type": asset_data.get("asset_type"),
+                "technology_stack": asset_data.get("technology_stack"),
+                "architecture_style": asset_data.get("architecture_style"),
+            }
+
+            historical_patterns = await memory_manager.retrieve_similar_patterns(
+                client_account_id=int(self.client_account_id),
+                engagement_id=int(self.engagement_id),
+                pattern_type="modernization_strategy",
+                query_context=query_context,
+                limit=10,
+            )
+
+            logger.info(f"✅ Found {len(historical_patterns)} historical patterns")
+
+            # Step 3: Create and execute the modernization crew
+            # TODO: Pass historical_patterns to crew context
             crew = self.create_modernization_crew(asset_data)
 
             # Execute the crew (this will run the agent with all memory tools)
@@ -284,6 +321,40 @@ class ModernizationAgent:
 
             # Parse the agent's output
             parsed_result = self._parse_modernization_output(result, asset_data)
+
+            # Step 4: Store discovered patterns if analysis was successful
+            if parsed_result.get("cloud_readiness_score", 0) > 0:
+                logger.info("💾 Storing discovered modernization patterns...")
+                pattern_data = {
+                    "name": f"modernization_analysis_{asset_data.get('name')}_{datetime.utcnow().isoformat()}",
+                    "cloud_readiness_score": parsed_result.get("cloud_readiness_score"),
+                    "modernization_potential": parsed_result.get(
+                        "modernization_potential"
+                    ),
+                    "recommended_strategy": parsed_result.get("recommended_strategy"),
+                    "asset_type": asset_data.get("asset_type"),
+                    "technology_stack": asset_data.get("technology_stack"),
+                    "architecture_assessment": parsed_result.get(
+                        "architecture_assessment"
+                    ),
+                    "containerization_readiness": parsed_result.get(
+                        "containerization_readiness"
+                    ),
+                    "historical_patterns_used": len(historical_patterns),
+                    "confidence": parsed_result.get("technical_confidence", "medium"),
+                }
+
+                pattern_id = await memory_manager.store_learning(
+                    client_account_id=int(self.client_account_id),
+                    engagement_id=int(self.engagement_id),
+                    scope=LearningScope.ENGAGEMENT,
+                    pattern_type="modernization_strategy",
+                    pattern_data=pattern_data,
+                )
+
+                logger.info(f"✅ Stored pattern with ID: {pattern_id}")
+                parsed_result["pattern_id"] = pattern_id
+                parsed_result["historical_patterns_used"] = len(historical_patterns)
 
             logger.info(
                 f"✅ Modernization analysis completed - Cloud Readiness: "
@@ -540,13 +611,25 @@ async def analyze_modernization_potential_agentic(
     crewai_service,
     client_account_id: uuid.UUID,
     engagement_id: uuid.UUID,
+    db: AsyncSession,
     flow_id: Optional[uuid.UUID] = None,
 ) -> Dict[str, Any]:
     """
     Main function to analyze modernization potential using agentic intelligence.
 
     This function creates a ModernizationAgent and executes comprehensive cloud readiness
-    and modernization strategy analysis.
+    and modernization strategy analysis with TenantMemoryManager integration.
+
+    Args:
+        asset_data: Asset data to analyze
+        crewai_service: CrewAI service instance
+        client_account_id: Client account ID
+        engagement_id: Engagement ID
+        db: Database session for TenantMemoryManager
+        flow_id: Optional flow ID
+
+    Returns:
+        Modernization assessment with scores and recommendations
     """
 
     agent = ModernizationAgent(
@@ -556,7 +639,7 @@ async def analyze_modernization_potential_agentic(
         flow_id=flow_id,
     )
 
-    return await agent.analyze_modernization_potential(asset_data)
+    return await agent.analyze_modernization_potential(asset_data, db)
 
 
 # Example usage pattern for integration with discovery flow
@@ -565,6 +648,7 @@ async def enrich_assets_with_modernization_intelligence(
     crewai_service,
     client_account_id: uuid.UUID,
     engagement_id: uuid.UUID,
+    db: AsyncSession,
     flow_id: Optional[uuid.UUID] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -576,6 +660,17 @@ async def enrich_assets_with_modernization_intelligence(
     - Architecture assessment and containerization readiness
     - Migration effort estimation and timeline planning
     - Immediate modernization steps and long-term roadmaps
+
+    Args:
+        assets: List of assets to analyze
+        crewai_service: CrewAI service instance
+        client_account_id: Client account ID
+        engagement_id: Engagement ID
+        db: Database session for TenantMemoryManager
+        flow_id: Optional flow ID
+
+    Returns:
+        List of enriched assets with modernization assessments
     """
 
     enriched_assets = []
@@ -594,8 +689,8 @@ async def enrich_assets_with_modernization_intelligence(
                 f"☁️ Analyzing modernization potential for asset {i+1}/{len(assets)}: {asset.get('name')}"
             )
 
-            # Perform agentic modernization analysis
-            analysis_result = await agent.analyze_modernization_potential(asset)
+            # Perform agentic modernization analysis with TenantMemoryManager
+            analysis_result = await agent.analyze_modernization_potential(asset, db)
 
             # Merge analysis results with asset data
             enriched_asset = {**asset}

@@ -39,9 +39,9 @@ logger = logging.getLogger(__name__)
 class MemoryConfiguration:
     """Configuration for agent memory system"""
 
-    enable_long_term_memory: bool = True
-    enable_short_term_memory: bool = True
-    enable_entity_memory: bool = True
+    enable_long_term_memory: bool = False  # Per ADR-024: Use TenantMemoryManager
+    enable_short_term_memory: bool = False  # Per ADR-024: Use TenantMemoryManager
+    enable_entity_memory: bool = False  # Per ADR-024: Use TenantMemoryManager
     enable_semantic_search: bool = True
     vector_dimension: int = 1536
     similarity_threshold: float = 0.7

@@ -69,7 +69,7 @@ class ValidationWorkflowAgent(BaseCrewAIAgent):
                 "data_consistency",
             ],
             max_iter=10,
-            memory=True,
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             verbose=True,
             allow_delegation=False,
         )

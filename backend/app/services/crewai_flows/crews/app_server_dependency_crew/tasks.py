@@ -248,7 +248,7 @@ def create_app_server_dependency_crew_instance(
                     "manager_llm": llm_model,  # Critical: Use our DeepInfra LLM
                     "planning": True,
                     "planning_llm": llm_model,  # Force planning to use our LLM too
-                    "memory": True,
+                    "memory": False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
                     "knowledge": None,
                     "share_crew": True,
                     "collaboration": True,
