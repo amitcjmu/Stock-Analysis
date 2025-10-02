@@ -29,7 +29,7 @@ from app.services.crewai_flows.enhanced_flow_state_manager import (
     StateSerializationError,
     StateSerializer,
 )
-from app.services.flow_error_handler import ErrorStrategy, FlowErrorHandler
+from app.services.flow_error_handler import FlowErrorHandler
 from app.services.flow_type_registry import (
     FlowTypeConfig,
     FlowTypeRegistry,

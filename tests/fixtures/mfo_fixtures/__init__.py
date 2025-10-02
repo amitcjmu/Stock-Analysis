@@ -48,6 +48,9 @@ from .helpers import (
     setup_mfo_test_environment,
 )
 
+# Backward compatibility alias
+mock_async_session = async_db_session
+
 # Public API - maintains existing import structure
 __all__ = [
     # Constants
@@ -65,6 +68,7 @@ __all__ = [
     "demo_tenant_context",
     "mock_service_registry",
     "async_db_session",
+    "mock_async_session",  # Backward compatibility alias
     # Flow fixtures
     "sample_master_flow_data",
     "sample_discovery_flow_data",

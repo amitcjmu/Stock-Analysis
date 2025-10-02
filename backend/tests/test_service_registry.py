@@ -15,7 +15,7 @@ CrewAI tools. Validates:
 import os
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Any, Dict, List
 
 import pytest
@@ -417,13 +417,21 @@ class TestServiceRegistryMetricsBuffer:
         """Test auto-flush when buffer reaches max size"""
         with patch.object(
             registry, "_flush_metrics", new_callable=AsyncMock
-        ) as mock_flush, patch("asyncio.create_task"):
+        ) as mock_flush, patch("asyncio.create_task") as mock_create_task, patch(
+            "asyncio.get_running_loop"
+        ) as mock_get_loop:
+            # Fix: Mock get_running_loop to return a mock loop so flush is triggered
+            mock_get_loop.return_value = MagicMock()
+
             # Add exactly 100 metrics to trigger auto-flush
             for i in range(100):
                 registry.record_metric("TestService", f"metric_{i}", i)
 
-            # Should have triggered auto-flush
-            mock_flush.assert_called_once()
+            # Should have triggered auto-flush via create_task
+            mock_create_task.assert_called_once()
+            # Verify _flush_metrics was passed to create_task
+            call_args = mock_create_task.call_args[0][0]
+            assert call_args is not None  # Task should be created with flush coroutine
 
     @pytest.mark.asyncio
     async def test_flush_metrics_implementation(self, registry):

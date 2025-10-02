@@ -84,8 +84,8 @@ class TestAssetWriteBackBasicFunctionality:
         collection_flow_id = uuid4()
 
         # Mock the resolved gaps query result
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_resolved_gaps_data)
 
         # Mock asset ID resolution
         asset_ids = [uuid4(), uuid4(), uuid4()]
@@ -118,8 +118,8 @@ class TestAssetWriteBackBasicFunctionality:
         asset_ids = [uuid4()]
 
         # Mock the resolved gaps query
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_resolved_gaps_data)
 
         mock_db.execute.side_effect = [resolved_rows]
 
@@ -165,8 +165,8 @@ class TestAssetWriteBackBasicFunctionality:
             ),
         ]
 
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_data)
 
         asset_ids = [uuid4()]
 
@@ -208,8 +208,8 @@ class TestAssetWriteBackBasicFunctionality:
             ),
         ]
 
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_data)
 
         asset_ids = [uuid4()]
 
@@ -234,8 +234,8 @@ class TestAssetWriteBackBasicFunctionality:
         """Test graceful handling when no assets are found"""
         collection_flow_id = uuid4()
 
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_resolved_gaps_data)
 
         # Mock _resolve_target_asset_ids to return empty list
         mock_db.execute.side_effect = [resolved_rows]
@@ -258,8 +258,8 @@ class TestAssetWriteBackBasicFunctionality:
         collection_flow_id = uuid4()
 
         # Mock empty result from gaps query
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=[])
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=[])
 
         mock_db.execute.return_value = resolved_rows
 
@@ -321,8 +321,8 @@ class TestAssetWriteBackErrorHandling:
         asset_ids = [uuid4()]
 
         # Mock successful gap query but failing update
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_resolved_gaps_data)
 
         # First call succeeds (gap query), second fails (update)
         mock_db.execute.side_effect = [resolved_rows, Exception("Database error")]
@@ -357,8 +357,8 @@ class TestAssetWriteBackErrorHandling:
             )
         ]
 
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_data)
 
         # First query succeeds, later updates fail for first batch, succeed for second
         mock_db.execute.side_effect = [
@@ -396,8 +396,10 @@ class TestAssetIdResolution:
 
         # Mock database result for asset ID lookup
         expected_ids = [uuid4(), uuid4()]
-        asset_result = AsyncMock()
-        asset_result.scalars.return_value.all.return_value = expected_ids
+        asset_result = MagicMock()
+        # Create mock rows with .id attributes
+        mock_asset_rows = [MagicMock(id=asset_id) for asset_id in expected_ids]
+        asset_result.fetchall.return_value = mock_asset_rows
         mock_db.execute.return_value = asset_result
 
         # Execute asset ID resolution
@@ -416,22 +418,27 @@ class TestAssetIdResolution:
         self, asset_handlers, mock_db, valid_context
     ):
         """Test handling when no asset ID hints are provided"""
-        # Mock resolved rows without asset ID hints
+        # Mock resolved rows without asset ID hints but with app name hints
         mock_rows = [
             MagicMock(asset_id_hint=None, app_name_hint="App 1"),
             MagicMock(asset_id_hint="", app_name_hint="App 2"),  # Empty string hint
         ]
+
+        # Mock database result for app name lookup (returns empty because apps don't exist)
+        asset_result = MagicMock()
+        asset_result.fetchall.return_value = []
+        mock_db.execute.return_value = asset_result
 
         # Execute asset ID resolution
         result = await asset_handlers._resolve_target_asset_ids(
             mock_db, mock_rows, valid_context
         )
 
-        # Should return empty list when no valid hints
+        # Should return empty list when no matching assets found
         assert result == []
 
-        # No database queries should be made
-        assert mock_db.execute.call_count == 0
+        # Database query should be made for app names
+        assert mock_db.execute.call_count == 1
 
     @pytest.mark.asyncio
     async def test_resolve_target_asset_ids_invalid_uuid_hints(
@@ -446,8 +453,10 @@ class TestAssetIdResolution:
 
         # Mock database result
         expected_ids = [uuid4()]
-        asset_result = AsyncMock()
-        asset_result.scalars.return_value.all.return_value = expected_ids
+        asset_result = MagicMock()
+        # Create mock rows with .id attributes
+        mock_asset_rows = [MagicMock(id=asset_id) for asset_id in expected_ids]
+        asset_result.fetchall.return_value = mock_asset_rows
         mock_db.execute.return_value = asset_result
 
         # Execute asset ID resolution
@@ -479,8 +488,8 @@ class TestBatchProcessing:
         # Create more asset IDs than batch size
         asset_ids = [uuid4() for _ in range(5)]
 
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_resolved_gaps_data)
 
         mock_db.execute.side_effect = [resolved_rows]
 
@@ -512,8 +521,8 @@ class TestBatchProcessing:
             )
         ]
 
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_data)
 
         asset_ids = [uuid4()]
 
@@ -541,8 +550,8 @@ class TestSQLInjectionPrevention:
         """Test that parameterized queries are used to prevent SQL injection"""
         collection_flow_id = uuid4()
 
-        resolved_rows = AsyncMock()
-        resolved_rows.fetchall = AsyncMock(return_value=mock_resolved_gaps_data)
+        resolved_rows = MagicMock()
+        resolved_rows.fetchall = MagicMock(return_value=mock_resolved_gaps_data)
 
         asset_ids = [uuid4()]
 

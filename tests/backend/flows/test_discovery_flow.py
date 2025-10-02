@@ -24,12 +24,11 @@ from app.services.persistent_agents.tenant_scoped_agent_pool import TenantScoped
 
 # MFO architecture imports
 from app.core.context import RequestContext
-from app.services.flows.discovery_flow import (
-    DiscoveryFlowState,
-    UnifiedDiscoveryFlow
-)
-from app.services.flows.events import FlowEvent, FlowEventBus
-from app.services.flows.manager import FlowManager
+from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState as DiscoveryFlowState
+# TODO: FlowEvent, FlowEventBus, FlowManager need to be located or mocked
+# from app.services.flows.events import FlowEvent, FlowEventBus
+# from app.services.flows.manager import FlowManager
 
 
 @pytest.fixture
