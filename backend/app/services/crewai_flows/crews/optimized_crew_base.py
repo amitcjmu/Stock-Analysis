@@ -13,7 +13,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from crewai import Crew, Process
+from crewai import Agent, Crew, Process, Task
 
 from app.services.crewai_flows.config.crew_factory import (
     create_agent,
