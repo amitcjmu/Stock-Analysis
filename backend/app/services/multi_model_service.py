@@ -11,8 +11,12 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from app.core.config import settings
+
 # Import LLM Usage Tracker
-from app.services.llm_usage_tracker import LLMUsageTracker
+from app.services.llm_usage_tracker import llm_tracker
+
+LLM_TRACKING_AVAILABLE = True  # Enable automatic LLM usage tracking
 
 try:
     from openai import OpenAI
@@ -29,8 +33,6 @@ try:
 except ImportError:
     CREWAI_AVAILABLE = False
     logging.warning("CrewAI not available for Llama 4.")
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +60,7 @@ class MultiModelService:
     def __init__(self):
         self.openai_client = None  # For Gemma-3
         self.crewai_llm = None  # For Llama 4
-        self.llm_usage_tracker = LLMUsageTracker()
+        self.llm_usage_tracker = llm_tracker  # Use global tracker instance
         self.model_configs = {
             ModelType.LLAMA_4_MAVERICK: {
                 "model_name": "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -578,7 +580,3 @@ class MultiModelService:
 
 # Global instance of the service
 multi_model_service = MultiModelService()
-
-# Conditional global instance of the tracker
-llm_tracker = multi_model_service.llm_usage_tracker
-LLM_TRACKING_AVAILABLE = True

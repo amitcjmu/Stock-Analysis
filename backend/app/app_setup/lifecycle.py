@@ -110,6 +110,15 @@ def get_lifespan():  # noqa: C901
         except Exception as e:  # pragma: no cover
             logging.getLogger(__name__).warning("Feature flags logging warning: %s", e)
 
+        # Setup LiteLLM tracking for automatic LLM usage logging
+        try:
+            logging.getLogger(__name__).info("🔄 Setting up LiteLLM tracking...")
+            from app.services.litellm_tracking_callback import setup_litellm_tracking
+
+            setup_litellm_tracking()
+        except Exception as e:  # pragma: no cover
+            logging.getLogger(__name__).warning("LiteLLM tracking setup warning: %s", e)
+
         # Start flow health monitor
         try:
             logging.getLogger(__name__).info("🔄 Starting flow health monitor...")

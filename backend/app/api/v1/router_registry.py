@@ -7,7 +7,7 @@ in the main api.py file.
 import logging
 from fastapi import APIRouter
 
-# from app.api.v1.api_tags import APITags  # Will be used when updating tag assignments
+from app.api.v1.api_tags import APITags
 
 logger = logging.getLogger(__name__)
 
@@ -273,6 +273,7 @@ def register_admin_routers(api_router: APIRouter):
         ADMIN_ENDPOINTS_AVAILABLE,
         platform_admin_router,
         security_audit_router,
+        llm_usage_router,
         routers_with_flags,
     )
 
@@ -285,6 +286,11 @@ def register_admin_routers(api_router: APIRouter):
 
         api_router.include_router(security_audit_router, prefix="/admin/security/audit")
         logger.info("✅ Security Audit router included")
+
+        api_router.include_router(
+            llm_usage_router, prefix="/admin/llm-usage", tags=[APITags.ADMIN_LLM_USAGE]
+        )
+        logger.info("✅ LLM Usage router included")
     else:
         logger.warning("⚠️ Platform Admin routers not available")
 
