@@ -16,7 +16,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.schemas import RequestContext
+from app.core.context import RequestContext
 from app.models import User
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
