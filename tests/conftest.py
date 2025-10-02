@@ -42,23 +42,15 @@ if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
 
-# Event loop configuration for async tests
-@pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
-    """Create an instance of the default event loop for the test session."""
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-
-    yield loop
-
-    # Clean up any pending tasks
-    pending = asyncio.all_tasks(loop)
-    if pending:
-        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-
-    loop.close()
+# REMOVED: Custom event_loop fixture (deprecated pattern with pytest-asyncio 1.0.0+)
+# The custom event_loop fixture with scope="session" causes "RuntimeError: Event loop is closed"
+# when session-scoped async fixtures are used. pytest-asyncio now manages the event loop automatically
+# in auto mode (configured in pytest.ini). See: https://github.com/pytest-dev/pytest-asyncio#event_loop-fixture
+# Reference: Issue #443, coding-agent-guide.md banned patterns
+#
+# Previous implementation tried to handle cleanup manually but this conflicts with pytest-asyncio's
+# automatic event loop management. With asyncio_mode = auto, pytest-asyncio creates and manages
+# event loops per test function automatically, preventing "Event loop is closed" errors.
 
 
 # FastAPI Test Client

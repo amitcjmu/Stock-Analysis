@@ -29,7 +29,7 @@ from tests.fixtures.mfo_fixtures import (
     MockServiceRegistry,
     demo_tenant_context,
     mock_service_registry,
-    mock_async_session,
+    async_db_session,  # Renamed from mock_async_session in mfo_fixtures
     sample_master_flow_data,
     sample_discovery_flow_data,
     mock_tenant_scoped_agent_pool,
@@ -43,18 +43,20 @@ from tests.fixtures.mfo_fixtures import (
     DEMO_USER_ID,
     DEMO_USER_EMAIL
 )
+
+# Create alias for backward compatibility
+mock_async_session = async_db_session
 # Pytest markers are configured in pytest_markers.py and used via @pytest.mark notation
 
 from app.models import ClientAccount, Engagement, User
 from app.models.base import Base
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# REMOVED: Custom event_loop fixture (deprecated pattern with pytest-asyncio 1.0.0+)
+# The custom event_loop fixture with scope="session" causes "RuntimeError: Event loop is closed"
+# when session-scoped async fixtures are used. pytest-asyncio now manages the event loop automatically
+# in auto mode. See: https://github.com/pytest-dev/pytest-asyncio#event_loop-fixture
+# Reference: Issue #443, coding-agent-guide.md banned patterns
 
 
 @pytest.fixture(scope="session")

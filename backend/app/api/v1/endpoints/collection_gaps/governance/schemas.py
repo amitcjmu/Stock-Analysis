@@ -114,6 +114,6 @@ class MigrationExceptionResponse(BaseModel):
     approval_request_id: Optional[str] = Field(
         None, description="Linked approval request"
     )
-    created_at: str = Field(
-        ..., description="Creation timestamp", example="2025-01-15T10:30:00Z"
+    created_at: Optional[str] = Field(
+        None, description="Creation timestamp", example="2025-01-15T10:30:00Z"
     )

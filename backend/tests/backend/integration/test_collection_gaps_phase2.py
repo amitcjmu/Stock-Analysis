@@ -559,7 +559,7 @@ class TestGovernanceEndpoints:
 
         # Mock repository response
         with patch(
-            "app.repositories.governance_repository.ApprovalRequestRepository"
+            "app.api.v1.endpoints.collection_gaps.governance.handlers.ApprovalRequestRepository"
         ) as mock_repo_class:
             mock_repo = AsyncMock()
             mock_request = MagicMock()
@@ -582,7 +582,7 @@ class TestGovernanceEndpoints:
 
                 # Test endpoint
                 result = await list_governance_requirements(
-                    status=None,
+                    approval_status=None,
                     entity_type=None,
                     entity_id=None,
                     approver_id=None,
@@ -617,7 +617,7 @@ class TestGovernanceEndpoints:
 
         # Mock repository response
         with patch(
-            "app.repositories.governance_repository.ApprovalRequestRepository"
+            "app.api.v1.endpoints.collection_gaps.governance.handlers.ApprovalRequestRepository"
         ) as mock_repo_class:
             mock_repo = AsyncMock()
             mock_created = MagicMock()
@@ -663,12 +663,15 @@ class TestGovernanceEndpoints:
 
         # Mock repository response
         with patch(
-            "app.repositories.governance_repository.MigrationExceptionRepository"
+            "app.api.v1.endpoints.collection_gaps.governance.handlers.MigrationExceptionRepository"
         ) as mock_repo_class:
             mock_repo = AsyncMock()
             mock_exception = MagicMock()
             for key, value in mock_migration_exception_data.items():
-                setattr(mock_exception, key, value)
+                if key == "created_at" and value:
+                    setattr(mock_exception, key, datetime.fromisoformat(value))
+                else:
+                    setattr(mock_exception, key, value)
             mock_repo.get_all.return_value = [mock_exception]
             mock_repo_class.return_value = mock_repo
 
@@ -680,7 +683,7 @@ class TestGovernanceEndpoints:
 
                 # Test endpoint
                 result = await list_migration_exceptions(
-                    status=None,
+                    exception_status=None,
                     risk_level=None,
                     exception_type=None,
                     application_id=None,
@@ -714,16 +717,18 @@ class TestGovernanceEndpoints:
         mock_db.begin.return_value.__aenter__ = AsyncMock()
         mock_db.begin.return_value.__aexit__ = AsyncMock()
         mock_db.flush = AsyncMock()
+        mock_db.refresh = AsyncMock()
 
         # Mock repository responses
         with patch(
-            "app.repositories.governance_repository.MigrationExceptionRepository"
+            "app.api.v1.endpoints.collection_gaps.governance.handlers.MigrationExceptionRepository"
         ) as mock_exception_repo_class, patch(
-            "app.repositories.governance_repository.ApprovalRequestRepository"
+            "app.api.v1.endpoints.collection_gaps.governance.handlers.ApprovalRequestRepository"
         ) as mock_approval_repo_class:
             mock_exception_repo = AsyncMock()
             mock_created_exception = MagicMock()
             mock_created_exception.id = uuid4()
+            mock_created_exception.created_at = datetime.utcnow()
             mock_exception_repo.create_exception.return_value = mock_created_exception
             mock_exception_repo.update = AsyncMock()
             mock_exception_repo_class.return_value = mock_exception_repo
@@ -809,23 +814,35 @@ class TestCollectionFlowsCompletenessEndpoints:
 
         # Mock repository and utilities
         with patch(
-            "app.repositories.collection_flow_repository.CollectionFlowRepository"
+            "app.api.v1.endpoints.collection_gaps.collection_flows.handlers.CollectionFlowRepository"
         ) as mock_repo_class, patch(
-            "app.api.v1.endpoints.collection_gaps.collection_flows.utils.calculate_completeness_metrics"
+            "app.api.v1.endpoints.collection_gaps.collection_flows.handlers.calculate_completeness_metrics"
         ) as mock_calculate_completeness, patch(
-            "app.api.v1.endpoints.collection_gaps.collection_flows.utils.calculate_pending_gaps"
+            "app.api.v1.endpoints.collection_gaps.collection_flows.handlers.calculate_pending_gaps"
         ) as mock_calculate_gaps:
             mock_repo = AsyncMock()
             mock_flow = MagicMock()
-            mock_repo.get_by_filters.return_value = [mock_flow]
+
+            # AsyncMock requires awaitable return values - use AsyncMock's side_effect or return_value pattern
+            async def mock_get_by_filters(*args, **kwargs):
+                return [mock_flow]
+
+            mock_repo.get_by_filters = AsyncMock(side_effect=mock_get_by_filters)
             mock_repo_class.return_value = mock_repo
 
-            mock_calculate_completeness.return_value = {
-                "vendor_products": 80.0,
-                "maintenance_windows": 70.0,
-                "governance": 75.0,
-            }
-            mock_calculate_gaps.return_value = 12
+            # Mock async utility functions - they must return awaitables
+            async def mock_calc_completeness(*args, **kwargs):
+                return {
+                    "vendor_products": 80.0,
+                    "maintenance_windows": 70.0,
+                    "governance": 75.0,
+                }
+
+            async def mock_calc_gaps(*args, **kwargs):
+                return 12
+
+            mock_calculate_completeness.side_effect = mock_calc_completeness
+            mock_calculate_gaps.side_effect = mock_calc_gaps
 
             # Test data
             flow_id = str(uuid4())
@@ -856,26 +873,41 @@ class TestCollectionFlowsCompletenessEndpoints:
 
         # Mock repository and utilities
         with patch(
-            "app.repositories.collection_flow_repository.CollectionFlowRepository"
+            "app.api.v1.endpoints.collection_gaps.collection_flows.handlers.CollectionFlowRepository"
         ) as mock_repo_class, patch(
-            "app.api.v1.endpoints.collection_gaps.collection_flows.utils.get_existing_data_snapshot"
+            "app.api.v1.endpoints.collection_gaps.collection_flows.handlers.get_existing_data_snapshot"
         ) as mock_get_snapshot, patch(
-            "app.api.v1.endpoints.collection_gaps.collection_flows.utils.calculate_completeness_metrics"
+            "app.api.v1.endpoints.collection_gaps.collection_flows.handlers.calculate_completeness_metrics"
         ) as mock_calculate_completeness, patch(
-            "app.api.v1.endpoints.collection_gaps.collection_flows.utils.calculate_pending_gaps"
+            "app.api.v1.endpoints.collection_gaps.collection_flows.handlers.calculate_pending_gaps"
         ) as mock_calculate_gaps:
             mock_repo = AsyncMock()
             mock_flow = MagicMock()
-            mock_repo.get_by_filters.return_value = [mock_flow]
+
+            # AsyncMock requires awaitable return values - use AsyncMock's side_effect or return_value pattern
+            async def mock_get_by_filters(*args, **kwargs):
+                return [mock_flow]
+
+            mock_repo.get_by_filters = AsyncMock(side_effect=mock_get_by_filters)
             mock_repo_class.return_value = mock_repo
 
-            mock_get_snapshot.return_value = {"data_points": 150}
-            mock_calculate_completeness.return_value = {
-                "vendor_products": 85.0,
-                "maintenance_windows": 75.0,
-                "governance": 80.0,
-            }
-            mock_calculate_gaps.return_value = 8
+            # Mock async utility functions - they must return awaitables
+            async def mock_snapshot(*args, **kwargs):
+                return {"data_points": 150}
+
+            async def mock_calc_completeness(*args, **kwargs):
+                return {
+                    "vendor_products": 85.0,
+                    "maintenance_windows": 75.0,
+                    "governance": 80.0,
+                }
+
+            async def mock_calc_gaps(*args, **kwargs):
+                return 8
+
+            mock_get_snapshot.side_effect = mock_snapshot
+            mock_calculate_completeness.side_effect = mock_calc_completeness
+            mock_calculate_gaps.side_effect = mock_calc_gaps
 
             # Test data
             flow_id = str(uuid4())

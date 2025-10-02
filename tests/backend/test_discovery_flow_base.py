@@ -17,8 +17,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Import test fixtures
-from tests.fixtures.discovery_flow_fixtures import (
+# Import test fixtures - using actual path
+from tests.backend.fixtures.discovery_flow_fixtures import (
     TEST_CLIENT_ACCOUNT_ID,
     TEST_ENGAGEMENT_ID,
     TEST_USER_ID,
