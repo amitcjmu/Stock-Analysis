@@ -163,15 +163,26 @@ class AssetHandlers(CollectionHandlerBase):
 
         asset_ids: List[uuid.UUID] = []
         if hinted_asset_ids:
-            result = await db.execute(
-                select(Asset.id)
-                .where(
-                    Asset.id.in_([uuid.UUID(a) for a in hinted_asset_ids if a]),
-                    Asset.engagement_id == context.get("engagement_id"),
+            # Filter valid UUIDs and convert them
+            valid_asset_uuids = []
+            for hint in hinted_asset_ids:
+                if hint:
+                    try:
+                        valid_asset_uuids.append(uuid.UUID(hint))
+                    except (ValueError, TypeError):
+                        logger.warning(f"Invalid UUID format in asset_id_hint: {hint}")
+                        continue
+
+            if valid_asset_uuids:
+                result = await db.execute(
+                    select(Asset.id)
+                    .where(
+                        Asset.id.in_(valid_asset_uuids),
+                        Asset.engagement_id == context.get("engagement_id"),
+                    )
+                    .execution_options(populate_existing=True)
                 )
-                .execution_options(populate_existing=True)
-            )
-            asset_ids = [r.id for r in result.fetchall()]
+                asset_ids = [r.id for r in result.fetchall()]
         else:
             app_names = set()
             for row in resolved_rows:
