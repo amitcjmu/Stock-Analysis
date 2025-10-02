@@ -18,26 +18,27 @@ depends_on = None
 
 
 def column_exists(table_name: str, column_name: str, schema: str = "migration") -> bool:
-    """Check if column exists in table."""
+    """Check if column exists in table.
+
+    Note: Exceptions are allowed to propagate to ensure migration fails
+    on unexpected database errors rather than silently returning False.
+    """
     bind = op.get_bind()
-    try:
-        stmt = sa.text(
-            """
-            SELECT EXISTS (
-                SELECT 1 FROM information_schema.columns
-                WHERE table_schema = :schema
-                  AND table_name = :table_name
-                  AND column_name = :column_name
-            )
+    stmt = sa.text(
         """
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = :schema
+              AND table_name = :table_name
+              AND column_name = :column_name
         )
-        result = bind.execute(
-            stmt,
-            {"schema": schema, "table_name": table_name, "column_name": column_name},
-        ).scalar()
-        return bool(result)
-    except Exception:
-        return False
+    """
+    )
+    result = bind.execute(
+        stmt,
+        {"schema": schema, "table_name": table_name, "column_name": column_name},
+    ).scalar()
+    return bool(result)
 
 
 def upgrade() -> None:

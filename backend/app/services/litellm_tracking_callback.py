@@ -14,8 +14,7 @@ Usage:
 
 import asyncio
 import logging
-import time
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 try:
     import litellm
@@ -37,17 +36,13 @@ class LLMUsageCallback(CustomLogger):
 
     This callback hooks into LiteLLM's lifecycle to log all LLM calls
     including those made by CrewAI agents.
-    """
 
-    def __init__(self):
-        super().__init__()
-        self.call_start_times: Dict[str, float] = {}
+    Note: start_time and end_time are provided by LiteLLM to the
+    success/failure event handlers, so we don't need to track them manually.
+    """
 
     def log_pre_api_call(self, model: str, messages: list, kwargs: dict):
         """Called before LiteLLM makes an API call."""
-        # Store start time using unique call identifier
-        self.call_start_times[kwargs.get("litellm_call_id", id(kwargs))] = time.time()
-
         logger.debug(f"LiteLLM pre-call: model={model}")
 
     def log_success_event(
