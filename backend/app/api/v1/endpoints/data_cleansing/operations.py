@@ -21,6 +21,8 @@ from .base import (
     router,
     DataCleansingAnalysis,
     DataCleansingStats,
+    ResolveQualityIssueRequest,
+    ResolveQualityIssueResponse,
 )
 from .validation import _validate_and_get_flow, _get_data_import_for_flow
 from .analysis import _perform_data_cleansing_analysis
@@ -280,4 +282,100 @@ async def get_data_cleansing_stats(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get data cleansing stats: {str(e)}",
+        )
+
+
+@router.patch(
+    "/flows/{flow_id}/data-cleansing/quality-issues/{issue_id}",
+    response_model=ResolveQualityIssueResponse,
+    summary="Resolve or ignore a quality issue",
+)
+async def resolve_quality_issue(
+    flow_id: str,
+    issue_id: str,
+    resolution: ResolveQualityIssueRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+) -> ResolveQualityIssueResponse:
+    """
+    Resolve or ignore a data quality issue.
+
+    This endpoint stores the resolution in the flow's data_cleansing_results field
+    with audit trail information (user_id, timestamp, resolution status).
+    """
+    try:
+        from datetime import datetime
+
+        logger.info(
+            f"Resolving quality issue {issue_id} for flow {flow_id} with status: {resolution.status}"
+        )
+
+        # Validate resolution status
+        if resolution.status not in ["resolved", "ignored"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid resolution status: {resolution.status}. Must be 'resolved' or 'ignored'",
+            )
+
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+
+        # Verify flow exists and user has access
+        flow = await _validate_and_get_flow(flow_id, flow_repo)
+
+        # Prepare resolution data with audit trail
+        resolved_at = datetime.utcnow().isoformat()
+        resolution_data = {
+            "issue_id": issue_id,
+            "status": resolution.status,
+            "resolved_at": resolved_at,
+            "resolved_by_user_id": str(current_user.id),
+            "client_account_id": str(context.client_account_id),
+            "engagement_id": str(context.engagement_id),
+            "resolution_notes": resolution.resolution_notes,
+        }
+
+        # Get existing data_cleansing_results or initialize
+        existing_data = flow.crewai_state_data or {}
+        data_cleansing_results = existing_data.get("data_cleansing_results", {})
+
+        # Store resolution in resolutions dict keyed by issue_id
+        if "resolutions" not in data_cleansing_results:
+            data_cleansing_results["resolutions"] = {}
+
+        data_cleansing_results["resolutions"][issue_id] = resolution_data
+
+        # Update flow with new data_cleansing_results
+        existing_data["data_cleansing_results"] = data_cleansing_results
+        flow.crewai_state_data = existing_data
+
+        # Commit changes using atomic transaction
+        # The context manager handles flush and commit automatically
+        async with db.begin():
+            await db.flush()
+
+        logger.info(
+            f"✅ Quality issue {issue_id} resolved with status '{resolution.status}' for flow {flow_id}"
+        )
+
+        return ResolveQualityIssueResponse(
+            success=True,
+            message=f"Quality issue {resolution.status} successfully",
+            issue_id=issue_id,
+            resolution_status=resolution.status,
+            resolved_at=resolved_at,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"❌ Failed to resolve quality issue {issue_id} for flow {flow_id}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to resolve quality issue: {str(e)}",
         )

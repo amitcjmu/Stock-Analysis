@@ -23,6 +23,13 @@ class TriggerDataCleansingRequest(BaseModel):
     include_agent_analysis: bool = True
 
 
+class ResolveQualityIssueRequest(BaseModel):
+    """Request to resolve a quality issue"""
+
+    status: str  # 'resolved', 'ignored'
+    resolution_notes: Optional[str] = None
+
+
 # Response Models
 class DataQualityIssue(BaseModel):
     """Data quality issue identified during cleansing analysis"""
@@ -75,3 +82,13 @@ class DataCleansingStats(BaseModel):
     records_with_issues: int
     issues_by_severity: Dict[str, int]
     completion_percentage: float
+
+
+class ResolveQualityIssueResponse(BaseModel):
+    """Response after resolving a quality issue"""
+
+    success: bool
+    message: str
+    issue_id: str
+    resolution_status: str
+    resolved_at: str
