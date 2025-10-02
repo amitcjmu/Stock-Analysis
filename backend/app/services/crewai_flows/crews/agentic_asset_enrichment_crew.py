@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 try:
-    from crewai import Process
+    from crewai import Agent, Crew, Process, Task
 
     from app.services.crewai_flows.config.crew_factory import (
         create_agent,
@@ -30,6 +30,17 @@ try:
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
+
+    # Type stubs for when CrewAI is not available
+    class Agent:  # type: ignore
+        pass
+
+    class Crew:  # type: ignore
+        pass
+
+    class Task:  # type: ignore
+        pass
+
 
 try:
     from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
@@ -106,7 +117,7 @@ class AgenticAssetEnrichmentCrew:
             previous enrichment decisions and discover new patterns during analysis. Your intelligence
             comes from reasoning, not hard-coded rules.""",
             tools=tools,
-            memory=True,  # Enable CrewAI memory (Tier 1)
+            memory=False,  # ✅ DISABLED per ADR-024 - use TenantMemoryManager
             llm=self.llm_model,
             verbose=True,
             allow_delegation=False,
@@ -122,7 +133,7 @@ class AgenticAssetEnrichmentCrew:
             to discover repeatable patterns. You look for correlations between asset attributes and
             business outcomes, recording insights for future agent reasoning.""",
             tools=tools,
-            memory=True,  # Enable CrewAI memory (Tier 1)
+            memory=False,  # ✅ DISABLED per ADR-024 - use TenantMemoryManager
             llm=self.llm_model,
             verbose=True,
             allow_delegation=False,

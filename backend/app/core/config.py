@@ -230,6 +230,23 @@ class Settings(BaseSettings):
     UPSTASH_REDIS_URL: str = Field(default="", env="UPSTASH_REDIS_URL")
     UPSTASH_REDIS_TOKEN: str = Field(default="", env="UPSTASH_REDIS_TOKEN")
 
+    # Tenant Memory Configuration (ADR-024)
+    DEFAULT_LEARNING_SCOPE: str = Field(
+        default="ENGAGEMENT", env="DEFAULT_LEARNING_SCOPE"
+    )
+    ENABLE_CROSS_TENANT_LEARNING: bool = Field(
+        default=False, env="ENABLE_CROSS_TENANT_LEARNING"
+    )
+    MEMORY_RETENTION_DAYS: int = Field(default=365, env="MEMORY_RETENTION_DAYS")
+    ENABLE_MEMORY_ENCRYPTION: bool = Field(default=True, env="ENABLE_MEMORY_ENCRYPTION")
+
+    @property
+    def learning_scope(self):
+        """Get LearningScope enum from config."""
+        from app.services.crewai_flows.memory.tenant_memory_manager import LearningScope
+
+        return LearningScope[self.DEFAULT_LEARNING_SCOPE]
+
     model_config = ConfigDict(
         env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",

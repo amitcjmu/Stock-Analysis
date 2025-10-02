@@ -58,7 +58,7 @@ class OptimizedFieldMappingCrew(OptimizedCrewBase):
         super().__init__(
             crewai_service,
             context=context,
-            enable_memory=True,
+            enable_memory=False,  # ✅ DISABLED per ADR-024 - use TenantMemoryManager
             enable_caching=True,
             enable_parallel=False,  # Sequential for field mapping accuracy
         )

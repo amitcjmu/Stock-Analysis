@@ -274,6 +274,7 @@ def register_admin_routers(api_router: APIRouter):
         platform_admin_router,
         security_audit_router,
         llm_usage_router,
+        memory_management_router,
         routers_with_flags,
     )
 
@@ -291,6 +292,9 @@ def register_admin_routers(api_router: APIRouter):
             llm_usage_router, prefix="/admin/llm-usage", tags=[APITags.ADMIN_LLM_USAGE]
         )
         logger.info("✅ LLM Usage router included")
+
+        api_router.include_router(memory_management_router, tags=[APITags.ADMIN])
+        logger.info("✅ Memory Management router included")
     else:
         logger.warning("⚠️ Platform Admin routers not available")
 

@@ -31,6 +31,7 @@ class APITags:
     CLEAN_API = "Clean API"
 
     # Administration
+    ADMIN = "Admin"
     CLIENT_MANAGEMENT = "Client Management"
     ENGAGEMENT_MANAGEMENT = "Admin - Engagement Management"
     PLATFORM_ADMIN = "Platform Admin"
