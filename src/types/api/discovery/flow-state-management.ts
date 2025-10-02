@@ -67,7 +67,10 @@ export interface FlowState {
   current_phase: string;
   next_phase?: string;
   previous_phase?: string;
-  phase_completion: Record<string, boolean>;
+  // FIX #447: Support both data formats for backward compatibility
+  // Backend returns phases_completed as array, but some legacy code uses phase_completion object
+  phase_completion?: Record<string, boolean>; // Legacy format (object)
+  phases_completed?: string[]; // New format (array) - backend standard
   phase_data: Record<string, string | number | boolean | null>;
   agent_states: Record<string, AgentState>;
   shared_data: Record<string, string | number | boolean | null>;

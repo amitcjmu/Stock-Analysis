@@ -3,7 +3,6 @@ Discovery Integration and Database Persistence Handler
 """
 
 import asyncio
-import hashlib
 import logging
 import uuid as uuid_pkg
 from datetime import datetime
@@ -109,6 +108,11 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
         async with AsyncSessionLocal() as db_session:
             try:
                 # 1. Create DataImport session record
+                # Get master_flow_id from state if available
+                master_flow_id = getattr(state, "master_flow_id", None) or getattr(
+                    state, "_master_flow_id", None
+                )
+
                 import_session = DataImport(
                     id=uuid_pkg.uuid4(),
                     client_account_id=(
@@ -121,30 +125,19 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                         if state.engagement_id
                         else None
                     ),
-                    session_id=uuid_pkg.UUID(state.flow_id) if state.flow_id else None,
+                    master_flow_id=(
+                        uuid_pkg.UUID(master_flow_id) if master_flow_id else None
+                    ),
                     import_name=f"CrewAI Discovery Flow - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
                     import_type="discovery_flow",
                     description="Data processed by CrewAI Discovery Flow with specialized crews",
-                    source_filename=state.metadata.get(
-                        "filename", "discovery_flow_data.csv"
-                    ),
-                    file_size_bytes=len(str(state.cleaned_data).encode()),
-                    file_type="application/json",
-                    file_hash=hashlib.sha256(
-                        str(state.cleaned_data).encode()
-                    ).hexdigest()[:32],
+                    filename=state.metadata.get("filename", "discovery_flow_data.csv"),
+                    file_size=len(str(state.cleaned_data).encode()),
+                    mime_type="application/json",
                     status=ImportStatus.PROCESSED,
                     total_records=len(state.cleaned_data),
                     processed_records=len(state.cleaned_data),
                     failed_records=0,
-                    import_config={
-                        "discovery_flow_state": {
-                            "crew_status": state.crew_status,
-                            "field_mappings": state.field_mappings.get("mappings", {}),
-                            "asset_inventory": state.asset_inventory,
-                            "technical_debt": state.technical_debt_assessment,
-                        }
-                    },
                     imported_by=(
                         uuid_pkg.UUID(state.user_id)
                         if state.user_id and state.user_id != "anonymous"
@@ -159,20 +152,30 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
 
                 # 2. Create RawImportRecord entries for each cleaned record
                 for index, record in enumerate(state.cleaned_data):
+                    # Store metadata in raw_data JSON with underscore prefix
+                    record_id_value = (
+                        record.get("asset_name")
+                        or record.get("hostname")
+                        or f"record_{index + 1}"
+                    )
+
+                    # Build raw_data with original record + metadata
+                    raw_data_with_metadata = {
+                        **record,  # Preserve all original data
+                        "_record_id": record_id_value,  # Metadata with underscore prefix
+                        "_flow_id": str(state.flow_id) if state.flow_id else None,
+                    }
+
                     raw_record = RawImportRecord(
                         id=uuid_pkg.uuid4(),
                         data_import_id=import_session.id,
                         client_account_id=import_session.client_account_id,
                         engagement_id=import_session.engagement_id,
-                        session_id=import_session.session_id,
+                        master_flow_id=import_session.master_flow_id,
                         row_number=index + 1,
-                        record_id=record.get("asset_name")
-                        or record.get("hostname")
-                        or f"record_{index + 1}",
-                        raw_data=record,
+                        raw_data=raw_data_with_metadata,
                         is_processed=True,
                         is_valid=True,
-                        created_at=datetime.utcnow(),
                     )
                     db_session.add(raw_record)
                     records_created += 1
@@ -183,10 +186,7 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                 agent_reasoning = state.field_mappings.get("agent_reasoning", {})
                 transformations = state.field_mappings.get("transformations", [])
 
-                # CRITICAL: Get master_flow_id from state for field mapping linkage
-                master_flow_id = getattr(state, "master_flow_id", None) or getattr(
-                    state, "_master_flow_id", None
-                )
+                # Use master_flow_id extracted earlier
                 logger.info(
                     f"🔗 Using master_flow_id for field mappings: {master_flow_id}"
                 )

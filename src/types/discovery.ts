@@ -19,7 +19,9 @@ export interface FlowState {
   current_phase: string;
   next_phase: string;
   previous_phase: string;
-  phase_completion: Record<string, boolean>;
+  // FIX #447: Support both data formats for backward compatibility
+  phase_completion?: Record<string, boolean>; // Legacy format (object)
+  phases_completed?: string[]; // New format (array) - backend standard
   phase_data: Record<string, unknown>;
   crew_completion_status: Record<string, boolean>;
   agent_insights: Record<string, unknown>;
@@ -180,7 +182,9 @@ export interface FlowStatusResponse {
   status: string;
   progress_percentage: number;
   current_phase: string;
-  phase_completion: Record<string, boolean>;
+  // FIX #447: Support both data formats for backward compatibility
+  phase_completion?: Record<string, boolean>; // Legacy format (object)
+  phases_completed?: string[]; // New format (array) - backend standard
   records_processed?: number;
   records_total?: number;
   records_valid?: number;
