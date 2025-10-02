@@ -195,6 +195,40 @@ const DataCleansing: React.FC = () => {
     }
   };
 
+  // Handler for resolving quality issues
+  const handleResolveQualityIssue = async (issueId: string, action: 'resolve' | 'ignore'): Promise<void> => {
+    if (!effectiveFlowId) {
+      SecureLogger.error('No flow ID available for resolving quality issue');
+      return;
+    }
+
+    // Map action to backend status format
+    const status = action === 'resolve' ? 'resolved' : 'ignored';
+
+    try {
+      SecureLogger.info('Resolving quality issue', { issueId, action, status, flowId: effectiveFlowId });
+
+      // Call backend PATCH endpoint with request body (NOT query params)
+      await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: status,
+          resolution_notes: `Issue ${status} by user at ${new Date().toISOString()}`
+        })
+      });
+
+      SecureLogger.info('Quality issue resolved successfully', { issueId, status });
+
+      // Refresh data to show updated state
+      await Promise.all([refetchAnalysis(), refresh()]);
+
+    } catch (error) {
+      SecureLogger.error('Failed to resolve quality issue', { error, issueId });
+      // Show user-friendly error message
+      alert(`Failed to ${action === 'resolve' ? 'resolve' : 'ignore'} quality issue. Please try again.`);
+    }
+  };
+
   // Download handlers
   const handleDownloadRawData = async (): Promise<void> => {
     if (!effectiveFlowId) {
@@ -492,14 +526,11 @@ const DataCleansing: React.FC = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
               <div className="xl:col-span-3 space-y-6">
-                {/* Only show Quality Issues if there are actual issues */}
-                {(qualityIssues.length > 0 || isLoadingData) && (
+                {/* Only show Quality Issues if there are actual issues or we have analyzed data */}
+                {(totalRecords > 0 || qualityIssues.length > 0 || isLoadingData) && (
                   <QualityIssuesPanel
                     qualityIssues={qualityIssues}
-                    onResolveIssue={(issueId) => {
-                      SecureLogger.info('Resolving quality issue');
-                      // Implementation for resolving issues
-                    }}
+                    onResolveIssue={handleResolveQualityIssue}
                     isLoading={isLoadingData}
                   />
                 )}

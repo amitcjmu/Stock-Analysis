@@ -70,20 +70,6 @@ class TestCollectionFlowMFO:
             yield session
 
     @pytest_asyncio.fixture
-    async def test_user(self, db_session: AsyncSession, test_context: RequestContext):
-        """Create test user in database"""
-        user = User(
-            id=test_context.user_id,
-            email=f"{test_context.user_id}@test.com",
-            first_name="Test",
-            last_name="User",
-            is_active=True,
-        )
-        db_session.add(user)
-        await db_session.commit()
-        return user
-
-    @pytest_asyncio.fixture
     async def test_client(
         self, db_session: AsyncSession, test_context: RequestContext
     ):

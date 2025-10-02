@@ -18,6 +18,172 @@ from .base import DataCleansingAnalysis, DataQualityIssue, DataCleansingRecommen
 logger = logging.getLogger(__name__)
 
 
+def _analyze_raw_data_quality(
+    raw_records: List[Any], total_records: int
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Analyze raw import records for quality issues.
+
+    Returns a dict mapping field names to their quality statistics.
+    """
+    import re
+    from collections import defaultdict
+
+    field_stats = defaultdict(
+        lambda: {
+            "missing_count": 0,
+            "invalid_format_count": 0,
+            "total_count": 0,
+            "sample_values": [],
+            "data_types": set(),
+            "quality_score": 100.0,
+        }
+    )
+
+    # Analyze each record
+    for record in raw_records:
+        raw_data = record.raw_data or {}
+
+        # Analyze each field in the record
+        for field_name, value in raw_data.items():
+            stats = field_stats[field_name]
+            stats["total_count"] += 1
+
+            # Check for missing/null values
+            if (
+                value is None
+                or value == ""
+                or (isinstance(value, str) and value.strip() == "")
+            ):
+                stats["missing_count"] += 1
+            else:
+                # Track data type
+                stats["data_types"].add(type(value).__name__)
+
+                # Store sample values (up to 5)
+                if len(stats["sample_values"]) < 5:
+                    stats["sample_values"].append(value)
+
+                # Check for invalid formats based on field name patterns
+                field_lower = field_name.lower()
+
+                # Email validation
+                if "email" in field_lower and isinstance(value, str):
+                    email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                    if not re.match(email_pattern, value):
+                        stats["invalid_format_count"] += 1
+
+                # IP address validation
+                elif "ip" in field_lower and isinstance(value, str):
+                    ip_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
+                    if not re.match(ip_pattern, value):
+                        stats["invalid_format_count"] += 1
+
+                # Date validation (basic ISO format check)
+                elif any(
+                    date_keyword in field_lower
+                    for date_keyword in ["date", "created", "modified", "timestamp"]
+                ) and isinstance(value, str):
+                    # Check for common date formats
+                    date_patterns = [
+                        r"^\d{4}-\d{2}-\d{2}",  # ISO format
+                        r"^\d{2}/\d{2}/\d{4}",  # MM/DD/YYYY
+                        r"^\d{2}-\d{2}-\d{4}",  # MM-DD-YYYY
+                    ]
+                    if not any(re.match(pattern, value) for pattern in date_patterns):
+                        stats["invalid_format_count"] += 1
+
+    # Calculate quality scores for each field
+    for field_name, stats in field_stats.items():
+        total = stats["total_count"]
+        if total > 0:
+            missing_pct = (stats["missing_count"] / total) * 100
+            invalid_pct = (stats["invalid_format_count"] / total) * 100
+
+            # Quality score = 100 - (missing% + invalid%)
+            stats["quality_score"] = max(0.0, 100.0 - missing_pct - invalid_pct)
+
+    return dict(field_stats)
+
+
+def _generate_quality_issues_from_stats(
+    field_stats: Dict[str, Dict[str, Any]],
+) -> List[DataQualityIssue]:
+    """
+    Generate DataQualityIssue objects from field statistics.
+    """
+    quality_issues = []
+
+    for field_name, stats in field_stats.items():
+        total = stats["total_count"]
+        missing_count = stats["missing_count"]
+        invalid_count = stats["invalid_format_count"]
+
+        # Generate issue for missing values (if > 5%)
+        if missing_count > 0 and (missing_count / total) > 0.05:
+            severity = (
+                "critical"
+                if (missing_count / total) > 0.5
+                else ("high" if (missing_count / total) > 0.25 else "medium")
+            )
+
+            quality_issues.append(
+                DataQualityIssue(
+                    id=str(uuid.uuid4()),
+                    field_name=field_name,
+                    issue_type="missing_values",
+                    severity=severity,
+                    description=(
+                        f"Field '{field_name}' has {missing_count} missing values "
+                        f"({(missing_count/total)*100:.1f}%)"
+                    ),
+                    affected_records=missing_count,
+                    recommendation=(
+                        f"Consider filling missing values for '{field_name}' with "
+                        f"default values or remove incomplete records"
+                    ),
+                    auto_fixable=True,
+                )
+            )
+
+        # Generate issue for invalid formats (if > 5%)
+        if invalid_count > 0 and (invalid_count / total) > 0.05:
+            severity = "high" if (invalid_count / total) > 0.25 else "medium"
+
+            quality_issues.append(
+                DataQualityIssue(
+                    id=str(uuid.uuid4()),
+                    field_name=field_name,
+                    issue_type="invalid_format",
+                    severity=severity,
+                    description=(
+                        f"Field '{field_name}' has {invalid_count} records with "
+                        f"invalid format ({(invalid_count/total)*100:.1f}%)"
+                    ),
+                    affected_records=invalid_count,
+                    recommendation=f"Standardize format for '{field_name}' to ensure data consistency",
+                    auto_fixable=True,
+                )
+            )
+
+        # Generate issue for data type mismatches (if multiple types detected)
+        if len(stats["data_types"]) > 1:
+            quality_issues.append(
+                DataQualityIssue(
+                    id=str(uuid.uuid4()),
+                    field_name=field_name,
+                    issue_type="type_mismatch",
+                    severity="medium",
+                    description=f"Field '{field_name}' has mixed data types: {', '.join(stats['data_types'])}",
+                    affected_records=total,
+                    recommendation=f"Convert all values in '{field_name}' to a consistent data type",
+                    auto_fixable=True,
+                )
+            )
+
+    return quality_issues
+
+
 async def _perform_data_cleansing_analysis(
     flow_id: str,
     data_imports: List[Any],
@@ -72,35 +238,48 @@ async def _perform_data_cleansing_analysis(
 
     total_fields = len(field_mappings)
 
-    # Mock quality issues for demo (replace with actual data cleansing crew analysis)
+    # Real quality issues from raw data analysis
     quality_issues = []
     recommendations = []
     field_quality_scores = {}
 
-    if include_details and field_mappings:
-        # Generate sample quality issues based on field mappings
-        for i, mapping in enumerate(field_mappings[:5]):  # Limit to first 5 for demo
-            source_field = mapping.source_field
-
-            # Mock quality issue
-            quality_issues.append(
-                DataQualityIssue(
-                    id=str(uuid.uuid4()),
-                    field_name=source_field,
-                    issue_type="missing_values",
-                    severity="medium",
-                    description=f"Field '{source_field}' has missing values in some records",
-                    affected_records=max(1, int(total_records * 0.1)),
-                    recommendation=(
-                        f"Consider filling missing values for '{source_field}' with default values "
-                        f"or remove incomplete records"
-                    ),
-                    auto_fixable=True,
-                )
+    # Analyze raw import records for quality issues (regardless of field_mappings)
+    if include_details and data_import and db_session:
+        try:
+            # Get sample of raw records for analysis (limit to 100 for performance)
+            raw_records_query = (
+                select(RawImportRecord)
+                .where(RawImportRecord.data_import_id == data_import.id)
+                .limit(100)
             )
+            raw_records_result = await db_session.execute(raw_records_query)
+            raw_records = raw_records_result.scalars().all()
 
-            # Mock field quality score
-            field_quality_scores[source_field] = round(85.0 + (i * 2), 1)
+            if raw_records:
+                logger.info(
+                    f"Analyzing {len(raw_records)} raw records for quality issues"
+                )
+
+                # Analyze raw data for quality issues
+                field_stats = _analyze_raw_data_quality(raw_records, total_records)
+
+                # Generate quality issues from analysis
+                quality_issues = _generate_quality_issues_from_stats(field_stats)
+
+                # Calculate field quality scores
+                field_quality_scores = {
+                    field: stats["quality_score"]
+                    for field, stats in field_stats.items()
+                }
+
+                logger.info(
+                    f"Generated {len(quality_issues)} quality issues from raw data analysis"
+                )
+            else:
+                logger.warning(f"No raw records found for data import {data_import.id}")
+        except Exception as e:
+            logger.error(f"Failed to analyze raw data for quality issues: {e}")
+            # Continue with empty quality issues if analysis fails
 
         # Generate sample recommendations
         recommendations.extend(

@@ -11,7 +11,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClient } from '@/contexts/ClientContext';
 
 interface FlowStatusWidgetProps {
   flowId: string;
@@ -75,8 +74,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { client, engagement } = useClient();
+  const { user, client, engagement } = useAuth();
 
   // Request deduplication
   const requestInProgress = useRef(false);
