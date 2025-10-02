@@ -397,7 +397,7 @@ class LLMUsageTracker:
                 )
 
                 breakdown_result = await session.execute(breakdown_query, params)
-                breakdown = [dict(row) for row in breakdown_result]
+                breakdown = [dict(row._mapping) for row in breakdown_result]
 
                 # Daily usage trend - fully parameterized
                 daily_query = text(
@@ -418,7 +418,7 @@ class LLMUsageTracker:
                 )
 
                 daily_result = await session.execute(daily_query, params)
-                daily_usage = [dict(row) for row in daily_result]
+                daily_usage = [dict(row._mapping) for row in daily_result]
 
                 return {
                     "summary": {

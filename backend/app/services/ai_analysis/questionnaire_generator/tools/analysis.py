@@ -6,15 +6,33 @@ Tools for analyzing data gaps in assets and prioritizing them.
 import logging
 from typing import Any, Dict, List
 
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+
 logger = logging.getLogger(__name__)
 
 
-class GapAnalysisTool:
-    """Tool for analyzing data gaps in assets."""
+class GapAnalysisInput(BaseModel):
+    """Input schema for gap analysis tool."""
 
-    def __init__(self):
-        self.name = "gap_analysis"
-        self.description = "Analyze assets to identify data gaps and prioritize them"
+    asset_data: Dict[str, Any] = Field(
+        ..., description="Asset information including mapped and unmapped data"
+    )
+
+
+class GapAnalysisTool(BaseTool):
+    """
+    CrewAI tool for analyzing data gaps in assets.
+
+    This tool must inherit from BaseTool to be compatible with CrewAI's Agent validation.
+    It analyzes asset data to identify missing fields, unmapped attributes, and data quality issues.
+
+    TODO: Future enhancement - delegate to gap_analysis_service for agentic-first architecture
+    """
+
+    name: str = "gap_analysis"
+    description: str = "Analyze assets to identify data gaps and prioritize them"
+    args_schema: type[BaseModel] = GapAnalysisInput
 
     async def _arun(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
         """

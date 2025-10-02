@@ -469,94 +469,85 @@ async def get_llm_costs(db: AsyncSession = Depends(get_db)) -> List[Dict[str, An
         # Generate LLM models in the format expected by frontend
         llm_models = []
 
-        if real_llm_costs["total_cost"] > 0:
-            # Create a primary LLM model entry
-            primary_model = {
-                "id": str(uuid4()),
-                "name": "Claude 3.5 Sonnet",
-                "type": "AI/ML",
-                "status": "Active",
-                "currentCost": real_llm_costs["total_cost"],
-                "tokenUsage": f"{real_llm_costs['total_tokens']:,}",
-                "costPerToken": (
-                    f"{(real_llm_costs['total_cost'] / real_llm_costs['total_tokens'] * 1000):.4f}"
-                    if real_llm_costs["total_tokens"] > 0
-                    else "0.0000"
-                ),
-                "usageTypes": [
-                    {
-                        "name": "Input Tokens",
-                        "tokens": f"{int(real_llm_costs['total_tokens'] * 0.4):,}",
-                        "percentage": 40,
-                    },
-                    {
-                        "name": "Output Tokens",
-                        "tokens": f"{int(real_llm_costs['total_tokens'] * 0.6):,}",
-                        "percentage": 60,
-                    },
-                    {
-                        "name": "Function Calls",
-                        "tokens": f"{int(real_llm_costs['total_tokens'] * 0.1):,}",
-                        "percentage": 10,
-                    },
-                ],
-                "recommendation": (
-                    f"Based on {real_llm_costs['total_requests']} requests, "
-                    "consider implementing request caching to reduce costs by 15-25%"
-                ),
-            }
-            llm_models.append(primary_model)
+        if real_llm_costs["total_cost"] > 0 and real_llm_costs["breakdown_by_model"]:
+            # Use actual model breakdown from database
+            for model_data in real_llm_costs["breakdown_by_model"]:
+                provider = model_data.get("llm_provider", "unknown")
+                model_name = model_data.get("model_name", "unknown")
+                model_tokens = int(model_data.get("tokens", 0))
+                model_cost = float(model_data.get("cost", 0))
+                model_requests = int(model_data.get("requests", 0))
 
-            # Add a secondary model for variety
-            secondary_model = {
-                "id": str(uuid4()),
-                "name": "GPT-4 Turbo",
-                "type": "GPT-4",
-                "status": "Active",
-                "currentCost": real_llm_costs["total_cost"] * 0.3,
-                "tokenUsage": f"{int(real_llm_costs['total_tokens'] * 0.25):,}",
-                "costPerToken": "0.0300",
-                "usageTypes": [
-                    {
-                        "name": "Input Tokens",
-                        "tokens": f"{int(real_llm_costs['total_tokens'] * 0.15):,}",
-                        "percentage": 35,
-                    },
-                    {
-                        "name": "Output Tokens",
-                        "tokens": f"{int(real_llm_costs['total_tokens'] * 0.10):,}",
-                        "percentage": 65,
-                    },
-                ],
-                "recommendation": "Consider switching to Claude 3.5 Sonnet for 40% cost savings on similar tasks",
-            }
-            llm_models.append(secondary_model)
-        else:
-            # Fallback mock data if no real usage
-            llm_models = [
-                {
+                # Format model display name (e.g., "DeepInfra: Llama 4 Maverick")
+                display_name = f"{provider.title()}: {model_name.split('/')[-1] if '/' in model_name else model_name}"
+
+                model_entry = {
                     "id": str(uuid4()),
-                    "name": "Claude 3.5 Sonnet",
+                    "name": display_name,
                     "type": "AI/ML",
                     "status": "Active",
-                    "currentCost": 156.78,
-                    "tokenUsage": "2,847,362",
-                    "costPerToken": "0.0551",
+                    "currentCost": model_cost,
+                    "tokenUsage": f"{model_tokens:,}",
+                    "costPerToken": (
+                        f"{(model_cost / model_tokens * 1000):.4f}"
+                        if model_tokens > 0
+                        else "0.0000"
+                    ),
                     "usageTypes": [
                         {
-                            "name": "Input Tokens",
-                            "tokens": "1,138,945",
-                            "percentage": 40,
-                        },
-                        {
-                            "name": "Output Tokens",
-                            "tokens": "1,708,417",
-                            "percentage": 60,
+                            "name": "Total Tokens",
+                            "tokens": f"{model_tokens:,}",
+                            "percentage": 100,
                         },
                     ],
                     "recommendation": (
-                        "Based on usage patterns, consider implementing request "
-                        "caching to reduce costs by 15-25%"
+                        f"Based on {model_requests} requests using {provider}, "
+                        "consider implementing request caching to reduce costs"
+                    ),
+                }
+                llm_models.append(model_entry)
+        elif real_llm_costs["total_cost"] > 0:
+            # Fallback: Use aggregated data if no breakdown available
+            llm_models.append(
+                {
+                    "id": str(uuid4()),
+                    "name": "LLM Usage (Aggregated)",
+                    "type": "AI/ML",
+                    "status": "Active",
+                    "currentCost": real_llm_costs["total_cost"],
+                    "tokenUsage": f"{real_llm_costs['total_tokens']:,}",
+                    "costPerToken": (
+                        f"{(real_llm_costs['total_cost'] / real_llm_costs['total_tokens'] * 1000):.4f}"
+                        if real_llm_costs["total_tokens"] > 0
+                        else "0.0000"
+                    ),
+                    "usageTypes": [
+                        {
+                            "name": "Total Tokens",
+                            "tokens": f"{real_llm_costs['total_tokens']:,}",
+                            "percentage": 100,
+                        },
+                    ],
+                    "recommendation": (
+                        f"Based on {real_llm_costs['total_requests']} requests, "
+                        "consider implementing request caching to reduce costs by 15-25%"
+                    ),
+                }
+            )
+        else:
+            # No real LLM usage data available yet
+            llm_models = [
+                {
+                    "id": str(uuid4()),
+                    "name": "No LLM Usage Data",
+                    "type": "AI/ML",
+                    "status": "Inactive",
+                    "currentCost": 0.00,
+                    "tokenUsage": "0",
+                    "costPerToken": "0.0000",
+                    "usageTypes": [],
+                    "recommendation": (
+                        "No LLM usage recorded yet. Data will appear once LLM calls are made."
                     ),
                 }
             ]

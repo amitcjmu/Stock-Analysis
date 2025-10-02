@@ -93,6 +93,67 @@ Every query MUST include:
 - `engagement_id`: Project/session isolation
 - All tables use composite scoping for data security
 
+#### LLM Usage Tracking (MANDATORY - October 2025)
+**ALL LLM calls MUST use `multi_model_service.generate_response()`** for automatic tracking:
+
+```python
+from app.services.multi_model_service import multi_model_service, TaskComplexity
+
+# ✅ CORRECT - Automatic tracking to llm_usage_logs table
+response = await multi_model_service.generate_response(
+    prompt="Your prompt here",
+    task_type="chat",  # or "field_mapping", "analysis", etc.
+    complexity=TaskComplexity.SIMPLE  # or AGENTIC for complex tasks
+)
+```
+
+**Benefits of using `multi_model_service`:**
+- ✅ Automatic logging to `llm_usage_logs` table with cost calculation
+- ✅ Correct model selection (Gemma 3 for chat, Llama 4 for agentic)
+- ✅ Token counting and request/response tracking
+- ✅ Multi-tenant context (client_account_id, engagement_id)
+- ✅ Performance metrics (response time, success rate)
+
+**NEVER use direct LLM calls** - they bypass tracking:
+- ❌ `litellm.completion()` - Use `multi_model_service` instead
+- ❌ `openai.chat.completions.create()` - Use `multi_model_service` instead
+- ❌ `LLM().call()` - Use `multi_model_service` instead
+
+**Legacy Code Exception:** If you find direct calls in existing code, wrap with tracker:
+```python
+from app.services.llm_usage_tracker import llm_tracker
+
+async with llm_tracker.track_llm_call(
+    provider="deepinfra",
+    model=model_name,
+    feature_context="crew_execution"
+) as usage_log:
+    response = litellm.completion(model=model, messages=messages)
+    usage_log.input_tokens = response.usage.prompt_tokens
+    usage_log.output_tokens = response.usage.completion_tokens
+```
+
+**Viewing LLM Costs:** Navigate to `/finops/llm-costs` in the frontend to see:
+- Real-time usage by model (e.g., "Deepinfra: gemma-3-4b-it")
+- Token consumption and cost breakdown
+- Usage trends and optimization recommendations
+
+**Database Tables:**
+- `migration.llm_usage_logs` - Individual LLM API calls
+- `migration.llm_model_pricing` - Cost per 1K tokens by model
+- `migration.llm_usage_summary` - Aggregated usage statistics
+
+**Automatic Tracking via LiteLLM Callback:**
+- All LLM calls (including CrewAI) automatically tracked via LiteLLM callback
+- Installed at app startup in `app/app_setup/lifecycle.py:116`
+- Logs to `llm_usage_logs` even for legacy code using direct LiteLLM calls
+- Tracks: Llama 4 (CrewAI), Gemma 3 (OpenAI), and all LLM providers
+
+**Reference:**
+- `app/services/multi_model_service.py:169-577` - Multi-model service
+- `app/services/litellm_tracking_callback.py` - LiteLLM callback for CrewAI tracking
+- `app/app_setup/lifecycle.py:113-120` - Callback installation at startup
+
 ### CrewAI Agent Architecture
 
 #### Agent Types & Responsibilities

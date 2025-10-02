@@ -48,6 +48,7 @@ class APITags:
 
     # Business Operations
     FINOPS = "FinOps"
+    ADMIN_LLM_USAGE = "Admin - LLM Usage"
     MASTER_FLOW_COORDINATION = "Master Flow Coordination"
     AI_LEARNING = "AI Learning"
 

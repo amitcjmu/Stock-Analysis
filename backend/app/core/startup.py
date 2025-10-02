@@ -34,6 +34,15 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Database initialization failed: {e}")
         # Don't prevent app startup, just log the error
 
+    # Setup LiteLLM tracking for CrewAI and other LLM calls
+    try:
+        from app.services.litellm_tracking_callback import setup_litellm_tracking
+
+        setup_litellm_tracking()
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to setup LiteLLM tracking: {e}")
+        # Don't prevent app startup
+
     yield
 
     # Shutdown

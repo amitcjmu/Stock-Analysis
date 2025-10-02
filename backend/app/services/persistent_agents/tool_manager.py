@@ -366,6 +366,46 @@ class AgentToolManager:
             logger.warning(f"Failed to add field mapper tools: {e}")
 
     @classmethod
+    def _validate_tools(cls, tools: List, context: str = "") -> List[Any]:
+        """
+        Validate that all tools are BaseTool instances.
+
+        Args:
+            tools: List of tool instances to validate
+            context: Context string for error logging
+
+        Returns:
+            List of valid BaseTool instances
+        """
+        try:
+            from crewai.tools import BaseTool
+        except ImportError:
+            logger.warning("CrewAI BaseTool not available - skipping validation")
+            return tools
+
+        valid_tools = []
+        for tool in tools:
+            if isinstance(tool, BaseTool):
+                valid_tools.append(tool)
+            else:
+                logger.error(
+                    f"INVALID_TOOL_TYPE in {context}: {type(tool).__name__} is not a BaseTool instance. "
+                    f"All tools must inherit from crewai.tools.BaseTool",
+                    extra={
+                        "tool_type": type(tool).__name__,
+                        "tool_name": getattr(tool, "name", "unknown"),
+                        "context": context,
+                    },
+                )
+
+        if len(valid_tools) < len(tools):
+            logger.warning(
+                f"Filtered {len(tools) - len(valid_tools)} invalid tools in {context}"
+            )
+
+        return valid_tools
+
+    @classmethod
     def _safe_extend_tools(
         cls,
         tools: List,
@@ -486,6 +526,13 @@ class AgentToolManager:
             cls.add_legacy_tools(context_info, tools)
 
             logger.info(f"Configured {len(tools)} tools for {agent_type} agent")
+
+            # Validate all tools are BaseTool instances before returning
+            tools = cls._validate_tools(tools, context=f"{agent_type} agent")
+
+            logger.info(
+                f"Validated {len(tools)} tools for {agent_type} agent after filtering"
+            )
 
         except Exception as e:
             logger.error(f"Error configuring tools for {agent_type}: {e}")
