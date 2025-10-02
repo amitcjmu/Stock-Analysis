@@ -523,7 +523,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       // CRITICAL CONDITIONS: All must be true for auto-execution
       const hasRawData = flow && flow.raw_data && flow.raw_data.length > 0;
       const hasNoAssets = assets.length === 0;
-      const dataCleansingCompleted = flow?.phase_completion?.data_cleansing === true;
+      // FIX #447: Backend returns phases_completed as array, not phase_completion object
+      // Support both data formats for backward compatibility
+      const dataCleansingCompleted =
+        flow?.phases_completed?.includes('data_cleansing') ||
+        flow?.phase_completion?.data_cleansing === true;
+      // FIX #447 Priority 3: Filter out deleted flows
+      const flowNotDeleted = flow?.status !== 'deleted';
       const notExecuting = !isExecutingPhase;
       const notTriggered = !hasTriggeredInventory;
       const withinRetryLimit = attemptCountRef.current < maxRetryAttempts;
@@ -540,18 +546,22 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         rawDataCount: flow?.raw_data?.length || 0,
         hasNoAssets,
         dataCleansingCompleted,
+        flowNotDeleted,
+        flowStatus: flow?.status,
         notExecuting,
         notTriggered,
         withinRetryLimit,
         attemptCount: attemptCountRef.current,
         currentPhase: flow?.current_phase,
-        phaseCompletion: flow?.phase_completion
+        phaseCompletion: flow?.phase_completion,
+        phasesCompleted: flow?.phases_completed
       });
 
       // GATED AUTO-EXECUTION: Only execute when ALL conditions are met
       const shouldAutoExecute = hasRawData &&
                                hasNoAssets &&
                                dataCleansingCompleted &&
+                               flowNotDeleted &&
                                notExecuting &&
                                notTriggered &&
                                withinRetryLimit;
@@ -811,9 +821,17 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       {/* Empty State */}
       {assets.length === 0 && !assetsLoading && !hasBackendError && (() => {
         // Check if we need to execute the asset inventory phase
+        // FIX #447: Support both phases_completed array and phase_completion object
+        const dataCleansingDone =
+          flow?.phases_completed?.includes('data_cleansing') ||
+          flow?.phase_completion?.data_cleansing === true;
+        const inventoryNotDone =
+          !(flow?.phases_completed?.includes('asset_inventory') ||
+            flow?.phase_completion?.inventory === true);
+
         const shouldExecuteInventoryPhase = flow &&
-          flow.phase_completion?.data_cleansing === true &&
-          flow.phase_completion?.inventory !== true &&
+          dataCleansingDone &&
+          inventoryNotDone &&
           flow.current_phase !== 'asset_inventory' &&
           !isExecutingPhase;
 
@@ -833,10 +851,41 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                     <p className="text-sm text-gray-500 mb-4">
                       Processing will begin automatically in a moment...
                     </p>
-                    <div className="inline-flex items-center">
+                    <div className="inline-flex items-center mb-4">
                       <div className="animate-pulse rounded-full h-3 w-3 bg-blue-600 mr-2"></div>
                       <span className="text-sm text-gray-500">Initializing...</span>
                     </div>
+                    {/* FIX #447: Manual bypass button when auto-execution is blocked */}
+                    {!dataCleansingCompleted && (
+                      <div className="mt-4">
+                        <p className="text-sm text-amber-600 mb-3">
+                          Auto-execution is waiting for data cleansing to complete. You can manually start the process:
+                        </p>
+                        <Button
+                          onClick={async () => {
+                            try {
+                              console.log('📦 Manual execution of asset inventory phase...');
+                              setHasTriggeredInventory(true);
+                              await executeFlowPhase('asset_inventory', {
+                                trigger: 'manual_bypass',
+                                source: 'inventory_page_manual_bypass'
+                              });
+                              setTimeout(() => {
+                                refetchAssets();
+                                refreshFlow();
+                              }, 2000);
+                            } catch (error) {
+                              console.error('Failed to manually execute asset inventory:', error);
+                              setHasTriggeredInventory(false);
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled={isExecutingPhase}
+                        >
+                          Run Asset Inventory Manually
+                        </Button>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>

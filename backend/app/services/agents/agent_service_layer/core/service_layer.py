@@ -34,7 +34,6 @@ class AgentServiceLayer:
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             user_id=user_id,
-            session_id=None,
         )
 
         # Initialize thread executor for async-to-sync conversion
