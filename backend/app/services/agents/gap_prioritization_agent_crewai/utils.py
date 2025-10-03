@@ -194,10 +194,15 @@ class UtilsMixin:
         self, prioritized_gaps: List[Dict[str, Any]], context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Generate overall collection strategy"""
-        critical_gaps = [g for g in prioritized_gaps if g["priority_level"] == 1]
-        high_gaps = [g for g in prioritized_gaps if g["priority_level"] == 2]
+        critical_gaps = [g for g in prioritized_gaps if g.get("priority_level") == 1]
+        high_gaps = [g for g in prioritized_gaps if g.get("priority_level") == 2]
 
-        critical_effort = sum(g["estimated_effort"]["average"] for g in critical_gaps)
+        # Safely calculate critical effort with default values
+        critical_effort = 0
+        for gap in critical_gaps:
+            effort = gap.get("estimated_effort", {})
+            avg_effort = effort.get("average", 0) or 0
+            critical_effort += avg_effort
 
         strategy = {
             "approach": "phased_collection",
@@ -218,7 +223,8 @@ class UtilsMixin:
                     "name": "High Priority Collection",
                     "gaps_count": len(high_gaps),
                     "estimated_duration_hours": sum(
-                        g["estimated_effort"]["average"] for g in high_gaps
+                        g.get("estimated_effort", {}).get("average", 0) or 0
+                        for g in high_gaps
                     ),
                     "objectives": [
                         "Improve strategy recommendations",
@@ -228,11 +234,11 @@ class UtilsMixin:
                 },
             ],
             "quick_wins": [
-                g["attribute"]
+                g.get("attribute", "")
                 for g in prioritized_gaps
-                if g["collection_recommendation"]["recommended_method"]
+                if g.get("collection_recommendation", {}).get("recommended_method")
                 == "automated_discovery"
-                and g["priority_level"] <= 2
+                and g.get("priority_level", 99) <= 2
             ][:5],
             "parallel_activities": self._identify_parallel_activities(prioritized_gaps),
             "success_metrics": [
@@ -248,24 +254,29 @@ class UtilsMixin:
         self, prioritized_gaps: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Calculate resource requirements for gap closure"""
-        total_effort = sum(g["estimated_effort"]["average"] for g in prioritized_gaps)
-        critical_effort = sum(
-            g["estimated_effort"]["average"]
-            for g in prioritized_gaps
-            if g["priority_level"] == 1
-        )
+        # Safely calculate total effort with default values
+        total_effort = 0
+        critical_effort = 0
+        for gap in prioritized_gaps:
+            effort = gap.get("estimated_effort", {})
+            avg_effort = effort.get("average", 0) or 0
+            total_effort += avg_effort
+
+            if gap.get("priority_level") == 1:
+                critical_effort += avg_effort
 
         # Identify required roles
         roles_needed = set()
         for gap in prioritized_gaps:
-            if gap["category"] == "infrastructure":
+            category = gap.get("category", "")
+            if category == "infrastructure":
                 roles_needed.add("infrastructure_engineer")
-            elif gap["category"] == "application":
+            elif category == "application":
                 roles_needed.add("application_architect")
                 roles_needed.add("business_analyst")
-            elif gap["category"] == "operational":
+            elif category == "operational":
                 roles_needed.add("operations_manager")
-            elif gap["category"] == "dependencies":
+            elif category == "dependencies":
                 roles_needed.add("solution_architect")
 
         return {
@@ -292,10 +303,11 @@ class UtilsMixin:
         # Group by collection method
         method_groups = {}
         for gap in prioritized_gaps[:10]:  # Focus on top 10 gaps
-            method = gap["collection_recommendation"]["recommended_method"]
-            if method not in method_groups:
-                method_groups[method] = []
-            method_groups[method].append(gap["attribute"])
+            method = gap.get("collection_recommendation", {}).get("recommended_method")
+            if method:
+                if method not in method_groups:
+                    method_groups[method] = []
+                method_groups[method].append(gap.get("attribute", "unknown"))
 
         for method, attributes in method_groups.items():
             if len(attributes) > 1:

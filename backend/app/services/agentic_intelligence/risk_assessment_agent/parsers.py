@@ -31,18 +31,26 @@ class ParsersMixin:
 
             output_lower = str(agent_output).lower()
 
-            # Extract cloud readiness score
-            readiness_score_match = re.search(
-                r"cloud readiness score:?\s*(\d+)", output_lower
+            # Extract security risk score (NOT cloud readiness) with validation and clamping
+            risk_score_match = (
+                re.search(r"security risk score:?\s*(\d+)", output_lower)
+                or re.search(r"risk score:?\s*(\d+)", output_lower)
+                or re.search(r"score:?\s*(\d+)", output_lower)
             )
-            result["security_risk_score"] = (
-                int(readiness_score_match.group(1)) if readiness_score_match else 50
-            )
+            if risk_score_match:
+                try:
+                    score = int(risk_score_match.group(1))
+                    # Clamp to 0-100 range
+                    result["security_risk_score"] = max(0, min(100, score))
+                except (ValueError, AttributeError):
+                    result["security_risk_score"] = 50
+            else:
+                result["security_risk_score"] = 50
 
-            # Extract risk_assessment potential
-            if "risk_assessment potential: high" in output_lower:
+            # Extract risk level with better patterns
+            if "risk: high" in output_lower or "high risk" in output_lower:
                 result["risk_assessment"] = "high"
-            elif "risk_assessment potential: medium" in output_lower:
+            elif "risk: medium" in output_lower or "medium risk" in output_lower:
                 result["risk_assessment"] = "medium"
             else:
                 result["risk_assessment"] = "low"

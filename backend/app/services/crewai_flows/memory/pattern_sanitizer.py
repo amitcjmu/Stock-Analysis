@@ -275,12 +275,17 @@ class PatternSanitizer:
     @staticmethod
     def _remove_hostnames(text: str) -> str:
         """Remove hostnames, IPs, and specific server names from text."""
-        # Remove IP addresses
-        text = re.sub(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", "[IP]", text)
-
-        # Remove common hostname patterns
+        # Remove IPv4 addresses (valid octets only: 0-255)
+        ipv4_octet = r"(25[0-5]|2[0-4]\d|1?\d{1,2})"
         text = re.sub(
-            r"\b[a-z0-9-]+\.(com|net|org|io|local)\b",
+            rf"\b{ipv4_octet}\.{ipv4_octet}\.{ipv4_octet}\.{ipv4_octet}\b",
+            "[IP]",
+            text,
+        )
+
+        # Remove multi-level subdomains (e.g., api.internal.example.com)
+        text = re.sub(
+            r"\b(?:[a-z0-9-]+\.)+(com|net|org|io|local|cloud|corp|internal)\b",
             "[HOSTNAME]",
             text,
             flags=re.IGNORECASE,

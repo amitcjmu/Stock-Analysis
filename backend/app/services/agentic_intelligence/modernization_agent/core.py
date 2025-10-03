@@ -74,8 +74,8 @@ class CoreAnalysisMixin:
             # Step 3: Create and execute the modernization crew with historical context
             crew = self.create_modernization_crew(asset_data, historical_patterns)
 
-            # Execute the crew (this will run the agent with all memory tools)
-            result = crew.kickoff()
+            # Execute the crew asynchronously (this will run the agent with all memory tools)
+            result = await crew.kickoff_async()
 
             # Parse the agent's output
             parsed_result = self._parse_modernization_output(result, asset_data)

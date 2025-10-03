@@ -31,13 +31,19 @@ class ParsersMixin:
 
             output_lower = str(agent_output).lower()
 
-            # Extract cloud readiness score
+            # Extract cloud readiness score with validation and clamping
             readiness_score_match = re.search(
                 r"cloud readiness score:?\s*(\d+)", output_lower
             )
-            result["cloud_readiness_score"] = (
-                int(readiness_score_match.group(1)) if readiness_score_match else 50
-            )
+            if readiness_score_match:
+                try:
+                    score = int(readiness_score_match.group(1))
+                    # Clamp to 0-100 range
+                    result["cloud_readiness_score"] = max(0, min(100, score))
+                except (ValueError, AttributeError):
+                    result["cloud_readiness_score"] = 50
+            else:
+                result["cloud_readiness_score"] = 50
 
             # Extract modernization potential
             if "modernization potential: high" in output_lower:

@@ -24,11 +24,13 @@ class ConfigUtilsMixin:
     ) -> Dict[str, Any]:
         """Get optimized crew configuration"""
         # Determine best process type based on operation and configs
-        any(config.enable_parallel_execution for config in agent_configs)
+        enable_parallel = any(
+            config.enable_parallel_execution for config in agent_configs
+        )
         enable_collaboration = any(
             config.enable_collaboration for config in agent_configs
         )
-        any(config.allow_delegation for config in agent_configs)
+        allow_delegation = any(config.allow_delegation for config in agent_configs)
 
         # Calculate optimal crew settings
         max_rpm = self._calculate_optimal_rpm(operation_type, agent_configs)
@@ -39,6 +41,8 @@ class ConfigUtilsMixin:
             "share_crew": any(config.share_crew for config in agent_configs),
             "memory": any(config.enable_long_term_memory for config in agent_configs),
             "planning": enable_collaboration and len(agent_configs) > 2,
+            "enable_parallel_execution": enable_parallel,
+            "allow_delegation": allow_delegation,
             "embedder": (
                 {"provider": "openai", "model": "text-embedding-3-small"}
                 if any(config.enable_long_term_memory for config in agent_configs)

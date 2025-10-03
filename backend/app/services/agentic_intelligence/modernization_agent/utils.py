@@ -114,12 +114,8 @@ async def enrich_assets_with_modernization_intelligence(
                     "modernization_potential": analysis_result.get(
                         "modernization_potential"
                     ),
-                    "recommended_migration_strategy": analysis_result.get(
-                        "recommended_strategy"
-                    ),
-                    "migration_effort_estimate": analysis_result.get(
-                        "migration_effort"
-                    ),
+                    "recommended_strategy": analysis_result.get("recommended_strategy"),
+                    "migration_effort": analysis_result.get("migration_effort"),
                     "enrichment_status": "agent_enriched",
                     "last_enriched_at": datetime.utcnow(),
                     "last_enriched_by_agent": "Modernization Agent",
@@ -143,7 +139,7 @@ async def enrich_assets_with_modernization_intelligence(
                 {
                     "cloud_readiness_score": 50,
                     "modernization_potential": "medium",
-                    "recommended_migration_strategy": "lift-and-shift",
+                    "recommended_strategy": "lift-and-shift",
                     "enrichment_status": "basic",
                     "last_enriched_at": datetime.utcnow(),
                 }

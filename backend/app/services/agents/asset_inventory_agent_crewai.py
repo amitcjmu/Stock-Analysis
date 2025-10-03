@@ -182,8 +182,14 @@ class AssetInventoryAgent(BaseCrewAIAgent):
             # Step 4: Store discovered patterns
             logger.info("💾 Storing asset classification patterns...")
 
+            # Anonymize pattern name to prevent identifier leakage
+            from hashlib import sha256
+
+            safe_name_seed = f"asset_classification|{technology_stack}|{environment}"
+            anonymized_suffix = sha256(safe_name_seed.encode("utf-8")).hexdigest()[:12]
+
             pattern_data = {
-                "name": f"asset_classification_{technology_stack}_{engagement_id}",
+                "name": f"asset_classification_{anonymized_suffix}",
                 "technology_stack": technology_stack,
                 "environment": environment,
                 "total_assets_classified": len(classified_assets),
