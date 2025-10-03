@@ -122,6 +122,20 @@ class QuestionnaireGenerationTool(BaseTool):
 
             # Section 2-N: Generate comprehensive sections using 22 critical attributes
             missing_fields = data_gaps.get("missing_critical_fields", {})
+
+            # Defensive type checking: Ensure missing_fields is a dict, not a list
+            # Root cause: Sometimes agents or data transformations may return list format
+            if isinstance(missing_fields, list):
+                logger.warning(
+                    f"missing_critical_fields is a list (length={len(missing_fields)}), "
+                    "converting to dict format expected by group_attributes_by_category"
+                )
+                # Convert list to dict with single asset entry
+                # This handles cases where gaps are aggregated without asset_id mapping
+                missing_fields = (
+                    {"aggregated": missing_fields} if missing_fields else {}
+                )
+
             if missing_fields:
                 missing_field_sections = self._process_missing_fields(missing_fields)
                 sections.extend(missing_field_sections)
