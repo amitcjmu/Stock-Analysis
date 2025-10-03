@@ -264,7 +264,7 @@ class AgenticAssetEnrichmentCrew:
             "agents": agents,
             "tasks": tasks,
             "process": Process.sequential,
-            "memory": True,  # Enable crew-level memory
+            "memory": False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             "verbose": True,
             "max_execution_time": 300,  # 5 minutes total
         }

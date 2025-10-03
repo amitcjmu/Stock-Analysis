@@ -222,6 +222,85 @@ TenantScopedAgentPool → Agent Instance → Tools → Database
                     Agent UI Bridge → Frontend Display
 ```
 
+#### CrewAI Memory Configuration (CRITICAL - ADR-024)
+
+**RULE**: CrewAI memory is **DISABLED** by default. Use `TenantMemoryManager` for all agent learning.
+
+**Why Memory is Disabled**:
+- ADR-024 (October 2025) replaced CrewAI's ChromaDB-based memory with enterprise `TenantMemoryManager`
+- Eliminates 401/422 errors from DeepInfra/OpenAI embedding conflicts
+- Provides multi-tenant isolation (client_account_id, engagement_id scoping)
+- Uses native PostgreSQL + pgvector (already in stack)
+- Better performance and enterprise data classification
+
+**Configuration Defaults**:
+```python
+# From crew_factory/config.py (lines 100, 147)
+CrewConfig.DEFAULT_AGENT_CONFIG["memory"] = False
+CrewConfig.DEFAULT_CREW_CONFIG["memory"] = False
+```
+
+**NEVER Override These Defaults**:
+- ❌ **DO NOT** set `memory=True` in agent or crew creation
+- ❌ **DO NOT** enable memory in `agent_pool_constants.py`
+- ❌ **DO NOT** apply memory patches at startup (violates ADR-024)
+
+**If You See `memory=True` in Code**:
+1. This is legacy code from pre-October 2025
+2. Change to `memory=False` with comment: `# Per ADR-024: Use TenantMemoryManager`
+3. If agent needs learning, integrate `TenantMemoryManager.store_learning()`
+
+**Using TenantMemoryManager for Agent Learning**:
+```python
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    TenantMemoryManager,
+    LearningScope
+)
+
+# After agent completes task
+memory_manager = TenantMemoryManager(
+    crewai_service=crewai_service,
+    database_session=db
+)
+
+await memory_manager.store_learning(
+    client_account_id=client_account_id,
+    engagement_id=engagement_id,
+    scope=LearningScope.ENGAGEMENT,
+    pattern_type="field_mapping",
+    pattern_data={
+        "source_field": "cust_name",
+        "target_field": "customer_name",
+        "confidence": 0.95
+    }
+)
+
+# Before agent execution - retrieve patterns
+patterns = await memory_manager.retrieve_similar_patterns(
+    client_account_id=client_account_id,
+    engagement_id=engagement_id,
+    scope=LearningScope.ENGAGEMENT,
+    pattern_type="field_mapping",
+    query_context={"source_field": "customer"}
+)
+```
+
+**Common Mistakes to Avoid**:
+1. ❌ Re-enabling memory patches at startup (violates explicit configuration principle)
+2. ❌ Using `EmbedderConfig` to configure CrewAI memory (superseded by TenantMemoryManager)
+3. ❌ Setting `memory_enabled: True` in agent pool constants
+4. ❌ Proposing to "fix" CrewAI memory instead of using TenantMemoryManager
+
+**If You See Memory Errors in Production**:
+- **Root Cause**: Legacy `memory=True` settings not yet migrated
+- **Fix**: Change to `memory=False` + integrate TenantMemoryManager
+- **Do NOT**: Re-enable global memory patches or embedder configuration
+
+**References**:
+- `/docs/adr/024-tenant-memory-manager-architecture.md` - Full architectural decision
+- `/docs/development/TENANT_MEMORY_STRATEGY.md` - Implementation strategy
+- `backend/app/services/crewai_flows/memory/tenant_memory_manager/` - Implementation
+
 ## Subagent Instructions and Requirements
 
 ### AUTOMATIC ENFORCEMENT FOR ALL SUBAGENTS (Including Autonomous)

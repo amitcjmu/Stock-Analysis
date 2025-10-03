@@ -415,9 +415,7 @@ class TestServiceRegistryMetricsBuffer:
     @pytest.mark.asyncio
     async def test_auto_flush_at_max_size(self, registry):
         """Test auto-flush when buffer reaches max size"""
-        with patch.object(
-            registry, "_flush_metrics", new_callable=AsyncMock
-        ) as mock_flush, patch("asyncio.create_task") as mock_create_task, patch(
+        with patch("asyncio.create_task") as mock_create_task, patch(
             "asyncio.get_running_loop"
         ) as mock_get_loop:
             # Fix: Mock get_running_loop to return a mock loop so flush is triggered

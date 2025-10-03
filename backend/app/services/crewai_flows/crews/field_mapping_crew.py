@@ -251,7 +251,7 @@ class FieldMappingCrew:
             "verbose": False,
             "allow_delegation": True,
             "tools": [pattern_tool],
-            "memory": True,
+            "memory": False,  # Per ADR-024: Use TenantMemoryManager
         }
 
         # Schema Mapping Expert
@@ -273,7 +273,7 @@ class FieldMappingCrew:
             "verbose": False,
             "allow_delegation": True,
             "tools": [schema_tool, pattern_tool],
-            "memory": True,
+            "memory": False,  # Per ADR-024: Use TenantMemoryManager
         }
 
         # Synthesis Specialist
@@ -295,7 +295,7 @@ class FieldMappingCrew:
             "verbose": False,
             "allow_delegation": False,
             "tools": [pattern_tool],
-            "memory": True,
+            "memory": False,  # Per ADR-024: Use TenantMemoryManager
         }
 
         data_analyst = create_agent(**data_analyst_config)

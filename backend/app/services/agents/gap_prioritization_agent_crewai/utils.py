@@ -1,179 +1,18 @@
 """
-Gap Prioritization Agent - CrewAI Implementation
-Prioritizes missing critical attributes by business impact and migration strategy requirements
+Gap Prioritization Agent - Utility Methods Module
+Contains helper methods for gap analysis and resource estimation.
 """
 
 import logging
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
-
-from app.services.agents.base_agent import BaseCrewAIAgent
-from app.services.agents.metadata import AgentMetadata
-from app.services.llm_config import get_crewai_llm
 
 logger = logging.getLogger(__name__)
 
 
-class GapPrioritizationAgent(BaseCrewAIAgent):
-    """
-    Prioritizes missing critical attributes based on business impact and migration needs.
+class UtilsMixin:
+    """Mixin for utility methods"""
 
-    This agent specializes in:
-    - Analyzing business impact of missing attributes
-    - Calculating effort vs. value for gap resolution
-    - Prioritizing gaps by migration strategy requirements
-    - Recommending collection strategies and sequences
-    - Estimating time and resources for gap closure
-    """
-
-    def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
-        """Initialize the Gap Prioritization agent"""
-        if llm is None:
-            llm = get_crewai_llm()
-
-        super().__init__(
-            role="Data Gap Prioritization Strategist",
-            goal=(
-                "Prioritize missing critical attributes by business impact "
-                "to optimize migration data collection efforts"
-            ),
-            backstory="""You are a strategic analyst specializing in migration data gap prioritization.
-            Your expertise includes:
-
-            - Understanding business impact of incomplete migration data
-            - Calculating ROI for data collection efforts
-            - Prioritizing gaps based on 6R strategy requirements
-            - Balancing effort vs. value in gap resolution
-            - Creating actionable collection roadmaps
-
-            You excel at:
-            - Identifying which gaps block critical migration decisions
-            - Assessing collection difficulty and resource requirements
-            - Recommending optimal collection sequences
-            - Estimating time and effort for gap closure
-            - Aligning priorities with business objectives
-
-            Your prioritization framework considers:
-            - Business criticality (blocks decisions, impacts timeline, affects budget)
-            - Technical necessity (required for strategy selection, impacts architecture)
-            - Collection feasibility (effort required, data availability, automation potential)
-            - Strategic value (improves confidence, reduces risk, enables optimization)
-
-            Your recommendations directly influence collection strategies and project timelines.""",
-            tools=tools,
-            llm=llm,
-            max_iter=10,
-            memory=True,
-            verbose=True,
-            allow_delegation=False,
-            **kwargs,
-        )
-
-    @classmethod
-    def agent_metadata(cls) -> AgentMetadata:
-        """Define agent metadata for registry"""
-        return AgentMetadata(
-            name="gap_prioritization_agent",
-            description="Prioritizes missing attributes by business impact for optimal collection strategy",
-            agent_class=cls,
-            required_tools=[
-                "impact_calculator",
-                "effort_estimator",
-                "priority_ranker",
-                "collection_planner",
-            ],
-            capabilities=[
-                "gap_prioritization",
-                "impact_analysis",
-                "effort_estimation",
-                "collection_planning",
-                "roi_calculation",
-            ],
-            max_iter=10,
-            memory=True,
-            verbose=True,
-            allow_delegation=False,
-        )
-
-    def prioritize_gaps(
-        self, gaps: List[Dict[str, Any]], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        Prioritize identified gaps based on business impact and collection feasibility
-
-        Args:
-            gaps: List of identified attribute gaps
-            context: Business and technical context for prioritization
-
-        Returns:
-            Prioritized gap list with recommendations
-        """
-        try:
-            logger.info(f"Prioritizing {len(gaps)} identified gaps")
-
-            prioritization_result = {
-                "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
-                "total_gaps": len(gaps),
-                "prioritized_gaps": [],
-                "priority_distribution": {
-                    "priority_1_critical": 0,
-                    "priority_2_high": 0,
-                    "priority_3_medium": 0,
-                    "priority_4_low": 0,
-                },
-                "collection_strategy": {},
-                "resource_requirements": {},
-            }
-
-            # Score and prioritize each gap
-            scored_gaps = []
-            for gap in gaps:
-                score, priority = self._calculate_gap_priority(gap, context)
-                prioritized_gap = {
-                    **gap,
-                    "priority_score": score,
-                    "priority_level": priority,
-                    "collection_recommendation": self._recommend_collection_method(
-                        gap, context
-                    ),
-                    "estimated_effort": self._estimate_collection_effort(gap),
-                    "business_justification": self._generate_justification(
-                        gap, priority
-                    ),
-                }
-                scored_gaps.append(prioritized_gap)
-
-            # Sort by priority score (descending)
-            scored_gaps.sort(key=lambda x: x["priority_score"], reverse=True)
-            prioritization_result["prioritized_gaps"] = scored_gaps
-
-            # Update priority distribution
-            for gap in scored_gaps:
-                priority_key = (
-                    f"priority_{gap['priority_level']}_"
-                    + {1: "critical", 2: "high", 3: "medium", 4: "low"}[
-                        gap["priority_level"]
-                    ]
-                )
-                prioritization_result["priority_distribution"][priority_key] += 1
-
-            # Generate collection strategy
-            prioritization_result["collection_strategy"] = (
-                self._generate_collection_strategy(scored_gaps, context)
-            )
-
-            # Calculate resource requirements
-            prioritization_result["resource_requirements"] = (
-                self._calculate_resource_requirements(scored_gaps)
-            )
-
-            return prioritization_result
-
-        except Exception as e:
-            logger.error(f"Error in gap prioritization: {e}")
-            return {"error": str(e)}
-
-    def _calculate_gap_priority(
+    def _calculate_gap_priority(  # noqa: C901
         self, gap: Dict[str, Any], context: Dict[str, Any]
     ) -> Tuple[float, int]:
         """Calculate priority score and level for a gap"""
@@ -240,7 +79,6 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         self, gap: Dict[str, Any], context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Recommend collection method for a gap"""
-        gap.get("attribute", "unknown")
         category = gap.get("category", "unknown")
         automation_tier = context.get("automation_tier", "tier_2")
 
@@ -356,11 +194,15 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         self, prioritized_gaps: List[Dict[str, Any]], context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Generate overall collection strategy"""
-        critical_gaps = [g for g in prioritized_gaps if g["priority_level"] == 1]
-        high_gaps = [g for g in prioritized_gaps if g["priority_level"] == 2]
+        critical_gaps = [g for g in prioritized_gaps if g.get("priority_level") == 1]
+        high_gaps = [g for g in prioritized_gaps if g.get("priority_level") == 2]
 
-        sum(g["estimated_effort"]["average"] for g in prioritized_gaps)
-        critical_effort = sum(g["estimated_effort"]["average"] for g in critical_gaps)
+        # Safely calculate critical effort with default values
+        critical_effort = 0
+        for gap in critical_gaps:
+            effort = gap.get("estimated_effort", {})
+            avg_effort = effort.get("average", 0) or 0
+            critical_effort += avg_effort
 
         strategy = {
             "approach": "phased_collection",
@@ -381,7 +223,8 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
                     "name": "High Priority Collection",
                     "gaps_count": len(high_gaps),
                     "estimated_duration_hours": sum(
-                        g["estimated_effort"]["average"] for g in high_gaps
+                        g.get("estimated_effort", {}).get("average", 0) or 0
+                        for g in high_gaps
                     ),
                     "objectives": [
                         "Improve strategy recommendations",
@@ -391,11 +234,11 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
                 },
             ],
             "quick_wins": [
-                g["attribute"]
+                g.get("attribute", "")
                 for g in prioritized_gaps
-                if g["collection_recommendation"]["recommended_method"]
+                if g.get("collection_recommendation", {}).get("recommended_method")
                 == "automated_discovery"
-                and g["priority_level"] <= 2
+                and g.get("priority_level", 99) <= 2
             ][:5],
             "parallel_activities": self._identify_parallel_activities(prioritized_gaps),
             "success_metrics": [
@@ -411,24 +254,29 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         self, prioritized_gaps: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Calculate resource requirements for gap closure"""
-        total_effort = sum(g["estimated_effort"]["average"] for g in prioritized_gaps)
-        critical_effort = sum(
-            g["estimated_effort"]["average"]
-            for g in prioritized_gaps
-            if g["priority_level"] == 1
-        )
+        # Safely calculate total effort with default values
+        total_effort = 0
+        critical_effort = 0
+        for gap in prioritized_gaps:
+            effort = gap.get("estimated_effort", {})
+            avg_effort = effort.get("average", 0) or 0
+            total_effort += avg_effort
+
+            if gap.get("priority_level") == 1:
+                critical_effort += avg_effort
 
         # Identify required roles
         roles_needed = set()
         for gap in prioritized_gaps:
-            if gap["category"] == "infrastructure":
+            category = gap.get("category", "")
+            if category == "infrastructure":
                 roles_needed.add("infrastructure_engineer")
-            elif gap["category"] == "application":
+            elif category == "application":
                 roles_needed.add("application_architect")
                 roles_needed.add("business_analyst")
-            elif gap["category"] == "operational":
+            elif category == "operational":
                 roles_needed.add("operations_manager")
-            elif gap["category"] == "dependencies":
+            elif category == "dependencies":
                 roles_needed.add("solution_architect")
 
         return {
@@ -437,7 +285,7 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
             "recommended_team_size": max(2, min(len(roles_needed), 5)),
             "required_roles": list(roles_needed),
             "estimated_duration_weeks": round(
-                total_effort / (40 * len(roles_needed)), 1
+                total_effort / (40 * len(roles_needed)) if roles_needed else 0, 1
             ),
             "resource_allocation": {
                 "automated_collection": "30%",
@@ -455,10 +303,11 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         # Group by collection method
         method_groups = {}
         for gap in prioritized_gaps[:10]:  # Focus on top 10 gaps
-            method = gap["collection_recommendation"]["recommended_method"]
-            if method not in method_groups:
-                method_groups[method] = []
-            method_groups[method].append(gap["attribute"])
+            method = gap.get("collection_recommendation", {}).get("recommended_method")
+            if method:
+                if method not in method_groups:
+                    method_groups[method] = []
+                method_groups[method].append(gap.get("attribute", "unknown"))
 
         for method, attributes in method_groups.items():
             if len(attributes) > 1:

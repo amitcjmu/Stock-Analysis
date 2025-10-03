@@ -11,9 +11,14 @@ from typing import Any, Dict, List
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from crewai import Agent, Crew
+    from crewai import Agent
 from crewai.tools import BaseTool
 from pydantic import BaseModel
+
+from app.services.crewai_flows.config.crew_factory import (
+    create_agent,
+    create_crew,
+)
 
 logger = logging.getLogger(__name__)
 

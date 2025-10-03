@@ -63,7 +63,7 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
                 description="AI-powered adaptive questionnaire generation for data gap resolution",
                 process=Process.sequential,
                 verbose=True,
-                memory=True,
+                memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
                 cache=True,
             )
         else:

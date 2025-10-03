@@ -63,7 +63,7 @@ class FieldMappingAgent(BaseCrewAIAgent):
                 "mapping_validation",
             ],
             max_iter=15,
-            memory=True,
+            memory=False,  # Per ADR-024: Use TenantMemoryManager
             verbose=True,
             allow_delegation=False,
         )

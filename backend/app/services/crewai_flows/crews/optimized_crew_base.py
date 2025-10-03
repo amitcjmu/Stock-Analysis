@@ -20,7 +20,6 @@ from app.services.crewai_flows.config.crew_factory import (
     create_crew,
     create_task,
 )
-from crewai.memory import LongTermMemory, ShortTermMemory
 
 from app.services.agent_learning_system import LearningContext
 from app.services.enhanced_agent_memory import enhanced_agent_memory
@@ -37,7 +36,7 @@ class OptimizedCrewBase:
         self,
         crewai_service,
         context: Optional[LearningContext] = None,
-        enable_memory: bool = True,
+        enable_memory: bool = False,  # Per ADR-024: Use TenantMemoryManager
         enable_caching: bool = True,
         enable_parallel: bool = True,
     ):
@@ -79,30 +78,13 @@ class OptimizedCrewBase:
             return getattr(self.crewai_service, "llm", None)
 
     def _get_memory_configuration(self) -> Optional[Dict[str, Any]]:
-        """Get memory configuration for crew"""
-        if not self.enable_memory:
-            return None
+        """
+        Get memory configuration for crew.
 
-        try:
-            # Use CrewAI's native memory with our enhanced backend
-            memory_config = {
-                "memory": True,
-                "long_term_memory": LongTermMemory(
-                    storage_type="chroma",
-                    embedder_config={
-                        "provider": "openai",
-                        "model": "text-embedding-3-small",
-                    },
-                ),
-                "short_term_memory": ShortTermMemory(),
-                "memory_config": {"max_items": 1000, "similarity_threshold": 0.7},
-            }
-
-            return memory_config
-
-        except Exception as e:
-            logger.warning(f"Failed to configure CrewAI memory: {e}")
-            return {"memory": True}  # Fallback to basic memory
+        Per ADR-024: Memory is disabled in crews. Use TenantMemoryManager instead.
+        """
+        # Memory disabled per ADR-024: Use TenantMemoryManager for all memory operations
+        return {"memory": False}
 
     def create_optimized_agent(
         self,
@@ -132,7 +114,7 @@ class OptimizedCrewBase:
 
         # Add memory configuration if enabled
         if self.enable_memory and self.memory_config:
-            agent_config["memory"] = True
+            agent_config["memory"] = False  # Per ADR-024: Use TenantMemoryManager
 
         # Apply any additional kwargs
         agent_config.update(kwargs)

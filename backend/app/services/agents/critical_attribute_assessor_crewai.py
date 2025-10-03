@@ -6,8 +6,14 @@ Evaluates collected data against the 22 critical attributes framework
 import logging
 from typing import Any, Dict, List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.registry import AgentMetadata
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    LearningScope,
+    TenantMemoryManager,
+)
 from app.services.llm_config import get_crewai_llm
 
 logger = logging.getLogger(__name__)
@@ -109,7 +115,7 @@ class CriticalAttributeAssessorAgent(BaseCrewAIAgent):
             tools=tools,
             llm=llm,
             max_iter=10,
-            memory=True,
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             verbose=True,
             allow_delegation=False,
             **kwargs,
@@ -136,7 +142,7 @@ class CriticalAttributeAssessorAgent(BaseCrewAIAgent):
                 "6r_impact_analysis",
             ],
             max_iter=10,
-            memory=True,
+            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
             verbose=True,
             allow_delegation=False,
         )
@@ -292,3 +298,111 @@ class CriticalAttributeAssessorAgent(BaseCrewAIAgent):
             readiness[strategy] = max(0.0, readiness[strategy])
 
         return readiness
+
+    async def assess_attributes_with_memory(
+        self,
+        data: Dict[str, Any],
+        asset_type: str,
+        crewai_service: Any,
+        client_account_id: int,
+        engagement_id: int,
+        db: AsyncSession,
+    ) -> Dict[str, Any]:
+        """
+        Assess attributes with TenantMemoryManager integration (ADR-024).
+
+        This method demonstrates proper memory integration:
+        1. Retrieve historical attribute assessment patterns
+        2. Provide patterns as context for the assessment
+        3. Execute assessment with historical insights
+        4. Store discovered patterns for future use
+
+        Args:
+            data: Collected asset data to assess
+            asset_type: Type of asset being assessed
+            crewai_service: CrewAI service instance
+            client_account_id: Client account ID for multi-tenant isolation
+            engagement_id: Engagement ID for pattern scoping
+            db: Database session
+
+        Returns:
+            Dict containing assessment results with coverage, gaps, and recommendations
+        """
+        try:
+            logger.info(
+                f"🧠 Starting attribute assessment with TenantMemoryManager "
+                f"(client={client_account_id}, engagement={engagement_id}, asset_type={asset_type})"
+            )
+
+            # Step 1: Initialize TenantMemoryManager
+            memory_manager = TenantMemoryManager(
+                crewai_service=crewai_service, database_session=db
+            )
+
+            # Step 2: Retrieve historical attribute assessment patterns
+            logger.info("📚 Retrieving historical attribute assessment patterns...")
+            historical_patterns = await memory_manager.retrieve_similar_patterns(
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                pattern_type="attribute_assessment",
+                query_context={"asset_type": asset_type, "framework": "6R"},
+                limit=10,
+            )
+
+            logger.info(f"✅ Found {len(historical_patterns)} historical patterns")
+
+            # Step 3: Execute existing assessment method
+            logger.info("🔍 Executing attribute assessment with historical context...")
+            assessment = self.assess_attributes(data)
+
+            # Step 4: Store discovered patterns if assessment was successful
+            if assessment and "error" not in assessment:
+                logger.info("💾 Storing discovered attribute assessment patterns...")
+
+                # Extract key metrics for pattern storage
+                pattern_data = {
+                    "name": f"attribute_assessment_{asset_type}_{engagement_id}",
+                    "asset_type": asset_type,
+                    "framework": "22_critical_attributes",
+                    "overall_coverage": assessment.get("overall_coverage", 0.0),
+                    "migration_readiness": assessment.get("migration_readiness", {}),
+                    "category_assessments": {
+                        cat: {
+                            "coverage_count": len(data.get("coverage", {})),
+                            "gap_count": len(data.get("gaps", [])),
+                            "business_impact": data.get("business_impact", "unknown"),
+                        }
+                        for cat, data in assessment.get("categories", {}).items()
+                    },
+                    "historical_patterns_used": len(historical_patterns),
+                }
+
+                pattern_id = await memory_manager.store_learning(
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    scope=LearningScope.ENGAGEMENT,
+                    pattern_type="attribute_assessment",
+                    pattern_data=pattern_data,
+                )
+
+                logger.info(
+                    f"✅ Stored attribute assessment pattern with ID: {pattern_id}"
+                )
+
+                # Enhance result with memory metadata
+                assessment["memory_integration"] = {
+                    "status": "success",
+                    "pattern_id": pattern_id,
+                    "historical_patterns_used": len(historical_patterns),
+                    "framework": "TenantMemoryManager (ADR-024)",
+                }
+
+            return assessment
+
+        except Exception as e:
+            logger.error(
+                f"❌ Attribute assessment with memory failed: {e}", exc_info=True
+            )
+            # Fallback to standard assessment without memory
+            logger.warning("⚠️ Falling back to standard assessment without memory")
+            return self.assess_attributes(data)
