@@ -1,290 +1,18 @@
 """
-Gap Prioritization Agent - CrewAI Implementation
-Prioritizes missing critical attributes by business impact and migration strategy requirements
+Gap Prioritization Agent - Utility Methods Module
+Contains helper methods for gap analysis and resource estimation.
 """
 
 import logging
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
-
-from app.services.agents.base_agent import BaseCrewAIAgent
-from app.services.agents.metadata import AgentMetadata
-from app.services.llm_config import get_crewai_llm
-from app.services.crewai_flows.memory.tenant_memory_manager import (
-    TenantMemoryManager,
-    LearningScope,
-)
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 
-class GapPrioritizationAgent(BaseCrewAIAgent):
-    """
-    Prioritizes missing critical attributes based on business impact and migration needs.
+class UtilsMixin:
+    """Mixin for utility methods"""
 
-    This agent specializes in:
-    - Analyzing business impact of missing attributes
-    - Calculating effort vs. value for gap resolution
-    - Prioritizing gaps by migration strategy requirements
-    - Recommending collection strategies and sequences
-    - Estimating time and resources for gap closure
-    """
-
-    def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
-        """Initialize the Gap Prioritization agent"""
-        if llm is None:
-            llm = get_crewai_llm()
-
-        super().__init__(
-            role="Data Gap Prioritization Strategist",
-            goal=(
-                "Prioritize missing critical attributes by business impact "
-                "to optimize migration data collection efforts"
-            ),
-            backstory="""You are a strategic analyst specializing in migration data gap prioritization.
-            Your expertise includes:
-
-            - Understanding business impact of incomplete migration data
-            - Calculating ROI for data collection efforts
-            - Prioritizing gaps based on 6R strategy requirements
-            - Balancing effort vs. value in gap resolution
-            - Creating actionable collection roadmaps
-
-            You excel at:
-            - Identifying which gaps block critical migration decisions
-            - Assessing collection difficulty and resource requirements
-            - Recommending optimal collection sequences
-            - Estimating time and effort for gap closure
-            - Aligning priorities with business objectives
-
-            Your prioritization framework considers:
-            - Business criticality (blocks decisions, impacts timeline, affects budget)
-            - Technical necessity (required for strategy selection, impacts architecture)
-            - Collection feasibility (effort required, data availability, automation potential)
-            - Strategic value (improves confidence, reduces risk, enables optimization)
-
-            Your recommendations directly influence collection strategies and project timelines.""",
-            tools=tools,
-            llm=llm,
-            max_iter=10,
-            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
-            verbose=True,
-            allow_delegation=False,
-            **kwargs,
-        )
-
-    @classmethod
-    def agent_metadata(cls) -> AgentMetadata:
-        """Define agent metadata for registry"""
-        return AgentMetadata(
-            name="gap_prioritization_agent",
-            description="Prioritizes missing attributes by business impact for optimal collection strategy",
-            agent_class=cls,
-            required_tools=[
-                "impact_calculator",
-                "effort_estimator",
-                "priority_ranker",
-                "collection_planner",
-            ],
-            capabilities=[
-                "gap_prioritization",
-                "impact_analysis",
-                "effort_estimation",
-                "collection_planning",
-                "roi_calculation",
-            ],
-            max_iter=10,
-            memory=False,  # Per ADR-024: Use TenantMemoryManager for enterprise memory
-            verbose=True,
-            allow_delegation=False,
-        )
-
-    async def prioritize_gaps_with_memory(
-        self,
-        gaps: List[Dict[str, Any]],
-        context: Dict[str, Any],
-        crewai_service: Any,
-        client_account_id: int,
-        engagement_id: int,
-        db: AsyncSession,
-    ) -> Dict[str, Any]:
-        """
-        Prioritize identified gaps with TenantMemoryManager integration.
-
-        This method:
-        1. Retrieves historical gap prioritization patterns from TenantMemoryManager
-        2. Prioritizes gaps based on business impact and collection feasibility
-        3. Stores discovered prioritization patterns back to TenantMemoryManager
-        4. Returns prioritized gap list with recommendations
-
-        Args:
-            gaps: List of identified attribute gaps
-            context: Business and technical context for prioritization
-            crewai_service: CrewAI service instance
-            client_account_id: Client account ID
-            engagement_id: Engagement ID
-            db: Database session for TenantMemoryManager
-
-        Returns:
-            Prioritized gap list with recommendations and historical patterns
-        """
-        try:
-            logger.info(f"📊 Prioritizing {len(gaps)} identified gaps with memory")
-
-            # Step 1: Initialize TenantMemoryManager
-            memory_manager = TenantMemoryManager(
-                crewai_service=crewai_service, database_session=db
-            )
-
-            # Step 2: Retrieve historical gap prioritization patterns
-            logger.info("📚 Retrieving historical gap prioritization patterns...")
-            query_context = {
-                "asset_type": context.get("asset_type"),
-                "gap_count": len(gaps),
-                "primary_migration_strategy": context.get("primary_migration_strategy"),
-            }
-
-            historical_patterns = await memory_manager.retrieve_similar_patterns(
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                pattern_type="gap_prioritization",
-                query_context=query_context,
-                limit=10,
-            )
-
-            logger.info(f"✅ Found {len(historical_patterns)} historical patterns")
-
-            # Step 3: Perform gap prioritization (use existing logic)
-            prioritization_result = self.prioritize_gaps(gaps, context)
-
-            # Step 4: Store discovered patterns if prioritization was successful
-            if prioritization_result.get("prioritized_gaps"):
-                logger.info("💾 Storing discovered gap prioritization patterns...")
-                pattern_data = {
-                    "name": f"gap_prioritization_{engagement_id}_{datetime.now(timezone.utc).isoformat()}",
-                    "total_gaps": prioritization_result.get("total_gaps"),
-                    "priority_distribution": prioritization_result.get(
-                        "priority_distribution"
-                    ),
-                    "collection_strategy": prioritization_result.get(
-                        "collection_strategy"
-                    ),
-                    "asset_type": context.get("asset_type"),
-                    "primary_migration_strategy": context.get(
-                        "primary_migration_strategy"
-                    ),
-                    "top_priority_gaps": [
-                        g["attribute"]
-                        for g in prioritization_result.get("prioritized_gaps", [])[:5]
-                    ],
-                    "historical_patterns_used": len(historical_patterns),
-                }
-
-                pattern_id = await memory_manager.store_learning(
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
-                    scope=LearningScope.ENGAGEMENT,
-                    pattern_type="gap_prioritization",
-                    pattern_data=pattern_data,
-                )
-
-                logger.info(f"✅ Stored pattern with ID: {pattern_id}")
-                prioritization_result["pattern_id"] = pattern_id
-                prioritization_result["historical_patterns_used"] = len(
-                    historical_patterns
-                )
-
-            logger.info(
-                f"✅ Gap prioritization completed - {prioritization_result.get('total_gaps')} gaps processed"
-            )
-
-            return prioritization_result
-
-        except Exception as e:
-            logger.error(f"❌ Gap prioritization with memory failed: {e}")
-            # Fallback to basic prioritization without memory
-            return self.prioritize_gaps(gaps, context)
-
-    def prioritize_gaps(
-        self, gaps: List[Dict[str, Any]], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        Prioritize identified gaps based on business impact and collection feasibility
-
-        Args:
-            gaps: List of identified attribute gaps
-            context: Business and technical context for prioritization
-
-        Returns:
-            Prioritized gap list with recommendations
-        """
-        try:
-            logger.info(f"Prioritizing {len(gaps)} identified gaps")
-
-            prioritization_result = {
-                "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
-                "total_gaps": len(gaps),
-                "prioritized_gaps": [],
-                "priority_distribution": {
-                    "priority_1_critical": 0,
-                    "priority_2_high": 0,
-                    "priority_3_medium": 0,
-                    "priority_4_low": 0,
-                },
-                "collection_strategy": {},
-                "resource_requirements": {},
-            }
-
-            # Score and prioritize each gap
-            scored_gaps = []
-            for gap in gaps:
-                score, priority = self._calculate_gap_priority(gap, context)
-                prioritized_gap = {
-                    **gap,
-                    "priority_score": score,
-                    "priority_level": priority,
-                    "collection_recommendation": self._recommend_collection_method(
-                        gap, context
-                    ),
-                    "estimated_effort": self._estimate_collection_effort(gap),
-                    "business_justification": self._generate_justification(
-                        gap, priority
-                    ),
-                }
-                scored_gaps.append(prioritized_gap)
-
-            # Sort by priority score (descending)
-            scored_gaps.sort(key=lambda x: x["priority_score"], reverse=True)
-            prioritization_result["prioritized_gaps"] = scored_gaps
-
-            # Update priority distribution
-            for gap in scored_gaps:
-                priority_key = (
-                    f"priority_{gap['priority_level']}_"
-                    + {1: "critical", 2: "high", 3: "medium", 4: "low"}[
-                        gap["priority_level"]
-                    ]
-                )
-                prioritization_result["priority_distribution"][priority_key] += 1
-
-            # Generate collection strategy
-            prioritization_result["collection_strategy"] = (
-                self._generate_collection_strategy(scored_gaps, context)
-            )
-
-            # Calculate resource requirements
-            prioritization_result["resource_requirements"] = (
-                self._calculate_resource_requirements(scored_gaps)
-            )
-
-            return prioritization_result
-
-        except Exception as e:
-            logger.error(f"Error in gap prioritization: {e}")
-            return {"error": str(e)}
-
-    def _calculate_gap_priority(
+    def _calculate_gap_priority(  # noqa: C901
         self, gap: Dict[str, Any], context: Dict[str, Any]
     ) -> Tuple[float, int]:
         """Calculate priority score and level for a gap"""
@@ -351,7 +79,6 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         self, gap: Dict[str, Any], context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Recommend collection method for a gap"""
-        gap.get("attribute", "unknown")
         category = gap.get("category", "unknown")
         automation_tier = context.get("automation_tier", "tier_2")
 
@@ -470,7 +197,6 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         critical_gaps = [g for g in prioritized_gaps if g["priority_level"] == 1]
         high_gaps = [g for g in prioritized_gaps if g["priority_level"] == 2]
 
-        sum(g["estimated_effort"]["average"] for g in prioritized_gaps)
         critical_effort = sum(g["estimated_effort"]["average"] for g in critical_gaps)
 
         strategy = {
@@ -548,7 +274,7 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
             "recommended_team_size": max(2, min(len(roles_needed), 5)),
             "required_roles": list(roles_needed),
             "estimated_duration_weeks": round(
-                total_effort / (40 * len(roles_needed)), 1
+                total_effort / (40 * len(roles_needed)) if roles_needed else 0, 1
             ),
             "resource_allocation": {
                 "automated_collection": "30%",
