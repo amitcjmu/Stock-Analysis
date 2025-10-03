@@ -14,6 +14,7 @@ from app.services.crewai_flows.memory.tenant_memory_manager import (
     LearningScope,
     TenantMemoryManager,
 )
+from app.services.crewai_flows.memory.pattern_sanitizer import sanitize_pattern_data
 from app.services.llm_config import get_crewai_llm
 
 logger = logging.getLogger(__name__)
@@ -149,12 +150,15 @@ class CredentialValidationAgent(BaseCrewAIAgent):
                 "historical_patterns_used": len(historical_patterns),
             }
 
+            # Sanitize pattern data before storage to remove PII/secrets
+            sanitized_pattern_data = sanitize_pattern_data(pattern_data)
+
             pattern_id = await memory_manager.store_learning(
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
                 scope=LearningScope.ENGAGEMENT,
                 pattern_type="credential_validation",
-                pattern_data=pattern_data,
+                pattern_data=sanitized_pattern_data,
             )
 
             validation_result["memory_integration"] = {
@@ -170,10 +174,5 @@ class CredentialValidationAgent(BaseCrewAIAgent):
             logger.error(
                 f"❌ Credential validation with memory failed: {e}", exc_info=True
             )
-            return {
-                "platform": platform,
-                "auth_method": auth_method,
-                "valid": False,
-                "status": "error",
-                "error": str(e),
-            }
+            # Re-raise to maintain consistent error handling
+            raise

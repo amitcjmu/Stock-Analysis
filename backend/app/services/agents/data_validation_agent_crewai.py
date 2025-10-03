@@ -13,6 +13,7 @@ from app.services.crewai_flows.memory.tenant_memory_manager import (
     LearningScope,
     TenantMemoryManager,
 )
+from app.services.crewai_flows.memory.pattern_sanitizer import sanitize_pattern_data
 from app.services.llm_config import get_crewai_llm
 
 logger = logging.getLogger(__name__)
@@ -210,12 +211,15 @@ class DataImportValidationAgent(BaseCrewAIAgent):
                 "historical_patterns_used": len(historical_patterns),
             }
 
+            # Sanitize pattern data before storage to remove PII/secrets
+            sanitized_pattern_data = sanitize_pattern_data(pattern_data)
+
             pattern_id = await memory_manager.store_learning(
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
                 scope=LearningScope.ENGAGEMENT,
                 pattern_type="data_validation",
-                pattern_data=pattern_data,
+                pattern_data=sanitized_pattern_data,
             )
 
             logger.info(f"✅ Stored data validation pattern with ID: {pattern_id}")
@@ -232,16 +236,5 @@ class DataImportValidationAgent(BaseCrewAIAgent):
 
         except Exception as e:
             logger.error(f"❌ Data validation with memory failed: {e}", exc_info=True)
-            # Fallback to basic validation
-            logger.warning("⚠️ Falling back to basic validation without memory")
-
-            return {
-                "data_source": data_source,
-                "validation_scope": validation_scope,
-                "total_records": len(data_records),
-                "validation_issues": [],
-                "quality_score": 0.5,
-                "passed": False,
-                "status": "error",
-                "error": str(e),
-            }
+            # Re-raise to maintain consistent error handling
+            raise

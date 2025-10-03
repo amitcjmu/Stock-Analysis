@@ -11,6 +11,10 @@ from app.services.crewai_flows.memory.tenant_memory_manager import (
     TenantMemoryManager,
     LearningScope,
 )
+from app.services.crewai_flows.memory.pattern_sanitizer import (
+    sanitize_pattern_data,
+    safe_int_conversion,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -58,8 +62,8 @@ class CoreAnalysisMixin:
             }
 
             historical_patterns = await memory_manager.retrieve_similar_patterns(
-                client_account_id=int(self.client_account_id),
-                engagement_id=int(self.engagement_id),
+                client_account_id=safe_int_conversion(self.client_account_id),
+                engagement_id=safe_int_conversion(self.engagement_id),
                 pattern_type="risk_assessment",
                 query_context=query_context,
                 limit=10,
@@ -90,12 +94,15 @@ class CoreAnalysisMixin:
                     "confidence": parsed_result.get("technical_confidence", "medium"),
                 }
 
+                # Sanitize pattern data before storage to remove PII/secrets
+                sanitized_pattern_data = sanitize_pattern_data(pattern_data)
+
                 pattern_id = await memory_manager.store_learning(
-                    client_account_id=int(self.client_account_id),
-                    engagement_id=int(self.engagement_id),
+                    client_account_id=safe_int_conversion(self.client_account_id),
+                    engagement_id=safe_int_conversion(self.engagement_id),
                     scope=LearningScope.ENGAGEMENT,
                     pattern_type="risk_assessment",
-                    pattern_data=pattern_data,
+                    pattern_data=sanitized_pattern_data,
                 )
 
                 logger.info(f"✅ Stored pattern with ID: {pattern_id}")

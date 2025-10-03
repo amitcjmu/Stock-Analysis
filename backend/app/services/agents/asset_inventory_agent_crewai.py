@@ -14,6 +14,7 @@ from app.services.crewai_flows.memory.tenant_memory_manager import (
     LearningScope,
     TenantMemoryManager,
 )
+from app.services.crewai_flows.memory.pattern_sanitizer import sanitize_pattern_data
 from app.services.llm_config import get_crewai_llm
 
 logger = logging.getLogger(__name__)
@@ -198,12 +199,15 @@ class AssetInventoryAgent(BaseCrewAIAgent):
                 "historical_patterns_used": len(historical_patterns),
             }
 
+            # Sanitize pattern data before storage to remove PII/secrets
+            sanitized_pattern_data = sanitize_pattern_data(pattern_data)
+
             pattern_id = await memory_manager.store_learning(
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
                 scope=LearningScope.ENGAGEMENT,
                 pattern_type="asset_classification",
-                pattern_data=pattern_data,
+                pattern_data=sanitized_pattern_data,
             )
 
             logger.info(f"✅ Stored asset classification pattern with ID: {pattern_id}")
@@ -222,29 +226,8 @@ class AssetInventoryAgent(BaseCrewAIAgent):
             logger.error(
                 f"❌ Asset classification with memory failed: {e}", exc_info=True
             )
-            # Fallback to basic classification
-            logger.warning("⚠️ Falling back to basic classification without memory")
-
-            classified_assets = []
-            for asset in assets_data:
-                classified_assets.append(
-                    {
-                        "asset_id": asset.get("id", "unknown"),
-                        "asset_name": asset.get("name", "unknown"),
-                        "asset_type": "unknown",
-                        "criticality": "medium",
-                        "environment": environment,
-                    }
-                )
-
-            return {
-                "total_assets": len(classified_assets),
-                "classified_assets": classified_assets,
-                "technology_stack": technology_stack,
-                "environment": environment,
-                "status": "error",
-                "error": str(e),
-            }
+            # Re-raise to maintain consistent error handling
+            raise
 
     def _determine_asset_type(self, asset: Dict[str, Any], tech_stack: str) -> str:
         """Determine asset type based on asset data and technology stack"""
