@@ -5,16 +5,16 @@
  * Extracted from Progress.tsx to create a focused, reusable component.
  */
 
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import React from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 export interface CollectionFlow {
   id: string;
   name: string;
-  type: 'adaptive' | 'bulk' | 'integration';
-  status: 'running' | 'paused' | 'completed' | 'failed';
+  type: "adaptive" | "bulk" | "integration";
+  status: "running" | "paused" | "completed" | "failed";
   progress: number;
   startedAt: string;
   completedAt?: string;
@@ -33,15 +33,15 @@ export interface FlowListSidebarProps {
 /**
  * Get status badge for flow status
  */
-const getStatusBadge = (status: CollectionFlow['status']): JSX.Element => {
+const getStatusBadge = (status: CollectionFlow["status"]): JSX.Element => {
   switch (status) {
-    case 'running':
+    case "running":
       return <Badge variant="default">Running</Badge>;
-    case 'paused':
+    case "paused":
       return <Badge variant="secondary">Paused</Badge>;
-    case 'completed':
+    case "completed":
       return <Badge variant="outline">Completed</Badge>;
-    case 'failed':
+    case "failed":
       return <Badge variant="destructive">Failed</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
@@ -52,7 +52,7 @@ export const FlowListSidebar: React.FC<FlowListSidebarProps> = ({
   flows,
   selectedFlow,
   onFlowSelect,
-  className = ''
+  className = "",
 }) => {
   return (
     <div className={`lg:col-span-1 ${className}`}>
@@ -66,20 +66,23 @@ export const FlowListSidebar: React.FC<FlowListSidebarProps> = ({
               key={flow.id}
               className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                 selectedFlow === flow.id
-                  ? 'border-primary bg-primary/5'
-                  : 'hover:bg-muted/50'
+                  ? "border-primary bg-primary/5"
+                  : "hover:bg-muted/50"
               }`}
               onClick={() => onFlowSelect(flow.id)}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-sm line-clamp-2">{flow.name}</span>
+                <span className="font-medium text-sm line-clamp-2">
+                  {flow.name}
+                </span>
                 {getStatusBadge(flow.status)}
               </div>
 
               <Progress value={flow.progress} className="h-2 mb-2" />
 
               <div className="text-xs text-muted-foreground">
-                {flow.completedApplications}/{flow.applicationCount} apps ({Math.round(flow.progress)}%)
+                {flow.completed_applications}/{flow.application_count} apps (
+                {Math.round(flow.progress)}%)
               </div>
 
               <div className="text-xs text-muted-foreground mt-1 capitalize">

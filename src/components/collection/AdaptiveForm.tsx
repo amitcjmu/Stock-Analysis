@@ -539,6 +539,11 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
                 Application Data Collection
+                {formData.applicationId && (
+                  <span className="text-muted-foreground text-base font-normal">
+                    - {formData.applicationId}
+                  </span>
+                )}
               </CardTitle>
               <CardDescription>
                 Complete the form below to provide detailed information about your application.

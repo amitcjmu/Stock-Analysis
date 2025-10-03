@@ -6,7 +6,7 @@ Handles flow execution and phase management.
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -123,7 +123,9 @@ def _determine_next_phase(discovery_flow: DiscoveryFlow) -> str:
 @router.post("/flows/{flow_id}/execute")
 async def execute_flow(
     flow_id: str,
-    request: dict = {},  # Accept request body with phase and phase_input
+    request: dict = Body(
+        default={}
+    ),  # Per CLAUDE.md: POST requests MUST use Body() for request body params
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
 ):

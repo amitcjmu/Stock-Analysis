@@ -478,42 +478,47 @@ const AdaptiveForms: React.FC = () => {
     navigate("/collection/overview");
   };
 
-  // Mock progress milestones - in a real implementation these would be dynamic
-  const progressMilestones: ProgressMilestone[] = [
-    {
-      id: "form-start",
-      title: "Form Started",
-      description: "Begin adaptive data collection",
-      achieved: true,
-      achievedAt: new Date().toISOString(),
-      weight: 0.1,
-      required: true,
-    },
-    {
-      id: "basic-complete",
-      title: "Basic Information",
-      description: "Complete core application details",
-      achieved: false,
-      weight: 0.3,
-      required: true,
-    },
-    {
-      id: "technical-complete",
-      title: "Technical Details",
-      description: "Complete technical architecture information",
-      achieved: false,
-      weight: 0.4,
-      required: true,
-    },
-    {
-      id: "validation-passed",
-      title: "Validation Passed",
-      description: "All validation checks completed successfully",
-      achieved: false,
-      weight: 0.2,
-      required: true,
-    },
-  ];
+  // Generate progress milestones dynamically from actual form sections
+  const progressMilestones: ProgressMilestone[] = React.useMemo(() => {
+    if (!formData?.sections) return [];
+
+    const milestones: ProgressMilestone[] = [
+      {
+        id: "form-start",
+        title: "Form Started",
+        description: "Begin adaptive data collection",
+        achieved: true,
+        achievedAt: new Date().toISOString(),
+        weight: 0.1,
+        required: true,
+      },
+    ];
+
+    // Add milestone for each form section
+    formData.sections.forEach((section, index) => {
+      // Calculate if section is completed based on formValues
+      const sectionFields = section.fields.map(f => f.id);
+      const completedFields = sectionFields.filter(fieldId => {
+        const value = formValues?.[fieldId];
+        return value !== null && value !== undefined && value !== '';
+      });
+      const isCompleted = section.requiredFieldsCount > 0
+        ? completedFields.length >= section.requiredFieldsCount
+        : completedFields.length === sectionFields.length;
+
+      milestones.push({
+        id: section.id,
+        title: section.title,
+        description: section.description || `Complete ${section.title.toLowerCase()}`,
+        achieved: isCompleted,
+        achievedAt: isCompleted ? new Date().toISOString() : undefined,
+        weight: section.completionWeight,
+        required: section.requiredFieldsCount > 0,
+      });
+    });
+
+    return milestones;
+  }, [formData, formValues]);
 
   // Show loading state while checking for incomplete flows
   if (checkingFlows) {
