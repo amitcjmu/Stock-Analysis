@@ -5,32 +5,30 @@
 ```
 I need to completely redesign the collection flow gap analysis. The current implementation is bloated with 3-agent crew structure that never worked.
 
-Please read these 3 documents in order:
-1. /COLLECTION_FLOW_REDESIGN_PROMPT.md - Full requirements
-2. /BRANCH_CLEANUP_SUMMARY.md - What to delete
-3. /FRESH_SESSION_INSTRUCTIONS.md - Step-by-step execution plan
+Please read these 2 documents in order:
+1. /COLLECTION_FLOW_REDESIGN_PROMPT.md - Full requirements and architecture
+2. /FRESH_SESSION_INSTRUCTIONS.md - Step-by-step execution plan (this file)
 
-Then execute Phase 1: Cherry-pick valuable commit and delete broken branch.
+Then execute Phase 2: Delete bloated files and start lean implementation.
+
+NOTE: Broken branch feature/implement-gap-analysis-detection-20251003 already deleted.
+Asset-based selection changes already partially in main.
 ```
 
 ---
 
 ## Pre-Flight Checklist:
 
-### ✅ Documents Created:
+### ✅ Cleanup Completed:
 - [x] `/COLLECTION_FLOW_REDESIGN_PROMPT.md` - Complete requirements and architecture
-- [x] `/BRANCH_CLEANUP_SUMMARY.md` - Analysis of commits to delete
-- [x] `/FRESH_SESSION_INSTRUCTIONS.md` - This file (step-by-step)
-
-### ✅ Key Findings:
-- [x] Current branch: `feature/implement-gap-analysis-detection-20251003`
-- [x] Commits on branch: 7 total (all can be deleted EXCEPT one to preserve)
-- [x] Asset-based selection commit `99a648d79`: **NOT in main** - MUST cherry-pick before deleting
+- [x] `/FRESH_SESSION_INSTRUCTIONS.md` - This file (step-by-step execution plan)
+- [x] Broken branch `feature/implement-gap-analysis-detection-20251003` - **DELETED** (local and remote)
+- [x] Asset-based selection changes - **ALREADY IN MAIN** (partial implementation)
 - [x] Bloated files identified: 4 primary files (~1500 lines to delete)
 
 ---
 
-## Phase 1: Preserve Good Code, Delete Broken Branch
+## Phase 1: Create New Branch (Cleanup Already Done)
 
 ### Step 1.1: Create New Branch from Main
 ```bash
@@ -40,45 +38,13 @@ git pull origin main
 git checkout -b refactor/lean-collection-gap-analysis
 ```
 
-### Step 1.2: Cherry-Pick Asset Migration Commit
-```bash
-# Cherry-pick ONLY the asset-based selection commit
-git cherry-pick 99a648d79
-
-# Expected result: Clean cherry-pick with asset migration changes
-```
-
-**What this preserves**:
-- Frontend: Send `selected_asset_ids` instead of `selected_application_ids`
-- Schema: Backward compatible field names
-- Collection endpoint: Use `asset_ids` property
-- Gap analysis: Support both field names (fallback logic)
-
-### Step 1.3: Delete Old Branch Locally
-```bash
-git checkout main
-git branch -D feature/implement-gap-analysis-detection-20251003
-```
-
-### Step 1.4: Delete Remote Branch (if exists)
-```bash
-# Check if remote branch exists
-git ls-remote --heads origin feature/implement-gap-analysis-detection-20251003
-
-# If it exists, delete it
-git push origin --delete feature/implement-gap-analysis-detection-20251003
-```
-
-### Step 1.5: Return to New Branch
-```bash
-git checkout refactor/lean-collection-gap-analysis
-git status
-```
-
 **Expected state**:
 - On branch: `refactor/lean-collection-gap-analysis`
-- 1 commit ahead of main (asset migration)
+- Based on latest main
 - Clean working directory
+- Old broken branch already deleted
+
+**NOTE**: Asset-based selection changes already partially in main, no cherry-pick needed.
 
 ---
 
