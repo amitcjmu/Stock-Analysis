@@ -5,7 +5,7 @@ Contains methods for creating tasks and crews.
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from crewai import Crew, Process, Task
 
@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 class CrewBuilderMixin:
     """Mixin for creating tasks and crews"""
 
-    def create_business_value_analysis_task(self, asset_data: Dict[str, Any]) -> Task:
+    def create_business_value_analysis_task(
+        self,
+        asset_data: Dict[str, Any],
+        historical_patterns: Optional[List[Dict[str, Any]]] = None,
+    ) -> Task:
         """Create a task for analyzing business value of a specific asset"""
 
         asset_summary = {
@@ -27,12 +31,28 @@ class CrewBuilderMixin:
             "business_criticality": asset_data.get("business_criticality"),
         }
 
+        # Build historical context if patterns exist
+        context_addendum = ""
+        if historical_patterns:
+            pattern_count = len(historical_patterns)
+            context_addendum = f"""
+
+HISTORICAL CONTEXT:
+- Found {pattern_count} similar past business value assessments
+- Use these patterns to inform your analysis and validate your scoring
+- Look for common trends and insights from previous work
+- Compare the current asset characteristics with historical patterns
+"""
+
         # This is not SQL - it's a task description for CrewAI agent
         asset_details_json = json.dumps(asset_summary, indent=2)
         task_description = (  # nosec B608
             "Analyze the business value of this asset using your agentic intelligence and memory tools:\n\n"
-            "Asset Details:\n" + asset_details_json + "\n\n"  # nosec B608
-            "Complete Analysis Process:\n\n"
+            "Asset Details:\n"
+            + asset_details_json
+            + "\n\n"  # nosec B608
+            + context_addendum
+            + "Complete Analysis Process:\n\n"
             "1. SEARCH FOR PATTERNS:\n"
             "   Use your pattern search tool to find relevant business value patterns from previous analyses.\n"
             "   Search for patterns related to: database business value, production systems, "
@@ -88,11 +108,15 @@ class CrewBuilderMixin:
 
         return task
 
-    def create_business_value_crew(self, asset_data: Dict[str, Any]) -> Crew:
+    def create_business_value_crew(
+        self,
+        asset_data: Dict[str, Any],
+        historical_patterns: Optional[List[Dict[str, Any]]] = None,
+    ) -> Crew:
         """Create a crew for business value analysis"""
 
         agent = self.create_business_value_agent()
-        task = self.create_business_value_analysis_task(asset_data)
+        task = self.create_business_value_analysis_task(asset_data, historical_patterns)
 
         crew = Crew(
             agents=[agent],

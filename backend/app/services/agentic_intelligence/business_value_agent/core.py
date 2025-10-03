@@ -71,9 +71,8 @@ class CoreAnalysisMixin:
 
             logger.info(f"✅ Found {len(historical_patterns)} historical patterns")
 
-            # Step 3: Create and execute the business value crew
-            # TODO: Pass historical_patterns to crew context
-            crew = self.create_business_value_crew(asset_data)
+            # Step 3: Create and execute the business value crew with historical context
+            crew = self.create_business_value_crew(asset_data, historical_patterns)
 
             # Execute the crew (this will run the agent with all memory tools)
             result = crew.kickoff()

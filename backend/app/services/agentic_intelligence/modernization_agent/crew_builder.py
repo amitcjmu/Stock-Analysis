@@ -5,7 +5,7 @@ Contains methods for creating tasks and crews.
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from crewai import Crew, Process, Task
 
@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 class CrewBuilderMixin:
     """Mixin for creating tasks and crews"""
 
-    def create_modernization_assessment_task(self, asset_data: Dict[str, Any]) -> Task:
+    def create_modernization_assessment_task(
+        self,
+        asset_data: Dict[str, Any],
+        historical_patterns: Optional[List[Dict[str, Any]]] = None,
+    ) -> Task:
         """Create a task for comprehensive modernization assessment of an asset"""
 
         asset_summary = {
@@ -29,12 +33,28 @@ class CrewBuilderMixin:
             "data_volume": asset_data.get("data_volume"),
         }
 
+        # Build historical context if patterns exist
+        context_addendum = ""
+        if historical_patterns:
+            pattern_count = len(historical_patterns)
+            context_addendum = f"""
+
+HISTORICAL CONTEXT:
+- Found {pattern_count} similar past modernization assessments
+- Use these patterns to inform your analysis and validate your recommendations
+- Look for common trends and insights from previous modernization strategies
+- Compare the current asset characteristics with historical patterns
+"""
+
         asset_details_json = json.dumps(asset_summary, indent=2)
         task_description = (
             "Conduct a comprehensive modernization assessment for this asset using your cloud "
             "architecture intelligence and memory tools:\n\n"
-            "Asset Details:\n" + asset_details_json + "\n\n"
-            "Complete Modernization Assessment Process including pattern search, technology analysis,"
+            "Asset Details:\n"
+            + asset_details_json
+            + "\n\n"
+            + context_addendum
+            + "Complete Modernization Assessment Process including pattern search, technology analysis,"
             " cloud readiness, modernization strategy, containerization potential, scoring (0-100),"
             " pattern discovery, and asset enrichment.\n"
         )
@@ -53,11 +73,17 @@ class CrewBuilderMixin:
 
         return task
 
-    def create_modernization_crew(self, asset_data: Dict[str, Any]) -> Crew:
+    def create_modernization_crew(
+        self,
+        asset_data: Dict[str, Any],
+        historical_patterns: Optional[List[Dict[str, Any]]] = None,
+    ) -> Crew:
         """Create a crew for comprehensive modernization assessment"""
 
         agent = self.create_modernization_agent()
-        task = self.create_modernization_assessment_task(asset_data)
+        task = self.create_modernization_assessment_task(
+            asset_data, historical_patterns
+        )
 
         crew = Crew(
             agents=[agent],
