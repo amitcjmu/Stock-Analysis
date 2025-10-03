@@ -13,6 +13,33 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 
+async def _calculate_category_completeness(
+    repo: Any, total_assets: int, category_name: str, engagement_id: str
+) -> float:
+    """
+    Helper to calculate completeness for a single category with error handling.
+
+    Args:
+        repo: Repository instance with get_all() method
+        total_assets: Total number of assets (guaranteed >= 1)
+        category_name: Category name for logging (e.g., "lifecycle", "resilience")
+        engagement_id: Engagement UUID for logging context
+
+    Returns:
+        Completeness percentage (0.0-100.0)
+    """
+    try:
+        records = await repo.get_all()
+        return (len(records) / total_assets) * 100
+    except Exception as e:
+        logger.warning(
+            f"Failed to calculate {category_name} completeness for "
+            f"engagement {engagement_id}: {type(e).__name__}",
+            exc_info=True,
+        )
+        return 0.0
+
+
 async def calculate_completeness_metrics(
     db: AsyncSession, client_account_id: str, engagement_id: str
 ) -> Dict[str, float]:
@@ -50,28 +77,18 @@ async def calculate_completeness_metrics(
     license_repo = LicenseRepository(db, client_account_id, engagement_id)
     lifecycle_repo = LifecycleRepository(db, client_account_id, engagement_id)
 
-    # Calculate lifecycle completeness
-    lifecycle_milestones = await lifecycle_repo.get_all()
-    lifecycle_completeness = (
-        (len(lifecycle_milestones) / total_assets) * 100 if total_assets > 0 else 0.0
+    # Calculate completeness for each category using helper function
+    lifecycle_completeness = await _calculate_category_completeness(
+        lifecycle_repo, total_assets, "lifecycle", engagement_id
     )
-
-    # Calculate resilience completeness
-    resilience_records = await resilience_repo.get_all()
-    resilience_completeness = (
-        (len(resilience_records) / total_assets) * 100 if total_assets > 0 else 0.0
+    resilience_completeness = await _calculate_category_completeness(
+        resilience_repo, total_assets, "resilience", engagement_id
     )
-
-    # Calculate compliance completeness
-    compliance_records = await compliance_repo.get_all()
-    compliance_completeness = (
-        (len(compliance_records) / total_assets) * 100 if total_assets > 0 else 0.0
+    compliance_completeness = await _calculate_category_completeness(
+        compliance_repo, total_assets, "compliance", engagement_id
     )
-
-    # Calculate licensing completeness
-    license_records = await license_repo.get_all()
-    licensing_completeness = (
-        (len(license_records) / total_assets) * 100 if total_assets > 0 else 0.0
+    licensing_completeness = await _calculate_category_completeness(
+        license_repo, total_assets, "licensing", engagement_id
     )
 
     return {
@@ -211,7 +228,10 @@ async def convert_gap_analysis_to_response(
             gap = CollectionGap(
                 category=category,
                 field_name=field_name,
-                description=f"{field_name.replace('_', ' ').title()} is not available for complete migration planning",
+                description=(
+                    f"{field_name.replace('_', ' ').title()} is not available "
+                    f"for complete migration planning"
+                ),
                 priority=priority,
                 affected_assets=affected_assets,
             )

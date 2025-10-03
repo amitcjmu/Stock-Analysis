@@ -639,9 +639,7 @@ class TestMultiSprintAgentLearning:
         return {
             "sprint": sprint,
             "total_experiences": memory_stats["total_experiences"],
-            "learned_patterns": len(
-                memory_stats["experience_breakdown"].get("learned_patterns", [])
-            ),
+            "learned_patterns": memory_stats["experience_breakdown"].get("learned_patterns", 0),
             "accuracy_score": memory_stats["learning_metrics"].get(
                 "accuracy_improvements", 0.5
             ),
