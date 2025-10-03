@@ -3,6 +3,7 @@ Core Collection Flow Serialization Functions
 Core serialization and data transformation functions for collection flows.
 """
 
+import logging
 from typing import Any, Dict, List, Optional
 
 from app.models.asset import Asset
@@ -15,6 +16,8 @@ from app.schemas.collection_flow import (
     CollectionGapAnalysisResponse,
     AdaptiveQuestionnaireResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def serialize_collection_flow(
@@ -48,11 +51,30 @@ def build_collection_flow_response(
     """
     # Build default collection metrics if not provided
     if collection_metrics is None:
+        config = collection_flow.collection_config or {}
+
+        # Support BOTH manual selection and automated detection paths
+        # Manual path: application_count, selected_application_ids, processed_application_count
+        # Automated path: detected_platforms, collection_quality_score
+        platforms_detected = (
+            config.get("application_count")  # Manual: total selected
+            or len(config.get("selected_application_ids", []))  # Manual: from IDs array
+            or len(config.get("application_details", []))  # Manual: from details array
+            or len(
+                config.get("detected_platforms", [])
+            )  # Automated: platform detection
+        )
+
+        data_collected = (
+            config.get("processed_application_count")  # Manual: apps processed
+            or len(config.get("application_details", []))  # Manual: from details array
+            or collection_flow.collection_quality_score  # Automated: quality score
+            or 0
+        )
+
         collection_metrics = {
-            "platforms_detected": len(
-                collection_flow.collection_config.get("detected_platforms", [])
-            ),
-            "data_collected": collection_flow.collection_quality_score or 0,
+            "platforms_detected": platforms_detected,
+            "data_collected": data_collected,
             "gaps_resolved": 0,  # Default since resolution tracking isn't implemented
         }
 
