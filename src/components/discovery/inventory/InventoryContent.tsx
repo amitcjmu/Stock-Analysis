@@ -120,13 +120,14 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           });
 
           // Only include flow_id when in current_flow mode and flowId is available
+          // FIX: Don't throw error if no flowId - just fetch all assets from database
           const normalizedFlowId = flowId && flowId !== 'no-flow' ? String(flowId) : '';
           if (viewMode === 'current_flow' && normalizedFlowId) {
             queryParams.append('flow_id', normalizedFlowId);
             console.log(`🔍 API call will include flow_id: ${normalizedFlowId}`);
           } else if (viewMode === 'current_flow') {
-            console.warn(`⚠️ current_flow mode but no valid flowId available: ${flowId}`);
-            throw new Error('Flow ID is required for current_flow mode but is not available');
+            console.log(`📊 current_flow mode but no flowId - fetching all assets from database`);
+            // Don't throw error - inventory should load assets from DB regardless of flow state
           }
 
           const response = await apiCall(`/unified-discovery/assets?${queryParams.toString()}`);
@@ -234,9 +235,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           setHasTriggeredInventory(true);
         }
 
-        // If no pagination metadata or in 'current_flow' mode, return first page only
-        if (!firstPageData.pagination || viewMode === 'current_flow') {
-          console.log(`📊 Using single page (${viewMode === 'current_flow' ? 'current_flow mode' : 'no pagination'}):`, firstPageData.assets.length);
+        // If no pagination metadata, return first page only
+        if (!firstPageData.pagination) {
+          console.log(`📊 Using single page (no pagination):`, firstPageData.assets.length);
 
           // Transform and return first page assets
           return firstPageData.assets.map((asset: Asset) => ({
@@ -273,8 +274,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
         console.log(`📊 Pagination info - Total pages: ${totalPages}, Server page size: ${serverPageSize}, Safety limit: ${safetyLimit}`);
 
-        // Fetch remaining pages if we're in 'all' mode and have more pages
-        if (viewMode === 'all' && totalPages > 1) {
+        // Fetch remaining pages if we have more pages
+        // Both 'all' and 'current_flow' modes should support pagination
+        if (totalPages > 1) {
           console.log(`📊 Fetching remaining ${Math.min(totalPages - 1, safetyLimit - 1)} pages...`);
 
           const pagePromises: Array<Promise<AssetApiResponse | Asset[]>> = [];
@@ -336,9 +338,10 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         return flowAssets;
       }
     },
-    // Enable query when we have client/engagement, and either in 'all' mode or have flowId for 'current_flow'
-    // For current_flow mode, we must have a valid flowId before making the API call
-    enabled: !!client && !!engagement && (viewMode === 'all' || (viewMode === 'current_flow' && !!flowId && flowId !== 'no-flow')),
+    // FIX: Enable query when we have client/engagement regardless of flowId
+    // Inventory should load assets from database even without a discovery flow
+    // The API will filter by flow_id only if provided in current_flow mode
+    enabled: !!client && !!engagement,
     // Invalidate when view mode or flowId changes
     refetchOnWindowFocus: false,
     staleTime: 30000
@@ -856,7 +859,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                       <span className="text-sm text-gray-500">Initializing...</span>
                     </div>
                     {/* FIX #447: Manual bypass button when auto-execution is blocked */}
-                    {!dataCleansingCompleted && (
+                    {/* FIX: Use dataCleansingDone from local scope, not dataCleansingCompleted from useEffect */}
+                    {!dataCleansingDone && (
                       <div className="mt-4">
                         <p className="text-sm text-amber-600 mb-3">
                           Auto-execution is waiting for data cleansing to complete. You can manually start the process:
