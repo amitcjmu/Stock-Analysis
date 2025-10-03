@@ -50,29 +50,63 @@ async def calculate_completeness_metrics(
     license_repo = LicenseRepository(db, client_account_id, engagement_id)
     lifecycle_repo = LifecycleRepository(db, client_account_id, engagement_id)
 
-    # Calculate lifecycle completeness
-    lifecycle_milestones = await lifecycle_repo.get_all()
-    lifecycle_completeness = (
-        (len(lifecycle_milestones) / total_assets) * 100 if total_assets > 0 else 0.0
-    )
+    # Calculate lifecycle completeness with error handling
+    lifecycle_completeness = 0.0
+    try:
+        lifecycle_milestones = await lifecycle_repo.get_all()
+        lifecycle_completeness = (
+            (len(lifecycle_milestones) / total_assets) * 100
+            if total_assets > 0
+            else 0.0
+        )
+    except Exception as e:
+        logger.warning(
+            f"Failed to calculate lifecycle completeness for "
+            f"engagement {engagement_id}: {type(e).__name__}",
+            exc_info=True,
+        )
 
-    # Calculate resilience completeness
-    resilience_records = await resilience_repo.get_all()
-    resilience_completeness = (
-        (len(resilience_records) / total_assets) * 100 if total_assets > 0 else 0.0
-    )
+    # Calculate resilience completeness with error handling
+    resilience_completeness = 0.0
+    try:
+        resilience_records = await resilience_repo.get_all()
+        resilience_completeness = (
+            (len(resilience_records) / total_assets) * 100 if total_assets > 0 else 0.0
+        )
+    except Exception as e:
+        logger.warning(
+            f"Failed to calculate resilience completeness for "
+            f"engagement {engagement_id}: {type(e).__name__}",
+            exc_info=True,
+        )
 
-    # Calculate compliance completeness
-    compliance_records = await compliance_repo.get_all()
-    compliance_completeness = (
-        (len(compliance_records) / total_assets) * 100 if total_assets > 0 else 0.0
-    )
+    # Calculate compliance completeness with error handling
+    compliance_completeness = 0.0
+    try:
+        compliance_records = await compliance_repo.get_all()
+        compliance_completeness = (
+            (len(compliance_records) / total_assets) * 100 if total_assets > 0 else 0.0
+        )
+    except Exception as e:
+        logger.warning(
+            f"Failed to calculate compliance completeness for "
+            f"engagement {engagement_id}: {type(e).__name__}",
+            exc_info=True,
+        )
 
-    # Calculate licensing completeness
-    license_records = await license_repo.get_all()
-    licensing_completeness = (
-        (len(license_records) / total_assets) * 100 if total_assets > 0 else 0.0
-    )
+    # Calculate licensing completeness with error handling
+    licensing_completeness = 0.0
+    try:
+        license_records = await license_repo.get_all()
+        licensing_completeness = (
+            (len(license_records) / total_assets) * 100 if total_assets > 0 else 0.0
+        )
+    except Exception as e:
+        logger.warning(
+            f"Failed to calculate licensing completeness for "
+            f"engagement {engagement_id}: {type(e).__name__}",
+            exc_info=True,
+        )
 
     return {
         "lifecycle": min(lifecycle_completeness, 100.0),
@@ -211,7 +245,10 @@ async def convert_gap_analysis_to_response(
             gap = CollectionGap(
                 category=category,
                 field_name=field_name,
-                description=f"{field_name.replace('_', ' ').title()} is not available for complete migration planning",
+                description=(
+                    f"{field_name.replace('_', ' ').title()} is not available "
+                    f"for complete migration planning"
+                ),
                 priority=priority,
                 affected_assets=affected_assets,
             )
