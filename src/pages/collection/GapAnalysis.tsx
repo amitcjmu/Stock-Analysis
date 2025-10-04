@@ -1,33 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle, Clock, RefreshCw, ArrowRight } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
+import DataGapDiscovery from '@/components/collection/DataGapDiscovery';
 
 import { collectionFlowApi } from '@/services/api/collection-flow';
 import { useToast } from '@/hooks/use-toast';
 import { FLOW_PHASE_ROUTES } from '@/config/flowRoutes';
-
-interface GapAnalysisData {
-  identified_gaps: Array<{
-    id: string;
-    category: string;
-    description: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    impact: string;
-    recommended_action: string;
-  }>;
-  analysis_complete: boolean;
-  completion_percentage: number;
-  business_impact?: {
-    risk_score: number;
-    priority_areas: string[];
-  };
-}
 
 interface CollectionFlowDetails {
   id: string;
@@ -36,7 +18,9 @@ interface CollectionFlowDetails {
   status: string;
   current_phase: string;
   progress: number;
-  gap_analysis_results?: GapAnalysisData;
+  flow_metadata?: {
+    selected_asset_ids?: string[];
+  };
 }
 
 const GapAnalysis: React.FC = () => {
@@ -69,9 +53,10 @@ const GapAnalysis: React.FC = () => {
         }
 
         setFlowDetails(flow);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to load flow details:', err);
-        setError(err.message || 'Failed to load flow details');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load flow details';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -108,25 +93,16 @@ const GapAnalysis: React.FC = () => {
 
       // Fallback navigation
       navigate(`/collection/progress/${flowId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to continue flow:', err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to continue to next phase";
       toast({
         title: "Failed to Continue",
-        description: err.message || "Failed to continue to next phase",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setIsContinuing(false);
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -166,166 +142,21 @@ const GapAnalysis: React.FC = () => {
     );
   }
 
-  const gapAnalysis = flowDetails?.gap_analysis_results;
-  const isAnalysisComplete = gapAnalysis?.analysis_complete ?? false;
-  const gaps = gapAnalysis?.identified_gaps ?? [];
-  const completionPercentage = gapAnalysis?.completion_percentage ?? 0;
+  // Get selected asset IDs from flow metadata
+  const selectedAssetIds = flowDetails?.flow_metadata?.selected_asset_ids || [];
 
   return (
     <CollectionPageLayout
-      title="Gap Analysis"
-      description={`Analyzing data collection gaps for ${flowDetails?.flow_name || 'collection flow'}`}
+      title="Gap Analysis - Two-Phase Discovery"
+      description={`Data collection gap analysis for ${flowDetails?.flow_name || 'collection flow'}`}
     >
-      <div className="space-y-6">
-        {/* Status Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              {isAnalysisComplete ? (
-                <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-              ) : (
-                <Clock className="w-5 h-5 text-orange-600 mr-2" />
-              )}
-              Gap Analysis Status
-            </CardTitle>
-            <CardDescription>
-              Flow: {flowDetails?.flow_name || flowDetails?.flow_id} | Status: {flowDetails?.status}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Analysis Progress</span>
-                  <span className="text-sm text-gray-600">{completionPercentage}%</span>
-                </div>
-                <Progress value={completionPercentage} className="w-full" />
-              </div>
-
-              {gapAnalysis?.business_impact && (
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">Business Impact Assessment</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-blue-600">Risk Score:</span>
-                      <span className="ml-2 font-medium">{gapAnalysis.business_impact.risk_score}/10</span>
-                    </div>
-                    <div>
-                      <span className="text-blue-600">Priority Areas:</span>
-                      <span className="ml-2 font-medium">
-                        {gapAnalysis.business_impact.priority_areas.join(', ')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Identified Gaps */}
-        {gaps.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Identified Data Gaps ({gaps.length})</CardTitle>
-              <CardDescription>
-                Areas where additional data collection is needed
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {gaps.map((gap, index) => (
-                  <div key={gap.id || index} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                          <Badge className={getSeverityColor(gap.severity)}>
-                            {gap.severity.toUpperCase()}
-                          </Badge>
-                          <span className="ml-2 font-medium text-gray-900">
-                            {gap.category}
-                          </span>
-                        </div>
-                        <p className="text-gray-700 mb-2">{gap.description}</p>
-                        {gap.impact && (
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Impact:</strong> {gap.impact}
-                          </p>
-                        )}
-                        {gap.recommended_action && (
-                          <p className="text-sm text-blue-600">
-                            <strong>Recommended Action:</strong> {gap.recommended_action}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* No Gaps Found */}
-        {gaps.length === 0 && isAnalysisComplete && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No Critical Gaps Identified
-                </h3>
-                <p className="text-gray-600">
-                  The gap analysis found no significant data collection gaps.
-                  You can proceed to the next phase of collection.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Analysis In Progress */}
-        {!isAnalysisComplete && completionPercentage < 100 && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <RefreshCw className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Gap Analysis In Progress
-                </h3>
-                <p className="text-gray-600">
-                  Analyzing collected data to identify gaps and areas needing additional information...
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/collection/progress/${flowId}`)}
-          >
-            View Progress
-          </Button>
-
-          {isAnalysisComplete && (
-            <Button
-              onClick={handleContinueFlow}
-              disabled={isContinuing}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isContinuing ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <ArrowRight className="w-4 h-4 mr-2" />
-              )}
-              Continue to Next Phase
-            </Button>
-          )}
-        </div>
-      </div>
+      {flowDetails && flowId && (
+        <DataGapDiscovery
+          flowId={flowId}
+          selectedAssetIds={selectedAssetIds}
+          onComplete={handleContinueFlow}
+        />
+      )}
     </CollectionPageLayout>
   );
 };

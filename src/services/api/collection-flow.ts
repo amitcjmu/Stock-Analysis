@@ -818,6 +818,30 @@ class CollectionFlowApi {
       body: JSON.stringify(resolution)
     });
   }
+
+  // Phase 1: Two-Phase Gap Analysis - Programmatic Scan
+  async scanGaps(flowId: string, selectedAssetIds: string[]): Promise<ScanGapsResponse> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/scan-gaps`, {
+      method: 'POST',
+      body: JSON.stringify({ selected_asset_ids: selectedAssetIds })
+    });
+  }
+
+  // Phase 2: Two-Phase Gap Analysis - AI Enhancement
+  async analyzeGaps(flowId: string, gaps: DataGap[], selectedAssetIds: string[]): Promise<AnalyzeGapsResponse> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/analyze-gaps`, {
+      method: 'POST',
+      body: JSON.stringify({ gaps, selected_asset_ids: selectedAssetIds })
+    });
+  }
+
+  // Update gap with manual resolution
+  async updateGaps(flowId: string, updates: GapUpdate[]): Promise<UpdateGapsResponse> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/update-gaps`, {
+      method: 'PUT',
+      body: JSON.stringify({ updates })
+    });
+  }
 }
 
 // Phase 3: TypeScript interface for transition response
@@ -827,6 +851,61 @@ export interface TransitionResult {
   collection_flow_id: string;  // snake_case
   message: string;
   created_at: string;
+}
+
+// Two-Phase Gap Analysis Interfaces
+export interface DataGap {
+  asset_id: string;
+  asset_name: string;
+  field_name: string;
+  gap_type: string;
+  gap_category: string;
+  priority: number;
+  current_value: unknown | null;
+  suggested_resolution: string;
+  confidence_score: number | null;
+  ai_suggestions?: string[];
+}
+
+export interface GapScanSummary {
+  total_gaps: number;
+  assets_analyzed: number;
+  critical_gaps: number;
+  execution_time_ms: number;
+  gaps_persisted?: number;
+}
+
+export interface ScanGapsResponse {
+  gaps: DataGap[];
+  summary: GapScanSummary;
+  status: string;
+}
+
+export interface AnalysisSummary {
+  total_gaps: number;
+  enhanced_gaps: number;
+  execution_time_ms: number;
+  agent_duration_ms: number;
+}
+
+export interface AnalyzeGapsResponse {
+  enhanced_gaps: DataGap[];
+  summary: AnalysisSummary;
+  status: string;
+}
+
+export interface GapUpdate {
+  gap_id: string;
+  field_name: string;
+  resolved_value: string;
+  resolution_status: 'pending' | 'resolved' | 'skipped';
+  resolution_method: 'manual_entry' | 'ai_suggestion' | 'hybrid';
+}
+
+export interface UpdateGapsResponse {
+  updated_gaps: number;
+  gaps_resolved: number;
+  remaining_gaps: number;
 }
 
 export const collectionFlowApi = new CollectionFlowApi();
