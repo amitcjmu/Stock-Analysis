@@ -69,54 +69,94 @@ class GapAnalysisService:
                 }
             }
         """
+        logger.info(
+            f"🚀 Starting gap analysis - Flow: {self.collection_flow_id}, "
+            f"Assets: {len(selected_asset_ids)}, Tier: {automation_tier}"
+        )
+
         try:
             # 1. Load REAL assets from database
+            logger.debug(f"📥 Loading assets: {selected_asset_ids}")
             assets = await self._load_assets(selected_asset_ids, db)
+
             if not assets:
-                logger.warning("No assets found for gap analysis")
+                logger.error(
+                    f"❌ No assets found - IDs: {selected_asset_ids}, "
+                    f"Client: {self.client_account_id}, Engagement: {self.engagement_id}"
+                )
                 return self._empty_result()
 
-            logger.info(f"📦 Loaded {len(assets)} real assets for gap analysis")
+            logger.info(
+                f"📦 Loaded {len(assets)} real assets: "
+                f"{[f'{a.name} ({a.asset_type})' for a in assets[:5]]}"
+            )
 
             # 2. Get single persistent agent
             from app.services.persistent_agents.tenant_scoped_agent_pool import (
                 TenantScopedAgentPool,
             )
 
+            logger.debug("🔧 Creating persistent agent - Type: gap_analysis_specialist")
             agent = await TenantScopedAgentPool.get_or_create_agent(
                 client_id=self.client_account_id,
                 engagement_id=self.engagement_id,
                 agent_type="gap_analysis_specialist",
             )
+            logger.info(
+                f"✅ Agent created: {agent.role if hasattr(agent, 'role') else 'gap_analysis_specialist'}"
+            )
 
             # 3. Create single task: analyze + generate questionnaire
             from crewai import Task
 
+            task_description = self._build_task_description(assets)
+            logger.debug(f"📝 Task description length: {len(task_description)} chars")
+
             task = Task(
-                description=self._build_task_description(assets),
+                description=task_description,
                 agent=agent,
                 expected_output="JSON with gaps and questionnaire structure",
             )
 
             # 4. Execute task
-            logger.info("🤖 Executing single-agent gap analysis task")
+            logger.info(
+                f"🤖 Executing single-agent gap analysis task for {len(assets)} assets"
+            )
             task_output = await task.execute_async()
+            logger.debug(f"📤 Task output received: {str(task_output)[:200]}...")
 
             # 5. Parse result
             result_dict = self._parse_task_output(task_output)
+            total_gaps = sum(
+                len(v) if isinstance(v, list) else 0
+                for v in result_dict.get("gaps", {}).values()
+            )
+            questionnaire_sections = len(
+                result_dict.get("questionnaire", {}).get("sections", [])
+            )
+            logger.info(
+                f"📊 Parsed result - Gaps: {total_gaps}, "
+                f"Questionnaire sections: {questionnaire_sections}"
+            )
 
             # 6. Persist gaps to database
+            logger.debug("💾 Persisting gaps to database...")
             gaps_count = await self._persist_gaps(result_dict, assets, db)
             result_dict["summary"]["gaps_persisted"] = gaps_count
 
             logger.info(
-                f"✅ Gap analysis complete: {gaps_count} gaps persisted, {len(assets)} assets analyzed"
+                f"✅ Gap analysis complete: {gaps_count} gaps persisted, "
+                f"{len(assets)} assets analyzed, Flow: {self.collection_flow_id}"
             )
 
             return result_dict
 
         except Exception as e:
-            logger.error(f"Gap analysis failed: {e}", exc_info=True)
+            logger.error(
+                f"❌ Gap analysis failed - Flow: {self.collection_flow_id}, "
+                f"Error: {e}, Type: {type(e).__name__}",
+                exc_info=True,
+            )
             return self._error_result(str(e))
 
     async def _load_assets(
@@ -294,13 +334,25 @@ RETURN JSON FORMAT:
         """Persist gaps to collection_data_gaps table."""
         gaps_by_priority = result_dict.get("gaps", {})
         gaps_persisted = 0
+        gaps_failed = 0
+
+        logger.debug(
+            f"📥 Persisting gaps - Priority levels: {list(gaps_by_priority.keys())}"
+        )
 
         for priority_level, gaps in gaps_by_priority.items():
             if not isinstance(gaps, list):
+                logger.warning(
+                    f"⚠️ Skipping non-list gaps for priority '{priority_level}': {type(gaps)}"
+                )
                 continue
 
             priority_map = {"critical": 1, "high": 2, "medium": 3, "low": 4}
             priority_value = priority_map.get(priority_level, 3)
+
+            logger.debug(
+                f"📝 Processing {len(gaps)} {priority_level} gaps (priority={priority_value})"
+            )
 
             for gap in gaps:
                 try:
@@ -327,11 +379,18 @@ RETURN JSON FORMAT:
                     gaps_persisted += 1
 
                 except Exception as e:
-                    logger.error(f"Failed to persist gap: {e}")
+                    gaps_failed += 1
+                    logger.error(
+                        f"❌ Failed to persist gap - Field: {gap.get('field_name', 'unknown')}, "
+                        f"Asset: {gap.get('asset_id', 'unknown')}, Error: {e}"
+                    )
                     continue
 
         await db.commit()
-        logger.info(f"💾 Persisted {gaps_persisted} gaps to database")
+        logger.info(
+            f"💾 Persisted {gaps_persisted} gaps to database "
+            f"(failed: {gaps_failed}, flow: {self.collection_flow_id})"
+        )
 
         return gaps_persisted
 
