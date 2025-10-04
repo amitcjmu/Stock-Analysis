@@ -242,6 +242,8 @@ const AdaptiveForms: React.FC = () => {
   }, [completionStatus, activeFlowId]);
 
   // Group questions by asset and auto-select first asset
+  // Pass formValues to calculate real-time completion percentage
+  // CRITICAL: Must be defined BEFORE navigation handlers that use it
   const assetGroups = React.useMemo(() => {
     if (!formData?.sections) return [];
 
@@ -258,8 +260,8 @@ const AdaptiveForms: React.FC = () => {
       }))
     );
 
-    return groupQuestionsByAsset(allQuestions);
-  }, [formData]);
+    return groupQuestionsByAsset(allQuestions, undefined, formValues);
+  }, [formData, formValues]);
 
   // Auto-select first asset when groups change
   React.useEffect(() => {
@@ -290,6 +292,37 @@ const AdaptiveForms: React.FC = () => {
       sections: filteredSections
     };
   }, [formData, selectedAssetId, assetGroups]);
+
+  // Asset navigation handlers - MUST be after assetGroups is defined
+  const handlePreviousAsset = React.useCallback(() => {
+    if (assetGroups.length === 0 || !selectedAssetId) return;
+
+    const currentIndex = assetGroups.findIndex(g => g.asset_id === selectedAssetId);
+    if (currentIndex > 0) {
+      setSelectedAssetId(assetGroups[currentIndex - 1].asset_id);
+      // Scroll to top of form
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [assetGroups, selectedAssetId]);
+
+  const handleNextAsset = React.useCallback(() => {
+    if (assetGroups.length === 0 || !selectedAssetId) return;
+
+    const currentIndex = assetGroups.findIndex(g => g.asset_id === selectedAssetId);
+    if (currentIndex < assetGroups.length - 1) {
+      setSelectedAssetId(assetGroups[currentIndex + 1].asset_id);
+      // Scroll to top of form
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [assetGroups, selectedAssetId]);
+
+  const currentAssetIndex = React.useMemo(() => {
+    if (!selectedAssetId) return -1;
+    return assetGroups.findIndex(g => g.asset_id === selectedAssetId);
+  }, [assetGroups, selectedAssetId]);
+
+  const canNavigatePrevious = currentAssetIndex > 0;
+  const canNavigateNext = currentAssetIndex >= 0 && currentAssetIndex < assetGroups.length - 1;
 
   // Use HTTP polling for real-time updates during workflow initialization
   // CRITICAL FIX: Remove re-initialization calls from polling to prevent loops
@@ -351,15 +384,52 @@ const AdaptiveForms: React.FC = () => {
   }, [handleSave]); // Only log when handleSave changes
 
   // CC: Create a direct save handler to bypass potential prop passing issues
-  const directSaveHandler = React.useCallback(() => {
+  // CRITICAL: Inject selected asset_id before saving for multi-asset forms
+  const directSaveHandler = React.useCallback(async () => {
     console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
+
+    // For multi-asset forms, temporarily add asset_id to formValues
+    if (assetGroups.length > 1 && selectedAssetId && handleFieldChange) {
+      console.log(`💾 Saving progress for asset: ${selectedAssetId}`);
+      // Inject asset_id into form values so backend knows which asset this is for
+      handleFieldChange('asset_id', selectedAssetId);
+    }
+
     if (typeof handleSave === 'function') {
       console.log('🟢 Calling handleSave from direct handler');
-      handleSave();
+      await handleSave();
     } else {
       console.error('❌ handleSave is not available in AdaptiveForms');
     }
-  }, [handleSave]);
+  }, [handleSave, assetGroups.length, selectedAssetId, handleFieldChange]);
+
+  // CC: Wrap handleSubmit to inject asset_id for multi-asset forms
+  const directSubmitHandler = React.useCallback(async () => {
+    console.log('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
+    console.log('🟢 assetGroups.length:', assetGroups.length);
+    console.log('🟢 selectedAssetId:', selectedAssetId);
+    console.log('🟢 formValues:', formValues);
+
+    // For multi-asset forms, inject asset_id before final submission
+    if (assetGroups.length > 1 && selectedAssetId && handleFieldChange) {
+      console.log(`✅ Submitting form for asset: ${selectedAssetId}`);
+      // Inject asset_id into form values so backend knows which asset this is for
+      handleFieldChange('asset_id', selectedAssetId);
+
+      // Brief delay to ensure state update before submission
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } else {
+      console.log('🟢 Not a multi-asset form, proceeding with regular submit');
+    }
+
+    if (typeof handleSubmit === 'function') {
+      console.log('🟢 Calling handleSubmit from direct handler with formValues');
+      await handleSubmit(formValues);
+      console.log('🟢 handleSubmit completed');
+    } else {
+      console.error('❌ handleSubmit is not available in AdaptiveForms');
+    }
+  }, [handleSubmit, assetGroups.length, selectedAssetId, handleFieldChange, formValues]);
 
   // CRITICAL FIX: Protected initialization function with ref guard
   const protectedInitializeFlow = React.useCallback(async () => {
@@ -992,9 +1062,50 @@ const AdaptiveForms: React.FC = () => {
         onFieldChange={handleFieldChange}
         onValidationChange={handleValidationChange}
         onSave={directSaveHandler || handleSave}
-        onSubmit={handleSubmit}
+        onSubmit={directSubmitHandler || handleSubmit}
         onCancel={() => navigate("/collection")}
       />
+
+      {/* Asset Navigation Buttons - Show when multiple assets */}
+      {assetGroups.length > 1 && (
+        <div className="mt-6 flex items-center justify-between p-4 border-t">
+          <button
+            onClick={handlePreviousAsset}
+            disabled={!canNavigatePrevious || isLoading || isSaving}
+            className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+              canNavigatePrevious && !isLoading && !isSaving
+                ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Previous Asset
+          </button>
+
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">
+              {assetGroups.filter(g => g.completion_percentage === 100).length} of {assetGroups.length} Assets Complete
+            </span>
+          </div>
+
+          <button
+            onClick={handleNextAsset}
+            disabled={!canNavigateNext || isLoading || isSaving}
+            className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+              canNavigateNext && !isLoading && !isSaving
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Next Asset
+            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Flow Deletion Modal */}
       <FlowDeletionModal

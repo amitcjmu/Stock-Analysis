@@ -256,7 +256,7 @@ class ExecutionEngineCollectionCrews:
         try:
             # Use lean gap analysis service
             from app.core.database import AsyncSessionLocal
-            from app.services.collection.gap_analysis_service import GapAnalysisService
+            from app.services.collection.gap_analysis import GapAnalysisService
 
             async with AsyncSessionLocal() as db:
                 service = GapAnalysisService(

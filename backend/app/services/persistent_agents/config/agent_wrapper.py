@@ -40,6 +40,22 @@ class AgentWrapper:
         """Delegate all other attributes to the wrapped agent."""
         return getattr(self._agent, name)
 
+    def get(self, key, default=None):
+        """
+        Support dict-like .get() calls that CrewAI's Task config processing expects.
+
+        CrewAI's process_config() tries to call values.get("config", {}) on agents.
+        This method prevents AttributeError when AgentWrapper is treated as a dict.
+
+        CRITICAL FIX: Resolves 'Agent' object has no attribute 'get' error during Task creation.
+        """
+        # Return None for all dict-like keys - AgentWrapper is not a dict
+        return default
+
+    def __getitem__(self, key):
+        """Support dict-like bracket access if needed by CrewAI internals."""
+        raise KeyError(f"AgentWrapper doesn't support dictionary access for key: {key}")
+
     @property
     def context(self):
         """Access to the wrapper's context storage."""

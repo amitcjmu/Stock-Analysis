@@ -94,11 +94,73 @@ export function flattenQuestionsWithUniqueIds(
 }
 
 /**
- * Group questions by asset ID
+ * Calculate completion percentage for a set of questions
+ */
+export function calculateCompletionPercentage(
+  questions: QuestionWithAsset[],
+  formValues: Record<string, any>
+): number {
+  if (questions.length === 0) return 0;
+
+  // Count required questions that have been answered
+  let totalRequired = 0;
+  let answeredRequired = 0;
+
+  for (const question of questions) {
+    // Skip form_group questions (they're just containers)
+    if (question.field_type === 'form_group') continue;
+
+    if (question.required) {
+      totalRequired++;
+      const value = formValues[question.field_id];
+
+      // Check if question has a meaningful answer
+      if (value !== null && value !== undefined && value !== '') {
+        // For arrays (multi-select), check if not empty
+        if (Array.isArray(value) && value.length > 0) {
+          answeredRequired++;
+        }
+        // For non-arrays, check if truthy or zero (zero is valid for numbers)
+        else if (!Array.isArray(value) && (value || value === 0)) {
+          answeredRequired++;
+        }
+      }
+    }
+  }
+
+  // If no required questions, base on all questions
+  if (totalRequired === 0) {
+    let totalQuestions = 0;
+    let answeredQuestions = 0;
+
+    for (const question of questions) {
+      if (question.field_type === 'form_group') continue;
+
+      totalQuestions++;
+      const value = formValues[question.field_id];
+
+      if (value !== null && value !== undefined && value !== '') {
+        if (Array.isArray(value) && value.length > 0) {
+          answeredQuestions++;
+        } else if (!Array.isArray(value) && (value || value === 0)) {
+          answeredQuestions++;
+        }
+      }
+    }
+
+    return totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
+  }
+
+  return Math.round((answeredRequired / totalRequired) * 100);
+}
+
+/**
+ * Group questions by asset ID with completion tracking
  */
 export function groupQuestionsByAsset(
   questions: QuestionWithAsset[],
-  assets?: Array<{id: string; name?: string}>
+  assets?: Array<{id: string; name?: string}>,
+  formValues?: Record<string, any>
 ): AssetQuestionGroup[] {
   const assetMap = new Map<string, QuestionWithAsset[]>();
   const globalQuestions: QuestionWithAsset[] = [];
@@ -126,11 +188,15 @@ export function groupQuestionsByAsset(
 
   for (const [assetId, assetQuestions] of assetMap.entries()) {
     const asset = assets?.find(a => a.id === assetId);
+    const allQuestions = [...globalQuestions, ...assetQuestions];
+
     groups.push({
       asset_id: assetId,
       asset_name: asset?.name || assetId.substring(0, 8),
-      questions: [...globalQuestions, ...assetQuestions], // Include global + asset-specific
-      completion_percentage: 0, // TODO: Calculate from saved responses
+      questions: allQuestions,
+      completion_percentage: formValues
+        ? calculateCompletionPercentage(allQuestions, formValues)
+        : 0,
     });
   }
 
@@ -140,7 +206,9 @@ export function groupQuestionsByAsset(
       asset_id: 'global',
       asset_name: 'General Information',
       questions: globalQuestions,
-      completion_percentage: 0,
+      completion_percentage: formValues
+        ? calculateCompletionPercentage(globalQuestions, formValues)
+        : 0,
     });
   }
 
