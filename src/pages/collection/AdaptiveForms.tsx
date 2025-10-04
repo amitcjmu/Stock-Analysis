@@ -227,6 +227,9 @@ const AdaptiveForms: React.FC = () => {
     onQuestionnaireGenerationStart: handleQuestionnaireGeneration,
   });
 
+  // Asset selector state for multi-asset questionnaires
+  const [selectedAssetId, setSelectedAssetId] = React.useState<string | null>(null);
+
   // Auto-show generation modal when completionStatus is "pending"
   // This must be AFTER useAdaptiveFormFlow hook since it uses completionStatus
   React.useEffect(() => {
@@ -236,6 +239,59 @@ const AdaptiveForms: React.FC = () => {
       setShowGenerationModal(false);
     }
   }, [completionStatus, activeFlowId]);
+
+  // Group questions by asset and auto-select first asset
+  const assetGroups = React.useMemo(() => {
+    if (!formData?.sections) return [];
+
+    // Import grouping utility
+    const { groupQuestionsByAsset } = require('@/utils/questionnaireUtils');
+
+    // Extract all questions from sections
+    const allQuestions = formData.sections.flatMap(section =>
+      section.fields.map(field => ({
+        field_id: field.id,
+        question_text: field.label,
+        field_type: field.fieldType,
+        required: field.validation?.required,
+        options: field.options,
+        metadata: field.metadata,
+        ...field
+      }))
+    );
+
+    return groupQuestionsByAsset(allQuestions);
+  }, [formData]);
+
+  // Auto-select first asset when groups change
+  React.useEffect(() => {
+    if (assetGroups.length > 0 && !selectedAssetId) {
+      setSelectedAssetId(assetGroups[0].asset_id);
+    }
+  }, [assetGroups, selectedAssetId]);
+
+  // Filter form data to show only selected asset's questions
+  const filteredFormData = React.useMemo(() => {
+    if (!formData || !selectedAssetId || assetGroups.length <= 1) {
+      return formData; // No filtering needed for single asset or no selection
+    }
+
+    const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId);
+    if (!selectedGroup) return formData;
+
+    // Filter sections to only include selected asset's questions
+    const filteredSections = formData.sections.map(section => ({
+      ...section,
+      fields: section.fields.filter(field =>
+        selectedGroup.questions.some(q => q.field_id === field.id)
+      )
+    })).filter(section => section.fields.length > 0);
+
+    return {
+      ...formData,
+      sections: filteredSections
+    };
+  }, [formData, selectedAssetId, assetGroups]);
 
   // Use HTTP polling for real-time updates during workflow initialization
   // CRITICAL FIX: Remove re-initialization calls from polling to prevent loops
@@ -899,8 +955,37 @@ const AdaptiveForms: React.FC = () => {
           className="mb-6"
         />
       )}
+
+      {/* Asset Selector - Show when multiple assets */}
+      {assetGroups.length > 1 && (
+        <div className="mb-6 p-4 border rounded-lg bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Asset to Answer Questions For:
+              </label>
+              <select
+                value={selectedAssetId || ''}
+                onChange={(e) => setSelectedAssetId(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {assetGroups.map((group) => (
+                  <option key={group.asset_id} value={group.asset_id}>
+                    {group.asset_name} - {group.completion_percentage || 0}% Complete
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="ml-4 text-sm text-gray-600">
+              <div>Asset {assetGroups.findIndex(g => g.asset_id === selectedAssetId) + 1} of {assetGroups.length}</div>
+              <div className="font-medium">{assetGroups.filter(g => g.completion_percentage === 100).length} of {assetGroups.length} Complete</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AdaptiveFormContainer
-        formData={formData}
+        formData={filteredFormData || formData}
         formValues={formValues}
         validation={validation}
         milestones={progressMilestones}

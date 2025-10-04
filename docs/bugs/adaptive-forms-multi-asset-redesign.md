@@ -149,9 +149,43 @@ Frontend should:
 └─────────────────────────────────────────────┘
 ```
 
+## Implementation Status ✅
+
+### Phase 1: Quick Fix - COMPLETED
+**File Created**: `src/utils/questionnaireUtils.ts`
+
+Functions implemented:
+- `generateUniqueFieldId()` - Adds unique prefixes to sub_questions
+- `flattenQuestionsWithUniqueIds()` - Prevents React duplicate key errors
+- `groupQuestionsByAsset()` - Groups questions by asset_id
+- `extractOriginalFieldId()` - Extracts backend field_id for form submission
+
+### Phase 2: Asset Selector - COMPLETED
+**File Modified**: `src/pages/collection/AdaptiveForms.tsx`
+
+Features implemented:
+1. ✅ Asset selector dropdown showing all selected assets
+2. ✅ Asset filtering logic (shows only selected asset's questions)
+3. ✅ Auto-selection of first asset on load
+4. ✅ Progress tracking per asset (0% Complete display)
+5. ✅ Asset counter (Asset 1 of 3, etc.)
+
+**UI Components Added**:
+- Asset selector dropdown with completion percentage
+- Asset counter and overall completion stats
+- Filtered form data based on selected asset
+
+**Changes Applied**:
+- Lines 231: Added `selectedAssetId` state
+- Lines 244-264: Asset grouping logic with memoization
+- Lines 267-271: Auto-select first asset effect
+- Lines 274-294: Form data filtering by selected asset
+- Lines 960-985: Asset selector UI component
+- Line 988: Updated form to use `filteredFormData`
+
 ## Migration Strategy
 
-### Phase 1: Quick Fix (Immediate)
+### Phase 1: Quick Fix (Immediate) - ✅ DONE
 Add unique prefixes to sub_questions to prevent React errors:
 ```typescript
 const flattenedQuestions = questions.flatMap(q => {
