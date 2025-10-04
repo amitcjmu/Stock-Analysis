@@ -28,6 +28,7 @@ import { apiCall } from "@/config/api";
 
 // Import types
 import type { ProgressMilestone } from "@/components/collection/types";
+import { groupQuestionsByAsset } from "@/utils/questionnaireUtils";
 
 // Define types for collection flow
 interface CollectionFlowConfig {
@@ -243,9 +244,6 @@ const AdaptiveForms: React.FC = () => {
   // Group questions by asset and auto-select first asset
   const assetGroups = React.useMemo(() => {
     if (!formData?.sections) return [];
-
-    // Import grouping utility
-    const { groupQuestionsByAsset } = require('@/utils/questionnaireUtils');
 
     // Extract all questions from sections
     const allQuestions = formData.sections.flatMap(section =>
