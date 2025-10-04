@@ -1280,6 +1280,7 @@ export const useAdaptiveFormFlow = (
           });
 
           // Clear current form data to trigger questionnaire regeneration
+          // CRITICAL FIX: Enable polling by clearing formData and questionnaires
           setState((prev) => ({
             ...prev,
             formData: null,
@@ -1287,53 +1288,74 @@ export const useAdaptiveFormFlow = (
             isLoading: true,
           }));
 
-          // Wait a moment for backend to process, then fetch new questionnaires
-          setTimeout(async () => {
-            try {
-              const newQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(actualFlowId);
-              console.log(`📋 Retrieved ${newQuestionnaires.length} new questionnaires after asset selection`);
+          // CRITICAL FIX: Use polling instead of fixed timeout
+          // Backend can take 30-60 seconds to generate questionnaires
+          const pollForNewQuestionnaire = async () => {
+            const maxAttempts = 20; // 20 attempts at 3 seconds = 60 seconds max
+            const pollInterval = 3000; // 3 seconds between polls
+            let attempts = 0;
 
-              if (newQuestionnaires.length > 0 && newQuestionnaires[0].id !== "bootstrap_asset_selection") {
-                // Successfully got real questionnaires, convert and load them
-                const adaptiveFormData = convertQuestionnairesToFormData(
-                  newQuestionnaires[0],
-                  applicationId,
-                );
+            const poll = async (): Promise<void> => {
+              try {
+                attempts++;
+                console.log(`🔄 Polling for questionnaire (attempt ${attempts}/${maxAttempts})...`);
 
-                if (validateFormDataStructure(adaptiveFormData)) {
-                  setState((prev) => ({
-                    ...prev,
-                    formData: adaptiveFormData,
-                    questionnaires: newQuestionnaires,
-                    isLoading: false,
-                    error: null
-                  }));
+                const newQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(actualFlowId);
+                console.log(`📋 Retrieved ${newQuestionnaires.length} questionnaires (attempt ${attempts})`);
 
-                  toast({
-                    title: "Questionnaires Generated",
-                    description: "AI-powered questionnaires are ready based on your selected assets.",
-                  });
-                } else {
-                  throw new Error("Generated questionnaire data structure is invalid");
+                if (newQuestionnaires.length > 0 && newQuestionnaires[0].id !== "bootstrap_asset_selection") {
+                  // Successfully got real questionnaires, convert and load them
+                  const adaptiveFormData = convertQuestionnairesToFormData(
+                    newQuestionnaires[0],
+                    applicationId,
+                  );
+
+                  if (validateFormDataStructure(adaptiveFormData)) {
+                    setState((prev) => ({
+                      ...prev,
+                      formData: adaptiveFormData,
+                      questionnaires: newQuestionnaires,
+                      isLoading: false,
+                      error: null
+                    }));
+
+                    toast({
+                      title: "Questionnaires Generated",
+                      description: "AI-powered questionnaires are ready based on your selected assets.",
+                    });
+                    return; // Success - stop polling
+                  } else {
+                    throw new Error("Generated questionnaire data structure is invalid");
+                  }
                 }
-              } else {
-                // Still getting bootstrap questionnaire, something went wrong
-                throw new Error("Asset selection did not trigger questionnaire regeneration");
+
+                // Still getting bootstrap questionnaire or no questionnaires - continue polling
+                if (attempts < maxAttempts) {
+                  console.log(`⏳ Still generating questionnaire, will retry in ${pollInterval/1000}s...`);
+                  setTimeout(poll, pollInterval);
+                } else {
+                  throw new Error(`Questionnaire generation timed out after ${maxAttempts * pollInterval / 1000} seconds`);
+                }
+              } catch (error) {
+                console.error("❌ Error polling for questionnaire:", error);
+                setState((prev) => ({
+                  ...prev,
+                  isLoading: false,
+                  error: error as Error
+                }));
+                toast({
+                  title: "Questionnaire Generation Failed",
+                  description: `Failed to load questionnaires: ${(error as Error).message}. Please refresh the page.`,
+                  variant: "destructive",
+                });
               }
-            } catch (refreshError) {
-              console.error("Failed to regenerate questionnaires after asset selection:", refreshError);
-              toast({
-                title: "Asset Selection Completed",
-                description: "Assets selected successfully, but questionnaire regeneration failed. Please refresh the page.",
-                variant: "default",
-              });
-              setState((prev) => ({
-                ...prev,
-                isLoading: false,
-                error: new Error("Failed to regenerate questionnaires after asset selection")
-              }));
-            }
-          }, 2000);
+            };
+
+            // Start polling after initial delay
+            setTimeout(poll, pollInterval);
+          };
+
+          pollForNewQuestionnaire();
 
           return; // Exit early for asset selection
         } else {
