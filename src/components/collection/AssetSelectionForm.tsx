@@ -118,8 +118,13 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
 
   // Handle form submission
   const handleSubmit = useCallback(() => {
+    console.log('🔵 AssetSelectionForm.handleSubmit CALLED');
+    console.log('🔵 Selected assets:', selectedAssets);
+    console.log('🔵 Form values:', formValues);
+
     if (selectedAssets.length === 0) {
       // Validation - at least one asset must be selected
+      console.log('❌ Validation failed: No assets selected');
       setValidationError('Please select at least one asset to continue');
       return;
     }
@@ -131,7 +136,9 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
       selected_assets: selectedAssets
     };
 
+    console.log('🔵 Calling onSubmit with data:', submissionData);
     onSubmit(submissionData);
+    console.log('🔵 onSubmit called successfully');
   }, [selectedAssets, onSubmit, formValues]);
 
   // Find the selected_assets question from the form data

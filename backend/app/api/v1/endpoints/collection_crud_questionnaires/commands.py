@@ -196,13 +196,24 @@ async def _background_generate(
         )
 
         if questionnaires:
-            # Extract questions from first questionnaire
-            questions = questionnaires[0].questions if questionnaires else []
+            # Extract questions from ALL questionnaire sections (not just first one)
+            # Bug fix: Previously took only questionnaires[0].questions, losing 83% of questions
+            questions = []
+            for section in questionnaires:
+                if hasattr(section, "questions") and section.questions:
+                    questions.extend(section.questions)
+
+            logger.info(
+                f"Collected {len(questions)} total questions from {len(questionnaires)} sections"
+            )
 
             # Update questionnaire with generated questions AND progress flow status
             async with AsyncSessionLocal() as db:
                 await _update_questionnaire_status(
-                    questionnaire_id, "completed", questions, db=db
+                    questionnaire_id,
+                    "ready",
+                    questions,
+                    db=db,  # Frontend expects "ready"
                 )
 
                 # Progress flow to manual_collection phase now that questionnaire is ready

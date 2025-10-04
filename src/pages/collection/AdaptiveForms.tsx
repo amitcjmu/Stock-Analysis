@@ -28,6 +28,7 @@ import { apiCall } from "@/config/api";
 
 // Import types
 import type { ProgressMilestone } from "@/components/collection/types";
+import { groupQuestionsByAsset } from "@/utils/questionnaireUtils";
 
 // Define types for collection flow
 interface CollectionFlowConfig {
@@ -227,6 +228,102 @@ const AdaptiveForms: React.FC = () => {
     onQuestionnaireGenerationStart: handleQuestionnaireGeneration,
   });
 
+  // Asset selector state for multi-asset questionnaires
+  const [selectedAssetId, setSelectedAssetId] = React.useState<string | null>(null);
+
+  // Auto-show generation modal when completionStatus is "pending"
+  // This must be AFTER useAdaptiveFormFlow hook since it uses completionStatus
+  React.useEffect(() => {
+    if (completionStatus === "pending" && activeFlowId) {
+      setShowGenerationModal(true);
+    } else if (completionStatus === "ready" || completionStatus === "fallback") {
+      setShowGenerationModal(false);
+    }
+  }, [completionStatus, activeFlowId]);
+
+  // Group questions by asset and auto-select first asset
+  // Pass formValues to calculate real-time completion percentage
+  // CRITICAL: Must be defined BEFORE navigation handlers that use it
+  const assetGroups = React.useMemo(() => {
+    if (!formData?.sections) return [];
+
+    // Extract all questions from sections
+    const allQuestions = formData.sections.flatMap(section =>
+      section.fields.map(field => ({
+        field_id: field.id,
+        question_text: field.label,
+        field_type: field.fieldType,
+        required: field.validation?.required,
+        options: field.options,
+        metadata: field.metadata,
+        ...field
+      }))
+    );
+
+    return groupQuestionsByAsset(allQuestions, undefined, formValues);
+  }, [formData, formValues]);
+
+  // Auto-select first asset when groups change (only on initial load)
+  React.useEffect(() => {
+    if (assetGroups.length > 0 && !selectedAssetId) {
+      setSelectedAssetId(assetGroups[0].asset_id);
+    }
+  }, [assetGroups]);
+
+  // Filter form data to show only selected asset's questions
+  const filteredFormData = React.useMemo(() => {
+    if (!formData || !selectedAssetId || assetGroups.length <= 1) {
+      return formData; // No filtering needed for single asset or no selection
+    }
+
+    const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId);
+    if (!selectedGroup) return formData;
+
+    // Filter sections to only include selected asset's questions
+    const filteredSections = formData.sections.map(section => ({
+      ...section,
+      fields: section.fields.filter(field =>
+        selectedGroup.questions.some(q => q.field_id === field.id)
+      )
+    })).filter(section => section.fields.length > 0);
+
+    return {
+      ...formData,
+      sections: filteredSections
+    };
+  }, [formData, selectedAssetId, assetGroups]);
+
+  // Asset navigation handlers - MUST be after assetGroups is defined
+  const handlePreviousAsset = React.useCallback(() => {
+    if (assetGroups.length === 0 || !selectedAssetId) return;
+
+    const currentIndex = assetGroups.findIndex(g => g.asset_id === selectedAssetId);
+    if (currentIndex > 0) {
+      setSelectedAssetId(assetGroups[currentIndex - 1].asset_id);
+      // Scroll to top of form
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [assetGroups, selectedAssetId]);
+
+  const handleNextAsset = React.useCallback(() => {
+    if (assetGroups.length === 0 || !selectedAssetId) return;
+
+    const currentIndex = assetGroups.findIndex(g => g.asset_id === selectedAssetId);
+    if (currentIndex < assetGroups.length - 1) {
+      setSelectedAssetId(assetGroups[currentIndex + 1].asset_id);
+      // Scroll to top of form
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [assetGroups, selectedAssetId]);
+
+  const currentAssetIndex = React.useMemo(() => {
+    if (!selectedAssetId) return -1;
+    return assetGroups.findIndex(g => g.asset_id === selectedAssetId);
+  }, [assetGroups, selectedAssetId]);
+
+  const canNavigatePrevious = currentAssetIndex > 0;
+  const canNavigateNext = currentAssetIndex >= 0 && currentAssetIndex < assetGroups.length - 1;
+
   // Use HTTP polling for real-time updates during workflow initialization
   // CRITICAL FIX: Remove re-initialization calls from polling to prevent loops
   const { isActive: isPollingActive, requestStatusUpdate, flowState } =
@@ -287,15 +384,49 @@ const AdaptiveForms: React.FC = () => {
   }, [handleSave]); // Only log when handleSave changes
 
   // CC: Create a direct save handler to bypass potential prop passing issues
-  const directSaveHandler = React.useCallback(() => {
+  // CRITICAL: Inject selected asset_id before saving for multi-asset forms
+  const directSaveHandler = React.useCallback(async () => {
     console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
+
+    // For multi-asset forms, temporarily add asset_id to formValues
+    if (assetGroups.length > 1 && selectedAssetId && handleFieldChange) {
+      console.log(`💾 Saving progress for asset: ${selectedAssetId}`);
+      // Inject asset_id into form values so backend knows which asset this is for
+      handleFieldChange('asset_id', selectedAssetId);
+    }
+
     if (typeof handleSave === 'function') {
       console.log('🟢 Calling handleSave from direct handler');
-      handleSave();
+      await handleSave();
     } else {
       console.error('❌ handleSave is not available in AdaptiveForms');
     }
-  }, [handleSave]);
+  }, [handleSave, assetGroups.length, selectedAssetId, handleFieldChange]);
+
+  // CC: Wrap handleSubmit to inject asset_id for multi-asset forms
+  const directSubmitHandler = React.useCallback(async () => {
+    console.log('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
+
+    let submissionValues = formValues;
+    // For multi-asset forms, create a submission payload with the correct asset_id
+    if (assetGroups.length > 1 && selectedAssetId) {
+      console.log(`✅ Submitting form for asset: ${selectedAssetId}`);
+      submissionValues = {
+        ...formValues,
+        asset_id: selectedAssetId,
+      };
+    } else {
+      console.log('🟢 Not a multi-asset form, proceeding with regular submit');
+    }
+
+    if (typeof handleSubmit === 'function') {
+      console.log('🟢 Calling handleSubmit from direct handler with submissionValues');
+      await handleSubmit(submissionValues);
+      console.log('🟢 handleSubmit completed');
+    } else {
+      console.error('❌ handleSubmit is not available in AdaptiveForms');
+    }
+  }, [handleSubmit, assetGroups, selectedAssetId, formValues]);
 
   // CRITICAL FIX: Protected initialization function with ref guard
   const protectedInitializeFlow = React.useCallback(async () => {
@@ -460,13 +591,19 @@ const AdaptiveForms: React.FC = () => {
       return;
     }
 
-    // Request deletion with modal confirmation (no pre-hiding)
+    // Find the flow data from blockingFlows to pass to deletion modal
+    const flowToDelete = blockingFlows.find(f =>
+      String(f.flow_id || f.id) === String(flowId)
+    );
+
+    // Request deletion with modal confirmation, passing flow data for display
     await deletionActions.requestDeletion(
       [flowId],
       client.id,
       engagement?.id,
       'manual',
-      user?.id
+      user?.id,
+      flowToDelete // Pass flow data to avoid "Unknown Flow" in modal
     );
   };
 
@@ -543,20 +680,45 @@ const AdaptiveForms: React.FC = () => {
   // NEVER block if we have a flowId - we're continuing an existing flow
   if (hasBlockingFlows && !flowId && !skipIncompleteCheck) {
     return (
-      <CollectionPageLayout
-        title="Adaptive Data Collection"
-        description="Collection workflow blocked - manage existing flows"
-      >
-        <CollectionUploadBlocker
-          incompleteFlows={blockingFlows}
-          onContinueFlow={handleContinueFlow}
-          onDeleteFlow={handleDeleteFlow}
-          onViewDetails={handleViewFlowDetails}
-          onManageFlows={handleManageFlows}
-          onRefresh={refetchFlows}
-          isLoading={isDeleting}
+      <>
+        <CollectionPageLayout
+          title="Adaptive Data Collection"
+          description="Collection workflow blocked - manage existing flows"
+        >
+          <CollectionUploadBlocker
+            incompleteFlows={blockingFlows}
+            onContinueFlow={handleContinueFlow}
+            onDeleteFlow={handleDeleteFlow}
+            onViewDetails={handleViewFlowDetails}
+            onManageFlows={handleManageFlows}
+            onRefresh={refetchFlows}
+            isLoading={isDeleting}
+          />
+        </CollectionPageLayout>
+
+        {/* Flow Deletion Modal - must be available even when blocking */}
+        <FlowDeletionModal
+          open={deletionState.isModalOpen}
+          candidates={deletionState.candidates}
+          deletionSource={deletionState.deletionSource}
+          isDeleting={deletionState.isDeleting}
+          onConfirm={async () => {
+            // Hide candidates only after user confirms
+            setDeletingFlows((prev) => {
+              const next = new Set(prev);
+              deletionState.candidates.forEach((candidate) => {
+                const normalizedId = String(candidate.flowId || '');
+                next.add(normalizedId);
+              });
+              return next;
+            });
+            await deletionActions.confirmDeletion();
+          }}
+          onCancel={() => {
+            deletionActions.cancelDeletion();
+          }}
         />
-      </CollectionPageLayout>
+      </>
     );
   }
 
@@ -858,8 +1020,37 @@ const AdaptiveForms: React.FC = () => {
           className="mb-6"
         />
       )}
+
+      {/* Asset Selector - Show when multiple assets */}
+      {assetGroups.length > 1 && (
+        <div className="mb-6 p-4 border rounded-lg bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Asset to Answer Questions For:
+              </label>
+              <select
+                value={selectedAssetId || ''}
+                onChange={(e) => setSelectedAssetId(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {assetGroups.map((group) => (
+                  <option key={group.asset_id} value={group.asset_id}>
+                    {group.asset_name} - {group.completion_percentage || 0}% Complete
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="ml-4 text-sm text-gray-600">
+              <div>Asset {assetGroups.findIndex(g => g.asset_id === selectedAssetId) + 1} of {assetGroups.length}</div>
+              <div className="font-medium">{assetGroups.filter(g => g.completion_percentage === 100).length} of {assetGroups.length} Complete</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AdaptiveFormContainer
-        formData={formData}
+        formData={filteredFormData || formData}
         formValues={formValues}
         validation={validation}
         milestones={progressMilestones}
@@ -868,9 +1059,50 @@ const AdaptiveForms: React.FC = () => {
         onFieldChange={handleFieldChange}
         onValidationChange={handleValidationChange}
         onSave={directSaveHandler || handleSave}
-        onSubmit={handleSubmit}
+        onSubmit={directSubmitHandler || handleSubmit}
         onCancel={() => navigate("/collection")}
       />
+
+      {/* Asset Navigation Buttons - Show when multiple assets */}
+      {assetGroups.length > 1 && (
+        <div className="mt-6 flex items-center justify-between p-4 border-t">
+          <button
+            onClick={handlePreviousAsset}
+            disabled={!canNavigatePrevious || isLoading || isSaving}
+            className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+              canNavigatePrevious && !isLoading && !isSaving
+                ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Previous Asset
+          </button>
+
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">
+              {assetGroups.filter(g => g.completion_percentage === 100).length} of {assetGroups.length} Assets Complete
+            </span>
+          </div>
+
+          <button
+            onClick={handleNextAsset}
+            disabled={!canNavigateNext || isLoading || isSaving}
+            className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+              canNavigateNext && !isLoading && !isSaving
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Next Asset
+            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Flow Deletion Modal */}
       <FlowDeletionModal

@@ -118,8 +118,11 @@ export const convertQuestionToFormField = (
     return undefined;
   })();
 
-  // Use field_id if available, otherwise generate a default
-  const fieldId = question.field_id || `question_${index + 1}`;
+  // CRITICAL: Generate unique field ID for multi-asset questions
+  // If question has asset_id in metadata, prepend it to make the ID unique
+  const assetId = question.metadata?.asset_id;
+  const baseFieldId = question.field_id || `question_${index + 1}`;
+  const fieldId = assetId ? `${assetId}__${baseFieldId}` : baseFieldId;
 
   const fieldOptions = normalizeOptions(question.options) || (defaultKey ? getDefaultFieldOptions(defaultKey) : undefined);
 
@@ -141,7 +144,11 @@ export const convertQuestionToFormField = (
     businessImpactScore: question.business_impact_score || 0.7,
     options: fieldOptions,
     helpText: question.help_text || question.description,
-    metadata: question.metadata,  // Pass through metadata for asset selector
+    metadata: {
+      ...question.metadata,
+      asset_id: assetId,  // Ensure asset_id is in metadata for grouping
+      original_field_id: baseFieldId  // Store original field_id for backend submission
+    },
     multiple: question.multiple || mappedFieldType === 'multiselect',  // Ensure multiselect is flagged
     placeholder: question.placeholder  // Pass through placeholder text
   };

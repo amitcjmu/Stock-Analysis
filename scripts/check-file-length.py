@@ -46,9 +46,18 @@ def get_staged_python_files() -> List[str]:
 
 def should_exclude(file_path: str) -> bool:
     """Check if file should be excluded from length check."""
-    path = Path(file_path)
+    path_str = str(Path(file_path))
     for pattern in EXCLUDE_PATTERNS:
-        if path.match(pattern):
+        # Use glob-style matching for patterns with wildcards
+        if '*' in pattern:
+            # Convert glob pattern to match anywhere in path
+            import fnmatch
+            if fnmatch.fnmatch(path_str, pattern):
+                return True
+            # Also try matching against path parts
+            if fnmatch.fnmatch(path_str, '*/' + pattern):
+                return True
+        elif pattern in path_str:
             return True
     return False
 

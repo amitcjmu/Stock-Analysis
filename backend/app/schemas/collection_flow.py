@@ -47,6 +47,9 @@ class CollectionFlowResponse(BaseModel):
     """Schema for collection flow response"""
 
     id: str
+    flow_id: Optional[str] = (
+        None  # CRITICAL: Master flow ID - required for delete operations
+    )
     client_account_id: str
     engagement_id: str
     status: str

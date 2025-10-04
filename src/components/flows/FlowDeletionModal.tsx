@@ -119,6 +119,10 @@ export const FlowDeletionModal: React.FC<FlowDeletionModalProps> = ({
                       <span className="font-medium">{candidates[0].flow_name}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-gray-600">Flow ID:</span>
+                      <span className="font-mono text-xs">{candidates[0].flowId}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-600">Status:</span>
                       <Badge variant="outline" className="text-xs">
                         {candidates[0].status.toUpperCase()}

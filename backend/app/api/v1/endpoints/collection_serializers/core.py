@@ -79,7 +79,14 @@ def build_collection_flow_response(
         }
 
     response_dict = {
-        "id": str(collection_flow.flow_id),
+        "id": (
+            str(collection_flow.flow_id)
+            if collection_flow.flow_id
+            else str(collection_flow.id)
+        ),
+        "flow_id": (
+            str(collection_flow.flow_id) if collection_flow.flow_id else None
+        ),  # CRITICAL: Include flow_id for delete operations
         "client_account_id": str(collection_flow.client_account_id),
         "engagement_id": str(collection_flow.engagement_id),
         "status": collection_flow.status,

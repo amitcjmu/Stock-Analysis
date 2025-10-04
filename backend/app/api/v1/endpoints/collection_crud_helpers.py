@@ -128,8 +128,8 @@ async def create_response_records(
     response_records = []
     logger.info(f"Processing {len(form_responses)} form responses")
 
-    # Convert asset_id to UUID if provided
-    asset_uuid = validate_uuid(asset_id, "asset_id") if asset_id else None
+    # Convert asset_id to UUID if provided (fallback for non-composite field IDs)
+    default_asset_uuid = validate_uuid(asset_id, "asset_id") if asset_id else None
 
     for field_id, value in form_responses.items():
         # Validate field_id
@@ -146,6 +146,20 @@ async def create_response_records(
             f"Processing response for field {field_id}: {type(value).__name__}"
         )
 
+        # CRITICAL FIX: Extract asset_id from composite field ID (format: {asset_id}__{field_id})
+        # This handles multi-asset forms where each question has a unique ID prefixed with asset_id
+        response_asset_uuid = default_asset_uuid
+        if "__" in field_id:
+            parts = field_id.split("__", 1)
+            potential_asset_id = parts[0]
+            # Validate it's a UUID
+            validated_uuid = validate_uuid(potential_asset_id, "extracted_asset_id")
+            if validated_uuid:
+                response_asset_uuid = validated_uuid
+                logger.info(
+                    f"Extracted asset_id from composite field ID: {potential_asset_id}"
+                )
+
         # Lookup gap by field_name to establish gap_id linkage
         gap = gap_index.get(field_id)
         gap_id = gap.id if gap else None
@@ -161,7 +175,7 @@ async def create_response_records(
         response = CollectionQuestionnaireResponse(
             collection_flow_id=flow.id,
             gap_id=gap_id,  # CRITICAL: Link response to gap for asset write-back
-            asset_id=asset_uuid,  # Link response directly to asset
+            asset_id=response_asset_uuid,  # Link response directly to asset (extracted per field)
             questionnaire_type="adaptive_form",
             question_category=form_metadata.get("form_id", "general"),
             question_id=field_id,
@@ -179,7 +193,9 @@ async def create_response_records(
                 "application_id": form_metadata.get(
                     "application_id"
                 ),  # Keep for backward compatibility
-                "asset_id": asset_id,  # Also store in metadata for redundancy
+                "asset_id": (
+                    str(response_asset_uuid) if response_asset_uuid else None
+                ),  # Store extracted per-field asset_id
                 "completion_percentage": form_metadata.get("completion_percentage"),
                 "submitted_at": form_metadata.get("submitted_at"),
                 "gap_id": (
