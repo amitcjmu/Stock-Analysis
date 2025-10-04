@@ -105,7 +105,9 @@ class ProgrammaticGapScanner:
                     "summary": {
                         "total_gaps": 0,
                         "assets_analyzed": 0,
+                        "critical_gaps": 0,
                         "execution_time_ms": 0,
+                        "gaps_persisted": 0,
                     },
                     "status": "SCAN_FAILED",
                     "error": f"Flow {flow_uuid} not found or not accessible",
@@ -125,7 +127,9 @@ class ProgrammaticGapScanner:
                     "summary": {
                         "total_gaps": 0,
                         "assets_analyzed": 0,
+                        "critical_gaps": 0,
                         "execution_time_ms": 0,
+                        "gaps_persisted": 0,
                     },
                     "status": "SCAN_FAILED",
                     "error": f"Assets {invalid_assets} not selected for this flow",
@@ -152,7 +156,9 @@ class ProgrammaticGapScanner:
                         "summary": {
                             "total_gaps": 0,
                             "assets_analyzed": 0,
+                            "critical_gaps": 0,
                             "execution_time_ms": 0,
+                            "gaps_persisted": 0,
                         },
                         "status": "SCAN_COMPLETE_NO_ASSETS",
                     }
@@ -225,7 +231,9 @@ class ProgrammaticGapScanner:
                 "summary": {
                     "total_gaps": 0,
                     "assets_analyzed": 0,
+                    "critical_gaps": 0,
                     "execution_time_ms": execution_time_ms,
+                    "gaps_persisted": 0,
                 },
                 "status": "SCAN_FAILED",
                 "error": str(e),

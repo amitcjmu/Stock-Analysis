@@ -169,6 +169,7 @@ async def _update_collection_config(
     action: str,
 ) -> None:
     """Update collection flow JSON config with selected applications."""
+    # Update collection_config
     existing_config = collection_flow.collection_config or {}
     merged_config = existing_config.copy()
     merged_config.update(
@@ -181,6 +182,17 @@ async def _update_collection_config(
         }
     )
     collection_flow.collection_config = merged_config
+
+    # CRITICAL FIX (Bug #2): Also update flow_metadata for gap scanner
+    # The ProgrammaticGapScanner reads from flow_metadata.selected_asset_ids
+    existing_metadata = collection_flow.flow_metadata or {}
+    merged_metadata = existing_metadata.copy()
+    merged_metadata.update(
+        {
+            "selected_asset_ids": normalized_ids,  # Gap scanner expects this field
+        }
+    )
+    collection_flow.flow_metadata = merged_metadata
 
 
 async def _update_config_with_results(
