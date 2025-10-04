@@ -135,54 +135,53 @@ class ProgrammaticGapScanner:
                     "error": f"Assets {invalid_assets} not selected for this flow",
                 }
 
-            # ATOMIC TRANSACTION: Clear existing gaps + insert/upsert new gaps
-            async with db.begin():
-                # CRITICAL: Wipe existing gaps for THIS flow (tenant-scoped, never global)
-                await self._clear_existing_gaps(flow_uuid, db)
+            # CRITICAL: Wipe existing gaps for THIS flow (tenant-scoped, never global)
+            await self._clear_existing_gaps(flow_uuid, db)
 
-                # Load assets with tenant scoping
-                stmt = select(Asset).where(
-                    Asset.id.in_(asset_uuids),
-                    Asset.client_account_id == client_uuid,
-                    Asset.engagement_id == engagement_uuid,
-                )
-                result = await db.execute(stmt)
-                assets = list(result.scalars().all())
+            # Load assets with tenant scoping
+            stmt = select(Asset).where(
+                Asset.id.in_(asset_uuids),
+                Asset.client_account_id == client_uuid,
+                Asset.engagement_id == engagement_uuid,
+            )
+            result = await db.execute(stmt)
+            assets = list(result.scalars().all())
 
-                if not assets:
-                    logger.warning("⚠️ No assets found for scan")
-                    return {
-                        "gaps": [],
-                        "summary": {
-                            "total_gaps": 0,
-                            "assets_analyzed": 0,
-                            "critical_gaps": 0,
-                            "execution_time_ms": 0,
-                            "gaps_persisted": 0,
-                        },
-                        "status": "SCAN_COMPLETE_NO_ASSETS",
-                    }
+            if not assets:
+                logger.warning("⚠️ No assets found for scan")
+                return {
+                    "gaps": [],
+                    "summary": {
+                        "total_gaps": 0,
+                        "assets_analyzed": 0,
+                        "critical_gaps": 0,
+                        "execution_time_ms": 0,
+                        "gaps_persisted": 0,
+                    },
+                    "status": "SCAN_COMPLETE_NO_ASSETS",
+                }
 
-                logger.info(
-                    f"📦 Loaded {len(assets)} assets: {[a.name for a in assets]}"
-                )
+            logger.info(f"📦 Loaded {len(assets)} assets: {[a.name for a in assets]}")
 
-                # Compare against critical attributes
-                attribute_mapping = CriticalAttributesDefinition.get_attribute_mapping()
-                all_gaps = []
+            # Compare against critical attributes
+            attribute_mapping = CriticalAttributesDefinition.get_attribute_mapping()
+            all_gaps = []
 
-                for asset in assets:
-                    asset_gaps = self._identify_gaps_for_asset(asset, attribute_mapping)
-                    all_gaps.extend(asset_gaps)
+            for asset in assets:
+                asset_gaps = self._identify_gaps_for_asset(asset, attribute_mapping)
+                all_gaps.extend(asset_gaps)
 
-                logger.info(f"📊 Identified {len(all_gaps)} total gaps")
+            logger.info(f"📊 Identified {len(all_gaps)} total gaps")
 
-                # Persist gaps to database with deduplication (upsert)
-                gaps_persisted = await self._persist_gaps_with_dedup(
-                    all_gaps, flow_uuid, db
-                )
+            # Persist gaps to database with deduplication (upsert)
+            gaps_persisted = await self._persist_gaps_with_dedup(
+                all_gaps, flow_uuid, db
+            )
 
-                logger.info(f"💾 Persisted {gaps_persisted} gaps to database")
+            logger.info(f"💾 Persisted {gaps_persisted} gaps to database")
+
+            # Commit the transaction (FastAPI manages the session)
+            await db.commit()
 
             execution_time_ms = int((time.time() - start_time) * 1000)
 
@@ -244,8 +243,7 @@ class ProgrammaticGapScanner:
         CRITICAL: Delete existing gaps for THIS flow only (tenant-scoped, never global).
         Allows re-running scan without duplicates.
 
-        NOTE: This is called within the atomic transaction in scan_assets_for_gaps()
-        so no explicit commit here.
+        NOTE: This is called within scan_assets_for_gaps() which commits the transaction.
         """
         stmt = delete(CollectionDataGap).where(
             CollectionDataGap.collection_flow_id == collection_flow_id
