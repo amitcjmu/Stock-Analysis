@@ -167,11 +167,23 @@ class GapAnalysisService:
             UUID(aid) if isinstance(aid, str) else aid for aid in selected_asset_ids
         ]
 
+        # Convert client_account_id and engagement_id to UUID if they're strings
+        client_uuid = (
+            UUID(self.client_account_id)
+            if isinstance(self.client_account_id, str)
+            else self.client_account_id
+        )
+        engagement_uuid = (
+            UUID(self.engagement_id)
+            if isinstance(self.engagement_id, str)
+            else self.engagement_id
+        )
+
         stmt = select(Asset).where(
             and_(
                 Asset.id.in_(asset_uuids),
-                Asset.client_account_id == str(self.client_account_id),
-                Asset.engagement_id == str(self.engagement_id),
+                Asset.client_account_id == client_uuid,
+                Asset.engagement_id == engagement_uuid,
             )
         )
         result = await db.execute(stmt)

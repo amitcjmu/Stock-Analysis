@@ -22,7 +22,8 @@ export interface UseFlowDeletionActions {
     clientAccountId: string,
     engagementId?: string,
     deletion_source?: FlowDeletionRequest['deletion_source'],
-    user_id?: string
+    user_id?: string,
+    flowData?: any // Optional: pass flow data directly to avoid lookup
   ) => Promise<void>;
   confirmDeletion: () => Promise<void>;
   cancelDeletion: () => void;
@@ -52,46 +53,75 @@ export function useFlowDeletion(
     clientAccountId: string,
     engagementId?: string,
     deletion_source: FlowDeletionRequest['deletion_source'] = 'manual',
-    user_id?: string
+    user_id?: string,
+    flowData?: any // Optional: flow data from parent component
   ) => {
     try {
-      // Get flow details for confirmation
-      const candidates = await flowDeletionService.identifyDeletionCandidates(
-        clientAccountId,
-        engagementId
-      );
+      let requestedCandidates: FlowDeletionCandidate[] = [];
 
-      // Filter to only requested flows
-      const requestedCandidates = candidates.filter(c =>
-        flowIds.includes(c.flowId)
-      );
+      // If flow data is provided directly, use it to build candidates
+      if (flowData) {
+        requestedCandidates = [{
+          flowId: flowData.flow_id || flowData.id,
+          flow_name: flowData.flow_name || 'Collection Flow',
+          status: flowData.status || 'unknown',
+          current_phase: flowData.current_phase || 'unknown',
+          progress_percentage: flowData.progress || flowData.progress_percentage || 0,
+          created_at: flowData.created_at || new Date().toISOString(),
+          updated_at: flowData.updated_at || new Date().toISOString(),
+          reason_for_deletion: deletion_source === 'manual' ? 'user_requested' : 'cleanup_recommended',
+          auto_cleanup_eligible: true,
+          deletion_impact: {
+            data_to_delete: {
+              workflow_state: 1,
+              import_sessions: 0,
+              field_mappings: 0,
+              assets: 0,
+              dependencies: 0,
+              shared_memory_refs: 0
+            },
+            estimated_cleanup_time: '30s'
+          }
+        }];
+      } else {
+        // Fallback: Get flow details from API
+        const candidates = await flowDeletionService.identifyDeletionCandidates(
+          clientAccountId,
+          engagementId
+        );
 
-      // If no candidates found, create minimal candidates for requested IDs
-      if (requestedCandidates.length === 0 && flowIds.length > 0) {
-        flowIds.forEach(flowId => {
-          requestedCandidates.push({
-            flowId,
-            flow_name: 'Unknown Flow',
-            status: 'unknown',
-            current_phase: 'unknown',
-            progress_percentage: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            reason_for_deletion: deletion_source === 'manual' ? 'user_requested' : 'cleanup_recommended',
-            auto_cleanup_eligible: true,
-            deletion_impact: {
-              data_to_delete: {
-                workflow_state: 1,
-                import_sessions: 0,
-                field_mappings: 0,
-                assets: 0,
-                dependencies: 0,
-                shared_memory_refs: 0
-              },
-              estimated_cleanup_time: '30s'
-            }
+        // Filter to only requested flows
+        requestedCandidates = candidates.filter(c =>
+          flowIds.includes(c.flowId)
+        );
+
+        // If no candidates found, create minimal candidates for requested IDs
+        if (requestedCandidates.length === 0 && flowIds.length > 0) {
+          flowIds.forEach(flowId => {
+            requestedCandidates.push({
+              flowId,
+              flow_name: 'Unknown Flow',
+              status: 'unknown',
+              current_phase: 'unknown',
+              progress_percentage: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              reason_for_deletion: deletion_source === 'manual' ? 'user_requested' : 'cleanup_recommended',
+              auto_cleanup_eligible: true,
+              deletion_impact: {
+                data_to_delete: {
+                  workflow_state: 1,
+                  import_sessions: 0,
+                  field_mappings: 0,
+                  assets: 0,
+                  dependencies: 0,
+                  shared_memory_refs: 0
+                },
+                estimated_cleanup_time: '30s'
+              }
+            });
           });
-        });
+        }
       }
 
       // Store deletion parameters

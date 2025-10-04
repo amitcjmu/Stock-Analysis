@@ -272,9 +272,14 @@ class MasterFlowService:
             raise
 
     async def soft_delete_flow(self, flow_id: str) -> Dict[str, Any]:
-        """Soft delete a master flow and its child flows"""
+        """Soft delete a master flow and its child flows.
+
+        Handles both master flow IDs and child flow IDs intelligently:
+        - If flow_id is a master flow ID, deletes it directly
+        - If flow_id is a child flow ID, looks up the master_flow_id and deletes that
+        """
         try:
-            # Get the master flow
+            # First, try to find master flow with this ID
             stmt = select(CrewAIFlowStateExtensions).where(
                 CrewAIFlowStateExtensions.flow_id == uuid.UUID(flow_id),
                 CrewAIFlowStateExtensions.client_account_id
@@ -282,6 +287,32 @@ class MasterFlowService:
             )
             result = await self.db.execute(stmt)
             master_flow = result.scalar_one_or_none()
+
+            # If not found as master flow, check if it's a child flow ID
+            if not master_flow:
+                # Try to find collection flow with this flow_id
+                from app.models.collection_flow import CollectionFlow
+
+                collection_stmt = select(CollectionFlow).where(
+                    CollectionFlow.flow_id == uuid.UUID(flow_id),
+                    CollectionFlow.client_account_id
+                    == uuid.UUID(self.client_account_id),
+                )
+                collection_result = await self.db.execute(collection_stmt)
+                collection_flow = collection_result.scalar_one_or_none()
+
+                if collection_flow and collection_flow.master_flow_id:
+                    # Found as child flow - use its master_flow_id
+                    flow_id = str(collection_flow.master_flow_id)
+
+                    # Now get the actual master flow
+                    stmt = select(CrewAIFlowStateExtensions).where(
+                        CrewAIFlowStateExtensions.flow_id == uuid.UUID(flow_id),
+                        CrewAIFlowStateExtensions.client_account_id
+                        == uuid.UUID(self.client_account_id),
+                    )
+                    result = await self.db.execute(stmt)
+                    master_flow = result.scalar_one_or_none()
 
             if not master_flow:
                 raise HTTPException(status_code=404, detail="Master flow not found")
@@ -293,8 +324,9 @@ class MasterFlowService:
             master_flow.flow_status = "deleted"
             master_flow.updated_at = datetime.utcnow()
 
-            # Mark all child flows (discovery flows) as deleted
+            # Mark all child flows as deleted
             child_flows_deleted = 0
+
             if master_flow.flow_type == "discovery":
                 # Get all discovery flows with this master_flow_id
                 discovery_flows = await self.discovery_repo.get_by_master_flow_id(
@@ -313,6 +345,23 @@ class MasterFlowService:
                         flow.status = "deleted"
                         flow.updated_at = datetime.utcnow()
                         child_flows_deleted += 1
+
+            elif master_flow.flow_type == "collection":
+                # Get all collection flows with this master_flow_id
+                from app.models.collection_flow import CollectionFlow
+
+                collection_stmt = select(CollectionFlow).where(
+                    CollectionFlow.master_flow_id == uuid.UUID(flow_id),
+                    CollectionFlow.client_account_id
+                    == uuid.UUID(self.client_account_id),
+                )
+                collection_result = await self.db.execute(collection_stmt)
+                collection_flows = collection_result.scalars().all()
+
+                for flow in collection_flows:
+                    flow.status = "cancelled"  # Use 'cancelled' - 'deleted' not in collectionflowstatus enum
+                    flow.updated_at = datetime.utcnow()
+                    child_flows_deleted += 1
 
             # Create deletion audit record
             from app.models.flow_deletion_audit import FlowDeletionAudit

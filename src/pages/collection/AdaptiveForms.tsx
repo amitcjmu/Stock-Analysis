@@ -227,6 +227,16 @@ const AdaptiveForms: React.FC = () => {
     onQuestionnaireGenerationStart: handleQuestionnaireGeneration,
   });
 
+  // Auto-show generation modal when completionStatus is "pending"
+  // This must be AFTER useAdaptiveFormFlow hook since it uses completionStatus
+  React.useEffect(() => {
+    if (completionStatus === "pending" && activeFlowId) {
+      setShowGenerationModal(true);
+    } else if (completionStatus === "ready" || completionStatus === "fallback") {
+      setShowGenerationModal(false);
+    }
+  }, [completionStatus, activeFlowId]);
+
   // Use HTTP polling for real-time updates during workflow initialization
   // CRITICAL FIX: Remove re-initialization calls from polling to prevent loops
   const { isActive: isPollingActive, requestStatusUpdate, flowState } =
@@ -460,13 +470,19 @@ const AdaptiveForms: React.FC = () => {
       return;
     }
 
-    // Request deletion with modal confirmation (no pre-hiding)
+    // Find the flow data from blockingFlows to pass to deletion modal
+    const flowToDelete = blockingFlows.find(f =>
+      String(f.flow_id || f.id) === String(flowId)
+    );
+
+    // Request deletion with modal confirmation, passing flow data for display
     await deletionActions.requestDeletion(
       [flowId],
       client.id,
       engagement?.id,
       'manual',
-      user?.id
+      user?.id,
+      flowToDelete // Pass flow data to avoid "Unknown Flow" in modal
     );
   };
 
@@ -543,20 +559,45 @@ const AdaptiveForms: React.FC = () => {
   // NEVER block if we have a flowId - we're continuing an existing flow
   if (hasBlockingFlows && !flowId && !skipIncompleteCheck) {
     return (
-      <CollectionPageLayout
-        title="Adaptive Data Collection"
-        description="Collection workflow blocked - manage existing flows"
-      >
-        <CollectionUploadBlocker
-          incompleteFlows={blockingFlows}
-          onContinueFlow={handleContinueFlow}
-          onDeleteFlow={handleDeleteFlow}
-          onViewDetails={handleViewFlowDetails}
-          onManageFlows={handleManageFlows}
-          onRefresh={refetchFlows}
-          isLoading={isDeleting}
+      <>
+        <CollectionPageLayout
+          title="Adaptive Data Collection"
+          description="Collection workflow blocked - manage existing flows"
+        >
+          <CollectionUploadBlocker
+            incompleteFlows={blockingFlows}
+            onContinueFlow={handleContinueFlow}
+            onDeleteFlow={handleDeleteFlow}
+            onViewDetails={handleViewFlowDetails}
+            onManageFlows={handleManageFlows}
+            onRefresh={refetchFlows}
+            isLoading={isDeleting}
+          />
+        </CollectionPageLayout>
+
+        {/* Flow Deletion Modal - must be available even when blocking */}
+        <FlowDeletionModal
+          open={deletionState.isModalOpen}
+          candidates={deletionState.candidates}
+          deletionSource={deletionState.deletionSource}
+          isDeleting={deletionState.isDeleting}
+          onConfirm={async () => {
+            // Hide candidates only after user confirms
+            setDeletingFlows((prev) => {
+              const next = new Set(prev);
+              deletionState.candidates.forEach((candidate) => {
+                const normalizedId = String(candidate.flowId || '');
+                next.add(normalizedId);
+              });
+              return next;
+            });
+            await deletionActions.confirmDeletion();
+          }}
+          onCancel={() => {
+            deletionActions.cancelDeletion();
+          }}
         />
-      </CollectionPageLayout>
+      </>
     );
   }
 
