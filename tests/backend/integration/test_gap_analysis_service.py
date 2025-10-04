@@ -36,13 +36,9 @@ async def test_collection_flow(db_session: AsyncSession):
     flow = CollectionFlow(
         id=flow_id,
         flow_id=flow_id,  # Add flow_id (required field)
-        user_id=UUID(
-            "33333333-3333-3333-3333-333333333333"
-        ),  # Add user_id (required field)
         client_account_id=UUID("11111111-1111-1111-1111-111111111111"),
         engagement_id=UUID("22222222-2222-2222-2222-222222222222"),
         flow_name="Test Gap Analysis Flow",
-        automation_tier="tier_2",  # Add automation_tier (required field)
         current_phase="gap_analysis",
         status="gap_analysis",
     )
@@ -258,7 +254,9 @@ class TestGapAnalysisService:
             "summary": {"total_gaps": 3, "assets_analyzed": 3},
         }
 
-        gaps_count = await service._persist_gaps(result_dict, test_assets, db_session)
+        gaps_count = await service._persist_gaps(
+            result_dict, test_assets, db_session
+        )
 
         assert gaps_count == 3
 

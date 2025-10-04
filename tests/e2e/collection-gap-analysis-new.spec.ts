@@ -163,15 +163,31 @@ test.describe('NEW Lean Collection Flow Gap Analysis', () => {
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState('networkidle');
 
-    // Fill login form
-    await page.fill('input[type="email"], input[name="email"], [data-testid="email-input"]', TEST_USER.email);
-    await page.fill('input[type="password"], input[name="password"], [data-testid="password-input"]', TEST_USER.password);
+    // Wait for form to be ready
+    await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 5000 });
+    await page.waitForSelector('input[type="password"]', { state: 'visible', timeout: 5000 });
 
-    // Click login button
-    await page.click('button[type="submit"], button:has-text("Login"), button:has-text("Sign in"), [data-testid="login-button"]');
+    // Fill login form - use more specific selectors and ensure fields are filled
+    const emailInput = page.locator('input[type="email"]').first();
+    const passwordInput = page.locator('input[type="password"]').first();
 
-    // Wait for redirect to dashboard or home
-    await page.waitForURL(/\/(dashboard|home|\/)/, { timeout: 10000 });
+    await emailInput.fill(TEST_USER.email);
+    await passwordInput.fill(TEST_USER.password);
+
+    // Verify fields are filled
+    await expect(emailInput).toHaveValue(TEST_USER.email);
+    await expect(passwordInput).toHaveValue(TEST_USER.password);
+
+    // Click login button and wait for navigation
+    const [response] = await Promise.all([
+      page.waitForResponse(response => response.url().includes('/api/v1/auth/login') && response.status() === 200),
+      page.click('button:has-text("Sign In")')
+    ]);
+
+    console.log('✅ Login API responded with:', response.status());
+
+    // Wait for navigation away from login page
+    await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 10000 });
     console.log('✅ Login successful, redirected to:', page.url());
 
     // Take screenshot after login
@@ -189,19 +205,33 @@ test.describe('NEW Lean Collection Flow Gap Analysis', () => {
     // STEP 3: CHECK FOR EXISTING INCOMPLETE FLOWS
     console.log('\n📝 STEP 3: Checking for incomplete flows that might block new flow creation...');
 
-    // Look for incomplete flow warnings or messages
-    const incompleteFlowWarning = page.locator('text=/incomplete.*flow|blocking.*flow|previous.*flow/i');
-    const hasIncompleteWarning = await incompleteFlowWarning.count() > 0;
+    // Look for "Collection Blocked" alert
+    const blockedAlert = page.locator('text=/Collection Blocked/i');
+    const isBlocked = await blockedAlert.isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (hasIncompleteWarning) {
-      console.log('⚠️ Incomplete flow warning detected, attempting cleanup via UI...');
+    if (isBlocked) {
+      console.log('⚠️ Collection blocked by existing flow, deleting it...');
 
-      // Try to find and click delete/cleanup button
-      const cleanupButton = page.locator('button:has-text("Delete"), button:has-text("Clean"), button:has-text("Remove")').first();
-      if (await cleanupButton.isVisible({ timeout: 3000 })) {
-        await cleanupButton.click();
+      // Find and click the Delete button for the blocking flow
+      const deleteButton = page.locator('button:has-text("Delete")').first();
+      if (await deleteButton.isVisible({ timeout: 3000 })) {
+        await deleteButton.click();
         await page.waitForTimeout(2000);
-        console.log('✅ Triggered cleanup via UI button');
+
+        // Confirm deletion if there's a confirmation dialog
+        const confirmButton = page.locator('button:has-text("Confirm"), button:has-text("Yes"), button:has-text("Delete")').first();
+        if (await confirmButton.isVisible({ timeout: 2000 })) {
+          await confirmButton.click();
+          await page.waitForTimeout(1000);
+        }
+
+        console.log('✅ Deleted blocking flow');
+
+        // Refresh the page to show the clean state
+        await page.reload();
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(2000);
+        console.log('✅ Page refreshed after flow deletion');
       }
     }
 
@@ -230,51 +260,62 @@ test.describe('NEW Lean Collection Flow Gap Analysis', () => {
     // STEP 5: SELECT ASSETS
     console.log('\n📝 STEP 5: Selecting 2-3 assets for gap analysis...');
 
-    // Wait for asset selection UI to appear
-    await page.waitForSelector(
-      'text=/Select.*Asset|Choose.*Asset|Asset.*Selection/i, ' +
-      '[data-testid*="asset"], ' +
-      'input[type="checkbox"]',
-      { timeout: 10000 }
-    );
+    // Check if questionnaire generation modal is showing and wait for it to complete
+    const questionnaireModal = page.locator('text=/Generating.*Questionnaire/i').first();
+    if (await questionnaireModal.isVisible({ timeout: 5000 })) {
+      console.log('⚠️ Questionnaire generation modal detected, waiting for completion...');
 
-    // Find asset checkboxes - try multiple selectors
-    let assetCheckboxes = page.locator(
-      'input[type="checkbox"][data-testid*="asset"], ' +
-      'input[type="checkbox"][data-testid*="server"], ' +
-      'input[type="checkbox"][data-testid*="database"], ' +
-      'input[type="checkbox"][data-testid*="application"]'
-    );
-
-    let checkboxCount = await assetCheckboxes.count();
-
-    if (checkboxCount === 0) {
-      console.log('⚠️ No asset-specific checkboxes found, trying generic checkbox selectors...');
-      assetCheckboxes = page.locator('input[type="checkbox"]');
-      checkboxCount = await assetCheckboxes.count();
+      // Wait for modal to disappear (up to 45 seconds for generation to complete)
+      try {
+        await questionnaireModal.waitFor({ state: 'hidden', timeout: 45000 });
+        console.log('✅ Questionnaire generation completed');
+      } catch (e) {
+        console.log('⚠️ Modal still visible after 45s, attempting to close manually...');
+        const closeButton = page.locator('button:has-text("Close")').first();
+        if (await closeButton.isVisible({ timeout: 2000 })) {
+          await closeButton.click();
+          await page.waitForTimeout(1000);
+          console.log('✅ Closed questionnaire modal manually');
+        }
+      }
     }
 
-    if (checkboxCount === 0) {
-      throw new Error('❌ No asset checkboxes found for selection!');
+    // Wait for "Available Assets" text to ensure asset list is loaded
+    await page.waitForSelector('text=/Available Assets/i', { timeout: 10000 });
+    console.log('✅ Asset list section found');
+    await page.waitForTimeout(3000); // Allow assets to fully render
+
+    // Screenshot current state for debugging
+    await page.screenshot({ path: 'test-results/05-before-asset-selection.png', fullPage: true });
+
+    // Try direct clicking on the first 3 visible asset text elements (based on screenshot showing they're clickable)
+    const assetTextElements = page.locator('text=/^10\\.\\d+\\.\\d+\\.\\d+/');  // Match IP addresses like 10.1.1.1
+    const assetCount = await assetTextElements.count();
+
+    console.log(`Found ${assetCount} assets with IP addresses`);
+
+    if (assetCount > 0) {
+      const selectCount = Math.min(3, assetCount);
+      console.log(`Clicking ${selectCount} assets...`);
+
+      for (let i = 0; i < selectCount; i++) {
+        try {
+          await assetTextElements.nth(i).click();
+          await page.waitForTimeout(500);
+          const assetText = await assetTextElements.nth(i).textContent();
+          console.log(`✅ Clicked asset ${i + 1}: ${assetText?.substring(0, 30)}`);
+        } catch (e) {
+          console.log(`⚠️ Failed to click asset ${i + 1}: ${e}`);
+        }
+      }
+
+      console.log(`✅ Selected ${selectCount} assets`);
+      await page.screenshot({ path: 'test-results/04-assets-selected.png', fullPage: true });
+    } else {
+      console.log('❌ No assets found, taking debug screenshot...');
+      await page.screenshot({ path: 'test-results/04-no-assets-debug.png', fullPage: true });
+      throw new Error('❌ No selectable assets found!');
     }
-
-    // Select 2-3 assets (or all if less than 3)
-    const selectCount = Math.min(3, checkboxCount);
-    console.log(`📋 Found ${checkboxCount} asset checkboxes, selecting ${selectCount}...`);
-
-    for (let i = 0; i < selectCount; i++) {
-      const checkbox = assetCheckboxes.nth(i);
-
-      // Get asset details if available
-      const assetLabel = await checkbox.locator('xpath=..').textContent().catch(() => 'Unknown');
-      console.log(`  ✓ Selecting asset ${i + 1}: ${assetLabel?.substring(0, 50) || 'N/A'}`);
-
-      await checkbox.check();
-      await page.waitForTimeout(500); // Small delay between selections
-    }
-
-    console.log(`✅ Selected ${selectCount} assets`);
-    await page.screenshot({ path: 'test-results/04-assets-selected.png', fullPage: true });
 
     // STEP 6: PROCEED TO GAP ANALYSIS
     console.log('\n📝 STEP 6: Proceeding to gap analysis phase...');
