@@ -96,10 +96,10 @@ async def resolve_collection_flow_id(
         )
         return str(collection_flow.id)
 
-    # Fallback: No collection flow found - this will cause FK violation, but be explicit
-    logger.error(
-        f"❌ Could not resolve collection flow ID from input: {flow_id} "
+    # Fallback: No collection flow found - raise an error
+    message = (
+        f"Could not resolve collection flow ID from input: {flow_id} "
         f"(not found as collection_flow_id or master_flow_id)"
     )
-    # Return original ID to let FK constraint fail with clear error
-    return flow_id
+    logger.error(f"❌ {message}")
+    raise ValueError(message)

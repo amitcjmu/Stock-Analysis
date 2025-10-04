@@ -2,7 +2,6 @@
 
 import json
 import logging
-import re
 from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
@@ -39,13 +38,15 @@ def parse_task_output(task_output: Any) -> Dict[str, Any]:
     except json.JSONDecodeError:
         logger.warning("Task output not valid JSON, attempting to extract data")
 
-        # Try to find JSON in the text
-        json_match = re.search(r"\{.*\}", raw_output, re.DOTALL)
-        if json_match:
-            try:
-                return json.loads(json_match.group(0))
-            except json.JSONDecodeError:
-                pass
+        # Try to find a JSON block within the text
+        try:
+            start = raw_output.find("{")
+            end = raw_output.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                potential_json = raw_output[start : end + 1]
+                return json.loads(potential_json)
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse extracted JSON-like content.")
 
         # Return minimal structure with raw output
         return {

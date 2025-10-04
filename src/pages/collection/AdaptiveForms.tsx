@@ -263,12 +263,12 @@ const AdaptiveForms: React.FC = () => {
     return groupQuestionsByAsset(allQuestions, undefined, formValues);
   }, [formData, formValues]);
 
-  // Auto-select first asset when groups change
+  // Auto-select first asset when groups change (only on initial load)
   React.useEffect(() => {
     if (assetGroups.length > 0 && !selectedAssetId) {
       setSelectedAssetId(assetGroups[0].asset_id);
     }
-  }, [assetGroups, selectedAssetId]);
+  }, [assetGroups]);
 
   // Filter form data to show only selected asset's questions
   const filteredFormData = React.useMemo(() => {
@@ -406,30 +406,27 @@ const AdaptiveForms: React.FC = () => {
   // CC: Wrap handleSubmit to inject asset_id for multi-asset forms
   const directSubmitHandler = React.useCallback(async () => {
     console.log('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
-    console.log('🟢 assetGroups.length:', assetGroups.length);
-    console.log('🟢 selectedAssetId:', selectedAssetId);
-    console.log('🟢 formValues:', formValues);
 
-    // For multi-asset forms, inject asset_id before final submission
-    if (assetGroups.length > 1 && selectedAssetId && handleFieldChange) {
+    let submissionValues = formValues;
+    // For multi-asset forms, create a submission payload with the correct asset_id
+    if (assetGroups.length > 1 && selectedAssetId) {
       console.log(`✅ Submitting form for asset: ${selectedAssetId}`);
-      // Inject asset_id into form values so backend knows which asset this is for
-      handleFieldChange('asset_id', selectedAssetId);
-
-      // Brief delay to ensure state update before submission
-      await new Promise(resolve => setTimeout(resolve, 100));
+      submissionValues = {
+        ...formValues,
+        asset_id: selectedAssetId,
+      };
     } else {
       console.log('🟢 Not a multi-asset form, proceeding with regular submit');
     }
 
     if (typeof handleSubmit === 'function') {
-      console.log('🟢 Calling handleSubmit from direct handler with formValues');
-      await handleSubmit(formValues);
+      console.log('🟢 Calling handleSubmit from direct handler with submissionValues');
+      await handleSubmit(submissionValues);
       console.log('🟢 handleSubmit completed');
     } else {
       console.error('❌ handleSubmit is not available in AdaptiveForms');
     }
-  }, [handleSubmit, assetGroups.length, selectedAssetId, handleFieldChange, formValues]);
+  }, [handleSubmit, assetGroups, selectedAssetId, formValues]);
 
   // CRITICAL FIX: Protected initialization function with ref guard
   const protectedInitializeFlow = React.useCallback(async () => {

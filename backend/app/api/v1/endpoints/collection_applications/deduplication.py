@@ -1,7 +1,6 @@
 """Application deduplication and normalization logic."""
 
 import logging
-import uuid as uuid_lib
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 from uuid import UUID
@@ -111,15 +110,12 @@ async def _deduplicate_application(
         Deduplication result dict or None if failed
     """
     try:
-        # Convert string IDs to UUID objects
-        client_uuid = uuid_lib.UUID(client_account_id) if client_account_id else None
-        engagement_uuid = uuid_lib.UUID(engagement_id) if engagement_id else None
-
+        # client_account_id and engagement_id are already UUID objects from caller
         dedup_result = await dedup_service.deduplicate_application(
             db=db,
             application_name=application_name,
-            client_account_id=client_uuid,
-            engagement_id=engagement_uuid,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
             user_id=user_id,
             collection_flow_id=collection_flow.id,
             additional_metadata={
