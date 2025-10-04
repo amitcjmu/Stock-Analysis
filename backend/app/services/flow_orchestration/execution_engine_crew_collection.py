@@ -220,16 +220,16 @@ class ExecutionEngineCollectionCrews:
         self, agent_pool: Any, phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Execute gap analysis phase using business value analyst.
+        Execute gap analysis phase using lean single-agent service.
 
-        Agent-driven workflow:
-        1. Get selected assets from database
-        2. Agent analyzes each asset using GapAnalysisTool
-        3. Agent generates questionnaires using QuestionnaireGenerationTool
-        4. Store questionnaires in database
-        5. Return results for phase transition
+        Lean workflow (ADR-015):
+        1. Load REAL selected assets from database
+        2. Single persistent agent analyzes gaps against 22 critical attributes
+        3. Generate questionnaire atomically with gap detection
+        4. Persist gaps to collection_data_gaps table
+        5. Return results with gap count and questionnaire
         """
-        logger.info("📊 Executing gap analysis with persistent agents")
+        logger.info("📊 Executing gap analysis with lean single-agent service")
 
         # Get flow_id and selected assets from phase_input
         flow_id = phase_input.get("flow_id")
@@ -244,66 +244,75 @@ class ExecutionEngineCollectionCrews:
             }
 
         if not selected_asset_ids:
-            logger.warning("No selected assets provided - checking flow config")
-            # Try to get from flow collection_config
-            # This will be passed by MFO from the collection flow's collection_config
+            logger.warning("No selected assets provided")
+            return {
+                "phase": "gap_analysis",
+                "status": "failed",
+                "error": "No assets selected for gap analysis",
+            }
 
         logger.info(f"Analyzing {len(selected_asset_ids)} selected assets for gaps")
 
-        # Get the agent and have it perform gap analysis + questionnaire generation
-        if agent_pool:
-            try:
-                from app.core.context import RequestContext
+        try:
+            # Use lean gap analysis service
+            from app.core.database import AsyncSessionLocal
+            from app.services.collection.gap_analysis_service import GapAnalysisService
 
-                context = RequestContext(
+            async with AsyncSessionLocal() as db:
+                service = GapAnalysisService(
                     client_account_id=phase_input.get("client_account_id", "1"),
                     engagement_id=phase_input.get("engagement_id", "1"),
+                    collection_flow_id=flow_id,
                 )
 
-                analyst = await agent_pool.get_agent(
-                    context=context, agent_type="business_value_analyst"
+                result = await service.analyze_and_generate_questionnaire(
+                    selected_asset_ids=selected_asset_ids,
+                    db=db,
+                    automation_tier=phase_input.get("automation_tier", "tier_2"),
                 )
-                if analyst:
-                    logger.info(
-                        "💼 Using persistent business_value_analyst agent for gap analysis"
-                    )
 
-                    # Agent will use GapAnalysisTool and QuestionnaireGenerationTool
-                    # when the API endpoint calls _start_agent_generation()
-                    # This happens when frontend polls /questionnaires after gap_analysis completes
-                    logger.info(
-                        f"Agent analyzed {len(selected_asset_ids)} selected assets for data gaps"
-                    )
-                    logger.info(
-                        "Questionnaire generation will be triggered by API when frontend polls for questionnaires"
-                    )
+                # Check for errors
+                if result.get("status") == "error":
+                    logger.error(f"Gap analysis failed: {result.get('error')}")
+                    return {
+                        "phase": "gap_analysis",
+                        "status": "failed",
+                        "error": result.get("error"),
+                        "message": "Gap analysis failed",
+                    }
 
-            except Exception as e:
-                logger.error(
-                    f"Error during agent-driven gap analysis: {e}", exc_info=True
+                # Extract summary
+                summary = result.get("summary", {})
+                gaps_persisted = summary.get("gaps_persisted", 0)
+                total_gaps = summary.get("total_gaps", 0)
+
+                logger.info(
+                    f"✅ Gap analysis completed: {gaps_persisted} gaps persisted, "
+                    f"{total_gaps} total gaps detected"
                 )
-                # Return failed status so phase doesn't incorrectly mark as completed
+
                 return {
                     "phase": "gap_analysis",
-                    "status": "failed",
-                    "error": str(e),
-                    "message": "Gap analysis failed due to agent execution error",
+                    "status": "completed",
+                    "selected_assets": selected_asset_ids,
+                    "gaps_detected": gaps_persisted,
+                    "total_gaps": total_gaps,
+                    "gap_analysis_result": result,
+                    "agent": "gap_analysis_specialist",
+                    "message": (
+                        f"Gap analysis completed: {gaps_persisted} gaps detected "
+                        f"across {len(selected_asset_ids)} assets"
+                    ),
                 }
 
-        # Return success to trigger questionnaire generation
-        # The actual questionnaire generation happens via the API endpoint
-        # when gap_analysis phase completes
-        return {
-            "phase": "gap_analysis",
-            "status": "completed",
-            "selected_assets": selected_asset_ids,
-            "agent": "business_value_analyst",
-            "message": (
-                f"Gap analysis completed for {len(selected_asset_ids)} assets - "
-                "questionnaires will be generated by the API trigger"
-            ),
-            # Do not force next_phase here; allow orchestrator to determine progression
-        }
+        except Exception as e:
+            logger.error(f"Gap analysis failed: {e}", exc_info=True)
+            return {
+                "phase": "gap_analysis",
+                "status": "failed",
+                "error": str(e),
+                "message": "Gap analysis failed due to service error",
+            }
 
     async def _execute_questionnaire_generation(
         self, agent_pool: Any, phase_input: Dict[str, Any]
