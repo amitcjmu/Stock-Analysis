@@ -1269,93 +1269,42 @@ export const useAdaptiveFormFlow = (
         // Asset selection returns a different response structure
         // Check for success status from the applications endpoint
         // CRITICAL FIX: Match actual backend response structure from collection_applications.py
-        // Backend returns: { success: true, selected_application_count: number, ... }
+        // Backend returns: { success: true, selected_application_count: number, mfo_execution_triggered: boolean, ... }
         if (submitResponse.success === true &&
             (submitResponse.selected_application_count > 0 || submitResponse.selected_applications > 0)) {
-          console.log("🎯 Asset selection successful, regenerating questionnaires...");
+          console.log("🎯 Asset selection successful, gap analysis triggered");
+          console.log("📋 Asset selection response:", submitResponse);
+          console.log("🔑 Flow IDs - state.flowId:", state.flowId, "| actualFlowId:", actualFlowId, "| response.flow_id:", submitResponse.flow_id);
 
           toast({
             title: "Assets Selected Successfully",
-            description: "Generating targeted questionnaires based on your selected assets...",
+            description: `Gap analysis started for ${submitResponse.selected_application_count || submitResponse.selected_applications} asset(s)`,
           });
 
-          // Clear current form data to trigger questionnaire regeneration
-          // CRITICAL FIX: Enable polling by clearing formData and questionnaires
+          // CRITICAL FIX: Navigate to gaps grid instead of polling for questionnaires
+          // Backend automatically triggers gap analysis after asset selection (see phase_transition.py line 62)
+          // Gap analysis takes ~67ms for tier_1 or 300+ seconds for tier_2
+
+          // IMPORTANT: Use collection_flow_id from response, NOT master_flow_id
+          // The backend returns collection_flow.id as flow_id in the response
+          const collectionFlowId = submitResponse.flow_id || actualFlowId;
+          console.log("🎯 Using collection_flow_id for navigation:", collectionFlowId);
+
+          // Wait a moment for gap analysis to complete, then navigate to gaps grid
+          const waitTime = 2000; // 2 seconds to allow tier_1 gap analysis to complete
+          console.log(`⏳ Waiting ${waitTime}ms for gap analysis to complete before navigating to gaps grid...`);
+
+          setTimeout(() => {
+            console.log("✅ Navigating to gap analysis grid with flow_id:", collectionFlowId);
+            // Navigate to gaps grid - use window.location to ensure clean page load
+            window.location.href = `/collection/gap-analysis/${collectionFlowId}`;
+          }, waitTime);
+
+          // Update state to show loading while waiting
           setState((prev) => ({
             ...prev,
-            formData: null,
-            questionnaires: [],
             isLoading: true,
           }));
-
-          // CRITICAL FIX: Use polling instead of fixed timeout
-          // Backend can take 30-60 seconds to generate questionnaires
-          const pollForNewQuestionnaire = async () => {
-            const maxAttempts = 20; // 20 attempts at 3 seconds = 60 seconds max
-            const pollInterval = 3000; // 3 seconds between polls
-            let attempts = 0;
-
-            const poll = async (): Promise<void> => {
-              try {
-                attempts++;
-                console.log(`🔄 Polling for questionnaire (attempt ${attempts}/${maxAttempts})...`);
-
-                const newQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(actualFlowId);
-                console.log(`📋 Retrieved ${newQuestionnaires.length} questionnaires (attempt ${attempts})`);
-
-                if (newQuestionnaires.length > 0 && newQuestionnaires[0].id !== "bootstrap_asset_selection") {
-                  // Successfully got real questionnaires, convert and load them
-                  const adaptiveFormData = convertQuestionnairesToFormData(
-                    newQuestionnaires[0],
-                    applicationId,
-                  );
-
-                  if (validateFormDataStructure(adaptiveFormData)) {
-                    setState((prev) => ({
-                      ...prev,
-                      formData: adaptiveFormData,
-                      questionnaires: newQuestionnaires,
-                      isLoading: false,
-                      error: null
-                    }));
-
-                    toast({
-                      title: "Questionnaires Generated",
-                      description: "AI-powered questionnaires are ready based on your selected assets.",
-                    });
-                    return; // Success - stop polling
-                  } else {
-                    throw new Error("Generated questionnaire data structure is invalid");
-                  }
-                }
-
-                // Still getting bootstrap questionnaire or no questionnaires - continue polling
-                if (attempts < maxAttempts) {
-                  console.log(`⏳ Still generating questionnaire, will retry in ${pollInterval/1000}s...`);
-                  setTimeout(poll, pollInterval);
-                } else {
-                  throw new Error(`Questionnaire generation timed out after ${maxAttempts * pollInterval / 1000} seconds`);
-                }
-              } catch (error) {
-                console.error("❌ Error polling for questionnaire:", error);
-                setState((prev) => ({
-                  ...prev,
-                  isLoading: false,
-                  error: error as Error
-                }));
-                toast({
-                  title: "Questionnaire Generation Failed",
-                  description: `Failed to load questionnaires: ${(error as Error).message}. Please refresh the page.`,
-                  variant: "destructive",
-                });
-              }
-            };
-
-            // Start polling after initial delay
-            setTimeout(poll, pollInterval);
-          };
-
-          pollForNewQuestionnaire();
 
           return; // Exit early for asset selection
         } else {

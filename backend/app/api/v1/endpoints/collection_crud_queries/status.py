@@ -95,7 +95,7 @@ async def get_collection_flow(
     try:
         result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
+                CollectionFlow.id == UUID(flow_id),  # Query by id (primary key)
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )

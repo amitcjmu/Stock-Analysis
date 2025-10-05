@@ -79,11 +79,23 @@ class ProgrammaticGapScanner:
         start_time = time.time()
 
         try:
-            # Convert UUIDs with validation
-            asset_uuids = [UUID(aid) for aid in selected_asset_ids]
-            flow_uuid = UUID(collection_flow_id)
-            client_uuid = UUID(client_account_id)
-            engagement_uuid = UUID(engagement_id)
+            # Convert UUIDs with validation (handle both string and UUID objects)
+            asset_uuids = [
+                UUID(aid) if isinstance(aid, str) else aid for aid in selected_asset_ids
+            ]
+            flow_uuid = (
+                UUID(collection_flow_id)
+                if isinstance(collection_flow_id, str)
+                else collection_flow_id
+            )
+            client_uuid = (
+                UUID(client_account_id)
+                if isinstance(client_account_id, str)
+                else client_account_id
+            )
+            engagement_uuid = (
+                UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
+            )
 
             logger.info(
                 f"🚀 Starting gap scan - Flow: {flow_uuid}, Assets: {len(asset_uuids)}"

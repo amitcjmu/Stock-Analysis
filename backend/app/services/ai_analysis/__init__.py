@@ -31,12 +31,13 @@ from .business_context_analyzer import BusinessAnalyzers
 #     BusinessContextAnalyzer as BusinessContextAnalyzerCompat,
 # )
 from .confidence_scoring import ConfidenceScorer
-from .gap_analysis_agent import GapAnalysisAgent
+
+# from .gap_analysis_agent import GapAnalysisAgent  # Module doesn't exist - using programmatic scanner instead
 from .learning_optimizer import LearningOptimizer
 from .questionnaire_generator import AdaptiveQuestionnaireGenerator
 
 __all__ = [
-    "GapAnalysisAgent",
+    # "GapAnalysisAgent",  # Module doesn't exist
     "AdaptiveQuestionnaireGenerator",
     "ConfidenceScorer",
     "BusinessAnalyzers",

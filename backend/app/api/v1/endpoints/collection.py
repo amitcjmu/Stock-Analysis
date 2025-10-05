@@ -20,7 +20,6 @@ from app.schemas.collection_flow import (
     CollectionFlowCreate,
     CollectionFlowResponse,
     CollectionFlowUpdate,
-    CollectionGapAnalysisResponse,
     CollectionApplicationSelectionRequest,
 )
 
@@ -195,13 +194,13 @@ async def execute_collection_flow(
     )
 
 
-@router.get("/flows/{flow_id}/gaps", response_model=List[CollectionGapAnalysisResponse])
+@router.get("/flows/{flow_id}/gaps", response_model=List[Dict[str, Any]])
 async def get_collection_gaps(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     context=Depends(get_request_context),
-) -> List[CollectionGapAnalysisResponse]:
+) -> List[Dict[str, Any]]:
     """Get gap analysis results for a collection flow"""
     return await collection_crud.get_collection_gaps(
         flow_id=flow_id,

@@ -53,8 +53,18 @@ async def persist_gaps(
 
         for gap in gaps:
             try:
+                # Extract asset_id from gap data (required NOT NULL column)
+                asset_id_str = gap.get("asset_id")
+                if not asset_id_str:
+                    logger.warning(
+                        f"⚠️ Skipping gap without asset_id - Field: {gap.get('field_name', 'unknown')}"
+                    )
+                    gaps_failed += 1
+                    continue
+
                 gap_record = CollectionDataGap(
                     collection_flow_id=UUID(collection_flow_id),
+                    asset_id=UUID(asset_id_str),  # Add asset_id as required column
                     gap_type=gap.get("gap_type", "missing_field"),
                     gap_category=gap.get("gap_category", "unknown"),
                     field_name=gap.get("field_name", "unknown"),
@@ -67,7 +77,7 @@ async def persist_gaps(
                     ),
                     resolution_status="pending",
                     gap_metadata={
-                        "asset_id": gap.get("asset_id"),
+                        "asset_id": asset_id_str,  # Keep in metadata for backward compat
                         "priority_level": priority_level,
                     },
                 )

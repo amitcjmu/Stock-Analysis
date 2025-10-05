@@ -18,7 +18,10 @@ interface CollectionFlowDetails {
   status: string;
   current_phase: string;
   progress: number;
-  flow_metadata?: {
+  collection_config?: {
+    selected_application_ids?: string[];
+  };
+  metadata?: {
     selected_asset_ids?: string[];
   };
 }
@@ -44,9 +47,8 @@ const GapAnalysis: React.FC = () => {
     const loadFlowDetails = async () => {
       try {
         setIsLoading(true);
-        // Get flow details from incomplete flows API
-        const incompleteFlows = await collectionFlowApi.getIncompleteFlows();
-        const flow = incompleteFlows.find(f => f.id === flowId);
+        // Get flow details directly by ID (works for all phases including gap_analysis)
+        const flow = await collectionFlowApi.getFlow(flowId);
 
         if (!flow) {
           throw new Error('Flow not found');
@@ -142,8 +144,11 @@ const GapAnalysis: React.FC = () => {
     );
   }
 
-  // Get selected asset IDs from flow metadata
-  const selectedAssetIds = flowDetails?.flow_metadata?.selected_asset_ids || [];
+  // Get selected asset IDs from collection_config (for backward compat, also try metadata)
+  const selectedAssetIds =
+    flowDetails?.collection_config?.selected_application_ids ||
+    flowDetails?.metadata?.selected_asset_ids ||
+    [];
 
   return (
     <CollectionPageLayout
