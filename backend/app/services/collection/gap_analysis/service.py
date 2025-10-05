@@ -335,31 +335,52 @@ class GapAnalysisService:
     async def _execute_agent_task(self, agent, task_description: str) -> Any:
         """Execute agent task with proper unwrapping and future handling.
 
+        NOTE: For enhancement tasks, bypassing CrewAI agent to avoid max_iterations cutoff.
+        Using direct LLM call for guaranteed complete JSON output.
+
         Args:
             agent: AgentWrapper or raw CrewAI agent
             task_description: Task description string
 
         Returns:
-            Task output
+            Task output (str containing JSON)
         """
-        from crewai import Task
-
-        # Unwrap AgentWrapper to get raw CrewAI Agent for Task
-        raw_agent = agent._agent if hasattr(agent, "_agent") else agent
-
-        task = Task(
-            description=task_description,
-            agent=raw_agent,
-            expected_output="JSON with gaps and questionnaire structure",
+        # BYPASS AGENT: Use direct LLM call to avoid max_iterations cutoff
+        # CrewAI agents hit iteration limits before completing 60 gaps
+        logger.info(
+            "🔧 Using direct LLM call (bypassing agent) for guaranteed completion"
         )
 
-        logger.info("🤖 Executing single-agent gap analysis task")
+        import litellm
 
-        # execute_async returns Future, need to wrap for await
-        future = task.execute_async()
-        task_output = await asyncio.wrap_future(future)
+        response = await asyncio.to_thread(
+            litellm.completion,
+            model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a gap analysis specialist. "
+                        "Return ONLY valid JSON with no markdown formatting, "
+                        "no explanations, just pure JSON."
+                    ),
+                },
+                {"role": "user", "content": task_description},
+            ],
+            max_tokens=8000,  # Enough for 60 gaps
+            temperature=0.1,
+        )
 
-        return task_output
+        # Extract content from response
+        content = response.choices[0].message.content
+        logger.info(f"📤 Direct LLM response received: {len(content)} chars")
+
+        # Return mock task output with raw content
+        class MockTaskOutput:
+            def __init__(self, raw_content):
+                self.raw = raw_content
+
+        return MockTaskOutput(content)
 
     def _empty_result(self) -> Dict[str, Any]:
         """Return empty result when no assets found."""

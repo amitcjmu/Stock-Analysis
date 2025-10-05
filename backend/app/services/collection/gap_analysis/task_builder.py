@@ -161,7 +161,11 @@ def build_enhancement_task_description(
     return f"""
 TASK: Enhance existing data gaps with AI confidence scores and suggestions.
 
-IMPORTANT: You are NOT detecting new gaps. You are ENHANCING the gaps already found by programmatic scan.
+CRITICAL INSTRUCTIONS:
+1. You are NOT detecting new gaps. You are ENHANCING the {len(gaps)} gaps already found by programmatic scan.
+2. DO NOT USE ANY TOOLS - Produce JSON output directly
+3. Process ALL {len(gaps)} gaps in a SINGLE response
+4. Return ONLY valid JSON (no markdown, no explanations, just JSON)
 
 PROGRAMMATIC GAPS TO ENHANCE ({len(gaps)} total):
 {json.dumps(gaps_by_asset, indent=2)}
@@ -170,7 +174,7 @@ ASSET CONTEXT:
 {json.dumps(asset_context, indent=2)}
 
 YOUR TASK:
-1. For EACH gap provided above, analyze it and add:
+1. For EACH of the {len(gaps)} gaps above, analyze it and add:
    - confidence_score: Float 0.0-1.0 (how confident you are this is a real gap needing attention)
    - ai_suggestions: List of 2-3 specific suggestions for resolving the gap
    - suggested_resolution: Single best resolution strategy
@@ -222,5 +226,10 @@ RETURN JSON FORMAT (enhance ALL {len(gaps)} gaps):
     }}
 }}
 
-REMEMBER: Enhance all {len(gaps)} gaps. Do not skip any. Use EXACT asset_id and field_name from input.
+CRITICAL REMINDERS:
+- Enhance ALL {len(gaps)} gaps in a SINGLE response (do not stop early)
+- Do not skip any gaps
+- Use EXACT asset_id and field_name from input
+- DO NOT USE TOOLS - Return JSON directly
+- If you cannot fit all gaps in one response, prioritize completing all gaps over verbose suggestions
 """
