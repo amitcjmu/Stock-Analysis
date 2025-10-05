@@ -172,7 +172,7 @@ try:
     from app.api.v1.endpoints.collection_gaps.collection_flows import (
         router as collection_gaps_collection_flows_router,
     )
-    from app.api.v1.endpoints.collection_gap_analysis_router import (
+    from app.api.v1.endpoints.collection_gap_analysis import (
         router as collection_gap_analysis_router,
     )
 

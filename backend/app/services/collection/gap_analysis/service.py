@@ -266,7 +266,7 @@ class GapAnalysisService:
         return result_dict
 
     async def _run_tier_2_ai_analysis_no_persist(
-        self, assets: List, collection_flow_id: str
+        self, assets: List, collection_flow_id: str, gaps: List[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Run tier_2 AI agent analysis WITHOUT persisting (for enhancement only).
 
@@ -277,6 +277,7 @@ class GapAnalysisService:
         Args:
             assets: List of Asset objects loaded from database
             collection_flow_id: Collection flow UUID
+            gaps: Optional list of programmatic gaps to enhance (if None, AI does detection)
 
         Returns:
             Dict with AI-enhanced gaps (no persistence)
@@ -284,6 +285,7 @@ class GapAnalysisService:
         from app.services.persistent_agents.tenant_scoped_agent_pool import (
             TenantScopedAgentPool,
         )
+        from .task_builder import build_enhancement_task_description
 
         logger.debug("🔧 Creating persistent agent - Type: gap_analysis_specialist")
         agent = await TenantScopedAgentPool.get_or_create_agent(
@@ -296,7 +298,15 @@ class GapAnalysisService:
         )
 
         # Create and execute task
-        task_description = build_task_description(assets)
+        if gaps:
+            # Enhancement mode: AI enhances existing programmatic gaps
+            task_description = build_enhancement_task_description(gaps, assets)
+            logger.info(f"🔄 Enhancement mode: Enhancing {len(gaps)} programmatic gaps")
+        else:
+            # Detection mode: AI does its own gap detection (legacy)
+            task_description = build_task_description(assets)
+            logger.info("🔍 Detection mode: AI performing gap detection")
+
         logger.debug(f"📝 Task description length: {len(task_description)} chars")
 
         task_output = await self._execute_agent_task(agent, task_description)

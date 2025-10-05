@@ -133,15 +133,14 @@ def register_conditional_routers(api_router: APIRouter):
     #     logger.warning("⚠️ Assessment Flow API router not available")
     logger.info("ℹ️ Assessment Flow endpoints accessed via MFO at /master-flows/*")
 
-    # Collection Flow API
-    if COLLECTION_AVAILABLE:
-        api_router.include_router(collection_router, prefix="/collection")
-        logger.info("✅ Collection Flow API router included at /collection")
-    else:
-        logger.warning("⚠️ Collection Flow API router not available")
-
-    # Collection Gaps API
+    # Collection Gaps API - MUST be registered BEFORE collection_router for correct routing
+    # The gap analysis router has more specific routes (/collection/flows/{id}/gaps, /scan-gaps, etc.)
+    # that would otherwise be shadowed by the legacy /collection/flows/{id}/gaps endpoint
     if COLLECTION_GAPS_AVAILABLE:
+        api_router.include_router(
+            collection_gap_analysis_router,  # Two-phase gap analysis endpoints (FIRST for precedence)
+            tags=[APITags.COLLECTION_GAP_ANALYSIS],
+        )
         api_router.include_router(
             collection_gaps_vendor_products_router, prefix="/collection"
         )
@@ -155,20 +154,23 @@ def register_conditional_routers(api_router: APIRouter):
         api_router.include_router(
             collection_gaps_collection_flows_router, prefix="/collection"
         )
-        api_router.include_router(
-            collection_gap_analysis_router,  # Two-phase gap analysis endpoints
-            tags=[APITags.COLLECTION_GAP_ANALYSIS],
-        )
         logger.info(
             (
                 "✅ Collection Gaps API routers included at /collection/vendor-products, "
                 "/collection/maintenance-windows, /collection/governance, "
                 "/collection/assets, /collection/collection-flows, "
-                "/collection/flows/{flow_id}/scan-gaps|analyze-gaps|update-gaps"
+                "/collection/flows/{flow_id}/gaps|scan-gaps|analyze-gaps|update-gaps"
             )
         )
     else:
         logger.warning("⚠️ Collection Gaps API routers not available")
+
+    # Collection Flow API - Registered AFTER gap analysis router to avoid shadowing
+    if COLLECTION_AVAILABLE:
+        api_router.include_router(collection_router, prefix="/collection")
+        logger.info("✅ Collection Flow API router included at /collection")
+    else:
+        logger.warning("⚠️ Collection Flow API router not available")
 
     # Flow Processing API
     if FLOW_PROCESSING_AVAILABLE:
