@@ -212,7 +212,7 @@ async def _save_questionnaire_results(
         questionnaire_data = result["questionnaire"]
 
         questionnaire = AdaptiveQuestionnaire(
-            collection_flow_id=flow_id,
+            collection_flow_id=flow_id,  # flow_id param = PK (router.py passes flow.id)
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             title=questionnaire_data.get("title", "Adaptive Questionnaire"),

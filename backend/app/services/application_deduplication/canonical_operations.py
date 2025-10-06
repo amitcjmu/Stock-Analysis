@@ -74,15 +74,20 @@ async def create_collection_flow_link(
     """Create or update collection flow application link"""
 
     # Check if link already exists
-    existing_query = select(CollectionFlowApplication).where(
-        and_(
-            CollectionFlowApplication.collection_flow_id == collection_flow_id,
-            CollectionFlowApplication.canonical_application_id == canonical_app.id,
+    # NOTE: Use .first() to handle potential duplicates from data migration issues
+    existing_query = (
+        select(CollectionFlowApplication)
+        .where(
+            and_(
+                CollectionFlowApplication.collection_flow_id == collection_flow_id,
+                CollectionFlowApplication.canonical_application_id == canonical_app.id,
+            )
         )
-    )
+        .order_by(CollectionFlowApplication.created_at.desc())
+    )  # Get most recent
 
     result = await db.execute(existing_query)
-    existing_link = result.scalar_one_or_none()
+    existing_link = result.scalars().first()  # Use .first() to handle duplicates
 
     if existing_link:
         # Update existing link

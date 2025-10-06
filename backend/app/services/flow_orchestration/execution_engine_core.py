@@ -183,6 +183,26 @@ class FlowExecutionCore:
         phase_input["client_account_id"] = master_flow.client_account_id
         phase_input["engagement_id"] = master_flow.engagement_id
 
+        # Add automation_tier if available (for gap analysis tier selection)
+        # Check column first, then fallback to flow_persistence_data
+        automation_tier = None
+        if hasattr(master_flow, "automation_tier") and master_flow.automation_tier:
+            automation_tier = master_flow.automation_tier
+        elif (
+            hasattr(master_flow, "flow_persistence_data")
+            and master_flow.flow_persistence_data
+        ):
+            if isinstance(master_flow.flow_persistence_data, dict):
+                automation_tier = master_flow.flow_persistence_data.get(
+                    "automation_tier"
+                )
+
+        if automation_tier:
+            phase_input["automation_tier"] = automation_tier
+            logger.info(f"✅ Added automation_tier to phase_input: {automation_tier}")
+        else:
+            logger.warning("⚠️ No automation_tier found - will default to tier_2")
+
         # Add data_import_id from flow_metadata if available
         if hasattr(master_flow, "flow_metadata") and master_flow.flow_metadata:
             if isinstance(master_flow.flow_metadata, dict):

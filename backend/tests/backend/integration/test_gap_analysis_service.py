@@ -19,7 +19,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.collection_data_gap import CollectionDataGap
 from app.models.collection_flow import CollectionFlow
-from app.services.collection.gap_analysis_service import GapAnalysisService
+from app.services.collection.gap_analysis import GapAnalysisService
 
 
 @pytest_asyncio.fixture

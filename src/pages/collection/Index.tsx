@@ -16,6 +16,9 @@ import { useAuth } from '@/contexts/AuthContext';
 // Import RBAC utilities
 import { canCreateCollectionFlow, getRoleName } from '@/utils/rbac';
 
+// Import flow routing configuration
+import { FLOW_PHASE_ROUTES } from '@/config/flowRoutes';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -131,6 +134,16 @@ const CollectionIndex: React.FC = () => {
       estimatedTime: '5-10 min for 100+ applications'
     },
     {
+      id: 'gap-analysis',
+      title: 'Gap Analysis',
+      description: 'Identify and resolve data gaps with AI-powered suggestions and bulk actions',
+      icon: <AlertCircle className="h-6 w-6" />,
+      path: '/collection/gap-analysis',
+      status: 'available',
+      completionRate: 0,
+      estimatedTime: '10-15 min'
+    },
+    {
       id: 'data-integration',
       title: 'Data Integration & Validation',
       description: 'Resolve conflicts and validate data from multiple collection sources',
@@ -209,6 +222,12 @@ const CollectionIndex: React.FC = () => {
           collectionConfig.upload_type = 'spreadsheet';
           break;
 
+        case 'gap-analysis':
+          automationTier = 'tier_1'; // Modern: AI-powered gap analysis
+          collectionConfig.collection_method = 'gap_analysis';
+          collectionConfig.analysis_type = 'two_phase';
+          break;
+
         case 'data-integration':
           automationTier = 'tier_1'; // Modern: mostly automated integration
           collectionConfig.collection_method = 'integration';
@@ -234,6 +253,7 @@ const CollectionIndex: React.FC = () => {
 
       console.log(`✅ Collection flow created: ${flowResponse.id}`);
       console.log(`📊 Master flow started, CrewAI agents are initializing...`);
+      console.log(`📍 Flow current phase: ${flowResponse.current_phase || 'unknown'}`);
 
       // Update the auth context with the new collection flow
       setCurrentFlow({
@@ -256,8 +276,24 @@ const CollectionIndex: React.FC = () => {
 
       // Give the flow a moment to initialize before navigating
       navigationTimeoutRef.current = window.setTimeout(() => {
-        // Navigate to the workflow page with the flow ID
-        navigate(`${workflowPath}?flowId=${flowResponse.id}`);
+        // Navigate based on the flow's current_phase, not hardcoded workflowPath
+        // This ensures we respect backend phase routing (e.g., asset_selection before gap_analysis)
+        const currentPhase = flowResponse.current_phase || 'gap_analysis'; // Fallback to gap_analysis for backward compat
+        const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+
+        if (phaseRoute) {
+          const targetRoute = phaseRoute(flowResponse.id);
+          console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+          navigate(targetRoute);
+        } else {
+          // Fallback to old behavior if phase not in routes
+          console.warn(`⚠️ No route found for phase: ${currentPhase}, using fallback navigation`);
+          if (workflowId === 'gap-analysis') {
+            navigate(`${workflowPath}/${flowResponse.id}`);
+          } else {
+            navigate(`${workflowPath}?flowId=${flowResponse.id}`);
+          }
+        }
         navigationTimeoutRef.current = null;
       }, 1500);
 

@@ -20,9 +20,9 @@ from app.models.collection_flow import (
     CollectionFlow,
     CollectionFlowStatus,
 )
-from app.schemas.collection_flow import (
-    CollectionGapAnalysisSummaryResponse,
-)
+
+# Removed unused import: CollectionGapAnalysisSummaryResponse
+# from app.schemas.collection_flow import CollectionGapAnalysisSummaryResponse
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ async def get_collection_gaps(
     db: AsyncSession,
     current_user: User,
     context: RequestContext,
-) -> CollectionGapAnalysisSummaryResponse:
-    """Get collection gap analysis summary for a flow.
+) -> List[Dict[str, Any]]:
+    """Get collection data gaps for a flow.
 
     Args:
         flow_id: Collection flow ID
@@ -42,16 +42,18 @@ async def get_collection_gaps(
         context: Request context
 
     Returns:
-        Gap analysis summary with completeness metrics and structured gaps
+        List of gap records
 
     Raises:
         HTTPException: If flow not found or unauthorized
     """
     try:
-        # Verify flow ownership and get collection flow
+        from app.models.collection_data_gap import CollectionDataGap
+
+        # Verify flow ownership
         flow_result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
+                CollectionFlow.id == UUID(flow_id),  # Query by id (primary key)
                 CollectionFlow.engagement_id == context.engagement_id,
                 CollectionFlow.client_account_id == context.client_account_id,
             )
@@ -61,47 +63,35 @@ async def get_collection_gaps(
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
-        # Use gap analysis summary service to get or create summary
-        from app.services.gap_analysis_summary_service import GapAnalysisSummaryService
-
-        summary_service = GapAnalysisSummaryService(db)
-
-        # First try to get existing summary
-        gap_summary = await summary_service.get_gap_analysis_summary(
-            collection_flow_id=str(collection_flow.id), context=context
+        # Query gaps with asset join to get asset_name
+        gaps_result = await db.execute(
+            select(CollectionDataGap, Asset.name)
+            .outerjoin(Asset, CollectionDataGap.asset_id == Asset.id)
+            .where(CollectionDataGap.collection_flow_id == collection_flow.id)
+            .order_by(CollectionDataGap.priority.desc(), CollectionDataGap.created_at)
         )
 
-        # If no summary exists, try to ensure one from flow state (backwards compatibility)
-        if not gap_summary:
-            gap_summary = await summary_service.ensure_gap_summary_from_state(
-                collection_flow_id=str(collection_flow.id), context=context
+        gaps_with_assets = gaps_result.all()
+
+        # Convert to response format matching frontend DataGap interface
+        gap_list = []
+        for gap, asset_name in gaps_with_assets:
+            gap_list.append(
+                {
+                    "asset_id": str(gap.asset_id),
+                    "asset_name": asset_name or "Unknown",
+                    "field_name": gap.field_name,
+                    "gap_type": gap.gap_type,
+                    "gap_category": gap.gap_category,
+                    "priority": gap.priority,
+                    "current_value": gap.resolved_value,  # Current/resolved value
+                    "suggested_resolution": gap.suggested_resolution or "",
+                    "confidence_score": gap.confidence_score,
+                    "ai_suggestions": gap.ai_suggestions or [],
+                }
             )
 
-        # If still no summary, return empty structure indicating analysis not yet performed
-        if not gap_summary:
-            return CollectionGapAnalysisSummaryResponse(
-                id="",
-                client_account_id=str(context.client_account_id),
-                engagement_id=str(context.engagement_id),
-                collection_flow_id=str(collection_flow.id),
-                total_fields_required=0,
-                fields_collected=0,
-                fields_missing=0,
-                completeness_percentage=0.0,
-                data_quality_score=None,
-                confidence_level=None,
-                automation_coverage=None,
-                critical_gaps=[],
-                optional_gaps=[],
-                gap_categories={},
-                recommended_actions=[],
-                questionnaire_requirements={},
-                analyzed_at=collection_flow.created_at,
-                updated_at=collection_flow.updated_at,
-            )
-
-        # Convert to response model using the model's to_dict method
-        return CollectionGapAnalysisSummaryResponse(**gap_summary.to_dict())
+        return gap_list
 
     except HTTPException:
         raise
@@ -150,7 +140,8 @@ async def get_collection_readiness(
         # Get the specific collection flow by ID
         flow_result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
+                CollectionFlow.flow_id
+                == UUID(flow_id),  # Query by flow_id (business ID)
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )

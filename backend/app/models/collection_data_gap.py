@@ -6,7 +6,7 @@ This model represents identified data gaps in Collection Flows.
 
 import uuid
 
-from sqlalchemy import UUID, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import UUID, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
@@ -16,6 +16,10 @@ from app.models.base import Base, TimestampMixin
 class CollectionDataGap(Base, TimestampMixin):
     """
     Model for tracking data gaps identified during collection.
+
+    Supports two-phase gap analysis:
+    - Phase 1: Programmatic scan (asset_id, field_name, gap_type)
+    - Phase 2: AI enhancement (confidence_score, ai_suggestions)
     """
 
     __tablename__ = "collection_data_gaps"
@@ -24,12 +28,16 @@ class CollectionDataGap(Base, TimestampMixin):
     # Primary key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # Foreign key
+    # Foreign keys
     collection_flow_id = Column(
         UUID(as_uuid=True),
         ForeignKey("collection_flows.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
+    )
+    asset_id = Column(
+        UUID(as_uuid=True),
+        nullable=False,  # Required for deduplication
     )
 
     # Gap identification
@@ -44,8 +52,9 @@ class CollectionDataGap(Base, TimestampMixin):
         Integer, nullable=False, default=0, server_default="0", index=True
     )
 
-    # Resolution
+    # Resolution (Phase 1 & 2)
     suggested_resolution = Column(Text, nullable=True)
+    resolved_value = Column(Text, nullable=True)  # User-entered or AI-suggested value
     resolution_status = Column(
         String(20),
         nullable=False,
@@ -55,6 +64,13 @@ class CollectionDataGap(Base, TimestampMixin):
     )
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     resolved_by = Column(String(50), nullable=True)
+    resolution_method = Column(
+        String(50), nullable=True
+    )  # manual_entry, ai_suggestion, hybrid
+
+    # AI Enhancement (Phase 2)
+    confidence_score = Column(Float, nullable=True)  # 0.0-1.0, NULL if no AI
+    ai_suggestions = Column(JSONB, nullable=True)  # Array of AI suggestions
 
     # Metadata
     gap_metadata = Column(

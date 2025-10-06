@@ -82,11 +82,10 @@ class VectorUtils:
                     confidence_score=confidence_score,
                     evidence_count=1,
                     embedding=embedding,
-                    pattern_metadata=pattern_context or {},
+                    pattern_data=pattern_context or {},  # Fixed: was pattern_metadata
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
-                    is_active=True,
-                    is_validated=False,
+                    # Removed: is_active and is_validated don't exist in model
                 )
 
                 session.add(pattern)
@@ -106,6 +105,7 @@ class VectorUtils:
         self,
         query_embedding: List[float],
         client_account_id: str,
+        engagement_id: Optional[str] = None,  # Fixed: Added for multi-tenant scoping
         pattern_type: Optional[str] = None,
         limit: int = 5,
         similarity_threshold: float = 0.7,
@@ -116,6 +116,7 @@ class VectorUtils:
         Args:
             query_embedding: Query vector to search for
             client_account_id: Client account ID for scoping
+            engagement_id: Engagement ID for multi-tenant scoping
             pattern_type: Optional filter by pattern type
             limit: Maximum number of results
             similarity_threshold: Minimum similarity score
@@ -150,16 +151,14 @@ class VectorUtils:
                         evidence_count,
                         times_referenced,
                         pattern_effectiveness_score,
-                        pattern_metadata,
-                        is_active,
-                        is_validated,
+                        pattern_data,
                         created_at,
                         updated_at,
                         (embedding <=> :embedding::vector) as similarity_distance
                     FROM migration.agent_discovered_patterns
                     WHERE client_account_id = :client_account_id
+                    AND engagement_id = :engagement_id
                     {type_filter}
-                    AND is_active = true
                     AND (embedding <=> :embedding::vector) < :distance_threshold
                     ORDER BY embedding <=> :embedding::vector
                     LIMIT :limit
@@ -176,6 +175,7 @@ class VectorUtils:
                 params = {
                     "embedding": embedding_str,
                     "client_account_id": client_account_id,
+                    "engagement_id": engagement_id,  # Fixed: Added for multi-tenant scoping
                     "distance_threshold": distance_threshold,
                     "limit": limit,
                 }
@@ -205,11 +205,10 @@ class VectorUtils:
                             if row.pattern_effectiveness_score
                             else None
                         ),
-                        "pattern_metadata": row.pattern_metadata,
-                        "is_active": row.is_active,
-                        "is_validated": row.is_validated,
+                        "pattern_data": row.pattern_data,  # Fixed: was pattern_metadata
                         "created_at": row.created_at,
                         "updated_at": row.updated_at,
+                        # Removed: is_active and is_validated don't exist in model
                     }
 
                     patterns_with_similarity.append((pattern, similarity))
@@ -225,6 +224,7 @@ class VectorUtils:
         self,
         search_text: str,
         client_account_id: str,
+        engagement_id: Optional[str] = None,  # Fixed: Added for multi-tenant scoping
         pattern_type: Optional[str] = None,
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
@@ -234,6 +234,7 @@ class VectorUtils:
         Args:
             search_text: Text to search for
             client_account_id: Client account ID for scoping
+            engagement_id: Engagement ID for multi-tenant scoping
             pattern_type: Optional filter by pattern type
             limit: Maximum number of results
 
@@ -248,6 +249,7 @@ class VectorUtils:
             patterns_with_scores = await self.find_similar_patterns(
                 query_embedding=query_embedding,
                 client_account_id=client_account_id,
+                engagement_id=engagement_id,  # Fixed: Pass engagement_id
                 pattern_type=pattern_type,
                 limit=limit,
                 similarity_threshold=0.5,  # Lower threshold for text search
@@ -289,9 +291,7 @@ class VectorUtils:
                         evidence_count,
                         times_referenced,
                         pattern_effectiveness_score,
-                        pattern_metadata,
-                        is_active,
-                        is_validated,
+                        pattern_data,
                         created_at,
                         updated_at
                     FROM migration.agent_discovered_patterns
@@ -321,11 +321,10 @@ class VectorUtils:
                             if row.pattern_effectiveness_score
                             else None
                         ),
-                        "pattern_metadata": row.pattern_metadata,
-                        "is_active": row.is_active,
-                        "is_validated": row.is_validated,
+                        "pattern_data": row.pattern_data,  # Fixed: was pattern_metadata
                         "created_at": row.created_at,
                         "updated_at": row.updated_at,
+                        # Removed: is_active and is_validated don't exist in model
                     }
 
                 return None

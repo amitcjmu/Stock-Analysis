@@ -23,7 +23,7 @@ async def process_applications_with_deduplication(
     collection_flow: CollectionFlow,
     client_account_id: UUID,
     engagement_id: UUID,
-    user_id: int,
+    user_id: UUID,  # Fixed: Should be UUID, not int
 ) -> tuple[int, List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Process applications with deduplication service.
 
@@ -31,9 +31,9 @@ async def process_applications_with_deduplication(
         db: Database session
         normalized_ids: List of asset/application IDs
         collection_flow: Collection flow object
-        client_account_id: Client account ID
-        engagement_id: Engagement ID
-        user_id: Current user ID
+        client_account_id: Client account ID (UUID or string)
+        engagement_id: Engagement ID (UUID or string)
+        user_id: Current user ID (UUID or string)
 
     Returns:
         Tuple of (processed_count, application_details, deduplication_results)
@@ -102,7 +102,7 @@ async def _deduplicate_application(
     collection_flow: CollectionFlow,
     client_account_id: UUID,
     engagement_id: UUID,
-    user_id: int,
+    user_id: UUID,  # Fixed: Should be UUID, not int
 ) -> Dict[str, Any] | None:
     """Run deduplication service for a single application.
 
@@ -110,13 +110,24 @@ async def _deduplicate_application(
         Deduplication result dict or None if failed
     """
     try:
-        # client_account_id and engagement_id are already UUID objects from caller
+        # Ensure UUIDs are proper UUID objects (convert from string if needed)
+        # Context values may be strings, so convert them to UUID objects
+        client_uuid = (
+            UUID(client_account_id)
+            if isinstance(client_account_id, str)
+            else client_account_id
+        )
+        engagement_uuid = (
+            UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
+        )
+        user_uuid = UUID(user_id) if isinstance(user_id, str) else user_id
+
         dedup_result = await dedup_service.deduplicate_application(
             db=db,
             application_name=application_name,
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
-            user_id=user_id,
+            client_account_id=client_uuid,
+            engagement_id=engagement_uuid,
+            user_id=user_uuid,
             collection_flow_id=collection_flow.id,
             additional_metadata={
                 "asset_id": str(asset.id),

@@ -29,19 +29,27 @@ async def try_exact_match(
     client_account_id: uuid.UUID,
     engagement_id: uuid.UUID,
 ) -> Optional[Tuple[CanonicalApplication, Optional[ApplicationNameVariant]]]:
-    """Try to find exact match using hash lookup for optimal performance"""
+    """Try to find exact match using hash lookup for optimal performance
+
+    NOTE: Uses .first() instead of .scalar_one_or_none() to handle duplicate
+    canonical applications gracefully (which can occur from data migration issues)
+    """
 
     # Try canonical application exact match first
-    canonical_query = select(CanonicalApplication).where(
-        and_(
-            CanonicalApplication.client_account_id == client_account_id,
-            CanonicalApplication.engagement_id == engagement_id,
-            CanonicalApplication.name_hash == name_hash,
+    canonical_query = (
+        select(CanonicalApplication)
+        .where(
+            and_(
+                CanonicalApplication.client_account_id == client_account_id,
+                CanonicalApplication.engagement_id == engagement_id,
+                CanonicalApplication.name_hash == name_hash,
+            )
         )
-    )
+        .order_by(CanonicalApplication.created_at.desc())
+    )  # Get most recent if duplicates exist
 
     result = await db.execute(canonical_query)
-    canonical_app = result.scalar_one_or_none()
+    canonical_app = result.scalars().first()  # Use .first() to handle duplicates
 
     if canonical_app:
         return canonical_app, None
@@ -57,10 +65,13 @@ async def try_exact_match(
             )
         )
         .options(selectinload(ApplicationNameVariant.canonical_application))
+        .order_by(
+            ApplicationNameVariant.created_at.desc()
+        )  # Get most recent if duplicates exist
     )
 
     result = await db.execute(variant_query)
-    variant = result.scalar_one_or_none()
+    variant = result.scalars().first()  # Use .first() to handle duplicates
 
     if variant:
         return variant.canonical_application, variant
