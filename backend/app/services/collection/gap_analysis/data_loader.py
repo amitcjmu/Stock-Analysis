@@ -76,13 +76,13 @@ async def resolve_collection_flow_id(
     flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
 
     # First try: Is this already a collection_flow_id?
-    stmt = select(CollectionFlow).where(CollectionFlow.id == flow_uuid)
+    stmt = select(CollectionFlow).where(CollectionFlow.flow_id == flow_uuid)
     result = await db.execute(stmt)
     collection_flow = result.scalar_one_or_none()
 
     if collection_flow:
         logger.debug(f"✅ Input {flow_id} is a collection flow ID (direct match)")
-        return str(collection_flow.id)
+        return str(collection_flow.flow_id)
 
     # Second try: Is this a master_flow_id? Look up child collection flow
     stmt = select(CollectionFlow).where(CollectionFlow.master_flow_id == flow_uuid)
@@ -92,9 +92,9 @@ async def resolve_collection_flow_id(
     if collection_flow:
         logger.info(
             f"✅ Input {flow_id} is a master flow ID, "
-            f"resolved to collection flow {collection_flow.id}"
+            f"resolved to collection flow {collection_flow.flow_id}"
         )
-        return str(collection_flow.id)
+        return str(collection_flow.flow_id)
 
     # Fallback: No collection flow found - raise an error
     message = (
