@@ -57,6 +57,8 @@ async def load_assets(
 
 async def resolve_collection_flow_id(
     flow_id: str,
+    client_account_id: str,
+    engagement_id: str,
     db: AsyncSession,
 ) -> str:
     """
@@ -66,6 +68,7 @@ async def resolve_collection_flow_id(
     - Input: flow_id (business identifier from frontend/API)
     - Output: id (PRIMARY KEY for FK relationships)
     - WHY: FK constraints reference collection_flows.id (PK), not flow_id
+    - SECURITY: Multi-tenant scoping with client_account_id and engagement_id
 
     The service might receive either:
     - A collection flow_id (business identifier) → returns matching PK
@@ -73,16 +76,30 @@ async def resolve_collection_flow_id(
 
     Args:
         flow_id: Input flow ID (business identifier or master flow UUID)
+        client_account_id: Client account ID for multi-tenant scoping
+        engagement_id: Engagement ID for multi-tenant scoping
         db: Database session
 
     Returns:
         The PRIMARY KEY (id) of the child collection flow for FK persistence
     """
     flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+    client_uuid = (
+        UUID(client_account_id)
+        if isinstance(client_account_id, str)
+        else client_account_id
+    )
+    engagement_uuid = (
+        UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
+    )
 
     # First try: Is this a collection flow_id (business identifier)?
-    # Query by flow_id, return id (PK)
-    stmt = select(CollectionFlow).where(CollectionFlow.flow_id == flow_uuid)
+    # Query by flow_id with multi-tenant scoping, return id (PK)
+    stmt = select(CollectionFlow).where(
+        CollectionFlow.flow_id == flow_uuid,
+        CollectionFlow.client_account_id == client_uuid,
+        CollectionFlow.engagement_id == engagement_uuid,
+    )
     result = await db.execute(stmt)
     collection_flow = result.scalar_one_or_none()
 
@@ -94,7 +111,11 @@ async def resolve_collection_flow_id(
         return str(collection_flow.id)  # Return PK for FK relationships
 
     # Second try: Is this a master_flow_id? Look up child collection flow
-    stmt = select(CollectionFlow).where(CollectionFlow.master_flow_id == flow_uuid)
+    stmt = select(CollectionFlow).where(
+        CollectionFlow.master_flow_id == flow_uuid,
+        CollectionFlow.client_account_id == client_uuid,
+        CollectionFlow.engagement_id == engagement_uuid,
+    )
     result = await db.execute(stmt)
     collection_flow = result.scalar_one_or_none()
 

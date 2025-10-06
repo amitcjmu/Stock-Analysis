@@ -6,8 +6,7 @@ import type {
   CellEditingStoppedEvent,
 } from "ag-grid-community";
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+import "ag-grid-community/styles/ag-theme-quartz.css";
 import {
   Sparkles,
   RefreshCw,
@@ -472,8 +471,6 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   const columnDefs = useMemo<Array<ColDef<GapRowData>>>(
     () => [
       {
-        headerCheckboxSelection: true,
-        checkboxSelection: true,
         width: 50,
         pinned: "left",
         lockPosition: "left",
@@ -701,17 +698,17 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>Data Gaps ({gaps.length})</CardTitle>
-          <CardDescription>
+          <div className="text-sm text-muted-foreground">
             Click cells to edit, then save individually. Color-coded AI
             confidence:
             <Badge className="ml-2 bg-green-100 text-green-800">≥80%</Badge>
             <Badge className="ml-1 bg-yellow-100 text-yellow-800">60-79%</Badge>
             <Badge className="ml-1 bg-red-100 text-red-800">&lt;60%</Badge>
-          </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <div
-            className="ag-theme-alpine"
+            className="ag-theme-quartz"
             style={{ height: 500, width: "100%" }}
           >
             <AgGridReact
@@ -729,8 +726,12 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               onGridReady={onGridReady}
               onCellEditingStopped={handleCellEditingStopped}
               onSelectionChanged={onSelectionChanged}
-              suppressRowClickSelection={true}
-              rowSelection="multiple"
+              rowSelection={{
+                mode: 'multiRow',
+                enableClickSelection: false,
+                headerCheckbox: true,
+                checkboxes: true,
+              }}
             />
           </div>
         </CardContent>

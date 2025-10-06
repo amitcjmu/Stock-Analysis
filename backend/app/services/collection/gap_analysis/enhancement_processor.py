@@ -102,9 +102,10 @@ class EnhancementProcessorMixin:
             )
 
             # Initialize memory manager (fail-safe wrapper below)
+            # Per ADR-024: Use TenantMemoryManager with valid database session
             memory_manager = TenantMemoryManager(
                 crewai_service=None,  # Not needed for gap enhancement
-                database_session=None,  # Will be passed per-call if needed
+                database_session=self.db,  # ✅ Pass actual AsyncSession
             )
 
             # Group gaps by asset
@@ -417,9 +418,10 @@ class EnhancementProcessorMixin:
             )
 
             # Initialize memory manager (fail-safe wrapper below)
+            # Per ADR-024: Use TenantMemoryManager with valid database session
             memory_manager = TenantMemoryManager(
                 crewai_service=None,  # Not needed for gap enhancement
-                database_session=None,  # Will be passed per-call if needed
+                database_session=db,  # ✅ Pass actual AsyncSession (db param)
             )
 
             # Initialize scanner for persistence

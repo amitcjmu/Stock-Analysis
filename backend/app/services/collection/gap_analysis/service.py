@@ -77,7 +77,10 @@ class GapAnalysisService(
         try:
             # Resolve actual collection flow ID from master flow if needed
             actual_collection_flow_id = await resolve_collection_flow_id(
-                self.collection_flow_id, db
+                self.collection_flow_id,
+                self.client_account_id,
+                self.engagement_id,
+                db,
             )
             logger.info(
                 f"📋 Resolved collection flow ID: {actual_collection_flow_id} "

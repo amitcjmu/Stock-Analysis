@@ -52,16 +52,22 @@ def upgrade():
             schema="migration",
         )
 
-        # CRITICAL: For existing rows, we need to handle NULL asset_ids
-        # Option 1: Delete orphaned gaps without assets (recommended for fresh deployment)
-        # Option 2: Set to placeholder UUID (if data preservation needed)
-        # Using Option 1 as per plan - clean slate for two-phase approach
-        conn.execute(
-            sa.text(
-                """
-            DELETE FROM migration.collection_data_gaps WHERE asset_id IS NULL
-        """
-            )
+        # CRITICAL: DELETE commented out for safety - no tenant scoping
+        # Unique constraint will handle duplicates on re-insert
+        # If needed, manually delete test data with explicit client_account_id filter
+        # SECURITY: Global DELETE without tenant scoping violates multi-tenant isolation
+        # conn.execute(
+        #     sa.text(
+        #         """
+        #     DELETE FROM migration.collection_data_gaps WHERE asset_id IS NULL
+        # """
+        #     )
+        # )
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            "Skipping global DELETE for safety - unique constraint will handle duplicates"
         )
 
         # Now make it NOT NULL
