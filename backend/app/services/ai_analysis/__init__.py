@@ -25,19 +25,11 @@ Status: COMPLETE - All 6 core services implemented
 
 from .ai_validation_service import AIValidationService
 from .business_context_analyzer import BusinessAnalyzers
-
-# BusinessContextAnalyzerCompat import commented out - unused
-# from .business_context_analyzer_compat import (
-#     BusinessContextAnalyzer as BusinessContextAnalyzerCompat,
-# )
 from .confidence_scoring import ConfidenceScorer
-
-# from .gap_analysis_agent import GapAnalysisAgent  # Module doesn't exist - using programmatic scanner instead
 from .learning_optimizer import LearningOptimizer
 from .questionnaire_generator import AdaptiveQuestionnaireGenerator
 
 __all__ = [
-    # "GapAnalysisAgent",  # Module doesn't exist
     "AdaptiveQuestionnaireGenerator",
     "ConfidenceScorer",
     "BusinessAnalyzers",

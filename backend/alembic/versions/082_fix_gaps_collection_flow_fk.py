@@ -44,21 +44,28 @@ def upgrade():
 
     conn = op.get_bind()
 
-    # Step 1: Drop existing FK constraint if it exists
+    # Step 1: Drop existing FK constraint if it exists (dynamically discover name)
+    # Query for ANY FK constraint on collection_flow_id column
     result = conn.execute(
         sa.text(
             """
-            SELECT constraint_name
-            FROM information_schema.table_constraints
-            WHERE table_schema = 'migration'
-            AND table_name = 'collection_data_gaps'
-            AND constraint_name = 'fk_collection_data_gaps_collection_flow_id_collection_flows'
+            SELECT tc.constraint_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            WHERE tc.table_schema = 'migration'
+            AND tc.table_name = 'collection_data_gaps'
+            AND tc.constraint_type = 'FOREIGN KEY'
+            AND kcu.column_name = 'collection_flow_id'
         """
         )
     )
-    if result.fetchone() is not None:
+    fk_constraint = result.fetchone()
+    if fk_constraint is not None:
+        fk_name = fk_constraint[0]
         op.drop_constraint(
-            "fk_collection_data_gaps_collection_flow_id_collection_flows",
+            fk_name,
             "collection_data_gaps",
             schema="migration",
             type_="foreignkey",
@@ -101,21 +108,27 @@ def downgrade():
 
     conn = op.get_bind()
 
-    # Step 1: Drop the correct FK constraint
+    # Step 1: Drop the correct FK constraint (dynamically discover name)
     result = conn.execute(
         sa.text(
             """
-            SELECT constraint_name
-            FROM information_schema.table_constraints
-            WHERE table_schema = 'migration'
-            AND table_name = 'collection_data_gaps'
-            AND constraint_name = 'fk_collection_data_gaps_collection_flow_id_collection_flows'
+            SELECT tc.constraint_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            WHERE tc.table_schema = 'migration'
+            AND tc.table_name = 'collection_data_gaps'
+            AND tc.constraint_type = 'FOREIGN KEY'
+            AND kcu.column_name = 'collection_flow_id'
         """
         )
     )
-    if result.fetchone() is not None:
+    fk_constraint = result.fetchone()
+    if fk_constraint is not None:
+        fk_name = fk_constraint[0]
         op.drop_constraint(
-            "fk_collection_data_gaps_collection_flow_id_collection_flows",
+            fk_name,
             "collection_data_gaps",
             schema="migration",
             type_="foreignkey",
