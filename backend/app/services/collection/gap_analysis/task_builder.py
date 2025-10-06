@@ -151,7 +151,7 @@ def build_enhancement_task_description(
     # Group gaps by asset for better context
     gaps_by_asset = {}
     for gap in gaps:
-        asset_id = gap.get("asset_id")
+        asset_id = str(gap.get("asset_id"))  # Ensure string for JSON serialization
         if asset_id not in gaps_by_asset:
             gaps_by_asset[asset_id] = []
         gaps_by_asset[asset_id].append(

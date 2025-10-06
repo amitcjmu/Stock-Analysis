@@ -126,7 +126,9 @@ class ProgrammaticGapScanner:
                 }
 
             # Validate assets are subset of flow's selected assets
-            flow_selected_assets = set(flow.flow_metadata.get("selected_asset_ids", []))
+            flow_selected_assets = set(
+                (flow.flow_metadata or {}).get("selected_asset_ids", [])
+            )
             requested_assets = set(str(aid) for aid in asset_uuids)
 
             if not requested_assets.issubset(flow_selected_assets):
