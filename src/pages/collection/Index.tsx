@@ -250,6 +250,7 @@ const CollectionIndex: React.FC = () => {
 
       console.log(`✅ Collection flow created: ${flowResponse.id}`);
       console.log(`📊 Master flow started, CrewAI agents are initializing...`);
+      console.log(`📍 Flow current phase: ${flowResponse.current_phase || 'unknown'}`);
 
       // Update the auth context with the new collection flow
       setCurrentFlow({
@@ -272,12 +273,23 @@ const CollectionIndex: React.FC = () => {
 
       // Give the flow a moment to initialize before navigating
       navigationTimeoutRef.current = window.setTimeout(() => {
-        // Navigate to the workflow page with the flow ID
-        // Gap analysis uses path parameter, others use query parameter
-        if (workflowId === 'gap-analysis') {
-          navigate(`${workflowPath}/${flowResponse.id}`);
+        // Navigate based on the flow's current_phase, not hardcoded workflowPath
+        // This ensures we respect backend phase routing (e.g., asset_selection before gap_analysis)
+        const currentPhase = flowResponse.current_phase || 'gap_analysis'; // Fallback to gap_analysis for backward compat
+        const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+
+        if (phaseRoute) {
+          const targetRoute = phaseRoute(flowResponse.id);
+          console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+          navigate(targetRoute);
         } else {
-          navigate(`${workflowPath}?flowId=${flowResponse.id}`);
+          // Fallback to old behavior if phase not in routes
+          console.warn(`⚠️ No route found for phase: ${currentPhase}, using fallback navigation`);
+          if (workflowId === 'gap-analysis') {
+            navigate(`${workflowPath}/${flowResponse.id}`);
+          } else {
+            navigate(`${workflowPath}?flowId=${flowResponse.id}`);
+          }
         }
         navigationTimeoutRef.current = null;
       }, 1500);
