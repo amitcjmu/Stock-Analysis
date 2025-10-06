@@ -212,7 +212,7 @@ async def _save_questionnaire_results(
         questionnaire_data = result["questionnaire"]
 
         questionnaire = AdaptiveQuestionnaire(
-            collection_flow_id=flow_id,
+            collection_flow_id=flow_uuid,  # CRITICAL FIX: Use flow_uuid (UUID) not flow_id (int PK)
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             title=questionnaire_data.get("title", "Adaptive Questionnaire"),

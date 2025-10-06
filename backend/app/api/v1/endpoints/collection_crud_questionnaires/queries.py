@@ -50,7 +50,8 @@ async def _get_existing_questionnaires_tenant_scoped(
     questionnaires_result = await db.execute(
         select(AdaptiveQuestionnaire)
         .where(
-            AdaptiveQuestionnaire.collection_flow_id == flow.id,
+            AdaptiveQuestionnaire.collection_flow_id
+            == flow.flow_id,  # CRITICAL FIX: Use .flow_id (UUID) not .id (int PK)
             AdaptiveQuestionnaire.client_account_id == context.client_account_id,
             AdaptiveQuestionnaire.engagement_id == context.engagement_id,
         )
