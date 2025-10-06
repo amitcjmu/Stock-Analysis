@@ -255,11 +255,13 @@ class StorageMixin:
         for pattern, similarity in similar_patterns:
             results.append(
                 {
-                    "pattern_id": str(pattern.id),
-                    "pattern_type": pattern.pattern_type,
-                    "pattern_name": pattern.pattern_name,
-                    "pattern_data": pattern.pattern_metadata,
-                    "confidence": pattern.confidence_score,
+                    "pattern_id": pattern["id"],  # Fixed: pattern is a dict, not object
+                    "pattern_type": pattern["pattern_type"],
+                    "pattern_name": pattern["pattern_name"],
+                    "pattern_data": pattern[
+                        "pattern_data"
+                    ],  # Fixed: was pattern_metadata
+                    "confidence": pattern["confidence_score"],
                     "similarity": similarity,
                 }
             )

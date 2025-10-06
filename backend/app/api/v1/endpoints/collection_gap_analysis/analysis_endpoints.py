@@ -213,3 +213,91 @@ async def analyze_gaps(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI analysis failed: {str(e)}",
         )
+
+
+@router.get("/{flow_id}/enhancement-progress")
+async def get_enhancement_progress(
+    flow_id: str,
+    context: RequestContext = Depends(get_request_context),
+):
+    """
+    Get current progress of gap enhancement (HTTP polling).
+
+    Frontend polls this endpoint every 2-3 seconds during AI enhancement
+    to display progress bar and current asset being processed.
+
+    **Polling Strategy:**
+    - Poll every 2-3 seconds while status == "in_progress"
+    - Stop polling when status == "completed" or "not_started"
+    - Display: "{processed}/{total} assets ({percentage}%) - {current_asset}"
+
+    **Response:**
+    ```json
+    {
+        "status": "in_progress",  // "not_started" | "in_progress" | "completed"
+        "processed": 5,
+        "total": 10,
+        "current_asset": "Web Server 03",
+        "percentage": 50,
+        "updated_at": "2025-10-05T18:30:45.123Z"
+    }
+    ```
+
+    **Note:** Progress data has 1-hour TTL in Redis. Returns "not_started"
+    if no enhancement is running or TTL expired.
+    """
+    from app.core.redis_config import get_redis_manager
+    import json
+
+    # Get Redis client
+    redis_manager = get_redis_manager()
+    if not redis_manager.is_available():
+        # Redis unavailable, return not_started
+        return {
+            "status": "not_started",
+            "processed": 0,
+            "total": 0,
+            "percentage": 0,
+        }
+
+    progress_key = f"gap_enhancement_progress:{flow_id}"
+
+    try:
+        progress_json = await redis_manager.client.get(progress_key)
+
+        if not progress_json:
+            # No progress data found
+            return {
+                "status": "not_started",
+                "processed": 0,
+                "total": 0,
+                "percentage": 0,
+            }
+
+        # Parse progress data
+        progress = json.loads(progress_json)
+
+        # Determine status
+        if progress["processed"] < progress["total"]:
+            status_value = "in_progress"
+        else:
+            status_value = "completed"
+
+        return {
+            "status": status_value,
+            "processed": progress["processed"],
+            "total": progress["total"],
+            "current_asset": progress.get("current_asset"),
+            "percentage": progress["percentage"],
+            "updated_at": progress["updated_at"],
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get enhancement progress: {e}", exc_info=True)
+        # Fail gracefully, return not_started
+        return {
+            "status": "not_started",
+            "processed": 0,
+            "total": 0,
+            "percentage": 0,
+        }

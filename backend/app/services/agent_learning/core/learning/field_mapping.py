@@ -192,6 +192,7 @@ class FieldMappingLearning:
             similar_patterns = await self.vector_utils.find_similar_patterns(
                 await self.embedding_service.embed_text(search_text),
                 context.client_account_id,
+                engagement_id=context.engagement_id,  # Fixed: Added for multi-tenant scoping
                 limit=max_suggestions,
             )
             field_suggestions = []

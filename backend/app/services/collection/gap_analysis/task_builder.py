@@ -1,8 +1,14 @@
-"""Task description builder for gap analysis."""
+"""Task description builder for gap analysis.
+
+Provides task descriptions for AI agents with:
+- Full asset context (filtered custom_attributes)
+- Previous learnings from TenantMemoryManager
+- Single-asset focus for batching
+"""
 
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from app.models.asset import Asset
 
@@ -232,4 +238,93 @@ CRITICAL REMINDERS:
 - Use EXACT asset_id and field_name from input
 - DO NOT USE TOOLS - Return JSON directly
 - If you cannot fit all gaps in one response, prioritize completing all gaps over verbose suggestions
+"""
+
+
+def build_asset_enhancement_task(
+    asset_gaps: List[Dict[str, Any]],
+    asset_context: Dict[str, Any],
+    previous_learnings: Optional[List[Dict]] = None,
+) -> str:
+    """Build enhancement task for ONE asset with filtered context.
+
+    Args:
+        asset_gaps: 5-10 gaps for THIS asset only
+        asset_context: Filtered asset context (from context_filter.build_compact_asset_context)
+        previous_learnings: Similar patterns from TenantMemoryManager
+
+    Returns:
+        Task description string for agent execution
+    """
+    learning_section = ""
+    if previous_learnings and len(previous_learnings) > 0:
+        # Limit to 3 most relevant learnings
+        top_learnings = previous_learnings[:3]
+        learning_section = f"""
+PREVIOUS LEARNINGS (similar {asset_context['asset_type']} assets):
+{json.dumps([
+    {
+        "field": l.get("field_name"),
+        "resolution": l.get("suggested_resolution"),
+        "confidence": l.get("confidence_score")
+    } for l in top_learnings
+], indent=2)}
+"""
+
+    return f"""
+TASK: Enhance {len(asset_gaps)} data gaps for ONE asset using available context.
+
+ASSET CONTEXT (filtered, safe subset):
+{json.dumps(asset_context, indent=2)}
+
+{learning_section}
+
+GAPS TO ENHANCE ({len(asset_gaps)} gaps):
+{json.dumps(asset_gaps, indent=2)}
+
+INSTRUCTIONS:
+1. Use ONLY the provided asset context (standard fields + whitelisted custom_attributes)
+2. Assign confidence_score (0.0-1.0) based on evidence strength:
+   - 0.9-1.0: Strong evidence in asset context
+   - 0.7-0.8: Moderate evidence, reasonable inference
+   - 0.5-0.6: Weak evidence, speculative
+   - 0.0-0.4: No evidence, best practice only
+3. Provide 2-3 actionable ai_suggestions per gap
+4. Set suggested_resolution to the single best action
+
+CONFIDENCE EXAMPLES:
+- Gap: "technology_stack" missing, custom_attributes has "tech_stack": "Node.js" → confidence=0.95
+- Gap: "os" missing, custom_attributes has "environment": "linux-prod" → confidence=0.85
+- Gap: "os" missing, no context → confidence=0.40 (generic suggestion)
+
+RETURN VALID JSON (enhance ALL {len(asset_gaps)} gaps):
+{{
+    "gaps": {{
+        "critical": [
+            {{
+                "asset_id": "EXACT_UUID_FROM_INPUT",
+                "field_name": "EXACT_FIELD_FROM_INPUT",
+                "gap_type": "missing_field",
+                "gap_category": "infrastructure",
+                "priority": 1,
+                "confidence_score": 0.95,
+                "ai_suggestions": [
+                    "Check deployment manifests for OS details",
+                    "Review infrastructure-as-code templates",
+                    "Query asset owner for confirmation"
+                ],
+                "suggested_resolution": "Check deployment manifests for OS details"
+            }}
+        ],
+        "high": [...],
+        "medium": [...],
+        "low": [...]
+    }},
+    "summary": {{
+        "total_gaps": {len(asset_gaps)},
+        "context_keys_used": ["custom_attributes.tech_stack", "environment"]
+    }}
+}}
+
+CRITICAL: Return ONLY valid JSON, no markdown, no explanations.
 """
