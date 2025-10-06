@@ -60,7 +60,7 @@ def create_manual_collection_crew(
             Your questionnaires balance completeness with user experience, ensuring high response rates
             and quality data collection.""",
             llm=llm,
-            memory=shared_memory,
+            # Per ADR-024: Use TenantMemoryManager instead of CrewAI memory
             **DEFAULT_AGENT_CONFIG,
         )
 
@@ -79,7 +79,7 @@ def create_manual_collection_crew(
 
             You ensure all manually collected data is accurate and ready for migration planning.""",
             llm=llm,
-            memory=shared_memory,
+            # Per ADR-024: Use TenantMemoryManager instead of CrewAI memory
             **DEFAULT_AGENT_CONFIG,
         )
 
@@ -98,7 +98,7 @@ def create_manual_collection_crew(
 
             Your coordination ensures manual collection is completed efficiently and on schedule.""",
             llm=llm,
-            memory=shared_memory,
+            # Per ADR-024: Use TenantMemoryManager instead of CrewAI memory
             **DEFAULT_AGENT_CONFIG,
         )
 

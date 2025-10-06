@@ -1056,6 +1056,7 @@ const AdaptiveForms: React.FC = () => {
         milestones={progressMilestones}
         isSaving={isSaving}
         isSubmitting={isLoading}
+        completionStatus={completionStatus}
         onFieldChange={handleFieldChange}
         onValidationChange={handleValidationChange}
         onSave={directSaveHandler || handleSave}

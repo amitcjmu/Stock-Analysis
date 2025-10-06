@@ -32,7 +32,7 @@ export interface QuestionnairePollingOptions {
   onFailed?: (_errorMessage: string) => void;
 }
 
-const MAX_POLL_ATTEMPTS = 12; // 1 minute max at 5 second intervals
+const MAX_POLL_ATTEMPTS = 24; // 12 minutes max at 30 second intervals (increased for agent processing)
 const MAX_RETRY_ATTEMPTS = 3; // Allow up to 3 manual retries
 const RETRY_DELAY_BASE = 2000; // Base delay for exponential backoff
 
@@ -216,7 +216,7 @@ export const useQuestionnairePolling = ({
             console.log('📊 Poll attempt', newAttempts, 'of', MAX_POLL_ATTEMPTS);
             return newAttempts;
           });
-          return 5000; // Poll every 5 seconds
+          return 30000; // Poll every 30 seconds
         } else {
           // We've reached max attempts, stop polling
           console.log('⏰ Max poll attempts reached, stopping polling');
