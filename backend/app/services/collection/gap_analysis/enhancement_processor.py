@@ -605,6 +605,11 @@ class EnhancementProcessorMixin:
                             f"❌ Failed to persist gaps for {asset.name}: {persist_error}",
                             exc_info=True,
                         )
+                        # Rollback failed transaction to prevent session contamination
+                        try:
+                            await db.rollback()
+                        except Exception as rollback_error:
+                            logger.warning(f"Rollback failed: {rollback_error}")
                         # Continue - don't fail entire job for persistence error
 
                     # Accumulate gaps for return

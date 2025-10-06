@@ -260,14 +260,17 @@ def build_asset_enhancement_task(
     if previous_learnings and len(previous_learnings) > 0:
         # Limit to 3 most relevant learnings
         top_learnings = previous_learnings[:3]
+        asset_type = asset_context.get(
+            "asset_type", "asset"
+        )  # Safe access with fallback
         learning_section = f"""
-PREVIOUS LEARNINGS (similar {asset_context['asset_type']} assets):
+PREVIOUS LEARNINGS (similar {asset_type} assets):
 {json.dumps([
     {
-        "field": l.get("field_name"),
-        "resolution": l.get("suggested_resolution"),
-        "confidence": l.get("confidence_score")
-    } for l in top_learnings
+        "field": learning.get("field_name"),
+        "resolution": learning.get("suggested_resolution"),
+        "confidence": learning.get("confidence_score")
+    } for learning in top_learnings
 ], indent=2)}
 """
 

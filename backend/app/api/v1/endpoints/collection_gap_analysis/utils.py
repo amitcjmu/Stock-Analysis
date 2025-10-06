@@ -35,7 +35,13 @@ async def resolve_collection_flow(
     Raises:
         HTTPException: If flow not found or not accessible
     """
-    flow_uuid = UUID(flow_id)
+    try:
+        flow_uuid = UUID(flow_id)
+    except (ValueError, AttributeError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid flow_id format: {flow_id}. Must be a valid UUID.",
+        ) from e
 
     # Try as collection_flow.flow_id first (business identifier from URL)
     stmt = select(CollectionFlow).where(

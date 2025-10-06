@@ -347,7 +347,7 @@ class ProgrammaticGapScanner:
                 "gap_type": gap["gap_type"],
                 "gap_category": gap.get("gap_category", "unknown"),
                 "priority": gap.get("priority", 3),
-                "description": gap.get("suggested_resolution", ""),
+                "description": gap.get("description", gap.get("field_name", "")),
                 "impact_on_sixr": "medium",  # Default, can be enhanced by AI
                 "suggested_resolution": gap.get(
                     "suggested_resolution", "Manual collection required"

@@ -70,7 +70,6 @@ per-file-ignores =
     backend/app/services/agents/gap_prioritization_agent_crewai.py:C901
     backend/app/services/collected_data_inventory_service.py:F401
     backend/app/services/collection_phase_progression_service.py:F401
-    backend/app/services/crewai_flows/crews/dependency_analysis_crew.py:C901
     backend/app/services/crewai_flows/crews/dependency_analysis_crew/crew.py:C901
     backend/app/services/crewai_flows/crews/tech_debt_analysis_crew.py:C901
     backend/app/services/crewai_flows/crews/tech_debt_analysis_crew/tools.py:C901
