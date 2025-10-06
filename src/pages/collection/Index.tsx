@@ -16,6 +16,9 @@ import { useAuth } from '@/contexts/AuthContext';
 // Import RBAC utilities
 import { canCreateCollectionFlow, getRoleName } from '@/utils/rbac';
 
+// Import flow routing configuration
+import { FLOW_PHASE_ROUTES } from '@/config/flowRoutes';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

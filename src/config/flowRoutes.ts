@@ -53,24 +53,19 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
 
   collection: {
     // Asset selection phase - FIRST STEP: select applications before gap analysis
+    // NOTE: Replaces deprecated platform_detection and automated_collection phases
     'asset_selection': (flowId: string) => flowId ? `/collection/select-applications?flowId=${flowId}` : '/collection',
 
-    // Platform detection phase
-    'platform_detection': (flowId: string) => flowId ? `/collection/platform-detection/${flowId}` : '/collection',
-
-    // Automated collection phase
-    'automated_collection': (flowId: string) => flowId ? `/collection/automated-collection/${flowId}` : '/collection',
-
-    // Gap analysis phase
+    // Gap analysis phase - AI-powered two-phase gap discovery
     'gap_analysis': (flowId: string) => flowId ? `/collection/gap-analysis/${flowId}` : '/collection',
 
-    // Questionnaire generation phase - The feature user is looking for!
+    // Questionnaire generation phase - AI generates targeted questions
     'questionnaire_generation': (flowId: string) => flowId ? `/collection/questionnaire-generation/${flowId}` : '/collection',
 
-    // Manual collection phase - where users interact with questionnaires
+    // Manual collection phase - Users interact with questionnaires
     'manual_collection': (flowId: string) => flowId ? `/collection/manual-collection/${flowId}` : '/collection',
 
-    // Synthesis phase - final data compilation
+    // Synthesis phase - Final data compilation and validation
     'synthesis': (flowId: string) => flowId ? `/collection/synthesis/${flowId}` : '/collection',
 
     // Completed flow
@@ -177,7 +172,7 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
  */
 export const PHASE_SEQUENCES: Record<FlowType, string[]> = {
   discovery: ['data_import', 'attribute_mapping', 'data_cleansing', 'inventory', 'dependencies'],
-  collection: ['asset_selection', 'platform_detection', 'automated_collection', 'gap_analysis', 'questionnaire_generation', 'manual_collection', 'synthesis'],
+  collection: ['asset_selection', 'gap_analysis', 'questionnaire_generation', 'manual_collection', 'synthesis'],
   assessment: ['migration_readiness', 'business_impact', 'technical_assessment', 'tech_debt'],
   plan: ['wave_planning', 'roadmap', 'runbook_creation', 'resource_allocation'],
   execute: ['pre_migration', 'migration_execution', 'post_migration'],
