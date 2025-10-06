@@ -7,6 +7,7 @@
 
 import type { AdaptiveFormData, FormSection, FormField, FieldOption } from '@/components/collection/types';
 import type { ConfigurationValue, ConfigurationObject } from '@/types/shared/config-types';
+import type { AdaptiveQuestionnaireResponse } from '@/services/api/collection-flow';
 
 export interface QuestionnaireData {
   id?: string;
@@ -308,7 +309,7 @@ export const convertQuestionnaireToFormData = (
 };
 
 export const convertQuestionnairesToFormData = (
-  questionnaire: QuestionnaireData,
+  questionnaire: QuestionnaireData | AdaptiveQuestionnaireResponse,
   applicationId: string | null
 ): AdaptiveFormData => {
   try {
