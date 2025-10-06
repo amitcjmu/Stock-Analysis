@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 async def process_gap_enhancement_job(
     job_id: str,
-    flow_id: str,
     collection_flow_id: UUID,
     gaps: list,
     selected_asset_ids: list,
@@ -25,8 +24,7 @@ async def process_gap_enhancement_job(
 
     Args:
         job_id: Unique job identifier
-        flow_id: Collection flow UUID (business identifier)
-        collection_flow_id: Collection flow internal ID
+        collection_flow_id: Collection flow internal ID (used for all DB operations)
         gaps: List of gaps to enhance
         selected_asset_ids: Asset IDs to process
         client_account_id: Client account UUID (primitive, not mutable context)
@@ -234,5 +232,5 @@ async def _auto_progress_phase(
         )
         await update_job_state(
             collection_flow_id,
-            {"phase_progression": f"error: {str(progression_error)}"},
+            {"phase_progression": f"error: {progression_error}"},
         )

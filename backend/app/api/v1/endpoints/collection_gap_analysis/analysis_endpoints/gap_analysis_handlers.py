@@ -151,7 +151,6 @@ async def analyze_gaps(
         background_tasks.add_task(
             process_gap_enhancement_job,
             job_id=job_id,
-            flow_id=flow_id,
             collection_flow_id=collection_flow.id,
             gaps=request_body.gaps,
             selected_asset_ids=request_body.selected_asset_ids,
