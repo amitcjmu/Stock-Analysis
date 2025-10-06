@@ -46,7 +46,7 @@ async def _start_agent_generation(
             id=questionnaire_id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
-            collection_flow_id=flow.flow_id,  # CRITICAL FIX: Use .flow_id (UUID) not .id (int PK)
+            collection_flow_id=flow.id,  # Use .id (PRIMARY KEY) for FK relationship
             title="AI-Generated Data Collection Questionnaire",
             description="Generating tailored questionnaire using AI agent analysis...",
             template_name="agent_generated",

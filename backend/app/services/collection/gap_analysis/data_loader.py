@@ -60,29 +60,38 @@ async def resolve_collection_flow_id(
     db: AsyncSession,
 ) -> str:
     """
-    Resolve the actual collection flow ID from the input flow_id.
+    Resolve collection flow PRIMARY KEY (id) from business flow_id.
+
+    CRITICAL ARCHITECTURE:
+    - Input: flow_id (business identifier from frontend/API)
+    - Output: id (PRIMARY KEY for FK relationships)
+    - WHY: FK constraints reference collection_flows.id (PK), not flow_id
 
     The service might receive either:
-    - A master flow ID (needs lookup to find child collection flow)
-    - A collection flow ID directly (use as-is)
+    - A collection flow_id (business identifier) → returns matching PK
+    - A master flow ID → finds child collection flow, returns its PK
 
     Args:
-        flow_id: Input flow ID (could be master or collection flow)
+        flow_id: Input flow ID (business identifier or master flow UUID)
         db: Database session
 
     Returns:
-        The UUID string of the child collection flow to use for gap persistence
+        The PRIMARY KEY (id) of the child collection flow for FK persistence
     """
     flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
 
-    # First try: Is this already a collection_flow_id?
+    # First try: Is this a collection flow_id (business identifier)?
+    # Query by flow_id, return id (PK)
     stmt = select(CollectionFlow).where(CollectionFlow.flow_id == flow_uuid)
     result = await db.execute(stmt)
     collection_flow = result.scalar_one_or_none()
 
     if collection_flow:
-        logger.debug(f"✅ Input {flow_id} is a collection flow ID (direct match)")
-        return str(collection_flow.flow_id)
+        logger.debug(
+            f"✅ Input {flow_id} is a collection flow_id (business ID), "
+            f"returning PK {collection_flow.id} for FK storage"
+        )
+        return str(collection_flow.id)  # Return PK for FK relationships
 
     # Second try: Is this a master_flow_id? Look up child collection flow
     stmt = select(CollectionFlow).where(CollectionFlow.master_flow_id == flow_uuid)
@@ -92,9 +101,9 @@ async def resolve_collection_flow_id(
     if collection_flow:
         logger.info(
             f"✅ Input {flow_id} is a master flow ID, "
-            f"resolved to collection flow {collection_flow.flow_id}"
+            f"resolved to collection flow PK {collection_flow.id} (flow_id: {collection_flow.flow_id})"
         )
-        return str(collection_flow.flow_id)
+        return str(collection_flow.id)  # Return PK for FK relationships
 
     # Fallback: No collection flow found - raise an error
     message = (
