@@ -34,7 +34,7 @@ class EnhancementProcessorMixin:
     """Mixin providing AI enhancement processing for GapAnalysisService."""
 
     async def _run_tier_2_ai_analysis_no_persist(  # noqa: C901
-        self, assets: list, collection_flow_id: str, gaps: list[dict[str, Any]] = None
+        self, assets: list, collection_flow_id: str, gaps: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Run tier_2 AI enhancement with persistent agent (sequential processing).
 
@@ -151,13 +151,14 @@ class EnhancementProcessorMixin:
 
             # Process assets SEQUENTIALLY (agent is not concurrency-safe)
             for asset_id, asset_gaps in gaps_by_asset.items():
-                # Check circuit breaker
-                if failed_count > 0:
-                    failure_rate = failed_count / max(processed_count + failed_count, 1)
+                # Check circuit breaker (only after MIN_ATTEMPTS_BEFORE_BREAKING)
+                total_attempts = processed_count + failed_count
+                if total_attempts >= MIN_ATTEMPTS_BEFORE_BREAKING and failed_count > 0:
+                    failure_rate = failed_count / max(total_attempts, 1)
                     if failure_rate > CIRCUIT_BREAKER_THRESHOLD:
                         logger.error(
                             f"🔴 Circuit breaker triggered: {failure_rate:.0%} failure rate "
-                            f"({failed_count}/{processed_count + failed_count} assets failed)"
+                            f"({failed_count}/{total_attempts} assets failed)"
                         )
                         break
 
@@ -470,13 +471,14 @@ class EnhancementProcessorMixin:
 
             # Process assets SEQUENTIALLY (agent is not concurrency-safe)
             for asset_id, asset_gaps in gaps_by_asset.items():
-                # Check circuit breaker
-                if failed_count > 0:
-                    failure_rate = failed_count / max(processed_count + failed_count, 1)
+                # Check circuit breaker (only after MIN_ATTEMPTS_BEFORE_BREAKING)
+                total_attempts = processed_count + failed_count
+                if total_attempts >= MIN_ATTEMPTS_BEFORE_BREAKING and failed_count > 0:
+                    failure_rate = failed_count / max(total_attempts, 1)
                     if failure_rate > CIRCUIT_BREAKER_THRESHOLD:
                         logger.error(
                             f"🔴 Circuit breaker triggered: {failure_rate:.0%} failure rate "
-                            f"({failed_count}/{processed_count + failed_count} assets failed)"
+                            f"({failed_count}/{total_attempts} assets failed)"
                         )
                         break
 
