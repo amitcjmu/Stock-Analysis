@@ -188,15 +188,21 @@ async def _auto_progress_phase(
                 f"🚀 Job {job_id}: Auto-progressing to questionnaire_generation"
             )
 
-            # Create minimal context from primitives for progression service
+            # IMPORTANT: Create immutable context from primitives for progression service
+            # Background jobs receive only primitive IDs (str), not mutable request context.
+            # This RequestContext is constructed here as an immutable container of primitives
+            # required by CollectionPhaseProgressionService and MFO utilities.
+            # It is NOT the request context from the HTTP handler.
             from app.core.context import RequestContext
             from app.services.collection_phase_progression_service import (
                 CollectionPhaseProgressionService,
             )
 
             temp_context = RequestContext(
-                client_account_id=UUID(client_account_id),
-                engagement_id=UUID(engagement_id),
+                client_account_id=UUID(
+                    client_account_id
+                ),  # Converted from str primitive
+                engagement_id=UUID(engagement_id),  # Converted from str primitive
                 user_id=None,  # Background job has no user
             )
 
