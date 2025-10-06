@@ -65,7 +65,7 @@ async def get_collection_gaps(
 
         # Query gaps with asset join to get asset_name
         gaps_result = await db.execute(
-            select(CollectionDataGap, Asset.asset_name)
+            select(CollectionDataGap, Asset.name)
             .outerjoin(Asset, CollectionDataGap.asset_id == Asset.id)
             .where(CollectionDataGap.collection_flow_id == collection_flow.id)
             .order_by(CollectionDataGap.priority.desc(), CollectionDataGap.created_at)

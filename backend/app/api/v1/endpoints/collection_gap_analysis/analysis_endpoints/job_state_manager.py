@@ -98,7 +98,10 @@ async def get_job_state(collection_flow_id: Any) -> Optional[Dict[str, Any]]:
 
 
 async def update_job_state(collection_flow_id: Any, updates: Dict[str, Any]) -> None:
-    """Update job state in Redis.
+    """Update job state in Redis atomically using a transaction.
+
+    Uses Redis WATCH to ensure atomic updates and prevent race conditions
+    that could lead to data loss from concurrent updates.
 
     Args:
         collection_flow_id: Collection flow internal ID
@@ -111,11 +114,41 @@ async def update_job_state(collection_flow_id: Any, updates: Dict[str, Any]) -> 
     job_key = get_job_key(collection_flow_id)
 
     try:
-        job_state_json = await redis_manager.client.get(job_key)
-        if job_state_json:
-            job_state = json.loads(job_state_json)
-            job_state.update(updates)
-            job_state["updated_at"] = time.time()
-            await redis_manager.client.set(job_key, json.dumps(job_state), ex=3600)
+        # Retry loop for optimistic locking with WATCH
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                async with redis_manager.client.pipeline(transaction=True) as pipe:
+                    # Watch the key for changes
+                    await pipe.watch(job_key)
+
+                    # Get current state
+                    job_state_json = await redis_manager.client.get(job_key)
+                    if not job_state_json:
+                        await pipe.unwatch()
+                        return
+
+                    # Update state
+                    job_state = json.loads(job_state_json)
+                    job_state.update(updates)
+                    job_state["updated_at"] = time.time()
+
+                    # Atomic write with multi/exec
+                    pipe.multi()
+                    await pipe.set(job_key, json.dumps(job_state), ex=3600)
+                    await pipe.execute()
+                    break  # Success, exit retry loop
+
+            except Exception as watch_error:
+                # WatchError or other Redis errors - retry
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"Redis transaction conflict on {job_key}, "
+                        f"retry {attempt + 1}/{max_retries}: {watch_error}"
+                    )
+                    continue
+                else:
+                    raise  # Max retries exceeded
+
     except Exception as e:
-        logger.warning(f"Failed to update job state: {e}")
+        logger.warning(f"Failed to update job state for {job_key}: {e}")
