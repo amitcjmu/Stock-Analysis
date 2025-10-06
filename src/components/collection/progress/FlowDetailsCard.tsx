@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 import { collectionFlowApi } from "@/services/api/collection-flow";
 import { useToast } from "@/hooks/use-toast";
+import { FLOW_PHASE_ROUTES } from "@/config/flowRoutes";
 
 export interface CollectionFlow {
   id: string;
@@ -177,9 +178,27 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
 
         if (questionnaires.length > 0) {
           console.log(
-            `📋 Found ${questionnaires.length} questionnaires, navigating to adaptive forms`,
+            `📋 Found ${questionnaires.length} questionnaires, checking flow phase for navigation`,
           );
-          navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+
+          // Get flow details to determine current phase for proper routing
+          try {
+            const flowDetails = await collectionFlowApi.getFlow(flow.id);
+            const currentPhase = flowDetails.current_phase || 'asset_selection';
+            const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+
+            if (phaseRoute) {
+              const targetRoute = phaseRoute(flow.id);
+              console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+              navigate(targetRoute);
+            } else {
+              console.warn(`⚠️ No route found for phase: ${currentPhase}, falling back to adaptive-forms`);
+              navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+            }
+          } catch (error) {
+            console.warn('⚠️ Failed to get flow details for phase routing, using fallback:', error);
+            navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+          }
           return;
         }
       } catch (questionnairesError: unknown) {
@@ -266,9 +285,27 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
         if (questionnaires.length > 0) {
           setIsPollingForQuestionnaires(false);
           console.log(
-            "✅ Questionnaires ready after polling, navigating to adaptive forms",
+            "✅ Questionnaires ready after polling, checking flow phase for navigation",
           );
-          navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+
+          // Get flow details to determine current phase for proper routing
+          try {
+            const flowDetails = await collectionFlowApi.getFlow(flow.id);
+            const currentPhase = flowDetails.current_phase || 'asset_selection';
+            const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+
+            if (phaseRoute) {
+              const targetRoute = phaseRoute(flow.id);
+              console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+              navigate(targetRoute);
+            } else {
+              console.warn(`⚠️ No route found for phase: ${currentPhase}, falling back to adaptive-forms`);
+              navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+            }
+          } catch (error) {
+            console.warn('⚠️ Failed to get flow details for phase routing, using fallback:', error);
+            navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+          }
           return;
         }
       } catch (error: unknown) {

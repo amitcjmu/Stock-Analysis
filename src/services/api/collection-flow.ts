@@ -1008,16 +1008,37 @@ class CollectionFlowApi {
     });
   }
 
-  // Phase 2: Two-Phase Gap Analysis - AI Enhancement
+  // Phase 2: Two-Phase Gap Analysis - AI Enhancement (Non-Blocking)
   async analyzeGaps(
     flowId: string,
     gaps: DataGap[],
     selectedAssetIds: string[],
-  ): Promise<AnalyzeGapsResponse> {
+  ): Promise<{
+    job_id: string;
+    status: string;
+    progress_url: string;
+    message: string;
+  }> {
+    // Returns 202 Accepted with job_id immediately (non-blocking)
     return await apiCall(`${this.baseUrl}/flows/${flowId}/analyze-gaps`, {
       method: "POST",
       body: JSON.stringify({ gaps, selected_asset_ids: selectedAssetIds }),
-      timeout: 180000, // 3 minutes for tier_2 AI analysis (takes 85-165s)
+      timeout: 10000, // 10s timeout for job submission
+    });
+  }
+
+  // Poll enhancement progress (for non-blocking AI analysis)
+  async getEnhancementProgress(flowId: string): Promise<{
+    status: string;
+    processed: number;
+    total: number;
+    current_asset?: string;
+    percentage: number;
+    updated_at?: string;
+  }> {
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/enhancement-progress`, {
+      method: "GET",
+      timeout: 5000,
     });
   }
 

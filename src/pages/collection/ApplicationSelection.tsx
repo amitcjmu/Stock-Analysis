@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   useInfiniteQuery,
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -28,11 +29,19 @@ import {
   Filter,
   Activity,
   Eye,
+  Server,
+  Database,
+  Network,
+  HardDrive,
+  Shield,
+  Cloud,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiCall } from "@/config/api";
 import { toast } from "@/components/ui/use-toast";
 import CollectionPageLayout from "@/components/collection/layout/CollectionPageLayout";
+import { FLOW_PHASE_ROUTES } from "@/config/flowRoutes";
+import { collectionFlowApi } from "@/services/api/collection-flow";
 import type { Asset } from "@/types/asset";
 
 /**
@@ -57,6 +66,9 @@ const ApplicationSelection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState("");
   const [criticalityFilter, setCriticalityFilter] = useState("");
+  const [selectedAssetTypes, setSelectedAssetTypes] = useState<Set<string>>(
+    new Set(["ALL"]), // Default to showing all asset types
+  );
 
   // Refs for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -150,20 +162,50 @@ const ApplicationSelection: React.FC = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Flatten all pages into a single array of applications
+  // Flatten all pages into a single array of assets
   const allAssets =
     applicationsData?.pages?.flatMap((page) => page.assets) || [];
-  // Filter to only show applications (not servers or databases)
-  const applications = allAssets.filter(
-    (asset) =>
-      asset.asset_type?.toLowerCase() === "application" ||
-      asset.asset_type?.toLowerCase() === "app",
-  );
-  // Since we're filtering client-side, count actual applications
-  const totalApplicationsCount = applications.length;
 
-  // Since server-side filtering is now applied, we use applications directly without client-side filtering
-  const filteredApplications = applications;
+  // Group assets by type with counts
+  const assetsByType = useMemo(() => {
+    const grouped: Record<string, Asset[]> = {
+      ALL: allAssets,
+      APPLICATION: [],
+      SERVER: [],
+      DATABASE: [],
+      NETWORK_DEVICE: [],
+      STORAGE_DEVICE: [],
+      SECURITY_DEVICE: [],
+      VIRTUALIZATION: [],
+      UNKNOWN: [],
+    };
+
+    allAssets.forEach((asset) => {
+      const type = asset.asset_type?.toUpperCase() || "UNKNOWN";
+      if (grouped[type]) {
+        grouped[type].push(asset);
+      } else {
+        grouped.UNKNOWN.push(asset);
+      }
+    });
+
+    return grouped;
+  }, [allAssets]);
+
+  // Filter assets based on selected asset types
+  const filteredAssets = useMemo(() => {
+    if (selectedAssetTypes.has("ALL")) {
+      return allAssets;
+    }
+
+    return allAssets.filter((asset) =>
+      selectedAssetTypes.has(asset.asset_type?.toUpperCase() || "UNKNOWN"),
+    );
+  }, [allAssets, selectedAssetTypes]);
+
+  // For backward compatibility, keep this name but it now includes all asset types
+  const filteredApplications = filteredAssets;
+  const totalApplicationsCount = filteredAssets.length;
 
   // Fetch current collection flow details to check existing selections
   const { data: collectionFlow, isLoading: flowLoading } = useQuery({
@@ -200,7 +242,7 @@ const ApplicationSelection: React.FC = () => {
       (entries) => {
         const [entry] = entries;
         if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          console.log("📄 Loading next page of applications...");
+          console.log("📄 Loading next page of assets...");
           fetchNextPage();
         }
       },
@@ -244,13 +286,13 @@ const ApplicationSelection: React.FC = () => {
     );
   };
 
-  // Get unique filter options from all loaded applications
+  // Get unique filter options from all loaded assets
   const environmentOptions = [
-    ...new Set(applications.map((app) => app.environment).filter(Boolean)),
+    ...new Set(allAssets.map((app) => app.environment).filter(Boolean)),
   ];
   const criticalityOptions = [
     ...new Set(
-      applications.map((app) => app.business_criticality).filter(Boolean),
+      allAssets.map((app) => app.business_criticality).filter(Boolean),
     ),
   ];
 
@@ -329,13 +371,36 @@ const ApplicationSelection: React.FC = () => {
         );
 
         toast({
-          title: "Applications Selected",
-          description: `Successfully selected ${selectedApplications.size} application${selectedApplications.size > 1 ? "s" : ""} for collection.`,
+          title: "Assets Selected",
+          description: `Successfully selected ${selectedApplications.size} asset${selectedApplications.size > 1 ? "s" : ""} for collection.`,
           variant: "default",
         });
 
-        // Navigate to the adaptive forms to continue the flow
-        navigate(`/collection/adaptive-forms?flowId=${flowId}`);
+        // Navigate based on flow phase (not hardcoded path)
+        try {
+          const flowDetails = await collectionFlowApi.getFlow(flowId);
+          const currentPhase = flowDetails.current_phase || "gap_analysis";
+          const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+
+          if (phaseRoute) {
+            const targetRoute = phaseRoute(flowId);
+            console.log(
+              `🧭 Navigating to ${currentPhase} phase: ${targetRoute}`,
+            );
+            navigate(targetRoute);
+          } else {
+            console.warn(
+              `⚠️ No route found for phase: ${currentPhase}, falling back to adaptive-forms`,
+            );
+            navigate(`/collection/adaptive-forms?flowId=${flowId}`);
+          }
+        } catch (error) {
+          console.warn(
+            "⚠️ Failed to get flow details for phase routing, using fallback:",
+            error,
+          );
+          navigate(`/collection/adaptive-forms?flowId=${flowId}`);
+        }
       } else {
         throw new Error("Invalid response from server");
       }
@@ -366,10 +431,10 @@ const ApplicationSelection: React.FC = () => {
   if (applicationsLoading || flowLoading) {
     return (
       <CollectionPageLayout
-        title="Select Applications"
-        description="Choose applications for data collection"
+        title="Select Assets"
+        description="Choose assets for data collection"
         isLoading={true}
-        loadingMessage="Loading available applications..."
+        loadingMessage="Loading available assets..."
         loadingSubMessage="Fetching inventory data"
       >
         {/* Loading handled by layout */}
@@ -381,14 +446,14 @@ const ApplicationSelection: React.FC = () => {
   if (applicationsError) {
     return (
       <CollectionPageLayout
-        title="Select Applications"
-        description="Choose applications for data collection"
+        title="Select Assets"
+        description="Choose assets for data collection"
       >
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Failed to load applications. Please try again or contact support if
-            the issue persists.
+            Failed to load assets. Please try again or contact support if the
+            issue persists.
           </AlertDescription>
         </Alert>
         <div className="mt-4 flex gap-2">
@@ -405,26 +470,208 @@ const ApplicationSelection: React.FC = () => {
   // Main component render
   return (
     <CollectionPageLayout
-      title="Select Applications"
-      description={`Choose which applications to include in this collection flow${collectionFlow?.flow_name ? ` (${collectionFlow.flow_name})` : ""}`}
+      title="Select Assets"
+      description={`Choose which assets to include in this collection flow${collectionFlow?.flow_name ? ` (${collectionFlow.flow_name})` : ""}`}
     >
       <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Cpu className="h-5 w-5" />
-              Application Selection
+              <Activity className="h-5 w-5" />
+              Asset Selection
             </CardTitle>
             <CardDescription>
-              Select the applications you want to include in this collection
-              flow. The selected applications will undergo gap analysis and
-              adaptive questionnaire generation.
+              Select the assets you want to include in this collection flow.
+              The selected assets will undergo gap analysis and adaptive
+              questionnaire generation.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {applications && applications.length > 0 ? (
+            {allAssets && allAssets.length > 0 ? (
               <>
+                {/* Asset Type Selection */}
+                <div className="space-y-3 pb-4 border-b">
+                  <Label className="text-sm font-medium">Asset Types</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("ALL") ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setSelectedAssetTypes(new Set(["ALL"]))}
+                    >
+                      All Assets ({allAssets.length})
+                    </Button>
+
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("APPLICATION")
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        const newSet = new Set(selectedAssetTypes);
+                        newSet.delete("ALL");
+                        if (newSet.has("APPLICATION")) {
+                          newSet.delete("APPLICATION");
+                        } else {
+                          newSet.add("APPLICATION");
+                        }
+                        setSelectedAssetTypes(
+                          newSet.size === 0 ? new Set(["ALL"]) : newSet,
+                        );
+                      }}
+                    >
+                      <Cpu className="h-3 w-3 mr-1" />
+                      Applications ({assetsByType.APPLICATION.length})
+                    </Button>
+
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("SERVER") ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        const newSet = new Set(selectedAssetTypes);
+                        newSet.delete("ALL");
+                        if (newSet.has("SERVER")) {
+                          newSet.delete("SERVER");
+                        } else {
+                          newSet.add("SERVER");
+                        }
+                        setSelectedAssetTypes(
+                          newSet.size === 0 ? new Set(["ALL"]) : newSet,
+                        );
+                      }}
+                    >
+                      <Server className="h-3 w-3 mr-1" />
+                      Servers ({assetsByType.SERVER.length})
+                    </Button>
+
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("DATABASE")
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        const newSet = new Set(selectedAssetTypes);
+                        newSet.delete("ALL");
+                        if (newSet.has("DATABASE")) {
+                          newSet.delete("DATABASE");
+                        } else {
+                          newSet.add("DATABASE");
+                        }
+                        setSelectedAssetTypes(
+                          newSet.size === 0 ? new Set(["ALL"]) : newSet,
+                        );
+                      }}
+                    >
+                      <Database className="h-3 w-3 mr-1" />
+                      Databases ({assetsByType.DATABASE.length})
+                    </Button>
+
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("NETWORK_DEVICE")
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        const newSet = new Set(selectedAssetTypes);
+                        newSet.delete("ALL");
+                        if (newSet.has("NETWORK_DEVICE")) {
+                          newSet.delete("NETWORK_DEVICE");
+                        } else {
+                          newSet.add("NETWORK_DEVICE");
+                        }
+                        setSelectedAssetTypes(
+                          newSet.size === 0 ? new Set(["ALL"]) : newSet,
+                        );
+                      }}
+                    >
+                      <Network className="h-3 w-3 mr-1" />
+                      Network ({assetsByType.NETWORK_DEVICE.length})
+                    </Button>
+
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("STORAGE_DEVICE")
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        const newSet = new Set(selectedAssetTypes);
+                        newSet.delete("ALL");
+                        if (newSet.has("STORAGE_DEVICE")) {
+                          newSet.delete("STORAGE_DEVICE");
+                        } else {
+                          newSet.add("STORAGE_DEVICE");
+                        }
+                        setSelectedAssetTypes(
+                          newSet.size === 0 ? new Set(["ALL"]) : newSet,
+                        );
+                      }}
+                    >
+                      <HardDrive className="h-3 w-3 mr-1" />
+                      Storage ({assetsByType.STORAGE_DEVICE.length})
+                    </Button>
+
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("SECURITY_DEVICE")
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        const newSet = new Set(selectedAssetTypes);
+                        newSet.delete("ALL");
+                        if (newSet.has("SECURITY_DEVICE")) {
+                          newSet.delete("SECURITY_DEVICE");
+                        } else {
+                          newSet.add("SECURITY_DEVICE");
+                        }
+                        setSelectedAssetTypes(
+                          newSet.size === 0 ? new Set(["ALL"]) : newSet,
+                        );
+                      }}
+                    >
+                      <Shield className="h-3 w-3 mr-1" />
+                      Security ({assetsByType.SECURITY_DEVICE.length})
+                    </Button>
+
+                    <Button
+                      variant={
+                        selectedAssetTypes.has("VIRTUALIZATION")
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        const newSet = new Set(selectedAssetTypes);
+                        newSet.delete("ALL");
+                        if (newSet.has("VIRTUALIZATION")) {
+                          newSet.delete("VIRTUALIZATION");
+                        } else {
+                          newSet.add("VIRTUALIZATION");
+                        }
+                        setSelectedAssetTypes(
+                          newSet.size === 0 ? new Set(["ALL"]) : newSet,
+                        );
+                      }}
+                    >
+                      <Cloud className="h-3 w-3 mr-1" />
+                      Virtualization ({assetsByType.VIRTUALIZATION.length})
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Search and Filter Controls */}
                 <div className="space-y-4 pb-4 border-b">
                   <div className="flex flex-col sm:flex-row gap-4">
@@ -433,7 +680,7 @@ const ApplicationSelection: React.FC = () => {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         type="text"
-                        placeholder="Search applications..."
+                        placeholder="Search assets..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -522,18 +769,18 @@ const ApplicationSelection: React.FC = () => {
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
                   {filteredApplications.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      {searchTerm || environmentFilter || criticalityFilter ? (
+                      {searchTerm || environmentFilter || criticalityFilter || !selectedAssetTypes.has("ALL") ? (
                         <div>
                           <Filter className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                          <p>No applications match your current filters.</p>
+                          <p>No assets match your current filters.</p>
                           <p className="text-sm mt-2">
-                            Try adjusting your search criteria.
+                            Try adjusting your search criteria or asset type selection.
                           </p>
                         </div>
                       ) : (
                         <div>
-                          <Cpu className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                          <p>No applications available.</p>
+                          <Activity className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                          <p>No assets available.</p>
                         </div>
                       )}
                     </div>
@@ -627,17 +874,17 @@ const ApplicationSelection: React.FC = () => {
                           <div className="flex items-center justify-center py-4">
                             <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                             <span className="ml-2 text-sm text-gray-600">
-                              Loading more applications...
+                              Loading more assets...
                             </span>
                           </div>
                         )}
-                        {!hasNextPage && applications.length > 0 && (
+                        {!hasNextPage && filteredApplications.length > 0 && (
                           <div className="text-center py-4 text-gray-500 text-sm">
                             {searchTerm ||
                             environmentFilter ||
                             criticalityFilter
-                              ? `Showing all ${applications.length} matching applications`
-                              : `All applications loaded (${applications.length} total)`}
+                              ? `Showing all ${filteredApplications.length} matching applications`
+                              : `All applications loaded (${filteredApplications.length} total)`}
                           </div>
                         )}
                       </div>
@@ -704,8 +951,8 @@ const ApplicationSelection: React.FC = () => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  No applications found in the inventory. Please complete the
-                  Discovery flow first to populate the application inventory.
+                  No assets found in the inventory. Please complete the
+                  Discovery flow first to populate the asset inventory.
                 </AlertDescription>
               </Alert>
             )}

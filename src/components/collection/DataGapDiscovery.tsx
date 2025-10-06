@@ -63,6 +63,15 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     execution_time_ms: number;
   } | null>(null);
   const [modifiedGaps, setModifiedGaps] = useState<Set<string>>(new Set());
+  const [enhancementProgress, setEnhancementProgress] = useState<{
+    job_id: string;
+    status: string;
+    processed: number;
+    total: number;
+    current_asset?: string;
+    percentage: number;
+  } | null>(null);
+  const [selectedGaps, setSelectedGaps] = useState<GapRowData[]>([]);
 
   // Fetch existing gaps on mount, or scan if none exist
   useEffect(() => {
@@ -131,10 +140,23 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   };
 
   const handleAnalyzeGaps = async () => {
-    if (gaps.length === 0) {
+    // Use selected gaps if available, otherwise all gaps
+    const gapsToAnalyze = selectedGaps.length > 0 ? selectedGaps : gaps;
+
+    if (gapsToAnalyze.length === 0) {
       toast({
         title: "No Gaps to Analyze",
-        description: "Run a gap scan first",
+        description: selectedGaps.length > 0 ? "Please select gaps to analyze" : "Run a gap scan first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for >200 gaps limit
+    if (gapsToAnalyze.length > 200) {
+      toast({
+        title: "Too Many Gaps",
+        description: `Please select fewer gaps (${gapsToAnalyze.length}/200 max). Use row selection to choose specific gaps.`,
         variant: "destructive",
       });
       return;
@@ -142,35 +164,96 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
     try {
       setIsAnalyzing(true);
+
+      // Start enhancement job (returns 202 Accepted immediately)
       const response = await collectionFlowApi.analyzeGaps(
         flowId,
-        gaps,
+        gapsToAnalyze,
         selectedAssetIds,
       );
 
-      // Update gaps with AI enhancements
-      const enhancedGapsWithIds = response.enhanced_gaps.map((gap, index) => ({
-        ...gap,
-        id: `${gap.asset_id}-${gap.field_name}-${index}`,
-      }));
-
-      setGaps(enhancedGapsWithIds);
-
       toast({
-        title: "AI Analysis Complete",
-        description: `Enhanced ${response.summary.enhanced_gaps} gaps with AI suggestions (${response.summary.agent_duration_ms}ms)`,
+        title: "Enhancement Started",
+        description: response.message,
         variant: "default",
       });
+
+      // Start polling for progress
+      let attempts = 0;
+      const maxAttempts = 300; // 10 minutes max (2s interval)
+
+      const pollProgress = setInterval(async () => {
+        try {
+          const progress = await collectionFlowApi.getEnhancementProgress(flowId);
+
+          setEnhancementProgress({
+            job_id: response.job_id,
+            status: progress.status,
+            processed: progress.processed,
+            total: progress.total,
+            current_asset: progress.current_asset,
+            percentage: progress.percentage,
+          });
+
+          if (progress.status === "completed") {
+            clearInterval(pollProgress);
+
+            // Re-scan gaps to get AI enhancements from database
+            try {
+              const updatedGaps = await collectionFlowApi.getGaps(flowId);
+              const gapsWithIds = updatedGaps.map((gap, index) => ({
+                ...gap,
+                id: `${gap.asset_id}-${gap.field_name}-${index}`,
+              }));
+              setGaps(gapsWithIds);
+
+              toast({
+                title: "Enhancement Complete",
+                description: `Enhanced ${progress.processed} assets successfully`,
+                variant: "default",
+              });
+            } catch (fetchError) {
+              console.error("Failed to fetch enhanced gaps:", fetchError);
+            }
+
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          } else if (progress.status === "failed") {
+            clearInterval(pollProgress);
+            toast({
+              title: "Enhancement Failed",
+              description: "AI enhancement encountered errors. Check logs for details.",
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            clearInterval(pollProgress);
+            toast({
+              title: "Enhancement Timeout",
+              description: "Enhancement is taking longer than expected. Check flow status.",
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+        } catch (error) {
+          console.error("Progress polling error:", error);
+        }
+      }, 2000); // Poll every 2 seconds
+
     } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to analyze gaps";
+      const errorMessage = error instanceof Error ? error.message : "Failed to start enhancement";
       toast({
-        title: "Analysis Failed",
+        title: "Enhancement Failed",
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
       setIsAnalyzing(false);
+      setEnhancementProgress(null);
     }
   };
 
@@ -389,6 +472,14 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   const columnDefs = useMemo<Array<ColDef<GapRowData>>>(
     () => [
       {
+        headerCheckboxSelection: true,
+        checkboxSelection: true,
+        width: 50,
+        pinned: "left",
+        lockPosition: "left",
+        suppressMovable: true,
+      },
+      {
         field: "asset_name",
         headerName: "Asset",
         width: 150,
@@ -484,6 +575,11 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     [gaps, handleSaveGap],
   );
 
+  const onSelectionChanged = useCallback((event: unknown) => {
+    const selectedRows = (event as { api: { getSelectedRows: () => GapRowData[] } }).api.getSelectedRows();
+    setSelectedGaps(selectedRows);
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Summary Card */}
@@ -529,6 +625,11 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
           <CardTitle>Gap Resolution Actions</CardTitle>
           <CardDescription>
             Scan for gaps, enhance with AI, or manually resolve
+            {selectedGaps.length > 0 && (
+              <span className="ml-2 text-purple-600 font-medium">
+                ({selectedGaps.length} gap{selectedGaps.length !== 1 ? 's' : ''} selected for AI analysis)
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -558,6 +659,18 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               )}
               {isAnalyzing ? "Analyzing..." : "Perform Agentic Analysis"}
             </Button>
+
+            {/* Progress Display for Non-Blocking AI Enhancement */}
+            {enhancementProgress && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-700">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <span>
+                  Processing: {enhancementProgress.processed}/{enhancementProgress.total} assets
+                  {enhancementProgress.current_asset && ` - ${enhancementProgress.current_asset}`}
+                  ({Math.round((enhancementProgress.processed / enhancementProgress.total) * 100)}%)
+                </span>
+              </div>
+            )}
 
             <div className="flex-1" />
 
@@ -615,6 +728,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               }
               onGridReady={onGridReady}
               onCellEditingStopped={handleCellEditingStopped}
+              onSelectionChanged={onSelectionChanged}
               suppressRowClickSelection={true}
               rowSelection="multiple"
             />
