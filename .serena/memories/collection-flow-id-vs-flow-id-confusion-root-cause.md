@@ -142,9 +142,17 @@ response = await client.get(f"/flows/{flow_id}/questionnaires")
 
 ## FILES AFFECTED
 
-- `backend/app/api/v1/endpoints/collection_crud_questionnaires/commands.py:49`
-- `backend/app/api/v1/endpoints/collection_crud_questionnaires/queries.py:53`
-- `backend/app/api/v1/endpoints/collection_agent_questionnaires/generation.py:215`
+### Questionnaires (Fixed Oct 5)
+- `backend/app/api/v1/endpoints/collection_crud_questionnaires/commands.py:49` ✅
+- `backend/app/api/v1/endpoints/collection_crud_questionnaires/queries.py:53` ✅
+- `backend/app/api/v1/endpoints/collection_agent_questionnaires/generation.py:215` ✅
+- Migration 081: FK constraint fixed ✅
+
+### Gaps (Fixed Oct 5)
+- `backend/app/services/collection/gap_analysis/data_loader.py:79,85,95,97` ✅
+  - Query by flow_id (not id)
+  - Return flow.flow_id (not id)
+- Migration 082: FK constraint fixed, 162 gaps migrated ✅
 
 ## COMMIT HISTORY
 
@@ -152,8 +160,20 @@ response = await client.get(f"/flows/{flow_id}/questionnaires")
 - Oct 5 (7c887854c): Changed to `flow.flow_id` - fixed application, will break FK
 - **Needed**: Migration to fix FK constraint, then keep `flow.flow_id`
 
-## KEY TAKEAWAY
+## KEY TAKEAWAY ✅ RESOLVED (Oct 5, 2025)
 
-**The FK constraint is defined incorrectly in the database schema.** No amount of code changes will fix this - it requires an Alembic migration to update the constraint.
+**The FK constraint WAS defined incorrectly in the database schema.** This affected BOTH questionnaires and gaps tables.
 
-Both previous fixes were "correct" for their perspective (FK vs application), but neither can work until the schema is fixed.
+**Resolution Complete:**
+1. ✅ Migration 081: Fixed questionnaires FK + migrated 15 records
+2. ✅ Migration 082: Fixed gaps FK + migrated 162 records
+3. ✅ Code fixes: All uses of `flow.id` changed to `flow.flow_id`
+
+**All affected tables now correctly reference `collection_flows.flow_id`:**
+- `adaptive_questionnaires.collection_flow_id` → points to `flow_id` ✅
+- `collection_data_gaps.collection_flow_id` → points to `flow_id` ✅
+
+**Agent Guidance:**
+- ALWAYS use `flow.flow_id` for flow references
+- NEVER use `flow.id` (internal PK, not for business logic)
+- FK constraints now ENFORCE this pattern
