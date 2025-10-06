@@ -579,36 +579,43 @@ test.describe('Database Verification', () => {
   test('10. Verify Gaps Persisted to Database', async ({ request }) => {
     console.log('\n🧪 TEST 10: Database Verification');
 
-    // Query database via docker exec
-    const { execSync } = require('child_process');
+    // Query database using pg client
+    const { Client } = require('pg');
 
-    const dbQuery = `
-      SELECT
-        COUNT(*) as total_gaps,
-        gap_type,
-        gap_category,
-        priority
-      FROM migration.collection_data_gaps
-      WHERE created_at > NOW() - INTERVAL '10 minutes'
-      GROUP BY gap_type, gap_category, priority
-      ORDER BY priority ASC;
-    `;
+    const client = new Client({
+      host: 'localhost',
+      port: 5433, // Docker-mapped port
+      user: 'postgres',
+      password: 'postgres',
+      database: 'migration_db',
+    });
 
     try {
-      const result = execSync(
-        `docker exec migration_postgres psql -U postgres -d migration_db -t -c "${dbQuery}"`,
-        { encoding: 'utf-8' }
-      );
+      await client.connect();
+
+      const result = await client.query(`
+        SELECT
+          COUNT(*) as total_gaps,
+          gap_type,
+          gap_category,
+          priority
+        FROM migration.collection_data_gaps
+        WHERE created_at > NOW() - INTERVAL '10 minutes'
+        GROUP BY gap_type, gap_category, priority
+        ORDER BY priority ASC
+      `);
 
       console.log('📊 Database query results:');
-      console.log(result);
+      console.log(result.rows);
 
       // Verify we have data
-      expect(result.trim().length).toBeGreaterThan(0);
-      console.log('✅ Gaps persisted to database');
+      expect(result.rows.length).toBeGreaterThan(0);
+      console.log(`✅ Gaps persisted to database: ${result.rows.length} categories found`);
     } catch (error) {
       console.error('❌ Database query failed:', error);
       throw error;
+    } finally {
+      await client.end();
     }
 
     console.log('🎉 TEST 10 PASSED: Database verification\n');
