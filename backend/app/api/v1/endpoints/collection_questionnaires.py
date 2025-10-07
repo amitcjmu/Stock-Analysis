@@ -12,6 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import get_request_context
 from app.core.database import get_db
+from app.core.rbac_utils import (
+    COLLECTION_CREATE_ROLES,
+    require_role,
+)
 from app.models import User
 from app.schemas.collection_flow import (
     AdaptiveQuestionnaireResponse,
@@ -107,6 +111,40 @@ async def submit_questionnaire_response_legacy(
         flow_id=flow_id,
         questionnaire_id=questionnaire_id,
         request_data=request_data,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
+@router.post("/flows/{flow_id}/questionnaires/responses/batch")
+async def batch_update_questionnaire_responses(
+    flow_id: str,
+    responses: List[Dict[str, Any]],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Submit multiple questionnaire responses in batch.
+
+    This endpoint allows submitting responses for multiple questions at once,
+    improving efficiency for bulk data collection operations.
+
+    Args:
+        flow_id: The collection flow ID
+        responses: List of response dictionaries containing question_id, response_value, etc.
+
+    Returns:
+        Dict with status, message, and count of responses saved
+    """
+    # Per CodeRabbit: Enforce RBAC for batch operations
+    require_role(
+        current_user, COLLECTION_CREATE_ROLES, "batch update questionnaire responses"
+    )
+
+    return await collection_crud.batch_update_questionnaire_responses(
+        flow_id=flow_id,
+        responses=responses,
         db=db,
         current_user=current_user,
         context=context,

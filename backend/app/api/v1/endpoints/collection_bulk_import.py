@@ -50,11 +50,11 @@ async def _validate_collection_flow_for_import(
         )
 
     # Check flow is in a state that allows bulk import
+    # Per ADR-012: Use lifecycle states instead of phase values
     allowed_statuses = [
         CollectionFlowStatus.INITIALIZED.value,
-        CollectionFlowStatus.ASSET_SELECTION.value,
-        CollectionFlowStatus.GAP_ANALYSIS.value,
-        CollectionFlowStatus.MANUAL_COLLECTION.value,
+        CollectionFlowStatus.RUNNING.value,
+        CollectionFlowStatus.PAUSED.value,
     ]
 
     if collection_flow.status not in allowed_statuses:
@@ -156,14 +156,17 @@ def _update_flow_after_import(
     ]
     collection_flow.collection_config["selected_assets"][asset_key].extend(new_ids)
 
-    # Update flow status and phase after successful import to maintain consistency
-    # Move from INITIALIZED -> ASSET_SELECTION or stay in current state
-    if collection_flow.status == CollectionFlowStatus.INITIALIZED.value:
-        collection_flow.status = CollectionFlowStatus.ASSET_SELECTION.value
+    # Update flow status after successful import
+    # Per ADR-012: Status reflects lifecycle, not phase
+    # Move from INITIALIZED or PAUSED -> RUNNING after successful import
+    if collection_flow.status in [
+        CollectionFlowStatus.INITIALIZED.value,
+        CollectionFlowStatus.PAUSED.value,
+    ]:
+        collection_flow.status = CollectionFlowStatus.RUNNING.value
 
-    # After successful asset import, set both phase and status to GAP_ANALYSIS for consistency
+    # Update phase to GAP_ANALYSIS (phase reflects operational state)
     collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
-    collection_flow.status = CollectionFlowStatus.GAP_ANALYSIS.value
     collection_flow.updated_at = datetime.now(timezone.utc)
 
 

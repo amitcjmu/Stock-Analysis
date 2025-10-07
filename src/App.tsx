@@ -60,6 +60,7 @@ import {
   LazyCollectionGapAnalysis,
   LazyCollectionFlowManagement,
   LazyApplicationSelection,
+  LazyCollectionSummary,
   LazyTreatment,
   LazyWavePlanning,
   LazyRoadmap,
@@ -290,6 +291,10 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/collection/gap-analysis/:flowId"
         element={<LazyCollectionGapAnalysis />}
+      />
+      <Route
+        path="/collection/summary/:flowId"
+        element={<LazyCollectionSummary />}
       />
       <Route
         path="/collection/questionnaire-generation/:flowId"

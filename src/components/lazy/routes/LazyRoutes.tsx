@@ -199,6 +199,12 @@ export const LazyApplicationSelection = createLazyRoute(
   LoadingPriority.HIGH,
 );
 
+export const LazyCollectionSummary = createLazyRoute(
+  () => import("@/pages/collection/Summary"),
+  "Collection Summary",
+  LoadingPriority.NORMAL,
+);
+
 // Assessment Sub-routes
 export const LazyAssessIndex = createLazyRoute(
   () => import("@/pages/assess/Index"),

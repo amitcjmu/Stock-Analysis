@@ -9,7 +9,6 @@ from datetime import timedelta
 from app.models.collection_flow import (
     CollectionFlow,
     CollectionFlowStatus,
-    CollectionPhase,
 )
 from app.api.v1.endpoints.collection_time_utils import calculate_time_since_creation
 
@@ -36,30 +35,28 @@ def is_flow_stuck_in_initialization(
 def determine_next_phase_status(next_phase: str, current_status: str = None) -> str:
     """Determine the appropriate flow status based on next phase.
 
+    Per ADR-012: Status reflects lifecycle, not phase.
+
     Args:
         next_phase: The next phase name
-        current_status: Current flow status (for finalization handling)
+        current_status: Current flow status
 
     Returns:
         Appropriate collection flow status
     """
-    # For finalization phase, keep current status unchanged
-    if next_phase == "finalization" and current_status:
-        return current_status
+    # If already running, stay running unless at finalization
+    if next_phase == "finalization":
+        return CollectionFlowStatus.COMPLETED.value
 
-    phase_status_mapping = {
-        "initialization": CollectionFlowStatus.INITIALIZED.value,
-        "asset_selection": CollectionFlowStatus.ASSET_SELECTION.value,
-        "gap_analysis": CollectionFlowStatus.GAP_ANALYSIS.value,
-        "manual_collection": CollectionFlowStatus.MANUAL_COLLECTION.value,
-        # Phase names using enum values
-        CollectionPhase.ASSET_SELECTION.value: CollectionFlowStatus.ASSET_SELECTION.value,
-        CollectionPhase.GAP_ANALYSIS.value: CollectionFlowStatus.GAP_ANALYSIS.value,
-    }
+    # If initialized and moving to first active phase
+    if current_status == CollectionFlowStatus.INITIALIZED.value:
+        # Check if phase requires user input
+        if next_phase in ["asset_selection"]:
+            return CollectionFlowStatus.PAUSED.value
+        return CollectionFlowStatus.RUNNING.value
 
-    return phase_status_mapping.get(
-        next_phase, CollectionFlowStatus.ASSET_SELECTION.value
-    )
+    # Otherwise preserve current status (RUNNING/PAUSED)
+    return current_status or CollectionFlowStatus.RUNNING.value
 
 
 def calculate_progress_percentage(

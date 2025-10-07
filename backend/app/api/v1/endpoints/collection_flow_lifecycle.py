@@ -44,11 +44,11 @@ class CollectionFlowLifecycleManager:
         """
         try:
             # Get all active flows for the engagement
+            # Per ADR-012: Use lifecycle states instead of phase values
             active_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.ASSET_SELECTION.value,
-                CollectionFlowStatus.GAP_ANALYSIS.value,
-                CollectionFlowStatus.MANUAL_COLLECTION.value,
+                CollectionFlowStatus.RUNNING.value,
+                CollectionFlowStatus.PAUSED.value,
             ]
 
             query = (
@@ -123,11 +123,11 @@ class CollectionFlowLifecycleManager:
         """
         try:
             # Find flows that should be completed
+            # Per ADR-012: Use lifecycle states instead of phase values
             active_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.ASSET_SELECTION.value,
-                CollectionFlowStatus.GAP_ANALYSIS.value,
-                CollectionFlowStatus.MANUAL_COLLECTION.value,
+                CollectionFlowStatus.RUNNING.value,
+                CollectionFlowStatus.PAUSED.value,
             ]
 
             query = select(CollectionFlow).where(
@@ -267,11 +267,11 @@ class CollectionFlowLifecycleManager:
                 }
 
             # Check if flow is in a state that can be completed
+            # Per ADR-012: Use lifecycle states instead of phase values
             completable_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.ASSET_SELECTION.value,
-                CollectionFlowStatus.GAP_ANALYSIS.value,
-                CollectionFlowStatus.MANUAL_COLLECTION.value,
+                CollectionFlowStatus.RUNNING.value,
+                CollectionFlowStatus.PAUSED.value,
             ]
 
             if flow.status not in completable_statuses:
@@ -356,11 +356,11 @@ class CollectionFlowLifecycleManager:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
 
             # Find stale flows
+            # Per ADR-012: Use lifecycle states instead of phase values
             active_statuses = [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.ASSET_SELECTION.value,
-                CollectionFlowStatus.GAP_ANALYSIS.value,
-                CollectionFlowStatus.MANUAL_COLLECTION.value,
+                CollectionFlowStatus.RUNNING.value,
+                CollectionFlowStatus.PAUSED.value,
             ]
 
             query = select(CollectionFlow).where(

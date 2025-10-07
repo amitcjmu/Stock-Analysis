@@ -90,7 +90,7 @@ class InitializationHandler:
                         update(CollectionFlow)
                         .where(CollectionFlow.id == uuid.UUID(state.flow_id))
                         .values(
-                            status=CollectionFlowStatus.ASSET_SELECTION.value,
+                            status=CollectionFlowStatus.RUNNING.value,  # Per ADR-012: Flow is now actively running
                             current_phase=CollectionPhase.ASSET_SELECTION.value,
                             progress_percentage=5.0,
                             updated_at=datetime.utcnow(),
@@ -99,7 +99,7 @@ class InitializationHandler:
                     await self.flow_context.db_session.execute(stmt)
                     await self.flow_context.db_session.commit()
                     logger.info(
-                        f"✅ Updated flow {state.flow_id} status from INITIALIZED to ASSET_SELECTION"
+                        f"✅ Updated flow {state.flow_id} status from INITIALIZED to RUNNING (phase: ASSET_SELECTION)"
                     )
                 except Exception as e:
                     logger.error(f"Failed to update flow status in database: {e}")

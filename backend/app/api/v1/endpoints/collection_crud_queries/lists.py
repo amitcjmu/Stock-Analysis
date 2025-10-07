@@ -51,10 +51,10 @@ async def get_incomplete_flows(
                 CollectionFlow.engagement_id == context.engagement_id,
                 CollectionFlow.status.in_(
                     [
+                        # Per ADR-012: Use lifecycle states instead of phase values
                         CollectionFlowStatus.INITIALIZED.value,
-                        CollectionFlowStatus.ASSET_SELECTION.value,
-                        CollectionFlowStatus.GAP_ANALYSIS.value,
-                        CollectionFlowStatus.MANUAL_COLLECTION.value,
+                        CollectionFlowStatus.RUNNING.value,
+                        CollectionFlowStatus.PAUSED.value,
                         CollectionFlowStatus.FAILED.value,
                     ]
                 ),

@@ -164,7 +164,9 @@ class DiscoveryToCollectionBridge:
         """Trigger immediate gap analysis for selected applications"""
         # This will be handled by the CrewAI flow phases
         # Here we just update the flow state to indicate gap analysis should start
-        collection_flow.status = CollectionFlowStatus.GAP_ANALYSIS.value
+        collection_flow.status = (
+            CollectionFlowStatus.RUNNING.value
+        )  # Per ADR-012: Flow is now actively running
         collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
         collection_flow.phase_state = {
             "gap_analysis": {

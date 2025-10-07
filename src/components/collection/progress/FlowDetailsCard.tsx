@@ -184,7 +184,16 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           // Get flow details to determine current phase for proper routing
           try {
             const flowDetails = await collectionFlowApi.getFlow(flow.id);
-            const currentPhase = flowDetails.current_phase || 'asset_selection';
+
+            // Per ADR-012: status determines lifecycle, current_phase determines operational state
+            // If flow is completed, always route to summary page
+            if (flowDetails.status === 'completed') {
+              console.log(`🧭 Flow is completed, navigating to summary page`);
+              navigate(`/collection/summary/${flow.id}`);
+              return;
+            }
+
+            let currentPhase = flowDetails.current_phase || 'asset_selection';
             const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
 
             if (phaseRoute) {
@@ -291,7 +300,16 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           // Get flow details to determine current phase for proper routing
           try {
             const flowDetails = await collectionFlowApi.getFlow(flow.id);
-            const currentPhase = flowDetails.current_phase || 'asset_selection';
+
+            // Per ADR-012: status determines lifecycle, current_phase determines operational state
+            // If flow is completed, always route to summary page
+            if (flowDetails.status === 'completed') {
+              console.log(`🧭 Flow is completed, navigating to summary page`);
+              navigate(`/collection/summary/${flow.id}`);
+              return;
+            }
+
+            let currentPhase = flowDetails.current_phase || 'asset_selection';
             const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
 
             if (phaseRoute) {

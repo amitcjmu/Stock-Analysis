@@ -63,13 +63,13 @@ class CleanupUtils:
             return True
 
         # Stale incomplete flows (no update in 7+ days)
+        # Per ADR-012: Check lifecycle states (not phase-based states)
         if (
             flow.status
             in [
                 CollectionFlowStatus.INITIALIZED.value,
-                CollectionFlowStatus.ASSET_SELECTION.value,
-                CollectionFlowStatus.GAP_ANALYSIS.value,
-                CollectionFlowStatus.MANUAL_COLLECTION.value,
+                CollectionFlowStatus.RUNNING.value,
+                CollectionFlowStatus.PAUSED.value,
             ]
             and age_days > 7
         ):
