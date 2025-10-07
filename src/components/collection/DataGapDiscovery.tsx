@@ -6,6 +6,7 @@ import type {
   CellEditingStoppedEvent,
 } from "ag-grid-community";
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import {
   Sparkles,
@@ -51,6 +52,28 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   selectedAssetIds,
   onComplete,
 }) => {
+  // Add custom tooltip styling
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .ag-tooltip {
+        background-color: #1f2937 !important;
+        color: white !important;
+        border: 1px solid #374151 !important;
+        border-radius: 4px !important;
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        max-width: 400px !important;
+        word-wrap: break-word !important;
+        z-index: 9999 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   const { toast } = useToast();
   const [gaps, setGaps] = useState<GapRowData[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -179,7 +202,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
       // Start polling for progress
       let attempts = 0;
-      const maxAttempts = 300; // 10 minutes max (2s interval)
+      const maxAttempts = 24; // 12 minutes max (30s interval)
 
       const pollProgress = setInterval(async () => {
         try {
@@ -233,7 +256,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             clearInterval(pollProgress);
             toast({
               title: "Enhancement Timeout",
-              description: "Enhancement is taking longer than expected. Check flow status.",
+              description: "Enhancement is taking longer than 12 minutes. Check flow status or backend logs.",
               variant: "destructive",
             });
             setIsAnalyzing(false);
@@ -242,7 +265,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         } catch (error) {
           console.error("Progress polling error:", error);
         }
-      }, 2000); // Poll every 2 seconds
+      }, 30000); // Poll every 30 seconds
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to start enhancement";
@@ -712,12 +735,14 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             style={{ height: 500, width: "100%" }}
           >
             <AgGridReact
+              theme="legacy"
               rowData={gaps}
               columnDefs={columnDefs}
               defaultColDef={{
                 sortable: true,
                 filter: true,
                 resizable: true,
+                tooltipValueGetter: (params) => params.value,
               }}
               getRowId={(params) =>
                 params.data.id ||
@@ -727,10 +752,10 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               onCellEditingStopped={handleCellEditingStopped}
               onSelectionChanged={onSelectionChanged}
               rowSelection={{
-                mode: 'multiRow',
-                enableClickSelection: false,
-                headerCheckbox: true,
+                mode: "multiRow",
                 checkboxes: true,
+                headerCheckbox: true,
+                enableClickSelection: false,
               }}
             />
           </div>
