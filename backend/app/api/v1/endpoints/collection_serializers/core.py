@@ -99,6 +99,15 @@ def build_collection_flow_response(
         "completed_at": collection_flow.completed_at,
         "gaps_identified": gaps_identified,
         "collection_metrics": collection_metrics,
+        # Assessment transition tracking (Phase 4)
+        "assessment_ready": collection_flow.assessment_ready,
+        "apps_ready_for_assessment": collection_flow.apps_ready_for_assessment,
+        "assessment_flow_id": (
+            str(collection_flow.assessment_flow_id)
+            if collection_flow.assessment_flow_id
+            else None
+        ),
+        "assessment_transition_date": collection_flow.assessment_transition_date,
     }
 
     # Include discovery_flow_id if present

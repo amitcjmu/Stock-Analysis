@@ -46,7 +46,11 @@ async def _get_flow_by_id(
 async def _get_existing_questionnaires_tenant_scoped(
     flow: CollectionFlow, db: AsyncSession, context: RequestContext
 ) -> List[AdaptiveQuestionnaireResponse]:
-    """Get existing questionnaires from database with tenant scoping."""
+    """Get existing questionnaires from database with tenant scoping.
+
+    CRITICAL: Only returns questionnaires that are NOT completed.
+    Completed questionnaires should not be returned to prevent submission loops.
+    """
     questionnaires_result = await db.execute(
         select(AdaptiveQuestionnaire)
         .where(
@@ -54,17 +58,25 @@ async def _get_existing_questionnaires_tenant_scoped(
             == flow.id,  # Use .id (PRIMARY KEY) for FK relationship
             AdaptiveQuestionnaire.client_account_id == context.client_account_id,
             AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+            AdaptiveQuestionnaire.completion_status
+            != "completed",  # Exclude completed questionnaires
         )
         .order_by(AdaptiveQuestionnaire.created_at.desc())
     )
     questionnaires = questionnaires_result.scalars().all()
 
     if questionnaires:
-        logger.info(f"Found {len(questionnaires)} questionnaires in database")
+        logger.info(
+            f"Found {len(questionnaires)} incomplete questionnaires in database"
+        )
         return [
             collection_serializers.build_questionnaire_response(q)
             for q in questionnaires
         ]
+
+    logger.info(
+        "No incomplete questionnaires found - collection may be ready for assessment"
+    )
     return []
 
 
@@ -106,6 +118,15 @@ async def get_adaptive_questionnaires(
                 f"Returning {len(existing_questionnaires)} existing questionnaires"
             )
             return existing_questionnaires
+
+        # CRITICAL: If no incomplete questionnaires AND assessment_ready is true, return empty array
+        # This signals that collection is complete and should transition to assessment
+        if flow.assessment_ready:
+            logger.info(
+                f"✅ Collection flow {flow_id} is assessment-ready with no incomplete questionnaires. "
+                "Returning empty array to signal completion."
+            )
+            return []
 
         # Get existing assets for this engagement
         all_assets = await _get_existing_assets(db, context)

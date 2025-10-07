@@ -280,7 +280,7 @@ export const useAdaptiveFormFlow = (
   const questionnairePollingState = useQuestionnairePolling({
     flowId: state.flowId || '',
     enabled: !!state.flowId && !state.formData && !state.questionnaires?.length,
-    onReady: useCallback((questionnaires) => {
+    onReady: useCallback(async (questionnaires) => {
       console.log('🎉 Questionnaire ready from new polling hook:', questionnaires);
       // Convert questionnaires and update state - use timeout to prevent React warning
       if (questionnaires.length > 0) {
@@ -291,11 +291,31 @@ export const useAdaptiveFormFlow = (
           );
 
           if (validateFormDataStructure(adaptiveFormData)) {
+            // CRITICAL FIX: Fetch saved responses from database when loading questionnaire
+            let existingResponses: CollectionFormData = {};
+            if (state.flowId) {
+              try {
+                const savedResponsesData = await collectionFlowApi.getQuestionnaireResponses(
+                  state.flowId,
+                  questionnaires[0].id,
+                );
+                if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
+                  existingResponses = savedResponsesData.responses;
+                  console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from database:`, existingResponses);
+                } else {
+                  console.log('📝 No saved responses found in database for this questionnaire');
+                }
+              } catch (err) {
+                console.warn("Failed to fetch saved responses from database:", err);
+              }
+            }
+
             // Use setTimeout to prevent "Cannot update a component while rendering" warning
             setTimeout(() => {
               setState((prev) => ({
                 ...prev,
                 formData: adaptiveFormData,
+                formValues: existingResponses, // Load saved responses from database
                 questionnaires: questionnaires,
                 isLoading: false,
                 error: null
@@ -303,16 +323,20 @@ export const useAdaptiveFormFlow = (
             }, 0);
 
             toast({
-              title: "Adaptive Form Ready",
-              description: `Agent-generated questionnaire is ready for data collection.`,
+              title: existingResponses && Object.keys(existingResponses).length > 0
+                ? "Saved Responses Loaded"
+                : "Adaptive Form Ready",
+              description: existingResponses && Object.keys(existingResponses).length > 0
+                ? `Loaded your previously saved responses. You can review and update them.`
+                : `Agent-generated questionnaire is ready for data collection.`,
             });
           }
         } catch (error) {
           console.error('Failed to convert questionnaire:', error);
         }
       }
-    }, [applicationId, toast]),
-    onFallback: useCallback((questionnaires) => {
+    }, [applicationId, toast, state.flowId]),
+    onFallback: useCallback(async (questionnaires) => {
       console.log('⚠️ Using fallback questionnaire from new polling hook:', questionnaires);
       // Handle fallback questionnaire - use timeout to prevent React warning
       if (questionnaires.length > 0) {
@@ -322,11 +346,29 @@ export const useAdaptiveFormFlow = (
             applicationId,
           );
 
+          // CRITICAL FIX: Fetch saved responses from database for fallback questionnaire too
+          let existingResponses: CollectionFormData = {};
+          if (state.flowId) {
+            try {
+              const savedResponsesData = await collectionFlowApi.getQuestionnaireResponses(
+                state.flowId,
+                questionnaires[0].id,
+              );
+              if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
+                existingResponses = savedResponsesData.responses;
+                console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from database:`, existingResponses);
+              }
+            } catch (err) {
+              console.warn("Failed to fetch saved responses from database:", err);
+            }
+          }
+
           // Use setTimeout to prevent "Cannot update a component while rendering" warning
           setTimeout(() => {
             setState((prev) => ({
               ...prev,
               formData: adaptiveFormData,
+              formValues: existingResponses, // Load saved responses from database
               questionnaires: questionnaires,
               isLoading: false,
               error: null
@@ -335,14 +377,16 @@ export const useAdaptiveFormFlow = (
 
           toast({
             title: "Bootstrap Form Loaded",
-            description: "Using comprehensive template questionnaire while AI agents work in the background.",
+            description: existingResponses && Object.keys(existingResponses).length > 0
+              ? "Using comprehensive template questionnaire. Your saved responses have been loaded."
+              : "Using comprehensive template questionnaire while AI agents work in the background.",
             variant: "default",
           });
         } catch (error) {
           console.error('Failed to convert fallback questionnaire:', error);
         }
       }
-    }, [applicationId, toast]),
+    }, [applicationId, toast, state.flowId]),
     onFailed: useCallback((errorMessage) => {
       console.error('❌ Questionnaire generation failed:', errorMessage);
       // Enhanced error handling with retry capabilities
@@ -613,6 +657,40 @@ export const useAdaptiveFormFlow = (
         status: flowResponse.status || "active",
         engagement_id: flowResponse.engagement_id,
       });
+
+      // CRITICAL CHECK: If collection is assessment-ready, transition instead of generating new questionnaires
+      if (flowResponse.assessment_ready) {
+        console.log(
+          `✅ Collection flow ${flowResponse.id} is assessment-ready! Triggering transition...`,
+        );
+
+        try {
+          const transitionResult = await collectionFlowApi.transitionToAssessment(flowResponse.id);
+          console.log("✅ Transition to assessment successful:", transitionResult);
+
+          setState((prev) => ({ ...prev, isCompleted: true }));
+
+          toast({
+            title: "Collection Complete - Assessment Ready",
+            description: `Your data has been collected successfully. Redirecting to assessment flow...`,
+          });
+
+          // Redirect to assessment flow
+          setTimeout(() => {
+            window.location.href = `/assessment/${transitionResult.assessment_flow_id}`;
+          }, 2000);
+
+          return; // Exit early - no need to generate questionnaires
+        } catch (transitionError) {
+          console.error("❌ Failed to transition to assessment:", transitionError);
+          toast({
+            title: "Transition Error",
+            description: "Could not transition to assessment. Please try manually.",
+            variant: "destructive",
+          });
+          // Fall through to normal flow execution
+        }
+      }
 
       console.log(
         `🎯 Collection flow ${flowResponse.id} ready, triggering questionnaire generation...`,
@@ -1417,29 +1495,55 @@ export const useAdaptiveFormFlow = (
             console.log(
               "✅ No more questionnaires - collection flow is complete",
             );
-            setState((prev) => ({ ...prev, isCompleted: true }));
 
-            // Check if this was a bootstrap form completion
-            if (isBootstrapForm) {
+            // CRITICAL FIX: Automatically transition to assessment flow after collection completes
+            // This ensures the collection flow properly triggers the assessment phase
+            try {
+              console.log("🔄 Triggering automatic transition to assessment flow...");
+              const transitionResult = await collectionFlowApi.transitionToAssessment(actualFlowId);
+
+              console.log("✅ Transition successful:", transitionResult);
+
+              setState((prev) => ({ ...prev, isCompleted: true }));
+
               toast({
-                title: "Application Details Saved",
-                description:
-                  "Application information has been saved successfully! You can now proceed to the next phase.",
-                variant: "default",
+                title: "Collection Complete - Assessment Ready",
+                description: `Your data has been collected successfully. Transitioning to assessment flow...`,
               });
-            } else {
-              toast({
-                title: "Collection Complete",
-                description:
-                  "All required information has been collected successfully!",
-                variant: "default",
-              });
+
+              // Redirect to assessment flow instead of collection progress
+              setTimeout(() => {
+                window.location.href = `/assessment/${transitionResult.assessment_flow_id}`;
+              }, 2000);
+
+            } catch (transitionError) {
+              console.error("❌ Failed to transition to assessment:", transitionError);
+
+              // Fallback to collection complete state if transition fails
+              setState((prev) => ({ ...prev, isCompleted: true }));
+
+              // Check if this was a bootstrap form completion
+              if (isBootstrapForm) {
+                toast({
+                  title: "Application Details Saved",
+                  description:
+                    "Application information has been saved successfully! You can manually start the assessment phase.",
+                  variant: "default",
+                });
+              } else {
+                toast({
+                  title: "Collection Complete",
+                  description:
+                    "All required information has been collected. You can manually start the assessment phase.",
+                  variant: "default",
+                });
+              }
+
+              // Fallback: Redirect to collection progress page
+              setTimeout(() => {
+                window.location.href = `/collection/progress/${actualFlowId}`;
+              }, 2000);
             }
-
-            // Redirect to collection progress page after completion using the correct flow_id
-            setTimeout(() => {
-              window.location.href = `/collection/progress/${actualFlowId}`;
-            }, 2000);
           }
         } catch (refreshError) {
           console.error("Failed to refresh questionnaires:", refreshError);
