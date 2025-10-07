@@ -42,6 +42,19 @@ class CollectionTransitionService:
         # Get flow with tenant-scoped query
         flow = await self._get_collection_flow(flow_id)
 
+        # CRITICAL: Check assessment_ready flag first - overrides gap analysis
+        if flow.assessment_ready:
+            logger.info(
+                f"✅ Flow {flow_id} has assessment_ready=true - bypassing gap analysis"
+            )
+            return ReadinessResult(
+                is_ready=True,
+                confidence=1.0,
+                reason="Collection marked as ready for assessment (assessment_ready=true)",
+                missing_requirements=[],
+                thresholds_used=await self._get_tenant_thresholds(),
+            )
+
         # Get gap analysis summary (existing service)
         gap_summary = await self.gap_service.get_gap_analysis_summary(
             str(flow.id), self.context
