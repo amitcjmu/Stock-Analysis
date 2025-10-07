@@ -97,7 +97,12 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   // OR questionnaire generation timed out/failed
   // Show asset selection form to allow user to proceed
   // BUT: Don't show this if questionnaire is still being generated (pending status)
-  if ((!formData.sections || formData.sections.length === 0) && completionStatus !== 'pending') {
+  // Explicitly check for terminal statuses to prevent UI flicker during state transitions
+  const showFallback =
+    (!formData.sections || formData.sections.length === 0) &&
+    (completionStatus === 'ready' || completionStatus === 'fallback' || completionStatus === 'failed');
+
+  if (showFallback) {
     // Create a bootstrap asset selection form
     const assetSelectionFormData = {
       formId: 'bootstrap_asset_selection',
