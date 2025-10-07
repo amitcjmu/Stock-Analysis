@@ -111,3 +111,32 @@ async def submit_questionnaire_response_legacy(
         current_user=current_user,
         context=context,
     )
+
+
+@router.post("/flows/{flow_id}/questionnaires/responses/batch")
+async def batch_update_questionnaire_responses(
+    flow_id: str,
+    responses: List[Dict[str, Any]],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> Dict[str, Any]:
+    """Submit multiple questionnaire responses in batch.
+
+    This endpoint allows submitting responses for multiple questions at once,
+    improving efficiency for bulk data collection operations.
+
+    Args:
+        flow_id: The collection flow ID
+        responses: List of response dictionaries containing question_id, response_value, etc.
+
+    Returns:
+        Dict with status, message, and count of responses saved
+    """
+    return await collection_crud.batch_update_questionnaire_responses(
+        flow_id=flow_id,
+        responses=responses,
+        db=db,
+        current_user=current_user,
+        context=context,
+    )

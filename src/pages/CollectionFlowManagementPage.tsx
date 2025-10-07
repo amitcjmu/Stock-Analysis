@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Database, Settings, Clock, Zap, Play } from 'lucide-react'
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Trash2, Shield, Activity, HardDrive, BarChart3, Users } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
-import { useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';
+import { useCollectionFlowManagement, useIncompleteCollectionFlows } from '@/hooks/collection/useCollectionFlowManagement';
 import { IncompleteCollectionFlowManager } from '@/components/collection/IncompleteCollectionFlowManager';
 import { collectionFlowApi } from '@/services/api/collection-flow';
 import { getErrorToastOptions } from '@/utils/errorHandling';
@@ -58,7 +58,6 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   } | null>(null);
 
   const {
-    useIncompleteFlows,
     continueFlow,
     deleteFlow,
     batchDeleteFlows,
@@ -71,7 +70,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
   } = useCollectionFlowManagement();
 
   // Queries
-  const incompleteFlowsQuery = useIncompleteFlows();
+  const incompleteFlowsQuery = useIncompleteCollectionFlows();
 
   // Load health status and recommendations on mount
   useEffect(() => {
