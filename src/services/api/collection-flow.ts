@@ -90,9 +90,9 @@ export interface GapTargetInfo {
 }
 
 export interface QuestionnaireQuestion {
-  question_id: string;
+  field_id: string;  // Backend uses field_id, not question_id
   question_text: string;
-  question_type:
+  field_type:  // Backend uses field_type, not question_type
     | "text"
     | "number"
     | "boolean"
@@ -100,6 +100,8 @@ export interface QuestionnaireQuestion {
     | "multiselect"
     | "date";
   required: boolean;
+  category?: string;  // Added from backend structure
+  metadata?: Record<string, unknown>;  // Added from backend structure
   options?: string[];
   validation_rules?: ValidationRuleConfig[];
   conditional_logic?: ConditionalLogic;

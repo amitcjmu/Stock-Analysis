@@ -310,7 +310,7 @@ class ApiClient {
 
       // Create abort controller for timeout
       const controller = new AbortController();
-      const timeoutMs = options.timeout || 60000; // Default 1 minute
+      const timeoutMs = options.timeout || 120000; // Default 2 minutes (increased for agent processing)
 
       const timeoutId = setTimeout(() => {
         controller.abort();

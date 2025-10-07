@@ -9,7 +9,7 @@ import logging
 import uuid
 from typing import Any, Dict, List
 
-from sqlalchemy import update, and_, select
+from sqlalchemy import update, and_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
@@ -59,7 +59,7 @@ class AssetHandlers(CollectionHandlerBase):
         audit_enabled = True
 
         resolved_rows = await db.execute(
-            (
+            text(
                 "SELECT g.field_name, r.response_value, "
                 "(g.metadata->>'asset_id') AS asset_id_hint, "
                 "(g.metadata->>'application_name') AS app_name_hint "

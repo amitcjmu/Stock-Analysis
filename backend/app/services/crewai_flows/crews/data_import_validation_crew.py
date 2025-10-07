@@ -62,7 +62,7 @@ def create_data_import_validation_crew(
             You DO NOT perform complex analysis, standardization, or transformation.
             You provide quick, accurate validation results for user approval.""",
             llm=llm,
-            memory=shared_memory,
+            # Per ADR-024: Use TenantMemoryManager instead of CrewAI memory
             **DEFAULT_AGENT_CONFIG,  # Apply no-delegation config
         )
 

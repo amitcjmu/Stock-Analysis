@@ -1,7 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
 
@@ -13,6 +12,13 @@ import { CollectionWorkflowError } from "@/components/collection/CollectionWorkf
 import { ApplicationSelectionUI } from "@/components/collection/ApplicationSelectionUI";
 import { QuestionnaireGenerationModal } from "@/components/collection/QuestionnaireGenerationModal";
 import { QuestionnaireReloadButton } from "@/components/collection/QuestionnaireReloadButton";
+import { IncompleteCollectionFlowManager } from "@/components/collection/IncompleteCollectionFlowManager";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Import custom hooks
 import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
@@ -68,6 +74,7 @@ import { FlowDeletionModal } from "@/components/flows/FlowDeletionModal";
 const AdaptiveForms: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const routeParams = useParams<{ flowId?: string; applicationId?: string }>();
   const queryClient = useQueryClient();
   const { client, engagement, user } = useAuth();
 
@@ -75,9 +82,9 @@ const AdaptiveForms: React.FC = () => {
   const initializationAttempts = React.useRef<Set<string>>(new Set());
   const isInitializingRef = React.useRef<boolean>(false);
 
-  // Get application ID and flow ID from URL params
-  const applicationId = searchParams.get("applicationId");
-  const flowId = searchParams.get("flowId");
+  // Get application ID and flow ID from URL params (route params take precedence over query params)
+  const applicationId = routeParams.applicationId || searchParams.get("applicationId");
+  const flowId = routeParams.flowId || searchParams.get("flowId");
 
   // CRITICAL FIX: All hooks must be called before any conditional returns
   // State to track flows being deleted
@@ -92,6 +99,9 @@ const AdaptiveForms: React.FC = () => {
   // State for questionnaire generation modal
   const [showGenerationModal, setShowGenerationModal] = useState(false);
   const [isFallbackQuestionnaire, setIsFallbackQuestionnaire] = useState(false);
+
+  // State for manage flows modal
+  const [showManageFlowsModal, setShowManageFlowsModal] = useState(false);
 
   // Show questionnaire generation modal when flow starts
   const handleQuestionnaireGeneration = React.useCallback(() => {
@@ -612,7 +622,7 @@ const AdaptiveForms: React.FC = () => {
   };
 
   const handleManageFlows = (): void => {
-    navigate("/collection/overview");
+    setShowManageFlowsModal(true);
   };
 
   // Generate progress milestones dynamically from actual form sections
@@ -718,6 +728,26 @@ const AdaptiveForms: React.FC = () => {
             deletionActions.cancelDeletion();
           }}
         />
+
+        {/* Manage Flows Modal - must be available even when blocking */}
+        <Dialog open={showManageFlowsModal} onOpenChange={setShowManageFlowsModal}>
+          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Manage Collection Flows</DialogTitle>
+            </DialogHeader>
+            <IncompleteCollectionFlowManager
+              flows={incompleteFlows}
+              onContinueFlow={handleContinueFlow}
+              onDeleteFlow={handleDeleteFlow}
+              onBatchDelete={(flowIds: string[]) => {
+                // Handle batch deletion
+                flowIds.forEach(flowId => handleDeleteFlow(flowId));
+              }}
+              onViewDetails={handleViewFlowDetails}
+              isLoading={isDeleting}
+            />
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -1056,6 +1086,7 @@ const AdaptiveForms: React.FC = () => {
         milestones={progressMilestones}
         isSaving={isSaving}
         isSubmitting={isLoading}
+        completionStatus={completionStatus}
         onFieldChange={handleFieldChange}
         onValidationChange={handleValidationChange}
         onSave={directSaveHandler || handleSave}
@@ -1147,6 +1178,26 @@ const AdaptiveForms: React.FC = () => {
           window.location.reload();
         }}
       />
+
+      {/* Manage Flows Modal */}
+      <Dialog open={showManageFlowsModal} onOpenChange={setShowManageFlowsModal}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Collection Flows</DialogTitle>
+          </DialogHeader>
+          <IncompleteCollectionFlowManager
+            flows={incompleteFlows}
+            onContinueFlow={handleContinueFlow}
+            onDeleteFlow={handleDeleteFlow}
+            onBatchDelete={(flowIds: string[]) => {
+              // Handle batch deletion
+              flowIds.forEach(flowId => handleDeleteFlow(flowId));
+            }}
+            onViewDetails={handleViewFlowDetails}
+            isLoading={isDeleting}
+          />
+        </DialogContent>
+      </Dialog>
     </CollectionPageLayout>
   );
 };

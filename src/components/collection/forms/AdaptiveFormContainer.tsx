@@ -35,6 +35,7 @@ export interface AdaptiveFormContainerProps {
   milestones: ProgressMilestone[];
   isSaving?: boolean;
   isSubmitting?: boolean;
+  completionStatus?: "pending" | "ready" | "fallback" | "failed" | null;
   onFieldChange: (fieldId: string, value: unknown) => void;
   onValidationChange: (validation: FormValidationResult) => void;
   onSave: () => void;
@@ -50,6 +51,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   milestones,
   isSaving = false,
   isSubmitting = false,
+  completionStatus = null,
   onFieldChange,
   onValidationChange,
   onSave,
@@ -94,7 +96,13 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   // If no sections are available, this likely means no assets have been selected
   // OR questionnaire generation timed out/failed
   // Show asset selection form to allow user to proceed
-  if (!formData.sections || formData.sections.length === 0) {
+  // BUT: Don't show this if questionnaire is still being generated (pending status)
+  // Explicitly check for terminal statuses to prevent UI flicker during state transitions
+  const showFallback =
+    (!formData.sections || formData.sections.length === 0) &&
+    (completionStatus === 'ready' || completionStatus === 'fallback' || completionStatus === 'failed');
+
+  if (showFallback) {
     // Create a bootstrap asset selection form
     const assetSelectionFormData = {
       formId: 'bootstrap_asset_selection',
