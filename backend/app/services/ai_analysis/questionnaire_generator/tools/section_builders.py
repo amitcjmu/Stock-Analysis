@@ -30,14 +30,60 @@ def create_basic_info_section() -> dict:
 
 
 def determine_field_type_and_options(attr_name: str) -> tuple:
-    """Determine field type and options based on attribute name."""
+    """Determine field type and options based on attribute name.
+
+    Uses FIELD_OPTIONS from config.py as single source of truth.
+    Falls back to heuristics only for unmapped fields.
+    """
+    # Import FIELD_OPTIONS and CRITICAL_ATTRIBUTES_CONFIG
+    try:
+        from app.services.manual_collection.adaptive_form_service.config import (
+            FIELD_OPTIONS,
+            CRITICAL_ATTRIBUTES_CONFIG,
+        )
+    except ImportError:
+        logger.warning("Could not import FIELD_OPTIONS, using fallback heuristics")
+        FIELD_OPTIONS = {}
+        CRITICAL_ATTRIBUTES_CONFIG = {}
+
+    # First check if field has predefined options in FIELD_OPTIONS
+    if attr_name in FIELD_OPTIONS:
+        options = FIELD_OPTIONS[attr_name]
+
+        # Determine field type from CRITICAL_ATTRIBUTES_CONFIG if available
+        if attr_name in CRITICAL_ATTRIBUTES_CONFIG:
+            field_type_enum = CRITICAL_ATTRIBUTES_CONFIG[attr_name].get("field_type")
+            if field_type_enum:
+                field_type = (
+                    field_type_enum.value
+                    if hasattr(field_type_enum, "value")
+                    else str(field_type_enum)
+                )
+            else:
+                # Infer from options count
+                field_type = (
+                    "multi_select"
+                    if isinstance(options, list) and len(options) > 3
+                    else "select"
+                )
+        else:
+            # Infer from options count
+            field_type = (
+                "multi_select"
+                if isinstance(options, list) and len(options) > 3
+                else "select"
+            )
+
+        return field_type, options
+
+    # Fallback to heuristic matching for unmapped fields
     field_type = "text"
     options = []
 
     if "criticality" in attr_name.lower():
         field_type = "select"
         options = ["Critical", "High", "Medium", "Low"]
-    elif "compliance" in attr_name.lower() or "requirements" in attr_name.lower():
+    elif attr_name == "compliance_constraints":  # Explicit match only
         field_type = "multi_select"
         options = ["PCI-DSS", "HIPAA", "GDPR", "SOX", "ISO 27001", "None"]
     elif attr_name == "architecture_pattern":

@@ -292,6 +292,18 @@ const AuthenticatedApp = (): JSX.Element => {
         element={<LazyCollectionGapAnalysis />}
       />
       <Route
+        path="/collection/questionnaire-generation/:flowId"
+        element={<LazyAdaptiveForms />}
+      />
+      <Route
+        path="/collection/manual-collection/:flowId"
+        element={<LazyAdaptiveForms />}
+      />
+      <Route
+        path="/collection/synthesis/:flowId"
+        element={<LazyAdaptiveForms />}
+      />
+      <Route
         path="/collection/flow-management"
         element={<LazyCollectionFlowManagement />}
       />

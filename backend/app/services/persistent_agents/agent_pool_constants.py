@@ -23,7 +23,7 @@ AGENT_TYPE_CONFIGS = {
         "goal": "Comprehensive analysis of data gaps in collected migration assets",
         "backstory": "Expert in identifying missing critical attributes required "
         "for successful cloud migration planning and 6R strategy development.",
-        "tools": ["data_validation", "critical_attributes"],
+        "tools": [],  # No tools - direct JSON output required for gap enhancement
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },

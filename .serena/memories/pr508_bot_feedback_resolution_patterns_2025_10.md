@@ -118,18 +118,18 @@ canonical_app = all_matches[0] if all_matches else None
 ```python
 def validate_gaps(gaps: Any) -> List[str]:
     errors = []
-    
+
     # ❌ WRONG - Crashes on None/list/string
     if not gaps:
         errors.append("gaps is empty")
     for priority in gaps:
         ...
-    
+
     # ✅ CORRECT - Type guard
     if not isinstance(gaps, dict):
         errors.append(f"'gaps' must be a dict, got {type(gaps).__name__}")
         return errors  # Early exit prevents crash
-    
+
     for priority in ["critical", "high", "medium", "low"]:
         if priority not in gaps:
             errors.append(f"Missing '{priority}' priority")

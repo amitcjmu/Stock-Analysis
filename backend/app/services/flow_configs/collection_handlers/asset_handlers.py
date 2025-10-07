@@ -21,6 +21,67 @@ logger = logging.getLogger(__name__)
 class AssetHandlers(CollectionHandlerBase):
     """Handlers for asset write-back operations"""
 
+    def _build_update_payload(
+        self, field_updates: Dict[str, Any], whitelist: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Build update payload from field updates.
+
+        Args:
+            field_updates: Dict of field updates from questionnaire responses
+            whitelist: Dict mapping source fields to target Asset fields
+
+        Returns:
+            Update payload dictionary
+        """
+        update_payload: Dict[str, Any] = {}
+
+        # Apply whitelisted direct field mappings
+        for src_field, dst_field in whitelist.items():
+            if src_field in field_updates and field_updates[src_field] not in (
+                None,
+                "",
+            ):
+                update_payload[dst_field] = field_updates[src_field]
+
+        # Build technical_details JSON for architecture and availability
+        technical_details = {}
+        if (
+            "architecture_pattern" in field_updates
+            and field_updates["architecture_pattern"]
+        ):
+            technical_details["architecture_pattern"] = field_updates[
+                "architecture_pattern"
+            ]
+        if (
+            "availability_requirements" in field_updates
+            and field_updates["availability_requirements"]
+        ):
+            technical_details["availability_requirements"] = field_updates[
+                "availability_requirements"
+            ]
+
+        if technical_details:
+            update_payload["technical_details"] = technical_details
+
+        # Build custom_attributes JSON for stakeholder impact
+        custom_attributes = {}
+        if (
+            "stakeholder_impact" in field_updates
+            and field_updates["stakeholder_impact"]
+        ):
+            custom_attributes["stakeholder_impact"] = field_updates[
+                "stakeholder_impact"
+            ]
+
+        if custom_attributes:
+            update_payload["custom_attributes"] = custom_attributes
+
+        # Set assessment readiness if minimum fields are present
+        if {"environment", "business_criticality"}.issubset(field_updates.keys()):
+            update_payload["assessment_readiness"] = "ready"
+
+        return update_payload
+
     async def apply_resolved_gaps_to_assets(
         self, db: AsyncSession, collection_flow_id: uuid.UUID, context: Dict[str, Any]
     ) -> None:
@@ -28,7 +89,9 @@ class AssetHandlers(CollectionHandlerBase):
 
         Implementation highlights:
         - Tenant-scoped and UUID-typed filtering
-        - Conservative whitelist mapping
+        - Expanded whitelist mapping with parsing logic
+        - JSON field handling for technical_details and custom_attributes
+        - Compliance flags upsert to asset_compliance_flags table
         - Batched updates with rollback on failure
         - Best-effort audit logging behind a feature flag
         """
@@ -75,8 +138,9 @@ class AssetHandlers(CollectionHandlerBase):
             return
 
         field_updates = build_field_updates_from_rows(resolved)
+        logger.info(f"📊 Field updates extracted from responses: {field_updates}")
 
-        # Whitelist fields we allow to update on Asset
+        # Expanded whitelist with direct field mappings
         whitelist = {
             "environment": "environment",
             "business_criticality": "business_criticality",
@@ -84,32 +148,26 @@ class AssetHandlers(CollectionHandlerBase):
             "department": "department",
             "application_name": "application_name",
             "technology_stack": "technology_stack",
+            "operating_system_version": "operating_system",  # Map to operating_system column
+            "cpu_cores": "cpu_cores",
+            "memory_gb": "memory_gb",
+            "storage_gb": "storage_gb",
         }
 
         asset_ids = await self._resolve_target_asset_ids(db, resolved, context)
+        logger.info(f"🎯 Resolved asset IDs for write-back: {asset_ids}")
         if not asset_ids:
+            logger.warning("⚠️ No asset IDs found, skipping write-back")
             return
 
         # Batch update assets
         for i in range(0, len(asset_ids), BATCH_SIZE):
             batch_ids = asset_ids[i : i + BATCH_SIZE]
 
-            update_payload: Dict[str, Any] = {}
-            for src_field, dst_field in whitelist.items():
-                if src_field in field_updates and field_updates[src_field] not in (
-                    None,
-                    "",
-                ):
-                    update_payload[dst_field] = field_updates[src_field]
+            # Build update payload
+            update_payload = self._build_update_payload(field_updates, whitelist)
 
-            # Set assessment readiness if minimum fields are present
-            if {"environment", "business_criticality"}.issubset(field_updates.keys()):
-                update_payload["assessment_readiness"] = "ready"
-
-            if not update_payload:
-                continue
-
-            if not batch_ids:
+            if not update_payload or not batch_ids:
                 continue
 
             stmt = (
@@ -137,6 +195,19 @@ class AssetHandlers(CollectionHandlerBase):
                         "client_account_id": str(client_uuid),
                         "engagement_id": str(engagement_uuid),
                     },
+                )
+
+            # Handle compliance_constraints separately for asset_compliance_flags table
+            if (
+                "compliance_constraints" in field_updates
+                and field_updates["compliance_constraints"]
+            ):
+                compliance_scopes = field_updates["compliance_constraints"]
+                if isinstance(compliance_scopes, str):
+                    compliance_scopes = [compliance_scopes]
+
+                await self._upsert_compliance_flags(
+                    db, batch_ids, compliance_scopes, client_uuid, engagement_uuid
                 )
 
             if audit_enabled:
@@ -204,6 +275,55 @@ class AssetHandlers(CollectionHandlerBase):
                     "No asset/application hints present in resolved gaps; skipping write-back to avoid broad updates"
                 )
         return asset_ids
+
+    async def _upsert_compliance_flags(
+        self,
+        db: AsyncSession,
+        asset_ids: List[uuid.UUID],
+        compliance_scopes: List[str],
+        client_uuid: UUID,
+        engagement_uuid: UUID,
+    ) -> None:
+        """Upsert compliance flags for assets.
+
+        Args:
+            db: Database session
+            asset_ids: List of asset IDs to update
+            compliance_scopes: List of compliance requirements (e.g., ["GDPR", "HIPAA"])
+            client_uuid: Client account UUID
+            engagement_uuid: Engagement UUID
+        """
+        from app.models.asset_resilience import AssetComplianceFlags
+
+        for asset_id in asset_ids:
+            # Check if compliance flags record exists
+            result = await db.execute(
+                select(AssetComplianceFlags).where(
+                    AssetComplianceFlags.asset_id == asset_id
+                )
+            )
+            existing = result.scalar_one_or_none()
+
+            if existing:
+                # Update existing record with new scopes (merge, not replace)
+                existing_scopes = set(existing.compliance_scopes or [])
+                new_scopes = existing_scopes.union(set(compliance_scopes))
+                existing.compliance_scopes = list(new_scopes)
+                await db.commit()
+                logger.info(
+                    f"Updated compliance flags for asset {asset_id}: {new_scopes}"
+                )
+            else:
+                # Create new compliance flags record
+                compliance_flags = AssetComplianceFlags(
+                    asset_id=asset_id,
+                    compliance_scopes=compliance_scopes,
+                )
+                db.add(compliance_flags)
+                await db.commit()
+                logger.info(
+                    f"Created compliance flags for asset {asset_id}: {compliance_scopes}"
+                )
 
 
 # Create singleton instance for backward compatibility

@@ -61,17 +61,23 @@ class AgentConfigManager:
             # Get agent configuration
             config = cls.get_agent_config(agent_type)
 
-            # Initialize memory manager
-            try:
-                memory_manager = ThreeTierMemoryManager(
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
+            # Initialize memory manager ONLY if memory_enabled=True in config (ADR-024)
+            memory_manager = None
+            if config.get("memory_enabled", False):
+                try:
+                    memory_manager = ThreeTierMemoryManager(
+                        client_account_id=client_account_id,
+                        engagement_id=engagement_id,
+                    )
+                    # Memory manager initializes synchronously in __init__, no async initialize() needed
+                    logger.info(f"Memory manager initialized for {agent_type}")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize memory manager: {e}")
+                    memory_manager = None
+            else:
+                logger.info(
+                    f"Memory DISABLED for {agent_type} (per ADR-024 - use TenantMemoryManager instead)"
                 )
-                # Memory manager initializes synchronously in __init__, no async initialize() needed
-                logger.info(f"Memory manager initialized for {agent_type}")
-            except Exception as e:
-                logger.warning(f"Failed to initialize memory manager: {e}")
-                memory_manager = None
 
             # Get LLM for the agent
             llm = get_crewai_llm() if LLM_CONFIG_AVAILABLE else None
@@ -82,13 +88,16 @@ class AgentConfigManager:
             logger.info(f"🔧 Agent {agent_type} tools: {tool_names}")
 
             # Create the agent with configuration
+            # Per ADR-024: Set memory=False if memory_enabled=False in config
             agent = Agent(
                 role=config["role"],
                 goal=config["goal"],
                 backstory=config["backstory"],
                 tools=tools,
                 llm=llm,
-                memory=memory_manager,
+                memory=(
+                    memory_manager if memory_manager else False
+                ),  # False if memory_enabled=False
                 verbose=config.get("verbose", True),
                 allow_delegation=config.get("allow_delegation", False),
                 max_iter=config.get("max_iter", 5),

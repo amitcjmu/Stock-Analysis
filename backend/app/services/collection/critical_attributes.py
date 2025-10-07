@@ -74,6 +74,31 @@ class CriticalAttributesDefinition:
                 "asset_fields": ["virtualization", "custom_attributes.vm_type"],
                 "description": "Virtualization platform (VMware, Hyper-V, etc.)",
             },
+            "cpu_cores": {
+                "category": "infrastructure",
+                "priority": 2,
+                "asset_fields": ["cpu_cores", "custom_attributes.cpu_cores"],
+                "description": "Number of CPU cores allocated",
+            },
+            "memory_gb": {
+                "category": "infrastructure",
+                "priority": 2,
+                "asset_fields": ["memory_gb", "custom_attributes.memory"],
+                "description": "Memory allocation in GB",
+            },
+            "storage_gb": {
+                "category": "infrastructure",
+                "priority": 2,
+                "asset_fields": ["storage_gb", "custom_attributes.storage"],
+                "description": "Storage capacity in GB",
+            },
+            "environment": {
+                "category": "infrastructure",
+                "priority": 1,
+                "asset_fields": ["environment", "custom_attributes.environment"],
+                "description": "Deployment environment (production, staging, development, etc.)",
+                "required": True,
+            },
             # Application Attributes (4)
             "technology_stack": {
                 "category": "application",
@@ -111,6 +136,7 @@ class CriticalAttributesDefinition:
                     "custom_attributes.business_criticality",
                 ],
                 "description": "Business impact level (critical, high, medium, low)",
+                "required": True,
             },
             "change_tolerance": {
                 "category": "business",

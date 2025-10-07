@@ -320,50 +320,36 @@ class ExecutionEngineCollectionCrews:
         """Execute questionnaire generation phase using field mapper and pattern discovery agents"""
         logger.info("📝 Executing questionnaire generation with persistent agents")
 
-        # Use field_mapper for understanding data structure needs
-        field_mapper = agent_pool.get("field_mapper")
-        pattern_agent = agent_pool.get("pattern_discovery_agent")
+        # TODO: Integrate with TenantScopedAgentPool.get_agent() for actual agent-based generation
+        # For now, using static questionnaire generation
 
         questionnaires = []
 
-        if field_mapper:
-            logger.info(
-                "🗺️ Using persistent field_mapper agent for questionnaire structure"
-            )
-            # The agent would use learned patterns about effective questions
-
-            # Generate adaptive questionnaire based on gap analysis
-            questionnaires.append(
-                {
-                    "id": "adaptive_questionnaire_001",
-                    "title": "Infrastructure Assessment",
-                    "description": "Fill gaps identified in infrastructure data",
-                    "questions": [
-                        {
-                            "id": "q1",
-                            "question": "What is your current virtualization platform?",
-                            "type": "select",
-                            "options": ["VMware", "Hyper-V", "KVM", "Other"],
-                            "required": True,
-                        },
-                        {
-                            "id": "q2",
-                            "question": "What is your average monthly infrastructure cost?",
-                            "type": "number",
-                            "required": True,
-                        },
-                    ],
-                    "generated_by": "field_mapper_agent",
-                    "based_on_gaps": True,
-                }
-            )
-
-        if pattern_agent:
-            logger.info(
-                "🔍 Using persistent pattern_discovery_agent to enhance questionnaires"
-            )
-            # Pattern agent would apply learned patterns from this tenant's previous responses
-            questionnaires[0]["enhanced_with_patterns"] = True
+        # Generate adaptive questionnaire based on gap analysis (static fallback)
+        questionnaires.append(
+            {
+                "id": "adaptive_questionnaire_001",
+                "title": "Infrastructure Assessment",
+                "description": "Fill gaps identified in infrastructure data",
+                "questions": [
+                    {
+                        "id": "q1",
+                        "question": "What is your current virtualization platform?",
+                        "type": "select",
+                        "options": ["VMware", "Hyper-V", "KVM", "Other"],
+                        "required": True,
+                    },
+                    {
+                        "id": "q2",
+                        "question": "What is your average monthly infrastructure cost?",
+                        "type": "number",
+                        "required": True,
+                    },
+                ],
+                "generated_by": "field_mapper_agent",
+                "based_on_gaps": True,
+            }
+        )
 
         # Store questionnaires in database for the collection flow
         # This would be done through proper service calls in production

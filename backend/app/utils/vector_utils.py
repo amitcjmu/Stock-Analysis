@@ -54,9 +54,8 @@ class VectorUtils:
             # Generate embedding for the pattern text
             embedding = await self.embedding_service.embed_text(pattern_text)
 
-            # Ensure embedding matches expected 1024 dimensions from thenlper/gte-large
-            # TODO: Create Alembic migration to change DB schema from vector(1536) to vector(1024)
-            # WARNING: Padding/truncation corrupts similarity search quality
+            # Ensure embedding matches 1024 dimensions from thenlper/gte-large
+            # Fixed: DB schema now uses vector(1024) matching the model (migration 085)
             expected_dims = 1024
             if len(embedding) != expected_dims:
                 logger.warning(
@@ -125,17 +124,21 @@ class VectorUtils:
             List of (pattern, similarity_score) tuples
         """
         try:
-            # Ensure embedding is 1536 dimensions
-            if len(query_embedding) < 1536:
-                query_embedding.extend([0.0] * (1536 - len(query_embedding)))
-            elif len(query_embedding) > 1536:
-                query_embedding = query_embedding[:1536]
+            # Ensure embedding is 1024 dimensions (matching thenlper/gte-large model)
+            # Fixed: DB schema now uses vector(1024) matching the model (migration 085)
+            expected_dims = 1024
+            if len(query_embedding) < expected_dims:
+                query_embedding.extend([0.0] * (expected_dims - len(query_embedding)))
+            elif len(query_embedding) > expected_dims:
+                query_embedding = query_embedding[:expected_dims]
 
             async with AsyncSessionLocal() as session:
                 # Build the query with optional pattern type filter
                 type_filter = ""
                 if pattern_type:
-                    type_filter = "AND pattern_type = :pattern_type::patterntype"
+                    type_filter = (
+                        "AND pattern_type = CAST(:pattern_type AS patterntype)"
+                    )
 
                 # Use pgvector cosine similarity search
                 query = text(
@@ -154,13 +157,13 @@ class VectorUtils:
                         pattern_data,
                         created_at,
                         updated_at,
-                        (embedding <=> :embedding::vector) as similarity_distance
+                        (embedding <=> CAST(:embedding AS vector)) as similarity_distance
                     FROM migration.agent_discovered_patterns
                     WHERE client_account_id = :client_account_id
                     AND engagement_id = :engagement_id
                     {type_filter}
-                    AND (embedding <=> :embedding::vector) < :distance_threshold
-                    ORDER BY embedding <=> :embedding::vector
+                    AND (embedding <=> CAST(:embedding AS vector)) < :distance_threshold
+                    ORDER BY embedding <=> CAST(:embedding AS vector)
                     LIMIT :limit
                 """
                 )
