@@ -728,6 +728,26 @@ const AdaptiveForms: React.FC = () => {
             deletionActions.cancelDeletion();
           }}
         />
+
+        {/* Manage Flows Modal - must be available even when blocking */}
+        <Dialog open={showManageFlowsModal} onOpenChange={setShowManageFlowsModal}>
+          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Manage Collection Flows</DialogTitle>
+            </DialogHeader>
+            <IncompleteCollectionFlowManager
+              flows={incompleteFlows}
+              onContinueFlow={handleContinueFlow}
+              onDeleteFlow={handleDeleteFlow}
+              onBatchDelete={(flowIds: string[]) => {
+                // Handle batch deletion
+                flowIds.forEach(flowId => handleDeleteFlow(flowId));
+              }}
+              onViewDetails={handleViewFlowDetails}
+              isLoading={isDeleting}
+            />
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
