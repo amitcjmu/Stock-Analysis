@@ -395,8 +395,8 @@ async def create_collection_flow(
             engagement_id=context.engagement_id,
             user_id=current_user.id,
             created_by=current_user.id,
-            # Per ADR-012: New flows start as INITIALIZED
-            status=CollectionFlowStatus.INITIALIZED.value,
+            # Per ADR-012: asset_selection phase requires PAUSED status (user input needed)
+            status=CollectionFlowStatus.PAUSED.value,
             automation_tier=flow_data.automation_tier,
             collection_config=flow_data.collection_config or {},
             flow_metadata={
@@ -427,7 +427,7 @@ async def create_collection_flow(
             flow_type="collection",
             flow_name=collection_flow.flow_name,
             initial_state=flow_input,
-            atomic=False,
+            atomic=True,  # Fixed: We're in a transaction, don't commit internally
         )
 
         # Update collection flow with master flow ID

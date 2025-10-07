@@ -3,6 +3,7 @@
 import logging
 from typing import Any, Dict, List
 
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -38,21 +39,26 @@ async def transition_to_gap_analysis(
         Response dict with transition results
     """
     if not collection_flow.master_flow_id:
-        logger.warning(
-            f"Collection flow {flow_id} has no master_flow_id - skipping execution"
+        logger.error(
+            f"Collection flow {flow_id} has no master_flow_id - cannot transition phases"
         )
-        return {
-            "success": True,
-            "message": (
-                f"Successfully updated collection flow with {processed_count} applications, "
-                f"created {normalized_records_count} normalized records"
-            ),
-            "flow_id": flow_id,
-            "selected_application_count": processed_count,
-            "normalized_records_created": normalized_records_count,
-            "mfo_execution_triggered": False,
-            "warning": "no_master_flow_id",
-        }
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "flow_initialization_incomplete",
+                "message": "Flow not properly initialized with Master Flow Orchestrator",
+                "flow_id": flow_id,
+                "suggestion": (
+                    "This indicates a system error during flow creation. "
+                    "Please delete this flow and create a new one."
+                ),
+                "debug_info": {
+                    "has_master_flow_id": False,
+                    "current_phase": collection_flow.current_phase,
+                    "status": collection_flow.status,
+                },
+            },
+        )
 
     try:
         orchestrator = MasterFlowOrchestrator(db, context)
