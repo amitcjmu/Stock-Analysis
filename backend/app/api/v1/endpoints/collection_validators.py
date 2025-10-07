@@ -219,9 +219,10 @@ async def validate_flow_can_be_deleted(
     if force:
         return  # Force delete bypasses validation
 
+    # Per ADR-012: Use lifecycle states instead of phase values
     active_statuses = [
-        CollectionFlowStatus.ASSET_SELECTION.value,
-        CollectionFlowStatus.GAP_ANALYSIS.value,
+        CollectionFlowStatus.RUNNING.value,
+        CollectionFlowStatus.PAUSED.value,
     ]
 
     if flow.status in active_statuses:

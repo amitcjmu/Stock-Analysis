@@ -46,7 +46,8 @@ class CollectionPhaseProgressionService:
                 CollectionFlow.client_account_id == self.context.client_account_id,
                 CollectionFlow.engagement_id == self.context.engagement_id,
                 CollectionFlow.current_phase == CollectionPhase.ASSET_SELECTION.value,
-                CollectionFlow.status == CollectionFlowStatus.ASSET_SELECTION.value,
+                CollectionFlow.status
+                == CollectionFlowStatus.RUNNING,  # Per ADR-012: lifecycle state
                 CollectionFlow.master_flow_id.isnot(None),  # Must have MFO integration
             )
 

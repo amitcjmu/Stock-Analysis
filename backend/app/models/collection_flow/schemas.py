@@ -18,14 +18,11 @@ class AutomationTier(str, Enum):
 
 
 class CollectionFlowStatus(str, Enum):
-    """Collection Flow status values"""
+    """Collection Flow status values - lifecycle states only per ADR-012"""
 
     INITIALIZED = "initialized"
-    ASSET_SELECTION = (
-        "asset_selection"  # Replaces platform_detection and automated_collection
-    )
-    GAP_ANALYSIS = "gap_analysis"
-    MANUAL_COLLECTION = "manual_collection"
+    RUNNING = "running"  # Active execution
+    PAUSED = "paused"  # Waiting for user input
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"

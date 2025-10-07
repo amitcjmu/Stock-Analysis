@@ -59,20 +59,29 @@ class CollectionPhaseUtils:
     @staticmethod
     def map_phase_to_status(phase: CollectionPhase) -> CollectionFlowStatus:
         """
-        Map phase to Collection Flow status.
+        DEPRECATED per ADR-012. Status is independent of phase.
+        Use explicit status management instead.
+
+        This function violates ADR-012 (Flow Status Management Separation)
+        which mandates that status reflects lifecycle state (INITIALIZED, RUNNING,
+        PAUSED, COMPLETED) while phase reflects operational state (GAP_ANALYSIS,
+        ASSET_SELECTION, etc.).
 
         Args:
-            phase: Collection phase
+            phase: Collection phase (ignored)
 
-        Returns:
-            Corresponding CollectionFlowStatus
+        Raises:
+            NotImplementedError: Always raised to prevent usage
+
+        See Also:
+            /docs/adr/012-flow-status-management-separation.md
         """
-        phase_status_map = {
-            CollectionPhase.INITIALIZATION: CollectionFlowStatus.INITIALIZED,
-            CollectionPhase.ASSET_SELECTION: CollectionFlowStatus.ASSET_SELECTION,
-            CollectionPhase.GAP_ANALYSIS: CollectionFlowStatus.GAP_ANALYSIS,
-            CollectionPhase.MANUAL_COLLECTION: CollectionFlowStatus.MANUAL_COLLECTION,
-            CollectionPhase.FINALIZATION: CollectionFlowStatus.COMPLETED,
-        }
-
-        return phase_status_map.get(phase, CollectionFlowStatus.INITIALIZED)
+        raise NotImplementedError(
+            "Status should not be derived from phase per ADR-012. "
+            "Set status explicitly based on lifecycle state:\n"
+            "  - INITIALIZED: New flow created\n"
+            "  - RUNNING: Flow actively executing\n"
+            "  - PAUSED: Flow waiting for user input\n"
+            "  - COMPLETED: Flow finished successfully\n"
+            "See /docs/adr/012-flow-status-management-separation.md"
+        )

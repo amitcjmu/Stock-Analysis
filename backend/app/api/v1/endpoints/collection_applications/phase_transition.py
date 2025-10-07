@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow
-from app.models.collection_flow.schemas import CollectionPhase
+from app.models.collection_flow.schemas import CollectionFlowStatus, CollectionPhase
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.master_flow_sync_service import MasterFlowSyncService
 
@@ -69,7 +69,8 @@ async def transition_to_gap_analysis(
 
             # Update collection flow phase
             collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
-            collection_flow.status = CollectionPhase.GAP_ANALYSIS.value
+            # Per ADR-012: Status reflects lifecycle, not phase
+            collection_flow.status = CollectionFlowStatus.RUNNING.value
             await db.commit()
 
             logger.info(

@@ -132,7 +132,8 @@ async def continue_flow(
                     )
                 )
                 collection_flow.current_phase = "asset_selection"
-                collection_flow.status = CollectionFlowStatus.ASSET_SELECTION
+                # Per ADR-012: Set status to PAUSED (waiting for user input)
+                collection_flow.status = CollectionFlowStatus.PAUSED
                 collection_flow.updated_at = datetime.now(timezone.utc)
                 await db.commit()
                 current_phase = "asset_selection"

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.collection_flow import (
     CollectionFlow,
     CollectionFlowStatus,
+    CollectionPhase,
     AutomationTier,
 )
 from app.repositories.context_aware_repository import ContextAwareRepository
@@ -47,9 +48,8 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
         all_flows = await self.get_by_filters()
         active_statuses = [
             CollectionFlowStatus.INITIALIZED,
-            CollectionFlowStatus.ASSET_SELECTION,
-            CollectionFlowStatus.GAP_ANALYSIS,
-            CollectionFlowStatus.MANUAL_COLLECTION,
+            CollectionFlowStatus.RUNNING,
+            CollectionFlowStatus.PAUSED,
         ]
         return [flow for flow in all_flows if flow.status in active_statuses]
 
@@ -151,7 +151,13 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
 
     async def get_flows_with_gaps(self) -> List[CollectionFlow]:
         """Get flows that are in gap analysis phase or have pending gaps."""
-        return await self.get_by_filters(status=CollectionFlowStatus.GAP_ANALYSIS)
+        # Per ADR-012: Use phase for operational state, not status
+        all_flows = await self.get_by_filters()
+        return [
+            flow
+            for flow in all_flows
+            if flow.current_phase == CollectionPhase.GAP_ANALYSIS.value
+        ]
 
     async def get_flows_by_automation_tier(
         self, tier: AutomationTier

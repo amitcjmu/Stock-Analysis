@@ -54,12 +54,12 @@ class ExpiredFlowsCleanupService:
             if include_failed:
                 status_filters.append(CollectionFlowStatus.FAILED.value)
             if force_cleanup_active:
+                # Per ADR-012: Use lifecycle states (not phase-based states)
                 status_filters.extend(
                     [
                         CollectionFlowStatus.INITIALIZED.value,
-                        CollectionFlowStatus.ASSET_SELECTION.value,
-                        CollectionFlowStatus.GAP_ANALYSIS.value,
-                        CollectionFlowStatus.MANUAL_COLLECTION.value,
+                        CollectionFlowStatus.RUNNING.value,
+                        CollectionFlowStatus.PAUSED.value,
                     ]
                 )
 

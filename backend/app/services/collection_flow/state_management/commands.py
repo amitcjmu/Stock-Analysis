@@ -97,7 +97,7 @@ class CollectionFlowCommandService:
                 engagement_id=uuid.UUID(self.engagement_id),
                 user_id=uuid.UUID(str(self.context.user_id)),
                 automation_tier=automation_tier,
-                status=CollectionFlowStatus.GAP_ANALYSIS,
+                status=CollectionFlowStatus.INITIALIZED,  # Per ADR-012: lifecycle state
                 current_phase=CollectionPhase.GAP_ANALYSIS.value,
                 phase_state=phase_state,
                 collection_config=collection_config or {},
@@ -193,7 +193,22 @@ class CollectionFlowCommandService:
             # Update the collection flow
             collection_flow.current_phase = new_phase.value
             collection_flow.phase_state = phase_state
-            collection_flow.status = CollectionPhaseUtils.map_phase_to_status(new_phase)
+
+            # Per ADR-012: Set status based on lifecycle, not phase
+            # Determine status based on whether phase requires user input or is complete
+            if new_phase == CollectionPhase.FINALIZATION:
+                collection_flow.status = CollectionFlowStatus.COMPLETED.value
+            elif new_phase in [
+                CollectionPhase.ASSET_SELECTION,
+                CollectionPhase.MANUAL_COLLECTION,
+            ]:
+                collection_flow.status = (
+                    CollectionFlowStatus.PAUSED.value
+                )  # Requires user input
+            else:
+                # INITIALIZATION, GAP_ANALYSIS, QUESTIONNAIRE_GENERATION, DATA_VALIDATION
+                collection_flow.status = CollectionFlowStatus.RUNNING.value
+
             collection_flow.updated_at = datetime.utcnow()
 
             await self.db.commit()

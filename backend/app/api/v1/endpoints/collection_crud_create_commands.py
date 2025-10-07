@@ -275,6 +275,7 @@ async def create_collection_flow(
         lifecycle_manager = CollectionFlowLifecycleManager(db, context)
 
         # Check for existing active flows (no automatic mutations)
+        # Per ADR-012: Use lifecycle states instead of phase values
         existing_result = await db.execute(
             select(CollectionFlow)
             .where(
@@ -282,9 +283,8 @@ async def create_collection_flow(
                 CollectionFlow.status.in_(
                     [
                         CollectionFlowStatus.INITIALIZED.value,
-                        CollectionFlowStatus.ASSET_SELECTION.value,
-                        CollectionFlowStatus.GAP_ANALYSIS.value,
-                        CollectionFlowStatus.MANUAL_COLLECTION.value,
+                        CollectionFlowStatus.RUNNING.value,
+                        CollectionFlowStatus.PAUSED.value,
                     ]
                 ),
             )
@@ -395,7 +395,8 @@ async def create_collection_flow(
             engagement_id=context.engagement_id,
             user_id=current_user.id,
             created_by=current_user.id,
-            status=CollectionFlowStatus.ASSET_SELECTION.value,
+            # Per ADR-012: New flows start as INITIALIZED
+            status=CollectionFlowStatus.INITIALIZED.value,
             automation_tier=flow_data.automation_tier,
             collection_config=flow_data.collection_config or {},
             flow_metadata={
