@@ -6,6 +6,7 @@ Handles update operations for collection flows.
 import logging
 from datetime import datetime
 from typing import Any, Dict
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,10 +30,18 @@ async def update_collection_flow(
 ) -> Dict[str, Any]:
     """Update an existing collection flow."""
     try:
+        # Validate flow_id format before querying
+        try:
+            flow_uuid = UUID(flow_id)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=400, detail=f"Invalid flow ID format: {flow_id}"
+            )
+
         # Fetch the flow by flow_id (not id) with proper multi-tenant validation
         result = await db.execute(
             select(CollectionFlow)
-            .where(CollectionFlow.flow_id == flow_id)
+            .where(CollectionFlow.flow_id == flow_uuid)
             .where(CollectionFlow.engagement_id == context.engagement_id)
             .where(CollectionFlow.client_account_id == context.client_account_id)
             .options(selectinload(CollectionFlow.questionnaire_responses))

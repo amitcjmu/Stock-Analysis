@@ -21,9 +21,12 @@ Fix: Align database enum with Python model (lines 20-28 of collection_flow/schem
 Note: Uses same multi-step approach as migration 086 to safely modify PostgreSQL enums.
 """
 
+import logging
 import sqlalchemy as sa
 
 from alembic import op
+
+logger = logging.getLogger("alembic.runtime.migration")
 
 # revision identifiers, used by Alembic.
 revision = "087_add_paused_remove_phase_values"
@@ -58,11 +61,8 @@ def upgrade() -> None:
     phase_status_count = result.scalar()
 
     if phase_status_count > 0:
-        print(
-            f"⚠️  WARNING: Found {phase_status_count} flows with phase-based status values"
-        )
-        print(
-            "   These will be migrated to 'running' status (phase preserved in current_phase column)"
+        logger.warning(
+            f"Found {phase_status_count} flows with phase-based status values that will be migrated to 'running'"
         )
 
         # Migrate phase-based status values to 'running'
@@ -73,10 +73,10 @@ def upgrade() -> None:
             WHERE status IN ('asset_selection', 'gap_analysis', 'manual_collection')
         """
         )
-        print(f"   ✅ Migrated {phase_status_count} flows to 'running' status")
+        logger.info(f"Migrated {phase_status_count} flows to 'running' status")
 
     # Step 1: Convert status column from enum to VARCHAR temporarily
-    print("Step 1: Converting status column to VARCHAR...")
+    logger.info("Converting status column to VARCHAR...")
     op.execute(
         """
         ALTER TABLE migration.collection_flows
@@ -86,8 +86,8 @@ def upgrade() -> None:
     )
 
     # Step 2: Drop old enum type and create new one with 'paused' (without phase values)
-    print(
-        "Step 2: Recreating CollectionFlowStatus enum with 'paused' and removing phase values..."
+    logger.info(
+        "Recreating CollectionFlowStatus enum with 'paused' and removing phase values..."
     )
     op.execute("DROP TYPE IF EXISTS migration.collectionflowstatus CASCADE")
     op.execute(
@@ -104,7 +104,7 @@ def upgrade() -> None:
     )
 
     # Step 3: Convert status column back to enum type
-    print("Step 3: Converting status column back to enum...")
+    logger.info("Converting status column back to enum...")
     op.execute(
         """
         ALTER TABLE migration.collection_flows
@@ -114,7 +114,7 @@ def upgrade() -> None:
     )
 
     # Step 4: Recreate the index that was dropped with CASCADE
-    print("Step 4: Recreating status index...")
+    logger.info("Recreating status index...")
     op.execute(
         """
         CREATE INDEX IF NOT EXISTS ix_collection_flows_status
@@ -131,8 +131,8 @@ def upgrade() -> None:
         )
     )
     enum_values = [row[0] for row in result]
-    print("\n✅ CollectionFlowStatus enum updated successfully!")
-    print(f"   New values: {', '.join(enum_values)}")
+    logger.info("CollectionFlowStatus enum updated successfully")
+    logger.info(f"New enum values: {', '.join(enum_values)}")
 
     # Verify all flows have valid status
     result = op.get_bind().execute(
@@ -144,14 +144,14 @@ def upgrade() -> None:
         )
     )
     total_flows = result.scalar()
-    print(f"   Total flows with valid status: {total_flows}")
+    logger.info(f"Total flows with valid status: {total_flows}")
 
-    print("\n✅ Migration 087 completed successfully!")
-    print("   - Added 'paused' status for user input wait states")
-    print(
-        "   - Removed deprecated phase values (asset_selection, gap_analysis, manual_collection)"
+    logger.info("Migration 087 completed successfully")
+    logger.info("  - Added 'paused' status for user input wait states")
+    logger.info(
+        "  - Removed deprecated phase values (asset_selection, gap_analysis, manual_collection)"
     )
-    print("   - Database enum now matches Python model (6 lifecycle states)")
+    logger.info("  - Database enum now matches Python model (6 lifecycle states)")
 
 
 def downgrade() -> None:
@@ -165,8 +165,8 @@ def downgrade() -> None:
     If downgrade is needed, it would require manual intervention based on
     the current_phase column values.
     """
-    print(
-        "⚠️  Downgrade not implemented - phase-based status values were removed per ADR-012"
+    logger.warning(
+        "Downgrade not implemented - phase-based status values were removed per ADR-012"
     )
-    print("   Status information is preserved in current_phase column")
-    print("   Manual intervention required if downgrade is necessary")
+    logger.info("Status information is preserved in current_phase column")
+    logger.info("Manual intervention required if downgrade is necessary")
