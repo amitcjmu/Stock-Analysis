@@ -184,13 +184,16 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           // Get flow details to determine current phase for proper routing
           try {
             const flowDetails = await collectionFlowApi.getFlow(flow.id);
-            // Fix: If current_phase is "completed" but status is not, use status instead
-            // This handles cases where current_phase was incorrectly set to "completed"
-            let currentPhase = flowDetails.current_phase || 'asset_selection';
-            if (currentPhase === 'completed' && flowDetails.status !== 'completed') {
-              console.warn(`⚠️ current_phase is "completed" but status is "${flowDetails.status}", using status for routing`);
-              currentPhase = flowDetails.status;
+
+            // Per ADR-012: status determines lifecycle, current_phase determines operational state
+            // If flow is completed, always route to summary page
+            if (flowDetails.status === 'completed') {
+              console.log(`🧭 Flow is completed, navigating to summary page`);
+              navigate(`/collection/summary/${flow.id}`);
+              return;
             }
+
+            let currentPhase = flowDetails.current_phase || 'asset_selection';
             const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
 
             if (phaseRoute) {
@@ -297,13 +300,16 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           // Get flow details to determine current phase for proper routing
           try {
             const flowDetails = await collectionFlowApi.getFlow(flow.id);
-            // Fix: If current_phase is "completed" but status is not, use status instead
-            // This handles cases where current_phase was incorrectly set to "completed"
-            let currentPhase = flowDetails.current_phase || 'asset_selection';
-            if (currentPhase === 'completed' && flowDetails.status !== 'completed') {
-              console.warn(`⚠️ current_phase is "completed" but status is "${flowDetails.status}", using status for routing`);
-              currentPhase = flowDetails.status;
+
+            // Per ADR-012: status determines lifecycle, current_phase determines operational state
+            // If flow is completed, always route to summary page
+            if (flowDetails.status === 'completed') {
+              console.log(`🧭 Flow is completed, navigating to summary page`);
+              navigate(`/collection/summary/${flow.id}`);
+              return;
             }
+
+            let currentPhase = flowDetails.current_phase || 'asset_selection';
             const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
 
             if (phaseRoute) {

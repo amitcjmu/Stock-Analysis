@@ -158,8 +158,11 @@ def _update_flow_after_import(
 
     # Update flow status after successful import
     # Per ADR-012: Status reflects lifecycle, not phase
-    # Move from INITIALIZED -> RUNNING after successful import
-    if collection_flow.status == CollectionFlowStatus.INITIALIZED.value:
+    # Move from INITIALIZED or PAUSED -> RUNNING after successful import
+    if collection_flow.status in [
+        CollectionFlowStatus.INITIALIZED.value,
+        CollectionFlowStatus.PAUSED.value,
+    ]:
         collection_flow.status = CollectionFlowStatus.RUNNING.value
 
     # Update phase to GAP_ANALYSIS (phase reflects operational state)

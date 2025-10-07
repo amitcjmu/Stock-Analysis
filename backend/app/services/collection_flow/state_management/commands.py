@@ -198,6 +198,8 @@ class CollectionFlowCommandService:
             # Determine status based on whether phase requires user input or is complete
             if new_phase == CollectionPhase.FINALIZATION:
                 collection_flow.status = CollectionFlowStatus.COMPLETED.value
+            elif new_phase == CollectionPhase.INITIALIZATION:
+                collection_flow.status = CollectionFlowStatus.INITIALIZED.value
             elif new_phase in [
                 CollectionPhase.ASSET_SELECTION,
                 CollectionPhase.MANUAL_COLLECTION,
@@ -206,7 +208,7 @@ class CollectionFlowCommandService:
                     CollectionFlowStatus.PAUSED.value
                 )  # Requires user input
             else:
-                # INITIALIZATION, GAP_ANALYSIS, QUESTIONNAIRE_GENERATION, DATA_VALIDATION
+                # GAP_ANALYSIS, QUESTIONNAIRE_GENERATION, DATA_VALIDATION
                 collection_flow.status = CollectionFlowStatus.RUNNING.value
 
             collection_flow.updated_at = datetime.utcnow()
