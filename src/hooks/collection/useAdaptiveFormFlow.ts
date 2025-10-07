@@ -675,9 +675,9 @@ export const useAdaptiveFormFlow = (
             description: `Your data has been collected successfully. Redirecting to assessment flow...`,
           });
 
-          // Redirect to assessment flow
+          // Redirect to assessment flow 6R review page (default entry point)
           setTimeout(() => {
-            window.location.href = `/assessment/${transitionResult.assessment_flow_id}`;
+            window.location.href = `/assessment/${transitionResult.assessment_flow_id}/sixr-review`;
           }, 2000);
 
           return; // Exit early - no need to generate questionnaires
@@ -1511,9 +1511,9 @@ export const useAdaptiveFormFlow = (
                 description: `Your data has been collected successfully. Transitioning to assessment flow...`,
               });
 
-              // Redirect to assessment flow instead of collection progress
+              // Redirect to assessment flow 6R review page (default entry point)
               setTimeout(() => {
-                window.location.href = `/assessment/${transitionResult.assessment_flow_id}`;
+                window.location.href = `/assessment/${transitionResult.assessment_flow_id}/sixr-review`;
               }, 2000);
 
             } catch (transitionError) {
