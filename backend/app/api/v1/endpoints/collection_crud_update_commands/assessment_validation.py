@@ -39,8 +39,17 @@ async def check_and_set_assessment_ready(
         )
         all_responses = responses_result.scalars().all()
 
-        # Build a set of all collected question IDs
+        # Build a set of all collected question IDs from database
         collected_question_ids = {r.question_id for r in all_responses}
+
+        # CRITICAL: Include freshly submitted form_responses to ensure assessment_ready
+        # can flip to True in the same request, even if validation_status is still "pending"
+        if form_responses:
+            freshly_submitted_ids = set(form_responses.keys())
+            collected_question_ids.update(freshly_submitted_ids)
+            logger.info(
+                f"Added {len(freshly_submitted_ids)} freshly submitted question IDs to assessment check"
+            )
 
         # Check for required attributes (normalized field names)
         # Business criticality is essential for 6R assessment

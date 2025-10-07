@@ -44,6 +44,25 @@ async def submit_questionnaire_response(
 ) -> Dict[str, Any]:
     """Submit responses to an adaptive questionnaire and save them to the database."""
     try:
+        # Normalize flow_id and questionnaire_id to UUID objects for proper type safety
+        try:
+            flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+        except (ValueError, AttributeError) as exc:
+            raise HTTPException(
+                status_code=422, detail="Invalid collection flow ID format"
+            ) from exc
+
+        try:
+            questionnaire_uuid = (
+                UUID(questionnaire_id)
+                if isinstance(questionnaire_id, str)
+                else questionnaire_id
+            )
+        except (ValueError, AttributeError) as exc:
+            raise HTTPException(
+                status_code=422, detail="Invalid questionnaire ID format"
+            ) from exc
+
         logger.info(
             f"Processing questionnaire submission - Flow ID: {flow_id}, "
             f"Questionnaire ID: {questionnaire_id}, User ID: {current_user.id}, "
@@ -56,7 +75,7 @@ async def submit_questionnaire_response(
         # Verify flow exists and belongs to engagement with proper multi-tenant validation
         flow_result = await db.execute(
             select(CollectionFlow)
-            .where(CollectionFlow.flow_id == flow_id)  # Fixed: Use flow_id not id
+            .where(CollectionFlow.flow_id == flow_uuid)  # Use normalized UUID
             .where(CollectionFlow.engagement_id == context.engagement_id)
             .where(CollectionFlow.client_account_id == context.client_account_id)
         )
@@ -149,7 +168,9 @@ async def submit_questionnaire_response(
         # This prevents the same questionnaire from being returned in a loop
         questionnaire_result = await db.execute(
             select(AdaptiveQuestionnaire)
-            .where(AdaptiveQuestionnaire.id == UUID(questionnaire_id))
+            .where(
+                AdaptiveQuestionnaire.id == questionnaire_uuid
+            )  # Use normalized UUID
             .where(AdaptiveQuestionnaire.collection_flow_id == flow.id)
         )
         questionnaire = questionnaire_result.scalar_one_or_none()
@@ -170,12 +191,13 @@ async def submit_questionnaire_response(
                 f"⚠️ Could not find questionnaire {questionnaire_id} to mark as completed"
             )
 
-        # Commit all changes
+        # Apply resolved gaps to assets via write-back service before commit
+        # This preserves atomicity - both DB changes and writeback succeed or both fail
+        await apply_asset_writeback(gaps_resolved, flow, context, current_user, db)
+
+        # Commit all changes (including writeback updates) atomically
         logger.info(f"Committing {len(response_records)} response records to database")
         await db.commit()
-
-        # Apply resolved gaps to assets via write-back service
-        await apply_asset_writeback(gaps_resolved, flow, context, current_user, db)
 
         logger.info(
             f"Successfully saved {len(response_records)} questionnaire responses for flow {flow_id} "
