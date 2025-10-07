@@ -685,10 +685,15 @@ export const useAdaptiveFormFlow = (
           console.error("❌ Failed to transition to assessment:", transitionError);
           toast({
             title: "Transition Error",
-            description: "Could not transition to assessment. Please try manually.",
+            description: "Could not transition to assessment. Redirecting to progress page.",
             variant: "destructive",
           });
-          // Fall through to normal flow execution
+          // CRITICAL FIX: Do not fall through to questionnaire generation when assessment is ready
+          // Redirect to progress page where user can manually trigger transition
+          setTimeout(() => {
+            window.location.href = `/collection/progress/${flowResponse.id}`;
+          }, 2000);
+          return; // Exit early to prevent infinite loop
         }
       }
 

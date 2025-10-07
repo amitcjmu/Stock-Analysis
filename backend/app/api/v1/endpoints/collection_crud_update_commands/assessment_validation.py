@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
+from app.services.flow_configs.collection_flow_config import get_collection_flow_config
 
 
 async def check_and_set_assessment_ready(
@@ -51,24 +52,39 @@ async def check_and_set_assessment_ready(
                 f"Added {len(freshly_submitted_ids)} freshly submitted question IDs to assessment check"
             )
 
-        # Check for required attributes (normalized field names)
+        # Get configurable assessment readiness requirements from flow config
+        # Updated per Qodo review to decouple logic from code
+        flow_config = get_collection_flow_config()
+        readiness_requirements = flow_config.default_configuration.get(
+            "assessment_readiness_requirements",
+            {
+                # Fallback to defaults if config not available
+                "business_criticality_questions": [
+                    "business_criticality",
+                    "business_criticality_score",
+                ],
+                "environment_questions": [
+                    "environment",
+                    "deployment_environment",
+                    "hosting_environment",
+                    "architecture_pattern",
+                    "availability_requirements",
+                ],
+            },
+        )
+
+        # Check for required attributes using configurable question IDs
         # Business criticality is essential for 6R assessment
         has_business_criticality = any(
             qid in collected_question_ids
-            for qid in ["business_criticality", "business_criticality_score"]
+            for qid in readiness_requirements["business_criticality_questions"]
         )
 
         # Environment/deployment info - accept architecture_pattern or availability as proxies
         # These provide sufficient technical context for assessment
         has_environment_or_technical_detail = any(
             qid in collected_question_ids
-            for qid in [
-                "environment",
-                "deployment_environment",
-                "hosting_environment",
-                "architecture_pattern",  # Proxy: indicates deployment sophistication
-                "availability_requirements",  # Proxy: indicates environment needs
-            ]
+            for qid in readiness_requirements["environment_questions"]
         )
 
         logger.info(

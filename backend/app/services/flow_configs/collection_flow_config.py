@@ -102,6 +102,21 @@ def get_collection_flow_config() -> FlowTypeConfig:
             "use_intelligent_routing": True,
             "enable_adaptive_collection": True,
             "confidence_threshold": 0.85,
+            # Assessment Readiness Requirements - configurable question IDs
+            # Updated per Qodo review to decouple logic from code
+            "assessment_readiness_requirements": {
+                "business_criticality_questions": [
+                    "business_criticality",
+                    "business_criticality_score",
+                ],
+                "environment_questions": [
+                    "environment",
+                    "deployment_environment",
+                    "hosting_environment",
+                    "architecture_pattern",  # Proxy: indicates deployment sophistication
+                    "availability_requirements",  # Proxy: indicates environment needs
+                ],
+            },
         },
         initialization_handler="collection_initialization",
         finalization_handler="collection_finalization",
