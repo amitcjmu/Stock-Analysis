@@ -98,7 +98,7 @@ class FlowCreationOperations:
             )
 
             # Create database record
-            await self._create_database_record(flow_id, flow_data)
+            await self._create_database_record(flow_id, flow_data, atomic)
 
             # Execute flow creation through registry
             await self._execute_flow_creation(
@@ -291,9 +291,15 @@ class FlowCreationOperations:
             return False
 
     async def _create_database_record(
-        self, flow_id: str, flow_data: Dict[str, Any]
+        self, flow_id: str, flow_data: Dict[str, Any], atomic: bool = False
     ) -> CrewAIFlowStateExtensions:
-        """Create database record for the flow"""
+        """Create database record for the flow
+
+        Args:
+            flow_id: Unique flow identifier
+            flow_data: Flow configuration data
+            atomic: If True, only flush (parent will commit). If False, commit immediately.
+        """
         master_flow = CrewAIFlowStateExtensions(
             flow_id=flow_id,
             flow_type=flow_data["flow_type"],
@@ -311,15 +317,15 @@ class FlowCreationOperations:
         # Add to session
         self.db.add(master_flow)
 
-        # Check if we're already in a transaction
-        if self.db.in_transaction():
-            # We're in a transaction, just flush to make the object persistent
+        # Per ADR-006: Respect atomic parameter for transaction control
+        if atomic:
+            # We're in a parent transaction, just flush (parent will commit)
             await self.db.flush()
             logger.info(
-                f"✅ Database record flushed for flow {flow_id} (in transaction)"
+                f"✅ Database record flushed for flow {flow_id} (atomic=True, parent will commit)"
             )
         else:
-            # Not in a transaction, commit normally
+            # Not in parent transaction, commit immediately
             await self.db.commit()
             logger.info(f"✅ Database record committed for flow {flow_id}")
 
