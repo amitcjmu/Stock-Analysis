@@ -43,7 +43,7 @@ class DatabaseQueryMixin:
                     ImportFieldMapping.status == "approved",  # CORRECTED field
                     ImportFieldMapping.client_account_id
                     == self.context.client_account_id,
-                    ImportFieldMapping.engagement_id == self.context.engagement_id,
+                    # NOTE: engagement_id is not a field on ImportFieldMapping model
                 )
             )
             mappings = result.scalars().all()

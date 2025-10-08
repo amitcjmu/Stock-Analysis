@@ -317,10 +317,15 @@ class BulkAssetCreationToolWithServiceImpl:
                                 }
                             )
                     except Exception as e:
+                        # Log the error and add to failed assets
+                        logger.error(
+                            f"❌ Failed to create asset {asset_data.get('name', 'unknown')}: {str(e)}"
+                        )
                         failed_assets.append(
                             {
                                 "asset_name": asset_data.get("name", "unknown"),
                                 "error": str(e),
+                                "ip_address": asset_data.get("ip_address"),
                             }
                         )
 

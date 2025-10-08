@@ -14,10 +14,12 @@ Main components:
 
 from .base_flow import UnifiedDiscoveryFlow, create_unified_discovery_flow
 from .flow_config import FlowConfig, PhaseNames
+from ..flow_state_bridge import FlowStateBridge
 
 __all__ = [
     "UnifiedDiscoveryFlow",
     "create_unified_discovery_flow",
     "FlowConfig",
     "PhaseNames",
+    "FlowStateBridge",
 ]

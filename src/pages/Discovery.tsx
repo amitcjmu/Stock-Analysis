@@ -14,10 +14,31 @@ const Discovery = (): JSX.Element => {
   const [error, setError] = useState<{ title: string; message: string; canRetry: boolean } | null>(null);
   const [totalAssets, setTotalAssets] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dashboardMetrics, setDashboardMetrics] = useState({
+    servers: 0,
+    applications: 0,
+    databases: 0,
+    dependencies: 0
+  });
 
   useEffect(() => {
     fetchAssets();
+    fetchDashboardMetrics();
   }, [selectedFilter]);
+
+  const fetchDashboardMetrics = async () => {
+    try {
+      const { apiCall } = await import('../config/api');
+      const response = await apiCall('/unified-discovery/assets/summary');
+      
+      if (response && response.dashboard_metrics) {
+        setDashboardMetrics(response.dashboard_metrics);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard metrics:', error);
+      // Keep default zeros on error
+    }
+  };
 
   const fetchAssets = async () => {
     try {
@@ -75,10 +96,10 @@ const Discovery = (): JSX.Element => {
   };
 
   const infrastructureMetrics = [
-    { metric: 'Total Servers', value: '156', change: '+12%' },
-    { metric: 'Applications', value: '247', change: '+8%' },
-    { metric: 'Databases', value: '89', change: '+5%' },
-    { metric: 'Dependencies', value: '1,247', change: '+15%' },
+    { metric: 'Total Servers', value: dashboardMetrics.servers.toString(), change: '' },
+    { metric: 'Applications', value: dashboardMetrics.applications.toString(), change: '' },
+    { metric: 'Databases', value: dashboardMetrics.databases.toString(), change: '' },
+    { metric: 'Dependencies', value: dashboardMetrics.dependencies.toString(), change: '' },
   ];
 
   return (
