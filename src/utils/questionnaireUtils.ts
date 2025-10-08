@@ -176,7 +176,7 @@ export function groupQuestionsByAsset(
       if (!assetMap.has(assetId)) {
         assetMap.set(assetId, []);
       }
-      assetMap.get(assetId)!.push(question);
+      assetMap.get(assetId).push(question);
     } else {
       // Questions without asset_id are global (apply to all assets)
       globalQuestions.push(question);

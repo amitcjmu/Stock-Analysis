@@ -18,6 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 // Import custom hooks
@@ -734,6 +735,9 @@ const AdaptiveForms: React.FC = () => {
           <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Manage Collection Flows</DialogTitle>
+              <DialogDescription>
+                Manage and resume incomplete collection flows. Complete existing flows before starting new ones.
+              </DialogDescription>
             </DialogHeader>
             <IncompleteCollectionFlowManager
               flows={incompleteFlows}
@@ -1184,6 +1188,9 @@ const AdaptiveForms: React.FC = () => {
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Manage Collection Flows</DialogTitle>
+            <DialogDescription>
+              Manage and resume incomplete collection flows. Complete existing flows before starting new ones.
+            </DialogDescription>
           </DialogHeader>
           <IncompleteCollectionFlowManager
             flows={incompleteFlows}

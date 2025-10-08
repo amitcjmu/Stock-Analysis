@@ -14,8 +14,6 @@ which is incompatible with pgvector operations (CAST AS vector fails).
 Fix: Convert to vector(1024) type for DeepInfra thenlper/gte-large model.
 """
 
-import sqlalchemy as sa
-
 from alembic import op
 
 # revision identifiers, used by Alembic.

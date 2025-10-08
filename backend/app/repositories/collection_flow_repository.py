@@ -38,6 +38,12 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
         """Get collection flow by flow_id with context filtering."""
         return await self.get_by_filters(flow_id=flow_id)
 
+    async def get_by_master_flow_id(
+        self, master_flow_id: uuid.UUID
+    ) -> Optional[CollectionFlow]:
+        """Get collection flow by master flow ID with context filtering."""
+        return await self.get_by_filters(master_flow_id=master_flow_id)
+
     async def get_by_status(self, status: CollectionFlowStatus) -> List[CollectionFlow]:
         """Get collection flows by status with context filtering."""
         return await self.get_by_filters(status=status)

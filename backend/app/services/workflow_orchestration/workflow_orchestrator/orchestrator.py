@@ -15,7 +15,7 @@ from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.services.ai_analysis import (
     BusinessContextAnalyzer,
-    GapAnalysisAgent,
+    # GapAnalysisAgent removed per ADR-025 (placeholder deleted)
     LearningOptimizer,
 )
 from app.services.collection_flow import (
@@ -61,11 +61,9 @@ class WorkflowOrchestrator:
         self.state_service = CollectionFlowStateService(db, context)
         self.tier_detection = TierDetectionService(db, context)
         self.business_analyzer = BusinessContextAnalyzer()
-        # Pass required context parameters to GapAnalysisAgent
-        self.gap_analysis_agent = GapAnalysisAgent(
-            client_account_id=context.client_account_id or "",
-            engagement_id=context.engagement_id or "",
-        )
+        # DEPRECATED: GapAnalysisAgent removed per ADR-025
+        # Gap analysis now handled by GapAnalysisService via CollectionChildFlowService
+        self.gap_analysis_agent = None  # Legacy - not used in active flows
         self.learning_optimizer = LearningOptimizer()
 
         # Initialize registries

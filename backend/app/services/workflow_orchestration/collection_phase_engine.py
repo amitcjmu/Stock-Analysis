@@ -23,12 +23,13 @@ from app.core.logging import get_logger
 # Import models for backward compatibility
 from app.models.collection_flow import AutomationTier
 
-# Import the new unified collection flow
-from app.services.crewai_flows.unified_collection_flow import (
-    CREWAI_FLOW_AVAILABLE,
-    UnifiedCollectionFlow,
-    create_unified_collection_flow,
-)
+# DEPRECATED: UnifiedCollectionFlow removed per ADR-025
+# This file is legacy and not used by active APIs
+# Collection flows now use CollectionChildFlowService pattern
+# TODO: Remove this entire file if confirmed unused
+CREWAI_FLOW_AVAILABLE = False
+UnifiedCollectionFlow = None
+create_unified_collection_flow = None
 
 logger = get_logger(__name__)
 

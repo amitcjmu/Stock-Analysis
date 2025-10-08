@@ -95,6 +95,17 @@ const ApplicationSelection: React.FC = () => {
         page_size: "50", // Optimal page size for smooth scrolling
       });
 
+      // CRITICAL FIX: Add client_account_id and engagement_id for multi-tenant scoping
+      // Without these, the query returns 0 assets even if inventory exists
+      // Per Qodo review: Enforce presence with explicit error instead of conditional append
+      if (!client?.id || !engagement?.id) {
+        throw new Error(
+          "Missing required tenant context: client_account_id and engagement_id are required for asset queries"
+        );
+      }
+      params.append("client_account_id", client.id.toString());
+      params.append("engagement_id", engagement.id.toString());
+
       // Add client-side filters to server request for proper pagination
       if (searchTerm.trim()) {
         params.append("search", searchTerm.trim());
@@ -108,7 +119,7 @@ const ApplicationSelection: React.FC = () => {
 
       return params.toString();
     },
-    [searchTerm, environmentFilter, criticalityFilter],
+    [searchTerm, environmentFilter, criticalityFilter, client, engagement],
   );
 
   // Fetch applications with infinite scroll support
