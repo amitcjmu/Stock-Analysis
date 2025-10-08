@@ -89,9 +89,21 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             if not db_session:
                 raise ValueError("Database session not available in flow context")
 
-            # Retrieve raw import records for this flow
+            # Retrieve raw import records using data_import_id (not master_flow_id)
+            # CC: Raw records are linked by data_import_id, not master_flow_id
+            data_import_id = flow_context.get("data_import_id")
+            if not data_import_id:
+                logger.error(f"❌ data_import_id not provided in flow_context for flow {master_flow_id}")
+                return {
+                    "status": "failed",
+                    "phase": "asset_inventory",
+                    "error": "data_import_id not found in flow context",
+                    "message": "Cannot retrieve raw records without data_import_id",
+                    "assets_created": 0,
+                }
+
             raw_records = await self._get_raw_records(
-                db_session, master_flow_id, client_account_id, engagement_id
+                db_session, data_import_id, client_account_id, engagement_id
             )
 
             if not raw_records:
@@ -142,41 +154,40 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     "execution_time": "0.001s",
                 }
 
-            # Create assets via service with atomic transaction for data integrity
+            # Create assets via service (transaction managed by caller)
+            # CC: Don't start a new transaction - db_session already has an active transaction
             created_assets = []
             failed_count = 0
 
-            # Use atomic transaction to ensure data consistency
-            async with db_session.begin():
-                for asset_data in assets_data:
-                    try:
-                        asset = await asset_service.create_asset(
-                            asset_data, flow_id=master_flow_id
-                        )
-                        if asset:
-                            created_assets.append(asset)
-                            logger.debug(f"✅ Created asset: {asset.name}")
-                        else:
-                            failed_count += 1
-                            logger.warning(
-                                f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
-                            )
-                    except Exception as e:
+            for asset_data in assets_data:
+                try:
+                    asset = await asset_service.create_asset(
+                        asset_data, flow_id=master_flow_id
+                    )
+                    if asset:
+                        created_assets.append(asset)
+                        logger.debug(f"✅ Created asset: {asset.name}")
+                    else:
                         failed_count += 1
-                        logger.error(
-                            f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
+                        logger.warning(
+                            f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
                         )
-                        # Continue processing other assets in case of individual failures
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(
+                        f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
+                    )
+                    # Continue processing other assets in case of individual failures
 
-                # Flush to make asset IDs available for foreign key relationships
-                await db_session.flush()
+            # Flush to make asset IDs available for foreign key relationships
+            await db_session.flush()
 
-                # Update raw_import_records as processed within the same transaction
-                await self._mark_records_processed(
-                    db_session, raw_records, created_assets
-                )
+            # Update raw_import_records as processed within the same transaction
+            await self._mark_records_processed(
+                db_session, raw_records, created_assets
+            )
 
-                # Transaction will be committed automatically when exiting the context
+            # Transaction will be committed by caller
 
             total_created = len(created_assets)
             logger.info(
@@ -205,14 +216,18 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     async def _get_raw_records(
         self,
         db: AsyncSession,
-        master_flow_id: str,
+        data_import_id: str,
         client_account_id: str,
         engagement_id: str,
     ) -> List[RawImportRecord]:
-        """Get raw import records for the flow with tenant scoping."""
+        """Get raw import records by data_import_id with tenant scoping.
+
+        CC: Raw records are linked by data_import_id, NOT master_flow_id.
+        This is the correct field to query as raw records are uploaded via data imports.
+        """
         try:
             stmt = select(RawImportRecord).where(
-                RawImportRecord.master_flow_id == UUID(master_flow_id),
+                RawImportRecord.data_import_id == UUID(data_import_id),
                 RawImportRecord.client_account_id == UUID(client_account_id),
                 RawImportRecord.engagement_id == UUID(engagement_id),
             )
@@ -220,7 +235,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             records = result.scalars().all()
 
             logger.info(
-                f"📊 Retrieved {len(records)} raw import records for flow {master_flow_id}"
+                f"📊 Retrieved {len(records)} raw import records for data_import_id {data_import_id}"
             )
             return list(records)
 
