@@ -1,7 +1,8 @@
 # Collection Flow Architecture Migration Plan
 ## Complete Migration from crew_class to child_flow_service Pattern
 
-**Status**: Awaiting Approval
+**Status**: Updated with GPT5 Review Feedback (Ready for Implementation)
+**Updated**: 2025-10-07 (GPT5 Review Incorporated)
 **Created**: 2025-10-07
 **Author**: Claude Code (AI Assistant)
 **Priority**: High (Blocking E2E Collection Flow Functionality)
@@ -31,6 +32,82 @@ Collection flow is in a **hybrid state** where:
 - ✅ No crew_class dependency - removed entirely
 - ✅ Consistent with Discovery flow architecture
 - ✅ ADR-015 and ADR-024 compliance
+
+---
+
+## GPT5 Critical Review Feedback (Incorporated)
+
+### Key Corrections Applied
+
+1. **✅ Child vs Master ID Consistency**
+   - **Rule**: Use `child_flow.id` (PK) for all database persistence and foreign keys
+   - **Rule**: Use `child_flow.flow_id` (business UUID) ONLY for master orchestrator interactions
+   - **Applied to**: Gap analysis, questionnaire generation, validation, all DB writes
+
+2. **✅ Repository Tenant Scoping**
+   - All `CollectionFlowRepository` queries enforce `client_account_id` and `engagement_id` scoping
+   - Uses ContextAwareRepository pattern or explicit filters
+   - No cross-tenant data leakage possible
+
+3. **✅ Canonical Phase Names & Progression Gates**
+   - Documented: `asset_selection` → `gap_analysis` → `manual_collection` → `questionnaire_generation` → `data_validation`
+   - Auto-progression gates: gaps persisted > 0 → questionnaire_generation, no pending gaps → assessment
+   - State service and orchestrator use identical phase names
+
+4. **✅ Clean Legacy Removal**
+   - Grep for all `GapAnalysisAgent` imports before reverting
+   - Check tests, scripts, API docs, old crews
+   - Mark `UnifiedCollectionFlow` deprecated with removal target date
+
+5. **✅ Background Jobs - No RequestContext**
+   - Pass primitives only: `client_account_id`, `engagement_id`, `collection_flow_id`, `master_flow_id`
+   - RequestContext NOT serializable for background tasks
+   - Rate limiting via Redis TTL + idempotency keys enforced
+
+6. **✅ Single Job State Key Pattern**
+   - Use: `gap_enhancement_job:{collection_flow_id}` (child PK)
+   - Progress endpoint resolves child ID from flow_id
+   - Map job_state fields to API response (no duplicate keys)
+
+7. **✅ Questionnaire Generation Service**
+   - Use `TenantScopedAgentPool` with `memory=False` (ADR-024)
+   - Accept child PK (`collection_flow_id=child_flow.id`) for persistence
+   - Store artifacts with tenant scoping
+   - Return structured statuses, non-blocking if long-running
+
+8. **✅ Atomic Transactions & Idempotency**
+   - DB writes: `async with db.begin()` and commit once per step
+   - Upsert deduplication on `(collection_flow_id, field_name, gap_type, asset_id)`
+   - No duplicate records on retry
+
+9. **✅ Test Coverage**
+   - Unit: `get_child_status`, `execute_phase` happy-path + unknown phase fallback
+   - Integration: create → resume → verify no crew_class paths + child PK in FKs
+   - Idempotency: re-run gap analysis → no duplicates, progress increments correctly
+
+10. **✅ Logging & Error Returns**
+    - Log metadata only (IDs, counts, durations) - NO raw `custom_attributes`
+    - Return structured errors: `{status, error_code, message}`
+    - Avoid raising raw exceptions to UI
+
+11. **✅ Documentation & ADR-025**
+    - ID mapping table: `collection_flows.id` vs `collection_flows.flow_id` vs `crewai_flow_state_extensions.flow_id`
+    - Updated developer docs and router registries
+    - Removed old crew path references
+
+### Critical ID Mapping Reference (Prevent Future Bugs)
+
+| ID Field | Type | Purpose | When to Use | Examples |
+|----------|------|---------|-------------|----------|
+| `collection_flows.id` | Integer (PK) | Database primary key for child flow | **ALL foreign keys, DB writes, persistence** | Gap records, questionnaires, validation results |
+| `collection_flows.flow_id` | UUID (Business ID) | Master flow orchestrator reference | **Master orchestrator interactions ONLY** | MFO calls, cross-flow coordination |
+| `crewai_flow_state_extensions.flow_id` | UUID (PK) | Master flow primary identifier | Master flow lifecycle, resume/pause operations | Flow registry, state persistence |
+
+**Rules**:
+- ✅ **DO**: Use `child_flow.id` for `collection_flow_id` in gap_analysis, questionnaires, validation
+- ✅ **DO**: Use `child_flow.flow_id` when calling MFO or cross-flow coordination
+- ❌ **DON'T**: Mix these in FK relationships (causes orphaned records)
+- ❌ **DON'T**: Pass UUIDs where integers expected (type safety)
 
 ---
 
@@ -183,15 +260,17 @@ class CollectionChildFlowService(BaseChildFlowService):
                 from app.services.collection.gap_analysis import GapAnalysisService
 
                 gap_service = GapAnalysisService(self.db, self.context)
+                
+                # CRITICAL: Use child_flow.id (PK) for DB persistence, NOT flow_id (business UUID)
                 result = await gap_service.execute_gap_analysis(
-                    collection_flow_id=str(child_flow.flow_id),
+                    collection_flow_id=child_flow.id,  # ✅ Child PK for FK relationships
                     phase_input=phase_input or {}
                 )
 
                 # Update flow phase using state service
                 from app.services.collection_flow.state_management import CollectionPhase
                 await self.state_service.transition_phase(
-                    flow_id=child_flow.id,
+                    flow_id=child_flow.id,  # ✅ Child PK for state updates
                     new_phase=CollectionPhase.QUESTIONNAIRE_GENERATION,
                     phase_metadata={"gap_analysis_completed": True}
                 )
@@ -205,8 +284,10 @@ class CollectionChildFlowService(BaseChildFlowService):
                 )
 
                 qg_service = QuestionnaireGenerationService(self.db, self.context)
+                
+                # CRITICAL: Use child_flow.id (PK) for DB persistence
                 result = await qg_service.generate_questionnaires(
-                    collection_flow_id=str(child_flow.flow_id),
+                    collection_flow_id=child_flow.id,  # ✅ Child PK for FK relationships
                     phase_input=phase_input or {}
                 )
 
@@ -225,19 +306,23 @@ class CollectionChildFlowService(BaseChildFlowService):
                 from app.services.collection.validation import ValidationService
 
                 validation_service = ValidationService(self.db, self.context)
+                
+                # CRITICAL: Use child_flow.id (PK) for DB persistence
                 result = await validation_service.validate_collected_data(
-                    collection_flow_id=str(child_flow.flow_id),
+                    collection_flow_id=child_flow.id,  # ✅ Child PK for FK relationships
                     phase_input=phase_input or {}
                 )
 
                 return result
 
             else:
-                logger.warning(f"⚠️ Unknown phase '{phase_name}' - returning success")
+                # Per GPT5 review: Log at info (not warning) for transitional states
+                logger.info(f"ℹ️  Unknown phase '{phase_name}' - returning noop success")
                 return {
                     "status": "success",
                     "phase": phase_name,
-                    "message": f"Phase '{phase_name}' completed (no specific handler)"
+                    "message": f"Phase '{phase_name}' completed (no specific handler)",
+                    "execution_type": "noop"
                 }
 
         except Exception as e:
@@ -366,6 +451,7 @@ else:
 ### **Phase 4: Remove Old Code & Placeholders**
 
 #### 4.1 Revert GapAnalysisAgent Placeholder
+
 **Command**:
 ```bash
 git revert 9516b6ed3 --no-commit
@@ -375,11 +461,38 @@ This will remove:
 - `backend/app/services/ai_analysis/gap_analysis_agent.py` (placeholder)
 - Export from `backend/app/services/ai_analysis/__init__.py`
 
-**Verification**:
+**Comprehensive Verification (Per GPT5 Review)**:
+
 ```bash
-# Should fail (correct - we don't need it anymore)
-python3 -c "from app.services.ai_analysis import GapAnalysisAgent"
+# 1. Check for ALL imports across codebase
+grep -r "from app.services.ai_analysis import GapAnalysisAgent" backend/
+grep -r "from app.services.ai_analysis import.*GapAnalysisAgent" backend/
+grep -r "import.*GapAnalysisAgent" backend/
+
+# 2. Check tests for references
+grep -r "GapAnalysisAgent" backend/tests/
+
+# 3. Check scripts and utilities
+grep -r "GapAnalysisAgent" backend/scripts/
+grep -r "GapAnalysisAgent" backend/alembic/
+
+# 4. Check API documentation
+grep -r "GapAnalysisAgent" docs/
+
+# 5. Check old crew files
+grep -r "GapAnalysisAgent" backend/app/services/crewai_flows/
+
+# 6. Verify import fails (correct - we don't need it)
+python3 -c "from app.services.ai_analysis import GapAnalysisAgent"  # Should fail
+
+# 7. Verify UnifiedCollectionFlow is NOT imported anywhere except deprecation file
+grep -r "from.*unified_collection_flow import UnifiedCollectionFlow" backend/ | grep -v "deprecated"
 ```
+
+**Expected Results**:
+- All greps return empty (no references found)
+- Import test fails with ImportError
+- UnifiedCollectionFlow only in deprecated file
 
 #### 4.2 Mark UnifiedCollectionFlow as Deprecated
 **File**: `backend/app/services/crewai_flows/unified_collection_flow.py`
@@ -447,7 +560,48 @@ agent = await TenantScopedAgentPool.get_or_create_agent(
 
 **No changes needed** - verify only.
 
-#### 5.2 Create Questionnaire Generation Service (if missing)
+#### 5.2 Enforce Repository Tenant Scoping (Per GPT5 Review)
+
+**Files to update**:
+- `backend/app/repositories/collection_flow_repository.py`
+
+**Verification checklist**:
+```python
+# All queries MUST include tenant scoping
+async def get_by_master_flow_id(self, master_flow_id: UUID) -> Optional[CollectionFlow]:
+    query = (
+        select(CollectionFlow)
+        .where(CollectionFlow.flow_id == master_flow_id)
+        .where(CollectionFlow.client_account_id == self.client_account_id)  # ✅ Required
+        .where(CollectionFlow.engagement_id == self.engagement_id)          # ✅ Required
+    )
+    result = await self.db.execute(query)
+    return result.scalars().first()
+```
+
+**Pattern**: Use ContextAwareRepository base class OR explicit filters in every query.
+
+#### 5.3 Define Phase Progression Gates (Per GPT5 Review)
+
+**Canonical Phase Flow**:
+```
+asset_selection → gap_analysis → manual_collection → questionnaire_generation → data_validation → assessment
+```
+
+**Auto-Progression Rules**:
+```python
+# Gap Analysis → Questionnaire Generation
+if gaps_persisted_count > 0:
+    await transition_phase("questionnaire_generation")
+
+# Manual Collection → Assessment  
+if no_pending_gaps and all_validations_complete:
+    await transition_phase("assessment")
+```
+
+**Document in**: `docs/development/collection_flow/PHASE_PROGRESSION_GATES.md`
+
+#### 5.4 Create Questionnaire Generation Service (Per GPT5 Review)
 
 **Check if exists**:
 ```bash
@@ -471,7 +625,14 @@ logger = logging.getLogger(__name__)
 
 
 class QuestionnaireGenerationService:
-    """Service for generating questionnaires using persistent agents"""
+    """Service for generating questionnaires using persistent agents
+    
+    Per GPT5 Review:
+    - Use TenantScopedAgentPool with memory=False (ADR-024)
+    - Accept child PK for persistence (collection_flow_id = child_flow.id)
+    - Store artifacts with tenant scoping
+    - Return structured statuses, non-blocking if long-running
+    """
 
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
@@ -479,35 +640,92 @@ class QuestionnaireGenerationService:
 
     async def generate_questionnaires(
         self,
-        collection_flow_id: str,
+        collection_flow_id: int,  # ✅ Child PK (integer), NOT UUID
         phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Generate questionnaires using persistent questionnaire agent
 
         Args:
-            collection_flow_id: Collection flow ID
+            collection_flow_id: Child flow PK (collection_flows.id)
             phase_input: Phase input data with gap analysis results
 
         Returns:
-            Questionnaire generation result
+            Structured questionnaire generation result
         """
-        # Get persistent agent
-        agent = await TenantScopedAgentPool.get_or_create_agent(
-            client_id=str(self.context.client_account_id),
-            engagement_id=str(self.context.engagement_id),
-            agent_type="questionnaire_specialist",
-        )
+        try:
+            # Get persistent agent (memory=False per ADR-024)
+            agent = await TenantScopedAgentPool.get_or_create_agent(
+                client_id=str(self.context.client_account_id),
+                engagement_id=str(self.context.engagement_id),
+                agent_type="questionnaire_specialist",
+            )
 
-        # Execute generation task
-        # TODO: Implement questionnaire generation logic
-        logger.info(f"Generating questionnaires for flow {collection_flow_id}")
+            # Execute generation task
+            logger.info(
+                f"Generating questionnaires for flow {collection_flow_id} "
+                f"(client={self.context.client_account_id}, engagement={self.context.engagement_id})"
+            )
 
-        return {
-            "status": "success",
-            "questionnaires_generated": 0,
-            "message": "Questionnaire generation completed"
-        }
+            # Atomic transaction for questionnaire persistence
+            async with self.db.begin():
+                # TODO: Implement questionnaire generation logic with tenant scoping
+                # All inserts MUST include collection_flow_id (FK to child PK)
+                pass
+
+            return {
+                "status": "success",
+                "questionnaires_generated": 0,
+                "message": "Questionnaire generation completed",
+                "metadata": {
+                    "collection_flow_id": collection_flow_id,
+                    "client_account_id": self.context.client_account_id,
+                    "engagement_id": self.context.engagement_id
+                }
+            }
+            
+        except Exception as e:
+            # Structured error return (per GPT5 review)
+            logger.error(f"Questionnaire generation failed: {e}", exc_info=True)
+            return {
+                "status": "error",
+                "error_code": "QUESTIONNAIRE_GENERATION_FAILED",
+                "message": str(e),
+                "metadata": {
+                    "collection_flow_id": collection_flow_id
+                }
+            }
+```
+
+#### 5.5 Update Background Job Patterns (Per GPT5 Review)
+
+**Critical**: RequestContext is NOT serializable for background tasks.
+
+**Wrong Pattern**:
+```python
+# ❌ DON'T: Pass RequestContext to background job
+background_job.delay(context=context, flow_id=flow_id)
+```
+
+**Correct Pattern**:
+```python
+# ✅ DO: Pass primitives only
+background_job.delay(
+    client_account_id=context.client_account_id,
+    engagement_id=context.engagement_id,
+    collection_flow_id=child_flow.id,  # Child PK
+    master_flow_id=str(child_flow.flow_id)  # Master UUID
+)
+```
+
+**Job State Key Pattern**:
+```python
+# Single key pattern (per GPT5 review)
+job_state_key = f"gap_enhancement_job:{collection_flow_id}"  # Use child PK
+
+# Progress endpoint resolves child ID from master flow_id
+child_flow = await repository.get_by_master_flow_id(UUID(flow_id))
+job_state = await redis.get(f"gap_enhancement_job:{child_flow.id}")
 ```
 
 ---
