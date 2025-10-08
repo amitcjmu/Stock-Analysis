@@ -93,7 +93,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # CC: Raw records are linked by data_import_id, not master_flow_id
             data_import_id = flow_context.get("data_import_id")
             if not data_import_id:
-                logger.error(f"❌ data_import_id not provided in flow_context for flow {master_flow_id}")
+                logger.error(
+                    f"❌ data_import_id not provided in flow_context for flow {master_flow_id}"
+                )
                 return {
                     "status": "failed",
                     "phase": "asset_inventory",
@@ -157,20 +159,37 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Create assets via service (transaction managed by caller)
             # CC: Don't start a new transaction - db_session already has an active transaction
             created_assets = []
+            duplicate_assets = []
             failed_count = 0
 
             for asset_data in assets_data:
                 try:
+                    # Check if asset exists before creating
+                    asset_name = asset_data.get("name") or asset_data.get(
+                        "asset_name", "unnamed"
+                    )
+                    existing_asset = await asset_service._find_existing_asset(
+                        name=asset_name,
+                        client_id=str(client_account_id),
+                        engagement_id=str(engagement_id),
+                    )
+
                     asset = await asset_service.create_asset(
                         asset_data, flow_id=master_flow_id
                     )
                     if asset:
-                        created_assets.append(asset)
-                        logger.debug(f"✅ Created asset: {asset.name}")
+                        if existing_asset and existing_asset.id == asset.id:
+                            # Asset was a duplicate - not newly created
+                            duplicate_assets.append(asset)
+                            logger.debug(f"🔄 Duplicate asset skipped: {asset.name}")
+                        else:
+                            # Asset was newly created
+                            created_assets.append(asset)
+                            logger.debug(f"✅ Created asset: {asset.name}")
                     else:
                         failed_count += 1
                         logger.warning(
-                            f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
+                            f"⚠️ Asset service returned None for: {asset_name}"
                         )
                 except Exception as e:
                     failed_count += 1
@@ -183,22 +202,40 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             await db_session.flush()
 
             # Update raw_import_records as processed within the same transaction
-            await self._mark_records_processed(
-                db_session, raw_records, created_assets
-            )
+            # Include both created and duplicate assets for proper tracking
+            all_assets = created_assets + duplicate_assets
+            await self._mark_records_processed(db_session, raw_records, all_assets)
 
             # Transaction will be committed by caller
 
             total_created = len(created_assets)
+            total_duplicates = len(duplicate_assets)
             logger.info(
-                f"🎉 Asset inventory phase completed: {total_created} assets created, {failed_count} failed"
+                f"🎉 Asset inventory phase completed: {total_created} new assets, "
+                f"{total_duplicates} duplicates, {failed_count} failed"
             )
+
+            # Build appropriate message based on results
+            if total_created > 0 and total_duplicates > 0:
+                message = (
+                    f"Created {total_created} new assets. {total_duplicates} assets "
+                    f"already existed and were skipped."
+                )
+            elif total_created > 0:
+                message = (
+                    f"Successfully created {total_created} new assets from raw data"
+                )
+            elif total_duplicates > 0:
+                message = f"All {total_duplicates} assets already exist in inventory. No new assets were created."
+            else:
+                message = "No assets were created or found"
 
             return {
                 "status": "completed",
                 "phase": "asset_inventory",
-                "message": f"Successfully created {total_created} assets from raw data",
+                "message": message,
                 "assets_created": total_created,
+                "assets_duplicates": total_duplicates,
                 "assets_failed": failed_count,
                 "execution_time": "variable",  # Actual execution time
             }

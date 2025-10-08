@@ -729,6 +729,7 @@ export const masterFlowService = {
         },
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
+          timeout: 300000, // 5 minutes timeout for phase execution (CrewAI agents can take 90-120s)
         },
       );
       return response;
