@@ -465,9 +465,11 @@ export const useAttributeMappingActions = (
       console.log('   Recommended: map a field containing "type" or "asset_type" for better categorization');
     }
 
-    // Check for minimum approval percentage (at least 30% should be approved)
+    // Check for minimum approval percentage
+    // IMPORTANT: This must match FIELD_MAPPING_APPROVAL_THRESHOLD in backend (default 60%)
+    // See: backend/app/utils/flow_constants/thresholds.py
     const approvalPercentage = (approvedMappings.length / fieldMappings.length) * 100;
-    const minimumPercentage = 30;
+    const minimumPercentage = 60; // Must match backend default
 
     if (approvalPercentage < minimumPercentage) {
       console.log(`❌ Only ${approvalPercentage.toFixed(1)}% approved, need at least ${minimumPercentage}%`);
