@@ -133,11 +133,17 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Initialize AssetService
             asset_service = AssetService(db_session, request_context)
 
+            # Retrieve approved field mappings for applying transformations
+            field_mappings = await self._get_field_mappings(
+                db_session, data_import_id, client_account_id
+            )
+            logger.info(f"📋 Retrieved {len(field_mappings)} approved field mappings")
+
             # Transform raw records to asset data
             assets_data = []
             for record in raw_records:
                 asset_data = self._transform_raw_record_to_asset(
-                    record, master_flow_id, discovery_flow_id
+                    record, master_flow_id, discovery_flow_id, field_mappings
                 )
                 if asset_data:
                     assets_data.append(asset_data)
@@ -280,13 +286,60 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             logger.error(f"❌ Failed to retrieve raw import records: {e}")
             raise
 
+    async def _get_field_mappings(
+        self,
+        db: AsyncSession,
+        data_import_id: str,
+        client_account_id: str,
+    ) -> Dict[str, str]:
+        """Get approved field mappings for the data import.
+
+        Returns:
+            Dictionary mapping source_field to target_field for approved mappings
+        """
+        try:
+            from app.models.data_import.mapping import ImportFieldMapping
+
+            stmt = select(ImportFieldMapping).where(
+                ImportFieldMapping.data_import_id == UUID(data_import_id),
+                ImportFieldMapping.client_account_id == UUID(client_account_id),
+                ImportFieldMapping.status == "approved",
+            )
+            result = await db.execute(stmt)
+            mappings = result.scalars().all()
+
+            # Build lookup dictionary: source_field -> target_field
+            mapping_dict = {
+                mapping.source_field: mapping.target_field for mapping in mappings
+            }
+
+            logger.debug(
+                f"📋 Retrieved {len(mapping_dict)} approved field mappings: {mapping_dict}"
+            )
+            return mapping_dict
+
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to retrieve field mappings: {e}")
+            return {}  # Return empty dict to allow asset creation to proceed
+
     def _transform_raw_record_to_asset(
         self,
         record: RawImportRecord,
         master_flow_id: str,
         discovery_flow_id: str = None,
+        field_mappings: Dict[str, str] = None,
     ) -> Dict[str, Any]:
-        """Transform a raw import record to asset data format."""
+        """Transform a raw import record to asset data format.
+
+        Args:
+            record: Raw import record to transform
+            master_flow_id: Master flow identifier
+            discovery_flow_id: Discovery flow identifier
+            field_mappings: Dict mapping source_field to target_field for transformations
+
+        Returns:
+            Asset data dictionary ready for AssetService.create_asset()
+        """
         try:
             # CC: CRITICAL FIX - Use cleansed_data instead of raw_data to leverage data cleansing phase
             # This ensures assets are created from processed, validated data rather than raw imports
@@ -337,6 +390,14 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 "technical_owner": asset_data_source.get("technical_owner"),
                 "department": asset_data_source.get("department"),
                 "criticality": asset_data_source.get("criticality", "Medium"),
+                # Apply field mapping for business_criticality if approved mapping exists
+                "business_criticality": self._apply_field_mapping(
+                    asset_data_source,
+                    "criticality",
+                    "business_criticality",
+                    field_mappings or {},
+                    default="Medium",
+                ),
                 # Application information
                 "application_name": asset_data_source.get("application_name"),
                 "technology_stack": asset_data_source.get("technology_stack"),
@@ -366,6 +427,38 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         except Exception as e:
             logger.error(f"❌ Failed to transform raw record {record.row_number}: {e}")
             return None
+
+    def _apply_field_mapping(
+        self,
+        asset_data_source: Dict[str, Any],
+        source_field: str,
+        target_field: str,
+        field_mappings: Dict[str, str],
+        default: Any = None,
+    ) -> Any:
+        """Apply field mapping transformation if approved mapping exists.
+
+        Args:
+            asset_data_source: Source data dictionary
+            source_field: Name of the source field to map from
+            target_field: Name of the target field to map to
+            field_mappings: Dict of approved mappings (source -> target)
+            default: Default value if no mapping found
+
+        Returns:
+            Transformed value or default
+        """
+        # Check if there's an approved mapping for this source field
+        if field_mappings.get(source_field) == target_field:
+            # Mapping exists and matches - use the source field value
+            value = asset_data_source.get(source_field, default)
+            logger.debug(
+                f"📋 Applied field mapping: {source_field} → {target_field} = {value}"
+            )
+            return value
+        else:
+            # No mapping - return default
+            return default
 
     async def _mark_records_processed(
         self, db: AsyncSession, raw_records: List[RawImportRecord], created_assets: List

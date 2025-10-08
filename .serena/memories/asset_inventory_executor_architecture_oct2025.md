@@ -25,13 +25,13 @@ async def execute_asset_creation(
 ) -> Dict[str, Any]:
     """
     Direct asset creation - NO crews
-    
+
     Args:
         flow_context: Contains execution data (NOT self.state)
             - data_import_id: UUID of data import
             - db_session: Active database session
             - client_account_id, engagement_id: Tenant scoping
-    
+
     Returns:
         {
             "status": "success" | "failed",
@@ -53,9 +53,9 @@ if not data_import_id:
 
 # Lines 217-245: Query raw records
 raw_records = await self._get_raw_records(
-    db_session, 
+    db_session,
     data_import_id,  # NOT master_flow_id!
-    client_account_id, 
+    client_account_id,
     engagement_id
 )
 ```
@@ -74,15 +74,15 @@ field_mappings = await self._get_field_mappings(
 ```python
 # Lines 115-156: Apply field mappings
 assets_data = self._prepare_assets_from_raw_records(
-    raw_records, 
-    field_mappings, 
+    raw_records,
+    field_mappings,
     flow_context
 )
 
 # Lines 157-190: Create via AssetService (NO transaction nesting)
 for asset_data in assets_data:
     asset = await asset_service.create_asset(
-        asset_data, 
+        asset_data,
         flow_id=master_flow_id
     )
     if asset:
@@ -138,7 +138,7 @@ state.flow_id = flow_id  # Minimal state
 
 executor = AssetInventoryExecutor(
     state,  # Required but not used by execute_asset_creation
-    crew_manager=None, 
+    crew_manager=None,
     flow_bridge=None
 )
 ```

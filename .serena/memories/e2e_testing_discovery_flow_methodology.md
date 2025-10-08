@@ -82,7 +82,7 @@ await execute_phase(flow_id, "asset_inventory")
 ### After Each Phase
 ```sql
 -- Check phase completion flags
-SELECT 
+SELECT
     current_phase,
     field_mapping_completed,
     data_cleansing_completed,
@@ -94,13 +94,13 @@ WHERE master_flow_id = 'flow-id';
 ### data_import_id Propagation
 ```sql
 -- Verify data_import_id carried through
-SELECT data_import_id 
-FROM migration.discovery_flows 
+SELECT data_import_id
+FROM migration.discovery_flows
 WHERE master_flow_id = 'flow-id';
 
 -- Verify raw records exist
-SELECT COUNT(*) 
-FROM migration.raw_import_records 
+SELECT COUNT(*)
+FROM migration.raw_import_records
 WHERE data_import_id = 'data-import-id';
 ```
 

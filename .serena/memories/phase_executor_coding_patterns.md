@@ -19,22 +19,22 @@ async def _execute_discovery_phase(
     self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
 ) -> Dict[str, Any]:
     """Execute phase using specialized executor"""
-    
+
     # 1. Import executor and state classes
     from app.services.crewai_flows.handlers.phase_executors.phase_executor import (
         PhaseExecutor,
     )
     from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-    
+
     # 2. Create minimal state object (required by BasePhaseExecutor.__init__)
     state = UnifiedDiscoveryFlowState()
     state.flow_id = phase_input.get("flow_id") or phase_input.get("master_flow_id")
     state.client_account_id = self.context.client_account_id
     state.engagement_id = self.context.engagement_id
-    
+
     # 3. Initialize executor (state may not be used by execute method)
     executor = PhaseExecutor(state, crew_manager=None, flow_bridge=None)
-    
+
     # 4. Build flow_context with ACTUAL execution data
     data_import_id = phase_input.get("data_import_id")
     flow_context = {
@@ -46,14 +46,14 @@ async def _execute_discovery_phase(
         "user_id": self.context.user_id,
         "db_session": self.db_session,  # Active transaction
     }
-    
+
     # 5. Execute (NO transaction nesting - session already has one)
     try:
         result = await executor.execute_phase(flow_context)
-        
+
         # 6. Flush to make IDs available for FK relationships
         await self.db_session.flush()
-        
+
         # 7. Persist phase completion flag if successful
         if result.get("status") == "success":
             from app.models.discovery_flow import DiscoveryFlow
@@ -64,14 +64,14 @@ async def _execute_discovery_phase(
                 .values(phase_completed=True)
             )
             await self.db_session.commit()
-        
+
         return {
             "phase": "phase_name",
             "status": "completed",
             "crew_results": result,
             "agent": "phase_agent",
         }
-        
+
     except Exception as e:
         logger.error(f"❌ Phase failed: {e}")
         return {
