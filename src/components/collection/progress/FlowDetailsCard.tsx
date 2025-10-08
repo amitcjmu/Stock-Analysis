@@ -193,7 +193,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               return;
             }
 
-            let currentPhase = flowDetails.current_phase || 'asset_selection';
+            const currentPhase = flowDetails.current_phase || 'asset_selection';
             const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
 
             if (phaseRoute) {
@@ -309,7 +309,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               return;
             }
 
-            let currentPhase = flowDetails.current_phase || 'asset_selection';
+            const currentPhase = flowDetails.current_phase || 'asset_selection';
             const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
 
             if (phaseRoute) {

@@ -20,14 +20,14 @@ const CollectionSummary: React.FC = () => {
   // Fetch flow details
   const { data: flow, isLoading, error } = useQuery({
     queryKey: ['collectionFlow', flowId],
-    queryFn: () => collectionFlowApi.getFlow(flowId!),
+    queryFn: () => collectionFlowApi.getFlow(flowId),
     enabled: !!flowId,
   });
 
   // Fetch readiness status to check for assessment flow
   const { data: readiness } = useQuery({
     queryKey: ['collectionReadiness', flowId],
-    queryFn: () => collectionFlowApi.checkReadiness(flowId!),
+    queryFn: () => collectionFlowApi.checkReadiness(flowId),
     enabled: !!flowId,
   });
 
