@@ -97,8 +97,8 @@ const ApplicationSelection: React.FC = () => {
 
       // CRITICAL FIX: Add client_account_id and engagement_id for multi-tenant scoping
       // Without these, the query returns 0 assets even if inventory exists
-      if (client?.account_id) {
-        params.append("client_account_id", client.account_id.toString());
+      if (client?.id) {
+        params.append("client_account_id", client.id.toString());
       }
       if (engagement?.id) {
         params.append("engagement_id", engagement.id.toString());
