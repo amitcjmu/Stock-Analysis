@@ -125,15 +125,27 @@ class CollectionChildFlowService(BaseChildFlowService):
 
             # Auto-progression (per GPT5: keep in service, not UI)
             from app.services.collection_flow.state_management import CollectionPhase
-            if result.get("gaps_persisted", 0) > 0:
+
+            gaps_persisted = result.get("gaps_persisted", 0)
+            has_pending_gaps = result.get("has_pending_gaps", False)
+
+            if gaps_persisted > 0:
+                # Gaps persisted → generate questionnaires
                 await self.state_service.transition_phase(
                     flow_id=child_flow.id,
                     new_phase=CollectionPhase.QUESTIONNAIRE_GENERATION
                 )
-            else:
+            elif not has_pending_gaps:
+                # No pending gaps → skip to assessment
                 await self.state_service.transition_phase(
                     flow_id=child_flow.id,
                     new_phase=CollectionPhase.ASSESSMENT
+                )
+            else:
+                # Job persisted zero but gaps still exist → remain in manual_collection
+                await self.state_service.transition_phase(
+                    flow_id=child_flow.id,
+                    new_phase=CollectionPhase.MANUAL_COLLECTION
                 )
 
             return result
@@ -266,6 +278,27 @@ else:
 
 ---
 
+## Tenant Scoping (Explicit Pattern)
+
+**All repository lookups MUST filter by tenant context:**
+
+```python
+# ✅ Correct - explicit tenant scoping
+repository = CollectionFlowRepository(
+    db=db,
+    client_account_id=context.client_account_id,
+    engagement_id=context.engagement_id
+)
+
+# Repository internally filters all queries:
+# .where(CollectionFlow.client_account_id == self.client_account_id)
+# .where(CollectionFlow.engagement_id == self.engagement_id)
+```
+
+**No cross-tenant data leakage possible.**
+
+---
+
 ## Background Job Simplification
 
 ### Minimal Pattern (Per GPT5)
@@ -286,8 +319,20 @@ async def analyze_gaps(
     if len(selected_gaps) > 200:
         raise HTTPException(400, "Max 200 gaps per submission")
 
-    # Get child flow
+    # Explicit repository with tenant scoping (per GPT5)
+    repository = CollectionFlowRepository(
+        db=db,
+        client_account_id=context.client_account_id,
+        engagement_id=context.engagement_id
+    )
+
+    # Get child flow (tenant-scoped)
     child_flow = await repository.get_by_master_flow_id(UUID(flow_id))
+    if not child_flow:
+        raise HTTPException(404, "Flow not found")
+
+    # Explicit Redis manager (per GPT5)
+    redis = get_redis_manager().client
 
     # Rate limit: single Redis key with 10s TTL
     rate_limit_key = f"gap_analysis_rate_limit:{child_flow.id}"
@@ -329,10 +374,20 @@ async def get_gap_analysis_progress(
 ):
     """Get progress - reads single job key"""
 
-    # Resolve child flow from master flow_id
+    # Explicit repository with tenant scoping (per GPT5)
+    repository = CollectionFlowRepository(
+        db=db,
+        client_account_id=context.client_account_id,
+        engagement_id=context.engagement_id
+    )
+
+    # Resolve child flow from master flow_id (tenant-scoped)
     child_flow = await repository.get_by_master_flow_id(UUID(flow_id))
     if not child_flow:
         raise HTTPException(404, "Flow not found")
+
+    # Explicit Redis manager (per GPT5)
+    redis = get_redis_manager().client
 
     # Read single job key
     job_key = f"gap_enhancement_job:{child_flow.id}"
@@ -368,36 +423,42 @@ async def gap_enhancement_worker(
 
     job_key = f"gap_enhancement_job:{collection_flow_id}"
 
-    try:
-        # Initialize job state
-        await redis.setex(job_key, 3600, json.dumps({
-            "status": "running",
-            "processed": 0,
-            "total": len(selected_gaps),
-            "percentage": 0.0
-        }))
+    # Create fresh DB session (per GPT5 - not request scope)
+    async with AsyncSessionLocal() as db:
+        try:
+            # Explicit Redis manager
+            redis = get_redis_manager().client
 
-        # Get persistent agent (reuse across all assets)
-        agent = await TenantScopedAgentPool.get_or_create_agent(
-            client_id=client_account_id,
-            engagement_id=engagement_id,
-            agent_type="gap_analysis_specialist"
-        )
+            # Initialize job state
+            await redis.setex(job_key, 3600, json.dumps({
+                "status": "running",
+                "processed": 0,
+                "total": len(selected_gaps),
+                "percentage": 0.0
+            }))
 
-        # Process sequentially
-        for idx, gap in enumerate(selected_gaps):
-            # Enhance via agent
-            enhanced = await agent.enhance_gap(gap)
+            # Get persistent agent (reuse across all assets)
+            agent = await TenantScopedAgentPool.get_or_create_agent(
+                client_id=client_account_id,
+                engagement_id=engagement_id,
+                agent_type="gap_analysis_specialist"
+            )
 
-            # Upsert to DB (atomic per asset)
-            async with db.begin():
-                await upsert_gap(
-                    collection_flow_id=UUID(collection_flow_id),  # UUID PK
-                    field_name=gap["field_name"],
-                    gap_type=gap["gap_type"],
-                    asset_id=gap["asset_id"],
-                    enhanced_data=enhanced
-                )
+            # Process sequentially
+            for idx, gap in enumerate(selected_gaps):
+                # Enhance via agent
+                enhanced = await agent.enhance_gap(gap)
+
+                # Upsert to DB (atomic per asset)
+                async with db.begin():
+                    await upsert_gap(
+                        db=db,
+                        collection_flow_id=UUID(collection_flow_id),  # UUID PK
+                        field_name=gap["field_name"],
+                        gap_type=gap["gap_type"],
+                        asset_id=UUID(gap["asset_id"]),  # UUID cast (per GPT5)
+                        enhanced_data=enhanced
+                    )
 
             # Update progress
             await redis.setex(job_key, 3600, json.dumps({
@@ -408,20 +469,20 @@ async def gap_enhancement_worker(
                 "current_asset": gap.get("asset_name")
             }))
 
-        # Mark complete
-        await redis.setex(job_key, 3600, json.dumps({
-            "status": "completed",
-            "processed": len(selected_gaps),
-            "total": len(selected_gaps),
-            "percentage": 100.0
-        }))
+            # Mark complete
+            await redis.setex(job_key, 3600, json.dumps({
+                "status": "completed",
+                "processed": len(selected_gaps),
+                "total": len(selected_gaps),
+                "percentage": 100.0
+            }))
 
-    except Exception as e:
-        await redis.setex(job_key, 3600, json.dumps({
-            "status": "failed",
-            "error": str(e)
-        }))
-        raise
+        except Exception as e:
+            await redis.setex(job_key, 3600, json.dumps({
+                "status": "failed",
+                "error": str(e)
+            }))
+            raise
 ```
 
 ---
@@ -430,10 +491,11 @@ async def gap_enhancement_worker(
 
 ```python
 async def upsert_gap(
+    db: AsyncSession,  # Explicit session (per GPT5)
     collection_flow_id: UUID,  # UUID PK
     field_name: str,
     gap_type: str,
-    asset_id: str,
+    asset_id: UUID,  # UUID type (per GPT5)
     enhanced_data: Dict
 ):
     """Upsert gap with composite unique constraint"""
@@ -447,7 +509,7 @@ async def upsert_gap(
         collection_flow_id=collection_flow_id,  # UUID PK
         field_name=field_name,
         gap_type=gap_type,
-        asset_id=asset_id,
+        asset_id=asset_id,  # UUID type
         gap_description=enhanced_data.get("description"),
         confidence_score=confidence,
         source_agent="gap_analysis_specialist"
@@ -462,6 +524,17 @@ async def upsert_gap(
 
     await db.execute(stmt)
 ```
+
+---
+
+## Frontend Alignment
+
+**Per GPT5: Ensure frontend consistency**
+
+1. **Progress Polling**: Frontend polls `/api/v1/collection/flows/{flow_id}/gap-analysis/progress`
+2. **Row Selection**: UI posts only selected gaps (user selection from table)
+3. **No SSE/WebSockets**: Use HTTP polling with 2-5s interval
+4. **Status Display**: Map `processed/total/percentage/current_asset` directly to UI
 
 ---
 
