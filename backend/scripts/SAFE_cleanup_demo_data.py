@@ -69,16 +69,63 @@ def get_user_confirmation():
 
 
 async def create_backup():
-    """Create a backup before deletion"""
+    """Create a backup before deletion using pg_dump"""
     print("\n📦 Creating backup...")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_file = f"/tmp/demo_data_backup_{timestamp}.sql"
 
-    # Note: This is a placeholder - actual backup would use pg_dump
-    print(f"   Backup should be created at: {backup_file}")
-    print("   (Implement actual pg_dump command here)")
+    # Get database connection info from environment
+    db_url = os.getenv("DATABASE_URL", "")
+    if not db_url:
+        print("   ⚠️  DATABASE_URL not set - skipping backup")
+        return backup_file
 
-    return backup_file
+    # Parse connection string
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(db_url.replace("postgresql+asyncpg://", "postgresql://"))
+        db_host = parsed.hostname or "localhost"
+        db_port = parsed.port or 5432
+        db_name = parsed.path.lstrip("/")
+        db_user = parsed.username or "postgres"
+
+        # Build pg_dump command
+        dump_command = [
+            "pg_dump",
+            "-h",
+            db_host,
+            "-p",
+            str(db_port),
+            "-U",
+            db_user,
+            "-d",
+            db_name,
+            "-f",
+            backup_file,
+            "--no-password",  # Use .pgpass or PGPASSWORD env var
+        ]
+
+        # Execute pg_dump
+        process = await asyncio.create_subprocess_exec(
+            *dump_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env={**os.environ, "PGPASSWORD": parsed.password or ""},
+        )
+        stdout, stderr = await process.communicate()
+
+        if process.returncode == 0:
+            print(f"   ✅ Backup successfully created at: {backup_file}")
+            return backup_file
+        else:
+            error_msg = stderr.decode() if stderr else "Unknown error"
+            print(f"   ❌ Backup failed: {error_msg}")
+            raise Exception(f"pg_dump failed: {error_msg}")
+
+    except Exception as e:
+        print(f"   ❌ Backup failed: {str(e)}")
+        raise Exception(f"Failed to create backup: {str(e)}")
 
 
 async def clean_demo_data_safe(dry_run: bool = True):
@@ -93,26 +140,39 @@ async def clean_demo_data_safe(dry_run: bool = True):
         # Count queries to show what would be deleted
         demo_client_id = "11111111-1111-1111-1111-111111111111"
         count_queries = [
-            ("SELECT COUNT(*) FROM users WHERE email LIKE '%demo%'", "demo users"),
             (
-                f"SELECT COUNT(*) FROM assets WHERE client_account_id = '{demo_client_id}'",
+                text("SELECT COUNT(*) FROM users WHERE email LIKE :pattern"),
+                {"pattern": "%demo%"},
+                "demo users",
+            ),
+            (
+                text(
+                    "SELECT COUNT(*) FROM assets WHERE client_account_id = :client_id"
+                ),
+                {"client_id": demo_client_id},
                 "assets",
             ),
             (
-                f"SELECT COUNT(*) FROM discovery_flows "
-                f"WHERE client_account_id = '{demo_client_id}'",
+                text(
+                    "SELECT COUNT(*) FROM discovery_flows "
+                    "WHERE client_account_id = :client_id"
+                ),
+                {"client_id": demo_client_id},
                 "discovery flows",
             ),
             (
-                f"SELECT COUNT(*) FROM data_imports WHERE engagement_id IN "
-                f"(SELECT id FROM engagements WHERE client_account_id = '{demo_client_id}')",
+                text(
+                    "SELECT COUNT(*) FROM data_imports WHERE engagement_id IN "
+                    "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                ),
+                {"client_id": demo_client_id},
                 "data imports",
             ),
         ]
 
         print("\n📊 Data to be affected:")
-        for query, label in count_queries:
-            result = await session.execute(text(query))
+        for query, params, label in count_queries:
+            result = await session.execute(query, params)
             count = result.scalar()
             print(f"   {label}: {count} records")
 
@@ -120,54 +180,102 @@ async def clean_demo_data_safe(dry_run: bool = True):
             print("\n✅ Dry run completed - no data was deleted")
             return
 
-        # Actual cleanup queries (same as original script)
+        # Actual cleanup queries (parameterized for SQL injection prevention)
         demo_client_id = "11111111-1111-1111-1111-111111111111"
+        demo_pattern = "%demo%"
+
         cleanup_queries = [
             (
-                "UPDATE users SET default_engagement_id = NULL, "
-                "default_client_id = NULL WHERE email LIKE '%demo%'"
+                text(
+                    "UPDATE users SET default_engagement_id = NULL, "
+                    "default_client_id = NULL WHERE email LIKE :pattern"
+                ),
+                {"pattern": demo_pattern},
             ),
             (
-                "DELETE FROM user_account_associations "
-                "WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%demo%')"
+                text(
+                    "DELETE FROM user_account_associations "
+                    "WHERE user_id IN (SELECT id FROM users WHERE email LIKE :pattern)"
+                ),
+                {"pattern": demo_pattern},
             ),
             (
-                "DELETE FROM user_roles "
-                "WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%demo%')"
+                text(
+                    "DELETE FROM user_roles "
+                    "WHERE user_id IN (SELECT id FROM users WHERE email LIKE :pattern)"
+                ),
+                {"pattern": demo_pattern},
             ),
             (
-                "DELETE FROM user_profiles "
-                "WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%demo%')"
+                text(
+                    "DELETE FROM user_profiles "
+                    "WHERE user_id IN (SELECT id FROM users WHERE email LIKE :pattern)"
+                ),
+                {"pattern": demo_pattern},
             ),
             (
-                f"DELETE FROM import_field_mappings WHERE data_import_id IN "
-                f"(SELECT id FROM data_imports WHERE engagement_id IN "
-                f"(SELECT id FROM engagements WHERE client_account_id = '{demo_client_id}'))"
+                text(
+                    "DELETE FROM import_field_mappings WHERE data_import_id IN "
+                    "(SELECT id FROM data_imports WHERE engagement_id IN "
+                    "(SELECT id FROM engagements WHERE client_account_id = :client_id))"
+                ),
+                {"client_id": demo_client_id},
             ),
             (
-                f"DELETE FROM raw_import_records WHERE data_import_id IN "
-                f"(SELECT id FROM data_imports WHERE engagement_id IN "
-                f"(SELECT id FROM engagements WHERE client_account_id = '{demo_client_id}'))"
+                text(
+                    "DELETE FROM raw_import_records WHERE data_import_id IN "
+                    "(SELECT id FROM data_imports WHERE engagement_id IN "
+                    "(SELECT id FROM engagements WHERE client_account_id = :client_id))"
+                ),
+                {"client_id": demo_client_id},
             ),
             (
-                f"DELETE FROM data_imports WHERE engagement_id IN "
-                f"(SELECT id FROM engagements WHERE client_account_id = '{demo_client_id}')"
+                text(
+                    "DELETE FROM data_imports WHERE engagement_id IN "
+                    "(SELECT id FROM engagements WHERE client_account_id = :client_id)"
+                ),
+                {"client_id": demo_client_id},
             ),
-            f"DELETE FROM discovery_flows WHERE client_account_id = '{demo_client_id}'",
             (
-                f"DELETE FROM asset_dependencies WHERE asset_id IN "
-                f"(SELECT id FROM assets WHERE client_account_id = '{demo_client_id}')"
+                text(
+                    "DELETE FROM discovery_flows WHERE client_account_id = :client_id"
+                ),
+                {"client_id": demo_client_id},
             ),
-            f"DELETE FROM assets WHERE client_account_id = '{demo_client_id}'",
-            f"DELETE FROM migration_waves WHERE client_account_id = '{demo_client_id}'",
-            "DELETE FROM users WHERE email LIKE '%demo%'",
-            f"DELETE FROM engagements WHERE client_account_id = '{demo_client_id}'",
-            f"DELETE FROM client_accounts WHERE id = '{demo_client_id}'",
+            (
+                text(
+                    "DELETE FROM asset_dependencies WHERE asset_id IN "
+                    "(SELECT id FROM assets WHERE client_account_id = :client_id)"
+                ),
+                {"client_id": demo_client_id},
+            ),
+            (
+                text("DELETE FROM assets WHERE client_account_id = :client_id"),
+                {"client_id": demo_client_id},
+            ),
+            (
+                text(
+                    "DELETE FROM migration_waves WHERE client_account_id = :client_id"
+                ),
+                {"client_id": demo_client_id},
+            ),
+            (
+                text("DELETE FROM users WHERE email LIKE :pattern"),
+                {"pattern": demo_pattern},
+            ),
+            (
+                text("DELETE FROM engagements WHERE client_account_id = :client_id"),
+                {"client_id": demo_client_id},
+            ),
+            (
+                text("DELETE FROM client_accounts WHERE id = :client_id"),
+                {"client_id": demo_client_id},
+            ),
         ]
 
-        for query in cleanup_queries:
+        for query, params in cleanup_queries:
             try:
-                result = await session.execute(text(query))
+                result = await session.execute(query, params)
                 await session.commit()
                 if result.rowcount > 0:
                     print(f"   ✅ Deleted {result.rowcount} records")

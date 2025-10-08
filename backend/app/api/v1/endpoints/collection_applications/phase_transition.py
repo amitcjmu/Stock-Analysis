@@ -42,8 +42,9 @@ async def transition_to_gap_analysis(
         logger.error(
             f"Collection flow {flow_id} has no master_flow_id - cannot transition phases"
         )
+        # Per Qodo review: Use 409 Conflict instead of 500 for state conflicts
         raise HTTPException(
-            status_code=500,
+            status_code=409,
             detail={
                 "error": "flow_initialization_incomplete",
                 "message": "Flow not properly initialized with Master Flow Orchestrator",

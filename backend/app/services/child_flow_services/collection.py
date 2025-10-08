@@ -149,16 +149,15 @@ class CollectionChildFlowService(BaseChildFlowService):
             )
 
             if gaps_persisted > 0:
-                # Gaps persisted → transition to manual_collection for user input
-                # Note: QUESTIONNAIRE_GENERATION not in base CollectionPhase enum
-                # Use MANUAL_COLLECTION phase for user questionnaire responses
+                # Gaps persisted → transition to questionnaire_generation
+                # Per Qodo review: Use QUESTIONNAIRE_GENERATION phase when gaps are identified
                 logger.info(
-                    f"Transitioning to manual_collection for questionnaires "
+                    f"Transitioning to questionnaire_generation for persisted gaps "
                     f"(gaps_persisted={gaps_persisted})"
                 )
                 await self.state_service.transition_phase(
                     flow_id=child_flow.id,
-                    new_phase=CollectionPhase.MANUAL_COLLECTION,
+                    new_phase=CollectionPhase.QUESTIONNAIRE_GENERATION,
                 )
             elif not has_pending_gaps:
                 # No pending gaps → transition to finalization

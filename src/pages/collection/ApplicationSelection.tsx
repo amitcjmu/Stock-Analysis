@@ -97,12 +97,14 @@ const ApplicationSelection: React.FC = () => {
 
       // CRITICAL FIX: Add client_account_id and engagement_id for multi-tenant scoping
       // Without these, the query returns 0 assets even if inventory exists
-      if (client?.id) {
-        params.append("client_account_id", client.id.toString());
+      // Per Qodo review: Enforce presence with explicit error instead of conditional append
+      if (!client?.id || !engagement?.id) {
+        throw new Error(
+          "Missing required tenant context: client_account_id and engagement_id are required for asset queries"
+        );
       }
-      if (engagement?.id) {
-        params.append("engagement_id", engagement.id.toString());
-      }
+      params.append("client_account_id", client.id.toString());
+      params.append("engagement_id", engagement.id.toString());
 
       // Add client-side filters to server request for proper pagination
       if (searchTerm.trim()) {
