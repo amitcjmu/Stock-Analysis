@@ -39,12 +39,16 @@ class DataCleansingBase:
                 cleaned_record["row_number"] = record["row_number"]
                 logger.debug(f"Preserved row_number: {record['row_number']} for record")
 
-            # Copy over the raw data fields
+            # Copy over the raw data fields with field name normalization
             raw_data = record.get("raw_data", {})
             if isinstance(raw_data, dict):
-                cleaned_record.update(raw_data)
+                # CRITICAL: Normalize field names from PascalCase to snake_case
+                normalized_raw_data = DataCleansingUtils.normalize_record_fields(
+                    raw_data
+                )
+                cleaned_record.update(normalized_raw_data)
 
-            # Basic cleansing operations
+            # Basic cleansing operations with field name normalization
             for key, value in record.items():
                 if key not in ["raw_import_record_id", "id", "raw_data", "row_number"]:
                     # Clean string values
@@ -53,7 +57,9 @@ class DataCleansingBase:
                         # Convert empty strings to None
                         if value == "":
                             value = None
-                    cleaned_record[key] = value
+                    # Normalize the field name to snake_case
+                    normalized_key = DataCleansingUtils.normalize_field_name(key)
+                    cleaned_record[normalized_key] = value
 
             # Add cleansing metadata
             cleaned_record["cleansing_method"] = "basic_fallback"

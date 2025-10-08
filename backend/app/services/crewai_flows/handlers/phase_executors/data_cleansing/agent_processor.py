@@ -103,13 +103,28 @@ class AgentProcessor:
                     f"✅ Agent processed {len(cleaned_data)} records successfully"
                 )
 
+                # CRITICAL: Normalize field names to snake_case
+                # This converts PascalCase (Asset_Name) to snake_case (asset_name)
+                from ..data_cleansing_utils import DataCleansingUtils
+
+                normalized_data = []
+                for record in cleaned_data:
+                    normalized_record = DataCleansingUtils.normalize_record_fields(
+                        record
+                    )
+                    normalized_data.append(normalized_record)
+
+                logger.info(
+                    f"🔄 Normalized {len(normalized_data)} records to snake_case field names"
+                )
+
                 # Log agent insights if available
                 if "agent_output" in result:
                     logger.info(f"🧠 Agent insights: {result['agent_output'][:200]}...")
 
                 return {
                     "status": "success",
-                    "cleaned_data": cleaned_data,
+                    "cleaned_data": normalized_data,
                     "agent_result": result,
                 }
             else:
