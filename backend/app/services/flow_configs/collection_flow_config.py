@@ -20,18 +20,8 @@ from .collection_phases import (
     get_synthesis_phase,
 )
 
-# Conditional import for UnifiedCollectionFlow with graceful fallback
-COLLECTION_FLOW_AVAILABLE = False
-UnifiedCollectionFlow = None
-
-try:
-    from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
-
-    COLLECTION_FLOW_AVAILABLE = True
-except ImportError:
-    # Graceful fallback when CrewAI is not available
-    COLLECTION_FLOW_AVAILABLE = False
-    UnifiedCollectionFlow = None
+# Per ADR-025: Use child_flow_service pattern (no crew_class)
+from app.services.child_flow_services import CollectionChildFlowService
 
 
 def get_collection_flow_config() -> FlowTypeConfig:
@@ -87,9 +77,7 @@ def get_collection_flow_config() -> FlowTypeConfig:
             manual_collection_phase,
             synthesis_phase,
         ],
-        crew_class=(
-            UnifiedCollectionFlow if COLLECTION_FLOW_AVAILABLE else None
-        ),  # Conditional crew class registration
+        child_flow_service=CollectionChildFlowService,  # Per ADR-025: Single execution path
         capabilities=capabilities,
         default_configuration={
             "automation_tier": "tier_2",  # Default to Tier 2
@@ -159,7 +147,6 @@ def get_collection_flow_config() -> FlowTypeConfig:
                 "sixr_optimization": True,
                 "ai_powered_orchestration": True,
             },
-            "collection_flow_available": COLLECTION_FLOW_AVAILABLE,
         },
         tags=[
             "collection",

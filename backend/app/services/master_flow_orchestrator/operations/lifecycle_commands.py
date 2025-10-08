@@ -298,7 +298,7 @@ class FlowLifecycleCommands:
     async def _restore_and_resume_flow(
         self, master_flow, resume_context
     ) -> Dict[str, Any]:
-        """Restore flow state and initiate resume using registered crew_class"""
+        """Restore flow state and initiate resume using registered child_flow_service"""
         try:
             pause_state = master_flow.flow_persistence_data.get("pause_state")
             if pause_state:
@@ -306,77 +306,32 @@ class FlowLifecycleCommands:
 
             flow_config = self.flow_registry.get_flow_config(master_flow.flow_type)
 
-            if flow_config.crew_class:
-                from app.services.crewai_flow_service import CrewAIFlowService
+            # Single path - check child_flow_service ONLY (Per ADR-025)
+            if flow_config.child_flow_service:
+                logger.info(f"Executing {master_flow.flow_type} via child_flow_service")
 
-                crewai_service = CrewAIFlowService()
+                child_service = flow_config.child_flow_service(self.db, self.context)
+                current_phase = master_flow.get_current_phase() or "initialization"
 
-                flow_instance = flow_config.crew_class(
-                    crewai_service,
-                    context=self.context,
-                    flow_id=master_flow.flow_id,
-                    initial_state=master_flow.flow_persistence_data,
-                    configuration=master_flow.flow_configuration,
-                    db_session=self.db,
+                result = await child_service.execute_phase(
+                    flow_id=str(master_flow.flow_id),
+                    phase_name=current_phase,
+                    phase_input=resume_context or {},
                 )
 
-                force_rerun = resume_context and resume_context.get(
-                    "force_rerun", False
-                )
-                rerun_phase = resume_context and resume_context.get("rerun_phase")
-
-                if force_rerun and rerun_phase:
-                    from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
-                        PhaseController,
-                        FlowPhase,
-                    )
-
-                    phase_controller = PhaseController(flow_instance)
-                    phase_map = {
-                        "field_mapping": FlowPhase.FIELD_MAPPING_SUGGESTIONS,
-                        "field_mapping_suggestions": FlowPhase.FIELD_MAPPING_SUGGESTIONS,
-                        "field_mapping_approval": FlowPhase.FIELD_MAPPING_APPROVAL,
-                        "data_cleansing": FlowPhase.DATA_CLEANSING,
-                        "asset_inventory": FlowPhase.ASSET_INVENTORY,
-                    }
-                    target_phase = phase_map.get(rerun_phase)
-                    if target_phase:
-                        result = await phase_controller.force_rerun_phase(
-                            phase=target_phase, use_existing_data=True
-                        )
-                        return {
-                            "status": "phase_rerun_completed",
-                            "message": f"Successfully re-ran phase {rerun_phase}",
-                            "phase": rerun_phase,
-                            "phase_result": result.data,
-                            "requires_user_input": result.requires_user_input,
-                        }
-                    return {
-                        "status": "error",
-                        "message": f"Unknown phase for re-run: {rerun_phase}",
-                    }
-
-                if hasattr(flow_instance, "resume_from_state"):
-                    return await flow_instance.resume_from_state(resume_context or {})
-                elif hasattr(flow_instance, "resume_flow"):
-                    return await flow_instance.resume_flow(resume_context or {})
-                else:
-                    return {
-                        "status": "resumed",
-                        "message": "Flow marked as running, ready for phase execution",
-                        "current_phase": master_flow.get_current_phase()
-                        or "initialization",
-                    }
-            else:
-                logger.warning(
-                    f"No crew_class registered for flow type '{master_flow.flow_type}'"
-                )
                 return {
                     "status": "resumed",
-                    "message": f"Flow type '{master_flow.flow_type}' resumed (no crew_class registered)",
-                    "current_phase": master_flow.get_current_phase()
-                    or "initialization",
+                    "message": "Flow resumed via child_flow_service",
+                    "current_phase": current_phase,
+                    "execution_result": result,
                 }
+            else:
+                logger.error(
+                    f"No child_flow_service for flow type '{master_flow.flow_type}'"
+                )
+                raise ValueError(
+                    f"Flow type '{master_flow.flow_type}' has no execution handler"
+                )
 
         except Exception as e:
             logger.error(

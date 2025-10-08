@@ -174,7 +174,8 @@ class TestAnalyzeGapsEndpoint:
 
         # Mock resolve_collection_flow
         with patch(
-            "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.resolve_collection_flow"
+            "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+            ".gap_analysis_handlers.resolve_collection_flow"
         ) as mock_resolve:
             mock_flow = MagicMock()
             mock_flow.id = uuid4()
@@ -182,7 +183,8 @@ class TestAnalyzeGapsEndpoint:
 
             # Mock Redis manager
             with patch(
-                "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.get_redis_manager"
+                "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                ".gap_analysis_handlers.get_redis_manager"
             ) as mock_redis:
                 mock_redis_manager = MagicMock()
                 mock_redis_manager.is_available.return_value = True
@@ -190,13 +192,15 @@ class TestAnalyzeGapsEndpoint:
 
                 # Mock get_job_state (no existing job)
                 with patch(
-                    "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.get_job_state"
+                    "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                    ".gap_analysis_handlers.get_job_state"
                 ) as mock_get_state:
                     mock_get_state.return_value = None
 
                     # Mock create_job_state
                     with patch(
-                        "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.create_job_state"
+                        "app.api.v1.endpoints.collection_gap_analysis"
+                        ".analysis_endpoints.gap_analysis_handlers.create_job_state"
                     ) as mock_create:
                         mock_create.return_value = None
 
@@ -230,14 +234,16 @@ class TestAnalyzeGapsEndpoint:
         background_tasks = BackgroundTasks()
 
         with patch(
-            "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.resolve_collection_flow"
+            "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+            ".gap_analysis_handlers.resolve_collection_flow"
         ) as mock_resolve:
             mock_flow = MagicMock()
             mock_flow.id = uuid4()
             mock_resolve.return_value = mock_flow
 
             with patch(
-                "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.get_redis_manager"
+                "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                ".gap_analysis_handlers.get_redis_manager"
             ) as mock_redis:
                 mock_redis_manager = MagicMock()
                 mock_redis_manager.is_available.return_value = True
@@ -245,7 +251,8 @@ class TestAnalyzeGapsEndpoint:
 
                 # Mock existing running job
                 with patch(
-                    "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.get_job_state"
+                    "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                    ".gap_analysis_handlers.get_job_state"
                 ) as mock_get_state:
                     mock_get_state.return_value = {
                         "job_id": "existing_job",
@@ -277,14 +284,16 @@ class TestAnalyzeGapsEndpoint:
         background_tasks = BackgroundTasks()
 
         with patch(
-            "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.resolve_collection_flow"
+            "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+            ".gap_analysis_handlers.resolve_collection_flow"
         ) as mock_resolve:
             mock_flow = MagicMock()
             mock_flow.id = uuid4()
             mock_resolve.return_value = mock_flow
 
             with patch(
-                "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.get_redis_manager"
+                "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                ".gap_analysis_handlers.get_redis_manager"
             ) as mock_redis:
                 mock_redis_manager = MagicMock()
                 mock_redis_manager.is_available.return_value = True
@@ -292,7 +301,8 @@ class TestAnalyzeGapsEndpoint:
 
                 # Mock recently completed job (within 10s)
                 with patch(
-                    "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers.get_job_state"
+                    "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                    ".gap_analysis_handlers.get_job_state"
                 ) as mock_get_state:
                     mock_get_state.return_value = {
                         "job_id": "recent_job",

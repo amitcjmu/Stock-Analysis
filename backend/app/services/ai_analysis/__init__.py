@@ -5,7 +5,7 @@ Team B2 Implementation - Agent Team B2
 This module provides comprehensive AI-powered analysis capabilities for the Adaptive Data Collection System:
 
 Completed Services:
-- B2.1: Gap analysis AI agents using CrewAI framework (GapAnalysisAgent)
+- B2.1: Gap analysis AI agents - see gap_analysis service (GapAnalysisService)
 - B2.2: Adaptive questionnaire generation service (AdaptiveQuestionnaireGenerator)
 - B2.3: Confidence scoring algorithms (ConfidenceScorer)
 - B2.4: Business context analysis for questionnaire targeting (BusinessContextAnalyzer)

@@ -214,6 +214,19 @@ async def continue_flow(
                 )
             )
 
+            # CRITICAL FIX: Update collection flow status to RUNNING after successful MFO resume
+            # This prevents the flow from remaining in "incomplete" status and causing polling loops
+            collection_flow.status = CollectionFlowStatus.RUNNING
+            collection_flow.updated_at = datetime.now(timezone.utc)
+            await db.commit()
+
+            logger.info(
+                safe_log_format(
+                    "Collection flow {flow_id} status updated to RUNNING after MFO resume",
+                    flow_id=flow_id,
+                )
+            )
+
         except Exception as mfo_error:
             logger.error(
                 safe_log_format(
