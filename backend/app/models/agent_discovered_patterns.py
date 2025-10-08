@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     DECIMAL,
     Boolean,
@@ -21,7 +22,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import text
 
 from app.core.database import Base
@@ -94,11 +95,11 @@ class AgentDiscoveredPatterns(Base):
         comment="Effectiveness score based on usage and feedback (0-1)",
     )
 
-    # Vector search capabilities
+    # Vector search capabilities (thenlper/gte-large model - 1024 dimensions)
     embedding = Column(
-        ARRAY(DECIMAL, dimensions=1536),
+        Vector(1024),
         nullable=True,
-        comment="Vector embedding for similarity search (OpenAI dimensions)",
+        comment="Vector embedding for similarity search (thenlper/gte-large 1024-dim)",
     )
     insight_type = Column(
         String(50),
@@ -298,10 +299,10 @@ class AgentDiscoveredPatterns(Base):
 
     def set_embedding(self, embedding_vector: List[float]):
         """Set the vector embedding for similarity search"""
-        if len(embedding_vector) != 1536:
+        if len(embedding_vector) != 1024:
             raise ValueError(
-                "Embedding vector must be exactly 1536 dimensions "
-                "for OpenAI compatibility"
+                "Embedding vector must be exactly 1024 dimensions "
+                "for thenlper/gte-large model compatibility"
             )
         self.embedding = embedding_vector
 
@@ -339,7 +340,7 @@ class AgentDiscoveredPatterns(Base):
 
         Args:
             session: SQLAlchemy session
-            query_embedding: Vector to search against (1536 dimensions)
+            query_embedding: Vector to search against (1024 dimensions for thenlper/gte-large)
             client_account_id: Client account for tenant isolation
             insight_type: Optional filter by insight type
             limit: Maximum number of results
@@ -348,8 +349,10 @@ class AgentDiscoveredPatterns(Base):
         Returns:
             List of similar patterns ordered by similarity score
         """
-        if len(query_embedding) != 1536:
-            raise ValueError("Query embedding must be exactly 1536 dimensions")
+        if len(query_embedding) != 1024:
+            raise ValueError(
+                "Query embedding must be exactly 1024 dimensions for thenlper/gte-large model"
+            )
 
         # Build base query with vector similarity
         query = session.query(cls).filter(
@@ -384,12 +387,12 @@ class AgentDiscoveredPatterns(Base):
         Calculate cosine similarity between this pattern's embedding and another
 
         Args:
-            other_embedding: Vector to compare against
+            other_embedding: Vector to compare against (1024 dimensions for thenlper/gte-large)
 
         Returns:
             Cosine similarity score (0-1, where 1 is identical)
         """
-        if not self.embedding or len(other_embedding) != 1536:
+        if not self.embedding or len(other_embedding) != 1024:
             return 0.0
 
         # Simple dot product implementation for similarity

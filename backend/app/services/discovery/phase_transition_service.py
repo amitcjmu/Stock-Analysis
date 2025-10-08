@@ -15,6 +15,7 @@ from app.repositories.discovery_flow_repository.commands.flow_phase_management i
     FlowPhaseManagementCommands,
 )
 from app.services.discovery.phase_persistence_helpers import advance_phase
+from app.utils.flow_constants.thresholds import FIELD_MAPPING_APPROVAL_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -73,13 +74,27 @@ class DiscoveryPhaseTransitionService:
                 (approved_count / total_count * 100) if total_count > 0 else 0
             )
 
-            # Require at least 80% approval to proceed
-            if approval_percentage < 80:
+            # Log the threshold being used for transparency
+            logger.debug(
+                f"Using field mapping approval threshold: {FIELD_MAPPING_APPROVAL_THRESHOLD}% "
+                f"(configurable via FIELD_MAPPING_APPROVAL_THRESHOLD env var)"
+            )
+
+            # Check if approval percentage meets the configurable threshold
+            if approval_percentage < FIELD_MAPPING_APPROVAL_THRESHOLD:
                 logger.info(
-                    f"Only {approval_percentage:.1f}% mappings approved for flow {flow_id}, "
-                    f"need at least 80% to transition"
+                    f"Approval threshold not met for flow {flow_id}: "
+                    f"{approval_percentage:.1f}% approved (need {FIELD_MAPPING_APPROVAL_THRESHOLD}%) "
+                    f"- {approved_count}/{total_count} mappings approved"
                 )
                 return None
+
+            # Log successful threshold achievement
+            logger.info(
+                f"Approval threshold met for flow {flow_id}: "
+                f"{approval_percentage:.1f}% approved (threshold: {FIELD_MAPPING_APPROVAL_THRESHOLD}%) "
+                f"- {approved_count}/{total_count} mappings approved"
+            )
 
             # Create phase management with proper context from the flow
             phase_mgmt = FlowPhaseManagementCommands(
