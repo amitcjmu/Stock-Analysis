@@ -89,9 +89,23 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             if not db_session:
                 raise ValueError("Database session not available in flow context")
 
-            # Retrieve raw import records for this flow
+            # Retrieve raw import records using data_import_id (not master_flow_id)
+            # CC: Raw records are linked by data_import_id, not master_flow_id
+            data_import_id = flow_context.get("data_import_id")
+            if not data_import_id:
+                logger.error(
+                    f"❌ data_import_id not provided in flow_context for flow {master_flow_id}"
+                )
+                return {
+                    "status": "failed",
+                    "phase": "asset_inventory",
+                    "error": "data_import_id not found in flow context",
+                    "message": "Cannot retrieve raw records without data_import_id",
+                    "assets_created": 0,
+                }
+
             raw_records = await self._get_raw_records(
-                db_session, master_flow_id, client_account_id, engagement_id
+                db_session, data_import_id, client_account_id, engagement_id
             )
 
             if not raw_records:
@@ -119,11 +133,17 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Initialize AssetService
             asset_service = AssetService(db_session, request_context)
 
+            # Retrieve approved field mappings for applying transformations
+            field_mappings = await self._get_field_mappings(
+                db_session, data_import_id, client_account_id
+            )
+            logger.info(f"📋 Retrieved {len(field_mappings)} approved field mappings")
+
             # Transform raw records to asset data
             assets_data = []
             for record in raw_records:
                 asset_data = self._transform_raw_record_to_asset(
-                    record, master_flow_id, discovery_flow_id
+                    record, master_flow_id, discovery_flow_id, field_mappings
                 )
                 if asset_data:
                     assets_data.append(asset_data)
@@ -142,52 +162,86 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     "execution_time": "0.001s",
                 }
 
-            # Create assets via service with atomic transaction for data integrity
+            # Create assets via service (transaction managed by caller)
+            # CC: Don't start a new transaction - db_session already has an active transaction
             created_assets = []
+            duplicate_assets = []
             failed_count = 0
 
-            # Use atomic transaction to ensure data consistency
-            async with db_session.begin():
-                for asset_data in assets_data:
-                    try:
-                        asset = await asset_service.create_asset(
-                            asset_data, flow_id=master_flow_id
-                        )
-                        if asset:
+            for asset_data in assets_data:
+                try:
+                    # Check if asset exists before creating
+                    asset_name = asset_data.get("name") or asset_data.get(
+                        "asset_name", "unnamed"
+                    )
+                    existing_asset = await asset_service._find_existing_asset(
+                        name=asset_name,
+                        client_id=str(client_account_id),
+                        engagement_id=str(engagement_id),
+                    )
+
+                    asset = await asset_service.create_asset(
+                        asset_data, flow_id=master_flow_id
+                    )
+                    if asset:
+                        if existing_asset and existing_asset.id == asset.id:
+                            # Asset was a duplicate - not newly created
+                            duplicate_assets.append(asset)
+                            logger.debug(f"🔄 Duplicate asset skipped: {asset.name}")
+                        else:
+                            # Asset was newly created
                             created_assets.append(asset)
                             logger.debug(f"✅ Created asset: {asset.name}")
-                        else:
-                            failed_count += 1
-                            logger.warning(
-                                f"⚠️ Asset service returned None for: {asset_data.get('name', 'unnamed')}"
-                            )
-                    except Exception as e:
+                    else:
                         failed_count += 1
-                        logger.error(
-                            f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
+                        logger.warning(
+                            f"⚠️ Asset service returned None for: {asset_name}"
                         )
-                        # Continue processing other assets in case of individual failures
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(
+                        f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
+                    )
+                    # Continue processing other assets in case of individual failures
 
-                # Flush to make asset IDs available for foreign key relationships
-                await db_session.flush()
+            # Flush to make asset IDs available for foreign key relationships
+            await db_session.flush()
 
-                # Update raw_import_records as processed within the same transaction
-                await self._mark_records_processed(
-                    db_session, raw_records, created_assets
-                )
+            # Update raw_import_records as processed within the same transaction
+            # Include both created and duplicate assets for proper tracking
+            all_assets = created_assets + duplicate_assets
+            await self._mark_records_processed(db_session, raw_records, all_assets)
 
-                # Transaction will be committed automatically when exiting the context
+            # Transaction will be committed by caller
 
             total_created = len(created_assets)
+            total_duplicates = len(duplicate_assets)
             logger.info(
-                f"🎉 Asset inventory phase completed: {total_created} assets created, {failed_count} failed"
+                f"🎉 Asset inventory phase completed: {total_created} new assets, "
+                f"{total_duplicates} duplicates, {failed_count} failed"
             )
+
+            # Build appropriate message based on results
+            if total_created > 0 and total_duplicates > 0:
+                message = (
+                    f"Created {total_created} new assets. {total_duplicates} assets "
+                    f"already existed and were skipped."
+                )
+            elif total_created > 0:
+                message = (
+                    f"Successfully created {total_created} new assets from raw data"
+                )
+            elif total_duplicates > 0:
+                message = f"All {total_duplicates} assets already exist in inventory. No new assets were created."
+            else:
+                message = "No assets were created or found"
 
             return {
                 "status": "completed",
                 "phase": "asset_inventory",
-                "message": f"Successfully created {total_created} assets from raw data",
+                "message": message,
                 "assets_created": total_created,
+                "assets_duplicates": total_duplicates,
                 "assets_failed": failed_count,
                 "execution_time": "variable",  # Actual execution time
             }
@@ -205,14 +259,18 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     async def _get_raw_records(
         self,
         db: AsyncSession,
-        master_flow_id: str,
+        data_import_id: str,
         client_account_id: str,
         engagement_id: str,
     ) -> List[RawImportRecord]:
-        """Get raw import records for the flow with tenant scoping."""
+        """Get raw import records by data_import_id with tenant scoping.
+
+        CC: Raw records are linked by data_import_id, NOT master_flow_id.
+        This is the correct field to query as raw records are uploaded via data imports.
+        """
         try:
             stmt = select(RawImportRecord).where(
-                RawImportRecord.master_flow_id == UUID(master_flow_id),
+                RawImportRecord.data_import_id == UUID(data_import_id),
                 RawImportRecord.client_account_id == UUID(client_account_id),
                 RawImportRecord.engagement_id == UUID(engagement_id),
             )
@@ -220,7 +278,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             records = result.scalars().all()
 
             logger.info(
-                f"📊 Retrieved {len(records)} raw import records for flow {master_flow_id}"
+                f"📊 Retrieved {len(records)} raw import records for data_import_id {data_import_id}"
             )
             return list(records)
 
@@ -228,13 +286,60 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             logger.error(f"❌ Failed to retrieve raw import records: {e}")
             raise
 
+    async def _get_field_mappings(
+        self,
+        db: AsyncSession,
+        data_import_id: str,
+        client_account_id: str,
+    ) -> Dict[str, str]:
+        """Get approved field mappings for the data import.
+
+        Returns:
+            Dictionary mapping source_field to target_field for approved mappings
+        """
+        try:
+            from app.models.data_import.mapping import ImportFieldMapping
+
+            stmt = select(ImportFieldMapping).where(
+                ImportFieldMapping.data_import_id == UUID(data_import_id),
+                ImportFieldMapping.client_account_id == UUID(client_account_id),
+                ImportFieldMapping.status == "approved",
+            )
+            result = await db.execute(stmt)
+            mappings = result.scalars().all()
+
+            # Build lookup dictionary: source_field -> target_field
+            mapping_dict = {
+                mapping.source_field: mapping.target_field for mapping in mappings
+            }
+
+            logger.debug(
+                f"📋 Retrieved {len(mapping_dict)} approved field mappings: {mapping_dict}"
+            )
+            return mapping_dict
+
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to retrieve field mappings: {e}")
+            return {}  # Return empty dict to allow asset creation to proceed
+
     def _transform_raw_record_to_asset(
         self,
         record: RawImportRecord,
         master_flow_id: str,
         discovery_flow_id: str = None,
+        field_mappings: Dict[str, str] = None,
     ) -> Dict[str, Any]:
-        """Transform a raw import record to asset data format."""
+        """Transform a raw import record to asset data format.
+
+        Args:
+            record: Raw import record to transform
+            master_flow_id: Master flow identifier
+            discovery_flow_id: Discovery flow identifier
+            field_mappings: Dict mapping source_field to target_field for transformations
+
+        Returns:
+            Asset data dictionary ready for AssetService.create_asset()
+        """
         try:
             # CC: CRITICAL FIX - Use cleansed_data instead of raw_data to leverage data cleansing phase
             # This ensures assets are created from processed, validated data rather than raw imports
@@ -285,6 +390,14 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 "technical_owner": asset_data_source.get("technical_owner"),
                 "department": asset_data_source.get("department"),
                 "criticality": asset_data_source.get("criticality", "Medium"),
+                # Apply field mapping for business_criticality if approved mapping exists
+                "business_criticality": self._apply_field_mapping(
+                    asset_data_source,
+                    "criticality",
+                    "business_criticality",
+                    field_mappings or {},
+                    default="Medium",
+                ),
                 # Application information
                 "application_name": asset_data_source.get("application_name"),
                 "technology_stack": asset_data_source.get("technology_stack"),
@@ -314,6 +427,38 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         except Exception as e:
             logger.error(f"❌ Failed to transform raw record {record.row_number}: {e}")
             return None
+
+    def _apply_field_mapping(
+        self,
+        asset_data_source: Dict[str, Any],
+        source_field: str,
+        target_field: str,
+        field_mappings: Dict[str, str],
+        default: Any = None,
+    ) -> Any:
+        """Apply field mapping transformation if approved mapping exists.
+
+        Args:
+            asset_data_source: Source data dictionary
+            source_field: Name of the source field to map from
+            target_field: Name of the target field to map to
+            field_mappings: Dict of approved mappings (source -> target)
+            default: Default value if no mapping found
+
+        Returns:
+            Transformed value or default
+        """
+        # Check if there's an approved mapping for this source field
+        if field_mappings.get(source_field) == target_field:
+            # Mapping exists and matches - use the source field value
+            value = asset_data_source.get(source_field, default)
+            logger.debug(
+                f"📋 Applied field mapping: {source_field} → {target_field} = {value}"
+            )
+            return value
+        else:
+            # No mapping - return default
+            return default
 
     async def _mark_records_processed(
         self, db: AsyncSession, raw_records: List[RawImportRecord], created_assets: List

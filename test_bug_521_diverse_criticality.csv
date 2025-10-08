@@ -1,0 +1,6 @@
+app_id,application_name,version,criticality,environment
+APP001,Customer Portal,2.5.0,High,Production
+APP002,Payment Gateway,1.8.2,Critical,Production
+APP003,Admin Dashboard,3.1.0,Medium,Production
+APP004,Mobile API,1.0.5,High,Production
+APP005,Analytics Engine,4.2.1,Low,Development

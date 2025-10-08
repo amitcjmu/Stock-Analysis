@@ -5,7 +5,7 @@ Contains field mapping, data cleansing, asset inventory, and generic phase execu
 
 from typing import Any, Dict
 
-from sqlalchemy import func, select, update
+from sqlalchemy import update
 
 from app.core.logging import get_logger
 
@@ -146,147 +146,85 @@ class PhaseExecutorsMixin:
     async def _execute_discovery_asset_inventory(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute asset inventory phase using persistent agent"""
-        logger.info("📦 Executing discovery asset inventory using persistent agent")
-
-        data_import_id = phase_input.get("data_import_id")
-        if not data_import_id:
-            raise ValueError("No data_import_id provided")
-
-        # CORRECT IMPORTS
-        from app.models.data_import.core import RawImportRecord  # CORRECT PATH
-
-        # Query for cleansed data WITH TENANT SCOPING using self.db_session
-        result = await self.db_session.execute(  # USE db_session
-            select(RawImportRecord).where(
-                RawImportRecord.data_import_id == data_import_id,
-                RawImportRecord.cleansed_data.isnot(None),
-                RawImportRecord.client_account_id
-                == self.context.client_account_id,  # TENANT
-                RawImportRecord.engagement_id == self.context.engagement_id,  # TENANT
-            )
-        )
-        records = result.scalars().all()
-
-        cleansed_count = len(records)
-
-        # Count raw records for comparison
-        raw_result = await self.db_session.execute(
-            select(func.count(RawImportRecord.id)).where(
-                RawImportRecord.data_import_id == data_import_id,
-                RawImportRecord.client_account_id == self.context.client_account_id,
-                RawImportRecord.engagement_id == self.context.engagement_id,
-            )
-        )
-        raw_count = raw_result.scalar()
-
+        """Execute asset inventory phase using NEW AssetInventoryExecutor with direct execution (no crews)"""
         logger.info(
-            f"📊 Found {cleansed_count} cleansed records, {raw_count} total records"
+            "📦 Executing discovery asset inventory using AssetInventoryExecutor (direct execution)"
         )
 
-        # REQUIRE cleansed data - no raw fallbacks allowed
-        if cleansed_count == 0:
-            return {
-                "status": "error",
-                "error_code": "CLEANSING_REQUIRED",  # Unified error code
-                "message": "No cleansed data available for asset inventory. "
-                "Data cleansing phase must be completed first.",
-                "details": {
-                    "cleansed_count": 0,
-                    "raw_count": raw_count,
-                    "data_import_id": str(data_import_id),
-                },
-            }
+        # CC: FIX for issues #520/#521/#522 - Use NEW AssetInventoryExecutor.execute_asset_creation()
+        # AssetInventoryExecutor uses DIRECT EXECUTION via AssetService, NOT crews
+        # It applies field mappings and has intelligent classification logic
 
-        # Extract cleansed data only
-        cleansed_data = [r.cleansed_data for r in records]
-
-        # Get field mappings
-        field_mappings = await self._get_approved_field_mappings(phase_input)
-        logger.info(f"📋 Retrieved {len(field_mappings)} approved field mappings")
-
-        # Get flow IDs
-        master_flow_id = phase_input.get("master_flow_id") or phase_input.get("flow_id")
-        discovery_flow_id = await self._get_discovery_flow_id(master_flow_id)
-
-        # Normalize using cleansed data
-        normalized_assets = await self._normalize_assets_for_creation(
-            cleansed_data,  # USE CLEANSED DATA
-            field_mappings,
-            master_flow_id,
-            discovery_flow_id,
+        from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor import (
+            AssetInventoryExecutor,
         )
+        from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
-        logger.info(f"✅ Normalized {len(normalized_assets)}/{cleansed_count} records")
+        # Create minimal state object for executor initialization (required by BasePhaseExecutor)
+        state = UnifiedDiscoveryFlowState()
+        state.flow_id = phase_input.get("flow_id") or phase_input.get("master_flow_id")
+        state.client_account_id = self.context.client_account_id
+        state.engagement_id = self.context.engagement_id
 
-        # Get persistent agent for asset creation (use same pattern as cleansing)
-        # Build context from self.context (ExecutionEngineDiscoveryCrews has it)
-        request_context = self.context  # Already a RequestContext
+        # Create executor instance (state not used by execute_asset_creation but required by __init__)
+        executor = AssetInventoryExecutor(state, crew_manager=None, flow_bridge=None)
 
-        from app.services.persistent_agents.tenant_scoped_agent_pool import (
-            TenantScopedAgentPool,
-        )
+        # Build flow_context for AssetInventoryExecutor.execute_asset_creation()
+        # CC: Convert data_import_id UUID to string (Pydantic validation requirement)
+        data_import_id = phase_input.get("data_import_id")
+        flow_context = {
+            "flow_id": phase_input.get("flow_id"),
+            "master_flow_id": phase_input.get("master_flow_id")
+            or phase_input.get("flow_id"),
+            "discovery_flow_id": phase_input.get("flow_id"),
+            "data_import_id": str(data_import_id) if data_import_id else None,
+            "client_account_id": self.context.client_account_id,
+            "engagement_id": self.context.engagement_id,
+            "user_id": self.context.user_id,
+            "db_session": self.db_session,
+        }
 
-        inventory_agent = await TenantScopedAgentPool.get_agent(
-            context=request_context,
-            agent_type="asset_inventory",
-            service_registry=self.service_registry,  # Pass existing service_registry
-        )
+        logger.info("✅ Initialized AssetInventoryExecutor for direct execution")
 
-        logger.info("🔧 Retrieved agent: asset_inventory")
-        logger.info("Agent tools: ['asset_creator','bulk_asset_creator']")
-
-        # Continue with asset creation using the inventory agent
+        # Execute asset inventory with direct execution (no crews needed)
         try:
-            # Use the persistent agent to create assets from normalized data
-            # Prepare task description for the agent
-            task_description = "Create database asset records from cleaned CMDB data"
+            # Call execute_asset_creation() on the executor instance
+            result = await executor.execute_asset_creation(flow_context)
 
-            # Execute asset creation with the persistent agent
-            # AssetCreationToolsExecutor already imported at module level
-            from ..asset_creation_tools import AssetCreationToolsExecutor
-
-            result = await AssetCreationToolsExecutor.execute_asset_creation_with_tools(
-                inventory_agent, {"raw_data": normalized_assets}, task_description
-            )
+            # CC: AssetInventoryExecutor returns standardized result format
+            logger.info(f"✅ AssetInventoryExecutor result: {result.get('status')}")
 
             # Extract actual counts from result
-            assets_created = 0
-            assets_failed = 0
+            assets_created = result.get("assets_created", 0)
+            assets_failed = result.get("assets_failed", 0)
 
-            if isinstance(result, dict):
-                assets_created = result.get("assets_created", 0)
-                # Calculate failed count: total normalized - created
-                total_normalized = len(normalized_assets)
-                assets_failed = max(0, total_normalized - assets_created)
-
-            # 5. Log asset creation results as specified
             logger.info(
                 f"🔨 Asset creation result: created={assets_created}, failed={assets_failed}"
             )
 
             # Maintain backward compatibility with asset_inventory field
-            asset_inventory = (
-                result.get(
-                    "asset_inventory",
-                    {"total_assets": assets_created, "classification_complete": True},
-                )
-                if isinstance(result, dict)
-                else {"total_assets": 0, "classification_complete": False}
+            asset_inventory = result.get(
+                "asset_inventory",
+                {"total_assets": assets_created, "classification_complete": True},
             )
 
             return {
                 "phase": "asset_inventory",
-                "status": "completed",
+                "status": result.get("status", "completed"),
                 "crew_results": result,
                 "asset_inventory": asset_inventory,  # Backward compatibility
                 "agent": "asset_inventory_agent",
-                "method": "persistent_agent_execution",
-                "assets_created": assets_created,  # Return actual counts
+                "method": "asset_inventory_executor_direct",  # Direct execution, no crews
+                "assets_created": assets_created,
                 "assets_failed": assets_failed,
             }
         except Exception as e:
-            logger.error(f"Asset inventory failed: {str(e)}")
+            logger.error(
+                f"❌ Asset inventory failed with AssetInventoryExecutor: {str(e)}"
+            )
+            import traceback
+
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "phase": "asset_inventory",
                 "status": "error",

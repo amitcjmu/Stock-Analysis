@@ -441,7 +441,7 @@ export const useAttributeMappingActions = (
       return true;
     }
 
-    // Check for minimum required fields: name and asset_type
+    // Check for minimum required fields: name is required, type is optional but recommended
     const hasNameField = approvedMappings.some(m => {
       const targetField = m.target_field?.toLowerCase() || '';
       return targetField.includes('name') || targetField.includes('asset_name');
@@ -452,15 +452,24 @@ export const useAttributeMappingActions = (
       return targetField.includes('type') || targetField.includes('asset_type');
     });
 
-    if (!hasNameField || !hasTypeField) {
-      console.log(`❌ Missing required fields: name=${hasNameField}, type=${hasTypeField}`);
-      console.log('   Required fields: at least one field containing "name" and one containing "type"');
+    // Only name field is strictly required for asset creation
+    if (!hasNameField) {
+      console.log(`❌ Missing required field: name field must be mapped`);
+      console.log('   Required: at least one field containing "name" or "asset_name"');
       return false;
     }
 
-    // Check for minimum approval percentage (at least 30% should be approved)
+    // Type field is optional but recommended - log warning if missing
+    if (!hasTypeField) {
+      console.log(`⚠️ Warning: No type field mapped - assets will have undefined type`);
+      console.log('   Recommended: map a field containing "type" or "asset_type" for better categorization');
+    }
+
+    // Check for minimum approval percentage
+    // IMPORTANT: This must match FIELD_MAPPING_APPROVAL_THRESHOLD in backend (default 60%)
+    // See: backend/app/utils/flow_constants/thresholds.py
     const approvalPercentage = (approvedMappings.length / fieldMappings.length) * 100;
-    const minimumPercentage = 30;
+    const minimumPercentage = 60; // Must match backend default
 
     if (approvalPercentage < minimumPercentage) {
       console.log(`❌ Only ${approvalPercentage.toFixed(1)}% approved, need at least ${minimumPercentage}%`);
@@ -468,7 +477,7 @@ export const useAttributeMappingActions = (
     }
 
     console.log(`✅ Can continue: ${approvedMappings.length}/${fieldMappings.length} fields approved (${approvalPercentage.toFixed(1)}%)`);
-    console.log(`   Required fields present: name=${hasNameField}, type=${hasTypeField}`);
+    console.log(`   Required field present: name=${hasNameField}${!hasTypeField ? ' (type field missing but optional)' : `, type=${hasTypeField}`}`);
 
     // Optional: If agent decision is available and supports our decision, log it
     if (agentDecision) {
