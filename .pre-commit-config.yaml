@@ -170,6 +170,16 @@ repos:
         stages: [pre-commit]
         types: [python]
 
+      # LLM Usage Tracking Check - Enforce multi_model_service usage (warning only)
+      - id: check-llm-calls
+        name: Check for direct LLM calls bypassing tracking (warning only)
+        entry: /opt/homebrew/bin/python3.11 backend/scripts/check_llm_calls.py
+        language: system
+        files: ^backend/app/.*\.py$
+        pass_filenames: true
+        stages: [pre-commit]
+        description: "Warn about direct LLM API calls - should use multi_model_service for cost tracking"
+
 # Exclude patterns
 exclude: |
   (?x)^(

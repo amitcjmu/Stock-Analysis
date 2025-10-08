@@ -2,6 +2,14 @@
 
 This document consolidates key learnings from troubleshooting and development sessions on the AI Force Migration Platform. Adhering to these principles will help future AI agents avoid common pitfalls, align with the existing architecture, and contribute effectively.
 
+## TL;DR - Critical Rules (Read First)
+*   **Master Flow Orchestrator (MFO) ONLY** - Never call legacy `/api/v1/discovery/*` endpoints
+*   **child_flow_service Required** - All flows use this pattern (NOT crew_class which is deprecated)
+*   **Tenant Scoping Mandatory** - Every query needs `client_account_id` + `engagement_id`
+*   **LLM Usage Tracking** - ALL calls via `multi_model_service.generate_response()` only
+*   **UUID PK vs flow_id** - Use `{table}.id` (PK) for FKs/data, `flow_id` only for MFO calls
+*   **JSON Serialization Safety** - Handle NaN/Infinity before JSON responses (Python → JS boundary)
+
 ## 1. Architecture & Design Patterns
 
 *   **Master Flow Orchestrator (MFO) is the Single Source of Truth:**
@@ -17,6 +25,17 @@ This document consolidates key learnings from troubleshooting and development se
     *   Business logic (e.g., approval thresholds) should be handled by **CrewAI agents**, not hardcoded in the backend or frontend.
 *   **Atomic Transactions for Critical Operations:** Any operation involving multiple state changes (e.g., creating a master flow and its corresponding child flow) **must** be wrapped in an atomic transaction to ensure data integrity. Use `db.flush()` to make objects available for foreign key relationships within the transaction before the final commit.
 *   **Background Task Separation:** Long-running operations, such as CrewAI agent executions, should be run in the background and separated from synchronous database transactions to prevent locking and timeouts.
+*   **Child Flow Service Pattern (ADR-025 - October 2025):**
+    *   The **child_flow_service pattern** is the REQUIRED execution mechanism for all flows (Discovery, Collection, Assessment).
+    *   **NEVER** use `crew_class` - this is deprecated and causes import failures. MFO executes via `child_flow_service` ONLY. Any remaining `crew_class` entries in configs are legacy and must not be used in new code.
+    *   Each flow type has a `{Flow}ChildFlowService` (e.g., `DiscoveryChildFlowService`, `CollectionChildFlowService`) that:
+        *   Routes phase execution to appropriate handlers (gap analysis, questionnaires, validation, etc.)
+        *   Uses persistent agents via `TenantScopedAgentPool` (never instantiates new crews)
+        *   Manages auto-progression logic between phases based on results
+        *   Maintains tenant scoping through `RequestContext` and `ContextAwareRepository`
+    *   **Pattern**: `flow_config.child_flow_service = CollectionChildFlowService` (NOT `crew_class`)
+    *   **MFO Integration**: Master Flow Orchestrator calls `child_service.execute_phase(flow_id, phase_name, phase_input)` for all flow operations
+    *   **Reference**: `backend/app/services/child_flow_services/`, ADR-025
 
 ## 2. Backend & Database
 
@@ -34,6 +53,27 @@ This document consolidates key learnings from troubleshooting and development se
 *   **UUID Handling:**
     *   When passing data to Pydantic models for serialization, explicitly convert `UUID` objects to strings.
     *   Use a consistent, recognizable pattern for demo/fallback UUIDs (e.g., `XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX`) to prevent accidental deletion of real data.
+*   **UUID Primary Key vs flow_id Distinction (ADR-025):**
+    *   **CRITICAL**: Many tables have BOTH `id` (UUID PK) and `flow_id` (UUID for MFO orchestration).
+    *   **Examples**:
+        *   `collection_flows.id` = UUID Primary Key → Use for ALL foreign keys, data persistence, background jobs
+        *   `collection_flows.flow_id` = UUID → Use ONLY for Master Flow Orchestrator API calls (`execute_phase`, `resume_flow`)
+        *   `discovery_flows.id` = UUID Primary Key → Use for data relationships (imports, mappings, gaps)
+        *   `discovery_flows.flow_id` = UUID → Use for MFO operations only
+    *   **Rule**: When referencing flow data (gaps, questionnaires, analysis, child records), use `{table}.id` (the PK), NOT `flow_id`.
+    *   **Verify Schema**: Always check `\d migration.{table_name}` in PostgreSQL before assuming ID types and relationships.
+*   **JSON Serialization Safety:**
+    *   **CRITICAL**: Python's `float('nan')` and `float('inf')` are NOT valid JSON values and will cause serialization errors at the Python → JavaScript boundary.
+    *   **Before returning API responses**: Check for and replace NaN/Infinity with `null` or appropriate sentinel values.
+    *   **Pattern**:
+        ```python
+        import math
+        def safe_serialize(value):
+            if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+                return None  # or 0, or custom sentinel
+            return value
+        ```
+    *   **Common Source**: AI model confidence scores, statistical calculations, division by zero in analytics.
 
 ## 3. Frontend & UI/UX
 
@@ -95,6 +135,27 @@ This document consolidates key learnings from troubleshooting and development se
     *   **Agent Learning:** Use `TenantMemoryManager.store_learning()` after agent tasks and `retrieve_similar_patterns()` before execution.
     *   **Common Mistakes:** Do NOT re-enable memory patches at startup, use `EmbedderConfig` for CrewAI memory, or propose "fixing" CrewAI memory.
     *   **References:** `/docs/adr/024-tenant-memory-manager-architecture.md`, `/docs/development/TENANT_MEMORY_STRATEGY.md`
+*   **LLM Usage Tracking (Mandatory - October 2025):**
+    *   **ALL LLM calls MUST use `multi_model_service.generate_response()`** for automatic tracking to `llm_usage_logs` table with cost calculation.
+    *   **NEVER use direct LLM calls** - they bypass cost tracking and budget visibility:
+        *   ❌ `litellm.completion()` - Use `multi_model_service` instead
+        *   ❌ `openai.chat.completions.create()` - Use `multi_model_service` instead
+        *   ❌ `LLM().call()` - Use `multi_model_service` instead
+    *   **Legacy Code**: If you find direct LLM calls in existing code, wrap with `llm_tracker.track_llm_call()` context manager or migrate to `multi_model_service` immediately.
+    *   **Automatic Tracking**: LiteLLM callback installed at app startup (`app/app_setup/lifecycle.py:116`) automatically tracks all CrewAI calls (Llama 4, etc.) without code changes.
+    *   **View Costs**: Navigate to `/finops/llm-costs` in frontend to see real-time usage by model (e.g., "Deepinfra: gemma-3-4b-it"), token consumption, and cost breakdown.
+    *   **Database Tables**: `llm_usage_logs` (individual calls), `llm_model_pricing` (costs per 1K tokens), `llm_usage_summary` (aggregated stats).
+    *   **Pattern**:
+        ```python
+        from app.services.multi_model_service import multi_model_service, TaskComplexity
+
+        response = await multi_model_service.generate_response(
+            prompt="Your prompt here",
+            task_type="chat",  # or "field_mapping", "analysis", etc.
+            complexity=TaskComplexity.SIMPLE  # or AGENTIC for complex tasks
+        )
+        ```
+    *   **Reference**: `app/services/multi_model_service.py:169-577`, `app/services/litellm_tracking_callback.py`
 
 ## 6. Security
 
@@ -143,3 +204,28 @@ This document consolidates key learnings from troubleshooting and development se
     *   The 7+ layer architecture is REQUIRED for enterprise multi-tenant systems - not over-engineering.
     *   Placeholder implementations provide critical fallback resilience - don't remove them.
     *   Feature flags are preferred over wholesale replacements.
+
+## 9. Data Loss Prevention (October 2025 Incident)
+
+*   **Multi-Layered Safety for Destructive Operations:**
+    *   Following Oct 7, 2025 data loss incident (37 assets, all discovery flows wiped), ALL destructive operations (cleanup scripts, bulk deletes, data migrations) MUST implement 5-layer protection:
+        1. **Environment Checks**: Block production/staging automatically (`if env in ["production", "staging"]: sys.exit(1)`), require explicit "yes" confirmation for non-local environments
+        2. **User Confirmation**: Require typing exact phrases ("DELETE MY DATA", "I understand the risks") - NO simple yes/no prompts
+        3. **Dry-Run Mode**: Default to showing counts only (`--dry-run` flag), require explicit flag for actual execution
+        4. **Automatic Backup**: Use `pg_dump` via `asyncio.create_subprocess_exec()` to create timestamped backup BEFORE any deletion
+        5. **Detailed Logging**: Show record counts before/after, log all operations with emojis (✅/⚠️) for visibility
+    *   **Naming Convention**: Dangerous scripts MUST use `.DANGEROUS_` prefix and `.disabled` extension (e.g., `.DANGEROUS_clean_all_demo_data.py.disabled`)
+    *   **Reference Implementation**: `backend/scripts/SAFE_cleanup_demo_data.py`
+    *   **Never Skip Backups**: Even in development - data recovery is expensive
+*   **Data Loss Investigation Methodology:**
+    *   **PostgreSQL Forensics**: Use `pg_stat_user_tables` to find deletion counts even after data is gone:
+        ```sql
+        SELECT relname, n_tup_del as deletes, n_live_tup as live_rows
+        FROM pg_stat_user_tables WHERE schemaname = 'migration'
+        ORDER BY n_tup_del DESC;
+        ```
+    *   **Log Analysis**: Check PostgreSQL logs for DELETE command timestamps: `docker logs migration_postgres 2>&1 | grep -i "delete from"`
+    *   **Git History**: Find when cleanup scripts were created: `git log --all --oneline -- backend/scripts/clean*.py`
+    *   **Automation Verification**: Check if script runs automatically in entrypoint.sh, docker-compose, or CI/CD workflows
+    *   **Recovery Options**: (1) Recent pg_dump backup, (2) Re-import from source CSV/Excel files, (3) PostgreSQL WAL point-in-time recovery, (4) Reconstruct from backend logs (last resort)
+    *   **Reference**: `docs/troubleshooting/DATA_LOSS_TRIAGE_REPORT.md`

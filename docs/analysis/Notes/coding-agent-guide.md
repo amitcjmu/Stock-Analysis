@@ -6,11 +6,22 @@
 1. ✅ [000-lessons.md](./000-lessons.md) - Core lessons & rationale
 2. ✅ **This guide** - Quick reference & implementation patterns
 3. ✅ [Architecture Summary](../../adr/) - Design decisions
+   - **ADR-024**: TenantMemoryManager (CrewAI memory DISABLED)
+   - **ADR-025**: Child Flow Service Pattern (Oct 2025)
+   - **ADR-012**: Flow Status Management Separation
 
 **This guide is ENFORCED by:**
 - CI/CD checks that scan for banned patterns
 - PR template requiring compliance checkboxes
 - Pre-commit hooks blocking violations
+
+## 🎯 TL;DR - Top 6 Critical Rules
+*   **MFO Only** - Never call `/api/v1/discovery/*` legacy endpoints
+*   **child_flow_service** - Required for all flows (crew_class is deprecated)
+*   **Tenant Scoping** - Every query needs `client_account_id` + `engagement_id`
+*   **LLM Tracking** - Use `multi_model_service` only (no direct LLM calls)
+*   **UUID PK vs flow_id** - Use `.id` (PK) for FKs, `flow_id` for MFO calls only
+*   **JSON Safety** - Handle NaN/Infinity before responses
 
 ## ⛔ BANNED PATTERNS - CI WILL REJECT THESE
 
@@ -23,6 +34,7 @@
 ❌ Mock analysis data in APIs         # Return structured errors
 ❌ camelCase in new API types         # snake_case ONLY
 ❌ Crew() instantiation per call      # Use TenantScopedAgentPool
+❌ litellm.completion\(|openai\.chat\.completions\.create\(  # Use multi_model_service
 ```
 
 ## 📋 DEFINITION OF DONE CHECKLISTS
@@ -93,30 +105,67 @@ cache_key = f"data:{client_id}:{engagement_id}:{key}"
 
 ## 🏆 GOLDEN PATH PLAYBOOKS
 
-### Add a New Phase Handler
+### Create Child Flow Service (ADR-025 Pattern)
 ```python
-# 1. Create handler in modular structure
-backend/app/services/flow_handlers/new_phase_handler.py:
+# 1. Create service following Discovery pattern
+# backend/app/services/child_flow_services/collection.py
 
-from app.services.persistent_agents import TenantScopedAgentPool
+from app.services.child_flow_services.base import BaseChildFlowService
+from app.repositories.collection_flow_repository import CollectionFlowRepository
 
-class NewPhaseHandler:
-    async def execute(self, flow_id: str, context: RequestContext):
-        # Get persistent agent (NOT new Crew!)
-        agent_pool = TenantScopedAgentPool(context.client_account_id)
-        agent = await agent_pool.get_agent('phase_agent')
-        
-        # Atomic transaction pattern
-        async with self.db.begin():
-            master_flow = await self.get_master_flow(flow_id)
-            await self.db.flush()  # Critical for FK!
-            
-            result = await agent.execute(master_flow)
-            child_flow.current_phase = 'next_phase'
-            await self.db.commit()
+class CollectionChildFlowService(BaseChildFlowService):
+    """Service for collection flow child operations (ADR-025)"""
 
-# 2. Register in router_registry.py
-# 3. Add to PHASE_SEQUENCES constant
+    def __init__(self, db: AsyncSession, context: RequestContext):
+        super().__init__(db, context)
+        # CRITICAL: Explicit repository instantiation with tenant scoping
+        self.repository = CollectionFlowRepository(
+            db=self.db,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
+        self.state_service = CollectionFlowStateService(db, context)
+
+    async def execute_phase(
+        self,
+        flow_id: str,  # Master flow_id from MFO
+        phase_name: str,
+        phase_input: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        # Get child flow by master_flow_id (NOT by flow_id directly)
+        child_flow = await self.repository.get_by_master_flow_id(UUID(flow_id))
+        if not child_flow:
+            raise ValueError(f"Child flow not found for master {flow_id}")
+
+        # Route to phase-specific handler
+        if phase_name == "gap_analysis":
+            gap_service = GapAnalysisService(
+                client_account_id=str(self.context.client_account_id),
+                engagement_id=str(self.context.engagement_id),
+                collection_flow_id=str(child_flow.id),  # ✅ UUID PK (NOT flow_id)
+            )
+            result = await gap_service.analyze_and_generate_questionnaire(
+                selected_asset_ids=phase_input.get("selected_asset_ids", []),
+                db=self.db
+            )
+            # Auto-progression logic
+            await self._handle_phase_transition(child_flow, result)
+            return result
+
+# 2. Register in __init__.py
+# backend/app/services/child_flow_services/__init__.py
+from .collection import CollectionChildFlowService
+
+# 3. Update flow config - NO crew_class!
+# backend/app/services/crewai_flows/flow_configs/collection_flow_config.py
+FlowConfig(
+    flow_type="collection",
+    child_flow_service=CollectionChildFlowService,  # ✅ NEW pattern
+    # crew_class removed entirely - NEVER use
+)
+
+# 4. MFO automatically calls child_flow_service
+# No changes needed to lifecycle_commands.py - single execution path
 ```
 
 ### Create Polling Endpoint (NO WebSockets!)
