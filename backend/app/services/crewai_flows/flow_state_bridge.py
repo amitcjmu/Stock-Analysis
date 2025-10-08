@@ -212,6 +212,16 @@ class FlowStateBridge:
                             phase_completion["tech_debt_assessment"] = True
                         state_data["phase_completion"] = phase_completion
 
+                        # Copy data_import_id if it exists (fixes issue #521/#522)
+                        # Without this, data cleansing can't find raw import records
+                        if discovery_flow.data_import_id:
+                            state_data["data_import_id"] = str(
+                                discovery_flow.data_import_id
+                            )
+                            logger.info(
+                                f"✅ Copied data_import_id from DiscoveryFlow: {discovery_flow.data_import_id}"
+                            )
+
                         logger.info(
                             f"✅ Merged state from DiscoveryFlow table - "
                             f"phase: {discovery_flow.current_phase}, "
