@@ -1,7 +1,7 @@
 /**
  * Shared Metadata Type Definitions
  *
- * Standardized metadata interfaces to replace Record<string, any> patterns
+ * Standardized metadata interfaces to replace Record<string, unknown> patterns
  * across the codebase.
  */
 

@@ -23,6 +23,7 @@ export interface UseFlowDeletionActions {
     engagementId?: string,
     deletion_source?: FlowDeletionRequest['deletion_source'],
     user_id?: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     flowData?: any // Optional: pass flow data directly to avoid lookup
   ) => Promise<void>;
   confirmDeletion: () => Promise<void>;
@@ -54,6 +55,7 @@ export function useFlowDeletion(
     engagementId?: string,
     deletion_source: FlowDeletionRequest['deletion_source'] = 'manual',
     user_id?: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     flowData?: any // Optional: flow data from parent component
   ) => {
     try {

@@ -146,6 +146,71 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
     .flatMap(section => section.fields)
     .find(field => field.id === 'selected_assets');
 
+  // Parse asset options - handle both string and object formats
+  // IMPORTANT: This useMemo must be declared before any conditional returns
+  const assetOptions = React.useMemo(() => {
+    if (!assetQuestion?.options) return [];
+
+    return assetQuestion.options.map((opt, index) => {
+      if (typeof opt === 'string') {
+        // String format: try to parse ID from "Name (ID: uuid)" format
+        const match = opt.match(/^(.+?)\s*\(ID:\s*([a-f0-9-]+)\)$/);
+        if (match) {
+          const [, name, id] = match;
+          return {
+            id: id.trim(),
+            name: name.trim(),
+            displayText: opt,
+            type: 'application'
+          };
+        }
+        // Fallback for strings without ID format
+        return {
+          id: `asset-${index}`,
+          name: opt,
+          displayText: opt,
+          type: 'unknown'
+        };
+      } else {
+        // Object format from backend with metadata
+        const assetId = opt.metadata?.asset_id || opt.value || `asset-${index}`;
+        const name = opt.label?.split(' - ')[0] || opt.label || opt.value || '';
+        return {
+          id: assetId,
+          name: name,
+          displayText: opt.label || opt.value || '',
+          type: opt.metadata?.type || 'application'
+        };
+      }
+    });
+  }, [assetQuestion]);
+
+  // Filter assets based on search
+  const filteredAssets = assetOptions.filter(asset =>
+    asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    asset.displayText.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Check if form is valid and get validation constraints
+  const isValid = selectedAssets.length > 0;
+  const minSelections = assetQuestion?.validation?.min_selections || 1;
+  const maxSelections = assetQuestion?.validation?.max_selections || 10;
+
+  // Update validation error based on selection count
+  React.useEffect(() => {
+    if (selectedAssets.length < minSelections && selectedAssets.length > 0) {
+      setValidationError(`Please select at least ${minSelections} asset${minSelections > 1 ? 's' : ''}`);
+    } else if (selectedAssets.length > maxSelections) {
+      setValidationError(`Please select no more than ${maxSelections} assets`);
+    } else if (selectedAssets.length === 0) {
+      // Don't show error initially when nothing is selected
+      setValidationError(null);
+    } else {
+      setValidationError(null);
+    }
+  }, [selectedAssets, minSelections, maxSelections]);
+
+  // Early return AFTER all hooks have been declared
   if (!assetQuestion || !assetQuestion.options) {
     return (
       <div className="space-y-4 m-4">
@@ -186,67 +251,6 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
       </div>
     );
   }
-
-  // Parse asset options - handle both string and object formats
-  const assetOptions = React.useMemo(() => {
-    return assetQuestion.options.map((opt, index) => {
-      if (typeof opt === 'string') {
-        // String format: try to parse ID from "Name (ID: uuid)" format
-        const match = opt.match(/^(.+?)\s*\(ID:\s*([a-f0-9-]+)\)$/);
-        if (match) {
-          const [, name, id] = match;
-          return {
-            id: id.trim(),
-            name: name.trim(),
-            displayText: opt,
-            type: 'application'
-          };
-        }
-        // Fallback for strings without ID format
-        return {
-          id: `asset-${index}`,
-          name: opt,
-          displayText: opt,
-          type: 'unknown'
-        };
-      } else {
-        // Object format from backend with metadata
-        const assetId = opt.metadata?.asset_id || opt.value || `asset-${index}`;
-        const name = opt.label?.split(' - ')[0] || opt.label || opt.value || '';
-        return {
-          id: assetId,
-          name: name,
-          displayText: opt.label || opt.value || '',
-          type: opt.metadata?.type || 'application'
-        };
-      }
-    });
-  }, [assetQuestion.options]);
-
-  // Filter assets based on search
-  const filteredAssets = assetOptions.filter(asset =>
-    asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    asset.displayText.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Check if form is valid
-  const isValid = selectedAssets.length > 0;
-  const minSelections = assetQuestion.validation?.min_selections || 1;
-  const maxSelections = assetQuestion.validation?.max_selections || 10;
-
-  // Update validation error based on selection count
-  React.useEffect(() => {
-    if (selectedAssets.length < minSelections && selectedAssets.length > 0) {
-      setValidationError(`Please select at least ${minSelections} asset${minSelections > 1 ? 's' : ''}`);
-    } else if (selectedAssets.length > maxSelections) {
-      setValidationError(`Please select no more than ${maxSelections} assets`);
-    } else if (selectedAssets.length === 0) {
-      // Don't show error initially when nothing is selected
-      setValidationError(null);
-    } else {
-      setValidationError(null);
-    }
-  }, [selectedAssets, minSelections, maxSelections]);
 
   // Show loading state while fetching assets
   if (isLoading) {

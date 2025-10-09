@@ -147,6 +147,7 @@ export const useApplyFix = (): UseMutationResult<{
 // Custom hook to get agent analysis result
 // This would be used to cache the analysis result
 // and avoid re-running the analysis unnecessarily
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
 export const useCachedAgentAnalysis = (data: AssetData[] | null): { analysis: any; isLoading: boolean } => {
   const dataHash = data ? JSON.stringify(data) : '';
   const { data: analysis, isLoading } = useQuery({

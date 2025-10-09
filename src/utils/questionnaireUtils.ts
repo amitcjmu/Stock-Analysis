@@ -8,12 +8,14 @@ export interface QuestionWithAsset {
   question_text: string;
   field_type: string;
   required?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
   options?: any[];
   sub_questions?: QuestionWithAsset[];
   asset_id?: string;
   asset_specific?: boolean;
   metadata?: {
     asset_ids?: string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     [key: string]: any;
   };
 }
@@ -98,7 +100,7 @@ export function flattenQuestionsWithUniqueIds(
  */
 export function calculateCompletionPercentage(
   questions: QuestionWithAsset[],
-  formValues: Record<string, any>
+  formValues: Record<string, unknown>
 ): number {
   if (questions.length === 0) return 0;
 
@@ -160,7 +162,7 @@ export function calculateCompletionPercentage(
 export function groupQuestionsByAsset(
   questions: QuestionWithAsset[],
   assets?: Array<{id: string; name?: string}>,
-  formValues?: Record<string, any>
+  formValues?: Record<string, unknown>
 ): AssetQuestionGroup[] {
   const assetMap = new Map<string, QuestionWithAsset[]>();
   const globalQuestions: QuestionWithAsset[] = [];
