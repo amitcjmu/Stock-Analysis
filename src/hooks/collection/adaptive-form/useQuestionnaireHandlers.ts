@@ -291,6 +291,8 @@ export function useQuestionnaireHandlers({
         variant: "destructive",
       });
     }
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.flowId, applicationId, toast]);
 
   return {
