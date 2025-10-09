@@ -76,9 +76,10 @@ const AdaptiveForms: React.FC = () => {
   // State for manage flows modal
   const [showManageFlowsModal, setShowManageFlowsModal] = useState(false);
 
-  // Show questionnaire generation modal when flow starts
+  // DISABLED: Questionnaire generation modal no longer needed (questionnaires generated faster from data gaps)
   const handleQuestionnaireGeneration = React.useCallback(() => {
-    setShowGenerationModal(true);
+    // No-op: Modal disabled to avoid unnecessary 30-second delay
+    console.log('📝 Questionnaire generation started (modal disabled)');
   }, []);
 
   // Handle questionnaire ready from modal
@@ -214,15 +215,15 @@ const AdaptiveForms: React.FC = () => {
   // Asset selector state for multi-asset questionnaires
   const [selectedAssetId, setSelectedAssetId] = React.useState<string | null>(null);
 
-  // Auto-show generation modal when completionStatus is "pending"
-  // This must be AFTER useAdaptiveFormFlow hook since it uses completionStatus
-  React.useEffect(() => {
-    if (completionStatus === "pending" && activeFlowId) {
-      setShowGenerationModal(true);
-    } else if (completionStatus === "ready" || completionStatus === "fallback") {
-      setShowGenerationModal(false);
-    }
-  }, [completionStatus, activeFlowId]);
+  // DISABLED: Auto-show generation modal (modal disabled to avoid unnecessary delays)
+  // Questionnaires are now generated faster from data gaps, no need for 30-second modal
+  // React.useEffect(() => {
+  //   if (completionStatus === "pending" && activeFlowId) {
+  //     setShowGenerationModal(true);
+  //   } else if (completionStatus === "ready" || completionStatus === "fallback") {
+  //     setShowGenerationModal(false);
+  //   }
+  // }, [completionStatus, activeFlowId]);
 
   // Group questions by asset and auto-select first asset
   // Pass formValues to calculate real-time completion percentage
