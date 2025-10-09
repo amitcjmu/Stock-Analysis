@@ -59,8 +59,8 @@ export function useQuestionnaireHandlers({
         },
       }));
     },
-    [],
-  ); // No dependencies needed as setState is stable
+    [setState],
+  );
 
   /**
    * Handle validation result changes - wrapped in useCallback for performance
@@ -70,8 +70,8 @@ export function useQuestionnaireHandlers({
     (newValidation: FormValidationResult): void => {
       setState((prev) => ({ ...prev, validation: newValidation }));
     },
-    [],
-  ); // No dependencies needed as setState is stable
+    [setState],
+  );
 
   /**
    * Save form progress - wrapped in useCallback to prevent unnecessary re-renders
@@ -158,7 +158,8 @@ export function useQuestionnaireHandlers({
     state.questionnaires,
     applicationId,
     toast,
-  ]); // Dependencies for useCallback
+    setState,
+  ]);
 
   /**
    * Reset the flow state
@@ -221,7 +222,7 @@ export function useQuestionnaireHandlers({
         isLoading: false
       }));
     }
-  }, [initializeFlow, toast]);
+  }, [initializeFlow, toast, setState]);
 
   /**
    * Force refresh questionnaires and flow state
@@ -283,7 +284,7 @@ export function useQuestionnaireHandlers({
         variant: "destructive",
       });
     }
-  }, [state.flowId, applicationId, toast]);
+  }, [state.flowId, applicationId, toast, setState]);
 
   return {
     handleFieldChange,

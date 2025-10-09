@@ -148,6 +148,16 @@ class AdminOperationsService:
                             "access_level": access_level,
                             "role_name": role_name,
                             "is_active": user.is_active,
+                            "default_client_id": (
+                                str(user.default_client_id)
+                                if user.default_client_id
+                                else None
+                            ),
+                            "default_engagement_id": (
+                                str(user.default_engagement_id)
+                                if user.default_engagement_id
+                                else None
+                            ),
                             "approved_at": (
                                 profile.created_at.isoformat()
                                 if profile.created_at

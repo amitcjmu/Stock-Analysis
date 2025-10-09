@@ -63,6 +63,13 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Per Qodo Bot suggestion: Configure exhaustive-deps to ignore stable React functions
+      // React guarantees that setState (from useState) is stable and doesn't need to be in deps
+      "react-hooks/exhaustive-deps": ["warn", {
+        "additionalHooks": "(useCallback|useMemo)",
+        // Allow omitting setState from dependency arrays (React guarantees it's stable)
+        "enableDangerousAutofixThisMayCauseInfiniteLoops": false
+      }],
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },

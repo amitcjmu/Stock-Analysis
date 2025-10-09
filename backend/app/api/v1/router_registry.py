@@ -366,6 +366,14 @@ def register_admin_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ Rate Limiting router not available")
 
+    # User Access Management Admin
+    if routers_with_flags.get("ADMIN_USER_ACCESS", (False, None))[0]:
+        admin_user_access_router = routers_with_flags["ADMIN_USER_ACCESS"][1]
+        api_router.include_router(admin_user_access_router, prefix="/admin/user-access")
+        logger.info("✅ Admin User Access router included")
+    else:
+        logger.warning("⚠️ Admin User Access router not available")
+
 
 def register_auth_routers(api_router: APIRouter):
     """Register authentication routers."""
