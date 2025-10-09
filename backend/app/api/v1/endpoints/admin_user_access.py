@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
 from app.models.rbac import ClientAccess, EngagementAccess, UserRole
+from app.models.rbac.audit_models import AccessAuditLog
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -54,6 +55,17 @@ class GrantEngagementAccessRequest(BaseModel):
     user_id: str
     engagement_id: str
     access_level: str
+
+
+class RecentActivityResponse(BaseModel):
+    id: str
+    user_name: str
+    action_type: str
+    resource_type: str
+    resource_id: str
+    result: str
+    reason: str
+    created_at: str
 
 
 async def _verify_admin_access(current_user: User, db: AsyncSession) -> bool:
@@ -417,4 +429,57 @@ async def revoke_engagement_access(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to revoke engagement access: {str(e)}",
+        )
+
+
+@router.get("/recent-activities")
+async def get_recent_activities(
+    limit: int = 6,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Get recent admin activities from audit log"""
+    try:
+        # Verify admin access
+        await _verify_admin_access(current_user, db)
+
+        # Query recent activities with user information
+        query = (
+            select(AccessAuditLog, User)
+            .join(User, AccessAuditLog.user_id == User.id)
+            .order_by(AccessAuditLog.created_at.desc())
+            .limit(limit)
+        )
+
+        result = await db.execute(query)
+        activities_with_users = result.all()
+
+        activities_list = []
+        for audit_log, user in activities_with_users:
+            user_name = f"{user.first_name} {user.last_name}".strip() or user.email
+            activities_list.append(
+                RecentActivityResponse(
+                    id=str(audit_log.id),
+                    user_name=user_name,
+                    action_type=audit_log.action_type,
+                    resource_type=audit_log.resource_type or "",
+                    resource_id=audit_log.resource_id or "",
+                    result=audit_log.result,
+                    reason=audit_log.reason or "",
+                    created_at=audit_log.created_at.isoformat(),
+                ).dict()
+            )
+
+        return {
+            "status": "success",
+            "activities": activities_list,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching recent activities: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch recent activities: {str(e)}",
         )
