@@ -309,3 +309,67 @@ class DataCleansingUtils:
             return float(value)
         except (ValueError, TypeError):
             return 0.0
+
+    @staticmethod
+    def normalize_field_name(field_name: str) -> str:
+        """
+        Normalize field names to snake_case.
+
+        Handles conversions:
+        - PascalCase -> snake_case (Asset_Name -> asset_name)
+        - Pascal Case with spaces -> snake_case (Asset Name -> asset_name)
+        - Mixed Case -> snake_case (AssetName -> asset_name)
+        - Acronyms -> snake_case (CPU_Cores -> cpu_cores)
+
+        Args:
+            field_name: Original field name
+
+        Returns:
+            Normalized snake_case field name
+        """
+        import re
+
+        if not field_name:
+            return field_name
+
+        # Replace spaces and existing underscores with temporary marker
+        normalized = field_name.replace(" ", "_").replace("_", "_")
+
+        # Handle acronyms: Insert underscore before uppercase letter that follows lowercase
+        # This handles: AssetName -> Asset_Name, but keeps CPU -> CPU
+        normalized = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", normalized)
+
+        # Convert to lowercase
+        normalized = normalized.lower()
+
+        # Replace multiple underscores with single
+        normalized = re.sub(r"_+", "_", normalized)
+
+        # Remove leading/trailing underscores
+        normalized = normalized.strip("_")
+
+        return normalized
+
+    @staticmethod
+    def normalize_record_fields(record: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize all field names in a record to snake_case.
+
+        Args:
+            record: Original record with mixed-case field names
+
+        Returns:
+            Record with normalized snake_case field names
+        """
+        if not isinstance(record, dict):
+            return record
+
+        normalized_record = {}
+        for key, value in record.items():
+            normalized_key = DataCleansingUtils.normalize_field_name(key)
+            normalized_record[normalized_key] = value
+
+        logger.debug(
+            f"🔄 Normalized fields: {list(record.keys())[:3]}... -> {list(normalized_record.keys())[:3]}..."
+        )
+        return normalized_record

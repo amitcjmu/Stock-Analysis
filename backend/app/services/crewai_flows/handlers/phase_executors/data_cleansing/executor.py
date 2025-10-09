@@ -42,22 +42,30 @@ class DataCleansingExecutor(BasePhaseExecutor, DataCleansingBase):
         if not raw_import_records:
             raise RuntimeError("No raw import records found for data cleansing")
 
+        # CRITICAL: Retrieve approved field mappings from database
+        field_mappings = await self._get_approved_field_mappings()
+        logger.info(f"📋 Retrieved {len(field_mappings)} approved field mappings")
+
         # Initialize agent processor
         service_registry = getattr(self, "service_registry", None)
         agent_processor = AgentProcessor(self.state, service_registry)
 
-        # Process with persistent agent
-        agent_result = await agent_processor.process_with_agent(raw_import_records)
+        # Process with persistent agent - pass field_mappings for transformation
+        agent_result = await agent_processor.process_with_agent(
+            raw_import_records, field_mappings
+        )
 
         # Handle agent processing result
         if agent_result.get("status") == "success":
             cleaned_data = agent_result["cleaned_data"]
         else:
-            # Agent failed - use basic cleansing as fallback
+            # Agent failed - use basic cleansing fallback with field mappings
             logger.warning(
                 f"⚠️ Agent processing failed: {agent_result.get('error', 'Unknown error')}"
             )
-            cleaned_data = self._basic_data_cleansing(raw_import_records)
+            cleaned_data = await self._basic_data_cleansing(
+                raw_import_records, field_mappings
+            )
 
         # VALIDATION 1: Check if we have any cleaned data
         if not cleaned_data:
@@ -172,6 +180,33 @@ class DataCleansingExecutor(BasePhaseExecutor, DataCleansingBase):
 
         # Update raw_import_records with cleansed data
         # Now handled synchronously in execute_with_crew via _update_cleansed_data_sync
+
+    async def _get_approved_field_mappings(self) -> Dict[str, str]:
+        """Retrieve approved field mappings from database.
+
+        Returns:
+            Dictionary mapping source_field -> target_field for approved mappings
+        """
+        from ..asset_inventory_executor.queries import get_field_mappings
+
+        db_session = getattr(self, "db_session", None)
+        if not db_session:
+            logger.warning(
+                "⚠️ No database session available for field mapping retrieval"
+            )
+            return {}
+
+        try:
+            mappings = await get_field_mappings(
+                db=db_session,
+                data_import_id=self.state.data_import_id,
+                client_account_id=self.state.client_account_id,
+            )
+            logger.info(f"✅ Retrieved {len(mappings)} approved mappings from DB")
+            return mappings
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve field mappings: {e}")
+            return {}
 
     def _prepare_crew_input(self) -> Dict[str, Any]:
         """Prepare input data for CrewAI crew execution"""
