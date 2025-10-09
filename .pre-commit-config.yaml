@@ -29,7 +29,7 @@ repos:
     rev: 25.1.0
     hooks:
       - id: black
-        language_version: python3.11
+        language_version: python3.12
         files: ^backend/.*\.py$
 
   # Python Linting - Only on staged files
@@ -89,14 +89,14 @@ repos:
   #   hooks:
   #     - id: cache-security-check
   #       name: Cache Security Check
-  #       entry: /opt/homebrew/bin/python3.11 scripts/check_cache_security.py
+  #       entry: /opt/homebrew/bin/python3.12 scripts/check_cache_security.py
   #       language: system
   #       files: '.*\.(py|ts|tsx)$'
   #       pass_filenames: false
   #
   #     - id: redis-security-audit
   #       name: Redis Security Audit
-  #       entry: /opt/homebrew/bin/python3.11 scripts/security/redis_security_audit.py
+  #       entry: /opt/homebrew/bin/python3.12 scripts/security/redis_security_audit.py
   #       language: system
   #       files: '(redis\.conf|users\.acl|docker-compose.*\.yml)$'
   #       pass_filenames: false
@@ -110,14 +110,14 @@ repos:
   #
   #     - id: cache-key-validation
   #       name: Cache Key Validation
-  #       entry: /opt/homebrew/bin/python3.11 scripts/validate_cache_keys.py
+  #       entry: /opt/homebrew/bin/python3.12 scripts/validate_cache_keys.py
   #       language: system
   #       files: '.*cache.*\.(py|ts)$'
   #       pass_filenames: false
   #
   #     - id: sensitive-data-check
   #       name: Sensitive Data in Cache Check
-  #       entry: /opt/homebrew/bin/python3.11 scripts/check_sensitive_cache.py
+  #       entry: /opt/homebrew/bin/python3.12 scripts/check_sensitive_cache.py
   #       language: system
   #       files: '.*\.(py|ts|tsx)$'
   #       pass_filenames: false
@@ -164,7 +164,7 @@ repos:
       # File Length Check - Enforce modularization (400 line limit)
       - id: check-file-length
         name: Check Python file length (max 400 lines)
-        entry: /opt/homebrew/bin/python3.11 scripts/check-file-length.py
+        entry: /opt/homebrew/bin/python3.12 scripts/check-file-length.py
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -173,7 +173,7 @@ repos:
       # LLM Usage Tracking Check - Enforce multi_model_service usage (warning only)
       - id: check-llm-calls
         name: Check for direct LLM calls bypassing tracking (warning only)
-        entry: /opt/homebrew/bin/python3.11 backend/scripts/check_llm_calls.py
+        entry: /opt/homebrew/bin/python3.12 backend/scripts/check_llm_calls.py
         language: system
         files: ^backend/app/.*\.py$
         pass_filenames: true

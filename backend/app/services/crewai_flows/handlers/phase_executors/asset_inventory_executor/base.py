@@ -56,6 +56,11 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         """
         Execute the asset inventory phase - creates assets from raw data.
 
+        Note: Uses direct AssetService execution instead of CrewAI agents.
+        Justification: This is a data pipeline fix (field mapping, serialization,
+        dashboard metrics), not ADR-022 implementation. Asset creation is a
+        deterministic database operation that doesn't require AI reasoning.
+
         Args:
             flow_context: The flow context containing necessary data
 

@@ -1,21 +1,16 @@
 """
-Core field mapping service containing business logic.
+Core field mapping service - orchestrates retrieval, CRUD, and validation operations.
 Enhanced to use CrewAI agents for intelligent field mapping.
 
-This service handles CRUD operations for ImportFieldMapping records
-and delegates mapping intelligence to the canonical FieldMappingService.
+This service delegates to specialized services for different operations.
 """
 
 import logging
-from datetime import datetime
 from typing import Any, Dict, List
 
-from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.data_import import ImportFieldMapping
-from app.utils.json_utils import safe_json_dumps
 
 # Import canonical FieldMappingService for agent-driven mapping intelligence
 from app.services.field_mapping_service import FieldMappingService
@@ -27,16 +22,19 @@ from ..models.mapping_schemas import (
     MappingValidationRequest,
     MappingValidationResponse,
 )
-from ..validators.mapping_validators import MappingValidator
+
+# Import specialized services
+from .mapping_retrieval import MappingRetrievalService
+from .mapping_crud import MappingCRUDService
 
 logger = logging.getLogger(__name__)
 
 
 class MappingService:
     """
-    Service for field mapping CRUD operations.
+    Orchestrates field mapping operations by delegating to specialized services.
 
-    This service handles database operations for ImportFieldMapping records
+    This service coordinates retrieval, CRUD, and validation operations
     and delegates mapping intelligence to the canonical FieldMappingService.
     Follows ADR-015 by using agent-driven logic instead of hardcoded heuristics.
     """
@@ -44,9 +42,10 @@ class MappingService:
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
         self.context = context
-        self.validator = MappingValidator()
 
-        # Initialize canonical FieldMappingService for agent-driven mapping intelligence
+        # Initialize specialized services
+        self._retrieval_service = MappingRetrievalService(db, context)
+        self._crud_service = MappingCRUDService(db, context)
         self._field_mapping_service: FieldMappingService = None
 
     @property
@@ -56,390 +55,32 @@ class MappingService:
             self._field_mapping_service = FieldMappingService(self.db, self.context)
         return self._field_mapping_service
 
-    async def get_field_mappings(
-        self, import_id: str
-    ) -> List[FieldMappingResponse]:  # noqa: C901
-        """Get all field mappings for an import."""
-
-        # Convert string UUIDs to UUID objects if needed
-        from uuid import UUID
-
-        try:
-            if isinstance(import_id, str):
-                import_uuid = UUID(import_id)
-            else:
-                import_uuid = import_id
-
-            if isinstance(self.context.client_account_id, str):
-                client_account_uuid = UUID(self.context.client_account_id)
-            else:
-                client_account_uuid = self.context.client_account_id
-        except ValueError as e:
-            logger.error(f"❌ Invalid UUID format: {e}")
-            raise ValueError(f"Invalid UUID format for import_id: {import_id}")
-
-        # CRITICAL FIX: Handle both direct import_id lookup AND discovery flow lookup
-        # First try direct import_id lookup
-        query = select(ImportFieldMapping).where(
-            and_(
-                ImportFieldMapping.data_import_id == import_uuid,
-                ImportFieldMapping.client_account_id == client_account_uuid,
-            )
-        )
-        result = await self.db.execute(query)
-        mappings = result.scalars().all()
-
-        # If no mappings found, the import_id might be a flow_id - try discovery flow lookup
-        if not mappings:
-            logger.info(
-                f"🔍 No mappings found for direct import_id {import_id}, trying discovery flow lookup..."
-            )
-
-            from app.models.discovery_flow import DiscoveryFlow
-
-            # Look for discovery flow with this flow_id
-            flow_query = select(DiscoveryFlow).where(
-                and_(
-                    DiscoveryFlow.flow_id == import_uuid,
-                    DiscoveryFlow.client_account_id == client_account_uuid,
-                )
-            )
-            flow_result = await self.db.execute(flow_query)
-            discovery_flow = flow_result.scalar_one_or_none()
-
-            if discovery_flow and discovery_flow.data_import_id:
-                logger.info(
-                    f"✅ Found discovery flow, using data_import_id: {discovery_flow.data_import_id}"
-                )
-
-                # Try again with the actual data_import_id from discovery flow
-                query = select(ImportFieldMapping).where(
-                    and_(
-                        ImportFieldMapping.data_import_id
-                        == discovery_flow.data_import_id,
-                        ImportFieldMapping.client_account_id == client_account_uuid,
-                    )
-                )
-                result = await self.db.execute(query)
-                mappings = result.scalars().all()
-
-            # If still no mappings, try master_flow_id lookup as last resort
-            if not mappings and discovery_flow and discovery_flow.master_flow_id:
-                logger.info(
-                    f"🔍 Trying master_flow_id lookup: {discovery_flow.master_flow_id}"
-                )
-
-                from app.models.crewai_flow_state_extensions import (
-                    CrewAIFlowStateExtensions,
-                )
-                from app.models.data_import import DataImport
-
-                # Get the database ID for this master_flow_id (FK references id, not flow_id)
-                db_id_query = select(CrewAIFlowStateExtensions.id).where(
-                    CrewAIFlowStateExtensions.flow_id == discovery_flow.master_flow_id
-                )
-                db_id_result = await self.db.execute(db_id_query)
-                flow_db_id = db_id_result.scalar_one_or_none()
-
-                if flow_db_id:
-                    # Look for data imports with this master_flow_id
-                    import_query = (
-                        select(DataImport)
-                        .where(
-                            and_(
-                                DataImport.master_flow_id == flow_db_id,
-                                DataImport.client_account_id == client_account_uuid,
-                            )
-                        )
-                        .order_by(DataImport.created_at.desc())
-                        .limit(1)
-                    )
-
-                    import_result = await self.db.execute(import_query)
-                    data_import = import_result.scalar_one_or_none()
-
-                    if data_import:
-                        logger.info(
-                            f"✅ Found data import via master_flow_id: {data_import.id}"
-                        )
-
-                        # Final attempt with the found data import ID
-                        query = select(ImportFieldMapping).where(
-                            and_(
-                                ImportFieldMapping.data_import_id == data_import.id,
-                                ImportFieldMapping.client_account_id
-                                == client_account_uuid,
-                            )
-                        )
-                        result = await self.db.execute(query)
-                        mappings = result.scalars().all()
-
-        # CRITICAL SECURITY FIX: Prevent test data contamination
-        # Filter out any test data that should not appear in production
-        production_mappings = []
-        test_data_filtered = 0
-
-        for mapping in mappings:
-            # Check for test data patterns that should never appear in production
-            is_test_data = mapping.source_field and (
-                str(mapping.source_field).startswith("__test_")
-                or str(mapping.source_field).startswith("_test_")
-                or str(mapping.source_field)
-                in ["_mock_data", "test_field", "sample_data"]
-            )
-
-            if is_test_data:
-                logger.warning(
-                    f"🚫 Filtering out test data field mapping: {mapping.source_field} "
-                    f"(ID: {mapping.id}, Import: {import_id})"
-                )
-                test_data_filtered += 1
-                continue
-
-            production_mappings.append(mapping)
-
-        if test_data_filtered > 0:
-            logger.error(
-                f"❌ CRITICAL: Found {test_data_filtered} test data field mappings in production! "
-                f"Import ID: {import_id}. These have been filtered out."
-            )
-
-        logger.info(
-            f"🔍 Field mapping validation: {len(mappings)} total, "
-            f"{len(production_mappings)} production, {test_data_filtered} test data filtered"
-        )
-
-        # Process only production mappings
-        valid_mappings = []
-        for mapping in production_mappings:
-            # Trust the agent decisions - no hardcoded filtering
-
-            # Debug logging to identify the issue
-            logger.info(
-                f"🔍 DEBUG: Field mapping - source_field type: "
-                f"{type(mapping.source_field)}, value: {mapping.source_field}"
-            )
-            logger.info(
-                f"🔍 DEBUG: Field mapping - target_field type: "
-                f"{type(mapping.target_field)}, value: {mapping.target_field}"
-            )
-
-            # Convert JSON transformation_rules to string, handle None values
-            transformation_rule_str = None
-            if mapping.transformation_rules:
-                if isinstance(mapping.transformation_rules, dict):
-                    # Convert dict to JSON string if needed
-                    transformation_rule_str = safe_json_dumps(
-                        mapping.transformation_rules
-                    )
-                elif isinstance(mapping.transformation_rules, str):
-                    transformation_rule_str = mapping.transformation_rules
-                else:
-                    transformation_rule_str = str(mapping.transformation_rules)
-
-            valid_mappings.append(
-                FieldMappingResponse(
-                    id=mapping.id,
-                    source_field=str(mapping.source_field),  # Ensure string type
-                    target_field=str(
-                        mapping.target_field
-                    ),  # Keep as string, frontend handles "UNMAPPED"
-                    transformation_rule=transformation_rule_str,
-                    # Note: validation_rule is separate from transformation_rule in schema
-                    # but database only stores transformation_rules - validation is handled
-                    # by mapping validators during processing
-                    validation_rule=None,  # Database doesn't store validation rules separately
-                    is_required=getattr(mapping, "is_required", False),
-                    is_approved=mapping.status == "approved",
-                    confidence=(
-                        float(mapping.confidence_score)
-                        if mapping.confidence_score is not None
-                        else 0.0
-                    ),
-                    created_at=mapping.created_at,
-                    updated_at=mapping.updated_at,
-                )
-            )
-
-        logger.info(
-            f"✅ Returning {len(valid_mappings)} field mappings for import {import_id}"
-        )
-        return valid_mappings
+    async def get_field_mappings(self, import_id: str) -> List[FieldMappingResponse]:
+        """Get all field mappings for an import - delegates to retrieval service."""
+        return await self._retrieval_service.get_field_mappings(import_id)
 
     async def create_field_mapping(
         self, import_id: str, mapping_data: FieldMappingCreate
     ) -> FieldMappingResponse:
-        """Create a new field mapping."""
-
-        # Convert string UUIDs to UUID objects if needed
-        from uuid import UUID
-
-        try:
-            if isinstance(import_id, str):
-                import_uuid = UUID(import_id)
-            else:
-                import_uuid = import_id
-
-            if isinstance(self.context.client_account_id, str):
-                client_account_uuid = UUID(self.context.client_account_id)
-            else:
-                client_account_uuid = self.context.client_account_id
-        except ValueError as e:
-            logger.error(f"❌ Invalid UUID format: {e}")
-            raise ValueError(f"Invalid UUID format for import_id: {import_id}")
-
-        # Validate mapping data
-        validation_result = await self.validator.validate_mapping(mapping_data)
-        if not validation_result.is_valid:
-            raise ValueError(f"Invalid mapping: {validation_result.validation_errors}")
-
-        # Create mapping record
-        mapping = ImportFieldMapping(
-            data_import_id=import_uuid,
-            client_account_id=client_account_uuid,
-            source_field=mapping_data.source_field,
-            target_field=mapping_data.target_field,
-            match_type="user_defined",
-            confidence_score=mapping_data.confidence,
-            transformation_rules=mapping_data.transformation_rule,
-            status="approved",  # User-created mappings are auto-approved
-        )
-
-        self.db.add(mapping)
-        await self.db.commit()
-        await self.db.refresh(mapping)
-
-        logger.info(
-            f"Created field mapping: {mapping_data.source_field} -> "
-            f"{mapping_data.target_field}"
-        )
-
-        # Serialize transformation_rules properly for response
-        transformation_rule_str = None
-        if mapping.transformation_rules:
-            if isinstance(mapping.transformation_rules, dict):
-                transformation_rule_str = safe_json_dumps(mapping.transformation_rules)
-            elif isinstance(mapping.transformation_rules, str):
-                transformation_rule_str = mapping.transformation_rules
-            else:
-                transformation_rule_str = str(mapping.transformation_rules)
-
-        return FieldMappingResponse(
-            id=mapping.id,
-            source_field=mapping.source_field,
-            target_field=mapping.target_field,
-            transformation_rule=transformation_rule_str,
-            validation_rule=None,  # Database doesn't store validation rules separately
-            is_required=False,
-            is_approved=True,
-            confidence=mapping.confidence_score or 0.7,
-            created_at=mapping.created_at,
-            updated_at=mapping.updated_at,
-        )
-
-    async def bulk_update_field_mappings(
-        self, mapping_ids: List[str], update_data: FieldMappingUpdate
-    ) -> Dict[str, Any]:
-        """Update multiple field mappings in a single database transaction."""
-        from ..utils.bulk_operations import BulkOperations
-
-        bulk_ops = BulkOperations(self.db, self.context)
-        return await bulk_ops.bulk_update_field_mappings(mapping_ids, update_data)
+        """Create a new field mapping - delegates to CRUD service."""
+        return await self._crud_service.create_field_mapping(import_id, mapping_data)
 
     async def update_field_mapping(
         self, mapping_id: str, update_data: FieldMappingUpdate
     ) -> FieldMappingResponse:
-        """Update an existing field mapping."""
+        """Update an existing field mapping - delegates to CRUD service."""
+        return await self._crud_service.update_field_mapping(mapping_id, update_data)
 
-        # Convert string UUID to UUID object if needed
-        from uuid import UUID
+    async def delete_field_mapping(self, mapping_id: str) -> bool:
+        """Delete a field mapping - delegates to CRUD service."""
+        return await self._crud_service.delete_field_mapping(mapping_id)
 
-        try:
-            if isinstance(mapping_id, str):
-                mapping_uuid = UUID(mapping_id)
-            else:
-                mapping_uuid = mapping_id
-
-            if isinstance(self.context.client_account_id, str):
-                client_account_uuid = UUID(self.context.client_account_id)
-            else:
-                client_account_uuid = self.context.client_account_id
-        except ValueError as e:
-            logger.error(f"❌ Invalid UUID format: {e}")
-            raise ValueError(f"Invalid UUID format for mapping_id: {mapping_id}")
-
-        # Get existing mapping
-        query = select(ImportFieldMapping).where(
-            and_(
-                ImportFieldMapping.id == mapping_uuid,
-                ImportFieldMapping.client_account_id == client_account_uuid,
-            )
-        )
-        result = await self.db.execute(query)
-        mapping = result.scalar_one_or_none()
-
-        if not mapping:
-            # Check if mapping exists but access is denied (different client_account)
-            debug_query = select(ImportFieldMapping).where(
-                ImportFieldMapping.id == mapping_uuid
-            )
-            debug_result = await self.db.execute(debug_query)
-            debug_mapping = debug_result.scalar_one_or_none()
-
-            if debug_mapping:
-                logger.warning(
-                    f"Field mapping {mapping_id} access denied - "
-                    f"different client account"
-                )
-                raise ValueError(f"Field mapping {mapping_id} not found")
-            else:
-                logger.info(f"Field mapping {mapping_id} does not exist")
-                raise ValueError(f"Field mapping {mapping_id} not found")
-
-        # Update fields
-        if update_data.target_field is not None:
-            mapping.target_field = update_data.target_field
-        if update_data.transformation_rule is not None:
-            mapping.transformation_rules = update_data.transformation_rule
-        # Note: validation_rule is not stored in database - validation is handled
-        # by mapping validators during processing, not persisted as rules
-        # if update_data.validation_rule is not None:
-        #     mapping.transformation_rules = update_data.validation_rule
-        # is_required field doesn't exist in ImportFieldMapping model
-        # if update_data.is_required is not None:
-        #     mapping.is_required = update_data.is_required
-        if update_data.is_approved is not None:
-            mapping.status = "approved" if update_data.is_approved else "suggested"
-
-        mapping.updated_at = datetime.utcnow()
-
-        await self.db.commit()
-        await self.db.refresh(mapping)
-
-        logger.info(f"Updated field mapping {mapping_id}")
-
-        # Serialize transformation_rules properly for response
-        transformation_rule_str = None
-        if mapping.transformation_rules:
-            if isinstance(mapping.transformation_rules, dict):
-                transformation_rule_str = safe_json_dumps(mapping.transformation_rules)
-            elif isinstance(mapping.transformation_rules, str):
-                transformation_rule_str = mapping.transformation_rules
-            else:
-                transformation_rule_str = str(mapping.transformation_rules)
-
-        return FieldMappingResponse(
-            id=mapping.id,
-            source_field=mapping.source_field,
-            target_field=mapping.target_field,
-            transformation_rule=transformation_rule_str,
-            validation_rule=None,  # Database doesn't store validation rules separately
-            # is_required field doesn't exist in ImportFieldMapping model
-            is_required=False,
-            is_approved=mapping.status == "approved",
-            confidence=mapping.confidence_score or 0.7,
-            created_at=mapping.created_at,
-            updated_at=mapping.updated_at,
+    async def bulk_update_field_mappings(
+        self, mapping_ids: List[str], update_data: FieldMappingUpdate
+    ) -> Dict[str, Any]:
+        """Update multiple field mappings - delegates to CRUD service."""
+        return await self._crud_service.bulk_update_field_mappings(
+            mapping_ids, update_data
         )
 
     async def generate_mappings_for_import(self, import_id: str) -> Dict[str, Any]:
@@ -448,44 +89,6 @@ class MappingService:
 
         generator = MappingGenerator(self.db, self.context)
         return await generator.generate_mappings_for_import(import_id)
-
-    async def delete_field_mapping(self, mapping_id: str) -> bool:
-        """Delete a field mapping."""
-
-        # Convert string UUID to UUID object if needed
-        from uuid import UUID
-
-        try:
-            if isinstance(mapping_id, str):
-                mapping_uuid = UUID(mapping_id)
-            else:
-                mapping_uuid = mapping_id
-
-            if isinstance(self.context.client_account_id, str):
-                client_account_uuid = UUID(self.context.client_account_id)
-            else:
-                client_account_uuid = self.context.client_account_id
-        except ValueError as e:
-            logger.error(f"❌ Invalid UUID format: {e}")
-            raise ValueError(f"Invalid UUID format for mapping_id: {mapping_id}")
-
-        query = select(ImportFieldMapping).where(
-            and_(
-                ImportFieldMapping.id == mapping_uuid,
-                ImportFieldMapping.client_account_id == client_account_uuid,
-            )
-        )
-        result = await self.db.execute(query)
-        mapping = result.scalar_one_or_none()
-
-        if not mapping:
-            return False
-
-        await self.db.delete(mapping)
-        await self.db.commit()
-
-        logger.info(f"Deleted field mapping {mapping_id}")
-        return True
 
     async def validate_mappings(
         self, request: MappingValidationRequest

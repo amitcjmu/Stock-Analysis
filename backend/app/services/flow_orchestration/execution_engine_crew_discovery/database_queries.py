@@ -36,13 +36,12 @@ class DatabaseQueryMixin:
                 logger.error("No database session available for field mappings query")
                 return {}
 
-            # CORRECTED: Use status='approved' and add multi-tenant scoping
-            # Prefer tenant scoping; if the model lacks engagement_id, at least warn when multiple engagements exist.
+            # CORRECTED: Use status='approved' and add multi-tenant scoping with engagement_id
             filters = [
                 ImportFieldMapping.data_import_id == data_import_id,
                 ImportFieldMapping.status == "approved",
                 ImportFieldMapping.client_account_id == self.context.client_account_id,
-                # NOTE: engagement_id is not a field on ImportFieldMapping model
+                ImportFieldMapping.engagement_id == self.context.engagement_id,
             ]
             result = await session.execute(select(ImportFieldMapping).where(*filters))
             mappings = result.scalars().all()
@@ -50,7 +49,8 @@ class DatabaseQueryMixin:
             if not mappings:
                 logger.warning(
                     f"No approved field mappings found for data_import_id={data_import_id} "
-                    f"client_account_id={self.context.client_account_id}"
+                    f"client_account_id={self.context.client_account_id} "
+                    f"engagement_id={self.context.engagement_id}"
                 )
 
             # Convert to dict, exclude UNMAPPED targets
