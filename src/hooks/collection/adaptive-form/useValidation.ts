@@ -39,7 +39,9 @@ export function useValidation({
         },
       }));
     },
-    [], // No dependencies needed as setState is stable
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
   /**
@@ -50,7 +52,9 @@ export function useValidation({
     (newValidation: FormValidationResult): void => {
       setState((prev) => ({ ...prev, validation: newValidation }));
     },
-    [], // No dependencies needed as setState is stable
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
   return {

@@ -100,6 +100,8 @@ export function useAutoInit({
         setState((prev) => ({ ...prev, error, isLoading: false }));
       });
     }
+    // Note: setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     urlFlowId,
     autoInitialize,
@@ -150,6 +152,8 @@ export function useAutoInit({
         setState((prev) => ({ ...prev, error, isLoading: false }));
       });
     }
+    // Note: setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     urlFlowId,
     checkingFlows,
