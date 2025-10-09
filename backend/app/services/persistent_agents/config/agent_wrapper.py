@@ -6,7 +6,7 @@ Provides the AgentWrapper class for CrewAI agent compatibility.
 
 import asyncio
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 try:
     from crewai import Agent
@@ -124,41 +124,66 @@ class AgentWrapper:
         This is the critical interface method that executors expect.
         """
         try:
-            from crewai import Task
+            # Extract field mappings and raw records from input
+            if isinstance(data, dict) and "field_mappings" in data:
+                field_mappings = data["field_mappings"]
+                raw_records = data.get("raw_records", [])
 
-            # Create a task description based on data type and agent role
-            data_summary = self._create_data_summary(data)
-            task_description = (
-                f"Process and analyze the provided data for {self._agent_type} "
-                f"operations.\n\n{data_summary}"
-            )
+                logger.info(
+                    f"🔄 Applying {len(field_mappings)} field mappings to {len(raw_records)} records"
+                )
 
-            # Create a task for the agent to process the data
-            task = Task(
-                description=task_description,
-                agent=self._agent,
-                expected_output="Structured analysis with processed data, insights, and classifications in JSON format",
-            )
+                # Apply field mappings to transform data
+                processed_data = self._apply_field_mappings(raw_records, field_mappings)
 
-            # Store data in wrapper context for tools to access
-            self._context = {"data": data}
+                return {
+                    "status": "success",
+                    "processed_data": processed_data,
+                    "agent_type": self._agent_type,
+                    "field_mappings_applied": len(field_mappings),
+                    "records_transformed": len(processed_data),
+                    "execution_method": "field_mapping_transformation",
+                }
+            else:
+                # Legacy path - no field mappings provided
+                from crewai import Task
 
-            # Execute the task using crew factory
-            from app.services.crewai_flows.config.crew_factory import create_crew
+                # Create a task description based on data type and agent role
+                data_summary = self._create_data_summary(data)
+                task_description = (
+                    f"Process and analyze the provided data for {self._agent_type} "
+                    f"operations.\n\n{data_summary}"
+                )
 
-            crew = create_crew(agents=[self._agent], tasks=[task], verbose=False)
-            result = crew.kickoff()
+                # Create a task for the agent to process the data
+                task = Task(
+                    description=task_description,
+                    agent=self._agent,
+                    expected_output=(
+                        "Structured analysis with processed data, insights, and "
+                        "classifications in JSON format"
+                    ),
+                )
 
-            # Return structured response
-            return {
-                "status": "success",
-                "processed_data": data,
-                "agent_output": str(result),
-                "agent_type": self._agent_type,
-                "insights": getattr(self._agent, "insights", []),
-                "classifications": getattr(self._agent, "classifications", {}),
-                "execution_method": "process_adapter",
-            }
+                # Store data in wrapper context for tools to access
+                self._context = {"data": data}
+
+                # Execute the task using crew factory
+                from app.services.crewai_flows.config.crew_factory import create_crew
+
+                crew = create_crew(agents=[self._agent], tasks=[task], verbose=False)
+                result = crew.kickoff()
+
+                # Return structured response
+                return {
+                    "status": "success",
+                    "processed_data": data,
+                    "agent_output": str(result),
+                    "agent_type": self._agent_type,
+                    "insights": getattr(self._agent, "insights", []),
+                    "classifications": getattr(self._agent, "classifications", {}),
+                    "execution_method": "process_adapter",
+                }
 
         except Exception as e:
             logger.error(f"Agent {self._agent_type} process method failed: {e}")
@@ -167,9 +192,60 @@ class AgentWrapper:
                 "status": "error",
                 "error": str(e),
                 "agent_type": self._agent_type,
-                "processed_data": data,
+                "processed_data": (
+                    data.get("raw_records", []) if isinstance(data, dict) else data
+                ),
                 "execution_method": "process_adapter_fallback",
             }
+
+    def _apply_field_mappings(
+        self, raw_records: List[Dict[str, Any]], field_mappings: Dict[str, str]
+    ) -> List[Dict[str, Any]]:
+        """Apply field mappings to transform raw CSV data to database fields.
+
+        Args:
+            raw_records: Raw import records with raw_data field
+            field_mappings: Source field -> target field mappings
+
+        Returns:
+            Transformed records with correct field names
+        """
+        from datetime import datetime
+
+        transformed_data = []
+
+        for record in raw_records:
+            transformed_record = {}
+
+            # Preserve ID fields
+            if "raw_import_record_id" in record:
+                transformed_record["raw_import_record_id"] = record[
+                    "raw_import_record_id"
+                ]
+                transformed_record["id"] = record["raw_import_record_id"]
+
+            if "row_number" in record:
+                transformed_record["row_number"] = record["row_number"]
+
+            # Apply field mappings to raw_data
+            raw_data = record.get("raw_data", {})
+            if isinstance(raw_data, dict):
+                for source_field, value in raw_data.items():
+                    # Use target field name if mapping exists, otherwise keep source
+                    target_field = field_mappings.get(source_field, source_field)
+                    transformed_record[target_field] = value
+
+            # Add transformation metadata
+            transformed_record["cleansing_method"] = "agent_field_mapping"
+            transformed_record["cleansed_at"] = datetime.utcnow().isoformat()
+            transformed_record["mappings_applied"] = len(field_mappings)
+
+            transformed_data.append(transformed_record)
+
+        logger.debug(
+            f"✅ Transformed {len(transformed_data)} records using field mappings"
+        )
+        return transformed_data
 
     def _create_data_summary(self, data: Any) -> str:
         """Create a concise summary of the data for task description."""

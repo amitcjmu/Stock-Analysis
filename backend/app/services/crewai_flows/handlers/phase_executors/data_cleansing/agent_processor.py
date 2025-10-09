@@ -19,9 +19,17 @@ class AgentProcessor:
         self.service_registry = service_registry
 
     async def process_with_agent(
-        self, raw_import_records: List[Dict[str, Any]]
+        self, raw_import_records: List[Dict[str, Any]], field_mappings: Dict[str, str]
     ) -> Dict[str, Any]:
-        """Process data with persistent multi-tenant agent"""
+        """Process data with persistent multi-tenant agent and field mappings.
+
+        Args:
+            raw_import_records: Raw CSV data records
+            field_mappings: Approved source_field -> target_field mappings
+
+        Returns:
+            Dict with status and cleaned_data
+        """
         logger.info("🧠 Starting data cleansing with persistent multi-tenant agent")
 
         if not raw_import_records:
@@ -31,10 +39,10 @@ class AgentProcessor:
         cleansing_agent = await self._get_cleansing_agent()
         logger.info("🔧 Retrieved agent: data_cleansing")
 
-        # Process with agent
+        # Process with agent - pass field_mappings for transformation
         try:
             result = await self._execute_agent_processing(
-                cleansing_agent, raw_import_records
+                cleansing_agent, raw_import_records, field_mappings
             )
             return self._handle_agent_result(result, raw_import_records)
         except Exception as agent_err:
@@ -68,22 +76,32 @@ class AgentProcessor:
         )
 
     async def _execute_agent_processing(
-        self, agent, raw_import_records: List[Dict[str, Any]]
+        self,
+        agent,
+        raw_import_records: List[Dict[str, Any]],
+        field_mappings: Dict[str, str],
     ) -> Dict[str, Any]:
-        """Execute the agent processing with proper interface handling"""
+        """Execute the agent processing with field mappings for transformation."""
         if hasattr(agent, "process"):
             logger.info(
                 f"🤖 Using AI agent process method for {len(raw_import_records)} records"
             )
 
+            # Prepare data with field mappings for agent
+            agent_input = {
+                "raw_records": raw_import_records,
+                "field_mappings": field_mappings,
+                "task": "apply_field_mappings_and_cleanse",
+            }
+
             # The process method is always async in our wrapper
             import asyncio
 
             if asyncio.iscoroutinefunction(agent.process):
-                return await agent.process(raw_import_records)
+                return await agent.process(agent_input)
             else:
                 # Fallback for sync process method
-                return await asyncio.to_thread(agent.process, raw_import_records)
+                return await asyncio.to_thread(agent.process, agent_input)
         else:
             # Agent doesn't have process method
             logger.warning(
@@ -97,34 +115,24 @@ class AgentProcessor:
         """Handle the result returned by the agent"""
         if isinstance(result, dict):
             if result.get("status") == "success":
-                # Agent succeeded - use processed data
+                # Agent succeeded - use processed data (already transformed with field mappings)
                 cleaned_data = result.get("processed_data", raw_import_records)
                 logger.info(
                     f"✅ Agent processed {len(cleaned_data)} records successfully"
                 )
 
-                # CRITICAL: Normalize field names to snake_case
-                # This converts PascalCase (Asset_Name) to snake_case (asset_name)
-                from ..data_cleansing_utils import DataCleansingUtils
-
-                normalized_data = []
-                for record in cleaned_data:
-                    normalized_record = DataCleansingUtils.normalize_record_fields(
-                        record
+                # Log transformation metadata
+                if "field_mappings_applied" in result:
+                    mappings_count = result["field_mappings_applied"]
+                    records_count = result.get("records_transformed", 0)
+                    logger.info(
+                        f"✅ Applied {mappings_count} field mappings to "
+                        f"{records_count} records"
                     )
-                    normalized_data.append(normalized_record)
-
-                logger.info(
-                    f"🔄 Normalized {len(normalized_data)} records to snake_case field names"
-                )
-
-                # Log agent insights if available
-                if "agent_output" in result:
-                    logger.info(f"🧠 Agent insights: {result['agent_output'][:200]}...")
 
                 return {
                     "status": "success",
-                    "cleaned_data": normalized_data,
+                    "cleaned_data": cleaned_data,
                     "agent_result": result,
                 }
             else:
