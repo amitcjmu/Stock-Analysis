@@ -30,7 +30,7 @@ const Discovery = (): JSX.Element => {
     try {
       const { apiCall } = await import('../config/api');
       const response = await apiCall('/unified-discovery/assets/summary');
-      
+
       if (response && response.dashboard_metrics) {
         setDashboardMetrics(response.dashboard_metrics);
       }
@@ -95,11 +95,23 @@ const Discovery = (): JSX.Element => {
     fetchAssets();
   };
 
-  const infrastructureMetrics = [
+  // Check if we have any real data
+  const hasRealData = dashboardMetrics.servers > 0 || 
+                      dashboardMetrics.applications > 0 || 
+                      dashboardMetrics.databases > 0 || 
+                      dashboardMetrics.dependencies > 0;
+
+  // Show real data if available, otherwise show placeholder data for UI demonstration
+  const infrastructureMetrics = hasRealData ? [
     { metric: 'Total Servers', value: dashboardMetrics.servers.toString(), change: '' },
     { metric: 'Applications', value: dashboardMetrics.applications.toString(), change: '' },
     { metric: 'Databases', value: dashboardMetrics.databases.toString(), change: '' },
     { metric: 'Dependencies', value: dashboardMetrics.dependencies.toString(), change: '' },
+  ] : [
+    { metric: 'Total Servers', value: '156', change: '+12%' },
+    { metric: 'Applications', value: '247', change: '+8%' },
+    { metric: 'Databases', value: '89', change: '+5%' },
+    { metric: 'Dependencies', value: '1,247', change: '+15%' },
   ];
 
   return (
@@ -123,6 +135,19 @@ const Discovery = (): JSX.Element => {
               </div>
             </div>
 
+            {/* Placeholder Data Disclaimer - shown when no real data exists */}
+            {!hasRealData && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start space-x-2">
+                  <div className="text-blue-600 text-sm">ℹ️</div>
+                  <p className="text-sm text-blue-800">
+                    <strong>Demo Data:</strong> The metrics below show placeholder values for UI demonstration. 
+                    Start a discovery flow to see your actual infrastructure data.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Metrics Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
               {infrastructureMetrics.map((metric) => (
@@ -132,7 +157,9 @@ const Discovery = (): JSX.Element => {
                       <p className="text-sm font-medium text-gray-600">{metric.metric}</p>
                       <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
                     </div>
-                    <span className="text-sm font-medium text-green-600">{metric.change}</span>
+                    <span className={`text-sm font-medium ${hasRealData ? 'text-gray-400' : 'text-green-600'}`}>
+                      {metric.change}
+                    </span>
                   </div>
                 </div>
               ))}
