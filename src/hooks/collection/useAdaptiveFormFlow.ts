@@ -99,7 +99,7 @@ export const useAdaptiveFormFlow = (
       console.log("📝 Flow ID updated from URL:", urlFlowId);
       updateFlowId(urlFlowId);
     }
-  }, [urlFlowId, updateFlowId]);
+  }, [urlFlowId, updateFlowId, currentFlowIdRef]);
 
   // Check for incomplete flows
   // CRITICAL FIX: Always call the hook but use skipIncompleteCheck for logic
@@ -228,6 +228,7 @@ export const useAdaptiveFormFlow = (
     }, [applicationId, toast, state.flowId, setState]),
     onFallback: useCallback(async (questionnaires: CollectionQuestionnaire[]) => {
       console.log('⚠️ Using fallback questionnaire from new polling hook:', questionnaires);
+
       // Handle fallback questionnaire - use timeout to prevent React warning
       if (questionnaires.length > 0) {
         try {
@@ -275,6 +276,26 @@ export const useAdaptiveFormFlow = (
         } catch (error) {
           console.error('Failed to convert fallback questionnaire:', error);
         }
+      } else {
+        // CRITICAL FIX: Handle empty questionnaires array by creating local fallback
+        console.warn('⚠️ Received empty questionnaires array in fallback, creating local fallback form');
+        const fallback = createFallbackFormData(applicationId || null);
+
+        setTimeout(() => {
+          setState((prev) => ({
+            ...prev,
+            formData: fallback,
+            questionnaires: [],
+            isLoading: false,
+            error: null
+          }));
+        }, 0);
+
+        toast({
+          title: "Basic Form Loaded",
+          description: "Using basic questionnaire template. You can still collect data.",
+          variant: "default",
+        });
       }
     }, [applicationId, toast, state.flowId, setState]),
     onFailed: useCallback((errorMessage: string) => {

@@ -158,7 +158,7 @@ export const LazyCollectionIndex = createLazyRoute(
 );
 
 export const LazyAdaptiveForms = createLazyRoute(
-  () => import("@/pages/collection/AdaptiveForms"),
+  () => import("@/pages/collection/adaptive-forms"),
   "Adaptive Forms",
   LoadingPriority.HIGH,
 );

@@ -411,6 +411,7 @@ export function useSubmitHandler({
     applicationId,
     updateFlowId,
     toast,
+    setState,
   ]);
 
   return {

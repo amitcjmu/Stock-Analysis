@@ -39,7 +39,7 @@ export function useValidation({
         },
       }));
     },
-    [], // No dependencies needed as setState is stable
+    [setState],
   );
 
   /**
@@ -50,7 +50,7 @@ export function useValidation({
     (newValidation: FormValidationResult): void => {
       setState((prev) => ({ ...prev, validation: newValidation }));
     },
-    [], // No dependencies needed as setState is stable
+    [setState],
   );
 
   return {

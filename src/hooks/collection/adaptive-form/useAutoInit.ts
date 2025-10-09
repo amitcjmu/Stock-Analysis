@@ -111,6 +111,7 @@ export function useAutoInit({
     error,
     hasAttemptedInit,
     initializeFlow,
+    setState,
   ]); // CRITICAL: Do not modify this dependency array
 
   // Auto-initialize effect - Fixed to prevent infinite loops
@@ -160,6 +161,7 @@ export function useAutoInit({
     error,
     hasAttemptedNewFlowInit,
     initializeFlow,
+    setState,
   ]); // CRITICAL: Do not modify this dependency array (includes hasAttemptedNewFlowInit to prevent loops)
 
   return {
