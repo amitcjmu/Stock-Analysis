@@ -14,8 +14,8 @@ export interface DiscoveryFlowState {
   progressPercentage?: number;
   current_phase?: string;
   currentPhase?: string;
-  crew_results?: Record<string, any>;
-  crewResults?: Record<string, any>;
+  crew_results?: Record<string, unknown>;
+  crewResults?: Record<string, unknown>;
   phase_completion?: Record<string, boolean>;
   phaseCompletion?: Record<string, boolean>;
   error_message?: string;
@@ -35,7 +35,7 @@ export interface CrewResult {
   progressPercentage?: number;
   error_message?: string;
   errorMessage?: string;
-  results?: any;
+  results?: unknown;
 }
 
 // Hook return type

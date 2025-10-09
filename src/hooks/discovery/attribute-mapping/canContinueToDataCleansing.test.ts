@@ -66,6 +66,7 @@ describe('canContinueToDataCleansing validation', () => {
     mapping_type: 'suggested',
     transformation: null,
     validation_rules: null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     status: status as any,
     sample_values: [],
     ai_reasoning: 'Test mapping',

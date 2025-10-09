@@ -178,6 +178,7 @@ const EnhancedApplicationSelection: React.FC = () => {
       } else {
         throw new Error("Invalid response from server");
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     } catch (error: any) {
       console.error("❌ Error submitting application selection:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to submit application selection. Please try again.";

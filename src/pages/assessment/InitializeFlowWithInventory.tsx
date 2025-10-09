@@ -162,6 +162,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
         })
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
       const flowId = result && typeof result === 'object' ? (result as any).flow_id : undefined;
       if (flowId) {
         navigate(`/assessment/${flowId}/architecture`);

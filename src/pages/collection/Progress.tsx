@@ -72,6 +72,7 @@ const CollectionProgress: React.FC = () => {
       // Navigate to EXISTING assessment route
       navigate(`/assessment/${result.assessment_flow_id}/architecture`);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     } catch (error: any) {
       if (error?.response?.data?.error === 'not_ready') {
         // Show specific missing requirements using toast

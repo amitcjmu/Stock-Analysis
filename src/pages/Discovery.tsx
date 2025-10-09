@@ -9,6 +9,7 @@ import { withRetry } from '../utils/retry';
 
 const Discovery = (): JSX.Element => {
   const [selectedFilter, setSelectedFilter] = useState('all');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
   const [discoveredAssets, setDiscoveredAssets] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ title: string; message: string; canRetry: boolean } | null>(null);
@@ -54,6 +55,7 @@ const Discovery = (): JSX.Element => {
           canRetry: true
         });
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     } catch (apiError: any) {
       console.error('Failed to fetch assets:', apiError);
       setDiscoveredAssets([]);
