@@ -339,6 +339,15 @@ except ImportError:
     routers_with_flags["USER_APPROVALS"] = (False, None)
 
 try:
+    from app.api.v1.endpoints.admin_user_access import (
+        router as admin_user_access_router,
+    )
+
+    routers_with_flags["ADMIN_USER_ACCESS"] = (True, admin_user_access_router)
+except ImportError:
+    routers_with_flags["ADMIN_USER_ACCESS"] = (False, None)
+
+try:
     from app.api.v1.master_flows import router as master_flows_router
 
     routers_with_flags["MASTER_FLOWS"] = (True, master_flows_router)

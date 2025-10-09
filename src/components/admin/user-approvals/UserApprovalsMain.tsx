@@ -16,6 +16,7 @@ import { UserStats } from './UserStats';
 import { UserFilters } from './UserFilters';
 import { UserList } from './UserList';
 import { UserDetailsModal } from './UserDetailsModal';
+import { UserAccessModal } from './UserAccessModal';
 import { ApprovalActions } from './ApprovalActions';
 import { UserManagementTabs } from './UserManagementTabs';
 import type { ApprovalData, RejectionData } from './types'
@@ -40,6 +41,8 @@ export const UserApprovalsMain: React.FC = () => {
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showAccessModal, setShowAccessModal] = useState(false);
+  const [selectedActiveUser, setSelectedActiveUser] = useState<ActiveUser | null>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'access'>('pending');
 
   // Approval form state
@@ -321,13 +324,13 @@ export const UserApprovalsMain: React.FC = () => {
   };
 
   const handleEditAccess = (user: ActiveUser): void => {
-    // For now, show a toast indicating this feature is coming soon
-    // In a full implementation, this would open a modal to edit user permissions
-    toast({
-      title: "Edit Access",
-      description: `Edit access for ${user.full_name} - Feature coming soon`,
-      variant: "default"
-    });
+    setSelectedActiveUser(user);
+    setShowAccessModal(true);
+  };
+
+  const handleAccessUpdated = (): void => {
+    // Reload active users to reflect any changes
+    fetchActiveUsers();
   };
 
   if (loading) {
@@ -502,6 +505,17 @@ export const UserApprovalsMain: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User Access Management Modal */}
+      <UserAccessModal
+        user={selectedActiveUser}
+        isOpen={showAccessModal}
+        onClose={() => {
+          setShowAccessModal(false);
+          setSelectedActiveUser(null);
+        }}
+        onAccessUpdated={handleAccessUpdated}
+      />
     </div>
   );
 };
