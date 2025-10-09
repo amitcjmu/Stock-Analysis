@@ -168,9 +168,7 @@ export const useApplicationData = ({
       const type = asset.asset_type?.toUpperCase() || "UNKNOWN";
       if (type in grouped && type !== "ALL") {
         const assetArray = grouped[type as keyof AssetsByType];
-        if (Array.isArray(assetArray)) {
-          assetArray.push(asset);
-        }
+        assetArray.push(asset);
       } else if (type !== "ALL") {
         grouped.UNKNOWN.push(asset);
       }
