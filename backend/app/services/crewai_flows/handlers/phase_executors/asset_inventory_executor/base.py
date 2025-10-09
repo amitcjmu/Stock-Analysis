@@ -218,13 +218,13 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             await mark_records_processed(db_session, raw_records, all_assets)
 
             # Mark asset_inventory phase as complete and complete the discovery flow
-            # This is the final phase of discovery, so mark flow as completed
+            # This is the final phase of discovery, so mark flow as completed (Qodo Issue #2)
             await persist_asset_inventory_completion(
                 db_session,
                 flow_id=str(discovery_flow_id),
                 client_account_id=str(client_account_id),
                 engagement_id=str(engagement_id),
-                mark_flow_complete=True,  # Discovery ends at asset_inventory
+                mark_flow_complete=True,  # Single source of truth for completion
             )
 
             # Transaction will be committed by caller

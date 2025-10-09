@@ -10,7 +10,7 @@ from typing import List
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data_import.core import RawImportRecord
@@ -73,31 +73,32 @@ async def persist_asset_inventory_completion(
             UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
         )
 
-        # Find the discovery flow
-        result = await db.execute(
-            select(DiscoveryFlow).where(
+        # Use atomic UPDATE to prevent race conditions (Qodo Issue #1)
+        # Build update values based on mark_flow_complete flag
+        update_values = {"asset_inventory_completed": True}
+        if mark_flow_complete:
+            update_values["status"] = "completed"
+            update_values["completed_at"] = datetime.utcnow()
+
+        update_stmt = (
+            update(DiscoveryFlow)
+            .where(
                 DiscoveryFlow.flow_id == flow_uuid,
                 DiscoveryFlow.client_account_id == client_uuid,
                 DiscoveryFlow.engagement_id == engagement_uuid,
             )
+            .values(**update_values)
         )
 
-        discovery_flow = result.scalar_one_or_none()
+        result = await db.execute(update_stmt)
+        await db.flush()
 
-        if discovery_flow:
-            # Mark asset_inventory phase as complete
-            discovery_flow.asset_inventory_completed = True
+        if result.rowcount > 0:
             logger.info(
                 f"✅ Marked asset_inventory_completed = True for flow {flow_id}"
             )
-
-            # If this is the final phase of discovery, mark flow as completed
             if mark_flow_complete:
-                discovery_flow.status = "completed"
-                discovery_flow.completed_at = datetime.utcnow()
                 logger.info(f"✅ Marked discovery flow {flow_id} as completed")
-
-            await db.flush()
             logger.info(
                 "✅ Successfully persisted asset_inventory completion to database"
             )

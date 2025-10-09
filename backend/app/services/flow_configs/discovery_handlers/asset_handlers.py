@@ -136,12 +136,12 @@ async def asset_inventory(
 
         # Ensure proper return format
         # Asset inventory is the FINAL phase of discovery - flow should complete here
+        # Executor handles DB updates (Qodo Issue #2: single source of truth)
         result.update(
             {
                 "phase": "asset_inventory",
                 "flow_id": flow_id,
                 "next_phase": None,  # No next phase - discovery flow complete
-                "flow_complete": True,  # Mark flow as complete
             }
         )
 
