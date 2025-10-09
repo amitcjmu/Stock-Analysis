@@ -86,7 +86,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin', 'recent-activities'],
     queryFn: async () => {
-      const response = await apiCall('/admin/user-access/recent-activities?limit=6', {}, false);
+      const response = await apiCall('/api/v1/admin/user-access/recent-activities?limit=6', {}, false);
       return response;
     },
     refetchInterval: 30000, // Refresh every 30 seconds

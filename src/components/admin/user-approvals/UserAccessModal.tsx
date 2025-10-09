@@ -106,7 +106,7 @@ export const UserAccessModal: React.FC<UserAccessModalProps> = ({
       }
 
       // Fetch all available clients
-      const clientsResponse = await apiCall('/api/v1/admin/clients/?page_size=100');
+      const clientsResponse = await apiCall('/api/v1/admin/clients/?page_size=100', {}, false);
       if (clientsResponse.items) {
         setAvailableClients(clientsResponse.items.map((c: any) => ({
           id: c.id,
@@ -115,7 +115,7 @@ export const UserAccessModal: React.FC<UserAccessModalProps> = ({
       }
 
       // Fetch all available engagements
-      const engagementsResponse = await apiCall('/api/v1/admin/engagements/?page_size=100');
+      const engagementsResponse = await apiCall('/api/v1/admin/engagements/?page_size=100', {}, false);
       if (engagementsResponse.items) {
         setAvailableEngagements(engagementsResponse.items.map((e: any) => ({
           id: e.id,
