@@ -9,7 +9,7 @@ CC: Service layer for asset operations following repository pattern
 """
 
 from .base import AssetService as _AssetServiceBase
-from .deduplication import create_or_update_asset
+from .deduplication import create_or_update_asset, bulk_create_or_update_assets
 from .operations import create_asset, bulk_create_assets, legacy_create_asset
 
 
@@ -24,6 +24,10 @@ class AssetService(_AssetServiceBase):
     async def create_or_update_asset(self, *args, **kwargs):
         """Unified asset creation with hierarchical deduplication"""
         return await create_or_update_asset(self, *args, **kwargs)
+
+    async def bulk_create_or_update_assets(self, *args, **kwargs):
+        """Batch-optimized creation with single prefetch query (eliminates N+1)"""
+        return await bulk_create_or_update_assets(self, *args, **kwargs)
 
     async def create_asset(self, *args, **kwargs):
         """DEPRECATED: Use create_or_update_asset() instead"""

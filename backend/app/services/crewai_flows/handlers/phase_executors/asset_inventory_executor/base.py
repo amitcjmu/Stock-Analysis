@@ -166,30 +166,48 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             duplicate_assets = []
             failed_count = 0
 
-            for asset_data in assets_data:
-                try:
-                    # Use unified deduplication method (single source of truth)
-                    # Hierarchical dedup: name+type → hostname/fqdn/ip → normalization
-                    asset, status = await asset_service.create_or_update_asset(
-                        asset_data, flow_id=master_flow_id
-                    )
+            # Use batch-optimized method to eliminate N+1 queries
+            try:
+                results = await asset_service.bulk_create_or_update_assets(
+                    assets_data, flow_id=master_flow_id
+                )
 
+                # Categorize results by status
+                for asset, status in results:
                     if status == "created":
-                        # Asset was newly created
                         created_assets.append(asset)
                         logger.debug(f"✅ Created asset: {asset.name}")
                     elif status == "existed":
-                        # Asset was a duplicate - not newly created
                         duplicate_assets.append(asset)
                         logger.debug(f"🔄 Duplicate asset skipped: {asset.name}")
                     # Note: "updated" status won't occur with default upsert=False
 
-                except Exception as e:
-                    failed_count += 1
-                    logger.error(
-                        f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
-                    )
-                    # Continue processing other assets in case of individual failures
+            except Exception as e:
+                # If batch fails, fall back to individual processing
+                logger.warning(
+                    f"⚠️ Batch processing failed, falling back to individual: {e}"
+                )
+                for asset_data in assets_data:
+                    try:
+                        # Use unified deduplication method (single source of truth)
+                        # Hierarchical dedup: name+type → hostname/fqdn/ip → normalization
+                        asset, status = await asset_service.create_or_update_asset(
+                            asset_data, flow_id=master_flow_id
+                        )
+
+                        if status == "created":
+                            created_assets.append(asset)
+                            logger.debug(f"✅ Created asset: {asset.name}")
+                        elif status == "existed":
+                            duplicate_assets.append(asset)
+                            logger.debug(f"🔄 Duplicate asset skipped: {asset.name}")
+
+                    except Exception as e:
+                        failed_count += 1
+                        logger.error(
+                            f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
+                        )
+                        # Continue processing other assets in case of individual failures
 
             # Flush to make asset IDs available for foreign key relationships
             await db_session.flush()
