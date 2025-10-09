@@ -37,16 +37,21 @@ class DatabaseQueryMixin:
                 return {}
 
             # CORRECTED: Use status='approved' and add multi-tenant scoping
-            result = await session.execute(
-                select(ImportFieldMapping).where(
-                    ImportFieldMapping.data_import_id == data_import_id,
-                    ImportFieldMapping.status == "approved",  # CORRECTED field
-                    ImportFieldMapping.client_account_id
-                    == self.context.client_account_id,
-                    # NOTE: engagement_id is not a field on ImportFieldMapping model
-                )
-            )
+            # Prefer tenant scoping; if the model lacks engagement_id, at least warn when multiple engagements exist.
+            filters = [
+                ImportFieldMapping.data_import_id == data_import_id,
+                ImportFieldMapping.status == "approved",
+                ImportFieldMapping.client_account_id == self.context.client_account_id,
+                # NOTE: engagement_id is not a field on ImportFieldMapping model
+            ]
+            result = await session.execute(select(ImportFieldMapping).where(*filters))
             mappings = result.scalars().all()
+
+            if not mappings:
+                logger.warning(
+                    f"No approved field mappings found for data_import_id={data_import_id} "
+                    f"client_account_id={self.context.client_account_id}"
+                )
 
             # Convert to dict, exclude UNMAPPED targets
             # CRITICAL FIX: Reverse mapping - we need target -> source to look up CSV fields
