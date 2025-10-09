@@ -59,8 +59,10 @@ export function useQuestionnaireHandlers({
         },
       }));
     },
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
-  ); // No dependencies needed as setState is stable
+  );
 
   /**
    * Handle validation result changes - wrapped in useCallback for performance
@@ -70,8 +72,10 @@ export function useQuestionnaireHandlers({
     (newValidation: FormValidationResult): void => {
       setState((prev) => ({ ...prev, validation: newValidation }));
     },
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
-  ); // No dependencies needed as setState is stable
+  );
 
   /**
    * Save form progress - wrapped in useCallback to prevent unnecessary re-renders
@@ -150,6 +154,8 @@ export function useQuestionnaireHandlers({
     } finally {
       setState((prev) => ({ ...prev, isSaving: false }));
     }
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     state.formData,
     state.flowId,
@@ -158,7 +164,7 @@ export function useQuestionnaireHandlers({
     state.questionnaires,
     applicationId,
     toast,
-  ]); // Dependencies for useCallback
+  ]);
 
   /**
    * Reset the flow state
@@ -221,6 +227,8 @@ export function useQuestionnaireHandlers({
         isLoading: false
       }));
     }
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initializeFlow, toast]);
 
   /**

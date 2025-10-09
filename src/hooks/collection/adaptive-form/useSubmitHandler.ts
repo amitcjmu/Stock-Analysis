@@ -402,6 +402,8 @@ export function useSubmitHandler({
     } finally {
       setState((prev) => ({ ...prev, isLoading: false }));
     }
+    // setState is intentionally omitted - React guarantees setState is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     state.isLoading,
     state.validation,

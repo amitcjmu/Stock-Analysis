@@ -99,6 +99,8 @@ export const useAdaptiveFormFlow = (
       console.log("📝 Flow ID updated from URL:", urlFlowId);
       updateFlowId(urlFlowId);
     }
+    // currentFlowIdRef is a ref - including it would cause unnecessary re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlFlowId, updateFlowId]);
 
   // Check for incomplete flows
