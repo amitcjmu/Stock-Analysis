@@ -7,19 +7,8 @@ import { toast } from "@/components/ui/use-toast";
 // Import modular components
 import CollectionPageLayout from "@/components/collection/layout/CollectionPageLayout";
 import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormContainer";
-import { CollectionUploadBlocker } from "@/components/collection/CollectionUploadBlocker";
-import { CollectionWorkflowError } from "@/components/collection/CollectionWorkflowError";
 import { ApplicationSelectionUI } from "@/components/collection/ApplicationSelectionUI";
-import { QuestionnaireGenerationModal } from "@/components/collection/QuestionnaireGenerationModal";
 import { QuestionnaireReloadButton } from "@/components/collection/QuestionnaireReloadButton";
-import { IncompleteCollectionFlowManager } from "@/components/collection/IncompleteCollectionFlowManager";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 
 // Import custom hooks
 import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
@@ -33,18 +22,25 @@ import { useCollectionStatePolling } from "@/hooks/collection/useCollectionState
 import { useQuery } from "@tanstack/react-query";
 import { apiCall } from "@/config/api";
 
-// Import types - NOW USING MODULARIZED TYPES
+// Import types
 import { groupQuestionsByAsset } from "@/utils/questionnaireUtils";
-import type { CollectionFlow, QuestionnaireData, ProgressMilestone } from "./types";
+import type { CollectionFlow, QuestionnaireData } from "./types";
 
 // Import modularized hooks and components
-import { useProgressCalculation, useFlowNavigation, useAssetNavigation } from "./hooks";
-import { QuestionnaireDisplay, FlowControlPanel, AssetNavigationButtons } from "./components";
-
-// Import UI components
-import { Button } from "@/components/ui/button";
-import { ROUTES } from "@/constants/routes";
-import { FlowDeletionModal } from "@/components/flows/FlowDeletionModal";
+import {
+  useProgressCalculation,
+  useFlowNavigation,
+  useAssetNavigation,
+  useWindowFocusRefetch,
+} from "./hooks";
+import {
+  QuestionnaireDisplay,
+  AssetNavigationButtons,
+  FlowControlPanel,
+  CompletionDisplay,
+  FlowBlockerDisplay,
+  LoadingStateDisplay,
+} from "./components";
 
 /**
  * Adaptive Forms collection page
@@ -71,9 +67,7 @@ const AdaptiveForms: React.FC = () => {
   const [hasJustDeleted, setHasJustDeleted] = useState(false);
 
   // State to show app selection prompt when no applications are selected
-  const [showAppSelectionPrompt, setShowAppSelectionPrompt] = useState(false);
   const [showInlineAppSelection, setShowInlineAppSelection] = useState(false);
-  const [hasRedirectedForApps, setHasRedirectedForApps] = useState(false);
 
   // State for questionnaire generation modal
   const [showGenerationModal, setShowGenerationModal] = useState(false);
@@ -259,29 +253,6 @@ const AdaptiveForms: React.FC = () => {
     }
   }, [assetGroups, selectedAssetId]);
 
-  // Filter form data to show only selected asset's questions
-  const filteredFormData = React.useMemo(() => {
-    if (!formData || !selectedAssetId || assetGroups.length <= 1) {
-      return formData; // No filtering needed for single asset or no selection
-    }
-
-    const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId);
-    if (!selectedGroup) return formData;
-
-    // Filter sections to only include selected asset's questions
-    const filteredSections = formData.sections.map(section => ({
-      ...section,
-      fields: section.fields.filter(field =>
-        selectedGroup.questions.some(q => q.field_id === field.id)
-      )
-    })).filter(section => section.fields.length > 0);
-
-    return {
-      ...formData,
-      sections: filteredSections
-    };
-  }, [formData, selectedAssetId, assetGroups]);
-
   // MODULARIZED: Use extracted asset navigation hook
   const {
     handlePreviousAsset,
@@ -457,8 +428,6 @@ const AdaptiveForms: React.FC = () => {
         flowId: activeFlowId,
         phase: currentCollectionFlow.current_phase,
         progress: currentCollectionFlow.progress,
-        // Applications are optional, not required
-        hasApplications: hasApplicationsSelected(currentCollectionFlow),
       },
     );
   }, [
@@ -478,23 +447,13 @@ const AdaptiveForms: React.FC = () => {
     }
   }, [hasJustDeleted, hasBlockingFlows, checkingFlows]);
 
-  // Add window focus listener to refetch collection flow data when returning from application selection
-  // This ensures we have the latest application selection status when users navigate back
-  useEffect(() => {
-    const handleWindowFocus = async () => {
-      if (activeFlowId && !isLoadingFlow) {
-        console.log(
-          "🔄 Window focused - refetching collection flow data to check for application updates",
-        );
-        await refetchCollectionFlow();
-      }
-    };
-
-    window.addEventListener("focus", handleWindowFocus);
-    return () => {
-      window.removeEventListener("focus", handleWindowFocus);
-    };
-  }, [activeFlowId, isLoadingFlow, refetchCollectionFlow]);
+  // MODULARIZED: Use window focus refetch hook
+  useWindowFocusRefetch({
+    activeFlowId,
+    isLoadingFlow,
+    refetchCollectionFlow,
+    enabled: true,
+  });
 
   // Refetch collection flow data when flowId changes or when we first get an activeFlowId
   // This handles navigation back from application selection page
@@ -507,31 +466,6 @@ const AdaptiveForms: React.FC = () => {
       refetchCollectionFlow();
     }
   }, [activeFlowId, flowId, refetchCollectionFlow]);
-
-  // No longer need to check for 'no_applications_selected' error
-  // The backend now returns a bootstrap questionnaire instead
-
-  // Function to detect if applications are selected in the collection flow
-  const hasApplicationsSelected = (collectionFlow: CollectionFlow | null): boolean => {
-    if (!collectionFlow) return false;
-
-    // Check collection_config for selected applications
-    const config = collectionFlow.collection_config || {};
-    const selectedApps =
-      config.selected_application_ids ||
-      config.applications ||
-      config.application_ids ||
-      [];
-
-    // Check if applications are selected
-    const hasApps = Array.isArray(selectedApps) && selectedApps.length > 0;
-
-    // Also check if has_applications flag is set in config
-    const hasAppsFlag = config.has_applications === true;
-
-    // Return true if applications are selected either way
-    return hasApps || hasAppsFlag;
-  };
 
   // Debug hook state
   console.log('🎯 useAdaptiveFormFlow state:', {
@@ -579,7 +513,7 @@ const AdaptiveForms: React.FC = () => {
     setShowManageFlowsModal(true);
   };
 
-  // MODULARIZED: Use extracted progress calculation hook (from lines 630-669)
+  // MODULARIZED: Use extracted progress calculation hook
   const progressMilestones = useProgressCalculation(formData, formValues);
 
   // Show loading state while checking for incomplete flows
@@ -597,76 +531,39 @@ const AdaptiveForms: React.FC = () => {
     );
   }
 
-  // Asset-Agnostic: Removed application selection prompt
-  // Collection now works with ANY asset type, not requiring application selection
-  // The system will automatically pull in relevant assets based on the data gaps identified
-
   // Show blocker only if there are other incomplete flows AND we're not continuing a specific flow
   // NEVER block if we have a flowId - we're continuing an existing flow
   if (hasBlockingFlows && !flowId && !skipIncompleteCheck) {
     return (
-      <>
-        <CollectionPageLayout
-          title="Adaptive Data Collection"
-          description="Collection workflow blocked - manage existing flows"
-        >
-          <CollectionUploadBlocker
-            incompleteFlows={blockingFlows}
-            onContinueFlow={handleContinueFlow}
-            onDeleteFlow={handleDeleteFlow}
-            onViewDetails={handleViewFlowDetails}
-            onManageFlows={handleManageFlows}
-            onRefresh={refetchFlows}
-            isLoading={isDeleting}
-          />
-        </CollectionPageLayout>
-
-        {/* Flow Deletion Modal - must be available even when blocking */}
-        <FlowDeletionModal
-          open={deletionState.isModalOpen}
-          candidates={deletionState.candidates}
-          deletionSource={deletionState.deletionSource}
-          isDeleting={deletionState.isDeleting}
-          onConfirm={async () => {
-            // Hide candidates only after user confirms
-            setDeletingFlows((prev) => {
-              const next = new Set(prev);
-              deletionState.candidates.forEach((candidate) => {
-                const normalizedId = String(candidate.flowId || '');
-                next.add(normalizedId);
-              });
-              return next;
+      <FlowBlockerDisplay
+        blockingFlows={blockingFlows}
+        incompleteFlows={incompleteFlows}
+        deletionState={deletionState}
+        showManageFlowsModal={showManageFlowsModal}
+        isDeleting={isDeleting}
+        onContinueFlow={handleContinueFlow}
+        onDeleteFlow={handleDeleteFlow}
+        onBatchDelete={(flowIds: string[]) => flowIds.forEach(handleDeleteFlow)}
+        onViewDetails={handleViewFlowDetails}
+        onManageFlows={handleManageFlows}
+        onRefresh={refetchFlows}
+        onManageFlowsModalChange={setShowManageFlowsModal}
+        onDeletionConfirm={async () => {
+          // Hide candidates only after user confirms
+          setDeletingFlows((prev) => {
+            const next = new Set(prev);
+            deletionState.candidates.forEach((candidate) => {
+              const normalizedId = String(candidate.flowId || '');
+              next.add(normalizedId);
             });
-            await deletionActions.confirmDeletion();
-          }}
-          onCancel={() => {
-            deletionActions.cancelDeletion();
-          }}
-        />
-
-        {/* Manage Flows Modal - must be available even when blocking */}
-        <Dialog open={showManageFlowsModal} onOpenChange={setShowManageFlowsModal}>
-          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Manage Collection Flows</DialogTitle>
-              <DialogDescription>
-                Manage and resume incomplete collection flows. Complete existing flows before starting new ones.
-              </DialogDescription>
-            </DialogHeader>
-            <IncompleteCollectionFlowManager
-              flows={incompleteFlows}
-              onContinueFlow={handleContinueFlow}
-              onDeleteFlow={handleDeleteFlow}
-              onBatchDelete={(flowIds: string[]) => {
-                // Handle batch deletion
-                flowIds.forEach(flowId => handleDeleteFlow(flowId));
-              }}
-              onViewDetails={handleViewFlowDetails}
-              isLoading={isDeleting}
-            />
-          </DialogContent>
-        </Dialog>
-      </>
+            return next;
+          });
+          await deletionActions.confirmDeletion();
+        }}
+        onDeletionCancel={() => {
+          deletionActions.cancelDeletion();
+        }}
+      />
     );
   }
 
@@ -675,245 +572,29 @@ const AdaptiveForms: React.FC = () => {
   // This prevents showing empty forms that get populated later
   // If we have a flowId, always show loading/initialization state (never block)
   if ((!formData || isLoading) && (!hasBlockingFlows || flowId)) {
-    // Check if there's an error
-    if (error && !isLoading) {
-      return (
-        <CollectionPageLayout
-          title="Adaptive Data Collection"
-          description="Error initializing collection form"
-        >
-          <CollectionWorkflowError
-            error={error}
-            flowId={activeFlowId}
-            isPollingActive={isPollingActive}
-            onRetry={() => protectedInitializeFlow()}
-            onRefresh={() => window.location.reload()}
-          />
-        </CollectionPageLayout>
-      );
-    }
-
-    // Handle questionnaire generation states based on completion_status
-    if (completionStatus) {
-      switch (completionStatus) {
-        case 'pending':
-          return (
-            <CollectionPageLayout
-              title="Adaptive Data Collection"
-              description="Generating intelligent questionnaire..."
-              isLoading={true}
-              loadingMessage={statusLine || "Our AI agents are analyzing your environment to generate a tailored questionnaire..."}
-              loadingSubMessage="This typically takes 30-60 seconds. Please wait while we create questions specific to your needs."
-            >
-              <div className="flex flex-col items-center space-y-4 mt-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <div className="text-center max-w-md">
-                  <p className="text-sm text-gray-600">
-                    AI agents are reviewing your selected assets and generating contextual questions...
-                  </p>
-                  {isPolling && (
-                    <p className="text-xs text-blue-600 mt-2">
-                      Status updates every 5 seconds
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CollectionPageLayout>
-          );
-
-        case 'failed':
-          return (
-            <CollectionPageLayout
-              title="Adaptive Data Collection"
-              description="Questionnaire generation failed"
-            >
-              <div className="flex flex-col items-center space-y-6 mt-8">
-                <div className="text-center">
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.186-.833-2.956 0L3.857 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Questionnaire Generation Failed
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    {statusLine || "Unable to generate the adaptive questionnaire. This may be due to a temporary issue with our AI agents."}
-                  </p>
-                </div>
-                <div className="flex space-x-4">
-                  <Button onClick={() => protectedInitializeFlow()} size="lg">
-                    Retry Generation
-                  </Button>
-                  <Button variant="outline" onClick={() => window.location.reload()}>
-                    Refresh Page
-                  </Button>
-                </div>
-              </div>
-            </CollectionPageLayout>
-          );
-
-        case 'fallback':
-          // For fallback, we still want to show the form but with an info message
-          // Continue to regular loading state but add a notification
-          break;
-
-        case 'ready':
-          // Questionnaire is ready, continue to normal loading/form display
-          break;
-      }
-    }
-
     return (
-      <CollectionPageLayout
-        title="Adaptive Data Collection"
-        description="Loading collection form and saved data..."
-        isLoading={isLoading || !formData}
-        loadingMessage={
-          isLoading
-            ? "Loading form structure and saved responses..."
-            : "Preparing collection form..."
-        }
-        loadingSubMessage={
-          isLoading
-            ? `Please wait while we load your saved data${isPollingActive ? " (Real-time updates active)" : ""}`
-            : "Initializing workflow"
-        }
-      >
-        {completionStatus === 'fallback' && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-amber-800">
-                  Using Standard Questionnaire
-                </h3>
-                <div className="mt-2 text-sm text-amber-700">
-                  <p>
-                    {statusLine || "Our AI-generated questionnaire is not available. We're using a comprehensive standard questionnaire to ensure all important data is collected."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        {!isLoading && !formData && (
-          <div className="flex flex-col items-center space-y-4 mt-8">
-            <div className="text-center">
-              <p className="text-gray-600 mb-4">
-                The collection form is not loading automatically.
-                Click the button below to start the flow manually.
-              </p>
-            </div>
-            <Button onClick={() => protectedInitializeFlow()} size="lg">
-              Start Collection Flow
-            </Button>
-            <p className="text-sm text-gray-500">
-              Flow ID: {flowId || 'Not provided'}
-            </p>
-          </div>
-        )}
-      </CollectionPageLayout>
+      <LoadingStateDisplay
+        completionStatus={completionStatus}
+        statusLine={statusLine}
+        error={error}
+        isLoading={isLoading}
+        isPolling={isPollingActive}
+        flowId={flowId}
+        onRetry={() => protectedInitializeFlow()}
+        onRefresh={() => window.location.reload()}
+        onInitialize={() => protectedInitializeFlow()}
+      />
     );
   }
 
   // Show completion state when form submission is complete
   if (isCompleted) {
-    // MODULARIZED: Use navigation hook handlers
-    const handleContinueToDiscovery = flowNavigation.handleContinueToDiscovery;
-    const handleViewCollectionOverview = flowNavigation.handleViewCollectionOverview;
-    const handleStartNewCollection = flowNavigation.handleStartNewCollection;
-
     return (
-      <CollectionPageLayout
-        title="Collection Complete"
-        description="Your application data has been successfully collected"
-      >
-        <div className="max-w-3xl mx-auto mt-8">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-8">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <svg
-                  className="h-8 w-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-
-              <h3 className="text-2xl font-bold text-green-900 mb-2">
-                Collection Complete!
-              </h3>
-
-              <p className="text-green-700 mb-6">
-                Your application data has been successfully collected and processed by our AI agents.
-                The information will be used to generate personalized migration recommendations.
-              </p>
-
-              <div className="bg-white rounded-lg p-6 mb-6">
-                <h4 className="font-semibold text-gray-900 mb-3">What happens next?</h4>
-                <ul className="text-left text-gray-700 space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span>Our AI agents will analyze your application data</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span>Discovery phase will identify migration patterns and dependencies</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span>Personalized migration recommendations will be generated</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500 mt-1">•</span>
-                    <span>You'll receive a detailed migration strategy report</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="space-y-3">
-                <Button
-                  onClick={handleContinueToDiscovery}
-                  size="lg"
-                  className="w-full"
-                >
-                  Continue to Discovery Phase
-                </Button>
-
-                <div className="flex gap-3">
-                  <Button
-                    onClick={handleViewCollectionOverview}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    View Collection Overview
-                  </Button>
-
-                  <Button
-                    onClick={handleStartNewCollection}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Start New Collection
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CollectionPageLayout>
+      <CompletionDisplay
+        onContinueToDiscovery={flowNavigation.handleContinueToDiscovery}
+        onViewCollectionOverview={flowNavigation.handleViewCollectionOverview}
+        onStartNewCollection={flowNavigation.handleStartNewCollection}
+      />
     );
   }
 

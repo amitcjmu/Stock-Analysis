@@ -122,14 +122,16 @@ export function useSubmitHandler({
             : [data.question_1].filter(Boolean);
 
           // Extract IDs from display text format "Asset Name (ID: uuid)"
-          selectedAssetIds = rawValues.map(value => {
-            const match = String(value).match(/\(ID:\s*([a-f0-9-]+)\)/);
-            if (match) {
-              return match[1].trim();
-            }
-            // Fallback: if no ID pattern found, return null to be filtered out
-            return null;
-          }).filter(Boolean) as string[];
+          selectedAssetIds = rawValues
+            .map(value => {
+              const match = String(value).match(/\(ID:\s*([a-f0-9-]+)\)/);
+              if (match) {
+                return match[1].trim();
+              }
+              // Fallback: if no ID pattern found, return null to be filtered out
+              return null;
+            })
+            .filter((id): id is string => id !== null);
         }
 
         console.log(`🎯 Asset selection detected (questionnaire ID: ${questionnaireId}), submitting ${selectedAssetIds.length} selected assets via applications endpoint`);
