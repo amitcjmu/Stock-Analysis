@@ -3,6 +3,7 @@
  * Extracted from AdaptiveForms.tsx
  */
 
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import type { AssetGroup } from "../types";
 
@@ -124,6 +125,3 @@ export const useAssetNavigation = ({
     canNavigateNext,
   };
 };
-
-// Import React at the top if not already imported
-import React from "react";

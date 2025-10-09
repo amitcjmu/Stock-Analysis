@@ -183,7 +183,7 @@ export const AssetSelectionForm: React.FC<AssetSelectionFormProps> = ({
         };
       }
     });
-  }, [assetQuestion]);
+  }, [assetQuestion?.options]);
 
   // Filter assets based on search
   const filteredAssets = assetOptions.filter(asset =>

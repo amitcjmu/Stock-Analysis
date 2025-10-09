@@ -1,4 +1,5 @@
 import React from 'react';
+import { apiCall } from '../../../../config/api';
 
 interface InventoryActionsProps {
   executeFlowPhase: (phase: string, params: unknown) => Promise<void>;
@@ -85,9 +86,6 @@ export const useInventoryActions = ({
 
     try {
       console.log(`🔄 Reclassifying ${selectedAssets.length} selected assets...`);
-
-      // Import API call function
-      const { apiCall } = await import('../../../../config/api');
 
       const response = await apiCall('/assets/auto-classify', {
         method: 'POST',

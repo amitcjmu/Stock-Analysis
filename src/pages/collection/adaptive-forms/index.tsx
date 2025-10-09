@@ -257,7 +257,7 @@ const AdaptiveForms: React.FC = () => {
     if (assetGroups.length > 0 && !selectedAssetId) {
       setSelectedAssetId(assetGroups[0].asset_id);
     }
-  }, [assetGroups]);
+  }, [assetGroups, selectedAssetId]);
 
   // Filter form data to show only selected asset's questions
   const filteredFormData = React.useMemo(() => {
@@ -359,20 +359,23 @@ const AdaptiveForms: React.FC = () => {
   const directSaveHandler = React.useCallback(async () => {
     console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
 
-    // For multi-asset forms, temporarily add asset_id to formValues
-    if (assetGroups.length > 1 && selectedAssetId && handleFieldChange) {
+    let valuesToSave = formValues;
+    // For multi-asset forms, create a payload with the correct asset_id
+    if (assetGroups.length > 1 && selectedAssetId) {
       console.log(`💾 Saving progress for asset: ${selectedAssetId}`);
-      // Inject asset_id into form values so backend knows which asset this is for
-      handleFieldChange('asset_id', selectedAssetId);
+      valuesToSave = {
+        ...formValues,
+        asset_id: selectedAssetId,
+      };
     }
 
     if (typeof handleSave === 'function') {
-      console.log('🟢 Calling handleSave from direct handler');
-      await handleSave();
+      console.log('🟢 Calling handleSave from direct handler with valuesToSave');
+      await handleSave(valuesToSave);
     } else {
       console.error('❌ handleSave is not available in AdaptiveForms');
     }
-  }, [handleSave, assetGroups.length, selectedAssetId, handleFieldChange]);
+  }, [handleSave, assetGroups.length, selectedAssetId, formValues]);
 
   // CC: Wrap handleSubmit to inject asset_id for multi-asset forms
   const directSubmitHandler = React.useCallback(async () => {

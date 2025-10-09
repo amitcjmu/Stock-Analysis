@@ -55,9 +55,17 @@ export const useInventoryData = ({
           // Only include flow_id when in current_flow mode and flowId is available
           // FIX: Don't throw error if no flowId - just fetch all assets from database
           const normalizedFlowId = flowId && flowId !== 'no-flow' ? String(flowId) : '';
+
+          // Security: Validate flow ID to prevent injection attacks
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (viewMode === 'current_flow' && normalizedFlowId) {
-            queryParams.append('flow_id', normalizedFlowId);
-            console.log(`🔍 API call will include flow_id: ${normalizedFlowId}`);
+            if (uuidRegex.test(normalizedFlowId)) {
+              queryParams.append('flow_id', normalizedFlowId);
+              console.log(`🔍 API call will include flow_id: ${normalizedFlowId}`);
+            } else {
+              console.warn(`⚠️ Invalid flow ID format, skipping: ${normalizedFlowId}`);
+              // Don't include invalid flow_id in request - fetch all assets instead
+            }
           } else if (viewMode === 'current_flow') {
             console.log(`📊 current_flow mode but no flowId - fetching all assets from database`);
             // Don't throw error - inventory should load assets from DB regardless of flow state

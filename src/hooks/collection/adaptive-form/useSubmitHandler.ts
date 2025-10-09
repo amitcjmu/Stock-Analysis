@@ -127,9 +127,9 @@ export function useSubmitHandler({
             if (match) {
               return match[1].trim();
             }
-            // Fallback: if no ID pattern found, use the full value
-            return value;
-          }).filter(Boolean);
+            // Fallback: if no ID pattern found, return null to be filtered out
+            return null;
+          }).filter(Boolean) as string[];
         }
 
         console.log(`🎯 Asset selection detected (questionnaire ID: ${questionnaireId}), submitting ${selectedAssetIds.length} selected assets via applications endpoint`);
@@ -183,6 +183,18 @@ export function useSubmitHandler({
           // The backend returns collection_flow.id as flow_id in the response
           const collectionFlowId = submitResponse.flow_id || actualFlowId;
           console.log("🎯 Using collection_flow_id for navigation:", collectionFlowId);
+
+          // Security: Validate flow ID to prevent open redirect vulnerability
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!collectionFlowId || !uuidRegex.test(collectionFlowId)) {
+            console.error("❌ Invalid flow ID received from backend:", collectionFlowId);
+            toast({
+              title: "Navigation Error",
+              description: "Invalid flow ID received. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
 
           // Wait a moment for gap analysis to complete, then navigate to gaps grid
           const waitTime = 2000; // 2 seconds to allow tier_1 gap analysis to complete

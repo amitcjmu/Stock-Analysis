@@ -75,6 +75,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   refreshFlow,
   setHasTriggeredInventory
 }) => {
+  // Memory leak prevention: Track if component is mounted
+  const isMountedRef = React.useRef(true);
+
+  React.useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Check if we need to execute the asset inventory phase
   // FIX #447: Support both phases_completed array and phase_completion object
   const dataCleansingDone =
@@ -126,8 +135,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                           source: 'inventory_page_manual_bypass'
                         });
                         setTimeout(() => {
-                          refetchAssets();
-                          refreshFlow();
+                          if (isMountedRef.current) {
+                            refetchAssets();
+                            refreshFlow();
+                          }
                         }, 2000);
                       } catch (error) {
                         console.error('Failed to manually execute asset inventory:', error);
@@ -174,8 +185,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                         });
                         // Refetch assets after execution
                         setTimeout(() => {
-                          refetchAssets();
-                          refreshFlow();
+                          if (isMountedRef.current) {
+                            refetchAssets();
+                            refreshFlow();
+                          }
                         }, 2000);
                       } catch (error) {
                         console.error('Failed to execute asset inventory phase:', error);
