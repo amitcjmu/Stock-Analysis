@@ -168,36 +168,22 @@ class AssetInventoryExecutor(BasePhaseExecutor):
 
             for asset_data in assets_data:
                 try:
-                    # Check if asset exists before creating
-                    asset_name = asset_data.get("name") or asset_data.get(
-                        "asset_name", "unnamed"
-                    )
-                    existing_asset = await asset_service._find_existing_asset(
-                        name=asset_name,
-                        client_id=str(client_account_id),
-                        engagement_id=str(engagement_id),
-                    )
-
-                    if existing_asset:
-                        # Asset was a duplicate - not newly created
-                        duplicate_assets.append(existing_asset)
-                        logger.debug(
-                            f"🔄 Duplicate asset skipped: {existing_asset.name}"
-                        )
-                        continue
-
-                    asset = await asset_service.create_asset(
+                    # Use unified deduplication method (single source of truth)
+                    # Hierarchical dedup: name+type → hostname/fqdn/ip → normalization
+                    asset, status = await asset_service.create_or_update_asset(
                         asset_data, flow_id=master_flow_id
                     )
-                    if asset:
+
+                    if status == "created":
                         # Asset was newly created
                         created_assets.append(asset)
                         logger.debug(f"✅ Created asset: {asset.name}")
-                    else:
-                        failed_count += 1
-                        logger.warning(
-                            f"⚠️ Asset service returned None for: {asset_name}"
-                        )
+                    elif status == "existed":
+                        # Asset was a duplicate - not newly created
+                        duplicate_assets.append(asset)
+                        logger.debug(f"🔄 Duplicate asset skipped: {asset.name}")
+                    # Note: "updated" status won't occur with default upsert=False
+
                 except Exception as e:
                     failed_count += 1
                     logger.error(
