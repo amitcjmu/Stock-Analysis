@@ -66,6 +66,7 @@ export const useAssessmentFlow = (
         `/api/v1/assessment-flow/${state.flowId}/events`,
         {
           onMessage: (event) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
             let data: any;
             try {
               if (!event?.data || event.data === ':keepalive' || event.data === 'heartbeat') return;
@@ -96,7 +97,12 @@ export const useAssessmentFlow = (
           },
           onError: (error) => {
             console.error('Assessment flow SSE error:', error);
-            try { eventSourceRef.current?.close(); } catch {}
+            try {
+              eventSourceRef.current?.close();
+            } catch (closeError) {
+              // Ignore close errors - connection may already be closed
+              console.debug('EventSource close error:', closeError);
+            }
             eventSourceRef.current = null;
             setState(prev => ({ ...prev, error: 'Real-time updates disconnected' }));
           }

@@ -104,6 +104,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
         const res = await apiCall('/asset-workflow/workflow/by-phase/assessment_ready', { method: 'GET', headers });
         const items = Array.isArray(res) ? res : [];
         return items
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
           .map((a: any) => a?.id ?? a?.asset_id ?? a?.asset?.id)
           .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
       } catch (err) {
@@ -171,6 +172,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
         headers,
         body: JSON.stringify({ selected_application_ids: readyAppIds })
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
       const flowId = result && typeof result === 'object' ? (result as any).flow_id : undefined;
       // Fire-and-forget UX metric event (basic scaffolding)
       try {

@@ -158,33 +158,21 @@ class AssetCreationToolWithServiceImpl:
                     parameters={"asset_name": asset_data.get("name", "unnamed")},
                 )
 
-            # Create asset via service
-            created_asset = await asset_service.create_asset(asset_data)
+            # Use unified deduplication method (single source of truth)
+            # Hierarchical dedup: name+type → hostname/fqdn/ip → normalization
+            asset, status = await asset_service.create_or_update_asset(asset_data)
 
-            if not created_asset:
-                error_msg = "Asset service returned None - creation failed"
-                logger.error(f"❌ {error_msg}")
-
-                # Log failure
-                if audit_logger:
-                    await audit_logger.log_tool_execution(
-                        tool_name="asset_creator",
-                        operation="create_asset",
-                        parameters={"asset_name": asset_data.get("name", "unnamed")},
-                        error=error_msg,
-                    )
-
-                return json.dumps(
-                    {
-                        "success": False,
-                        "error": error_msg,
-                        "message": "Failed to create asset via service",
-                    }
+            if status == "created":
+                logger.info(
+                    f"✅ Asset created via ServiceRegistry: {asset.name} (ID: {asset.id})"
                 )
-
-            logger.info(
-                f"✅ Asset created via ServiceRegistry: {created_asset.name} (ID: {created_asset.id})"
-            )
+                message = f"Asset '{asset.name}' created successfully"
+            elif status == "existed":
+                logger.info(f"🔄 Asset already exists: {asset.name} (ID: {asset.id})")
+                message = f"Asset '{asset.name}' already exists (duplicate skipped)"
+            else:  # status == "updated"
+                logger.info(f"🔄 Asset updated: {asset.name} (ID: {asset.id})")
+                message = f"Asset '{asset.name}' was updated"
 
             # Log success
             if audit_logger:
@@ -193,17 +181,19 @@ class AssetCreationToolWithServiceImpl:
                     operation="create_asset",
                     parameters={"asset_name": asset_data.get("name", "unnamed")},
                     result={
-                        "asset_id": str(created_asset.id),
-                        "asset_name": created_asset.name,
+                        "asset_id": str(asset.id),
+                        "asset_name": asset.name,
+                        "status": status,
                     },
                 )
 
             return json.dumps(
                 {
                     "success": True,
-                    "asset_id": str(created_asset.id),
-                    "asset_name": created_asset.name,
-                    "message": f"Asset '{created_asset.name}' created successfully via ServiceRegistry",
+                    "asset_id": str(asset.id),
+                    "asset_name": asset.name,
+                    "status": status,
+                    "message": message,
                 }
             )
 
@@ -301,21 +291,17 @@ class BulkAssetCreationToolWithServiceImpl:
 
                 for asset_data in assets_data:
                     try:
-                        asset = await asset_service.create_asset(asset_data)
-                        if asset:
-                            created_assets.append(
-                                {
-                                    "asset_id": str(asset.id),
-                                    "asset_name": asset.name,
-                                }
-                            )
-                        else:
-                            failed_assets.append(
-                                {
-                                    "asset_name": asset_data.get("name", "unknown"),
-                                    "error": "Service returned None",
-                                }
-                            )
+                        # Use unified deduplication (single source of truth)
+                        asset, status = await asset_service.create_or_update_asset(
+                            asset_data
+                        )
+                        created_assets.append(
+                            {
+                                "asset_id": str(asset.id),
+                                "asset_name": asset.name,
+                                "status": status,
+                            }
+                        )
                     except Exception as e:
                         # Log the error and add to failed assets
                         logger.error(

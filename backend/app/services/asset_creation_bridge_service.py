@@ -16,6 +16,7 @@ from app.core.context import RequestContext
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
 from app.models.asset import Asset, AssetStatus, AssetType
 from app.models.discovery_flow import DiscoveryFlow
+from app.services.asset_service import AssetService
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ class AssetCreationBridgeService:
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
         self.context = context
+        # Initialize AssetService for unified deduplication
+        self.asset_service = AssetService(db, context)
 
     async def create_assets_from_discovery(
         self, discovery_flow_id: uuid.UUID, user_id: uuid.UUID = None
@@ -82,10 +85,21 @@ class AssetCreationBridgeService:
 
             for discovery_asset in discovery_assets:
                 try:
-                    # Check for existing asset (deduplication)
-                    existing_asset = await self._find_existing_asset(discovery_asset)
+                    # Prepare asset data from discovery asset
+                    asset_data = self._prepare_asset_data(
+                        discovery_asset, discovery_flow, user_id
+                    )
 
-                    if existing_asset:
+                    # Use unified deduplication method (single source of truth)
+                    # Hierarchical dedup: name+type → hostname/fqdn/ip → normalization
+                    asset, status = await self.asset_service.create_or_update_asset(
+                        asset_data, flow_id=str(discovery_flow.flow_id)
+                    )
+
+                    if status == "created":
+                        created_assets.append(asset)
+                        logger.info(f"✅ Created asset: {asset.name} (ID: {asset.id})")
+                    elif status == "existed":
                         logger.info(
                             f"⚠️ Skipping duplicate asset: {discovery_asset.asset_name}"
                         )
@@ -94,21 +108,10 @@ class AssetCreationBridgeService:
                                 "discovery_asset_id": str(discovery_asset.id),
                                 "asset_name": discovery_asset.asset_name,
                                 "reason": "duplicate",
-                                "existing_asset_id": str(existing_asset.id),
+                                "existing_asset_id": str(asset.id),
                             }
                         )
-                        continue
-
-                    # Create new asset
-                    new_asset = await self._create_asset_from_discovery(
-                        discovery_asset, discovery_flow, user_id
-                    )
-
-                    if new_asset:
-                        created_assets.append(new_asset)
-                        logger.info(
-                            f"✅ Created asset: {new_asset.name} (ID: {new_asset.id})"
-                        )
+                    # Note: "updated" status won't occur with default upsert=False
 
                 except Exception as e:
                     logger.error(
@@ -153,57 +156,14 @@ class AssetCreationBridgeService:
             await self.db.rollback()
             raise
 
-    async def _find_existing_asset(self, discovery_asset: Asset) -> Optional[Asset]:
-        """
-        Find existing asset to avoid duplicates.
-        Uses business rules for deduplication.
-        """
-        # Primary deduplication by name and type within engagement
-        query = select(Asset).where(
-            and_(
-                Asset.name == discovery_asset.asset_name,
-                Asset.asset_type == self._map_asset_type(discovery_asset.asset_type),
-                Asset.client_account_id == self.context.client_account_id,
-                Asset.engagement_id == self.context.engagement_id,
-            )
-        )
-
-        result = await self.db.execute(query)
-        existing = result.scalar_one_or_none()
-
-        if existing:
-            return existing
-
-        # Secondary deduplication by hostname/IP if available
-        normalized_data = discovery_asset.normalized_data or {}
-        hostname = normalized_data.get("hostname") or normalized_data.get("fqdn")
-        ip_address = normalized_data.get("ip_address")
-
-        if hostname or ip_address:
-            conditions = [
-                Asset.client_account_id == self.context.client_account_id,
-                Asset.engagement_id == self.context.engagement_id,
-            ]
-
-            if hostname:
-                conditions.append(Asset.hostname == hostname)
-            if ip_address:
-                conditions.append(Asset.ip_address == ip_address)
-
-            query = select(Asset).where(and_(*conditions))
-            result = await self.db.execute(query)
-            return result.scalar_one_or_none()
-
-        return None
-
-    async def _create_asset_from_discovery(
+    def _prepare_asset_data(
         self,
         discovery_asset: Asset,
         discovery_flow: DiscoveryFlow,
         user_id: uuid.UUID = None,
-    ) -> Asset:
+    ) -> Dict[str, Any]:
         """
-        Create a new Asset from DiscoveryAsset with proper normalization.
+        Prepare asset data dict from DiscoveryAsset for unified creation.
         """
         # Extract normalized data
         raw_data = discovery_asset.raw_data or {}
@@ -212,59 +172,61 @@ class AssetCreationBridgeService:
         # Map asset type
         asset_type = self._map_asset_type(discovery_asset.asset_type)
 
-        # Create new asset
-        new_asset = Asset(
+        # Prepare asset data dict
+        asset_data = {
             # Multi-tenant isolation
-            client_account_id=self.context.client_account_id,
-            engagement_id=self.context.engagement_id,
+            "client_account_id": self.context.client_account_id,
+            "engagement_id": self.context.engagement_id,
             # Basic information
-            name=discovery_asset.asset_name,
-            asset_name=discovery_asset.asset_name,
-            asset_type=asset_type,
-            description=normalized_data.get("description")
+            "name": discovery_asset.asset_name,
+            "asset_name": discovery_asset.asset_name,
+            "asset_type": asset_type,
+            "description": normalized_data.get("description")
             or f"Discovered via {discovery_asset.discovery_method}",
             # Network information
-            hostname=normalized_data.get("hostname"),
-            fqdn=normalized_data.get("fqdn"),
-            ip_address=normalized_data.get("ip_address"),
-            mac_address=normalized_data.get("mac_address"),
+            "hostname": normalized_data.get("hostname"),
+            "fqdn": normalized_data.get("fqdn"),
+            "ip_address": normalized_data.get("ip_address"),
+            "mac_address": normalized_data.get("mac_address"),
             # Environment and location
-            environment=normalized_data.get("environment", "Unknown"),
-            location=normalized_data.get("location"),
-            datacenter=normalized_data.get("datacenter"),
+            "environment": normalized_data.get("environment", "Unknown"),
+            "location": normalized_data.get("location"),
+            "datacenter": normalized_data.get("datacenter"),
             # Technical specifications
-            operating_system=normalized_data.get("operating_system"),
-            os_version=(
+            "operating_system": normalized_data.get("operating_system"),
+            "os_version": (
                 str(normalized_data.get("os_version"))
                 if normalized_data.get("os_version") is not None
                 else None
             ),
-            cpu_cores=self._safe_int(normalized_data.get("cpu_cores")),
-            memory_gb=self._safe_float(normalized_data.get("memory_gb")),
-            storage_gb=self._safe_float(normalized_data.get("storage_gb")),
+            "cpu_cores": self._safe_int(normalized_data.get("cpu_cores")),
+            "memory_gb": self._safe_float(normalized_data.get("memory_gb")),
+            "storage_gb": self._safe_float(normalized_data.get("storage_gb")),
             # Business information
-            business_owner=normalized_data.get("business_owner"),
-            technical_owner=normalized_data.get("technical_owner"),
-            department=normalized_data.get("department"),
-            application_name=normalized_data.get("application_name"),
-            technology_stack=normalized_data.get("technology_stack"),
-            criticality=normalized_data.get("criticality", "Medium"),
-            business_criticality=normalized_data.get("business_criticality", "Medium"),
+            "business_owner": normalized_data.get("business_owner"),
+            "technical_owner": normalized_data.get("technical_owner"),
+            "department": normalized_data.get("department"),
+            "application_name": normalized_data.get("application_name"),
+            "technology_stack": normalized_data.get("technology_stack"),
+            "criticality": normalized_data.get("criticality", "Medium"),
+            "business_criticality": normalized_data.get(
+                "business_criticality", "Medium"
+            ),
             # Migration assessment from discovery
-            migration_priority=discovery_asset.migration_priority or 5,
-            migration_complexity=discovery_asset.migration_complexity,
-            migration_status=(
+            "migration_priority": discovery_asset.migration_priority or 5,
+            "migration_complexity": discovery_asset.migration_complexity,
+            "migration_status": (
                 AssetStatus.ASSESSED
                 if discovery_asset.migration_ready
                 else AssetStatus.DISCOVERED
             ),
             # Discovery metadata
-            discovery_method=discovery_asset.discovery_method or "discovery_flow",
-            discovery_source=f"Discovery Flow {discovery_flow.flow_name}",
-            discovery_timestamp=discovery_asset.created_at,
+            "discovery_method": discovery_asset.discovery_method or "discovery_flow",
+            "discovery_source": f"Discovery Flow {discovery_flow.flow_name}",
+            "discovery_timestamp": discovery_asset.created_at,
             # Data preservation
-            raw_data=raw_data,
-            custom_attributes={
+            "raw_data": raw_data,
+            "custom_attributes": {
                 "discovery_flow_id": str(discovery_flow.id),
                 "discovery_asset_id": str(discovery_asset.id),
                 "discovered_in_phase": discovery_asset.discovered_in_phase,
@@ -272,17 +234,13 @@ class AssetCreationBridgeService:
                 "validation_status": discovery_asset.validation_status,
             },
             # Audit information
-            imported_by=None,  # Don't set foreign key references that might not exist
-            imported_at=datetime.utcnow(),
-            created_by=None,  # Don't set foreign key references that might not exist
-            is_mock=discovery_asset.is_mock,
-        )
+            "imported_by": None,  # Don't set foreign key references that might not exist
+            "imported_at": datetime.utcnow(),
+            "created_by": None,  # Don't set foreign key references that might not exist
+            "is_mock": discovery_asset.is_mock,
+        }
 
-        # Add to session
-        self.db.add(new_asset)
-        await self.db.flush()  # Get the ID
-
-        return new_asset
+        return asset_data
 
     def _map_asset_type(self, discovery_type: str) -> AssetType:
         """

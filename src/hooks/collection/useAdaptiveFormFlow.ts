@@ -1138,12 +1138,15 @@ export const useAdaptiveFormFlow = (
   /**
    * Save form progress - wrapped in useCallback to prevent unnecessary re-renders
    */
-  const handleSave = useCallback(async (): Promise<void> => {
+  const handleSave = useCallback(async (valuesToSave?: CollectionFormData): Promise<void> => {
+    const formValuesToUse = valuesToSave || state.formValues;
+
     console.log("🔴 SAVE BUTTON CLICKED - handleSave triggered", {
       hasFormData: !!state.formData,
       hasFlowId: !!state.flowId,
       flowId: state.flowId,
-      formValues: state.formValues,
+      formValues: formValuesToUse,
+      usingProvidedValues: !!valuesToSave,
       timestamp: new Date().toISOString(),
     });
 
@@ -1170,7 +1173,7 @@ export const useAdaptiveFormFlow = (
 
       // Prepare the submission data in the format expected by the backend
       const submissionData = {
-        responses: state.formValues,
+        responses: formValuesToUse,
         form_metadata: {
           form_id: state.formData.formId,
           application_id: applicationId || null,

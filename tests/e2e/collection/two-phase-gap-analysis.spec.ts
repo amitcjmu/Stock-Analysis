@@ -580,7 +580,7 @@ test.describe('Database Verification', () => {
     console.log('\n🧪 TEST 10: Database Verification');
 
     // Query database using pg client
-    const { Client } = require('pg');
+    const { Client } = await import('pg');
 
     const client = new Client({
       host: 'localhost',

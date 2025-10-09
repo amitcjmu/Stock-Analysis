@@ -1,13 +1,25 @@
-"""Update collection flow enum to include asset_selection
+"""Update collection flow enum to include asset_selection (SUPERSEDED)
 
 Revision ID: 077_update_collection_flow_enum
 Revises: 076_remap_collection_flow_phases
 Create Date: 2025-09-25 01:40:00.000000
 
+IMPORTANT: This migration is superseded by migrations 086 and 087 (PR #518, Oct 2025).
+It was originally created to fix ADR-012 violations but was replaced by a more
+comprehensive solution.
+
+This migration is now a NO-OP to maintain migration chain integrity for databases
+that already have this migration in their version history.
+
+The correct ADR-012 implementation is in:
+- Migration 086: Adds 'running' status, migrates phase values to 'running'
+- Migration 087: Adds 'paused' status, removes deprecated phase values
+
+Reference:
+- PR #518: Complete ADR-012 compliance for Collection Flow Status
+- Memory: adr-012-collection-flow-status-remediation
+- COLLECTION_FLOW_STATUS_REMEDIATION_PLAN.md
 """
-
-from alembic import op
-
 
 # revision identifiers, used by Alembic.
 revision = "077_update_collection_flow_enum"
@@ -18,118 +30,26 @@ depends_on = None
 
 def upgrade() -> None:
     """
-    Update the collectionflowstatus enum to include asset_selection
-    and remove platform_detection and automated_collection
+    NO-OP: This migration is superseded by migrations 086 and 087.
+
+    Originally attempted to update collectionflowstatus enum but was incorrectly
+    mixing lifecycle states (status) with operational phases (current_phase).
+
+    The correct implementation is in migration 087, which sets the enum to:
+    - initialized, running, paused, completed, failed, cancelled (lifecycle states only)
+
+    This migration does nothing to avoid breaking the migration chain for databases
+    that have already recorded this migration in alembic_version table.
     """
-
-    # PostgreSQL doesn't allow direct modification of enums, so we need to:
-    # 1. Update any old values to new values
-    # 2. Create a new enum type
-    # 3. Update the column to use the new enum
-    # 4. Drop the old enum
-
-    # First, cast the column to text temporarily to allow value updates
-    op.execute(
-        """
-        ALTER TABLE migration.collection_flows
-        ALTER COLUMN status TYPE text
-    """
-    )
-
-    # IMPORTANT: Remap old values to new values BEFORE changing the enum type
-    # This assumes migration 076 may not have run or may have been incomplete
-    op.execute(
-        """
-        UPDATE migration.collection_flows
-        SET status = 'asset_selection'
-        WHERE status IN ('platform_detection', 'automated_collection')
-    """
-    )
-
-    # Create new enum type with updated values
-    op.execute(
-        """
-        CREATE TYPE collectionflowstatus_new AS ENUM (
-            'initialized',
-            'asset_selection',
-            'gap_analysis',
-            'manual_collection',
-            'completed',
-            'failed',
-            'cancelled'
-        )
-    """
-    )
-
-    # Drop the old enum type
-    op.execute("DROP TYPE IF EXISTS collectionflowstatus CASCADE")
-
-    # Rename the new enum to the original name
-    op.execute("ALTER TYPE collectionflowstatus_new RENAME TO collectionflowstatus")
-
-    # Update the column to use the renamed enum
-    op.execute(
-        """
-        ALTER TABLE migration.collection_flows
-        ALTER COLUMN status TYPE collectionflowstatus
-        USING status::collectionflowstatus
-    """
-    )
-
-    print("✅ Updated collectionflowstatus enum to include asset_selection")
+    print("ℹ️  Migration 077 is a NO-OP (superseded by migrations 086-087 from PR #518)")
+    print("   CollectionFlowStatus enum will be correctly updated by migration 087")
+    print("   Skipping to maintain migration chain integrity...")
 
 
 def downgrade() -> None:
     """
-    Revert the enum changes
+    NO-OP: Downgrade is not needed as upgrade is also a no-op.
+
+    The actual enum changes are handled by migrations 086 and 087.
     """
-
-    # Create old enum type
-    op.execute(
-        """
-        CREATE TYPE collectionflowstatus_old AS ENUM (
-            'initialized',
-            'platform_detection',
-            'automated_collection',
-            'gap_analysis',
-            'manual_collection',
-            'completed',
-            'failed',
-            'cancelled'
-        )
-    """
-    )
-
-    # Update the column to use text temporarily
-    op.execute(
-        """
-        ALTER TABLE migration.collection_flows
-        ALTER COLUMN status TYPE text
-    """
-    )
-
-    # Map asset_selection back to platform_detection
-    op.execute(
-        """
-        UPDATE migration.collection_flows
-        SET status = 'platform_detection'
-        WHERE status = 'asset_selection'
-    """
-    )
-
-    # Drop the current enum
-    op.execute("DROP TYPE IF EXISTS collectionflowstatus CASCADE")
-
-    # Rename old enum back
-    op.execute("ALTER TYPE collectionflowstatus_old RENAME TO collectionflowstatus")
-
-    # Update column to use the old enum
-    op.execute(
-        """
-        ALTER TABLE migration.collection_flows
-        ALTER COLUMN status TYPE collectionflowstatus
-        USING status::collectionflowstatus
-    """
-    )
-
-    print("✅ Reverted collectionflowstatus enum to original values")
+    print("ℹ️  Migration 077 downgrade is a NO-OP (migration superseded by 086-087)")

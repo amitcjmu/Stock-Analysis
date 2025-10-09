@@ -336,11 +336,13 @@ async def asset_inventory(
         result = await executor.execute_asset_creation(flow_context)
 
         # Ensure proper return format
+        # Asset inventory is the FINAL phase of discovery - flow should complete here
         result.update(
             {
                 "phase": "asset_inventory",
                 "flow_id": flow_id,
-                "next_phase": "dependency_analysis",
+                "next_phase": None,  # No next phase - discovery flow complete
+                "flow_complete": True,  # Mark flow as complete
             }
         )
 

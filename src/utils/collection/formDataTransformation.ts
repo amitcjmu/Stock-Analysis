@@ -343,6 +343,7 @@ export const convertQuestionnairesToFormData = (
         applicationId: applicationId || 'app-new',
         sections,
         totalFields: questions.length,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
         requiredFields: questions.filter((q: any) => q.required !== false).length,
         estimatedCompletionTime: 5, // Asset selection should be quick
         confidenceImpactScore: 1.0 // High confidence for asset selection

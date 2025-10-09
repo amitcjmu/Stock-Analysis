@@ -16,12 +16,20 @@ logger = logging.getLogger(__name__)
 class DataCleansingBase:
     """Base class for data cleansing operations"""
 
-    def _basic_data_cleansing(
-        self, raw_import_records: List[Dict[str, Any]]
+    async def _basic_data_cleansing(
+        self, raw_import_records: List[Dict[str, Any]], field_mappings: Dict[str, str]
     ) -> List[Dict[str, Any]]:
-        """Basic data cleansing fallback when agent is not available or fails"""
+        """Basic data cleansing fallback using field mappings.
+
+        Args:
+            raw_import_records: Raw CSV data records
+            field_mappings: Approved source_field -> target_field mappings
+
+        Returns:
+            Cleaned records with transformed field names
+        """
         logger.info(
-            f"🔧 Performing basic data cleansing on {len(raw_import_records)} records"
+            f"🔧 Performing basic data cleansing with field mappings on {len(raw_import_records)} records"
         )
 
         cleaned_data = []
@@ -37,27 +45,24 @@ class DataCleansingBase:
             # CRITICAL: Preserve row_number for fallback updating
             if "row_number" in record:
                 cleaned_record["row_number"] = record["row_number"]
-                logger.debug(f"Preserved row_number: {record['row_number']} for record")
 
-            # Copy over the raw data fields
+            # Apply field mappings to raw_data
             raw_data = record.get("raw_data", {})
             if isinstance(raw_data, dict):
-                cleaned_record.update(raw_data)
-
-            # Basic cleansing operations
-            for key, value in record.items():
-                if key not in ["raw_import_record_id", "id", "raw_data", "row_number"]:
+                for source_field, value in raw_data.items():
+                    # Use target field name if mapping exists, otherwise keep source
+                    target_field = field_mappings.get(source_field, source_field)
                     # Clean string values
                     if isinstance(value, str):
                         value = value.strip()
-                        # Convert empty strings to None
                         if value == "":
                             value = None
-                    cleaned_record[key] = value
+                    cleaned_record[target_field] = value
 
             # Add cleansing metadata
             cleaned_record["cleansing_method"] = "basic_fallback"
             cleaned_record["cleansed_at"] = datetime.utcnow().isoformat()
+            cleaned_record["mappings_applied"] = len(field_mappings)
 
             cleaned_data.append(cleaned_record)
 
