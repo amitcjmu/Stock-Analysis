@@ -178,18 +178,21 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                         engagement_id=str(engagement_id),
                     )
 
+                    if existing_asset:
+                        # Asset was a duplicate - not newly created
+                        duplicate_assets.append(existing_asset)
+                        logger.debug(
+                            f"🔄 Duplicate asset skipped: {existing_asset.name}"
+                        )
+                        continue
+
                     asset = await asset_service.create_asset(
                         asset_data, flow_id=master_flow_id
                     )
                     if asset:
-                        if existing_asset and existing_asset.id == asset.id:
-                            # Asset was a duplicate - not newly created
-                            duplicate_assets.append(asset)
-                            logger.debug(f"🔄 Duplicate asset skipped: {asset.name}")
-                        else:
-                            # Asset was newly created
-                            created_assets.append(asset)
-                            logger.debug(f"✅ Created asset: {asset.name}")
+                        # Asset was newly created
+                        created_assets.append(asset)
+                        logger.debug(f"✅ Created asset: {asset.name}")
                     else:
                         failed_count += 1
                         logger.warning(
