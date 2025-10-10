@@ -134,10 +134,11 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         selectedAssetIds,
       );
 
-      // Add id field for AG Grid row identification
+      // Add id field for AG Grid row identification (only if not already present from database)
       const gapsWithIds = response.gaps.map((gap, index) => ({
         ...gap,
-        id: `${gap.asset_id}-${gap.field_name}-${index}`,
+        // Use database ID if present, otherwise create composite key for AG Grid
+        id: gap.id || `${gap.asset_id}-${gap.field_name}-${index}`,
       }));
 
       setGaps(gapsWithIds);
@@ -223,9 +224,10 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             // Re-scan gaps to get AI enhancements from database
             try {
               const updatedGaps = await collectionFlowApi.getGaps(flowId);
+              // Use database ID if present (from getGaps), otherwise create composite key
               const gapsWithIds = updatedGaps.map((gap, index) => ({
                 ...gap,
-                id: `${gap.asset_id}-${gap.field_name}-${index}`,
+                id: gap.id || `${gap.asset_id}-${gap.field_name}-${index}`,
               }));
               setGaps(gapsWithIds);
 
