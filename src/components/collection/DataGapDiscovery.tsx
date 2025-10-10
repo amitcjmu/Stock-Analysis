@@ -360,7 +360,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setIsSaving(true);
 
       const updates: GapUpdate[] = highConfidenceGaps.map((gap) => ({
-        gap_id: gap.id || "",
+        gap_id: gap.id,  // Backend always returns database UUID
         field_name: gap.field_name,
         resolved_value: gap.suggested_resolution,
         resolution_status: "resolved",
@@ -427,7 +427,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setIsSaving(true);
 
       const updates: GapUpdate[] = gapsWithResolutions.map((gap) => ({
-        gap_id: gap.id || "",
+        gap_id: gap.id,  // Backend always returns database UUID
         field_name: gap.field_name,
         resolved_value: gap.suggested_resolution,
         resolution_status: "resolved",
@@ -477,7 +477,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setIsSaving(true);
 
       const updates: GapUpdate[] = aiSuggestedGaps.map((gap) => ({
-        gap_id: gap.id || "",
+        gap_id: gap.id,  // Backend always returns database UUID
         field_name: gap.field_name,
         resolved_value: "",
         resolution_status: "skipped",
