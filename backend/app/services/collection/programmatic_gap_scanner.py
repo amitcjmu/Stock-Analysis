@@ -248,9 +248,13 @@ class ProgrammaticGapScanner:
             return {
                 "gaps": gaps_with_ids,  # ✅ Now includes database IDs
                 "summary": {
-                    "total_gaps": len(all_gaps),
+                    "total_gaps": len(
+                        gaps_with_ids
+                    ),  # Use gaps_with_ids for consistency
                     "assets_analyzed": len(assets),
-                    "critical_gaps": sum(1 for g in all_gaps if g["priority"] == 1),
+                    "critical_gaps": sum(
+                        1 for g in gaps_with_ids if g["priority"] == 1
+                    ),
                     "execution_time_ms": execution_time_ms,
                     "gaps_persisted": gaps_persisted,
                 },
