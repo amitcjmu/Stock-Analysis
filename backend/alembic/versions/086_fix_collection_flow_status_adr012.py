@@ -96,12 +96,7 @@ def upgrade() -> None:
         op.execute(
             """
             UPDATE migration.collection_flows
-            SET status = CASE
-                WHEN status = 'asset_selection' THEN 'running'
-                WHEN status = 'gap_analysis' THEN 'running'
-                WHEN status = 'manual_collection' THEN 'running'
-                ELSE status
-            END
+            SET status = 'running'
             WHERE status IN ('asset_selection', 'gap_analysis', 'manual_collection')
         """
         )
