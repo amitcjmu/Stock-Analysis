@@ -393,11 +393,13 @@ export const useProgressMonitoring = (
           name: `Collection Flow - ${flowDetails.automation_tier || 'unknown'}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
-          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
-                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'asset_selection' ? 'running' :
-                  flowDetails.status === 'completed' ? 'completed' :
+          // FIX: Only check actual status values, NOT phase names
+          // Backend uses CollectionFlowStatus enum: initialized, running, paused, completed, failed, cancelled
+          status: flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
-                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'completed',
+                  flowDetails.status === 'failed' || flowDetails.status === 'cancelled' ? 'failed' :
+                  flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
+                  'running', // Default fallback
           progress: typeof flowDetails.progress === 'number' ? flowDetails.progress : 0,  // Validate numeric progress
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,
@@ -460,11 +462,13 @@ export const useProgressMonitoring = (
           name: `Collection Flow - ${flowDetails.automation_tier || 'unknown'}`,
           type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' :
                 flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
-          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ||
-                  flowDetails.status === 'gap_analysis' || flowDetails.status === 'asset_selection' ? 'running' :
-                  flowDetails.status === 'completed' ? 'completed' :
+          // FIX: Only check actual status values, NOT phase names
+          // Backend uses CollectionFlowStatus enum: initialized, running, paused, completed, failed, cancelled
+          status: flowDetails.status === 'completed' ? 'completed' :
                   flowDetails.status === 'paused' ? 'paused' :
-                  flowDetails.status === 'failed' || flowDetails.status === 'error' ? 'failed' : 'completed',
+                  flowDetails.status === 'failed' || flowDetails.status === 'cancelled' ? 'failed' :
+                  flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
+                  'running', // Default fallback
           progress: typeof flowDetails.progress === 'number' ? flowDetails.progress : 0,  // Validate numeric progress
           started_at: flowDetails.created_at,
           completed_at: flowDetails.completed_at,

@@ -217,6 +217,71 @@ const CollectionProgress: React.FC = () => {
     );
   }
 
+  // Handlers for TabbedFlowDetails
+  const handleContinueFlow = async () => {
+    if (!selectedFlow) return;
+
+    const flow = flows.find(f => f.id === selectedFlow);
+    if (!flow) return;
+
+    // If completed, transition to assessment
+    if (flow.status === 'completed' || flow.progress === 100) {
+      await handleTransitionToAssessment();
+      return;
+    }
+
+    // For incomplete flows, navigate to the appropriate phase
+    try {
+      // Call continue flow API
+      await collectionFlowApi.continueFlow(selectedFlow);
+
+      toast({
+        title: 'Flow Continued',
+        description: 'Collection flow has been resumed.',
+        variant: 'default'
+      });
+
+      // Refresh data to get updated status
+      refreshData();
+    } catch (error) {
+      console.error('Error continuing flow:', error);
+      toast({
+        title: 'Continue Failed',
+        description: 'Failed to continue the collection flow. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedFlow) return;
+
+    const confirmed = confirm(
+      'Are you sure you want to delete this collection flow? This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await collectionFlowApi.deleteFlow(selectedFlow, true);
+      toast({
+        title: 'Flow Deleted',
+        description: 'Collection flow has been deleted successfully.',
+        variant: 'default'
+      });
+
+      // Navigate back to collection overview
+      navigate('/collection');
+    } catch (error) {
+      console.error('Error deleting flow:', error);
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete the collection flow. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Main component render for incomplete flows
   return (
     <CollectionPageLayout
@@ -234,6 +299,8 @@ const CollectionProgress: React.FC = () => {
         onToggleAutoRefresh={toggleAutoRefresh}
         onExportReport={exportReport}
         getFlowMilestones={getFlowMilestones}
+        onContinue={handleContinueFlow}
+        onDelete={handleDelete}
       />
     </CollectionPageLayout>
   );

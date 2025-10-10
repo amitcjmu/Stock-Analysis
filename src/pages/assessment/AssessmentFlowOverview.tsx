@@ -93,27 +93,20 @@ const AssessmentFlowOverview = (): JSX.Element => {
     })();
   }, [collectionFlowId]);
 
-  // Fetch list of application asset IDs that are assessment-ready
+  // DISABLED: Legacy asset-workflow endpoint lacks multi-tenant scoping and returns 404
+  // TODO: Add proper backend endpoint to get assessment-ready application IDs from collection flow
+  // For now, application selection will be handled via collection flow configuration
   const { data: assessmentReadyAssets = [] } = useQuery<string[]>({
     queryKey: ['assets-assessment-ready', collectionFlowId],
-    enabled: !!collectionFlowId,
-    // Prevent infinite refetching that causes Maximum update depth error
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    gcTime: 60000, // Keep in cache for 60 seconds
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    enabled: false, // Disabled - legacy endpoint returns 404
+    staleTime: 30000,
+    gcTime: 60000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
-      try {
-        const headers = getAuthHeaders();
-        const res = await apiCall('/asset-workflow/workflow/by-phase/assessment_ready', { method: 'GET', headers });
-        const items = Array.isArray(res) ? res : [];
-        return items
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
-          .map((a: any) => a?.id ?? a?.asset_id ?? a?.asset?.id)
-          .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
-      } catch (err) {
-        console.warn('Failed to fetch assessment-ready assets', err);
-        return [];
-      }
+      // Legacy endpoint: /asset-workflow/workflow/by-phase/assessment_ready
+      // Returns 404 - endpoint lacks multi-tenant scoping (no client_account_id/engagement_id)
+      // Application IDs should come from collection flow configuration instead
+      return [];
     }
   });
 
