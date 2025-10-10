@@ -371,8 +371,9 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         variant: "default",
       });
 
-      // Refresh gaps
-      await handleScanGaps();
+      // Fetch remaining unresolved gaps (don't re-scan, which would recreate them!)
+      const updatedGaps = await collectionFlowApi.getGaps(flowId);
+      setGaps(updatedGaps);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to bulk accept";
@@ -444,8 +445,9 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       // Clear selection after successful acceptance
       setSelectedGaps([]);
 
-      // Refresh gaps to show updated state
-      await handleScanGaps();
+      // Fetch remaining unresolved gaps (don't re-scan, which would recreate them!)
+      const updatedGaps = await collectionFlowApi.getGaps(flowId);
+      setGaps(updatedGaps);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to accept selected gaps";
