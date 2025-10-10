@@ -169,30 +169,32 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
         const currentPhase = flowDetails.current_phase || 'asset_selection';
         console.log(`📍 Current phase: ${currentPhase}`);
 
+        // CRITICAL: Handle "initialization" or unknown phases by navigating to first valid phase
+        // Valid collection phases: asset_selection, gap_analysis, questionnaire_generation, manual_collection, synthesis
+        // "initialization" is a master flow phase, not a collection flow phase
+        if (currentPhase === 'initialization' || !FLOW_PHASE_ROUTES.collection[currentPhase]) {
+          console.log(`⚠️ Phase "${currentPhase}" is not a valid collection phase, navigating to asset_selection`);
+          toast({
+            title: "Starting Collection",
+            description: "Navigating to asset selection...",
+            variant: "default",
+          });
+          navigate(`/collection/select-applications?flowId=${flow.id}`);
+          return;
+        }
+
         // Per ADR-012: status determines lifecycle, current_phase determines operational state
         // Route to the CURRENT phase page so user can see progress/results
         const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
-
-        if (phaseRoute) {
-          const targetRoute = phaseRoute(flow.id);
-          console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
-          toast({
-            title: "Continuing Flow",
-            description: `Opening ${currentPhase.replace('_', ' ')} page...`,
-            variant: "default",
-          });
-          navigate(targetRoute);
-          return;
-        } else {
-          console.warn(`⚠️ No route found for phase: ${currentPhase}`);
-          // Fallback: try to get questionnaires
-          const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flow.id);
-          if (questionnaires.length > 0) {
-            console.log(`📋 Found ${questionnaires.length} questionnaires, routing to adaptive-forms`);
-            navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
-            return;
-          }
-        }
+        const targetRoute = phaseRoute(flow.id);
+        console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+        toast({
+          title: "Continuing Flow",
+          description: `Opening ${currentPhase.replace('_', ' ')} page...`,
+          variant: "default",
+        });
+        navigate(targetRoute);
+        return;
       } catch (error: unknown) {
         // Handle 422 'no_applications_selected' error
         if (
