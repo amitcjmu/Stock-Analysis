@@ -49,7 +49,6 @@ const AssessmentFlowOverview = (): JSX.Element => {
   const [collectionFlowId, setCollectionFlowId] = useState<string | null>(null);
   const [isEnsuringFlow, setIsEnsuringFlow] = useState<boolean>(true);
   const [isInitializingAssessment, setIsInitializingAssessment] = useState<boolean>(false);
-  const [readyAppIds, setReadyAppIds] = useState<string[]>([]);
   const [readiness, setReadiness] = useState<{
     apps_ready_for_assessment: number;
     phase_scores: { collection: number; discovery: number };
@@ -98,6 +97,10 @@ const AssessmentFlowOverview = (): JSX.Element => {
   const { data: assessmentReadyAssets = [] } = useQuery<string[]>({
     queryKey: ['assets-assessment-ready', collectionFlowId],
     enabled: !!collectionFlowId,
+    // Prevent infinite refetching that causes Maximum update depth error
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    gcTime: 60000, // Keep in cache for 60 seconds
+    refetchOnWindowFocus: false, // Don't refetch on window focus
     queryFn: async () => {
       try {
         const headers = getAuthHeaders();
@@ -114,9 +117,9 @@ const AssessmentFlowOverview = (): JSX.Element => {
     }
   });
 
-  useEffect(() => {
-    const ids = assessmentReadyAssets.map((id: string) => id);
-    setReadyAppIds(ids);
+  // Use useMemo to prevent infinite loops from array reference changes
+  const readyAppIds = useMemo(() => {
+    return assessmentReadyAssets.map((id: string) => id);
   }, [assessmentReadyAssets]);
 
   // Metrics placeholder (no mocks). Keep minimal non-blocking UI.
