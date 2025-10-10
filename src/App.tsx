@@ -19,7 +19,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 const CollectionGapsDashboard = React.lazy(() => import('./pages/assessment/collection-gaps/index'));
 const VendorProductsPage = React.lazy(() => import('./pages/assessment/collection-gaps/vendor-products'));
 const MaintenanceWindowsPage = React.lazy(() => import('./pages/assessment/collection-gaps/maintenance-windows'));
-const GovernancePage = React.lazy(() => import('./pages/assessment/collection-gaps/governance'));
+const GovernancePage = React.lazy(() => import('./pages/assessment/collection-gaps/governance/index'));
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
