@@ -188,7 +188,7 @@ async def populated_engagement(
         user_id=test_engagement.created_by,
         client_id=test_engagement.client_id,
         status="completed",
-        current_phase="completed",
+        current_phase="gap_analysis",  # Default phase for collection flows (per v4 plan)
         progress_percentage=100.0,
         automation_tier="tier_1",
         confidence_score=0.85,

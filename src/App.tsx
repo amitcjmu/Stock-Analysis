@@ -19,7 +19,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 const CollectionGapsDashboard = React.lazy(() => import('./pages/assessment/collection-gaps/index'));
 const VendorProductsPage = React.lazy(() => import('./pages/assessment/collection-gaps/vendor-products'));
 const MaintenanceWindowsPage = React.lazy(() => import('./pages/assessment/collection-gaps/maintenance-windows'));
-const GovernancePage = React.lazy(() => import('./pages/assessment/collection-gaps/governance'));
+const GovernancePage = React.lazy(() => import('./pages/assessment/collection-gaps/governance/index'));
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
@@ -163,7 +163,7 @@ const AuthenticatedApp = (): JSX.Element => {
 
       routePreloader.registerRoute({
         path: "/collection/adaptive-forms",
-        importFn: () => import("./pages/collection/AdaptiveForms"),
+        importFn: () => import("./pages/collection/adaptive-forms"),
         priority: LoadingPriority.HIGH,
       });
 
