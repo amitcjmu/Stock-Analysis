@@ -103,12 +103,8 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         const existingGaps = await collectionFlowApi.getGaps(flowId);
 
         if (existingGaps && existingGaps.length > 0) {
-          // Add id field for AG Grid row identification
-          const gapsWithIds = existingGaps.map((gap, index) => ({
-            ...gap,
-            id: `${gap.asset_id}-${gap.field_name}-${index}`,
-          }));
-          setGaps(gapsWithIds);
+          // Backend always returns database UUIDs - no transformation needed
+          setGaps(existingGaps);
         } else if (selectedAssetIds.length > 0) {
           // No existing gaps, trigger a scan if assets are selected
           handleScanGaps();
@@ -433,6 +429,9 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         resolution_status: "resolved",
         resolution_method: "ai_suggestion",
       }));
+
+      // Debug log to see what we're sending
+      console.log('📤 Sending gap updates:', JSON.stringify(updates, null, 2));
 
       const response = await collectionFlowApi.updateGaps(flowId, updates);
 
