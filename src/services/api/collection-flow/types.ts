@@ -174,6 +174,7 @@ export interface TransitionResult {
 
 // Two-Phase Gap Analysis Interfaces
 export interface DataGap {
+  id: string;  // Database UUID - always present from backend after persistence
   asset_id: string;
   asset_name: string;
   field_name: string;

@@ -187,7 +187,7 @@ async def get_gaps(
             db=db,
         )
 
-        # Query all gaps for this flow with asset names (join with assets table)
+        # Query pending gaps for this flow with asset names (join with assets table)
         from app.models.asset.models import Asset
 
         stmt = (
@@ -197,7 +197,11 @@ async def get_gaps(
                 CollectionDataGap.asset_id == Asset.id,
                 isouter=True,
             )
-            .where(CollectionDataGap.collection_flow_id == collection_flow.id)
+            .where(
+                CollectionDataGap.collection_flow_id == collection_flow.id,
+                CollectionDataGap.resolution_status
+                == "pending",  # Only unresolved gaps
+            )
         )
         result = await db.execute(stmt)
         rows = result.all()

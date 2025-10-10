@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useProgressMonitoring, getFlowMilestones } from '@/hooks/collection/useProgressMonitoring';
 import { collectionFlowApi, TransitionResult } from '@/services/api/collection-flow';
 import { useToast } from '@/components/ui/use-toast';
+import { FLOW_PHASE_ROUTES } from '@/config/flowRoutes';
 
 
 /**
@@ -230,19 +231,39 @@ const CollectionProgress: React.FC = () => {
       return;
     }
 
-    // For incomplete flows, navigate to the appropriate phase
+    // For incomplete flows, get current phase and navigate
     try {
-      // Call continue flow API
-      await collectionFlowApi.continueFlow(selectedFlow);
+      // Get flow details to determine current phase
+      const flowDetails = await collectionFlowApi.getFlow(selectedFlow);
+      const currentPhase = flowDetails.current_phase || 'asset_selection';
 
+      console.log(`🧭 Continue button clicked, current phase: ${currentPhase}`);
+
+      // CRITICAL: Handle "initialization" or unknown phases by navigating to first valid phase
+      // Valid collection phases: asset_selection, gap_analysis, questionnaire_generation, manual_collection, synthesis
+      // "initialization" is a master flow phase, not a collection flow phase
+      if (currentPhase === 'initialization' || !FLOW_PHASE_ROUTES.collection[currentPhase]) {
+        console.log(`⚠️ Phase "${currentPhase}" is not a valid collection phase, navigating to asset_selection`);
+        toast({
+          title: 'Starting Collection',
+          description: 'Navigating to asset selection...',
+          variant: 'default',
+        });
+        navigate(`/collection/select-applications?flowId=${selectedFlow}`);
+        return;
+      }
+
+      // Navigate to current phase page
+      const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+      const targetRoute = phaseRoute(selectedFlow);
+
+      console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
       toast({
-        title: 'Flow Continued',
-        description: 'Collection flow has been resumed.',
-        variant: 'default'
+        title: 'Continuing Flow',
+        description: `Opening ${currentPhase.replace('_', ' ')} page...`,
+        variant: 'default',
       });
-
-      // Refresh data to get updated status
-      refreshData();
+      navigate(targetRoute);
     } catch (error) {
       console.error('Error continuing flow:', error);
       toast({

@@ -35,14 +35,24 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
         super().__init__(db, CollectionFlow, client_account_id, engagement_id)
 
     async def get_by_flow_id(self, flow_id: str) -> Optional[CollectionFlow]:
-        """Get collection flow by flow_id with context filtering."""
-        return await self.get_by_filters(flow_id=flow_id)
+        """Get collection flow by flow_id with context filtering.
+
+        CRITICAL: get_by_filters() returns List, but this method must return single object.
+        Per architectural pattern from collection-flow-id-resolver-fix memory.
+        """
+        flows = await self.get_by_filters(flow_id=flow_id)
+        return flows[0] if flows else None
 
     async def get_by_master_flow_id(
         self, master_flow_id: uuid.UUID
     ) -> Optional[CollectionFlow]:
-        """Get collection flow by master flow ID with context filtering."""
-        return await self.get_by_filters(master_flow_id=master_flow_id)
+        """Get collection flow by master flow ID with context filtering.
+
+        CRITICAL: get_by_filters() returns List, but this method must return single object.
+        Per architectural pattern from collection-flow-id-resolver-fix memory.
+        """
+        flows = await self.get_by_filters(master_flow_id=master_flow_id)
+        return flows[0] if flows else None
 
     async def get_by_status(self, status: CollectionFlowStatus) -> List[CollectionFlow]:
         """Get collection flows by status with context filtering."""
