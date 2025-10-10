@@ -398,6 +398,76 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     }
   };
 
+  // Accept only the selected gaps from AG Grid row selection
+  const handleAcceptSelected = async () => {
+    if (selectedGaps.length === 0) {
+      toast({
+        title: "No Gaps Selected",
+        description: "Please select gaps from the table to accept",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that selected gaps have suggested resolutions
+    const gapsWithResolutions = selectedGaps.filter(
+      (gap) => gap.suggested_resolution && gap.suggested_resolution.trim() !== ''
+    );
+
+    if (gapsWithResolutions.length === 0) {
+      toast({
+        title: "No Resolutions Available",
+        description: "Selected gaps need AI suggestions before accepting. Run AI analysis first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (gapsWithResolutions.length < selectedGaps.length) {
+      toast({
+        title: "Some Gaps Missing Resolutions",
+        description: `${selectedGaps.length - gapsWithResolutions.length} selected gap(s) don't have AI suggestions. Only accepting ${gapsWithResolutions.length} gap(s).`,
+        variant: "default",
+      });
+    }
+
+    try {
+      setIsSaving(true);
+
+      const updates: GapUpdate[] = gapsWithResolutions.map((gap) => ({
+        gap_id: gap.id || "",
+        field_name: gap.field_name,
+        resolved_value: gap.suggested_resolution,
+        resolution_status: "resolved",
+        resolution_method: "ai_suggestion",
+      }));
+
+      const response = await collectionFlowApi.updateGaps(flowId, updates);
+
+      toast({
+        title: "Accept Selected Complete",
+        description: `Accepted ${response.gaps_resolved} selected gap(s)`,
+        variant: "default",
+      });
+
+      // Clear selection after successful acceptance
+      setSelectedGaps([]);
+
+      // Refresh gaps to show updated state
+      await handleScanGaps();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to accept selected gaps";
+      toast({
+        title: "Accept Selected Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleBulkReject = async () => {
     // Reject all AI suggestions (mark as skipped)
     const aiSuggestedGaps = gaps.filter((gap) => gap.confidence_score !== null);
@@ -693,6 +763,18 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             )}
 
             <div className="flex-1" />
+
+            {/* Accept Selected Button - Only show when gaps are selected */}
+            {selectedGaps.length > 0 && (
+              <Button
+                onClick={handleAcceptSelected}
+                disabled={isSaving}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Accept Selected ({selectedGaps.length})
+              </Button>
+            )}
 
             <Button
               onClick={handleBulkAccept}
