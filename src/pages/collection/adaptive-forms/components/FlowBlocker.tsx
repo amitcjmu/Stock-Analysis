@@ -102,8 +102,8 @@ export const FlowBlocker: React.FC<FlowBlockerProps> = ({
             onContinueFlow={onContinueFlow}
             onDeleteFlow={onDeleteFlow}
             onBatchDelete={(flowIds: string[]) => {
-              // Handle batch deletion
-              flowIds.forEach(flowId => onDeleteFlow(flowId));
+              // Handle batch deletion in parallel for better performance
+              Promise.all(flowIds.map(flowId => onDeleteFlow(flowId)));
             }}
             onViewDetails={onViewDetails}
             isLoading={isDeleting}

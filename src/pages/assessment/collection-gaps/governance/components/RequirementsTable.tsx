@@ -80,8 +80,8 @@ export const RequirementsTable: React.FC<RequirementsTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {requirement.applicable_scopes.map((scope) => (
-                        <Badge key={scope} variant="outline" className="text-xs">
+                      {requirement.applicable_scopes.map((scope, index) => (
+                        <Badge key={`${scope}-${index}`} variant="outline" className="text-xs">
                           {scope}
                         </Badge>
                       ))}

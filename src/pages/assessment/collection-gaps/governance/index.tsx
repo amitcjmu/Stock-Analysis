@@ -54,6 +54,26 @@ const GovernancePage: React.FC = () => {
   // Approval form management
   const approvalForm = useApprovalForm();
 
+  // Exception view/edit handlers
+  const handleViewException = (exception: import('./types').MigrationException) => {
+    // TODO: Implement view exception details modal/page
+    console.log('View exception:', exception);
+  };
+
+  const handleEditException = (exception: import('./types').MigrationException) => {
+    // Pre-fill the exception form with existing data for editing
+    exceptionForm.setFormData({
+      requirement_id: exception.requirement_id || '',
+      justification: exception.justification,
+      business_impact: exception.business_impact,
+      mitigation_plan: exception.mitigation_plan,
+      scope: exception.scope,
+      scope_id: exception.scope_id,
+      priority: exception.priority,
+    });
+    exceptionForm.setIsDialogOpen(true);
+  };
+
   // No flow ID - show error state
   if (!flowId) {
     return (
@@ -115,6 +135,8 @@ const GovernancePage: React.FC = () => {
                 <ExceptionsTable
                   exceptions={exceptions}
                   isLoading={exceptionsLoading}
+                  onViewException={handleViewException}
+                  onEditException={handleEditException}
                 />
               </TabsContent>
 

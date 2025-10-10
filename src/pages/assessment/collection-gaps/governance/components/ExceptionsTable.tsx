@@ -16,11 +16,15 @@ import { getStatusBadgeVariant, getPriorityBadgeVariant } from '../utils/statusH
 interface ExceptionsTableProps {
   exceptions: MigrationException[] | undefined;
   isLoading: boolean;
+  onViewException: (exception: MigrationException) => void;
+  onEditException: (exception: MigrationException) => void;
 }
 
 export const ExceptionsTable: React.FC<ExceptionsTableProps> = ({
   exceptions,
-  isLoading
+  isLoading,
+  onViewException,
+  onEditException
 }) => {
   return (
     <Card>
@@ -112,12 +116,12 @@ export const ExceptionsTable: React.FC<ExceptionsTableProps> = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onViewException(exception)}>
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
                         {exception.status === 'pending' && (
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onEditException(exception)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>

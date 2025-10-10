@@ -71,9 +71,9 @@ export const useModalState = (
   const handleQuestionnaireReady = useCallback((questionnaire: QuestionnaireData) => {
     setShowGenerationModal(false);
     setIsFallbackQuestionnaire(false);
-    // Reload the form with the new questionnaire
-    window.location.reload();
-  }, []);
+    // Re-initialize the flow to load the new questionnaire
+    protectedInitializeFlow();
+  }, [protectedInitializeFlow]);
 
   // Handle fallback to template questionnaire
   const handleQuestionnaireFallback = useCallback(() => {
