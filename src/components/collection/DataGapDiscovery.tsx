@@ -134,14 +134,8 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         selectedAssetIds,
       );
 
-      // Add id field for AG Grid row identification (only if not already present from database)
-      const gapsWithIds = response.gaps.map((gap, index) => ({
-        ...gap,
-        // Use database ID if present, otherwise create composite key for AG Grid
-        id: gap.id || `${gap.asset_id}-${gap.field_name}-${index}`,
-      }));
-
-      setGaps(gapsWithIds);
+      // Backend now returns gaps with database UUIDs - no synthetic keys needed
+      setGaps(response.gaps);
       setScanSummary(response.summary);
 
       toast({
@@ -224,12 +218,8 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             // Re-scan gaps to get AI enhancements from database
             try {
               const updatedGaps = await collectionFlowApi.getGaps(flowId);
-              // Use database ID if present (from getGaps), otherwise create composite key
-              const gapsWithIds = updatedGaps.map((gap, index) => ({
-                ...gap,
-                id: gap.id || `${gap.asset_id}-${gap.field_name}-${index}`,
-              }));
-              setGaps(gapsWithIds);
+              // Backend always returns database UUIDs - no transformation needed
+              setGaps(updatedGaps);
 
               toast({
                 title: "Enhancement Complete",

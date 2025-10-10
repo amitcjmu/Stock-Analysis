@@ -197,6 +197,36 @@ class ProgrammaticGapScanner:
             # Commit the transaction (FastAPI manages the session)
             await db.commit()
 
+            # CRITICAL FIX: Query gaps back from database with their UUIDs
+            # This eliminates need for synthetic keys in frontend
+            from app.models.asset import Asset
+
+            stmt = (
+                select(CollectionDataGap, Asset.name)
+                .join(Asset, CollectionDataGap.asset_id == Asset.id, isouter=True)
+                .where(CollectionDataGap.collection_flow_id == flow_uuid)
+            )
+            result = await db.execute(stmt)
+            rows = result.all()
+
+            # Convert to dict format with database IDs
+            gaps_with_ids = []
+            for gap, asset_name in rows:
+                gaps_with_ids.append(
+                    {
+                        "id": str(gap.id),  # ✅ Database UUID
+                        "asset_id": str(gap.asset_id),
+                        "asset_name": asset_name or "Unknown Asset",
+                        "field_name": gap.field_name,
+                        "gap_type": gap.gap_type,
+                        "gap_category": gap.gap_category,
+                        "priority": gap.priority,
+                        "current_value": gap.resolved_value,
+                        "suggested_resolution": gap.suggested_resolution,
+                        "confidence_score": gap.confidence_score,
+                    }
+                )
+
             execution_time_ms = int((time.time() - start_time) * 1000)
 
             # Emit telemetry (tenant-scoped metrics)
@@ -206,7 +236,7 @@ class ProgrammaticGapScanner:
                     "client_account_id": str(client_uuid),
                     "engagement_id": str(engagement_uuid),
                     "flow_id": str(flow_uuid),
-                    "gaps_total": len(all_gaps),
+                    "gaps_total": len(gaps_with_ids),
                     "gaps_persisted": gaps_persisted,
                     "assets_analyzed": len(assets),
                     "execution_time_ms": execution_time_ms,
@@ -218,7 +248,7 @@ class ProgrammaticGapScanner:
             )
 
             return {
-                "gaps": all_gaps,
+                "gaps": gaps_with_ids,  # ✅ Now includes database IDs
                 "summary": {
                     "total_gaps": len(all_gaps),
                     "assets_analyzed": len(assets),
