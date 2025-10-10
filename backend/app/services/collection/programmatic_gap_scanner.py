@@ -199,8 +199,6 @@ class ProgrammaticGapScanner:
 
             # CRITICAL FIX: Query gaps back from database with their UUIDs
             # This eliminates need for synthetic keys in frontend
-            from app.models.asset import Asset
-
             stmt = (
                 select(CollectionDataGap, Asset.name)
                 .join(Asset, CollectionDataGap.asset_id == Asset.id, isouter=True)
