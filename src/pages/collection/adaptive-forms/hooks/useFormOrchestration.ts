@@ -182,9 +182,15 @@ export const useFormOrchestration = (): UseFormOrchestrationReturn => {
       },
       onError: (error) => {
         console.error('❌ HTTP Polling: Collection workflow error:', error);
+        // Security: Sanitize error message to avoid exposing sensitive information
+        const userFriendlyMessage = typeof error === 'string'
+          ? error
+          : error?.message || 'An unexpected error occurred during workflow processing';
         toast({
           title: 'Workflow Error',
-          description: `Collection workflow encountered an error: ${error}`,
+          description: userFriendlyMessage.includes('network') || userFriendlyMessage.includes('timeout')
+            ? 'Network error occurred. Please check your connection and try again.'
+            : 'Collection workflow encountered an error. Please try again or contact support if the issue persists.',
           variant: 'destructive',
         });
       },

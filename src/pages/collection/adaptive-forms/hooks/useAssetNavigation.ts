@@ -71,9 +71,10 @@ export const useAssetNavigation = ({
     if (assetGroups.length === 0 || !selectedAssetId) return;
 
     const currentIndex = assetGroups.findIndex(g => g.asset_id === selectedAssetId);
-    if (currentIndex > 0) {
+    // Security: Validate index before navigation and scrolling
+    if (currentIndex > 0 && currentIndex < assetGroups.length) {
       setSelectedAssetId(assetGroups[currentIndex - 1].asset_id);
-      // Scroll to top of form
+      // Scroll to top of form - safe after validation
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [assetGroups, selectedAssetId]);
@@ -82,9 +83,10 @@ export const useAssetNavigation = ({
     if (assetGroups.length === 0 || !selectedAssetId) return;
 
     const currentIndex = assetGroups.findIndex(g => g.asset_id === selectedAssetId);
-    if (currentIndex < assetGroups.length - 1) {
+    // Security: Validate index before navigation and scrolling
+    if (currentIndex >= 0 && currentIndex < assetGroups.length - 1) {
       setSelectedAssetId(assetGroups[currentIndex + 1].asset_id);
-      // Scroll to top of form
+      // Scroll to top of form - safe after validation
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [assetGroups, selectedAssetId]);
