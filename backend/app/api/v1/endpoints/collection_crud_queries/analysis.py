@@ -179,6 +179,18 @@ async def get_collection_readiness(
         quality_score = active_flow.collection_quality_score or 0
         confidence_score = active_flow.confidence_score or 0
 
+        # CRITICAL FIX: Check if all gaps are resolved before marking as assessment ready
+        # Count pending gaps for this flow
+        from app.models.collection_data_gap import CollectionDataGap
+
+        pending_gaps_result = await db.execute(
+            select(func.count(CollectionDataGap.id)).where(
+                CollectionDataGap.collection_flow_id == active_flow.id,
+                CollectionDataGap.resolution_status == "pending",
+            )
+        )
+        pending_gaps_count = pending_gaps_result.scalar() or 0
+
         # Check each threshold and build missing requirements
         missing_requirements = []
 
@@ -190,6 +202,18 @@ async def get_collection_readiness(
                     "current_value": apps_ready_count,
                     "required_value": thresholds["apps_ready_for_assessment"] + 1,
                     "action": "select_applications",
+                }
+            )
+
+        # CRITICAL FIX: Add check for pending gaps
+        if pending_gaps_count > 0:
+            missing_requirements.append(
+                {
+                    "type": "gaps",
+                    "message": f"{pending_gaps_count} data gap(s) must be resolved before assessment",
+                    "current_value": pending_gaps_count,
+                    "required_value": 0,
+                    "action": "resolve_gaps",
                 }
             )
 
@@ -268,6 +292,7 @@ async def get_collection_readiness(
             "gap_analysis_completed": gap_summary is not None,
             "critical_gaps_count": len(gap_summary.critical_gaps) if gap_summary else 0,
             "optional_gaps_count": len(gap_summary.optional_gaps) if gap_summary else 0,
+            "pending_gaps_count": pending_gaps_count,  # CRITICAL FIX: Include pending gaps count
             # Server-side thresholds for transparency
             "thresholds": thresholds,
             # Missing requirements for clear feedback
