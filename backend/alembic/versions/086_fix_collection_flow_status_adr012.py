@@ -1,29 +1,41 @@
-"""Fix CollectionFlowStatus enum values per ADR-012
+"""Fix CollectionFlowStatus enum to lifecycle-only values per ADR-012
 
 Revision ID: 086_fix_collection_flow_status_adr012
 Revises: 085_fix_vector_column_type
 Create Date: 2025-10-07
 
-This migration updates collection_flows.status from phase-based values to
-lifecycle-based values per ADR-012: Flow Status Management Separation.
+This migration consolidates the collection flow status migration per ADR-012:
+Flow Status Management Separation. It performs three critical operations:
+
+1. Migrates phase-based status values to 'running' (asset_selection, gap_analysis, manual_collection → running)
+2. Adds 'paused' status for user input wait states
+3. Removes deprecated phase values from enum, leaving only 6 lifecycle states
 
 Root Cause: CollectionFlowStatus enum was incorrectly using phase values
 (asset_selection, gap_analysis, manual_collection) instead of lifecycle states.
+Additionally, the 'paused' status was missing for flows waiting on user input.
 
-Fix: Map all phase-based status values to 'running' status:
-- asset_selection → running
-- gap_analysis → running
-- manual_collection → running
+Fix:
+- Map all phase-based status values to 'running' status
+- Add 'paused' to enum for flows waiting on user input
+- Final enum: initialized, running, paused, completed, failed, cancelled
 
-Note: This migration is irreversible because we cannot reliably reconstruct
-which phase-based status each flow had. The downgrade is not implemented.
+Note: This migration is idempotent and can be safely re-run. The downgrade is
+not implemented because we cannot reliably reconstruct which phase-based status
+each flow originally had. Phase information is preserved in current_phase column.
 
-Reference: COLLECTION_FLOW_STATUS_REMEDIATION_PLAN.md (Phase 8)
+Reference:
+- ADR-012: Flow Status Management Separation
+- COLLECTION_FLOW_STATUS_REMEDIATION_PLAN.md (Phases 8-9)
+- Consolidates original migrations 086 and 087
 """
 
+import logging
 import sqlalchemy as sa
 
 from alembic import op
+
+logger = logging.getLogger("alembic.runtime.migration")
 
 # revision identifiers, used by Alembic.
 revision = "086_fix_collection_flow_status_adr012"
@@ -33,34 +45,27 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """Update collection flows from phase-based to lifecycle-based status
+    """Update collection flows to lifecycle-only status values per ADR-012
+
+    This migration is idempotent and handles all edge cases:
+    - Migrates phase values to 'running' (if they exist)
+    - Adds 'paused' status to enum
+    - Removes phase values from enum
+    - Works correctly whether run once or multiple times
 
     PostgreSQL requires a multi-step process to modify enum values:
     1. Convert column to VARCHAR temporarily
-    2. Update the values
-    3. Drop old enum and create new enum with updated values
+    2. Migrate phase-based values to 'running'
+    3. Drop old enum and create new enum with lifecycle values only + 'paused'
     4. Convert column back to enum type
+    5. Recreate index
     """
 
     # Set schema search path
     op.execute("SET search_path TO migration, public")
 
-    # Count flows to be updated
-    result = op.get_bind().execute(
-        sa.text(
-            """
-            SELECT COUNT(*) as count
-            FROM migration.collection_flows
-            WHERE status IN ('asset_selection', 'gap_analysis', 'manual_collection')
-        """
-        )
-    )
-    count = result.scalar()
-
-    print(f"Found {count} collection flows with phase-based status values")
-
     # Step 1: Convert status column from enum to VARCHAR temporarily
-    print("Step 1: Converting status column to VARCHAR...")
+    logger.info("Step 1: Converting status column to VARCHAR...")
     op.execute(
         """
         ALTER TABLE migration.collection_flows
@@ -69,22 +74,7 @@ def upgrade() -> None:
     """
     )
 
-    # Step 2: Update flows with phase values to 'running'
-    print(f"Step 2: Updating {count} flows to 'running' status...")
-    op.execute(
-        """
-        UPDATE migration.collection_flows
-        SET status = CASE
-            WHEN status = 'asset_selection' THEN 'running'
-            WHEN status = 'gap_analysis' THEN 'running'
-            WHEN status = 'manual_collection' THEN 'running'
-            ELSE status
-        END
-        WHERE status IN ('asset_selection', 'gap_analysis', 'manual_collection')
-    """
-    )
-
-    # Step 3: Verify no phase-based values remain
+    # Step 2: Count and migrate phase-based values (safe to query now that it's VARCHAR)
     result = op.get_bind().execute(
         sa.text(
             """
@@ -94,24 +84,58 @@ def upgrade() -> None:
         """
         )
     )
-    remaining = result.scalar()
+    phase_status_count = result.scalar()
 
-    if remaining > 0:
-        raise Exception(
-            f"Migration failed: {remaining} flows still have phase-based status values"
+    if phase_status_count > 0:
+        logger.info(
+            f"Step 2: Found {phase_status_count} flows with phase-based status values"
+        )
+        logger.info(f"Migrating {phase_status_count} flows to 'running' status...")
+
+        # Migrate phase-based status values to 'running'
+        op.execute(
+            """
+            UPDATE migration.collection_flows
+            SET status = 'running'
+            WHERE status IN ('asset_selection', 'gap_analysis', 'manual_collection')
+        """
         )
 
-    # Step 4: Drop old enum type and create new one with 'running' value
-    print("Step 3: Recreating CollectionFlowStatus enum with 'running' value...")
+        # Verify migration succeeded
+        result = op.get_bind().execute(
+            sa.text(
+                """
+                SELECT COUNT(*) as count
+                FROM migration.collection_flows
+                WHERE status IN ('asset_selection', 'gap_analysis', 'manual_collection')
+            """
+            )
+        )
+        remaining = result.scalar()
+
+        if remaining > 0:
+            raise Exception(
+                f"Migration failed: {remaining} flows still have phase-based status values"
+            )
+
+        logger.info(f"✅ Migrated {phase_status_count} flows to 'running' status")
+    else:
+        logger.info(
+            "Step 2: No phase-based status values found (idempotent check passed)"
+        )
+
+    # Step 3: Drop old enum type and create new one with lifecycle states + 'paused' (NO phase values)
+    logger.info(
+        "Step 3: Recreating CollectionFlowStatus enum with lifecycle states only "
+        "(initialized, running, paused, completed, failed, cancelled)..."
+    )
     op.execute("DROP TYPE IF EXISTS migration.collectionflowstatus CASCADE")
     op.execute(
         """
         CREATE TYPE migration.collectionflowstatus AS ENUM (
             'initialized',
             'running',
-            'asset_selection',
-            'gap_analysis',
-            'manual_collection',
+            'paused',
             'completed',
             'failed',
             'cancelled'
@@ -119,8 +143,8 @@ def upgrade() -> None:
     """
     )
 
-    # Step 5: Convert status column back to enum type
-    print("Step 4: Converting status column back to enum...")
+    # Step 4: Convert status column back to enum type
+    logger.info("Step 4: Converting status column back to enum...")
     op.execute(
         """
         ALTER TABLE migration.collection_flows
@@ -129,7 +153,8 @@ def upgrade() -> None:
     """
     )
 
-    # Recreate the index that was dropped with CASCADE
+    # Step 5: Recreate the index that was dropped with CASCADE
+    logger.info("Step 5: Recreating status index...")
     op.execute(
         """
         CREATE INDEX IF NOT EXISTS ix_collection_flows_status
@@ -137,12 +162,47 @@ def upgrade() -> None:
     """
     )
 
-    print(
-        f"✅ Successfully migrated {count} collection flows from phase-based to lifecycle-based status per ADR-012"
+    # Verification: Check enum values
+    result = op.get_bind().execute(
+        sa.text(
+            """
+            SELECT unnest(enum_range(NULL::migration.collectionflowstatus))
+        """
+        )
     )
-    print(
-        "✅ Old enum values (asset_selection, gap_analysis, manual_collection) retained for backward compatibility"
+    enum_values = [row[0] for row in result]
+    logger.info("✅ CollectionFlowStatus enum updated successfully")
+    logger.info(f"   New enum values: {', '.join(enum_values)}")
+
+    # Verify all flows have valid status
+    result = op.get_bind().execute(
+        sa.text(
+            """
+            SELECT COUNT(*) as count
+            FROM migration.collection_flows
+        """
+        )
     )
+    total_flows = result.scalar()
+    logger.info(f"✅ Total flows with valid status: {total_flows}")
+
+    # Final summary
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("✅ Migration 086 completed successfully per ADR-012")
+    logger.info("=" * 80)
+    logger.info(
+        f"   • Migrated {phase_status_count} flows from phase-based to 'running' status"
+    )
+    logger.info("   • Added 'paused' status for user input wait states")
+    logger.info(
+        "   • Removed deprecated phase values (asset_selection, gap_analysis, manual_collection)"
+    )
+    logger.info("   • Database enum now matches Python model (6 lifecycle states only)")
+    logger.info(
+        "   • Enum values: initialized, running, paused, completed, failed, cancelled"
+    )
+    logger.info("=" * 80)
 
 
 def downgrade() -> None:
@@ -156,9 +216,14 @@ def downgrade() -> None:
     If downgrade is needed, it would require manual intervention based on
     the current_phase column values.
     """
-    print(
+    logger.warning("=" * 80)
+    logger.warning(
         "⚠️  Downgrade not implemented - phase-based status information was lost during upgrade"
     )
-    print(
-        "   Original status values can be inferred from current_phase column if needed"
-    )
+    logger.warning("=" * 80)
+    logger.info("   Phase information is preserved in current_phase column if needed")
+    logger.info("   Manual intervention required for downgrade:")
+    logger.info("   1. Recreate enum with phase values")
+    logger.info("   2. Map flows back to phase status using current_phase column")
+    logger.info("   3. Convert column back to enum")
+    logger.warning("=" * 80)

@@ -1,8 +1,12 @@
 """Add composite indexes for asset deduplication
 
 Revision ID: 088_asset_dedup_indexes
-Revises: 087_add_paused_remove_phase_values
+Revises: 086_fix_collection_flow_status_adr012
 Create Date: 2025-10-08 23:14:19
+
+Note: Migration 087 was consolidated into 086. This migration now directly
+follows the consolidated migration 086 which handles both phase value migration
+and paused status addition.
 
 """
 
@@ -10,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "088_asset_dedup_indexes"
-down_revision = "087_add_paused_remove_phase_values"
+down_revision = "086_fix_collection_flow_status_adr012"
 branch_labels = None
 depends_on = None
 
