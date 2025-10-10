@@ -252,6 +252,7 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                     field_mapping = ImportFieldMapping(
                         data_import_id=import_session.id,
                         client_account_id=state.client_account_id,  # Add missing field
+                        engagement_id=import_session.engagement_id,
                         master_flow_id=master_flow_id,  # CRITICAL FIX: Add master_flow_id
                         source_field=source_field,
                         target_field=target_field,

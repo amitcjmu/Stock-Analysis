@@ -124,10 +124,35 @@ class AssetListHandler:
                 try:
                     asset_data = {
                         "id": str(asset.id),
-                        "name": asset.name
-                        or "Unknown Asset",  # Fallback for missing names
+                        "name": asset.name or "Unknown Asset",
+                        "asset_name": asset.asset_name or asset.name,
                         "asset_type": asset.asset_type or "unknown",
                         "asset_subtype": getattr(asset, "asset_subtype", None),
+                        # Network and infrastructure
+                        "hostname": getattr(asset, "hostname", None),
+                        "ip_address": getattr(asset, "ip_address", None),
+                        "fqdn": getattr(asset, "fqdn", None),
+                        "mac_address": getattr(asset, "mac_address", None),
+                        # Operating system
+                        "operating_system": getattr(asset, "operating_system", None),
+                        "os_version": getattr(asset, "os_version", None),
+                        # Hardware specifications
+                        "cpu_cores": getattr(asset, "cpu_cores", None),
+                        "memory_gb": getattr(asset, "memory_gb", None),
+                        "storage_gb": getattr(asset, "storage_gb", None),
+                        # Location
+                        "location": getattr(asset, "location", None),
+                        "datacenter": getattr(asset, "datacenter", None),
+                        "rack_location": getattr(asset, "rack_location", None),
+                        "availability_zone": getattr(asset, "availability_zone", None),
+                        # Business information
+                        "business_owner": getattr(asset, "business_owner", None),
+                        "technical_owner": getattr(asset, "technical_owner", None),
+                        "department": getattr(asset, "department", None),
+                        # Application details
+                        "application_name": getattr(asset, "application_name", None),
+                        "technology_stack": getattr(asset, "technology_stack", None),
+                        # Status and readiness
                         "status": asset.status or "unknown",
                         "discovery_status": getattr(
                             asset, "discovery_status", "not_started"
@@ -138,22 +163,67 @@ class AssetListHandler:
                         "assessment_readiness": getattr(
                             asset, "assessment_readiness", "not_ready"
                         ),
+                        # Criticality and environment
+                        "environment": getattr(asset, "environment", None),
+                        "criticality": getattr(asset, "criticality", None),
                         "business_criticality": getattr(
                             asset, "business_criticality", None
                         ),
-                        "environment": getattr(asset, "environment", None),
-                        "quality_score": getattr(asset, "quality_score", 0.0),
-                        "confidence_score": getattr(asset, "confidence_score", 0.0),
+                        # Migration planning
+                        "migration_priority": getattr(
+                            asset, "migration_priority", None
+                        ),
+                        "migration_complexity": getattr(
+                            asset, "migration_complexity", None
+                        ),
+                        "migration_wave": getattr(asset, "migration_wave", None),
+                        "six_r_strategy": getattr(asset, "six_r_strategy", None),
+                        "sixr_ready": getattr(asset, "sixr_ready", False),
+                        # Quality and completeness
+                        "quality_score": getattr(asset, "quality_score", None),
+                        "confidence_score": getattr(asset, "confidence_score", None),
+                        "completeness_score": getattr(
+                            asset, "completeness_score", None
+                        ),
+                        # Performance metrics
+                        "cpu_utilization_percent": getattr(
+                            asset, "cpu_utilization_percent", None
+                        ),
+                        "memory_utilization_percent": getattr(
+                            asset, "memory_utilization_percent", None
+                        ),
+                        "disk_iops": getattr(asset, "disk_iops", None),
+                        "network_throughput_mbps": getattr(
+                            asset, "network_throughput_mbps", None
+                        ),
+                        # Cost information
+                        "current_monthly_cost": getattr(
+                            asset, "current_monthly_cost", None
+                        ),
+                        "estimated_cloud_cost": getattr(
+                            asset, "estimated_cloud_cost", None
+                        ),
+                        # Flow associations
                         "discovery_flow_id": (
                             str(asset.discovery_flow_id)
                             if asset.discovery_flow_id
                             else None
                         ),
+                        "master_flow_id": (
+                            str(asset.master_flow_id) if asset.master_flow_id else None
+                        ),
+                        "flow_id": str(asset.flow_id) if asset.flow_id else None,
+                        # Timestamps
                         "created_at": (
                             asset.created_at.isoformat() if asset.created_at else None
                         ),
                         "updated_at": (
                             asset.updated_at.isoformat() if asset.updated_at else None
+                        ),
+                        "discovery_timestamp": (
+                            asset.discovery_timestamp.isoformat()
+                            if getattr(asset, "discovery_timestamp", None)
+                            else None
                         ),
                     }
                     asset_list.append(asset_data)
@@ -296,12 +366,50 @@ class AssetListHandler:
                 row.status or "unknown": row.count for row in status_result
             }
 
+            # Calculate dashboard metrics from type distribution
+            servers_count = type_distribution.get("server", 0) + type_distribution.get(
+                "virtual_machine", 0
+            )
+            applications_count = type_distribution.get("application", 0)
+            databases_count = type_distribution.get("database", 0)
+
+            # Count total dependency records (from asset_dependencies table)
+            dependencies_count = 0
+            try:
+                from app.models.asset import AssetDependency
+
+                # Defensively check for required multi-tenancy fields before querying
+                if hasattr(AssetDependency, "client_account_id") and hasattr(AssetDependency, "engagement_id"):
+                    dependency_query = select(func.count(AssetDependency.id)).where(
+                        and_(
+                            AssetDependency.client_account_id
+                            == self.context.client_account_id,
+                            AssetDependency.engagement_id == self.context.engagement_id,
+                        )
+                    )
+                    dependency_result = await self.db.execute(dependency_query)
+                    dependencies_count = dependency_result.scalar() or 0
+                else:
+                    logger.warning("AssetDependency model is missing required multi-tenancy fields (client_account_id, engagement_id). Skipping dependency count.")
+
+            except ImportError:
+                logger.warning("AssetDependency model not found. Skipping dependency count.")
+            except Exception as dep_error:
+                logger.error(f"An unexpected error occurred while counting dependencies: {dep_error}", exc_info=True)
+
             return {
                 "success": True,
                 "summary": {
                     "total_assets": total_assets,
                     "type_distribution": type_distribution,
                     "status_distribution": status_distribution,
+                },
+                # Dashboard metrics for Discovery page
+                "dashboard_metrics": {
+                    "servers": servers_count,
+                    "applications": applications_count,
+                    "databases": databases_count,
+                    "dependencies": dependencies_count,
                 },
                 "metadata": {
                     "client_account_id": str(self.context.client_account_id),
@@ -360,7 +468,7 @@ async def list_assets_for_discovery(
     context: RequestContext,
     page_size: int = 50,
     page: int = 1,
-    **kwargs
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     Legacy compatibility function for asset listing.

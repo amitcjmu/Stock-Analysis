@@ -122,11 +122,9 @@ async def legacy_create_asset(
         numeric_fields = convert_numeric_fields(asset_data)
 
         # Use repository's keyword-based create method
-        create_method = (
-            service_instance.repository.create_no_commit
-            if service_instance._request_context
-            else service_instance.repository.create
-        )
+        # CRITICAL FIX: Always use create_no_commit to avoid individual commits
+        # The orchestrator will handle the final commit
+        create_method = service_instance.repository.create_no_commit
 
         created_asset = await create_method(
             # Multi-tenant context will be applied by repository
@@ -147,10 +145,18 @@ async def legacy_create_asset(
             # Network information
             hostname=asset_data.get("hostname"),
             ip_address=asset_data.get("ip_address"),
+            fqdn=asset_data.get("fqdn"),
+            mac_address=asset_data.get("mac_address"),
             # Environment
             environment=asset_data.get("environment", "Unknown"),
+            # Location and infrastructure
+            location=asset_data.get("location"),
+            datacenter=asset_data.get("datacenter"),
+            rack_location=asset_data.get("rack_location"),
+            availability_zone=asset_data.get("availability_zone"),
             # Technical specifications - ALL CONVERTED NUMERIC VALUES
             operating_system=asset_data.get("operating_system"),
+            os_version=asset_data.get("os_version"),
             **numeric_fields,
             # Business information - map fields to correct Asset model fields
             business_owner=asset_data.get("business_unit")
@@ -159,8 +165,14 @@ async def legacy_create_asset(
             technical_owner=asset_data.get("technical_owner")
             or asset_data.get("owner"),
             department=asset_data.get("department"),
+            # Application details
+            application_name=asset_data.get("application_name"),
+            technology_stack=asset_data.get("technology_stack"),
+            # Criticality
             criticality=asset_data.get("criticality", "Medium"),
             business_criticality=asset_data.get("business_criticality", "Medium"),
+            # Migration planning
+            migration_complexity=asset_data.get("migration_complexity"),
             # Status
             status=AssetStatus.DISCOVERED,
             migration_status=AssetStatus.DISCOVERED,
@@ -173,6 +185,10 @@ async def legacy_create_asset(
             discovery_method="service_api",
             discovery_source=asset_data.get("discovery_source", "Service API"),
             discovery_timestamp=datetime.utcnow(),
+            # Import metadata
+            imported_by=asset_data.get("imported_by"),
+            imported_at=asset_data.get("imported_at"),
+            source_filename=asset_data.get("source_filename"),
             raw_data=asset_data,
         )
 

@@ -43,6 +43,11 @@ class ImportFieldMapping(Base):
         nullable=False,
         comment="Denormalized client account ID for efficient multi-tenant queries.",
     )
+    engagement_id = Column(
+        UUID(as_uuid=True),
+        nullable=False,
+        comment="Denormalized engagement ID for efficient multi-tenant queries and security.",
+    )
     master_flow_id = Column(
         UUID(as_uuid=True),
         ForeignKey("crewai_flow_state_extensions.id"),

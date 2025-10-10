@@ -151,6 +151,7 @@ class FieldMappingOperationsMixin:
                     field_mapping = ImportFieldMapping(
                         data_import_id=data_import.id,
                         client_account_id=self.client_account_id,
+                        engagement_id=data_import.engagement_id,
                         source_field=field_name_str,  # Use sanitized field name
                         target_field=suggested_target
                         or "UNMAPPED",  # Use UNMAPPED for fields without mapping
