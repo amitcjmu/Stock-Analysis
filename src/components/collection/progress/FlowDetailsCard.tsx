@@ -239,6 +239,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
         title: errorTitle,
         description: errorDescription,
         variant: "destructive",
+        duration: 10000, // Show error for 10 seconds instead of default
       });
     } finally {
       setIsCheckingReadiness(false);
