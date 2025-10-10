@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useProgressMonitoring, getFlowMilestones } from '@/hooks/collection/useProgressMonitoring';
 import { collectionFlowApi, TransitionResult } from '@/services/api/collection-flow';
 import { useToast } from '@/components/ui/use-toast';
+import { FLOW_PHASE_ROUTES } from '@/config/flowRoutes';
 
 
 /**
