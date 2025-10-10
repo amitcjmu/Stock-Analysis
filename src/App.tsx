@@ -163,7 +163,7 @@ const AuthenticatedApp = (): JSX.Element => {
 
       routePreloader.registerRoute({
         path: "/collection/adaptive-forms",
-        importFn: () => import("./pages/collection/AdaptiveForms"),
+        importFn: () => import("./pages/collection/adaptive-forms"),
         priority: LoadingPriority.HIGH,
       });
 
