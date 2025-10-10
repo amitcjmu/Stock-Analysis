@@ -23,7 +23,7 @@ from .creation import create_master_flow_for_orphan
 logger = logging.getLogger(__name__)
 
 
-async def continue_flow(
+async def continue_flow(  # noqa: C901  # Complex but necessary for proper error handling
     flow_id: str,
     resume_context: Optional[Dict[str, Any]],
     db: AsyncSession,
@@ -204,6 +204,37 @@ async def continue_flow(
             result = await collection_utils.resume_mfo_flow(
                 db, context, resume_flow_id, resume_context or {}
             )
+
+            # CRITICAL FIX: MFO returns {"status": "resume_failed"} instead of raising exceptions
+            # Check the result status and raise an error if resume failed
+            if isinstance(result, dict) and result.get("status") == "resume_failed":
+                error_msg = result.get("error", "Unknown error")
+                logger.error(
+                    safe_log_format(
+                        "MFO resume failed for flow {flow_id}: {error}",
+                        flow_id=flow_id,
+                        error=error_msg,
+                    )
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "resume_failed",
+                        "message": (
+                            "Failed to resume collection flow "
+                            "through Master Flow Orchestrator"
+                        ),
+                        "flow_id": flow_id,
+                        "master_flow_id": resume_flow_id,
+                        "mfo_error": error_msg,
+                        "required_action": (
+                            "The flow may be in an inconsistent state. "
+                            "Try navigating directly to the flow's current "
+                            "phase page, or contact support if the issue persists."
+                        ),
+                    },
+                )
+
             mfo_triggered = True
             mfo_result = result
 
@@ -227,6 +258,9 @@ async def continue_flow(
                 )
             )
 
+        except HTTPException:
+            # Re-raise HTTPExceptions (including our custom resume_failed error)
+            raise
         except Exception as mfo_error:
             logger.error(
                 safe_log_format(
@@ -238,10 +272,10 @@ async def continue_flow(
 
             # Return proper error status instead of 200
             raise HTTPException(
-                status_code=400,
+                status_code=500,
                 detail={
-                    "error": "resume_failed",
-                    "message": "Failed to resume collection flow through Master Flow Orchestrator",
+                    "error": "resume_exception",
+                    "message": "Unexpected error while resuming collection flow",
                     "flow_id": flow_id,
                     "master_flow_id": resume_flow_id,
                     "mfo_error": str(mfo_error),

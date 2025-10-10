@@ -158,88 +158,86 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
         return;
       }
 
-      // For incomplete flows, first try to continue the flow
+      // CRITICAL FIX: For incomplete flows, route to CURRENT phase page to show progress
+      // DO NOT call continueFlow() which advances the phase - user needs to see current results first
       try {
-        console.log("🔄 Continuing collection flow:", flow.id);
-        await collectionFlowApi.continueFlow(flow.id);
-        console.log("✅ Flow continuation initiated successfully");
-      } catch (continueError) {
-        console.warn(
-          "⚠️ Failed to continue flow, proceeding with questionnaire check:",
-          continueError,
-        );
-      }
+        console.log("🧭 Routing to current phase for flow:", flow.id);
+        const flowDetails = await collectionFlowApi.getFlow(flow.id);
 
-      // Try to get questionnaires
-      try {
-        const questionnaires = await collectionFlowApi.getFlowQuestionnaires(
-          flow.id,
-        );
+        const currentPhase = flowDetails.current_phase || 'asset_selection';
+        console.log(`📍 Current phase: ${currentPhase}`);
 
-        if (questionnaires.length > 0) {
-          console.log(
-            `📋 Found ${questionnaires.length} questionnaires, checking flow phase for navigation`,
-          );
+        // Per ADR-012: status determines lifecycle, current_phase determines operational state
+        // Route to the CURRENT phase page so user can see progress/results
+        const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
 
-          // Get flow details to determine current phase for proper routing
-          try {
-            const flowDetails = await collectionFlowApi.getFlow(flow.id);
-
-            // Per ADR-012: status determines lifecycle, current_phase determines operational state
-            // If flow is completed, always route to summary page
-            if (flowDetails.status === 'completed') {
-              console.log(`🧭 Flow is completed, navigating to summary page`);
-              navigate(`/collection/summary/${flow.id}`);
-              return;
-            }
-
-            const currentPhase = flowDetails.current_phase || 'asset_selection';
-            const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
-
-            if (phaseRoute) {
-              const targetRoute = phaseRoute(flow.id);
-              console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
-              navigate(targetRoute);
-            } else {
-              console.warn(`⚠️ No route found for phase: ${currentPhase}, falling back to adaptive-forms`);
-              navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
-            }
-          } catch (error) {
-            console.warn('⚠️ Failed to get flow details for phase routing, using fallback:', error);
-            navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
-          }
+        if (phaseRoute) {
+          const targetRoute = phaseRoute(flow.id);
+          console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+          toast({
+            title: "Continuing Flow",
+            description: `Opening ${currentPhase.replace('_', ' ')} page...`,
+            variant: "default",
+          });
+          navigate(targetRoute);
           return;
+        } else {
+          console.warn(`⚠️ No route found for phase: ${currentPhase}`);
+          // Fallback: try to get questionnaires
+          const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flow.id);
+          if (questionnaires.length > 0) {
+            console.log(`📋 Found ${questionnaires.length} questionnaires, routing to adaptive-forms`);
+            navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+            return;
+          }
         }
-      } catch (questionnairesError: unknown) {
+      } catch (error: unknown) {
         // Handle 422 'no_applications_selected' error
         if (
-          questionnairesError &&
-          typeof questionnairesError === "object" &&
-          "status" in questionnairesError &&
-          "code" in questionnairesError &&
-          (questionnairesError as { status: number; code: string }).status ===
-            422 &&
-          (questionnairesError as { status: number; code: string }).code ===
-            "no_applications_selected"
+          error &&
+          typeof error === "object" &&
+          "status" in error &&
+          "code" in error &&
+          (error as { status: number; code: string }).status === 422 &&
+          (error as { status: number; code: string }).code === "no_applications_selected"
         ) {
-          console.log(
-            "⚠️ No applications selected for flow, showing app selection UI",
-          );
+          console.log("⚠️ No applications selected for flow, showing app selection UI");
           setShowAppSelection(true);
           return;
         }
 
-        console.warn("⚠️ Failed to fetch questionnaires:", questionnairesError);
+        console.warn("⚠️ Error routing to phase, trying questionnaire check:", error);
       }
 
-      // If no questionnaires found, start polling for them
-      console.log("⏳ No questionnaires found, starting polling...");
+      // If no phase route found, start polling for questionnaires as fallback
+      console.log("⏳ No phase route available, starting polling for questionnaires...");
       await pollForQuestionnaires();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in handleContinue:", error);
+
+      // Extract user-friendly error message from backend response
+      let errorTitle = "Error Continuing Flow";
+      let errorDescription = "Failed to continue flow. Please try again.";
+
+      if (error && typeof error === "object") {
+        // Check if it's an API error response with detail
+        if (error.detail) {
+          if (typeof error.detail === "object") {
+            errorTitle = error.detail.message || errorTitle;
+            errorDescription = error.detail.required_action || error.detail.mfo_error || errorDescription;
+          } else if (typeof error.detail === "string") {
+            errorDescription = error.detail;
+          }
+        }
+        // Check if it's a standard Error object
+        else if (error.message) {
+          errorDescription = error.message;
+        }
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to continue flow. Please try again.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {
