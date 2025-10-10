@@ -70,6 +70,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
     "Preparing questionnaire...",
   );
   const [pollStartTime, setPollStartTime] = useState<number>(0);
+  const [continueError, setContinueError] = useState<{title: string; description: string} | null>(null);
 
   const handleAction = async (action: "pause" | "resume" | "stop"): void => {
     await onFlowAction(flow.id, action);
@@ -107,6 +108,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
   const handleContinue = async (): Promise<void> => {
     setIsCheckingReadiness(true);
     setShowAppSelection(false);
+    setContinueError(null); // Clear any previous errors
 
     try {
       // Check if flow is completed (100% progress or completed status)
@@ -234,6 +236,12 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           errorDescription = error.message;
         }
       }
+
+      // Show both toast (immediate feedback) AND set persistent error state (in-page display)
+      setContinueError({
+        title: errorTitle,
+        description: errorDescription,
+      });
 
       toast({
         title: errorTitle,
@@ -591,7 +599,28 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               </Alert>
             )}
 
-          {isFlowStuck && (
+          {/* Show continue error if present, otherwise show stuck message */}
+          {continueError ? (
+            <Alert className="bg-red-50 border-red-200">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <AlertDescription>
+                <p className="font-medium text-red-800">
+                  {continueError.title}
+                </p>
+                <p className="text-sm text-red-700 mt-1 whitespace-pre-wrap">
+                  {continueError.description}
+                </p>
+                <Button
+                  onClick={() => setContinueError(null)}
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 text-red-600 border-red-300 hover:bg-red-100"
+                >
+                  Dismiss
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : isFlowStuck && (
             <Alert className="bg-amber-50 border-amber-200">
               <AlertCircle className="h-5 w-5 text-amber-600" />
               <AlertDescription>
