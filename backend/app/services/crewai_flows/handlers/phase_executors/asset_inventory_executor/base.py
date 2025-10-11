@@ -22,6 +22,39 @@ from .transforms import transform_raw_record_to_asset
 logger = logging.getLogger(__name__)
 
 
+def serialize_uuids_for_jsonb(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert all UUID objects to strings for JSONB storage compatibility.
+
+    PostgreSQL JSONB columns cannot directly store Python UUID objects.
+    This function recursively converts all UUID instances to strings.
+
+    Args:
+        data: Dictionary potentially containing UUID objects
+
+    Returns:
+        Dictionary with all UUIDs converted to strings
+    """
+    result = {}
+    for key, value in data.items():
+        if isinstance(value, UUID):
+            result[key] = str(value)
+        elif isinstance(value, dict):
+            result[key] = serialize_uuids_for_jsonb(value)
+        elif isinstance(value, list):
+            result[key] = [
+                (
+                    serialize_uuids_for_jsonb(item)
+                    if isinstance(item, dict)
+                    else str(item) if isinstance(item, UUID) else item
+                )
+                for item in value
+            ]
+        else:
+            result[key] = value
+    return result
+
+
 class AssetInventoryExecutor(BasePhaseExecutor):
     """
     Handles the asset inventory phase execution.
@@ -189,6 +222,13 @@ class AssetInventoryExecutor(BasePhaseExecutor):
 
                 # Store conflicts in database
                 for conflict in conflicts_data:
+                    # Serialize UUID objects for JSONB storage compatibility
+                    # existing_asset_data is already serialized by serialize_asset_for_comparison()
+                    # but new_asset_data needs UUID serialization
+                    serialized_new_asset_data = serialize_uuids_for_jsonb(
+                        conflict["new_asset_data"]
+                    )
+
                     conflict_record = AssetConflictResolution(
                         client_account_id=UUID(client_account_id),
                         engagement_id=UUID(engagement_id),
@@ -199,7 +239,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                         conflict_key=conflict["conflict_key"],
                         existing_asset_id=conflict["existing_asset_id"],
                         existing_asset_snapshot=conflict["existing_asset_data"],
-                        new_asset_data=conflict["new_asset_data"],
+                        new_asset_data=serialized_new_asset_data,
                         resolution_status="pending",
                     )
                     db_session.add(conflict_record)
