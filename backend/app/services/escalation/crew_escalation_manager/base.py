@@ -8,19 +8,22 @@ from typing import Any, Dict, List, Optional
 # Setup logger
 logger = logging.getLogger(__name__)
 
-# Strategic crews conditional imports
+# Strategic crews - Use PERSISTENT wrappers (Phase B1 - Nov 2025)
 try:
     from ...crewai_flows.crews.asset_intelligence_crew import (
         create_asset_intelligence_crew,
     )
-    from ...crewai_flows.crews.dependency_analysis_crew import (
-        create_dependency_analysis_crew,
+
+    # Use persistent wrappers for dependency analysis and tech debt
+    from ...persistent_agents.dependency_analysis_persistent import (
+        execute_dependency_analysis,
     )
-    from ...crewai_flows.crews.tech_debt_analysis_crew import (
-        create_tech_debt_analysis_crew,
+    from ...persistent_agents.technical_debt_persistent import (
+        execute_tech_debt_analysis,
     )
 
     STRATEGIC_CREWS_AVAILABLE = True
+    logger.info("Strategic crews using PERSISTENT wrappers (Phase B1)")
 except ImportError:
     logger.debug("Strategic crews not available - using fallback functionality")
     STRATEGIC_CREWS_AVAILABLE = False
@@ -90,12 +93,15 @@ class CrewEscalationManagerBase:
     def _initialize_strategic_crews(self) -> None:
         """Initialize strategic crew instances if available."""
         try:
+            # Use PERSISTENT wrappers for dependency and tech debt (Phase B1 - Nov 2025)
             self.strategic_crews = {
                 "asset_intelligence_crew": create_asset_intelligence_crew(),
-                "dependency_analysis_crew": create_dependency_analysis_crew(),
-                "tech_debt_analysis_crew": create_tech_debt_analysis_crew(),
+                "dependency_analysis_crew": execute_dependency_analysis,  # Persistent wrapper
+                "tech_debt_analysis_crew": execute_tech_debt_analysis,  # Persistent wrapper
             }
-            logger.info("✅ Strategic crews initialized successfully")
+            logger.info(
+                "✅ Strategic crews initialized with PERSISTENT wrappers (Phase B1)"
+            )
         except Exception as e:
             logger.error(f"❌ Failed to initialize strategic crews: {e}")
             self.strategic_crews = {}

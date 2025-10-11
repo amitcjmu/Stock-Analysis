@@ -23,10 +23,10 @@ class TechnicalDebtExecutor(CrewExecutionBase):
     def execute_technical_debt_crew(self, state) -> Dict[str, Any]:
         """Execute Technical Debt Crew with enhanced CrewAI features"""
         try:
-            # Execute enhanced Technical Debt Crew
+            # Execute tech debt using PERSISTENT agent wrapper (Phase B1 - Nov 2025)
             try:
-                from app.services.crewai_flows.crews.technical_debt_crew import (
-                    create_technical_debt_crew,
+                from app.services.persistent_agents.technical_debt_persistent import (
+                    execute_tech_debt_analysis,
                 )
 
                 # Pass shared memory and full discovery context
@@ -38,14 +38,16 @@ class TechnicalDebtExecutor(CrewExecutionBase):
                     "app_app_dependencies": state.app_app_dependencies,
                 }
 
-                # Create and execute the enhanced crew with correct arguments
-                crew = create_technical_debt_crew(
-                    crewai_service=self.crewai_service,
-                    asset_inventory=state.asset_inventory,
-                    dependencies=dependencies,
-                    shared_memory=shared_memory,
+                # Execute via persistent wrapper (no crew creation needed)
+                crew_result = await execute_tech_debt_analysis(
+                    context=None,  # Will be extracted from state
+                    service_registry=None,  # Will use crewai_service
+                    data={
+                        "asset_inventory": state.asset_inventory,
+                        "dependencies": dependencies,
+                        "shared_memory": shared_memory,
+                    },
                 )
-                crew_result = crew.kickoff()
 
                 # Parse crew results
                 technical_debt_assessment = self.parser.parse_technical_debt_results(
