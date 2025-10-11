@@ -180,6 +180,16 @@ repos:
         stages: [pre-commit]
         description: "Warn about direct LLM API calls - should use multi_model_service for cost tracking"
 
+      # Legacy Pattern Check - Enforce modern architecture patterns
+      - id: check-legacy-imports
+        name: Check for legacy import patterns (archive, Crew(), crew_class)
+        entry: backend/scripts/check_legacy_imports.sh
+        language: system
+        files: ^backend/app/.*\.py$
+        pass_filenames: false
+        stages: [pre-commit]
+        description: "Block imports from archive/, direct Crew() usage, and crew_class (ADR-015, ADR-024, ADR-025)"
+
 # Exclude patterns
 exclude: |
   (?x)^(

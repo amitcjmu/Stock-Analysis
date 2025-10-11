@@ -1,0 +1,1873 @@
+{
+  "orphaned": {
+    "truly_orphaned": [],
+    "only_self_referential": []
+  },
+  "migration_candidates": {
+    "crew_instantiation": [
+      [
+        "app/schemas/agent_schemas.py",
+        "Imported by 11 files"
+      ],
+      [
+        "app/services/field_mapping_executor/agent_executor.py",
+        "Imported by 26 files"
+      ],
+      [
+        "app/services/crews/base_crew.py",
+        "Imported by 398 files"
+      ],
+      [
+        "app/services/flow_orchestration/execution_engine_core.py",
+        "Imported by 123 files"
+      ],
+      [
+        "app/services/ai_analysis/ai_validation_service.py",
+        "Imported by 48 files"
+      ],
+      [
+        "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "Imported by 101 files"
+      ],
+      [
+        "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "Imported by 99 files"
+      ],
+      [
+        "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "Imported by 95 files"
+      ],
+      [
+        "app/services/agents/flow_processing/crew.py",
+        "Imported by 98 files"
+      ],
+      [
+        "app/services/agents/flow_processing/agent.py",
+        "Imported by 26 files"
+      ],
+      [
+        "app/services/agents/intelligent_flow_agent/agent.py",
+        "Imported by 27 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "Imported by 158 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "Imported by 159 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "Imported by 168 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "Imported by 165 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "Imported by 166 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "Imported by 159 files"
+      ],
+      [
+        "app/services/crewai_flows/config/embedder_config.py",
+        "Imported by 176 files"
+      ],
+      [
+        "app/services/crewai_flows/config/crew_factory/factory.py",
+        "Imported by 209 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "Imported by 165 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "Imported by 172 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "Imported by 160 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "Imported by 160 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/tech_debt_analysis_crew/crew.py",
+        "Imported by 171 files"
+      ],
+      [
+        "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "Imported by 165 files"
+      ],
+      [
+        "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "Imported by 47 files"
+      ]
+    ],
+    "crew_class_usage": [
+      [
+        "app/services/sixr_engine_modular.py",
+        "Imported by 29 files"
+      ],
+      [
+        "app/services/flow_configs/discovery_flow_config.py",
+        "Imported by 45 files"
+      ]
+    ],
+    "old_agent_pattern": []
+  },
+  "coupling": {
+    "mixed_pattern_files": [
+      "app/services/field_mapping_executor/agent_executor.py",
+      "app/services/flow_configs/discovery_flow_config.py",
+      "app/services/crewai_flows/crews/persistent_field_mapping.py",
+      "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+    ],
+    "old_importing_new": [
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/field_mapping_executor/agent_executor.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crews/base_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/flow_orchestration/execution_engine_core.py",
+        "new": "app/services/flow_type_registry.py"
+      },
+      {
+        "old": "app/services/flow_orchestration/execution_engine_core.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py"
+      },
+      {
+        "old": "app/services/flow_orchestration/execution_engine_core.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/persistent_agents.py"
+      },
+      {
+        "old": "app/services/flow_orchestration/execution_engine_core.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_collection.py"
+      },
+      {
+        "old": "app/services/flow_orchestration/execution_engine_core.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/phase_executors.py"
+      },
+      {
+        "old": "app/services/flow_configs/discovery_flow_config.py",
+        "new": "app/services/flow_type_registry.py"
+      },
+      {
+        "old": "app/services/flow_configs/discovery_flow_config.py",
+        "new": "app/services/child_flow_services/discovery.py"
+      },
+      {
+        "old": "app/services/flow_configs/discovery_flow_config.py",
+        "new": "app/services/child_flow_services/collection.py"
+      },
+      {
+        "old": "app/services/flow_configs/discovery_flow_config.py",
+        "new": "app/services/child_flow_services/__init__.py"
+      },
+      {
+        "old": "app/services/flow_configs/discovery_flow_config.py",
+        "new": "app/services/child_flow_services/base.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/ai_analysis/ai_validation_service.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/phase_executors.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/persistent_agents.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_collection.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/agents/flow_processing/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/flow_type_registry.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/api/v1/endpoints/collection_crud_questionnaires/agents.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/phase_executors.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/api/v1/endpoints/collection_agent_questionnaires/generation.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/persistent_agents.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/collection_readiness_service.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_collection.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/analysis_handlers/core_analysis.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/agents/intelligent_flow_agent/agent.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/flow_type_registry.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/api/v1/endpoints/collection_crud_questionnaires/agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/phase_executors.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/api/v1/endpoints/collection_agent_questionnaires/generation.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/persistent_agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/collection_readiness_service.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_collection.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/analysis_handlers/core_analysis.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/flow_type_registry.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/api/v1/endpoints/collection_crud_questionnaires/agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/phase_executors.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/api/v1/endpoints/collection_agent_questionnaires/generation.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/persistent_agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/collection_readiness_service.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_collection.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/analysis_handlers/core_analysis.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/flow_type_registry.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/api/v1/endpoints/collection_crud_questionnaires/agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/phase_executors.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/api/v1/endpoints/collection_agent_questionnaires/generation.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/persistent_agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/collection_readiness_service.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_collection.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/analysis_handlers/core_analysis.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/persistent_agents/flow_initialization.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/persistent_agents/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/api/v1/endpoints/collection_crud_questionnaires/agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/persistent_agents/agent_pool_constants.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/phase_executors.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/persistent_agents/memory_monitoring.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_collection.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py",
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/persistent_agents.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/dependency_analysis_executor.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/asset_inventory_executor/base.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/base_phase_executor.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/agent_processor.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/tech_debt_executor.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_legacy.py"
+      },
+      {
+        "old": "app/api/v1/endpoints/data_import/agentic_critical_attributes/services/agent_coordinator.py",
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_import_validation/executor.py"
+      }
+    ],
+    "new_importing_old": [
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/flow_orchestration/execution_engine_core.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/tech_debt_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/agents/flow_processing/crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/config/embedder_config.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/collection_readiness_service.py",
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/tech_debt_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/config/embedder_config.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/flow_type_registry.py",
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/tech_debt_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/config/embedder_config.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/agent_executor.py",
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py"
+      },
+      {
+        "new": "app/services/field_mapping_executor/base.py",
+        "old": "app/services/ai_analysis/ai_validation_service.py"
+      },
+      {
+        "new": "app/services/child_flow_services/__init__.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/services/child_flow_services/__init__.py",
+        "old": "app/services/flow_configs/discovery_flow_config.py"
+      },
+      {
+        "new": "app/services/flow_orchestration/field_mapping_logic.py",
+        "old": "app/services/field_mapping_executor/agent_executor.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/tech_debt_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/config/embedder_config.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/persistent_agents/tenant_scoped_agent_pool.py",
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py"
+      },
+      {
+        "new": "app/services/workflow_orchestration/workflow_orchestrator/orchestrator.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/services/workflow_orchestration/workflow_orchestrator/orchestrator.py",
+        "old": "app/services/ai_analysis/ai_validation_service.py"
+      },
+      {
+        "new": "app/services/master_flow_orchestrator/operations/lifecycle_commands.py",
+        "old": "app/services/flow_orchestration/execution_engine_core.py"
+      },
+      {
+        "new": "app/services/flow_orchestration/execution_engine_crew_discovery/__init__.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/agentic_intelligence/business_value_agent/crew_builder.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/flow_orchestration/execution_engine_core.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/agentic_intelligence/risk_assessment_agent/crew_builder.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/tech_debt_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/agents/flow_processing/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/agentic_intelligence/modernization_agent/crew_builder.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/config/embedder_config.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/persistent_field_mapping.py",
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/handlers/phase_executors/__init__.py",
+        "old": "app/services/field_mapping_executor/agent_executor.py"
+      },
+      {
+        "new": "app/services/crewai_flows/handlers/phase_executors/field_mapping_executor.py",
+        "old": "app/services/field_mapping_executor/agent_executor.py"
+      },
+      {
+        "new": "app/services/crewai_flows/handlers/phase_executors/data_cleansing/executor.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/__init__.py",
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/field_mapping_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/config/crew_factory/factory.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/app_server_dependency_crew/tasks.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/asset_intelligence_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/optimized_field_mapping_crew/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/app_app_dependency_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/tech_debt_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/architecture_standards_crew/tasks.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/technical_debt_crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/config/embedder_config.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/dependency_analysis_crew/crew.py"
+      },
+      {
+        "new": "app/services/crewai_flows/crews/inventory_building_crew_original/crew.py",
+        "old": "app/services/crewai_flows/crews/agentic_asset_enrichment_crew.py"
+      },
+      {
+        "new": "app/api/v1/endpoints/flow_processing/__init__.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/api/v1/endpoints/flow_processing/queries.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/api/v1/endpoints/flow_processing/commands.py",
+        "old": "app/services/crews/base_crew.py"
+      },
+      {
+        "new": "app/api/v1/endpoints/data_import/field_mapping/utils/mapping_generator.py",
+        "old": "app/services/crewai_flows/crews/persistent_field_mapping.py"
+      }
+    ]
+  }
+}
