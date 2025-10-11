@@ -193,11 +193,11 @@ class PersistentFieldMapping:
         """
         Parse agent result into structured mapping with robust error handling.
 
-        Handles common JSON formatting issues from LLM outputs:
+        Uses dirtyjson library for lenient parsing of LLM outputs with:
         - Single quotes instead of double quotes
         - Unquoted property names
-        - Escaped special characters
-        - Malformed JSON structures
+        - Trailing commas
+        - Other common JSON formatting issues
         """
         import re
 
@@ -210,29 +210,48 @@ class PersistentFieldMapping:
             if json_match:
                 json_str = json_match.group(0)
 
-                # Try direct parse first
+                # Try strict JSON parse first
                 try:
                     parsed_result = json.loads(json_str)
+                    logger.debug("✅ Parsed with standard json.loads()")
                 except json.JSONDecodeError as json_error:
-                    logger.warning(
-                        f"Initial JSON parse failed (char {json_error.pos}): {str(json_error)[:100]}"
+                    logger.info(
+                        f"Standard JSON parse failed (char {json_error.pos}), trying lenient parser"
                     )
 
-                    # Attempt to fix common JSON issues
-                    fixed_json = self._sanitize_json_string(json_str)
-
+                    # Use lenient parser designed for malformed JSON
                     try:
-                        parsed_result = json.loads(fixed_json)
-                        logger.info("✅ Successfully parsed JSON after sanitization")
-                    except json.JSONDecodeError as retry_error:
-                        logger.error(
-                            f"JSON sanitization failed: {str(retry_error)[:100]}"
+                        import dirtyjson
+
+                        parsed_result = dirtyjson.loads(json_str)
+                        logger.info(
+                            "✅ Successfully parsed with dirtyjson lenient parser"
                         )
-                        # Log excerpt of problematic JSON for debugging
-                        logger.error(f"Problematic JSON excerpt: {fixed_json[:200]}...")
+                    except ImportError:
+                        logger.warning(
+                            "dirtyjson not available, falling back to conservative sanitization"
+                        )
+                        # Fallback to conservative sanitization if library not installed
+                        fixed_json = self._sanitize_json_string(json_str)
+                        try:
+                            parsed_result = json.loads(fixed_json)
+                            logger.info("✅ Parsed after conservative sanitization")
+                        except json.JSONDecodeError as retry_error:
+                            logger.error(
+                                f"All parsing attempts failed: {str(retry_error)[:100]}"
+                            )
+                            return {
+                                "mappings": {},
+                                "error": "Invalid JSON format",
+                                "raw_output": result_str[:500],
+                            }
+                    except Exception as dirty_error:
+                        logger.error(
+                            f"dirtyjson parsing failed: {str(dirty_error)[:100]}"
+                        )
                         return {
                             "mappings": {},
-                            "error": "Invalid JSON format",
+                            "error": "Lenient parser failed",
                             "raw_output": result_str[:500],
                         }
 
@@ -267,18 +286,14 @@ class PersistentFieldMapping:
 
     def _sanitize_json_string(self, json_str: str) -> str:
         """
-        Attempt to fix common JSON formatting issues from LLM outputs.
+        Conservative fallback sanitization when dirtyjson is not available.
 
-        Uses conservative transformations that preserve string content semantics.
-        Only applies fixes that are safe and won't corrupt legitimate data.
+        Only applies transformations that are provably safe and won't corrupt data:
+        - Remove trailing commas (always invalid in JSON)
+        - Quote bare property names at object boundaries only
 
-        Common fixes:
-        - Remove trailing commas (safe - always invalid in JSON)
-        - Quote bare property names at object start/after commas (context-aware)
-
-        NOTE: Does NOT replace quotes globally to avoid corrupting string values
-        like "it's" or "Time: 3:00 PM". If quote fixing is needed, recommend
-        using json_repair library or re-prompting LLM for valid JSON.
+        NOTE: This is a minimal fallback. For robust parsing of malformed JSON,
+        install dirtyjson: pip install dirtyjson
         """
         import re
 
@@ -286,28 +301,9 @@ class PersistentFieldMapping:
         fixed = re.sub(r",(\s*[}\]])", r"\1", json_str)
 
         # SAFE: Quote bare property names only at object boundaries
-        # Matches: { word: or , word: but not "word: or in middle of strings
+        # Matches: {word: or ,word: but NOT "word: or in middle of strings
+        # Example: {name: "foo"} → {"name": "foo"}
         fixed = re.sub(r"([{,]\s*)(\w+)(\s*:)", r'\1"\2"\3', fixed)
-
-        # CONSERVATIVE: Only fix double-escaped quotes (safe transformation)
-        # Avoid global quote replacement that corrupts apostrophes in strings
-        fixed = fixed.replace('\\\\"', '"')
-
-        # If result still invalid, try json_repair library (best-effort)
-        try:
-            # Check if json_repair is available (optional dependency)
-            from json_repair import repair_json
-
-            # Attempt repair - this library is designed to handle LLM outputs safely
-            fixed = repair_json(fixed, return_objects=False)
-        except ImportError:
-            # json_repair not available - return best-effort fix
-            logger.debug(
-                "json_repair library not available - using conservative sanitization only"
-            )
-        except Exception as e:
-            # Repair failed - return conservative fix
-            logger.debug(f"json_repair failed: {e} - using conservative sanitization")
 
         return fixed
 

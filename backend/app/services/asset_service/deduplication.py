@@ -102,8 +102,7 @@ async def create_or_update_asset(
             logger.info(f"✅ Created new asset '{new_asset.name}' (ID: {new_asset.id})")
             return (new_asset, "created")
         except IntegrityError as ie:
-            # Rollback on constraint violation to prevent session invalidation
-            await service_instance.db.rollback()
+            await service_instance.db.rollback()  # Prevent session invalidation
             logger.warning(
                 f"⚠️ IntegrityError during asset creation (likely race condition): {ie}"
             )
@@ -293,10 +292,32 @@ async def create_new_asset(
         return created_asset
 
     except IntegrityError as ie:
-        # Rollback to prevent session invalidation
-        await service_instance.db.rollback()
-        logger.error(f"❌ IntegrityError in create_new_asset for '{smart_name}': {ie}")
-        raise  # Re-raise to be handled by caller
+        await service_instance.db.rollback()  # Prevent session invalidation
+
+        # Differentiate unique constraint violations (race conditions) from other errors
+        # The exact message depends on database backend (PostgreSQL, MySQL, etc.)
+        error_msg = str(ie.orig).lower() if hasattr(ie, "orig") else str(ie).lower()
+
+        # Check if this is a unique constraint violation (can be retried)
+        is_unique_violation = any(
+            keyword in error_msg
+            for keyword in ["unique constraint", "duplicate key", "duplicate entry"]
+        )
+
+        if is_unique_violation:
+            # This is likely a race condition - another process created the asset
+            # The caller's retry logic will handle this by finding the existing asset
+            logger.warning(
+                f"⚠️ Unique constraint violation (likely race condition) for '{smart_name}': {ie}"
+            )
+            raise  # Re-raise for caller's race-condition handling
+        else:
+            # This is a different integrity issue (NOT NULL, foreign key, CHECK constraint)
+            # These are unrecoverable and should not trigger retry logic
+            logger.error(
+                f"❌ Unrecoverable IntegrityError in create_new_asset for '{smart_name}': {ie}"
+            )
+            raise  # Re-raise, but caller should not retry
 
 
 async def enrich_asset(
@@ -489,13 +510,11 @@ async def bulk_create_or_update_assets(
         try:
             await service_instance.db.flush()
         except IntegrityError as ie:
-            # Rollback to prevent session invalidation
-            await service_instance.db.rollback()
+            await service_instance.db.rollback()  # Prevent session invalidation
             logger.error(
                 f"❌ IntegrityError during bulk flush of {len(new_assets)} assets: {ie}"
             )
-            # Re-raise to let caller handle the failure
-            raise
+            raise  # Re-raise to let caller handle the failure
 
     logger.info(
         f"✅ Batch processed {len(assets_data)} assets: "
