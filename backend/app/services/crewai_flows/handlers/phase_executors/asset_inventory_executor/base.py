@@ -193,7 +193,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                         client_account_id=UUID(client_account_id),
                         engagement_id=UUID(engagement_id),
                         data_import_id=UUID(data_import_id) if data_import_id else None,
-                        master_flow_id=UUID(master_flow_id),
+                        discovery_flow_id=UUID(discovery_flow_id),  # FK to child flow
+                        master_flow_id=UUID(master_flow_id),  # Indexed for filtering
                         conflict_type=conflict["conflict_type"],
                         conflict_key=conflict["conflict_key"],
                         existing_asset_id=conflict["existing_asset_id"],

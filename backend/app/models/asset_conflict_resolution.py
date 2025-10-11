@@ -52,7 +52,14 @@ class AssetConflictResolution(Base, TimestampMixin):
         nullable=True,
         index=True,
     )
-    # NOTE: master_flow_id is indexed but NOT a FK (per GPT-5 feedback)
+    discovery_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("migration.discovery_flows.id"),
+        nullable=False,
+        index=True,
+        comment="Discovery flow PK where conflict was detected",
+    )
+    # NOTE: master_flow_id is indexed but NOT a FK (per GPT-5 feedback/ADR)
     # ADR rule: FKs must reference table PKs, not flow_id columns
     master_flow_id = Column(
         UUID(as_uuid=True),

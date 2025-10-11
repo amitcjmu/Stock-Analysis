@@ -35,10 +35,16 @@ def upgrade() -> None:
         sa.Column("client_account_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("engagement_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column(
-            "flow_id",
+            "discovery_flow_id",
             postgresql.UUID(as_uuid=True),
             nullable=False,
-            comment="Discovery flow ID where conflict was detected",
+            comment="Discovery flow PK where conflict was detected",
+        ),
+        sa.Column(
+            "master_flow_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=True,
+            comment="Master flow ID for filtering/auditing (not FK per ADR)",
         ),
         sa.Column(
             "data_import_id",
@@ -143,9 +149,9 @@ def upgrade() -> None:
             name="fk_asset_conflicts_engagement",
         ),
         sa.ForeignKeyConstraint(
-            ["flow_id"],
+            ["discovery_flow_id"],
             ["migration.discovery_flows.id"],
-            name="fk_asset_conflicts_flow",
+            name="fk_asset_conflicts_discovery_flow",
         ),
         sa.ForeignKeyConstraint(
             ["data_import_id"],
@@ -193,7 +199,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_asset_conflicts_pending_by_flow",
         "asset_conflict_resolutions",
-        ["flow_id", "resolution_status"],
+        ["discovery_flow_id", "resolution_status"],
         unique=False,
         schema="migration",
         postgresql_where=sa.text("resolution_status = 'pending'"),
@@ -203,7 +209,16 @@ def upgrade() -> None:
     op.create_index(
         "ix_asset_conflicts_tenant_scope",
         "asset_conflict_resolutions",
-        ["client_account_id", "engagement_id", "flow_id"],
+        ["client_account_id", "engagement_id", "discovery_flow_id"],
+        unique=False,
+        schema="migration",
+    )
+
+    # Query 2b: Index for master_flow_id filtering (no FK per ADR)
+    op.create_index(
+        "ix_asset_conflicts_master_flow",
+        "asset_conflict_resolutions",
+        ["master_flow_id"],
         unique=False,
         schema="migration",
     )
@@ -238,6 +253,11 @@ def downgrade() -> None:
     )
     op.drop_index(
         "ix_asset_conflicts_existing_asset",
+        table_name="asset_conflict_resolutions",
+        schema="migration",
+    )
+    op.drop_index(
+        "ix_asset_conflicts_master_flow",
         table_name="asset_conflict_resolutions",
         schema="migration",
     )

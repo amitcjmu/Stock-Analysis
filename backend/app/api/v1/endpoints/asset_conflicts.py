@@ -34,7 +34,7 @@ from app.services.asset_service.deduplication import (
     NEVER_MERGE_FIELDS,
 )
 
-router = APIRouter(prefix="/asset-conflicts", tags=["Asset Conflicts"])
+router = APIRouter(prefix="/asset-conflicts", tags=["asset-conflicts"])
 logger = logging.getLogger(__name__)
 
 
@@ -70,6 +70,7 @@ async def list_pending_conflicts(
         and_(
             AssetConflictResolution.client_account_id == client_account_id,
             AssetConflictResolution.engagement_id == engagement_id,
+            AssetConflictResolution.discovery_flow_id == flow_id,
             AssetConflictResolution.resolution_status == "pending",
         )
     )
@@ -99,7 +100,6 @@ async def list_pending_conflicts(
 
 @router.post("/resolve-bulk", response_model=ConflictResolutionResponse)
 async def resolve_conflicts_bulk(  # noqa: C901
-
     request: BulkConflictResolutionRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),  # AUTH REQUIRED

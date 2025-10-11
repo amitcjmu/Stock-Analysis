@@ -621,7 +621,7 @@ async def bulk_prepare_conflicts(
             existing = existing_by_hostname[hostname]
             conflicts.append(
                 {
-                    "conflict_type": "duplicate_hostname",
+                    "conflict_type": "hostname",  # Aligned with CHECK constraint
                     "conflict_key": hostname,
                     "existing_asset_id": existing.id,
                     "existing_asset_data": serialize_asset_for_comparison(existing),
@@ -635,7 +635,7 @@ async def bulk_prepare_conflicts(
             existing = existing_by_ip[ip]
             conflicts.append(
                 {
-                    "conflict_type": "duplicate_ip",
+                    "conflict_type": "ip_address",  # Aligned with CHECK constraint
                     "conflict_key": ip,
                     "existing_asset_id": existing.id,
                     "existing_asset_data": serialize_asset_for_comparison(existing),
@@ -650,7 +650,7 @@ async def bulk_prepare_conflicts(
             existing = existing_by_name_type[name_type_key]
             conflicts.append(
                 {
-                    "conflict_type": "duplicate_name",
+                    "conflict_type": "name",  # Aligned with CHECK constraint
                     "conflict_key": f"{name} ({asset_type})",  # Include type in display
                     "existing_asset_id": existing.id,
                     "existing_asset_data": serialize_asset_for_comparison(existing),

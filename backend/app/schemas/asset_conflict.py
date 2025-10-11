@@ -13,7 +13,7 @@ class AssetConflictDetail(BaseModel):
     """Conflict detail for UI display"""
 
     conflict_id: UUID
-    conflict_type: str  # duplicate_hostname, duplicate_name, duplicate_ip
+    conflict_type: str  # hostname, ip_address, or name
     conflict_key: str  # The conflicting value
     existing_asset: Dict  # Serialized asset for comparison
     new_asset: Dict  # Proposed new asset data
