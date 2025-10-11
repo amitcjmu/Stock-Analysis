@@ -96,11 +96,6 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
       }
 
       // For any flow state, just execute the data cleansing phase with approved mappings
-      toast({
-        title: "Continuing Discovery Flow",
-        description: "Applying field mappings and continuing with data cleansing...",
-      });
-
       try {
         const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
         const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
@@ -148,15 +143,14 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
           engagementId
         );
 
+        // Navigate immediately to show loading state on data cleansing page
+        navigate(`/discovery/data-cleansing/${flowId}`);
+
+        // Show toast after navigation
         toast({
           title: "Flow Continued",
-          description: "Discovery flow is now continuing with data cleansing phase.",
+          description: "Data cleansing phase is now processing. This may take 15-30 seconds.",
         });
-
-        // Navigate to data cleansing after a short delay
-        setTimeout(() => {
-          navigate(`/discovery/data-cleansing/${flowId}`);
-        }, 1500);
       } catch (executeError) {
         console.error('Failed to continue flow:', executeError);
         toast({

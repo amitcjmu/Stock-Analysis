@@ -24,16 +24,23 @@ import DataCleansingNavigationButtons from '../../components/discovery/data-clea
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
+import AssetConflictModal from '../../components/discovery/AssetConflictModal';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { AlertTriangle } from 'lucide-react'
 import { Download, FileText, CheckCircle, Activity } from 'lucide-react'
+import { assetConflictService } from '../../services/api/assetConflictService';
+import type { AssetConflict } from '../../types/assetConflict';
 
 const DataCleansing: React.FC = () => {
   const { user, client, engagement, isLoading: isAuthLoading, setCurrentFlow } = useAuth();
   const [pendingQuestions, setPendingQuestions] = useState(0);
+
+  // Asset conflict resolution state
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [assetConflicts, setAssetConflicts] = useState<AssetConflict[]>([]);
 
   // Get URL flow ID from params
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
@@ -433,6 +440,62 @@ const DataCleansing: React.FC = () => {
     checkPendingQuestions();
   }, [client, engagement]);
 
+  // Check for asset conflicts (duplicate detection during import)
+  useEffect(() => {
+    const checkForConflicts = async (): Promise<void> => {
+      if (!effectiveFlowId || !flow) return;
+
+      // Check if flow is paused for conflict resolution
+      // Backend sets phase_state.conflict_resolution_pending = true when conflicts exist
+      const has_conflicts = flow?.phase_state?.conflict_resolution_pending === true;
+
+      if (has_conflicts) {
+        try {
+          SecureLogger.info('Conflict resolution pending, fetching conflicts', {
+            flowId: effectiveFlowId,
+          });
+
+          // Fetch pending conflicts from backend
+          const conflicts = await assetConflictService.listConflicts(effectiveFlowId);
+
+          if (conflicts.length > 0) {
+            SecureLogger.info('Found pending asset conflicts', {
+              conflictCount: conflicts.length,
+            });
+            setAssetConflicts(conflicts);
+            setShowConflictModal(true);
+          } else {
+            // No conflicts found, clear the pending flag
+            SecureLogger.info('No conflicts found, clearing modal');
+            setAssetConflicts([]);
+            setShowConflictModal(false);
+          }
+        } catch (error) {
+          SecureLogger.error('Failed to fetch asset conflicts', error);
+          // Don't show modal if fetch fails
+          setShowConflictModal(false);
+        }
+      }
+    };
+
+    checkForConflicts();
+  }, [effectiveFlowId, flow?.phase_state]);
+
+  // Handle conflict resolution completion
+  const handleConflictResolutionComplete = async (): Promise<void> => {
+    SecureLogger.info('Conflict resolution completed, refreshing flow state');
+
+    // Close modal
+    setShowConflictModal(false);
+    setAssetConflicts([]);
+
+    // Refresh flow state to get updated phase_state
+    await refresh();
+
+    // If flow was paused, it should auto-resume after conflicts are resolved
+    // Backend handles this automatically
+  };
+
   // Get data cleansing specific data from V2 flow (keep for compatibility)
   const isDataCleansingComplete = completedPhases.includes('data_cleansing') ||
     flow?.phase_completion?.data_cleansing === true;
@@ -484,6 +547,14 @@ const DataCleansing: React.FC = () => {
       onTriggerAnalysis={handleTriggerDataCleansingCrew}
       isAnalyzing={isAnalyzing}
     >
+      {/* Asset Conflict Resolution Modal */}
+      <AssetConflictModal
+        conflicts={assetConflicts}
+        isOpen={showConflictModal}
+        onClose={() => setShowConflictModal(false)}
+        onResolutionComplete={handleConflictResolutionComplete}
+      />
+
       <div className="flex min-h-screen bg-gray-50">
         <div className="hidden lg:block w-64 border-r bg-white">
           <Sidebar />
