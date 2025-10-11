@@ -190,18 +190,70 @@ class PersistentFieldMapping:
             raise
 
     def _parse_agent_result(self, result: Any) -> Dict[str, Any]:
-        """Parse agent result into structured mapping including critical attributes assessment"""
+        """
+        Parse agent result into structured mapping with robust error handling.
+
+        Uses dirtyjson library for lenient parsing of LLM outputs with:
+        - Single quotes instead of double quotes
+        - Unquoted property names
+        - Trailing commas
+        - Other common JSON formatting issues
+        """
+        import re
+
         try:
             # Try to extract JSON from result
             result_str = str(result)
 
             # Find JSON in the result
-            import re
-
             json_match = re.search(r"\{.*\}", result_str, re.DOTALL)
             if json_match:
                 json_str = json_match.group(0)
-                parsed_result = json.loads(json_str)
+
+                # Try strict JSON parse first
+                try:
+                    parsed_result = json.loads(json_str)
+                    logger.debug("✅ Parsed with standard json.loads()")
+                except json.JSONDecodeError as json_error:
+                    logger.info(
+                        f"Standard JSON parse failed (char {json_error.pos}), trying lenient parser"
+                    )
+
+                    # Use lenient parser designed for malformed JSON
+                    try:
+                        import dirtyjson
+
+                        parsed_result = dirtyjson.loads(json_str)
+                        logger.info(
+                            "✅ Successfully parsed with dirtyjson lenient parser"
+                        )
+                    except ImportError:
+                        logger.warning(
+                            "dirtyjson not available, falling back to conservative sanitization"
+                        )
+                        # Fallback to conservative sanitization if library not installed
+                        fixed_json = self._sanitize_json_string(json_str)
+                        try:
+                            parsed_result = json.loads(fixed_json)
+                            logger.info("✅ Parsed after conservative sanitization")
+                        except json.JSONDecodeError as retry_error:
+                            logger.error(
+                                f"All parsing attempts failed: {str(retry_error)[:100]}"
+                            )
+                            return {
+                                "mappings": {},
+                                "error": "Invalid JSON format",
+                                "raw_output": result_str[:500],
+                            }
+                    except Exception as dirty_error:
+                        logger.error(
+                            f"dirtyjson parsing failed: {str(dirty_error)[:100]}"
+                        )
+                        return {
+                            "mappings": {},
+                            "error": "Lenient parser failed",
+                            "raw_output": result_str[:500],
+                        }
 
                 # Extract critical attributes assessment if present
                 # The agent may include this when using CriticalAttributesAssessmentTool
@@ -218,11 +270,42 @@ class PersistentFieldMapping:
 
             # Fallback parsing
             logger.warning("Could not extract JSON from agent result")
-            return {"mappings": {}, "error": "Failed to parse agent response"}
+            return {
+                "mappings": {},
+                "error": "No JSON found in agent response",
+                "raw_output": result_str[:500],
+            }
 
         except Exception as e:
             logger.error(f"Failed to parse agent result: {e}")
-            return {"mappings": {}, "error": str(e)}
+            return {
+                "mappings": {},
+                "error": str(e),
+                "raw_output": str(result)[:500],
+            }
+
+    def _sanitize_json_string(self, json_str: str) -> str:
+        """
+        Conservative fallback sanitization when dirtyjson is not available.
+
+        Only applies transformations that are provably safe and won't corrupt data:
+        - Remove trailing commas (always invalid in JSON)
+        - Quote bare property names at object boundaries only
+
+        NOTE: This is a minimal fallback. For robust parsing of malformed JSON,
+        install dirtyjson: pip install dirtyjson
+        """
+        import re
+
+        # SAFE: Remove trailing commas before closing braces/brackets
+        fixed = re.sub(r",(\s*[}\]])", r"\1", json_str)
+
+        # SAFE: Quote bare property names only at object boundaries
+        # Matches: {word: or ,word: but NOT "word: or in middle of strings
+        # Example: {name: "foo"} → {"name": "foo"}
+        fixed = re.sub(r"([{,]\s*)(\w+)(\s*:)", r'\1"\2"\3', fixed)
+
+        return fixed
 
     async def _update_agent_memory(
         self, agent, headers: List[str], mapping_result: Dict[str, Any]

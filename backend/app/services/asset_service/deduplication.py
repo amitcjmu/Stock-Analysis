@@ -13,6 +13,7 @@ from typing import Dict, Any, Optional, Tuple, Literal
 from datetime import datetime
 
 from sqlalchemy import select, and_, or_
+from sqlalchemy.exc import IntegrityError
 
 from app.models.asset import Asset, AssetStatus
 from .helpers import get_smart_asset_name, convert_numeric_fields
@@ -96,11 +97,34 @@ async def create_or_update_asset(
             return (updated_asset, "updated")
 
         # No duplicate - create new asset
-        new_asset = await create_new_asset(service_instance, asset_data, flow_id)
-        logger.info(f"✅ Created new asset '{new_asset.name}' (ID: {new_asset.id})")
+        try:
+            new_asset = await create_new_asset(service_instance, asset_data, flow_id)
+            logger.info(f"✅ Created new asset '{new_asset.name}' (ID: {new_asset.id})")
+            return (new_asset, "created")
+        except IntegrityError as ie:
+            await service_instance.db.rollback()  # Prevent session invalidation
+            logger.warning(
+                f"⚠️ IntegrityError during asset creation (likely race condition): {ie}"
+            )
 
-        return (new_asset, "created")
+            # Retry hierarchical lookup after rollback - another process may have created it
+            existing_asset, match_criterion = await find_existing_asset_hierarchical(
+                service_instance, asset_data, client_id, engagement_id
+            )
 
+            if existing_asset:
+                logger.info(
+                    f"🔄 Found asset after rollback via {match_criterion}, returning existing"
+                )
+                return (existing_asset, "existed")
+            else:
+                # True duplicate key conflict - log and re-raise
+                logger.error(f"❌ IntegrityError persists after retry: {ie}")
+                raise
+
+    except IntegrityError:
+        # Already handled above, but catch here to prevent outer exception handler
+        raise
     except Exception as e:
         logger.error(f"❌ create_or_update_asset failed: {e}")
         raise
@@ -226,44 +250,74 @@ async def create_new_asset(
         else service_instance.repository.create
     )
 
-    created_asset = await create_method(
-        client_account_id=client_id,
-        engagement_id=engagement_id,
-        flow_id=effective_flow_id,
-        master_flow_id=master_flow_id if master_flow_id else effective_flow_id,
-        discovery_flow_id=(
-            discovery_flow_id if discovery_flow_id else effective_flow_id
-        ),
-        raw_import_records_id=raw_import_records_id,
-        name=smart_name,
-        asset_name=smart_name,
-        asset_type=asset_data.get("asset_type", "Unknown"),
-        description=asset_data.get("description", "Discovered by agent"),
-        hostname=asset_data.get("hostname"),
-        ip_address=asset_data.get("ip_address"),
-        environment=asset_data.get("environment", "Unknown"),
-        operating_system=asset_data.get("operating_system"),
-        **numeric_fields,
-        business_owner=asset_data.get("business_unit")
-        or asset_data.get("owner")
-        or asset_data.get("business_owner"),
-        technical_owner=asset_data.get("technical_owner") or asset_data.get("owner"),
-        department=asset_data.get("department"),
-        criticality=asset_data.get("criticality", "Medium"),
-        business_criticality=asset_data.get("business_criticality", "Medium"),
-        status=AssetStatus.DISCOVERED,
-        migration_status=AssetStatus.DISCOVERED,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
-        custom_attributes=asset_data.get("attributes", {})
-        or asset_data.get("custom_attributes", {}),
-        discovery_method="service_api",
-        discovery_source=asset_data.get("discovery_source", "Service API"),
-        discovery_timestamp=datetime.utcnow(),
-        raw_data=asset_data,
-    )
+    try:
+        created_asset = await create_method(
+            client_account_id=client_id,
+            engagement_id=engagement_id,
+            flow_id=effective_flow_id,
+            master_flow_id=master_flow_id if master_flow_id else effective_flow_id,
+            discovery_flow_id=(
+                discovery_flow_id if discovery_flow_id else effective_flow_id
+            ),
+            raw_import_records_id=raw_import_records_id,
+            name=smart_name,
+            asset_name=smart_name,
+            asset_type=asset_data.get("asset_type", "Unknown"),
+            description=asset_data.get("description", "Discovered by agent"),
+            hostname=asset_data.get("hostname"),
+            ip_address=asset_data.get("ip_address"),
+            environment=asset_data.get("environment", "Unknown"),
+            operating_system=asset_data.get("operating_system"),
+            **numeric_fields,
+            business_owner=asset_data.get("business_unit")
+            or asset_data.get("owner")
+            or asset_data.get("business_owner"),
+            technical_owner=asset_data.get("technical_owner")
+            or asset_data.get("owner"),
+            department=asset_data.get("department"),
+            criticality=asset_data.get("criticality", "Medium"),
+            business_criticality=asset_data.get("business_criticality", "Medium"),
+            status=AssetStatus.DISCOVERED,
+            migration_status=AssetStatus.DISCOVERED,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            custom_attributes=asset_data.get("attributes", {})
+            or asset_data.get("custom_attributes", {}),
+            discovery_method="service_api",
+            discovery_source=asset_data.get("discovery_source", "Service API"),
+            discovery_timestamp=datetime.utcnow(),
+            raw_data=asset_data,
+        )
 
-    return created_asset
+        return created_asset
+
+    except IntegrityError as ie:
+        await service_instance.db.rollback()  # Prevent session invalidation
+
+        # Differentiate unique constraint violations (race conditions) from other errors
+        # The exact message depends on database backend (PostgreSQL, MySQL, etc.)
+        error_msg = str(ie.orig).lower() if hasattr(ie, "orig") else str(ie).lower()
+
+        # Check if this is a unique constraint violation (can be retried)
+        is_unique_violation = any(
+            keyword in error_msg
+            for keyword in ["unique constraint", "duplicate key", "duplicate entry"]
+        )
+
+        if is_unique_violation:
+            # This is likely a race condition - another process created the asset
+            # The caller's retry logic will handle this by finding the existing asset
+            logger.warning(
+                f"⚠️ Unique constraint violation (likely race condition) for '{smart_name}': {ie}"
+            )
+            raise  # Re-raise for caller's race-condition handling
+        else:
+            # This is a different integrity issue (NOT NULL, foreign key, CHECK constraint)
+            # These are unrecoverable and should not trigger retry logic
+            logger.error(
+                f"❌ Unrecoverable IntegrityError in create_new_asset for '{smart_name}': {ie}"
+            )
+            raise  # Re-raise, but caller should not retry
 
 
 async def enrich_asset(
@@ -453,7 +507,14 @@ async def bulk_create_or_update_assets(
 
     # Bulk flush all new assets at once
     if new_assets:
-        await service_instance.db.flush()
+        try:
+            await service_instance.db.flush()
+        except IntegrityError as ie:
+            await service_instance.db.rollback()  # Prevent session invalidation
+            logger.error(
+                f"❌ IntegrityError during bulk flush of {len(new_assets)} assets: {ie}"
+            )
+            raise  # Re-raise to let caller handle the failure
 
     logger.info(
         f"✅ Batch processed {len(assets_data)} assets: "
