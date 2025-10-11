@@ -1,6 +1,6 @@
 """Add composite indexes for asset deduplication
 
-Revision ID: 088_asset_dedup_indexes
+Revision ID: 088_add_asset_dedup_composite_indexes
 Revises: 086_fix_collection_flow_status_adr012
 Create Date: 2025-10-08 23:14:19
 
@@ -13,7 +13,7 @@ and paused status addition.
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "088_asset_dedup_indexes"
+revision = "088_add_asset_dedup_composite_indexes"
 down_revision = "086_fix_collection_flow_status_adr012"
 branch_labels = None
 depends_on = None
