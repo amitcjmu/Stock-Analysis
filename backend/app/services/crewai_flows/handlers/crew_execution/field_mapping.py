@@ -57,20 +57,21 @@ class FieldMappingExecutor(CrewExecutionBase):
 
                 return {"field_mappings": field_mappings, "crew_status": crew_status}
 
-            # Execute enhanced Field Mapping Crew with shared memory
+            # Execute field mapping using PERSISTENT agent wrapper (Phase B1 - Nov 2025)
             try:
-                from app.services.crewai_flows.crews.field_mapping_crew import (
-                    create_field_mapping_crew,
+                from app.services.persistent_agents.field_mapping_persistent import (
+                    execute_field_mapping,
                 )
 
                 # Pass shared memory and knowledge base if available
                 shared_memory = getattr(state, "shared_memory_reference", None)
 
-                # Create and execute the enhanced crew
-                crew = create_field_mapping_crew(
-                    crewai_service, state.raw_data, shared_memory=shared_memory
+                # Execute via persistent wrapper (no crew creation needed)
+                crew_result = await execute_field_mapping(
+                    context=None,  # Will be extracted from state
+                    service_registry=None,  # Will use crewai_service
+                    data={"raw_data": state.raw_data, "shared_memory": shared_memory},
                 )
-                crew_result = crew.kickoff()
 
                 # Parse crew results and extract field mappings
                 field_mappings = self.parser.parse_field_mapping_results(

@@ -8,14 +8,14 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
-# Import CrewAI Technical Debt Crew for AI-driven 6R strategy analysis
+# Use PERSISTENT technical debt wrapper for AI-driven 6R strategy analysis (Phase B1 - Nov 2025)
 try:
-    from .crewai_flows.crews.technical_debt_crew import TechnicalDebtCrew
+    from .persistent_agents.technical_debt_persistent import execute_tech_debt_analysis
 
     CREWAI_TECHNICAL_DEBT_AVAILABLE = True
 except ImportError:
     CREWAI_TECHNICAL_DEBT_AVAILABLE = False
-    TechnicalDebtCrew = None
+    execute_tech_debt_analysis = None
 
 from .sixr_handlers import CostCalculator, RecommendationEngine, RiskAssessor
 
@@ -38,20 +38,20 @@ class SixRDecisionEngine:
     """Modular 6R Decision Engine with CrewAI Technical Debt Crew for AI-driven strategy analysis."""
 
     def __init__(self, crewai_service=None):
-        # Initialize CrewAI Technical Debt Crew for AI-driven strategy analysis
+        # Use PERSISTENT technical debt wrapper for AI-driven strategy analysis
         if CREWAI_TECHNICAL_DEBT_AVAILABLE and crewai_service:
-            self.technical_debt_crew_class = TechnicalDebtCrew
+            self.technical_debt_executor = execute_tech_debt_analysis
             self.crewai_service = crewai_service
             self.ai_strategy_available = True
             logger.info(
-                "6R Decision Engine initialized with CrewAI Technical Debt Crew"
+                "6R Decision Engine initialized with PERSISTENT Technical Debt wrapper (Phase B1)"
             )
         else:
-            self.technical_debt_crew_class = None
+            self.technical_debt_executor = None
             self.crewai_service = None
             self.ai_strategy_available = False
             logger.debug(
-                "CrewAI Technical Debt Crew not available - using fallback mode"
+                "PERSISTENT Technical Debt wrapper not available - using fallback mode"
             )
 
         # Initialize remaining handlers (for cost, risk, recommendations)
@@ -170,27 +170,29 @@ class SixRDecisionEngine:
         asset_inventory: Dict[str, Any],
         dependencies: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Analyze using CrewAI Technical Debt Crew for AI-driven 6R strategy analysis."""
+        """Analyze using PERSISTENT Technical Debt wrapper for AI-driven 6R strategy analysis."""
         try:
-            # Create Technical Debt Crew instance
-            tech_debt_crew = self.technical_debt_crew_class(
-                crewai_service=self.crewai_service,
-                shared_memory=None,
-                knowledge_base=None,
+            # Execute via persistent wrapper (Phase B1 - Nov 2025)
+            crew_result = await self.technical_debt_executor(
+                context=None,  # Will be extracted from crewai_service
+                service_registry=None,  # Will use crewai_service
+                data={
+                    "asset_inventory": asset_inventory,
+                    "dependencies": dependencies,
+                    "shared_memory": None,
+                },
             )
 
-            # Create and execute the crew
-            crew = tech_debt_crew.create_crew(asset_inventory, dependencies)
-            crew_result = crew.kickoff()
-
-            # Parse crew results for 6R strategy recommendations
+            # Parse results for 6R strategy recommendations
             strategy_result = self._parse_crew_results(crew_result, param_dict)
 
-            logger.info("✅ Technical Debt Crew completed 6R strategy analysis")
+            logger.info(
+                "✅ PERSISTENT Technical Debt wrapper completed 6R strategy analysis"
+            )
             return strategy_result
 
         except Exception as e:
-            logger.error(f"Error in Technical Debt Crew analysis: {e}")
+            logger.error(f"Error in Technical Debt analysis: {e}")
             return await self._fallback_strategy_analysis(param_dict, application_type)
 
     def _parse_crew_results(
