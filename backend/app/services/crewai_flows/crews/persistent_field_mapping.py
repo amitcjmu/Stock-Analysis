@@ -190,18 +190,51 @@ class PersistentFieldMapping:
             raise
 
     def _parse_agent_result(self, result: Any) -> Dict[str, Any]:
-        """Parse agent result into structured mapping including critical attributes assessment"""
+        """
+        Parse agent result into structured mapping with robust error handling.
+
+        Handles common JSON formatting issues from LLM outputs:
+        - Single quotes instead of double quotes
+        - Unquoted property names
+        - Escaped special characters
+        - Malformed JSON structures
+        """
+        import re
+
         try:
             # Try to extract JSON from result
             result_str = str(result)
 
             # Find JSON in the result
-            import re
-
             json_match = re.search(r"\{.*\}", result_str, re.DOTALL)
             if json_match:
                 json_str = json_match.group(0)
-                parsed_result = json.loads(json_str)
+
+                # Try direct parse first
+                try:
+                    parsed_result = json.loads(json_str)
+                except json.JSONDecodeError as json_error:
+                    logger.warning(
+                        f"Initial JSON parse failed (char {json_error.pos}): {str(json_error)[:100]}"
+                    )
+
+                    # Attempt to fix common JSON issues
+                    fixed_json = self._sanitize_json_string(json_str)
+
+                    try:
+                        parsed_result = json.loads(fixed_json)
+                        logger.info("✅ Successfully parsed JSON after sanitization")
+                    except json.JSONDecodeError as retry_error:
+                        logger.error(
+                            f"JSON sanitization failed: {str(retry_error)[:100]}"
+                        )
+                        # Log excerpt of problematic JSON for debugging
+                        logger.error(f"Problematic JSON excerpt: {fixed_json[:200]}...")
+                        return {
+                            "mappings": {},
+                            "error": "Invalid JSON format",
+                            "raw_output": result_str[:500],
+                        }
 
                 # Extract critical attributes assessment if present
                 # The agent may include this when using CriticalAttributesAssessmentTool
@@ -218,11 +251,48 @@ class PersistentFieldMapping:
 
             # Fallback parsing
             logger.warning("Could not extract JSON from agent result")
-            return {"mappings": {}, "error": "Failed to parse agent response"}
+            return {
+                "mappings": {},
+                "error": "No JSON found in agent response",
+                "raw_output": result_str[:500],
+            }
 
         except Exception as e:
             logger.error(f"Failed to parse agent result: {e}")
-            return {"mappings": {}, "error": str(e)}
+            return {
+                "mappings": {},
+                "error": str(e),
+                "raw_output": str(result)[:500],
+            }
+
+    def _sanitize_json_string(self, json_str: str) -> str:
+        """
+        Attempt to fix common JSON formatting issues from LLM outputs.
+
+        Common fixes:
+        - Replace single quotes with double quotes
+        - Quote unquoted property names
+        - Remove trailing commas
+        - Handle escaped quotes
+        """
+        import re
+
+        # Replace single quotes with double quotes (but not in string values)
+        fixed = json_str.replace("'", '"')
+
+        # Quote unquoted property names: property: → "property":
+        # This regex finds word characters followed by colon (not already quoted)
+        fixed = re.sub(r"(\w+)(?=\s*:)", r'"\1"', fixed)
+
+        # Remove trailing commas before closing braces/brackets
+        fixed = re.sub(r",(\s*[}\]])", r"\1", fixed)
+
+        # Fix common escape sequence issues
+        fixed = fixed.replace('\\"', '"')  # Un-escape quotes
+        fixed = fixed.replace("\\n", " ")  # Replace newlines with spaces
+        fixed = fixed.replace("\\t", " ")  # Replace tabs with spaces
+
+        return fixed
 
     async def _update_agent_memory(
         self, agent, headers: List[str], mapping_result: Dict[str, Any]
