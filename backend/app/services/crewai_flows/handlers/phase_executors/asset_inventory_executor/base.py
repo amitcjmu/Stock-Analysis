@@ -7,8 +7,12 @@ CC: Implements actual asset creation from raw_import_records data
 
 import logging
 from typing import Dict, Any
+from uuid import UUID
 
 from app.services.asset_service import AssetService
+from app.services.asset_service.deduplication import bulk_prepare_conflicts
+from app.models.asset_conflict_resolution import AssetConflictResolution
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.core.context import RequestContext
 from ..base_phase_executor import BasePhaseExecutor
 from .queries import get_raw_records, get_field_mappings
@@ -165,6 +169,68 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     "execution_time": "0.001s",
                 }
 
+            # Step 1: Bulk conflict detection (single query per field type) - NEW
+            logger.info(
+                f"🔄 Processing {len(assets_data)} assets with bulk conflict detection"
+            )
+
+            conflict_free, conflicts_data = await bulk_prepare_conflicts(
+                asset_service,
+                assets_data,
+                UUID(client_account_id),
+                UUID(engagement_id),
+            )
+
+            # Step 2: If conflicts detected, store and pause flow - NEW
+            if conflicts_data:
+                logger.warning(
+                    f"⚠️ Detected {len(conflicts_data)} asset conflicts - pausing for user resolution"
+                )
+
+                # Store conflicts in database
+                for conflict in conflicts_data:
+                    conflict_record = AssetConflictResolution(
+                        client_account_id=UUID(client_account_id),
+                        engagement_id=UUID(engagement_id),
+                        data_import_id=UUID(data_import_id) if data_import_id else None,
+                        master_flow_id=UUID(master_flow_id),
+                        conflict_type=conflict["conflict_type"],
+                        conflict_key=conflict["conflict_key"],
+                        existing_asset_id=conflict["existing_asset_id"],
+                        existing_asset_snapshot=conflict["existing_asset_data"],
+                        new_asset_data=conflict["new_asset_data"],
+                        resolution_status="pending",
+                    )
+                    db_session.add(conflict_record)
+
+                await db_session.flush()
+
+                # Step 3: Pause child flow via repository (ADR-012/ADR-025)
+                discovery_repo = DiscoveryFlowRepository(
+                    db_session, str(client_account_id), str(engagement_id)
+                )
+                await discovery_repo.set_conflict_resolution_pending(
+                    UUID(discovery_flow_id),
+                    conflict_count=len(conflicts_data),
+                    data_import_id=UUID(data_import_id) if data_import_id else None,
+                )
+
+                # Step 4: Return paused status
+                return {
+                    "status": "paused",  # Child flow status per ADR-012
+                    "phase": "asset_inventory",
+                    "message": f"Found {len(conflicts_data)} duplicate assets. User resolution required.",
+                    "conflict_count": len(conflicts_data),
+                    "conflict_free_count": len(conflict_free),
+                    "data_import_id": str(data_import_id) if data_import_id else None,
+                    "phase_state": {
+                        "conflict_resolution_pending": True,
+                    },
+                }
+
+            # Step 5: Proceed with conflict-free assets (batch optimized) - NEW
+            logger.info(f"✅ Processing {len(conflict_free)} conflict-free assets")
+
             # Create assets via service (transaction managed by caller)
             # CC: Don't start a new transaction - db_session already has an active transaction
             created_assets = []
@@ -174,7 +240,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Use batch-optimized method to eliminate N+1 queries
             try:
                 results = await asset_service.bulk_create_or_update_assets(
-                    assets_data, flow_id=master_flow_id
+                    conflict_free, flow_id=master_flow_id
                 )
 
                 # Categorize results by status
@@ -192,7 +258,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 logger.warning(
                     f"⚠️ Batch processing failed, falling back to individual: {e}"
                 )
-                for asset_data in assets_data:
+                for asset_data in conflict_free:
                     try:
                         # Use unified deduplication method (single source of truth)
                         # Hierarchical dedup: name+type → hostname/fqdn/ip → normalization

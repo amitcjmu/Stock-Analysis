@@ -4,11 +4,15 @@ Status management operations.
 Handles flow status updates and state transitions.
 """
 
+import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+from uuid import UUID
 
-from sqlalchemy import and_, update
+from sqlalchemy import and_, select, update
+from sqlalchemy.sql import text as sa_text
+from sqlalchemy import func
 
 from app.models.discovery_flow import DiscoveryFlow
 from .flow_base import FlowCommandsBase
@@ -102,3 +106,132 @@ class FlowStatusManagementCommands(FlowCommandsBase):
             await self._invalidate_flow_cache(updated_flow)
 
         return updated_flow
+
+    async def set_conflict_resolution_pending(
+        self,
+        flow_id: UUID,
+        conflict_count: int,
+        data_import_id: Optional[UUID] = None,
+    ) -> None:
+        """
+        Pause discovery flow for conflict resolution.
+
+        Sets phase_state flags per ADR-012 (child flow owns operational state):
+        - phase_state.conflict_resolution_pending: true
+        - phase_state.conflict_metadata: { conflict_count, data_import_id, paused_at }
+
+        NOTE: status remains 'active' (flow is paused but not completed)
+
+        Args:
+            flow_id: Discovery flow UUID
+            conflict_count: Number of conflicts detected
+            data_import_id: Optional data import UUID for filtering
+        """
+        conflict_metadata = {
+            "conflict_count": conflict_count,
+            "data_import_id": str(data_import_id) if data_import_id else None,
+            "paused_at": datetime.utcnow().isoformat(),
+        }
+
+        # NEW: Coalesce phase_state to empty JSONB before jsonb_set (per GPT-5 feedback)
+        # Prevents failure when phase_state is NULL
+        stmt = (
+            update(DiscoveryFlow)
+            .where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == self.client_account_id,
+                    DiscoveryFlow.engagement_id == self.engagement_id,
+                )
+            )
+            .values(
+                phase_state=func.jsonb_set(
+                    func.jsonb_set(
+                        func.coalesce(
+                            DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
+                        ),
+                        "{conflict_resolution_pending}",
+                        sa_text("'true'::jsonb"),
+                    ),
+                    "{conflict_metadata}",
+                    sa_text(f"'{json.dumps(conflict_metadata)}'::jsonb"),
+                ),
+                updated_at=datetime.utcnow(),
+            )
+        )
+
+        await self.db.execute(stmt)
+
+        logger.info(
+            f"⏸️ Discovery flow {flow_id} paused for conflict resolution "
+            f"({conflict_count} conflicts)"
+        )
+
+    async def clear_conflict_resolution_pending(self, flow_id: UUID) -> None:
+        """
+        Resume discovery flow after conflict resolution.
+
+        Clears phase_state.conflict_resolution_pending flag and metadata.
+
+        Args:
+            flow_id: Discovery flow UUID
+        """
+        # NEW: Coalesce phase_state to empty JSONB before jsonb_set (per GPT-5 feedback)
+        stmt = (
+            update(DiscoveryFlow)
+            .where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == self.client_account_id,
+                    DiscoveryFlow.engagement_id == self.engagement_id,
+                )
+            )
+            .values(
+                phase_state=func.jsonb_set(
+                    func.jsonb_set(
+                        func.coalesce(
+                            DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
+                        ),
+                        "{conflict_resolution_pending}",
+                        sa_text("'false'::jsonb"),
+                    ),
+                    "{conflict_metadata}",
+                    sa_text("'{}'::jsonb"),
+                ),
+                updated_at=datetime.utcnow(),
+            )
+        )
+
+        await self.db.execute(stmt)
+
+        logger.info(f"▶️ Discovery flow {flow_id} resumed after conflict resolution")
+
+    async def get_conflict_resolution_status(self, flow_id: UUID) -> Optional[Dict]:
+        """
+        Check if flow is paused for conflict resolution.
+
+        Returns:
+            Dict with { pending: bool, conflict_count: int, data_import_id: str } or None
+        """
+        stmt = select(DiscoveryFlow.phase_state).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == self.client_account_id,
+                DiscoveryFlow.engagement_id == self.engagement_id,
+            )
+        )
+        result = await self.db.execute(stmt)
+        phase_state = result.scalar_one_or_none()
+
+        if not phase_state:
+            return None
+
+        is_pending = phase_state.get("conflict_resolution_pending", False)
+        conflict_metadata = phase_state.get("conflict_metadata", {})
+
+        return {
+            "pending": is_pending,
+            "conflict_count": conflict_metadata.get("conflict_count", 0),
+            "data_import_id": conflict_metadata.get("data_import_id"),
+            "paused_at": conflict_metadata.get("paused_at"),
+        }

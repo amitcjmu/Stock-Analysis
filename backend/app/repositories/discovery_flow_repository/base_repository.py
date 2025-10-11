@@ -196,6 +196,27 @@ class DiscoveryFlowRepository(UUIDMixin, ContextAwareRepository):
             flow_id, assessment_flow_id
         )
 
+    async def set_conflict_resolution_pending(
+        self,
+        flow_id: uuid.UUID,
+        conflict_count: int,
+        data_import_id: Optional[uuid.UUID] = None,
+    ) -> None:
+        """Pause discovery flow for conflict resolution"""
+        return await self.flow_commands.set_conflict_resolution_pending(
+            flow_id, conflict_count, data_import_id
+        )
+
+    async def clear_conflict_resolution_pending(self, flow_id: uuid.UUID) -> None:
+        """Resume discovery flow after conflict resolution"""
+        return await self.flow_commands.clear_conflict_resolution_pending(flow_id)
+
+    async def get_conflict_resolution_status(
+        self, flow_id: uuid.UUID
+    ) -> Optional[Dict]:
+        """Check if flow is paused for conflict resolution"""
+        return await self.flow_commands.get_conflict_resolution_status(flow_id)
+
     # ========================================
     # ASSET QUERY OPERATIONS (delegated)
     # ========================================

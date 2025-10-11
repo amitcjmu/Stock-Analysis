@@ -23,6 +23,9 @@ from app.api.v1.endpoints import (
     sixr_router,
 )
 
+# Asset conflicts router
+from app.api.v1.endpoints.asset_conflicts import router as asset_conflicts_router
+
 from app.api.v1.endpoints.execute import router as execute_router
 
 from app.api.v1.endpoints.context_establishment import (
@@ -406,6 +409,7 @@ __all__ = [
     "assessment_flow_router",
     "asset_workflow_router",
     "asset_inventory_router",
+    "asset_conflicts_router",
     "chat_router",
     "context_router",
     "data_import_router",
