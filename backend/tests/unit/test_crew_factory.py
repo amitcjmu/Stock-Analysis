@@ -51,7 +51,7 @@ class TestCrewConfig:
 
         assert config["max_iterations"] == 1
         assert config["verbose"] is False
-        assert config["memory"] is True
+        assert config["memory"] is False  # Per ADR-024: Use TenantMemoryManager instead
         assert config["max_execution_time"] > 0  # From env or default
 
     def test_crew_config_overrides(self):
