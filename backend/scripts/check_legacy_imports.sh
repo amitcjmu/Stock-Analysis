@@ -11,8 +11,8 @@ if git diff --cached -U0 -- '*.py' | grep -E "^\+.*(from|import)\s+(backend\.arc
   FAILED=1
 fi
 
-# Check for direct Crew() instantiation
-if git diff --cached -U0 -- '*.py' | grep -E "^\+.*\bCrew\s*\(" 2>/dev/null; then
+# Check for direct Crew() instantiation (filter out commented lines)
+if git diff --cached -U0 -- '*.py' | grep -v -E "^\+\s*#" | grep -E "^\+.*\bCrew\s*\(" 2>/dev/null; then
   echo "❌ Direct Crew() instantiation detected. Use TenantScopedAgentPool instead."
   echo "   See ADR-015 and ADR-024 for persistent agent patterns."
   echo "   Example: await TenantScopedAgentPool.get_agent(context, agent_type, service_registry)"

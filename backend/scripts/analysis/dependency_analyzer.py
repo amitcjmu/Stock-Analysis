@@ -9,7 +9,6 @@ Usage:
 
 import ast
 import json
-import os
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -176,13 +175,17 @@ class DependencyAnalyzer:
         """Find files that match an import path"""
         # Convert import path to file path
         # E.g., "app.services.crews.field_mapping" -> "app/services/crews/field_mapping.py"
-        import_parts = import_path.replace(".", "/")
+        import_as_path = import_path.replace(".", "/")
+        possible_file = f"{import_as_path}.py"
+        possible_package = f"{import_as_path}/__init__.py"
 
         matching = []
-        for file_path in self.graph.files.keys():
-            # Check if import matches file path
-            if import_parts in file_path or file_path.replace(".py", "") in import_parts:
-                matching.append(file_path)
+        # Check for an exact file match
+        if possible_file in self.graph.files:
+            matching.append(possible_file)
+        # Check for a package match
+        if possible_package in self.graph.files:
+            matching.append(possible_package)
 
         return matching
 
@@ -343,7 +346,8 @@ class DependencyAnalyzer:
                 f.write(f"- `{file_path}`\n")
 
         print(
-            f"  ✅ Orphaned files: {len(orphaned['truly_orphaned'])} truly orphaned, {len(orphaned['only_self_referential'])} self-referential"
+            f"  ✅ Orphaned files: {len(orphaned['truly_orphaned'])} truly orphaned, "
+            f"{len(orphaned['only_self_referential'])} self-referential"
         )
 
         # 2. Migration candidates report
@@ -381,7 +385,9 @@ class DependencyAnalyzer:
                 f.write(f"- `{new_file}` → `{old_file}`\n")
 
         print(
-            f"  ✅ Coupling: {len(coupling['mixed_pattern_files'])} mixed, {len(coupling['old_importing_new'])} old→new, {len(coupling['new_importing_old'])} new→old"
+            f"  ✅ Coupling: {len(coupling['mixed_pattern_files'])} mixed, "
+            f"{len(coupling['old_importing_new'])} old→new, "
+            f"{len(coupling['new_importing_old'])} new→old"
         )
 
         # 4. Generate Mermaid graphs
@@ -439,12 +445,16 @@ class DependencyAnalyzer:
             f.write(
                 f"### Orphaned Files: {truly_orphaned} files with no incoming imports\n\n"
             )
-            f.write("**✅ SAFE TO ARCHIVE:** These files are not imported anywhere.\n\n")
+            f.write(
+                "**✅ SAFE TO ARCHIVE:** These files are not imported anywhere.\n\n"
+            )
 
             # Migration candidates
             total_migration = sum(len(c) for c in migration.values())
             f.write(f"### Migration Candidates: {total_migration} files\n\n")
-            f.write("**⚠️ REQUIRES MIGRATION:** These files use deprecated patterns:\n\n")
+            f.write(
+                "**⚠️ REQUIRES MIGRATION:** These files use deprecated patterns:\n\n"
+            )
             for pattern_name, candidates in migration.items():
                 if candidates:
                     f.write(f"- **{pattern_name}**: {len(candidates)} files\n")
@@ -455,10 +465,12 @@ class DependencyAnalyzer:
                 f"- **Mixed patterns**: {len(coupling['mixed_pattern_files'])} files contain both old and new code\n"
             )
             f.write(
-                f"- **Old → New dependencies**: {len(coupling['old_importing_new'])} deprecated files import modern code\n"
+                f"- **Old → New dependencies**: "
+                f"{len(coupling['old_importing_new'])} deprecated files import modern code\n"
             )
             f.write(
-                f"- **New → Old dependencies**: {len(coupling['new_importing_old'])} modern files still depend on deprecated code\n"
+                f"- **New → Old dependencies**: "
+                f"{len(coupling['new_importing_old'])} modern files still depend on deprecated code\n"
             )
 
             f.write("\n## Recommendations\n\n")
@@ -466,9 +478,7 @@ class DependencyAnalyzer:
                 "1. **Archive first**: Truly orphaned files (no incoming imports)\n"
             )
             f.write("2. **Migrate next**: Files with deprecated patterns\n")
-            f.write(
-                "3. **Refactor last**: Mixed pattern files and coupling issues\n\n"
-            )
+            f.write("3. **Refactor last**: Mixed pattern files and coupling issues\n\n")
 
             f.write("## Detailed Reports\n\n")
             f.write("- [Orphaned Files](./orphaned_files.md)\n")
