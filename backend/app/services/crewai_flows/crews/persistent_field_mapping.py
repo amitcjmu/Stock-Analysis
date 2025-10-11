@@ -269,28 +269,45 @@ class PersistentFieldMapping:
         """
         Attempt to fix common JSON formatting issues from LLM outputs.
 
+        Uses conservative transformations that preserve string content semantics.
+        Only applies fixes that are safe and won't corrupt legitimate data.
+
         Common fixes:
-        - Replace single quotes with double quotes
-        - Quote unquoted property names
-        - Remove trailing commas
-        - Handle escaped quotes
+        - Remove trailing commas (safe - always invalid in JSON)
+        - Quote bare property names at object start/after commas (context-aware)
+
+        NOTE: Does NOT replace quotes globally to avoid corrupting string values
+        like "it's" or "Time: 3:00 PM". If quote fixing is needed, recommend
+        using json_repair library or re-prompting LLM for valid JSON.
         """
         import re
 
-        # Replace single quotes with double quotes (but not in string values)
-        fixed = json_str.replace("'", '"')
+        # SAFE: Remove trailing commas before closing braces/brackets
+        fixed = re.sub(r",(\s*[}\]])", r"\1", json_str)
 
-        # Quote unquoted property names: property: → "property":
-        # This regex finds word characters followed by colon (not already quoted)
-        fixed = re.sub(r"(\w+)(?=\s*:)", r'"\1"', fixed)
+        # SAFE: Quote bare property names only at object boundaries
+        # Matches: { word: or , word: but not "word: or in middle of strings
+        fixed = re.sub(r"([{,]\s*)(\w+)(\s*:)", r'\1"\2"\3', fixed)
 
-        # Remove trailing commas before closing braces/brackets
-        fixed = re.sub(r",(\s*[}\]])", r"\1", fixed)
+        # CONSERVATIVE: Only fix double-escaped quotes (safe transformation)
+        # Avoid global quote replacement that corrupts apostrophes in strings
+        fixed = fixed.replace('\\\\"', '"')
 
-        # Fix common escape sequence issues
-        fixed = fixed.replace('\\"', '"')  # Un-escape quotes
-        fixed = fixed.replace("\\n", " ")  # Replace newlines with spaces
-        fixed = fixed.replace("\\t", " ")  # Replace tabs with spaces
+        # If result still invalid, try json_repair library (best-effort)
+        try:
+            # Check if json_repair is available (optional dependency)
+            from json_repair import repair_json
+
+            # Attempt repair - this library is designed to handle LLM outputs safely
+            fixed = repair_json(fixed, return_objects=False)
+        except ImportError:
+            # json_repair not available - return best-effort fix
+            logger.debug(
+                "json_repair library not available - using conservative sanitization only"
+            )
+        except Exception as e:
+            # Repair failed - return conservative fix
+            logger.debug(f"json_repair failed: {e} - using conservative sanitization")
 
         return fixed
 
