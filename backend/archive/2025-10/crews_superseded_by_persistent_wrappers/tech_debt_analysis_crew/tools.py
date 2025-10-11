@@ -24,7 +24,7 @@ class LegacySystemAnalysisTool(BaseTool):
     name: str = "legacy_system_analysis_tool"
     description: str = "Analyze legacy systems and identify modernization opportunities"
 
-    def _run(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _run(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:  # noqa: C901
         """Analyze legacy system characteristics"""
         try:
             # Legacy indicators

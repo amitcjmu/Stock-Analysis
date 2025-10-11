@@ -181,7 +181,7 @@ class DependencyAnalysisCrew:
                 },
             }
 
-    def _process_crew_results(
+    def _process_crew_results(  # noqa: C901
         self, crew_result: Any, assets_data: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Process crew execution results into structured format"""
