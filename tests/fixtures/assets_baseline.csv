@@ -1,0 +1,4 @@
+hostname,ip_address,name,operating_system,cpu_cores,ram_gb,storage_gb,location,environment,application,status,description
+server01.example.com,10.0.1.10,Production Web Server 01,Ubuntu 20.04,8,16,500,US-East-1,Production,E-Commerce Platform,Active,Primary web application server
+server02.example.com,10.0.1.20,Database Master Server,PostgreSQL 14 on Ubuntu,16,64,2000,US-East-1,Production,E-Commerce Platform,Active,Main database instance
+server03.example.com,10.0.1.30,Application Server 01,Windows Server 2019,12,32,1000,US-West-1,Production,HR System,Active,Core application processing

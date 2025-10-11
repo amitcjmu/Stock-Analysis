@@ -150,10 +150,10 @@ class FlowStatusManagementCommands(FlowCommandsBase):
                         func.coalesce(
                             DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
                         ),
-                        "{conflict_resolution_pending}",
+                        sa_text("ARRAY['conflict_resolution_pending']::text[]"),
                         sa_text("'true'::jsonb"),
                     ),
-                    "{conflict_metadata}",
+                    sa_text("ARRAY['conflict_metadata']::text[]"),
                     sa_text(f"'{json.dumps(conflict_metadata)}'::jsonb"),
                 ),
                 updated_at=datetime.utcnow(),
@@ -192,10 +192,10 @@ class FlowStatusManagementCommands(FlowCommandsBase):
                         func.coalesce(
                             DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
                         ),
-                        "{conflict_resolution_pending}",
+                        sa_text("ARRAY['conflict_resolution_pending']::text[]"),
                         sa_text("'false'::jsonb"),
                     ),
-                    "{conflict_metadata}",
+                    sa_text("ARRAY['conflict_metadata']::text[]"),
                     sa_text("'{}'::jsonb"),
                 ),
                 updated_at=datetime.utcnow(),
