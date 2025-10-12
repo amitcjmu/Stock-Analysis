@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AlertTriangle } from 'lucide-react';
 
 interface CleansingRequiredBannerProps {
   showCleansingRequiredBanner: boolean;
@@ -88,6 +89,50 @@ export const ExecutionErrorBanner: React.FC<ExecutionErrorBannerProps> = ({
                 className="border-red-300 text-red-800 hover:bg-red-100"
               >
                 Dismiss
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+interface ConflictResolutionBannerProps {
+  conflictCount: number;
+  onResolveConflicts: () => void;
+}
+
+export const ConflictResolutionBanner: React.FC<ConflictResolutionBannerProps> = ({
+  conflictCount,
+  onResolveConflicts
+}) => {
+  if (conflictCount === 0) return null;
+
+  return (
+    <Card className="mb-6 border-yellow-200 bg-yellow-50">
+      <CardContent className="p-4">
+        <div className="flex items-start space-x-3">
+          <div className="flex-shrink-0">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-yellow-900">Duplicate Assets Detected</h3>
+            <p className="mt-1 text-sm text-yellow-800">
+              Found <span className="font-semibold">{conflictCount}</span> duplicate asset{conflictCount > 1 ? 's' : ''} during import.
+              The discovery flow is paused and waiting for your decision.
+            </p>
+            <p className="mt-1 text-xs text-yellow-700">
+              You can choose to keep existing assets, replace with new data, or merge fields selectively.
+            </p>
+            <div className="mt-3">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={onResolveConflicts}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              >
+                Resolve {conflictCount} Conflict{conflictCount > 1 ? 's' : ''}
               </Button>
             </div>
           </div>

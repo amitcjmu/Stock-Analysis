@@ -54,6 +54,20 @@ class FlowCommands(FlowCommandsBase):
         """Update discovery flow status"""
         return await self._status_mgmt.update_flow_status(*args, **kwargs)
 
+    async def set_conflict_resolution_pending(self, *args, **kwargs):
+        """Pause discovery flow for conflict resolution"""
+        return await self._status_mgmt.set_conflict_resolution_pending(*args, **kwargs)
+
+    async def clear_conflict_resolution_pending(self, *args, **kwargs):
+        """Resume discovery flow after conflict resolution"""
+        return await self._status_mgmt.clear_conflict_resolution_pending(
+            *args, **kwargs
+        )
+
+    async def get_conflict_resolution_status(self, *args, **kwargs):
+        """Check if flow is paused for conflict resolution"""
+        return await self._status_mgmt.get_conflict_resolution_status(*args, **kwargs)
+
     # Completion methods
     async def mark_flow_complete(self, *args, **kwargs):
         """Mark flow as complete"""

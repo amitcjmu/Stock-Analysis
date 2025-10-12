@@ -91,7 +91,8 @@ async def persist_asset_inventory_completion(
         )
 
         result = await db.execute(update_stmt)
-        await db.flush()
+        await db.flush()  # Flush to ensure statement is executed
+        # CC: Don't commit here - transaction managed by caller (phase executor)
 
         if result.rowcount > 0:
             logger.info(

@@ -9,7 +9,7 @@ CC: Deduplication and merge strategies for asset management
 
 import logging
 import uuid
-from typing import Dict, Any, Optional, Tuple, Literal
+from typing import Dict, Any, Optional, Tuple, Literal, Set, List
 from datetime import datetime
 
 from sqlalchemy import select, and_, or_
@@ -21,6 +21,73 @@ from .helpers import get_smart_asset_name, convert_numeric_fields
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# FIELD MERGE ALLOWLIST - CRITICAL FOR SECURITY
+# ============================================================================
+
+# Fields that CAN be merged (safe to update)
+DEFAULT_ALLOWED_MERGE_FIELDS = {
+    # Technical specs
+    "operating_system",
+    "os_version",
+    "cpu_cores",
+    "memory_gb",
+    "storage_gb",
+    # Network info
+    "ip_address",
+    "fqdn",
+    "mac_address",
+    # Infrastructure
+    "environment",
+    "location",
+    "datacenter",
+    "rack_location",
+    "availability_zone",
+    # Business info
+    "business_owner",
+    "technical_owner",
+    "department",
+    "application_name",
+    "technology_stack",
+    "criticality",
+    "business_criticality",
+    # Migration planning
+    "six_r_strategy",
+    "migration_priority",
+    "migration_complexity",
+    "migration_wave",
+    # Metadata
+    "description",
+    "custom_attributes",
+    # Performance metrics
+    "cpu_utilization_percent",
+    "memory_utilization_percent",
+    "disk_iops",
+    "network_throughput_mbps",
+    "current_monthly_cost",
+    "estimated_cloud_cost",
+}
+
+# Fields that MUST NEVER be merged (immutable identifiers and tenant context)
+NEVER_MERGE_FIELDS = {
+    "id",
+    "client_account_id",
+    "engagement_id",
+    "flow_id",
+    "master_flow_id",
+    "discovery_flow_id",
+    "assessment_flow_id",
+    "planning_flow_id",
+    "execution_flow_id",
+    "raw_import_records_id",
+    "created_at",
+    "created_by",
+    "name",
+    "asset_name",  # Part of identity
+    "hostname",  # Part of unique constraint - never merge
+}
+
+
 async def create_or_update_asset(
     service_instance,
     asset_data: Dict[str, Any],
@@ -28,9 +95,11 @@ async def create_or_update_asset(
     *,
     upsert: bool = False,
     merge_strategy: Literal["enrich", "overwrite"] = "enrich",
-) -> Tuple[Asset, Literal["created", "existed", "updated"]]:
+    conflict_detection_mode: bool = False,  # NEW: enable preflight conflict check
+    allowed_merge_fields: Optional[Set[str]] = None,  # NEW: field allowlist for merge
+) -> Tuple[Asset, Literal["created", "existed", "updated", "conflict"]]:
     """
-    Unified asset creation with hierarchical deduplication and merge strategies.
+    SINGLE SOURCE OF TRUTH for asset creation/update with optional conflict detection.
 
     This is the single source of truth for asset creation/update logic.
     All executors, tools, and services should use this method.
@@ -47,15 +116,29 @@ async def create_or_update_asset(
         flow_id: Optional flow ID for context
         upsert: If True, allow updates to existing assets
         merge_strategy: "enrich" (non-destructive) or "overwrite" (replace)
+        conflict_detection_mode: If True, return conflicts instead of creating
+        allowed_merge_fields: Set of fields allowed for merge (defaults to DEFAULT_ALLOWED_MERGE_FIELDS)
 
     Returns:
         Tuple of (asset, status) where status is:
         - "created": New asset was created
         - "existed": Identical asset already exists (returned unchanged)
         - "updated": Existing asset was updated
+        - "conflict": Duplicate detected (only when conflict_detection_mode=True)
+
+    NEW BEHAVIOR (conflict_detection_mode=True):
+    - If duplicate exists, return (existing_asset, "conflict") immediately
+    - Does NOT create or update asset
+    - Caller responsible for storing conflict in asset_conflict_resolutions table
+
+    FIELD MERGE SAFETY:
+    - Only fields in allowed_merge_fields can be merged
+    - Fields in NEVER_MERGE_FIELDS are always excluded
+    - Default allowlist excludes tenant context and immutable identifiers
 
     Raises:
         ValueError: If missing required tenant context
+        IntegrityError: If database constraint violation persists after retry
     """
     try:
         # Extract context IDs
@@ -74,21 +157,28 @@ async def create_or_update_asset(
                 f"(ID: {existing_asset.id}) via {match_criterion}"
             )
 
+            if conflict_detection_mode:
+                # NEW PATH: Return conflict for caller to handle
+                logger.info(
+                    f"⚠️ Conflict detected via {match_criterion}: {existing_asset.name}"
+                )
+                return (existing_asset, "conflict")
+
             if not upsert:
                 # Default: return existing unchanged
                 return (existing_asset, "existed")
 
-            # Upsert requested - merge data
+            # Upsert requested - merge data with field allowlist validation
             if merge_strategy == "enrich":
                 # Non-destructive enrichment
                 updated_asset = await enrich_asset(
-                    service_instance, existing_asset, asset_data
+                    service_instance, existing_asset, asset_data, allowed_merge_fields
                 )
                 logger.info(f"✨ Enriched asset '{existing_asset.name}' with new data")
             else:
                 # Explicit overwrite
                 updated_asset = await overwrite_asset(
-                    service_instance, existing_asset, asset_data
+                    service_instance, existing_asset, asset_data, allowed_merge_fields
                 )
                 logger.warning(
                     f"⚠️ Overwrote asset '{existing_asset.name}' with new data"
@@ -116,6 +206,8 @@ async def create_or_update_asset(
                 logger.info(
                     f"🔄 Found asset after rollback via {match_criterion}, returning existing"
                 )
+                if conflict_detection_mode:
+                    return (existing_asset, "conflict")
                 return (existing_asset, "existed")
             else:
                 # True duplicate key conflict - log and re-raise
@@ -321,18 +413,37 @@ async def create_new_asset(
 
 
 async def enrich_asset(
-    service_instance, existing: Asset, new_data: Dict[str, Any]
+    service_instance,
+    existing: Asset,
+    new_data: Dict[str, Any],
+    allowed_merge_fields: Optional[Set[str]] = None,
 ) -> Asset:
-    """Non-destructive enrichment: add new fields, keep existing values."""
-    # Update only if new value provided and old value is None/empty
-    if new_data.get("description") and not existing.description:
-        existing.description = new_data["description"]
+    """
+    Non-destructive enrichment: add new fields, keep existing values.
 
-    if new_data.get("operating_system") and not existing.operating_system:
-        existing.operating_system = new_data["operating_system"]
+    NEW: Field allowlist validation.
+    - Only merge fields in allowlist that don't exist in existing asset
+    - Skip fields in NEVER_MERGE_FIELDS
+    - Log warnings for attempted protected field merges
+    """
+    allowlist = allowed_merge_fields or DEFAULT_ALLOWED_MERGE_FIELDS
 
-    # Merge custom_attributes
-    if new_data.get("custom_attributes"):
+    for field, value in new_data.items():
+        # Skip if field not in allowlist
+        if field not in allowlist:
+            continue
+
+        # Skip if field in never-merge list
+        if field in NEVER_MERGE_FIELDS:
+            logger.warning(f"⚠️ Attempted to merge protected field '{field}' - skipping")
+            continue
+
+        # Only update if existing value is None/empty
+        if value and not getattr(existing, field, None):
+            setattr(existing, field, value)
+
+    # Special handling for custom_attributes (merge dicts)
+    if "custom_attributes" in new_data and "custom_attributes" in allowlist:
         existing_attrs = existing.custom_attributes or {}
         new_attrs = new_data["custom_attributes"]
         existing.custom_attributes = {**existing_attrs, **new_attrs}
@@ -343,19 +454,262 @@ async def enrich_asset(
 
 
 async def overwrite_asset(
-    service_instance, existing: Asset, new_data: Dict[str, Any]
+    service_instance,
+    existing: Asset,
+    new_data: Dict[str, Any],
+    allowed_merge_fields: Optional[Set[str]] = None,
 ) -> Asset:
-    """Explicit overwrite: replace all fields with new values."""
-    existing.description = new_data.get("description", existing.description)
-    existing.operating_system = new_data.get(
-        "operating_system", existing.operating_system
-    )
-    existing.custom_attributes = new_data.get(
-        "custom_attributes", existing.custom_attributes
-    )
+    """
+    Explicit overwrite: replace allowed fields with new values.
+
+    NEW: Implement "replace_with_new" as UPDATE (not delete+create).
+    - Preserves FK relationships and audit history
+    - Only updates fields in allowlist
+    - Respects NEVER_MERGE_FIELDS protection
+    """
+    allowlist = allowed_merge_fields or DEFAULT_ALLOWED_MERGE_FIELDS
+
+    for field, value in new_data.items():
+        # Skip if field not in allowlist or in never-merge list
+        if field not in allowlist or field in NEVER_MERGE_FIELDS:
+            continue
+
+        # Overwrite existing value with new value
+        if value is not None:
+            setattr(existing, field, value)
+
     existing.updated_at = datetime.utcnow()
     await service_instance.db.flush()
     return existing
+
+
+# ============================================================================
+# BULK CONFLICT DETECTION - O(1) PER ASSET
+# ============================================================================
+
+
+async def bulk_prepare_conflicts(
+    service_instance,
+    assets_data: List[Dict[str, Any]],
+    client_id: uuid.UUID,
+    engagement_id: uuid.UUID,
+) -> Tuple[List[Dict], List[Dict]]:
+    """
+    NEW METHOD: Bulk prefetch for O(1) conflict detection.
+
+    Performance optimization: Single query per field type (hostname/ip/name),
+    then in-memory O(1) lookups. Eliminates N+1 query problem.
+
+    Args:
+        service_instance: AssetService instance
+        assets_data: List of asset data dictionaries to check
+        client_id: Client account UUID
+        engagement_id: Engagement UUID
+
+    Returns:
+        Tuple of (conflict_free_assets, conflicting_assets_with_details)
+
+        conflicting_assets_with_details format:
+        [
+            {
+                "conflict_type": "duplicate_hostname",
+                "conflict_key": "server-prod-01",
+                "existing_asset_id": UUID,
+                "existing_asset_data": {...},
+                "new_asset_data": {...}
+            },
+            ...
+        ]
+    """
+    if not assets_data:
+        return [], []
+
+    logger.info(f"🔍 Bulk conflict detection for {len(assets_data)} assets")
+
+    # Step 1: Extract all unique identifiers from batch
+    hostnames = {a.get("hostname") for a in assets_data if a.get("hostname")}
+    ip_addresses = {a.get("ip_address") for a in assets_data if a.get("ip_address")}
+    # NEW: name+asset_type composite for reduced false positives
+    name_type_pairs = {
+        (get_smart_asset_name(a), a.get("asset_type", "Unknown"))
+        for a in assets_data
+        if get_smart_asset_name(a)
+    }
+
+    # Step 2: Bulk fetch existing assets (ONE query per field type)
+    # NEW: Chunking for very large batches (per GPT-5 feedback)
+    CHUNK_SIZE = 500  # Avoid parameter limits in IN clauses
+
+    existing_by_hostname = {}
+    existing_by_ip = {}
+    existing_by_name_type = {}  # NEW: name+type composite key
+
+    if hostnames:
+        # Process in chunks to avoid parameter limits
+        hostname_list = list(hostnames)
+        for i in range(0, len(hostname_list), CHUNK_SIZE):
+            chunk = hostname_list[i : i + CHUNK_SIZE]
+            stmt = select(Asset).where(
+                and_(
+                    Asset.client_account_id == client_id,
+                    Asset.engagement_id == engagement_id,
+                    Asset.hostname.in_(chunk),
+                    Asset.hostname.is_not(None),
+                    Asset.hostname != "",
+                )
+            )
+            result = await service_instance.db.execute(stmt)
+            for asset in result.scalars().all():
+                existing_by_hostname[asset.hostname] = asset
+        logger.debug(f"  Found {len(existing_by_hostname)} existing assets by hostname")
+
+    if ip_addresses:
+        # Process in chunks to avoid parameter limits
+        ip_list = list(ip_addresses)
+        for i in range(0, len(ip_list), CHUNK_SIZE):
+            chunk = ip_list[i : i + CHUNK_SIZE]
+            stmt = select(Asset).where(
+                and_(
+                    Asset.client_account_id == client_id,
+                    Asset.engagement_id == engagement_id,
+                    Asset.ip_address.in_(chunk),
+                    Asset.ip_address.is_not(None),
+                    Asset.ip_address != "",
+                )
+            )
+            result = await service_instance.db.execute(stmt)
+            for asset in result.scalars().all():
+                existing_by_ip[asset.ip_address] = asset
+        logger.debug(f"  Found {len(existing_by_ip)} existing assets by IP")
+
+    # NEW: Query by name+asset_type composite (reduces false positives)
+    if name_type_pairs:
+        # Process in chunks to avoid parameter limits
+        names_only = list({name for name, _ in name_type_pairs})
+        for i in range(0, len(names_only), CHUNK_SIZE):
+            chunk = names_only[i : i + CHUNK_SIZE]
+            stmt = select(Asset).where(
+                and_(
+                    Asset.client_account_id == client_id,
+                    Asset.engagement_id == engagement_id,
+                    Asset.name.in_(chunk),
+                    Asset.name.is_not(None),
+                    Asset.name != "",
+                )
+            )
+            result = await service_instance.db.execute(stmt)
+            # Build dict with (name, asset_type) composite key
+            for asset in result.scalars().all():
+                key = (asset.name, asset.asset_type or "Unknown")
+                existing_by_name_type[key] = asset
+        logger.debug(
+            f"  Found {len(existing_by_name_type)} existing assets by name+type"
+        )
+
+    # Step 3: O(1) lookup for each asset
+    conflict_free = []
+    conflicts = []
+
+    for asset_data in assets_data:
+        hostname = asset_data.get("hostname")
+        ip = asset_data.get("ip_address")
+        name = get_smart_asset_name(asset_data)
+        asset_type = asset_data.get("asset_type", "Unknown")  # NEW: for composite key
+
+        # Check hostname first (highest priority unique constraint)
+        if hostname and hostname in existing_by_hostname:
+            existing = existing_by_hostname[hostname]
+            conflicts.append(
+                {
+                    "conflict_type": "hostname",  # Aligned with CHECK constraint
+                    "conflict_key": hostname,
+                    "existing_asset_id": existing.id,
+                    "existing_asset_data": serialize_asset_for_comparison(existing),
+                    "new_asset_data": asset_data,
+                }
+            )
+            continue
+
+        # Check IP address
+        if ip and ip in existing_by_ip:
+            existing = existing_by_ip[ip]
+            conflicts.append(
+                {
+                    "conflict_type": "ip_address",  # Aligned with CHECK constraint
+                    "conflict_key": ip,
+                    "existing_asset_id": existing.id,
+                    "existing_asset_data": serialize_asset_for_comparison(existing),
+                    "new_asset_data": asset_data,
+                }
+            )
+            continue
+
+        # Check name+asset_type composite (NEW: reduces false positives)
+        name_type_key = (name, asset_type)
+        if name and name_type_key in existing_by_name_type:
+            existing = existing_by_name_type[name_type_key]
+            conflicts.append(
+                {
+                    "conflict_type": "name",  # Aligned with CHECK constraint
+                    "conflict_key": f"{name} ({asset_type})",  # Include type in display
+                    "existing_asset_id": existing.id,
+                    "existing_asset_data": serialize_asset_for_comparison(existing),
+                    "new_asset_data": asset_data,
+                }
+            )
+            continue
+
+        # No conflict found
+        conflict_free.append(asset_data)
+
+    logger.info(
+        f"✅ Bulk conflict detection complete: "
+        f"{len(conflict_free)} conflict-free, {len(conflicts)} conflicts"
+    )
+
+    return conflict_free, conflicts
+
+
+def serialize_asset_for_comparison(asset: Asset) -> Dict:
+    """
+    Extract safe fields for UI comparison with PII hygiene.
+
+    NEW (per GPT-5 feedback):
+    - Limits snapshot fields to defined allowlist (prevents sensitive data leakage)
+    - Redacts custom_attributes by default (may contain PII)
+    - Only includes fields necessary for conflict resolution
+
+    Note: UI should still apply display restrictions for additional safety.
+    """
+    # NEW: Only include fields from DEFAULT_ALLOWED_MERGE_FIELDS (PII hygiene)
+    # Excludes raw_data, custom_attributes, and other potentially sensitive fields
+    return {
+        "id": str(asset.id),
+        "name": asset.name,
+        "hostname": asset.hostname,
+        "ip_address": asset.ip_address,
+        "asset_type": asset.asset_type,
+        "operating_system": asset.operating_system,
+        "os_version": asset.os_version,
+        "cpu_cores": asset.cpu_cores,
+        "memory_gb": asset.memory_gb,
+        "storage_gb": asset.storage_gb,
+        "environment": asset.environment,
+        "business_owner": asset.business_owner,
+        "department": asset.department,
+        "criticality": asset.criticality,
+        "location": asset.location,
+        "datacenter": asset.datacenter,
+        "created_at": asset.created_at.isoformat() if asset.created_at else None,
+        "updated_at": asset.updated_at.isoformat() if asset.updated_at else None,
+        # NOTE: custom_attributes explicitly excluded for PII protection
+        # NOTE: raw_data explicitly excluded for PII protection
+    }
+
+
+# ============================================================================
+# EXISTING METHODS - BATCH PREFETCH UTILITIES
+# ============================================================================
 
 
 def _build_prefetch_criteria(assets_data: list[Dict[str, Any]]) -> tuple:

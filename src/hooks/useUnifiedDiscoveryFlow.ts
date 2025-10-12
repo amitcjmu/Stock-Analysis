@@ -93,6 +93,7 @@ interface UnifiedDiscoveryFlowState {
   user_id: string;
   current_phase: string;
   phase_completion: Record<string, boolean>;
+  phase_state?: Record<string, unknown>;  // CC: Added for conflict resolution tracking
   crew_status: Record<string, CrewStatus>;
   raw_data: RawDataItem[];
   field_mappings: Record<string, FieldMapping>;
@@ -263,6 +264,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
         dependency_analysis: response.summary?.dependency_analysis_completed || false,
         tech_debt_analysis: response.summary?.tech_debt_assessment_completed || false,
       },
+      phase_state: response.phase_state || {},  // CC: Added for conflict resolution tracking
       crew_status: {}, // Will be populated by discovery flow service
       raw_data: rawData, // Enhanced raw data extraction
       field_mappings: fieldMappings, // Enhanced field mappings extraction

@@ -3,6 +3,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../../../hooks/useUnifiedDiscoveryFlow';
 import type { Asset } from '../../../../types/asset';
+import SecureLogger from '../../../../utils/secureLogger';
+import { assetConflictService } from '../../../../services/api/assetConflictService';
+import type { AssetConflict } from '../../../../types/assetConflict';
 
 // Components
 import { InventoryOverview } from '../components/InventoryOverview';
@@ -12,10 +15,11 @@ import { AssetTable } from '../components/AssetTable';
 import { NextStepCard } from '../components/NextStepCard';
 import EnhancedInventoryInsights from '../EnhancedInventoryInsights';
 import { ApplicationSelectionModal } from '../components/ApplicationSelectionModal';
+import AssetConflictModal from '../../AssetConflictModal';
 
 // Modularized Components
 import { ViewModeToggle } from './ViewModeToggle';
-import { CleansingRequiredBanner, ExecutionErrorBanner } from './ErrorBanners';
+import { CleansingRequiredBanner, ExecutionErrorBanner, ConflictResolutionBanner } from './ErrorBanners';
 import { LoadingState, ErrorState, EmptyState } from './InventoryStates';
 
 // Hooks
@@ -71,6 +75,10 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(!flowId ? 'all' : 'current_flow');
   const [hasFlowId, setHasFlowId] = useState<boolean>(Boolean(flowId));
+
+  // Asset conflict resolution state
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [assetConflicts, setAssetConflicts] = useState<AssetConflict[]>([]);
 
   // Update hasFlowId state to prevent SSR hydration mismatch
   React.useEffect(() => {
@@ -170,6 +178,95 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     }
   }, [needsClassification, assets.length]);
 
+  // Check for asset conflicts (duplicate detection during import)
+  useEffect(() => {
+    const checkForConflicts = async (): Promise<void> => {
+      // CC DEBUG: Comprehensive logging for conflict detection troubleshooting
+      console.log('🔍 [ConflictDetection] useEffect triggered', {
+        flowId,
+        hasFlow: !!flow,
+        currentPhase: flow?.current_phase,
+        status: flow?.status,
+        phase_state: flow?.phase_state,
+        conflict_resolution_pending: flow?.phase_state?.conflict_resolution_pending,
+      });
+
+      if (!flowId || !flow) {
+        console.log('⚠️ [ConflictDetection] Missing flowId or flow, skipping check');
+        return;
+      }
+
+      // Check if flow is paused for conflict resolution
+      // Backend sets phase_state.conflict_resolution_pending = true when conflicts exist
+      const has_conflicts = flow?.phase_state?.conflict_resolution_pending === true;
+
+      console.log('🔍 [ConflictDetection] Conflict flag check', {
+        has_conflicts,
+        phase_state_type: typeof flow?.phase_state,
+        phase_state_keys: flow?.phase_state ? Object.keys(flow.phase_state) : [],
+      });
+
+      if (has_conflicts) {
+        try {
+          SecureLogger.info('Conflict resolution pending, fetching conflicts', {
+            flowId,
+          });
+          console.log('📋 [ConflictDetection] Fetching conflicts from API...');
+
+          // Fetch pending conflicts from backend
+          const conflicts = await assetConflictService.listConflicts(flowId);
+
+          console.log('✅ [ConflictDetection] API response received', {
+            conflictCount: conflicts.length,
+            conflictIds: conflicts.map(c => c.conflict_id).slice(0, 3),
+          });
+
+          if (conflicts.length > 0) {
+            SecureLogger.info('Found pending asset conflicts', {
+              conflictCount: conflicts.length,
+            });
+            console.log('🚨 [ConflictDetection] Setting conflicts and showing modal');
+            setAssetConflicts(conflicts);
+            setShowConflictModal(true);
+          } else {
+            // No conflicts found, clear the pending flag
+            SecureLogger.info('No conflicts found, clearing modal');
+            console.log('✅ [ConflictDetection] No conflicts, clearing modal');
+            setAssetConflicts([]);
+            setShowConflictModal(false);
+          }
+        } catch (error) {
+          SecureLogger.error('Failed to fetch asset conflicts', error);
+          console.error('❌ [ConflictDetection] API fetch failed', error);
+          // Don't show modal if fetch fails
+          setShowConflictModal(false);
+        }
+      } else {
+        console.log('ℹ️ [ConflictDetection] No conflict flag set, skipping fetch');
+      }
+    };
+
+    checkForConflicts();
+  }, [flowId, flow?.phase_state]);
+
+  // Handle conflict resolution completion
+  const handleConflictResolutionComplete = async (): Promise<void> => {
+    SecureLogger.info('Conflict resolution completed, refreshing flow state');
+
+    // Close modal
+    setShowConflictModal(false);
+    setAssetConflicts([]);
+
+    // Refresh flow state to get updated phase_state
+    await refreshFlow();
+
+    // Refresh assets list to show newly created/updated assets
+    await refetchAssets();
+
+    // If flow was paused, it should auto-resume after conflicts are resolved
+    // Backend handles this automatically
+  };
+
   // Handlers
   const handleClassificationCardClick = (assetType: string): void => {
     updateFilter('selectedAssetType', assetType);
@@ -216,6 +313,18 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   // Render ViewModeToggle and error banners at top level, always visible regardless of state
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Asset Conflict Resolution Modal */}
+      <AssetConflictModal
+        conflicts={assetConflicts}
+        isOpen={showConflictModal}
+        onClose={() => {
+          // Qodo Bot feedback: Clear conflicts when modal closes to allow proper re-triggering
+          setShowConflictModal(false);
+          setAssetConflicts([]);
+        }}
+        onResolutionComplete={handleConflictResolutionComplete}
+      />
+
       <ViewModeToggle
         viewMode={viewMode}
         setViewMode={setViewMode}
@@ -223,6 +332,11 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         hasFlowId={hasFlowId}
         assetsLoading={assetsLoading}
         flowId={flowId}
+      />
+
+      <ConflictResolutionBanner
+        conflictCount={assetConflicts.length}
+        onResolveConflicts={() => setShowConflictModal(true)}
       />
 
       <CleansingRequiredBanner

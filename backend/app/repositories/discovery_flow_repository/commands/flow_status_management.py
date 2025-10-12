@@ -4,11 +4,15 @@ Status management operations.
 Handles flow status updates and state transitions.
 """
 
+import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+from uuid import UUID
 
-from sqlalchemy import and_, update
+from sqlalchemy import and_, select, update
+from sqlalchemy.sql import text as sa_text
+from sqlalchemy import func
 
 from app.models.discovery_flow import DiscoveryFlow
 from .flow_base import FlowCommandsBase
@@ -102,3 +106,138 @@ class FlowStatusManagementCommands(FlowCommandsBase):
             await self._invalidate_flow_cache(updated_flow)
 
         return updated_flow
+
+    async def set_conflict_resolution_pending(
+        self,
+        flow_id: UUID,
+        conflict_count: int,
+        data_import_id: Optional[UUID] = None,
+    ) -> None:
+        """
+        Pause discovery flow for conflict resolution.
+
+        Sets phase_state flags per ADR-012 (child flow owns operational state):
+        - phase_state.conflict_resolution_pending: true
+        - phase_state.conflict_metadata: { conflict_count, data_import_id, paused_at }
+
+        CC: Sets status='paused' for resolution endpoint validation (line 225 of asset_conflicts.py)
+
+        Args:
+            flow_id: Discovery flow UUID
+            conflict_count: Number of conflicts detected
+            data_import_id: Optional data import UUID for filtering
+        """
+        conflict_metadata = {
+            "conflict_count": conflict_count,
+            "data_import_id": str(data_import_id) if data_import_id else None,
+            "paused_at": datetime.utcnow().isoformat(),
+        }
+
+        # NEW: Coalesce phase_state to empty JSONB before jsonb_set (per GPT-5 feedback)
+        # Prevents failure when phase_state is NULL
+        stmt = (
+            update(DiscoveryFlow)
+            .where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == self.client_account_id,
+                    DiscoveryFlow.engagement_id == self.engagement_id,
+                )
+            )
+            .values(
+                status="paused",  # CC: CRITICAL - Resolution endpoint requires status='paused'
+                phase_state=func.jsonb_set(
+                    func.jsonb_set(
+                        func.coalesce(
+                            DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
+                        ),
+                        sa_text("ARRAY['conflict_resolution_pending']::text[]"),
+                        sa_text("'true'::jsonb"),
+                    ),
+                    sa_text("ARRAY['conflict_metadata']::text[]"),
+                    sa_text(f"'{json.dumps(conflict_metadata)}'::jsonb"),
+                ),
+                updated_at=datetime.utcnow(),
+            )
+        )
+
+        await self.db.execute(stmt)
+        # CC: Don't commit here - transaction managed by caller (phase executor)
+        # Repository methods should only execute statements, not commit transactions
+        await self.db.flush()  # Flush to detect any immediate errors
+
+        logger.info(
+            f"⏸️ Discovery flow {flow_id} paused for conflict resolution "
+            f"({conflict_count} conflicts)"
+        )
+
+    async def clear_conflict_resolution_pending(self, flow_id: UUID) -> None:
+        """
+        Resume discovery flow after conflict resolution.
+
+        Removes phase_state.conflict_resolution_pending and conflict_metadata keys
+        using PostgreSQL JSONB - operator (Qodo Bot feedback).
+        This preserves other phase_state keys instead of overwriting.
+
+        CC: Sets status back to 'active' to resume flow execution
+
+        Args:
+            flow_id: Discovery flow UUID
+        """
+        # Use JSONB - operator to remove keys (preserves other phase_state keys)
+        # Qodo Bot: Setting to empty object loses other keys, use - operator instead
+        stmt = (
+            update(DiscoveryFlow)
+            .where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == self.client_account_id,
+                    DiscoveryFlow.engagement_id == self.engagement_id,
+                )
+            )
+            .values(
+                status="active",  # CC: Resume flow by setting status back to 'active' (operational state)
+                phase_state=func.coalesce(
+                    DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
+                )
+                .op("-")(sa_text("'conflict_resolution_pending'"))
+                .op("-")(sa_text("'conflict_metadata'")),
+                updated_at=datetime.utcnow(),
+            )
+        )
+
+        await self.db.execute(stmt)
+        # CC: Don't commit here - transaction managed by caller
+        await self.db.flush()  # Flush to detect any immediate errors
+
+        logger.info(f"▶️ Discovery flow {flow_id} resumed after conflict resolution")
+
+    async def get_conflict_resolution_status(self, flow_id: UUID) -> Optional[Dict]:
+        """
+        Check if flow is paused for conflict resolution.
+
+        Returns:
+            Dict with { pending: bool, conflict_count: int, data_import_id: str } or None
+        """
+        stmt = select(DiscoveryFlow.phase_state).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == self.client_account_id,
+                DiscoveryFlow.engagement_id == self.engagement_id,
+            )
+        )
+        result = await self.db.execute(stmt)
+        phase_state = result.scalar_one_or_none()
+
+        if not phase_state:
+            return None
+
+        is_pending = phase_state.get("conflict_resolution_pending", False)
+        conflict_metadata = phase_state.get("conflict_metadata", {})
+
+        return {
+            "pending": is_pending,
+            "conflict_count": conflict_metadata.get("conflict_count", 0),
+            "data_import_id": conflict_metadata.get("data_import_id"),
+            "paused_at": conflict_metadata.get("paused_at"),
+        }

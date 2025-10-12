@@ -1,0 +1,4 @@
+hostname,ip_address,name,operating_system,cpu_cores,ram_gb,storage_gb,location,environment,application,status,description
+server01.example.com,10.0.1.10,Production Web Server 01 Updated,Ubuntu 22.04,16,32,750,US-East-1,Production,E-Commerce Platform V2,Active,Primary web server with upgraded specs
+server02.example.com,10.0.1.20,Database Master Server Updated,PostgreSQL 15 on Ubuntu,32,128,4000,US-East-1,Production,E-Commerce Platform V2,Active,Upgraded database with more resources
+server03.example.com,10.0.1.30,Application Server 01 Updated,Windows Server 2022,16,64,2000,US-West-2,Production,HR System V2,Active,Upgraded application server

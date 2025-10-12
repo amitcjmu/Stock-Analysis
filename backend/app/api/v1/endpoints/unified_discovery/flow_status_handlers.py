@@ -111,6 +111,8 @@ async def get_flow_status(
                 flow, "next_phase", None
             ),  # Safe access - may not exist
             "progress_percentage": flow.progress_percentage or 0,
+            "phase_state": flow.phase_state
+            or {},  # CC: Include phase_state for conflict resolution tracking
             "created_at": flow.created_at.isoformat() if flow.created_at else None,
             "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
             "client_account_id": flow.client_account_id,

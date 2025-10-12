@@ -120,19 +120,13 @@ class MappingGenerator:
                 )
 
                 # Use the persistent field_mapper agent from TenantScopedAgentPool
-                # This agent builds intelligence and learns through memory
-                from app.services.crewai_flows.crews.persistent_field_mapping import (
-                    PersistentFieldMapping,
+                # Per ADR-015, ADR-024: Persistent agents with TenantMemoryManager
+                from app.services.persistent_agents.field_mapping_persistent import (
+                    execute_field_mapping,
                 )
+                from app.services.service_registry import ServiceRegistry
 
-                # Create persistent field mapping instance
-                # This will get or create the field_mapper agent for this tenant context
-                mapper = PersistentFieldMapping(
-                    crewai_service=None,  # Will be created internally if needed
-                    context=self.context,
-                )
-
-                # Get sample data for CrewAI to analyze
+                # Get sample data for agent to analyze
                 sample_data = []
                 sample_query = (
                     select(RawImportRecord)
@@ -147,10 +141,25 @@ class MappingGenerator:
                         sample_data.append(record.raw_data)
 
                 if sample_data:
-                    # Use CrewAI to map fields
-                    mapping_result = await mapper.map_fields(sample_data)
+                    # Get service registry instance
+                    service_registry = ServiceRegistry()
 
-                    if mapping_result and mapping_result.get("mappings"):
+                    # Execute field mapping using persistent agent
+                    mapping_result = await execute_field_mapping(
+                        context=self.context,
+                        service_registry=service_registry,
+                        raw_data=sample_data,
+                    )
+
+                    # Handle both return shapes for resilience (mapped_fields list or mappings dict)
+                    has_mapped_fields = mapping_result and mapping_result.get(
+                        "mapped_fields"
+                    )
+                    has_mappings_dict = mapping_result and mapping_result.get(
+                        "mappings"
+                    )
+
+                    if has_mapped_fields or has_mappings_dict:
                         logger.info(
                             "✅ Persistent field_mapper agent successfully generated field mappings"
                         )
@@ -158,55 +167,102 @@ class MappingGenerator:
                             "   Agent has memory and will improve over time for this client/engagement"
                         )
 
-                        # Convert CrewAI mappings to database format
+                        # Convert agent mappings to database format
                         mappings_created = []
-                        crewai_mappings = mapping_result.get("mappings", {})
 
-                        # Process all fields, using CrewAI mappings where available
-                        for source_field in field_names:
-                            if source_field in crewai_mappings:
-                                mapping_info = crewai_mappings[source_field]
-                                if isinstance(mapping_info, dict):
-                                    target_field = mapping_info.get(
-                                        "target_field", "UNMAPPED"
-                                    )
-                                    confidence = mapping_info.get("confidence", 0.5)
-                                    reasoning = mapping_info.get("reasoning", "")
+                        if has_mapped_fields:
+                            # New shape: mapped_fields is a list of mapping objects
+                            mapped_fields_list = mapping_result.get("mapped_fields", [])
+                            for mapping_info in mapped_fields_list:
+                                source_field = mapping_info.get(
+                                    "source", mapping_info.get("source_field", "")
+                                )
+                                target_field = mapping_info.get(
+                                    "target",
+                                    mapping_info.get("target_field", "UNMAPPED"),
+                                )
+                                confidence = mapping_info.get(
+                                    "confidence",
+                                    mapping_info.get("confidence_score", 0.7),
+                                )
+                                reasoning = mapping_info.get(
+                                    "reasoning", "Persistent agent mapping"
+                                )
+
+                                # Create database mapping
+                                mapping = ImportFieldMapping(
+                                    data_import_id=import_uuid,
+                                    client_account_id=client_account_uuid,
+                                    source_field=source_field,
+                                    target_field=target_field,
+                                    match_type="ai_generated",
+                                    confidence_score=confidence,
+                                    status="suggested",
+                                    suggested_by="persistent_field_mapper",
+                                    transformation_rules=(
+                                        {"agent_reasoning": reasoning}
+                                        if reasoning
+                                        else None
+                                    ),
+                                )
+                                self.db.add(mapping)
+                                mappings_created.append(
+                                    {
+                                        "source": source_field,
+                                        "target": target_field,
+                                        "confidence": confidence,
+                                        "match_type": "ai_generated",
+                                    }
+                                )
+                        else:
+                            # Legacy shape: mappings is a dict keyed by source field
+                            crewai_mappings = mapping_result.get("mappings", {})
+
+                            # Process all fields, using agent mappings where available
+                            for source_field in field_names:
+                                if source_field in crewai_mappings:
+                                    mapping_info = crewai_mappings[source_field]
+                                    if isinstance(mapping_info, dict):
+                                        target_field = mapping_info.get(
+                                            "target_field", "UNMAPPED"
+                                        )
+                                        confidence = mapping_info.get("confidence", 0.5)
+                                        reasoning = mapping_info.get("reasoning", "")
+                                    else:
+                                        target_field = mapping_info
+                                        confidence = 0.7
+                                        reasoning = "Legacy agent mapping"
                                 else:
-                                    target_field = mapping_info
-                                    confidence = 0.7
-                                    reasoning = "CrewAI mapping"
-                            else:
-                                # Field not mapped by CrewAI
-                                target_field = "UNMAPPED"
-                                confidence = 0.0
-                                reasoning = "No match found by CrewAI"
+                                    # Field not mapped by agent
+                                    target_field = "UNMAPPED"
+                                    confidence = 0.0
+                                    reasoning = "No match found by agent"
 
-                            # Create database mapping
-                            mapping = ImportFieldMapping(
-                                data_import_id=import_uuid,
-                                client_account_id=client_account_uuid,
-                                source_field=source_field,
-                                target_field=target_field,
-                                match_type="ai_generated",
-                                confidence_score=confidence,
-                                status="suggested",
-                                suggested_by="crewai_mapper",
-                                transformation_rules=(
-                                    {"agent_reasoning": reasoning}
-                                    if reasoning
-                                    else None
-                                ),
-                            )
-                            self.db.add(mapping)
-                            mappings_created.append(
-                                {
-                                    "source": source_field,
-                                    "target": target_field,
-                                    "confidence": confidence,
-                                    "match_type": "ai_generated",
-                                }
-                            )
+                                # Create database mapping
+                                mapping = ImportFieldMapping(
+                                    data_import_id=import_uuid,
+                                    client_account_id=client_account_uuid,
+                                    source_field=source_field,
+                                    target_field=target_field,
+                                    match_type="ai_generated",
+                                    confidence_score=confidence,
+                                    status="suggested",
+                                    suggested_by="crewai_mapper",
+                                    transformation_rules=(
+                                        {"agent_reasoning": reasoning}
+                                        if reasoning
+                                        else None
+                                    ),
+                                )
+                                self.db.add(mapping)
+                                mappings_created.append(
+                                    {
+                                        "source": source_field,
+                                        "target": target_field,
+                                        "confidence": confidence,
+                                        "match_type": "ai_generated",
+                                    }
+                                )
 
                         # Commit all mappings
                         await self.db.commit()
@@ -216,9 +272,12 @@ class MappingGenerator:
                         )
 
             except Exception as e:
-                logger.warning(
-                    f"⚠️ CrewAI field mapping failed: {e}, falling back to heuristics"
+                logger.error(
+                    f"⚠️ FIELD_MAPPING_AGENT_UNAVAILABLE: {e}",
+                    exc_info=True,
+                    extra={"error_code": "FIELD_MAPPING_AGENT_UNAVAILABLE"},
                 )
+                logger.warning("   Falling back to heuristic field mapping")
 
         # If CrewAI not available or failed, use data-driven mapping approach
         logger.warning(

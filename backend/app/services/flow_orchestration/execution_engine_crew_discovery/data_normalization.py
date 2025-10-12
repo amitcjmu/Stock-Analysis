@@ -31,7 +31,9 @@ class DataNormalizationMixin:
         lowered = {str(k).strip().lower(): v for k, v in record.items()}
         candidate = lowered.get(field.lower().strip())
         if candidate is not None:
-            logger.debug(f"🔍 Fuzzy direct {field}: '{candidate}' (case/whitespace-insensitive)")
+            logger.debug(
+                f"🔍 Fuzzy direct {field}: '{candidate}' (case/whitespace-insensitive)"
+            )
             return candidate
 
         logger.debug(f"🔍 Direct {field}: 'None' (no mapping)")
