@@ -181,38 +181,68 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   // Check for asset conflicts (duplicate detection during import)
   useEffect(() => {
     const checkForConflicts = async (): Promise<void> => {
-      if (!flowId || !flow) return;
+      // CC DEBUG: Comprehensive logging for conflict detection troubleshooting
+      console.log('🔍 [ConflictDetection] useEffect triggered', {
+        flowId,
+        hasFlow: !!flow,
+        currentPhase: flow?.current_phase,
+        status: flow?.status,
+        phase_state: flow?.phase_state,
+        conflict_resolution_pending: flow?.phase_state?.conflict_resolution_pending,
+      });
+
+      if (!flowId || !flow) {
+        console.log('⚠️ [ConflictDetection] Missing flowId or flow, skipping check');
+        return;
+      }
 
       // Check if flow is paused for conflict resolution
       // Backend sets phase_state.conflict_resolution_pending = true when conflicts exist
       const has_conflicts = flow?.phase_state?.conflict_resolution_pending === true;
+
+      console.log('🔍 [ConflictDetection] Conflict flag check', {
+        has_conflicts,
+        phase_state_type: typeof flow?.phase_state,
+        phase_state_keys: flow?.phase_state ? Object.keys(flow.phase_state) : [],
+      });
 
       if (has_conflicts) {
         try {
           SecureLogger.info('Conflict resolution pending, fetching conflicts', {
             flowId,
           });
+          console.log('📋 [ConflictDetection] Fetching conflicts from API...');
 
           // Fetch pending conflicts from backend
           const conflicts = await assetConflictService.listConflicts(flowId);
+
+          console.log('✅ [ConflictDetection] API response received', {
+            conflictCount: conflicts.length,
+            conflictIds: conflicts.map(c => c.conflict_id).slice(0, 3),
+          });
 
           if (conflicts.length > 0) {
             SecureLogger.info('Found pending asset conflicts', {
               conflictCount: conflicts.length,
             });
+            console.log('🚨 [ConflictDetection] Setting conflicts and showing modal');
             setAssetConflicts(conflicts);
             setShowConflictModal(true);
           } else {
             // No conflicts found, clear the pending flag
             SecureLogger.info('No conflicts found, clearing modal');
+            console.log('✅ [ConflictDetection] No conflicts, clearing modal');
             setAssetConflicts([]);
             setShowConflictModal(false);
           }
         } catch (error) {
           SecureLogger.error('Failed to fetch asset conflicts', error);
+          console.error('❌ [ConflictDetection] API fetch failed', error);
           // Don't show modal if fetch fails
           setShowConflictModal(false);
         }
+      } else {
+        console.log('ℹ️ [ConflictDetection] No conflict flag set, skipping fetch');
       }
     };
 
@@ -287,7 +317,11 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       <AssetConflictModal
         conflicts={assetConflicts}
         isOpen={showConflictModal}
-        onClose={() => setShowConflictModal(false)}
+        onClose={() => {
+          // Qodo Bot feedback: Clear conflicts when modal closes to allow proper re-triggering
+          setShowConflictModal(false);
+          setAssetConflicts([]);
+        }}
         onResolutionComplete={handleConflictResolutionComplete}
       />
 

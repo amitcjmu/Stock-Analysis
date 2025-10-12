@@ -54,8 +54,8 @@ function getConflictTypeBadge(type: string): { variant: 'default' | 'secondary' 
 /**
  * Asset comparison row
  */
-function AssetComparisonRow({ label, existingValue, newValue }: { label: string; existingValue: any; newValue: any }) {
-  const displayValue = (val: any) => {
+function AssetComparisonRow({ label, existingValue, newValue }: { label: string; existingValue: unknown; newValue: unknown }) {
+  const displayValue = (val: unknown) => {
     if (val === null || val === undefined) return <span className="text-gray-400">(empty)</span>;
     if (typeof val === 'object') return <span className="text-xs">{JSON.stringify(val)}</span>;
     return String(val);

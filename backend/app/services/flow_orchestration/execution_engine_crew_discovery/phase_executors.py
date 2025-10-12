@@ -208,6 +208,12 @@ class PhaseExecutorsMixin:
                 {"total_assets": assets_created, "classification_complete": True},
             )
 
+            # CC: Commit transaction after asset creation completes
+            # This persists all changes: assets, conflict flags, and flow completion
+            # Matches pattern from data_cleansing phase executor (lines 109-114)
+            await self.db_session.commit()
+            logger.info("✅ Committed asset inventory transaction")
+
             return {
                 "phase": "asset_inventory",
                 "status": result.get("status", "completed"),
@@ -219,6 +225,8 @@ class PhaseExecutorsMixin:
                 "assets_failed": assets_failed,
             }
         except Exception as e:
+            # CC: Rollback transaction on error to prevent partial commits
+            await self.db_session.rollback()
             logger.error(
                 f"❌ Asset inventory failed with AssetInventoryExecutor: {str(e)}"
             )

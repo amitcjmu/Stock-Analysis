@@ -62,7 +62,7 @@ async def get_persistent_field_mapper(
 
     agent = await TenantScopedAgentPool.get_agent(
         context=context,
-        agent_type="field_mapping",
+        agent_type="field_mapper",  # Fixed: Must match agent_configuration.py (ADR-015)
         service_registry=service_registry,
     )
 

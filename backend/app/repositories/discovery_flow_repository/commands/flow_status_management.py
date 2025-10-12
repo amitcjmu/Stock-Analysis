@@ -120,7 +120,7 @@ class FlowStatusManagementCommands(FlowCommandsBase):
         - phase_state.conflict_resolution_pending: true
         - phase_state.conflict_metadata: { conflict_count, data_import_id, paused_at }
 
-        NOTE: status remains 'active' (flow is paused but not completed)
+        CC: Sets status='paused' for resolution endpoint validation (line 225 of asset_conflicts.py)
 
         Args:
             flow_id: Discovery flow UUID
@@ -145,6 +145,7 @@ class FlowStatusManagementCommands(FlowCommandsBase):
                 )
             )
             .values(
+                status="paused",  # CC: CRITICAL - Resolution endpoint requires status='paused'
                 phase_state=func.jsonb_set(
                     func.jsonb_set(
                         func.coalesce(
@@ -161,6 +162,9 @@ class FlowStatusManagementCommands(FlowCommandsBase):
         )
 
         await self.db.execute(stmt)
+        # CC: Don't commit here - transaction managed by caller (phase executor)
+        # Repository methods should only execute statements, not commit transactions
+        await self.db.flush()  # Flush to detect any immediate errors
 
         logger.info(
             f"⏸️ Discovery flow {flow_id} paused for conflict resolution "
@@ -171,12 +175,17 @@ class FlowStatusManagementCommands(FlowCommandsBase):
         """
         Resume discovery flow after conflict resolution.
 
-        Clears phase_state.conflict_resolution_pending flag and metadata.
+        Removes phase_state.conflict_resolution_pending and conflict_metadata keys
+        using PostgreSQL JSONB - operator (Qodo Bot feedback).
+        This preserves other phase_state keys instead of overwriting.
+
+        CC: Sets status back to 'active' to resume flow execution
 
         Args:
             flow_id: Discovery flow UUID
         """
-        # NEW: Coalesce phase_state to empty JSONB before jsonb_set (per GPT-5 feedback)
+        # Use JSONB - operator to remove keys (preserves other phase_state keys)
+        # Qodo Bot: Setting to empty object loses other keys, use - operator instead
         stmt = (
             update(DiscoveryFlow)
             .where(
@@ -187,22 +196,19 @@ class FlowStatusManagementCommands(FlowCommandsBase):
                 )
             )
             .values(
-                phase_state=func.jsonb_set(
-                    func.jsonb_set(
-                        func.coalesce(
-                            DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
-                        ),
-                        sa_text("ARRAY['conflict_resolution_pending']::text[]"),
-                        sa_text("'false'::jsonb"),
-                    ),
-                    sa_text("ARRAY['conflict_metadata']::text[]"),
-                    sa_text("'{}'::jsonb"),
-                ),
+                status="active",  # CC: Resume flow by setting status back to 'active' (operational state)
+                phase_state=func.coalesce(
+                    DiscoveryFlow.phase_state, sa_text("'{}'::jsonb")
+                )
+                .op("-")(sa_text("'conflict_resolution_pending'"))
+                .op("-")(sa_text("'conflict_metadata'")),
                 updated_at=datetime.utcnow(),
             )
         )
 
         await self.db.execute(stmt)
+        # CC: Don't commit here - transaction managed by caller
+        await self.db.flush()  # Flush to detect any immediate errors
 
         logger.info(f"▶️ Discovery flow {flow_id} resumed after conflict resolution")
 

@@ -54,7 +54,7 @@ export interface AssetConflictData {
 
   // Metadata (mergeable)
   description?: string;
-  custom_attributes?: Record<string, any>;
+  custom_attributes?: Record<string, unknown>;
 
   // Performance metrics (mergeable)
   cpu_utilization_percent?: number;

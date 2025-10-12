@@ -14,9 +14,10 @@ from typing import Any, Dict
 from .base import FieldMappingGeneratorBase
 
 # Import persistent field mapping to use actual AI agent
+# Per ADR-015, ADR-024: Use new persistent agent wrapper
 try:
-    from app.services.crewai_flows.crews.persistent_field_mapping import (
-        PersistentFieldMapping,
+    from app.services.persistent_agents.field_mapping_persistent import (
+        execute_field_mapping,
     )
 
     PERSISTENT_FIELD_MAPPING_AVAILABLE = True
@@ -255,25 +256,31 @@ class FieldMappingStrategies(FieldMappingGeneratorBase):
 
             self.logger.info(f"📊 Validated data has {len(validated_data)} records")
 
-            # Log context details before creating persistent mapper
+            # Log context details before executing field mapping
             context = self.flow.context
             client_id = getattr(context, "client_account_id", "None")
             engagement_id = getattr(context, "engagement_id", "None")
             self.logger.info(
-                f"📊 Creating PersistentFieldMapping with context - "
+                f"📊 Executing field mapping with persistent agent - "
                 f"client_id: {client_id}, engagement_id: {engagement_id}"
             )
 
-            # Create persistent field mapping instance
-            persistent_mapper = PersistentFieldMapping(
-                crewai_service=self.flow,  # Pass the flow instance as crewai_service
-                context=self.flow.context,
+            # Get service registry from flow
+            service_registry = getattr(self.flow, "service_registry", None)
+            if not service_registry:
+                self.logger.warning("No service_registry found in flow")
+                from app.services.service_registry import ServiceRegistry
+
+                service_registry = ServiceRegistry()
+
+            # Execute field mapping using persistent agent wrapper
+            agent_result = await execute_field_mapping(
+                context=context,
+                service_registry=service_registry,
+                raw_data=validated_data,
             )
 
-            self.logger.info("✅ PersistentFieldMapping instance created successfully")
-
-            # Execute field mapping with the persistent agent
-            agent_result = await persistent_mapper.map_fields(validated_data)
+            self.logger.info("✅ Persistent field mapping execution completed")
 
             if not agent_result or "mappings" not in agent_result:
                 self.logger.warning("⚠️ Persistent agent returned invalid result")

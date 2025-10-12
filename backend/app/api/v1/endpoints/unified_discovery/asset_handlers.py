@@ -181,8 +181,20 @@ async def list_assets(
                 logger.warning(f"⚠️ No discovery flow found for flow_id: {flow_id}")
 
             if discovery_flow and discovery_flow.current_phase == "asset_inventory":
+                # CC: CRITICAL FIX - Check for pending conflict resolution BEFORE auto-execution
+                # If conflicts are pending, DON'T re-run phase (would create duplicate conflicts)
+                has_pending_conflicts = (
+                    discovery_flow.phase_state
+                    and discovery_flow.phase_state.get("conflict_resolution_pending")
+                    is True
+                )
+
+                if has_pending_conflicts:
+                    logger.info(
+                        f"⏸️ Skipping auto-execution - flow {flow_id} has pending conflict resolution"
+                    )
                 # Check if asset_inventory has been executed
-                if not discovery_flow.asset_inventory_completed:
+                elif not discovery_flow.asset_inventory_completed:
                     logger.info(
                         f"🏗️ Auto-executing asset_inventory phase for flow {flow_id}"
                     )

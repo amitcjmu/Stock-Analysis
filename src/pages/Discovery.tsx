@@ -98,9 +98,9 @@ const Discovery = (): JSX.Element => {
   };
 
   // Check if we have any real data
-  const hasRealData = dashboardMetrics.servers > 0 || 
-                      dashboardMetrics.applications > 0 || 
-                      dashboardMetrics.databases > 0 || 
+  const hasRealData = dashboardMetrics.servers > 0 ||
+                      dashboardMetrics.applications > 0 ||
+                      dashboardMetrics.databases > 0 ||
                       dashboardMetrics.dependencies > 0;
 
   // Show real data if available, otherwise show placeholder data for UI demonstration
@@ -143,7 +143,7 @@ const Discovery = (): JSX.Element => {
                 <div className="flex items-start space-x-2">
                   <div className="text-blue-600 text-sm">ℹ️</div>
                   <p className="text-sm text-blue-800">
-                    <strong>Demo Data:</strong> The metrics below show placeholder values for UI demonstration. 
+                    <strong>Demo Data:</strong> The metrics below show placeholder values for UI demonstration.
                     Start a discovery flow to see your actual infrastructure data.
                   </p>
                 </div>

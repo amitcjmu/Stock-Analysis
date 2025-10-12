@@ -7,7 +7,7 @@
  * CC: Only shows mergeable fields from MERGEABLE_FIELDS allowlist
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ interface FieldMergeSelectorProps {
 /**
  * Helper to get display value for a field
  */
-function getDisplayValue(value: any): string {
+function getDisplayValue(value: unknown): string {
   if (value === null || value === undefined) {
     return '(empty)';
   }
@@ -38,7 +38,7 @@ function getDisplayValue(value: any): string {
 /**
  * Helper to check if field values differ
  */
-function fieldsDiffer(existing: any, newValue: any): boolean {
+function fieldsDiffer(existing: unknown, newValue: unknown): boolean {
   // Handle null/undefined equality
   if (existing === newValue) return false;
   if (existing == null && newValue == null) return false;
@@ -60,6 +60,9 @@ export const FieldMergeSelector: React.FC<FieldMergeSelectorProps> = ({
 }) => {
   // Track selections: field_name -> 'existing' | 'new'
   const [selections, setSelections] = useState<MergeFieldSelections>(initialSelections);
+
+  // Track initial mount to prevent premature onChange call (Qodo Bot feedback)
+  const isInitialMount = useRef(true);
 
   // Get fields that exist in either asset and are mergeable
   const mergeableFields = MERGEABLE_FIELDS.filter((field) => {
@@ -104,8 +107,14 @@ export const FieldMergeSelector: React.FC<FieldMergeSelectorProps> = ({
     Other: ['description'],
   };
 
-  // Notify parent of selection changes
+  // Notify parent of selection changes (skip on initial mount to prevent premature updates)
   useEffect(() => {
+    // Skip effect on initial mount - parent already has initialSelections
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     onChange(selections);
   }, [selections, onChange]);
 

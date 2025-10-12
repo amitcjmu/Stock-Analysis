@@ -104,6 +104,7 @@ export interface FlowStatusResponse {
   phase?: string;
   phase_details?: Record<string, unknown>;
   phase_completion?: Record<string, boolean>;
+  phase_state?: Record<string, unknown>;  // CC: Added for conflict resolution tracking
   errors?: string[];
   metadata?: Record<string, unknown>;
   awaiting_user_approval?: boolean;
