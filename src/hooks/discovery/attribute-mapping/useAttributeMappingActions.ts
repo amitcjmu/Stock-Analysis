@@ -52,6 +52,7 @@ export interface AttributeMappingActionsResult {
   handleTriggerFieldMappingCrew: () => Promise<void>;
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
+  handleBulkApproveNeedsReview: () => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
   handleAttributeUpdate: (attributeId: string, updates: Record<string, unknown>) => Promise<void>;
   handleDataImportSelection: (importId: string) => Promise<void>;
@@ -318,6 +319,86 @@ export const useAttributeMappingActions = (
     }
   }, [fieldMappings, getAuthHeaders, refetchFieldMappings, flow?.flow_id, flow?.id]);
 
+  const handleBulkApproveNeedsReview = useCallback(async () => {
+    try {
+      console.log('🔄 Bulk approving all "needs review" mappings as custom_attributes');
+
+      // Get flow ID
+      const flowId = (flow as FlowUpdate | DiscoveryFlowData | { id: string })?.flow_id || ('id' in flow ? flow.id : undefined);
+
+      if (!flowId) {
+        console.error('❌ No flow ID available - cannot bulk approve');
+        if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+          (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast('No flow ID available. Please refresh the page and try again.');
+        }
+        return;
+      }
+
+      // Count how many mappings will be affected (for user feedback)
+      const needsReviewMappings = fieldMappings.filter(m =>
+        m.status === 'suggested' && (
+          !m.target_field ||
+          m.target_field === 'UNMAPPED' ||
+          m.target_field === '' ||
+          (m.confidence_score !== null && m.confidence_score !== undefined && m.confidence_score < 0.7)
+        )
+      );
+
+      if (needsReviewMappings.length === 0) {
+        console.log('ℹ️ No mappings need review - all are already mapped or approved');
+        if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+          (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast('No mappings need review - all are already mapped or approved');
+        }
+        return;
+      }
+
+      console.log(`📊 Found ${needsReviewMappings.length} mappings that need review`);
+
+      // IMPORTANT: Use REQUEST BODY, not query params (see file header for details)
+      const bulkApproveUrl = `/api/v1/unified-discovery/flows/${flowId}/approve-needs-review-as-custom-attributes`;
+
+      // Make API call to bulk approve
+      const result = await apiCall(bulkApproveUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+          // Add flow ID header for discovery operations
+          'X-Flow-ID': flowId
+        },
+        // No body needed - endpoint works from flow_id
+        body: JSON.stringify({})
+      });
+
+      console.log('✅ Bulk approval successful:', result);
+
+      // Show success feedback
+      if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+        const count = result.approved_count || needsReviewMappings.length;
+        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(
+          `✅ Approved ${count} ${count === 1 ? 'mapping' : 'mappings'} as custom_attributes`
+        );
+      }
+
+      // Immediately refetch to get updated data
+      try {
+        console.log('🔄 Refetching field mappings to update UI...');
+        await refetchFieldMappings();
+      } catch (refetchError) {
+        console.error('⚠️ Failed to refetch mappings:', refetchError);
+      }
+
+    } catch (error) {
+      console.error('❌ Failed to bulk approve mappings:', error);
+
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to bulk approve mappings';
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
+      }
+    }
+  }, [flow, fieldMappings, getAuthHeaders, refetchFieldMappings]);
+
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
       console.log(`🔄 Changing mapping: ${mappingId} -> ${newTarget}`);
@@ -491,6 +572,7 @@ export const useAttributeMappingActions = (
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
+    handleBulkApproveNeedsReview,
     handleMappingChange,
     handleAttributeUpdate,
     handleDataImportSelection,
