@@ -335,12 +335,17 @@ export const useAttributeMappingActions = (
       }
 
       // Count how many mappings will be affected (for user feedback)
+      // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization
+      // Must match the "Needs Review" column logic in mappingUtils.ts and AttributeMappingHeader
       const needsReviewMappings = fieldMappings.filter(m =>
-        m.status === 'suggested' && (
+        m.status !== 'approved' &&
+        m.status !== 'rejected' &&
+        (
           !m.target_field ||
           m.target_field === 'UNMAPPED' ||
           m.target_field === '' ||
-          (m.confidence_score !== null && m.confidence_score !== undefined && m.confidence_score < 0.7)
+          m.target_field === 'unmapped' ||
+          m.target_field === 'Unassigned'
         )
       );
 
