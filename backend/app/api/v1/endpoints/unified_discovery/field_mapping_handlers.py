@@ -82,6 +82,64 @@ async def _get_discovery_flow(
     return flow
 
 
+async def _check_and_mark_field_mapping_complete(
+    data_import_id: str, db: AsyncSession, context: RequestContext
+) -> bool:
+    """
+    Check if ALL field mappings have a final status (approved/rejected).
+    If yes, mark field_mapping_completed=true on the discovery flow.
+
+    Returns:
+        bool: True if phase was marked complete, False otherwise
+    """
+    from sqlalchemy import func
+
+    # Count total mappings and those with final status
+    count_stmt = select(
+        func.count(ImportFieldMapping.id).label("total"),
+        func.count(ImportFieldMapping.id)
+        .filter(ImportFieldMapping.status.in_(["approved", "rejected"]))
+        .label("finalized"),
+    ).where(
+        and_(
+            ImportFieldMapping.data_import_id == data_import_id,
+            ImportFieldMapping.client_account_id == context.client_account_id,
+        )
+    )
+
+    result = await db.execute(count_stmt)
+    counts = result.one()
+
+    logger.info(
+        f"Field mapping status for data_import {data_import_id}: "
+        f"{counts.finalized}/{counts.total} finalized"
+    )
+
+    # Mark complete only if ALL mappings have final status
+    if counts.total > 0 and counts.finalized == counts.total:
+        # Find and update the discovery flow
+        flow_stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.data_import_id == data_import_id,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+            )
+        )
+        flow_result = await db.execute(flow_stmt)
+        flow = flow_result.scalar_one_or_none()
+
+        if flow:
+            flow.field_mapping_completed = True
+            await db.commit()
+            logger.info(
+                f"✅ Marked field_mapping_completed=true for flow {flow.flow_id} "
+                f"(all {counts.total} mappings finalized)"
+            )
+            return True
+
+    return False
+
+
 async def _ensure_field_mappings_exist(
     flow: DiscoveryFlow, db: AsyncSession, context: RequestContext
 ) -> None:
@@ -126,8 +184,8 @@ async def _generate_field_mappings(
             f"✅ Auto-generated {mapping_result.get('mappings_created', 0)} field mappings"
         )
 
-        # Mark field mapping as completed on the flow
-        flow.field_mapping_completed = True
+        # CC FIX: DON'T mark field mapping as completed after generation
+        # Phase should only be complete when ALL mappings are approved/rejected
         await db.commit()
 
     except Exception as gen_error:
@@ -321,6 +379,11 @@ async def approve_field_mapping(
         await db.commit()
         await db.refresh(mapping)
 
+        # CC FIX: Check if ALL mappings are now finalized, and mark phase complete if so
+        await _check_and_mark_field_mapping_complete(
+            str(mapping.data_import_id), db, context
+        )
+
         return FieldMappingApprovalResponse(
             success=True,
             mapping_id=str(mapping.id),
@@ -395,8 +458,8 @@ async def trigger_field_mapping(
             str(flow.data_import_id)
         )
 
-        # Mark field mapping as completed
-        flow.field_mapping_completed = True
+        # CC FIX: DON'T mark field mapping as completed after generation
+        # Phase should only be complete when ALL mappings are approved/rejected
         await db.commit()
 
         logger.info(
