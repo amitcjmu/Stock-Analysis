@@ -52,7 +52,6 @@ const AssetResolutionPage: React.FC = () => {
   const [selectedApplication, setSelectedApplication] = useState<string | null>(
     null,
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -122,12 +121,7 @@ const AssetResolutionPage: React.FC = () => {
   };
 
   const handleCompleteResolution = async (): Promise<void> => {
-    setIsSubmitting(true);
-    try {
-      await completeResolutionMutation.mutateAsync();
-    } finally {
-      setIsSubmitting(false);
-    }
+    await completeResolutionMutation.mutateAsync();
   };
 
   const unresolvedAssets = resolutionData?.unresolved_assets || [];
@@ -223,14 +217,14 @@ const AssetResolutionPage: React.FC = () => {
                   <div
                     className="bg-green-600 h-2 rounded-full transition-all"
                     style={{
-                      width: `${
-                        existingMappings.length > 0
-                          ? (existingMappings.length /
-                              (existingMappings.length +
-                                unresolvedAssets.length)) *
-                            100
-                          : 0
-                      }%`,
+                      width: (() => {
+                        const totalAssets = existingMappings.length + unresolvedAssets.length;
+                        if (totalAssets === 0) {
+                          return "100%"; // All done if no assets
+                        }
+                        const percentage = (existingMappings.length / totalAssets) * 100;
+                        return `${percentage}%`;
+                      })(),
                     }}
                   />
                 </div>
@@ -373,14 +367,10 @@ const AssetResolutionPage: React.FC = () => {
           <div className="flex justify-end items-center pt-6 border-t border-gray-200">
             <Button
               onClick={handleCompleteResolution}
-              disabled={
-                !allAssetsResolved ||
-                isSubmitting ||
-                completeResolutionMutation.isPending
-              }
+              disabled={!allAssetsResolved || completeResolutionMutation.isPending}
               size="lg"
             >
-              {isSubmitting || completeResolutionMutation.isPending ? (
+              {completeResolutionMutation.isPending ? (
                 "Processing..."
               ) : (
                 <>

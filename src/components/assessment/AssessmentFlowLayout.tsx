@@ -102,12 +102,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
     // Simple phase completion logic - can be enhanced
     const phaseOrder = [
       "initialization",
-      "asset_application_resolution",
-      "architecture_minimums",
-      "tech_debt_analysis",
-      "component_sixr_strategies",
-      "app_on_page_generation",
-      "finalization",
+      ...PHASE_CONFIG.map((p) => p.id),
     ];
     const currentIndex = phaseOrder.indexOf(state.currentPhase);
     const phaseIndex = phaseOrder.indexOf(phaseId);

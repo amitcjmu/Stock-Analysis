@@ -150,10 +150,11 @@ async def get_asset_resolution_status(
             (mapped_count / total_assets * 100) if total_assets > 0 else 0.0
         )
 
+        # CC: Security fix per Qodo #2 - mask sensitive UUID information
         logger.info(
             safe_log_format(
                 "Asset resolution status for flow {flow_id}: {mapped}/{total} mapped",
-                flow_id=flow_id,
+                flow_id=flow_id[:8] + "...",
                 mapped=mapped_count,
                 total=total_assets,
             )
@@ -171,10 +172,17 @@ async def get_asset_resolution_status(
     except HTTPException:
         raise
     except ValueError as e:
+        # CC: Improvement per Qodo #5 - better error messages for user feedback
         logger.error(
             safe_log_format("Invalid UUID format for flow_id: {str_e}", str_e=str(e))
         )
-        raise HTTPException(status_code=400, detail="Invalid flow ID format")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid UUID format provided for flow_id. "
+                f"Please ensure the flow ID is a valid UUID. Error: {str(e)}"
+            ),
+        )
     except Exception as e:
         logger.error(
             safe_log_format(
@@ -241,12 +249,13 @@ async def create_asset_mapping(
             created_by=UUID(current_user.id) if hasattr(current_user, "id") else None,
         )
 
+        # CC: Security fix per Qodo #2 - mask sensitive UUID information
         logger.info(
             safe_log_format(
                 "Created mapping for flow {flow_id}: asset {asset_id} → application {app_id}",
-                flow_id=flow_id,
-                asset_id=request.asset_id,
-                app_id=request.application_id,
+                flow_id=flow_id[:8] + "...",
+                asset_id=request.asset_id[:8] + "...",
+                app_id=request.application_id[:8] + "...",
             )
         )
 
@@ -255,8 +264,15 @@ async def create_asset_mapping(
     except HTTPException:
         raise
     except ValueError as e:
+        # CC: Improvement per Qodo #5 - better error messages for user feedback
         logger.error(safe_log_format("Invalid UUID format: {str_e}", str_e=str(e)))
-        raise HTTPException(status_code=400, detail=f"Invalid UUID format: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid UUID format provided. Please ensure flow_id, asset_id, "
+                f"and application_id are valid UUIDs. Error: {str(e)}"
+            ),
+        )
     except Exception as e:
         logger.error(
             safe_log_format("Failed to create asset mapping: {str_e}", str_e=str(e))
@@ -321,10 +337,11 @@ async def complete_asset_resolution(
         )
 
         if not is_complete:
+            # CC: Security fix per Qodo #2 - mask sensitive UUID information
             logger.warning(
                 safe_log_format(
                     "Asset resolution incomplete for flow {flow_id}: {count} unmapped assets",
-                    flow_id=flow_id,
+                    flow_id=flow_id[:8] + "...",
                     count=len(unmapped_ids),
                 )
             )
@@ -348,10 +365,11 @@ async def complete_asset_resolution(
 
         mapped_count = len(selected_asset_ids)
 
+        # CC: Security fix per Qodo #2 - mask sensitive UUID information
         logger.info(
             safe_log_format(
                 "Asset resolution completed for flow {flow_id}: {count} assets mapped",
-                flow_id=flow_id,
+                flow_id=flow_id[:8] + "...",
                 count=mapped_count,
             )
         )
@@ -366,10 +384,17 @@ async def complete_asset_resolution(
     except HTTPException:
         raise
     except ValueError as e:
+        # CC: Improvement per Qodo #5 - better error messages for user feedback
         logger.error(
             safe_log_format("Invalid UUID format for flow_id: {str_e}", str_e=str(e))
         )
-        raise HTTPException(status_code=400, detail="Invalid flow ID format")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid UUID format provided for flow_id. "
+                f"Please ensure the flow ID is a valid UUID. Error: {str(e)}"
+            ),
+        )
     except Exception as e:
         logger.error(
             safe_log_format(

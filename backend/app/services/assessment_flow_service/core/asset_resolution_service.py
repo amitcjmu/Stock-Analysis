@@ -11,10 +11,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
 
@@ -58,37 +55,44 @@ class AssetResolutionService:
             List of unresolved asset dictionaries with id, name, asset_type
         """
         try:
-            # Get existing mappings
-            existing_mappings = await self.get_existing_mappings(assessment_flow_id)
-            mapped_asset_ids = {UUID(m["asset_id"]) for m in existing_mappings}
-
-            # Find unmapped assets
-            unmapped_ids = [
-                aid for aid in selected_asset_ids if aid not in mapped_asset_ids
-            ]
-
-            if not unmapped_ids:
+            if not selected_asset_ids:
                 return []
 
-            # Query asset details with tenant scoping
-            stmt = select(Asset).where(
-                and_(
-                    Asset.id.in_(unmapped_ids),
-                    Asset.client_account_id == self.client_account_id,
-                    Asset.engagement_id == self.engagement_id,
+            # CC: Performance optimization per Qodo #7 - single LEFT JOIN query
+            # Eliminates N+1 query pattern by combining mapping check and asset fetch
+            query = """
+                SELECT a.id, a.name, a.asset_type
+                FROM unnest(CAST(:selected_ids AS uuid[])) AS selected(id)
+                LEFT JOIN migration.asset_application_mappings m
+                    ON selected.id = m.asset_id
+                    AND m.assessment_flow_id = :flow_id
+                    AND m.client_account_id = :client_account_id
+                    AND m.engagement_id = :engagement_id
+                LEFT JOIN migration.assets a
+                    ON selected.id = a.id
+                    AND a.client_account_id = :client_account_id
+                    AND a.engagement_id = :engagement_id
+                WHERE m.id IS NULL
+                ORDER BY a.name
+            """
+
+            result = await self.db.execute(
+                sa.text(query).bindparams(
+                    selected_ids=[str(aid) for aid in selected_asset_ids],
+                    flow_id=assessment_flow_id,
+                    client_account_id=self.client_account_id,
+                    engagement_id=self.engagement_id,
                 )
             )
 
-            result = await self.db.execute(stmt)
-            assets = result.scalars().all()
-
             unresolved = [
                 {
-                    "asset_id": str(asset.id),
-                    "name": asset.name,
-                    "asset_type": asset.asset_type,
+                    "asset_id": str(row.id),
+                    "name": row.name,
+                    "asset_type": row.asset_type,
                 }
-                for asset in assets
+                for row in result.fetchall()
+                if row.id is not None  # Filter out nulls from LEFT JOIN
             ]
 
             self.logger.info(
@@ -194,6 +198,8 @@ class AssetResolutionService:
                 raise ValueError(f"mapping_method must be one of {valid_methods}")
 
             # Upsert mapping with tenant scoping
+            # CC: Security fix per Qodo #3 - enforce tenant isolation in UPDATE clause
+            # Prevents cross-tenant data updates via ON CONFLICT
             query = """
                 INSERT INTO migration.asset_application_mappings (
                     assessment_flow_id,
@@ -225,6 +231,9 @@ class AssetResolutionService:
                     mapping_confidence = EXCLUDED.mapping_confidence,
                     mapping_method = EXCLUDED.mapping_method,
                     updated_at = NOW()
+                WHERE
+                    migration.asset_application_mappings.client_account_id = :client_account_id
+                    AND migration.asset_application_mappings.engagement_id = :engagement_id
                 RETURNING id
             """
 

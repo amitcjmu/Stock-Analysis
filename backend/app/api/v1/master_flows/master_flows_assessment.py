@@ -5,6 +5,7 @@ Assessment-specific endpoints integrated into master flows for MFO compatibility
 
 import logging
 from typing import Any, Dict, List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -144,9 +145,10 @@ async def get_assessment_applications_via_master(
         # If not complete, return empty array with resolution_required flag
         if flow_state.current_phase == AssessmentPhase.ASSET_APPLICATION_RESOLUTION:
             # Check if resolution is complete
+            # CC: Fix per Qodo #4 - convert client_account_id string to UUID
             resolution_service = AssetResolutionService(
                 db=db,
-                client_account_id=client_account_id,
+                client_account_id=UUID(client_account_id),
                 engagement_id=flow_state.engagement_id,
             )
             is_complete, unmapped_ids = (
