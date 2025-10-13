@@ -36,8 +36,12 @@ async def _execute_data_cleansing_if_needed(
     flow_handler: Any,
 ) -> tuple[dict, dict]:
     """Execute data cleansing phase if required."""
-    flow_data = {}
-    validation_data = {}
+    # CC FIX: Get flow_data FIRST before checking if cleansing is needed
+    flow_status_result = await flow_handler.get_flow_status(flow_id)
+    flow_data = flow_status_result.get("flow", {})
+
+    # Derive validation data from flow state
+    validation_data = _validate_flow_phase(flow_data, flow_type)
 
     # Execute data cleansing when transitioning TO data_cleansing phase
     # (not just when already in it)
@@ -56,11 +60,20 @@ async def _execute_data_cleansing_if_needed(
         try:
             from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
+            # CC FIX: Include data_import_id in phase_input for data cleansing executor
+            data_import_id = flow_data.get("data_import_id")
+            phase_input = request.user_context or {}
+            if data_import_id:
+                phase_input["data_import_id"] = str(data_import_id)
+                logger.info(
+                    f"📦 Including data_import_id in phase_input: {data_import_id}"
+                )
+
             orchestrator = MasterFlowOrchestrator(db, context)
             exec_result = await orchestrator.execute_phase(
                 flow_id=flow_id,
                 phase_name="data_cleansing",
-                phase_input=request.user_context or {},
+                phase_input=phase_input,
             )
 
             logger.info(f"🧹 Data cleansing exec_result: {exec_result}")
