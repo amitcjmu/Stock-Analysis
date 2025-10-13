@@ -353,7 +353,7 @@ export const masterFlowService = {
         flow_type: flow.flow_type,
         flow_name: flow.flow_name || flow.flow_type,
         status: flow.status as FlowStatus,
-        progress: flow.progress_percentage || 0,
+        progress_percentage: flow.progress_percentage || 0,  // CC FIX: Use progress_percentage, not progress (for deletion modal)
         current_phase: flow.current_phase || "initialization",  // FIX: Use current_phase, not phase
         assigned_agents: 0, // Default values as these are not in backend response
         active_crews: 0,
@@ -481,7 +481,7 @@ export const masterFlowService = {
             flow_type: flowType,
             flow_name: flowName,
             status: flow.status as FlowStatus,
-            progress,
+            progress_percentage: progress,  // CC FIX: Use progress_percentage, not progress (for deletion modal)
             current_phase: currentPhase,
             assigned_agents: 0, // Default values - unified-discovery doesn't provide these
             active_crews: 0,
