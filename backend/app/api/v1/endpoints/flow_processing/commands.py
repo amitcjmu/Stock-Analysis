@@ -378,7 +378,12 @@ async def _update_phase_if_needed(
 
 
 async def _handle_ai_processing(
-    flow_id: str, context: RequestContext, start_time: float, flow_metrics
+    flow_id: str,
+    context: RequestContext,
+    start_time: float,
+    flow_metrics,
+    db: AsyncSession = None,
+    current_phase: str = None,
 ) -> Any:
     """Handle AI-based processing logic."""
     logger.info(f"🧠 AI ANALYSIS NEEDED for {flow_id}")
@@ -424,6 +429,18 @@ async def _handle_ai_processing(
 
     execution_time = time.time() - start_time
     logger.info(f"✅ AI ANALYSIS COMPLETE: {flow_id} in {execution_time:.3f}s")
+
+    # CC FIX: Update current_phase in database after AI analysis
+    # This ensures the phase is updated even when AI path is used
+    if db and current_phase and result:
+        next_phase = result.get("next_phase") or result.get("current_phase")
+        if next_phase:
+            await _update_phase_if_needed(
+                flow_id, next_phase, current_phase, db, context
+            )
+            logger.info(
+                f"✅ AI PATH: Updated current_phase to {next_phase} after AI analysis"
+            )
 
     # Record metrics for AI path
     await flow_metrics.record_ai_path(execution_time)

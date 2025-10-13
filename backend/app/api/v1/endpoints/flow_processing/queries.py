@@ -122,7 +122,9 @@ async def process_flow_continuation(
             )
 
         # Step 6: AI analysis is needed
-        return await _handle_ai_processing(flow_id, context, start_time, flow_metrics)
+        return await _handle_ai_processing(
+            flow_id, context, start_time, flow_metrics, db, current_phase
+        )
 
     except Exception as e:
         execution_time = time.time() - start_time
