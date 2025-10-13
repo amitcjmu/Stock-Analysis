@@ -94,7 +94,7 @@ const SixRReviewPage: React.FC<SixRReviewPageProps> = ({ flowId }) => {
                               <span className="ml-2 text-gray-500">({app.application_type})</span>
                             )}
                           </div>
-                          {app.application_name && app.application_name !== app.application_name && (
+                          {app.application_name && app.application_name !== app.application_id && (
                             <span className="text-gray-600">→ App: {app.application_name}</span>
                           )}
                         </div>

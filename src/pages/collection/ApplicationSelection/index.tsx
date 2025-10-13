@@ -136,7 +136,8 @@ const ApplicationSelection: React.FC = () => {
 
     // Sort: selected applications first, then unselected
     // Within each group, sort alphabetically by asset_name
-    return filtered.sort((a, b) => {
+    // Create shallow copy to avoid mutating react-query cached data
+    return [...filtered].sort((a, b) => {
       const aSelected = selectedApplications.has(a.id.toString());
       const bSelected = selectedApplications.has(b.id.toString());
 
