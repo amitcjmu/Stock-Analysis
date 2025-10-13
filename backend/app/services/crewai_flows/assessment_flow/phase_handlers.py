@@ -375,7 +375,7 @@ class AssessmentPhaseHandlers:
             return {
                 "phase": AssessmentPhase.APP_ON_PAGE_GENERATION.value,
                 "assessments_generated": total_apps,
-                "next_phase": AssessmentPhase.FINAL_REPORT_GENERATION.value,
+                "next_phase": AssessmentPhase.FINALIZATION.value,
                 "requires_user_input": False,
                 "app_assessments": list(app_assessments.keys()),
             }
@@ -398,9 +398,9 @@ class AssessmentPhaseHandlers:
         try:
             from .report_generation_helper import ReportGenerationHelper
 
-            self.flow.state.transition_to_phase(AssessmentPhase.FINAL_REPORT_GENERATION)
+            self.flow.state.transition_to_phase(AssessmentPhase.FINALIZATION)
             self.flow.state.update_phase_progress(
-                AssessmentPhase.FINAL_REPORT_GENERATION.value, 25.0
+                AssessmentPhase.FINALIZATION.value, 25.0
             )
 
             # Generate overall assessment summary
@@ -409,11 +409,10 @@ class AssessmentPhaseHandlers:
 
             # Update progress
             self.flow.state.update_phase_progress(
-                AssessmentPhase.FINAL_REPORT_GENERATION.value, 75.0
+                AssessmentPhase.FINALIZATION.value, 75.0
             )
 
-            # Mark assessment as completed
-            self.flow.state.transition_to_phase(AssessmentPhase.COMPLETED)
+            # Mark assessment as completed - phase stays FINALIZATION, status changes to COMPLETED
             self.flow.state.status = AssessmentFlowStatus.COMPLETED
             self.flow.state.overall_progress = 100.0
 
@@ -425,7 +424,7 @@ class AssessmentPhaseHandlers:
 
             # Final progress update
             self.flow.state.update_phase_progress(
-                AssessmentPhase.FINAL_REPORT_GENERATION.value, 100.0
+                AssessmentPhase.FINALIZATION.value, 100.0
             )
 
             # Save final state
@@ -438,7 +437,7 @@ class AssessmentPhaseHandlers:
             )
 
             return {
-                "phase": AssessmentPhase.COMPLETED.value,
+                "phase": AssessmentPhase.FINALIZATION.value,
                 "status": AssessmentFlowStatus.COMPLETED.value,
                 "overall_progress": 100.0,
                 "applications_assessed": len(self.flow.state.application_components),

@@ -8,25 +8,26 @@
 export interface UserInput {
   phase?: string;
   data?: Record<string, string | number | boolean>;
-  action?: 'continue' | 'skip' | 'retry';
+  action?: "continue" | "skip" | "retry";
   timestamp?: string;
 }
 
 // Types for Assessment Flow
 export type AssessmentFlowStatus =
-  | 'initialized'
-  | 'processing'
-  | 'paused_for_user_input'
-  | 'completed'
-  | 'error';
+  | "initialized"
+  | "processing"
+  | "paused_for_user_input"
+  | "completed"
+  | "error";
 
 export type AssessmentPhase =
-  | 'initialization'
-  | 'architecture_minimums'
-  | 'tech_debt_analysis'
-  | 'component_sixr_strategies'
-  | 'app_on_page_generation'
-  | 'finalization';
+  | "initialization"
+  | "asset_application_resolution"
+  | "architecture_minimums"
+  | "tech_debt_analysis"
+  | "component_sixr_strategies"
+  | "app_on_page_generation"
+  | "finalization";
 
 export interface ArchitectureStandard {
   id?: string;
@@ -48,7 +49,7 @@ export interface ApplicationComponent {
 
 export interface TechDebtItem {
   category: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  severity: "critical" | "high" | "medium" | "low";
   description: string;
   remediation_effort_hours?: number;
   impact_on_migration?: string;
@@ -99,8 +100,8 @@ export interface AssessmentFlowState {
   nextPhase: AssessmentPhase | null;
   pausePoints: string[];
   selectedApplicationIds: string[];
-  selectedApplications: AssessmentApplication[];  // Full application details
-  applicationCount: number;  // Count of applications
+  selectedApplications: AssessmentApplication[]; // Full application details
+  applicationCount: number; // Count of applications
 
   // Phase-specific data
   engagementStandards: ArchitectureStandard[];
@@ -137,19 +138,19 @@ export interface UseAssessmentFlowReturn {
   // Data operations
   updateArchitectureStandards: (
     standards: ArchitectureStandard[],
-    overrides: Record<string, ArchitectureStandard>
+    overrides: Record<string, ArchitectureStandard>,
   ) => Promise<void>;
   updateApplicationComponents: (
     appId: string,
-    components: ApplicationComponent[]
+    components: ApplicationComponent[],
   ) => Promise<void>;
   updateTechDebtAnalysis: (
     appId: string,
-    techDebt: TechDebtItem[]
+    techDebt: TechDebtItem[],
   ) => Promise<void>;
   updateSixRDecision: (
     appId: string,
-    decision: Partial<SixRDecision>
+    decision: Partial<SixRDecision>,
   ) => Promise<void>;
 
   // Real-time updates

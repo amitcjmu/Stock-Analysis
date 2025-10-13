@@ -5,6 +5,21 @@ Shared constants and exceptions for the assessment flow system.
 
 from enum import Enum
 
+# Import canonical AssessmentPhase from assessment_flow_state to avoid circular imports
+# This is safe because assessment_flow_state doesn't import from this file
+from app.models.assessment_flow_state import AssessmentPhase
+
+__all__ = [
+    "AssessmentPhase",
+    "AssessmentFlowStatus",
+    "AssessmentStatus",
+    "ArchitectureRequirementType",
+    "ComponentType",
+    "TechDebtSeverity",
+    "AssessmentFlowError",
+    "CrewExecutionError",
+]
+
 
 class AssessmentFlowStatus(str, Enum):
     """Assessment flow status states."""
@@ -14,18 +29,6 @@ class AssessmentFlowStatus(str, Enum):
     PAUSED_FOR_USER_INPUT = "paused_for_user_input"
     COMPLETED = "completed"
     ERROR = "error"
-
-
-class AssessmentPhase(str, Enum):
-    """Assessment flow phases."""
-
-    INITIALIZATION = "initialization"
-    ARCHITECTURE_MINIMUMS = "architecture_minimums"
-    TECH_DEBT_ANALYSIS = "tech_debt_analysis"
-    COMPONENT_SIXR_STRATEGIES = "component_sixr_strategies"
-    APP_ON_PAGE_GENERATION = "app_on_page_generation"
-    FINAL_REPORT_GENERATION = "final_report_generation"
-    COMPLETED = "completed"
 
 
 class AssessmentStatus(str, Enum):

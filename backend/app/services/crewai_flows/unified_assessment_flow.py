@@ -245,9 +245,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
                 AssessmentPhase.APP_ON_PAGE_GENERATION: lambda: self.generate_app_on_page(
                     {}
                 ),
-                AssessmentPhase.FINAL_REPORT_GENERATION: lambda: self.finalize_assessment(
-                    {}
-                ),
+                AssessmentPhase.FINALIZATION: lambda: self.finalize_assessment({}),
             }
 
             phase_method = phase_methods.get(target_phase)

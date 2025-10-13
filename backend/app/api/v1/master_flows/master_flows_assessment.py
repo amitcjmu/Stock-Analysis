@@ -126,6 +126,10 @@ async def get_assessment_applications_via_master(
         from app.services.integrations.discovery_integration import (
             DiscoveryFlowIntegration,
         )
+        from app.models.assessment_flow_state import AssessmentPhase
+        from app.services.assessment_flow_service.core.asset_resolution_service import (
+            AssetResolutionService,
+        )
 
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
@@ -135,6 +139,37 @@ async def get_assessment_applications_via_master(
 
         if not flow_state.selected_application_ids:
             return []
+
+        # CC: Check if ASSET_APPLICATION_RESOLUTION phase is complete (per ADR/planning docs)
+        # If not complete, return empty array with resolution_required flag
+        if flow_state.current_phase == AssessmentPhase.ASSET_APPLICATION_RESOLUTION:
+            # Check if resolution is complete
+            resolution_service = AssetResolutionService(
+                db=db,
+                client_account_id=client_account_id,
+                engagement_id=flow_state.engagement_id,
+            )
+            is_complete, unmapped_ids = (
+                await resolution_service.validate_resolution_complete(
+                    assessment_flow_id=flow_state.flow_id,
+                    selected_asset_ids=flow_state.selected_application_ids,
+                )
+            )
+
+            if not is_complete:
+                # Return structured response indicating resolution needed
+                logger.warning(
+                    f"Asset resolution incomplete for flow {flow_id}: "
+                    f"{len(unmapped_ids)} unmapped assets"
+                )
+                return [
+                    {
+                        "resolution_required": True,
+                        "unmapped_count": len(unmapped_ids),
+                        "total_count": len(flow_state.selected_application_ids),
+                        "message": "Asset resolution phase must be completed before accessing applications",
+                    }
+                ]
 
         # Get application details using Discovery Integration
         applications = []
