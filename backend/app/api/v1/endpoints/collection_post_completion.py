@@ -29,7 +29,7 @@ from app.models.canonical_applications import (
     CollectionFlowApplication,
     CanonicalApplication,
 )
-from app.models.assets import Asset
+from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
 

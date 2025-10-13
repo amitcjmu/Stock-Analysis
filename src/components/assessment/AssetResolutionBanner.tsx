@@ -48,7 +48,7 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
 
       try {
         const response = await apiClient.get<UnmappedAsset[]>(
-          `/api/v1/collection/${flowId}/unmapped-assets`,
+          `/collection/${flowId}/unmapped-assets`,
           {
             headers: {
               'X-Client-Account-ID': client.id,
