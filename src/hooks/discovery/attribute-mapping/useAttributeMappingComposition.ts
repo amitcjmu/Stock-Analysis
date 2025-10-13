@@ -139,6 +139,7 @@ export const useAttributeMappingComposition = (): AttributeMappingLogicResult =>
     handleTriggerFieldMappingCrew: actions.handleTriggerFieldMappingCrew,
     handleApproveMapping: actions.handleApproveMapping,
     handleRejectMapping: actions.handleRejectMapping,
+    handleBulkApproveNeedsReview: actions.handleBulkApproveNeedsReview,
     handleMappingChange: actions.handleMappingChange,
     handleAttributeUpdate: actions.handleAttributeUpdate,
     handleDataImportSelection: actions.handleDataImportSelection,

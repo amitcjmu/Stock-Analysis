@@ -114,6 +114,7 @@ const AttributeMappingContainer: React.FC = () => {
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
+    handleBulkApproveNeedsReview,
     handleMappingChange,
     handleAttributeUpdate,
     handleDataImportSelection,
@@ -180,9 +181,11 @@ const AttributeMappingContainer: React.FC = () => {
                   canContinueToDataCleansing={canContinueToDataCleansing()}
                   onRefetch={refetchAgentic}
                   onTriggerAnalysis={handleTriggerFieldMappingCrew}
+                  onBulkApproveNeedsReview={handleBulkApproveNeedsReview}
                   onContinueToDataCleansing={handleContinueToDataCleansing}
                   flowStatus={flowState?.status}
                   hasFieldMappings={fieldMappings && fieldMappings.length > 0}
+                  fieldMappings={fieldMappings}
                 />
 
                 {/* Main Content */}

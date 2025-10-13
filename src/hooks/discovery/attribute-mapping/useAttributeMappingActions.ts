@@ -22,6 +22,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
@@ -52,6 +53,7 @@ export interface AttributeMappingActionsResult {
   handleTriggerFieldMappingCrew: () => Promise<void>;
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
+  handleBulkApproveNeedsReview: () => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
   handleAttributeUpdate: (attributeId: string, updates: Record<string, unknown>) => Promise<void>;
   handleDataImportSelection: (importId: string) => Promise<void>;
@@ -84,6 +86,7 @@ export const useAttributeMappingActions = (
   onMappingChange?: (mappingId: string, newTarget: string) => void
 ): AttributeMappingActionsResult => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, getAuthHeaders } = useAuth();
 
   // Subscribe to real-time agent decisions via SSE
@@ -318,6 +321,98 @@ export const useAttributeMappingActions = (
     }
   }, [fieldMappings, getAuthHeaders, refetchFieldMappings, flow?.flow_id, flow?.id]);
 
+  const handleBulkApproveNeedsReview = useCallback(async () => {
+    try {
+      console.log('🔄 Bulk approving all "needs review" mappings as custom_attributes');
+
+      // Get flow ID
+      const flowId = (flow as FlowUpdate | DiscoveryFlowData | { id: string })?.flow_id || ('id' in flow ? flow.id : undefined);
+
+      if (!flowId) {
+        console.error('❌ No flow ID available - cannot bulk approve');
+        if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+          (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast('No flow ID available. Please refresh the page and try again.');
+        }
+        return;
+      }
+
+      // Count how many mappings will be affected (for user feedback)
+      // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization
+      // Must match the "Needs Review" column logic in mappingUtils.ts and AttributeMappingHeader
+      const needsReviewMappings = fieldMappings.filter(m =>
+        m.status !== 'approved' &&
+        m.status !== 'rejected' &&
+        (
+          !m.target_field ||
+          m.target_field === 'UNMAPPED' ||
+          m.target_field === '' ||
+          m.target_field === 'unmapped' ||
+          m.target_field === 'Unassigned'
+        )
+      );
+
+      if (needsReviewMappings.length === 0) {
+        console.log('ℹ️ No mappings need review - all are already mapped or approved');
+        if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+          (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast('No mappings need review - all are already mapped or approved');
+        }
+        return;
+      }
+
+      console.log(`📊 Found ${needsReviewMappings.length} mappings that need review`);
+
+      // IMPORTANT: Use REQUEST BODY, not query params (see file header for details)
+      const bulkApproveUrl = `/api/v1/unified-discovery/flows/${flowId}/approve-needs-review-as-custom-attributes`;
+
+      // Make API call to bulk approve
+      const result = await apiCall(bulkApproveUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+          // Add flow ID header for discovery operations
+          'X-Flow-ID': flowId
+        },
+        // No body needed - endpoint works from flow_id
+        body: JSON.stringify({})
+      });
+
+      console.log('✅ Bulk approval successful:', result);
+
+      // Show success feedback
+      if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+        const count = result.approved_count || needsReviewMappings.length;
+        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(
+          `✅ Approved ${count} ${count === 1 ? 'mapping' : 'mappings'} as custom_attributes`
+        );
+      }
+
+      // Immediately invalidate cache and refetch to get updated data
+      try {
+        console.log('🔄 Invalidating cache and refetching field mappings to update UI...');
+        // First invalidate the cache to ensure fresh data
+        await queryClient.invalidateQueries({
+          queryKey: ['field-mappings', flowId],
+          exact: true
+        });
+        // Then refetch with fresh data
+        await refetchFieldMappings();
+        console.log('✅ Cache invalidated and UI refreshed');
+      } catch (refetchError) {
+        console.error('⚠️ Failed to refetch mappings:', refetchError);
+      }
+
+    } catch (error) {
+      console.error('❌ Failed to bulk approve mappings:', error);
+
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to bulk approve mappings';
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
+      }
+    }
+  }, [flow, fieldMappings, getAuthHeaders, refetchFieldMappings, queryClient]);
+
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
       console.log(`🔄 Changing mapping: ${mappingId} -> ${newTarget}`);
@@ -491,6 +586,7 @@ export const useAttributeMappingActions = (
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
+    handleBulkApproveNeedsReview,
     handleMappingChange,
     handleAttributeUpdate,
     handleDataImportSelection,

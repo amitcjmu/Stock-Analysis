@@ -106,6 +106,7 @@ export interface AttributeMappingLogicResult {
   handleTriggerFieldMappingCrew: () => Promise<void>;
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
+  handleBulkApproveNeedsReview: () => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
   handleAttributeUpdate: (attributeId: string, updates: AttributeUpdate) => Promise<void>;
   handleDataImportSelection: (importId: string) => Promise<void>;

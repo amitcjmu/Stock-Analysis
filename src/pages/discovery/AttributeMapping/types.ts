@@ -119,6 +119,7 @@ export interface AttributeMappingActions {
   handleTriggerFieldMappingCrew: () => void;
   handleApproveMapping: (mappingId: string) => void;
   handleRejectMapping: (mappingId: string) => void;
+  handleBulkApproveNeedsReview: () => void;
   handleMappingChange: (mappingId: string, updates: Partial<FieldMapping>) => void;
   handleAttributeUpdate: (attributeId: string, updates: Partial<CriticalAttribute>) => void;
   handleDataImportSelection: (importId: string) => void;

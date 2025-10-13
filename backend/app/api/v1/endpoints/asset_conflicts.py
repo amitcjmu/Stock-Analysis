@@ -151,7 +151,7 @@ async def resolve_conflicts_bulk(  # noqa: C901
     resolved_count = 0
     errors = []
 
-    # SECURITY: Validate all conflicts belong to same flow and flow is still paused
+    # SECURITY: Validate all conflicts belong to same flow and flow has pending conflicts
     # Per Qodo Bot feedback: Prevent targeted updates if conflict IDs are leaked
     if not request.resolutions:
         return ConflictResolutionResponse(
@@ -200,7 +200,7 @@ async def resolve_conflicts_bulk(  # noqa: C901
 
     flow_id = flow_ids.pop()
 
-    # Verify flow is still paused and waiting for conflict resolution
+    # Verify flow exists and is waiting for conflict resolution
     flow_query = select(DiscoveryFlow).where(
         and_(
             DiscoveryFlow.id
@@ -223,16 +223,9 @@ async def resolve_conflicts_bulk(  # noqa: C901
             errors=[f"Flow {flow_id} not found in your account context"],
         )
 
-    if flow.status != "paused":
-        return ConflictResolutionResponse(
-            resolved_count=0,
-            total_requested=len(request.resolutions),
-            errors=[
-                f"Flow {flow_id} is not paused (status: {flow.status}). "
-                "Conflicts can only be resolved for paused flows."
-            ],
-        )
-
+    # CC FIX: Allow conflict resolution for flows with conflict_resolution_pending flag
+    # regardless of status (assessment_ready, paused, etc.). The conflict_resolution_pending
+    # flag is the authoritative indicator, not the status field.
     # Check if flow still has conflict_resolution_pending flag
     conflict_pending = (
         flow.phase_state and flow.phase_state.get("conflict_resolution_pending") is True
@@ -252,7 +245,7 @@ async def resolve_conflicts_bulk(  # noqa: C901
 
     logger.info(
         f"✅ Flow association validated: {len(conflict_ids)} conflicts belong to "
-        f"flow {flow_id} (status: paused, conflict_resolution_pending: true)"
+        f"flow {flow_id} (status: {flow.status}, conflict_resolution_pending: true)"
     )
 
     for resolution in request.resolutions:

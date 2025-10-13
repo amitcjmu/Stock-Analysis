@@ -1,8 +1,9 @@
 import React from 'react';
-import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity } from 'lucide-react';
+import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AttributeMappingState } from '../types';
+import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 
 interface AttributeMappingHeaderProps {
   mappingProgress: {
@@ -14,10 +15,12 @@ interface AttributeMappingHeaderProps {
   canContinueToDataCleansing: boolean;
   onRefetch: () => void;
   onTriggerAnalysis: () => void;
+  onBulkApproveNeedsReview: () => void;
   onContinueToDataCleansing: () => void;
   onReprocessMappings?: () => void;
   flowStatus?: string;
   hasFieldMappings?: boolean;
+  fieldMappings?: FieldMapping[];
   // NEW AGENTIC PROPS: SSE connection status
   isSSEConnected?: boolean;
   connectionType?: 'sse' | 'polling' | 'disconnected';
@@ -29,14 +32,34 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   canContinueToDataCleansing,
   onRefetch,
   onTriggerAnalysis,
+  onBulkApproveNeedsReview,
   onContinueToDataCleansing,
   onReprocessMappings,
   flowStatus,
   hasFieldMappings,
+  fieldMappings,
   isSSEConnected,
   connectionType
 }) => {
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
+
+  // Count mappings that need review
+  // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization
+  // Must match the "Needs Review" column logic in mappingUtils.ts
+  const needsReviewCount = React.useMemo(() => {
+    if (!fieldMappings) return 0;
+    return fieldMappings.filter(m =>
+      m.status !== 'approved' &&
+      m.status !== 'rejected' &&
+      (
+        !m.target_field ||
+        m.target_field === 'UNMAPPED' ||
+        m.target_field === '' ||
+        m.target_field === 'unmapped' ||
+        m.target_field === 'Unassigned'
+      )
+    ).length;
+  }, [fieldMappings]);
 
   return (
     <>
@@ -116,6 +139,21 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
           <Zap className="h-4 w-4" />
           <span>Trigger Analysis</span>
         </Button>
+
+        {needsReviewCount > 0 && (
+          <Button
+            onClick={onBulkApproveNeedsReview}
+            disabled={isAgenticLoading}
+            variant="outline"
+            className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 border-blue-300"
+            title={`Approve ${needsReviewCount} unmapped ${needsReviewCount === 1 ? 'field' : 'fields'} as custom_attributes`}
+          >
+            <CheckCircle className="h-4 w-4 text-blue-600" />
+            <span className="text-blue-700">
+              Approve {needsReviewCount} as Custom Attrs
+            </span>
+          </Button>
+        )}
 
         {onReprocessMappings && hasFieldMappings && (
           <Button

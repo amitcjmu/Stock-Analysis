@@ -160,7 +160,7 @@ async def _resume_paused_flow(
 
     # Also update master flow status to ensure consistency
     # Get the master_flow_id from discovery flow
-    discovery_flow = await flow_repo.get_flow(flow_id)
+    discovery_flow = await flow_repo.get_by_flow_id(flow_id)
     if discovery_flow and discovery_flow.master_flow_id:
         master_repo = CrewAIFlowStateExtensionsRepository(
             db, context.client_account_id, context.engagement_id

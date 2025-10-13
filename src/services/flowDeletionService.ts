@@ -133,8 +133,8 @@ class FlowDeletionService {
     let reason_for_deletion: FlowDeletionCandidate['reason_for_deletion'] | null = null;
     let auto_cleanup_eligible = false;
 
-    // Get progress as a number, ensuring it's within valid range
-    const progressRaw = flow.progress ?? flow.progress_percentage ?? 0;
+    // CC FIX: Get progress as a number, prioritize snake_case (progress_percentage)
+    const progressRaw = flow.progress_percentage ?? flow.progress ?? 0;
     const progressValue = typeof progressRaw === 'number' ? Math.max(0, Math.min(100, progressRaw)) : 0;
 
     // Analyze flow status and determine recommendation
@@ -173,9 +173,9 @@ class FlowDeletionService {
 
     return {
       flowId,
-      flow_name: flow.flow_name || flow.flowType || 'Unknown Flow',
+      flow_name: flow.flow_name || flow.flow_type || flow.flowType || 'Unknown Flow',  // CC FIX: Prioritize snake_case flow_type
       status: flow.status,
-      current_phase: flow.currentPhase || flow.current_phase || 'unknown',
+      current_phase: flow.current_phase || flow.currentPhase || 'unknown',  // CC FIX: Prioritize snake_case current_phase
       progress_percentage: progressValue,
       created_at: createdAt,
       updated_at: updatedAtStrFinal,

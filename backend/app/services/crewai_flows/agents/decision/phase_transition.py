@@ -296,7 +296,34 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             )
 
             # Check if phase was successful based on result
-            phase_successful = phase_result.get("status") == "completed"
+            # CC FIX: Recognize that "paused" status is NOT always a failure
+            # When paused for conflict resolution (conflict_resolution_pending=True), it's expected behavior
+            phase_status = phase_result.get("status")
+            phase_successful = phase_status == "completed"
+
+            # Check if paused for user action (conflict resolution, manual review, etc.)
+            crew_results = phase_result.get("crew_results", {})
+            conflict_pending = crew_results.get("phase_state", {}).get(
+                "conflict_resolution_pending", False
+            )
+            is_paused_for_user = phase_status == "paused" and conflict_pending
+
+            # Paused for user action is considered successful (waiting for user, not failed)
+            if is_paused_for_user:
+                logger.info(
+                    f"✅ Phase {phase_name} paused for user action (conflict resolution)"
+                )
+                return AgentDecision(
+                    action=PhaseAction.PAUSE,
+                    next_phase=phase_name,  # Stay on same phase until user resolves
+                    confidence=0.95,
+                    reasoning=f"Phase {phase_name} paused waiting for conflict resolution",
+                    metadata={
+                        "paused_for": "conflict_resolution",
+                        "conflict_count": crew_results.get("conflict_count", 0),
+                        "phase_result": phase_result,
+                    },
+                )
 
             if not phase_successful:
                 # Phase failed, decide on retry or failure
