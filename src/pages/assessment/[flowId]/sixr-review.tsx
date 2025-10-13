@@ -63,13 +63,55 @@ const SixRReviewPage: React.FC<SixRReviewPageProps> = ({ flowId }) => {
     selectedApplicationIds: state.selectedApplicationIds
   });
 
+  // Show asset mapping information even if no applications loaded yet
+  // This helps users understand what was selected in collection phase
   if (state.selectedApplicationIds.length === 0) {
     return (
       <AssessmentFlowLayout flowId={flowId}>
-        <div className="p-6 text-center">
-          <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Applications Selected</h2>
-          <p className="text-gray-600">Please return to the previous step to select applications for analysis.</p>
+        <div className="p-6 max-w-4xl mx-auto space-y-6">
+          {/* Asset/Application Mapping Info */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-6 w-6 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-amber-900 mb-2">
+                  Loading Assessment Data
+                </h2>
+                <p className="text-amber-800 mb-4">
+                  Assessment flow is being initialized from collection data. This flow was created from collection flow assets.
+                </p>
+
+                {/* Show selected application IDs if available in state */}
+                {state.selectedApplications && state.selectedApplications.length > 0 ? (
+                  <div className="mt-4 p-4 bg-white rounded-lg border border-amber-200">
+                    <h3 className="font-medium text-sm text-gray-900 mb-3">Selected Assets from Collection:</h3>
+                    <div className="space-y-2">
+                      {state.selectedApplications.map((app) => (
+                        <div key={app.application_id} className="flex items-center justify-between text-sm">
+                          <div>
+                            <span className="font-medium">{app.application_name || app.application_id}</span>
+                            {app.application_type && (
+                              <span className="ml-2 text-gray-500">({app.application_type})</span>
+                            )}
+                          </div>
+                          {app.application_name && app.application_name !== app.application_id && (
+                            <span className="text-gray-600">→ App: {app.application_name}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 p-4 bg-white rounded-lg border border-amber-200">
+                    <p className="text-sm text-gray-700">
+                      If this persists, please check that assets were properly selected in the collection phase
+                      and that they have application associations.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </AssessmentFlowLayout>
     );

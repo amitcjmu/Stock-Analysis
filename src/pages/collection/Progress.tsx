@@ -240,7 +240,7 @@ const CollectionProgress: React.FC = () => {
       console.log(`🧭 Continue button clicked, current phase: ${currentPhase}`);
 
       // CRITICAL: Handle "initialization" or unknown phases by navigating to first valid phase
-      // Valid collection phases: asset_selection, gap_analysis, questionnaire_generation, manual_collection, synthesis
+      // Valid collection phases: asset_selection, gap_analysis, questionnaire_generation, manual_collection, synthesis, finalization
       // "initialization" is a master flow phase, not a collection flow phase
       if (currentPhase === 'initialization' || !FLOW_PHASE_ROUTES.collection[currentPhase]) {
         console.log(`⚠️ Phase "${currentPhase}" is not a valid collection phase, navigating to asset_selection`);

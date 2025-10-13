@@ -258,7 +258,7 @@ class CollectionDecisionLogic:
 
         return AgentDecision(
             action=PhaseAction.PROCEED,
-            next_phase="completed",
+            next_phase="synthesis",  # MFO phase (maps to "finalization" in child flow)
             confidence=0.95,
             reasoning="Collection flow completed successfully. Data synthesis meets quality standards.",
             metadata=synthesis_results,

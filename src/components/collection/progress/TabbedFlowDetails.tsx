@@ -138,28 +138,32 @@ export const TabbedFlowDetails: React.FC<TabbedFlowDetailsProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            {(isFlowStuck || isCompleted) && onContinue && (
+            {/* Continue/View Progress button - always show for running or completed flows */}
+            {(flow.status === 'running' || isCompleted) && onContinue && (
               <Button
                 variant="default"
                 size="sm"
                 onClick={handleContinue}
                 disabled={isProcessing}
+                title={isCompleted ? "Continue to Assessment" : "View Current Phase"}
               >
                 {isProcessing ? (
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                 ) : (
                   <ArrowRight className="h-4 w-4 mr-1" />
                 )}
-                Continue
+                {isCompleted ? "Continue" : "View Progress"}
               </Button>
             )}
 
-            {flow.status === 'running' && !isFlowStuck && (
+            {/* Pause button - show for all running flows */}
+            {flow.status === 'running' && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleAction('pause')}
                 disabled={isProcessing}
+                title="Pause Flow"
               >
                 <Pause className="h-4 w-4" />
               </Button>
