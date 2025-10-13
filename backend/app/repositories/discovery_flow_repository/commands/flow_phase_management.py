@@ -55,8 +55,9 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
         update_values["current_phase"] = phase
         update_values["updated_at"] = datetime.utcnow()
 
-        # 🔧 CC FIX: Update status field based on phase progression
-        # Status should transition from "initialized" to phase-specific statuses
+        # CC FIX: Update status field per ADR-012 (Master Flow lifecycle only)
+        # Status transitions: initialized → running (NOT phase-based statuses)
+        # Phase tracking uses current_phase field and {phase}_completed booleans
         current_status = await self._get_current_flow_status(flow_id)
         new_status = self._determine_status_from_phase(phase, completed, current_status)
         if new_status != current_status:
@@ -327,33 +328,40 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
         self, phase: str, completed: bool, current_status: str
     ) -> str:
         """
-        Determine the new status based on the current phase and completion state.
+        CC FIX: Per ADR-012, status reflects Master Flow lifecycle, NOT phases.
 
-        Status transitions:
-        - initialized → data_gathering (when data_import starts)
-        - data_gathering → discovery (when field_mapping starts)
-        - discovery → assessment_ready (when asset_inventory starts)
-        - assessment_ready → planning (when dependency_analysis starts)
-        - planning → completed (when all phases complete)
+        Master Flow lifecycle statuses (ADR-012):
+        - initialized: Flow created but not started
+        - running: Flow actively executing phases
+        - paused: User-initiated pause (e.g., waiting for conflict resolution)
+        - completed: All phases finished
+        - failed: Flow encountered unrecoverable error
+        - deleted: Flow marked for deletion
+
+        Phase tracking is handled via:
+        - current_phase field (string): which phase we're in
+        - {phase}_completed boolean flags: phase completion status
+        - assessment_ready boolean flag: ready for assessment handoff
+
+        Phase-based statuses (assessment_ready, data_gathering, planning, discovery)
+        do NOT belong in the status field and violate architectural separation.
         """
-        # If flow is already completed, don't change status
-        if current_status in ["completed", "complete"]:
+        # Terminal states - never change these
+        if current_status in ["completed", "complete", "failed", "deleted"]:
             return current_status
 
-        # Map phases to status transitions
-        phase_to_status = {
-            "data_import": "data_gathering",
-            "field_mapping": "discovery",
-            "data_cleansing": "discovery",
-            "asset_inventory": "assessment_ready",
-            "dependency_analysis": "planning",
-        }
+        # User-initiated states - preserve unless phase triggers change
+        if current_status == "paused":
+            # Keep paused unless explicitly transitioning
+            return current_status
 
-        if phase in phase_to_status:
-            return phase_to_status[phase]
+        # Transition from initialized to running when first phase starts
+        if current_status == "initialized":
+            return "running"
 
-        # Default to current status if no mapping
-        return current_status
+        # For all other cases (including "active"), keep as running during phase execution
+        # The "completed" transition happens in _check_and_complete_flow_if_ready()
+        return "running"
 
     async def _get_completed_phases_list(
         self, flow_id: str, current_phase: str, phase_completed: bool

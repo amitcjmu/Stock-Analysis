@@ -7,7 +7,7 @@ CC: Extracted from field_mapping_handlers.py for modularity.
 import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
-from sqlalchemy import and_, delete, select
+from sqlalchemy import and_, delete, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -177,35 +177,31 @@ async def approve_needs_review_as_custom_attributes(
         # 1. Status is NOT 'approved' or 'rejected'
         # 2. Target field is empty, UNMAPPED, or similar
         #
-        # Backend should match this logic instead of only looking for 'suggested' status
+        # Qodo Bot Performance Fix: Use database filtering instead of Python filtering
+        # This reduces data transfer and improves performance significantly
         stmt = select(ImportFieldMapping).where(
             and_(
                 ImportFieldMapping.data_import_id == flow.data_import_id,
                 ImportFieldMapping.client_account_id == context.client_account_id,
+                # Status is NOT 'approved' or 'rejected'
+                ~ImportFieldMapping.status.in_(["approved", "rejected"]),
+                # Target field is empty, UNMAPPED, unmapped, or Unassigned
+                or_(
+                    ImportFieldMapping.target_field.is_(None),
+                    ImportFieldMapping.target_field == "",
+                    ImportFieldMapping.target_field.in_(
+                        ["UNMAPPED", "unmapped", "Unassigned"]
+                    ),
+                ),
             )
         )
 
         result = await db.execute(stmt)
-        all_mappings = result.scalars().all()
+        needs_review = result.scalars().all()
 
         logger.info(
-            f"DEBUG: Found {len(all_mappings)} total mappings, checking for needs review..."
+            f"✅ Found {len(needs_review)} mappings needing review (filtered in database)"
         )
-
-        # Filter to match frontend's needsReviewCount logic:
-        # - Status is NOT 'approved' or 'rejected'
-        # - Target field is empty, UNMAPPED, unmapped, or Unassigned
-        needs_review = []
-        for mapping in all_mappings:
-            logger.info(
-                f"DEBUG: Mapping {mapping.source_field}: status={mapping.status}, target={mapping.target_field}"
-            )
-            if mapping.status not in ["approved", "rejected"] and (
-                not mapping.target_field
-                or mapping.target_field in ["UNMAPPED", "", "unmapped", "Unassigned"]
-            ):
-                needs_review.append(mapping)
-                logger.info(f"DEBUG: ✅ {mapping.source_field} NEEDS REVIEW")
 
         if not needs_review:
             return {

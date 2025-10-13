@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../../../hooks/useUnifiedDiscoveryFlow';
 import type { Asset } from '../../../../types/asset';
@@ -49,6 +50,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   flowId
 }) => {
   const { client, engagement } = useAuth();
+  const queryClient = useQueryClient();
   const { flowState: flow, executeFlowPhase, isExecutingPhase, refreshFlow } = useUnifiedDiscoveryFlow(flowId);
 
   // Debug logging
@@ -256,6 +258,14 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     // Close modal
     setShowConflictModal(false);
     setAssetConflicts([]);
+
+    // CC FIX: Force cache invalidation to fetch fresh data from server
+    // The 2-minute staleTime in useUnifiedDiscoveryFlow prevents refetch if data is recent
+    // We need fresh data to clear the conflict_resolution_pending flag
+    await queryClient.invalidateQueries({
+      queryKey: ['unifiedDiscoveryFlow', flowId, client?.id, engagement?.id],
+      refetchType: 'active'  // Force refetch even if data is not stale
+    });
 
     // Refresh flow state to get updated phase_state
     await refreshFlow();

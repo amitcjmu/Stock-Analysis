@@ -17,20 +17,18 @@ class FlowSpecifications:
 
     @staticmethod
     def active_flow_spec() -> ColumnElement:
-        """Specification for active flows"""
+        """
+        Specification for active flows.
+
+        CC FIX: Per ADR-012, only use Master Flow lifecycle statuses.
+        Phase-based statuses (assessment_ready, data_gathering, planning, discovery)
+        have been removed from the codebase. Phase tracking uses current_phase field.
+        """
         valid_active_statuses = [
             "initialized",
             "active",
             "running",
             "paused",
-            # Phase names that might have been set as status
-            "data_import",
-            "attribute_mapping",
-            "field_mapping",
-            "data_cleansing",
-            "inventory",
-            "dependencies",
-            "tech_debt",
         ]
 
         return DiscoveryFlow.status.in_(valid_active_statuses)
