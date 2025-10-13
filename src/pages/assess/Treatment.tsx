@@ -47,7 +47,7 @@ export const Treatment: React.FC = () => {
     refetch: refetchApplications
   } = useApplications();
 
-  const [state, actions] = useSixRAnalysis(selectedApplicationIds);
+  const [state, actions] = useSixRAnalysis({ autoLoadHistory: false });
 const { isLoading: isAnalysisLoading, error: analysisError } = state;
 const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateAnalysis } = actions;
 
