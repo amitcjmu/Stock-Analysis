@@ -305,9 +305,14 @@ async def resolve_conflicts_bulk(  # noqa: C901
                     allowed_merge_fields=DEFAULT_ALLOWED_MERGE_FIELDS,
                 )
 
+                # CC FIX: Associate asset with current flow after replacement
+                # This ensures the flow has assets even when resolving conflicts
+                existing_asset.discovery_flow_id = flow.id
+                existing_asset.updated_at = datetime.utcnow()
+
                 logger.info(
                     f"✅ Replaced existing asset {existing_asset.name} "
-                    f"with new data for conflict {conflict_id}"
+                    f"with new data and associated with flow {flow.flow_id} (conflict {conflict_id})"
                 )
 
             elif action == "merge":
@@ -373,11 +378,14 @@ async def resolve_conflicts_bulk(  # noqa: C901
                             # Normal field update - replace value
                             setattr(existing_asset, field_name, new_value)
 
+                # CC FIX: Associate asset with current flow after merge
+                # This ensures the flow has assets even when resolving conflicts
+                existing_asset.discovery_flow_id = flow.id
                 existing_asset.updated_at = datetime.utcnow()
 
                 logger.info(
                     f"✅ Merged {len(merge_selections)} fields for "
-                    f"asset {existing_asset.name} (conflict {conflict_id})"
+                    f"asset {existing_asset.name} and associated with flow {flow.flow_id} (conflict {conflict_id})"
                 )
 
             # Mark conflict as resolved
