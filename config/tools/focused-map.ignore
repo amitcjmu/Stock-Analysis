@@ -1,0 +1,16 @@
+# Focused Map ripgrep ignore globs (hide legacy paths while exploring)
+
+# Legacy discovery endpoints and backups
+backend/app/api/v1/discovery/**
+backend/app/api/v1/endpoints/*.bak
+backend/app/api/v1/endpoints/*.backup
+backend/app/api/v1/endpoints/demo.py
+
+# Legacy single-file agents not in persistent pool
+backend/app/services/agents/*_crewai.py
+
+# Superseded crews
+backend/app/services/crewai_flows/crews/field_mapping_crew_fast.py
+backend/app/services/crewai_flows/crews/optimized_field_mapping_crew/**
+
+# Allow docs/tests/scripts to remain searchable; these globs are for app code focus
