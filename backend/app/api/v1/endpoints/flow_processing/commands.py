@@ -228,7 +228,7 @@ async def _handle_simple_logic_processing(
                 flow_repo = DiscoveryFlowRepository(
                     db, context.client_account_id, context.engagement_id
                 )
-                discovery_flow = await flow_repo.get_flow(flow_id)
+                discovery_flow = await flow_repo.get_by_flow_id(flow_id)
 
                 # Get data_import_id from flow_data or discovery flow
                 data_import_id = flow_data.get("data_import_id")
@@ -360,7 +360,7 @@ async def _update_phase_if_needed(
         flow_repo = DiscoveryFlowRepository(
             db, context.client_account_id, context.engagement_id
         )
-        discovery_flow = await flow_repo.get_flow(flow_id)
+        discovery_flow = await flow_repo.get_by_flow_id(flow_id)
         if discovery_flow and discovery_flow.master_flow_id:
             master_repo = CrewAIFlowStateExtensionsRepository(
                 db, context.client_account_id, context.engagement_id
