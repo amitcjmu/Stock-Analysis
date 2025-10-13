@@ -67,6 +67,7 @@ async def _execute_data_cleansing_regular(
     flow_id: str,
     discovery_flow: DiscoveryFlow,
     phase_input: dict,
+    validation_overrides: dict,
     db: AsyncSession,
     context: RequestContext,
 ) -> dict:
@@ -85,6 +86,7 @@ async def _execute_data_cleansing_regular(
         flow_id=flow_id,
         phase_name="data_cleansing",
         phase_input=phase_input,
+        validation_overrides=validation_overrides,
     )
 
 
@@ -151,6 +153,7 @@ async def execute_flow(
         # Check if a specific phase was requested
         requested_phase = request.get("phase")
         phase_input = request.get("phase_input", {})
+        validation_overrides = request.get("validation_overrides", {})
 
         # If a specific phase is requested, execute it
         if requested_phase:
@@ -175,7 +178,12 @@ async def execute_flow(
                 else:
                     # Regular execution of data_cleansing
                     return await _execute_data_cleansing_regular(
-                        flow_id, discovery_flow, phase_input, db, context
+                        flow_id,
+                        discovery_flow,
+                        phase_input,
+                        validation_overrides,
+                        db,
+                        context,
                     )
             else:
                 # For other phases, use existing flow execution logic

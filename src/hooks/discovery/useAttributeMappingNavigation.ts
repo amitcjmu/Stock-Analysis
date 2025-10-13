@@ -16,6 +16,15 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
     if (!inputId) return null;
 
     try {
+      // CC FIX: If we already have a valid UUID flow ID, return it directly
+      // This allows completed flows to transition to next phase (e.g., field_mapping -> data_cleansing)
+      // The backend will validate flow existence and permissions
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (inputId.match(uuidRegex)) {
+        console.log('✅ Using provided flow ID directly (allows completed flows):', inputId);
+        return inputId;
+      }
+
       const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
       const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
 
@@ -46,8 +55,26 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
 
   const handleContinueToDataCleansing = useCallback(async () => {
     try {
-      // Use smart flow resolution to get the correct flow ID
-      const rawFlowId = flowState?.flow_id || flow?.flow_id;
+      // CC FIX: Check multiple possible property names for flow_id
+      // flowState might have: flow_id, flowId, id
+      const rawFlowId =
+        flowState?.flow_id ||
+        flowState?.flowId ||
+        flowState?.id ||
+        flow?.flow_id ||
+        flow?.flowId ||
+        flow?.id;
+
+      console.log('🔍 DEBUG: Flow ID resolution:', {
+        flowState_flow_id: flowState?.flow_id,
+        flowState_flowId: flowState?.flowId,
+        flowState_id: flowState?.id,
+        flow_flow_id: flow?.flow_id,
+        flow_flowId: flow?.flowId,
+        flow_id: flow?.id,
+        rawFlowId
+      });
+
       const flowId = rawFlowId ? await getCorrectFlowId(rawFlowId) : null;
 
       if (!flowId) {
@@ -129,6 +156,7 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
         };
 
         // Execute the next phase with mapping approval data using discovery flow service
+        // CC FIX: Pass force=true to allow phase execution on completed flows (phase transitions)
         await masterFlowService.executePhase(
           flowId,
           'data_cleansing',
@@ -140,7 +168,8 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
             unmapped_fields_strategy: 'map_to_custom_attributes'
           },
           clientAccountId,
-          engagementId
+          engagementId,
+          true  // force execution to allow phase transitions on completed flows
         );
 
         // Navigate immediately to show loading state on data cleansing page

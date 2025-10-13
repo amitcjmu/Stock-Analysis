@@ -709,6 +709,7 @@ export const masterFlowService = {
     data: Record<string, unknown>,
     clientAccountId: string,
     engagementId?: string,
+    force?: boolean,
   ): Promise<{
     success: boolean;
     phase: string;
@@ -730,7 +731,9 @@ export const masterFlowService = {
         {
           phase,
           phase_input: data,
-          force: false,
+          force: force || false,
+          // CC FIX: Send validation_overrides for backend compatibility
+          ...(force && { validation_overrides: { force_execution: true } }),
         },
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
