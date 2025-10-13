@@ -43,7 +43,9 @@ async def mark_records_processed(
         logger.error(f"❌ CRITICAL: Failed to mark records as processed: {e}")
         import traceback
 
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        # CC: Security fix - Log full traceback only at DEBUG level to prevent information disclosure
+        # Production logs (ERROR level) won't expose internal paths/environment details
+        logger.debug(f"Traceback: {traceback.format_exc()}")
         # CC: RAISE exception - this is critical for preventing infinite loops
         # If we can't mark records as processed, we'll re-process them after conflict resolution
         raise RuntimeError(
@@ -119,7 +121,9 @@ async def persist_asset_inventory_completion(
         logger.error(f"❌ CRITICAL: Failed to persist asset_inventory completion: {e}")
         import traceback
 
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        # CC: Security fix - Log full traceback only at DEBUG level to prevent information disclosure
+        # Production logs (ERROR level) won't expose internal paths/environment details
+        logger.debug(f"Traceback: {traceback.format_exc()}")
         # CC: RAISE exception - this is critical for preventing infinite loops
         # If asset_inventory_completed doesn't get set to True, flow will re-execute after conflict resolution
         raise RuntimeError(

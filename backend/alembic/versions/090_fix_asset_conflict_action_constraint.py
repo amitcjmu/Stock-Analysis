@@ -19,7 +19,13 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """Fix resolution_action CHECK constraint to allow 'replace_with_new'"""
+    """Fix resolution_action CHECK constraint to allow 'replace_with_new'
+
+    CC: Migration atomicity is guaranteed by Alembic's automatic transaction wrapping
+    for PostgreSQL. Both DROP and CREATE operations execute atomically within a single
+    transaction - no inconsistent state is possible between operations.
+    See: alembic.ini transaction_per_migration=true (default)
+    """
 
     # Drop old constraint if it exists (idempotent)
     op.execute(
@@ -30,6 +36,7 @@ def upgrade() -> None:
     )
 
     # Create new constraint with correct value
+    # CC: This CREATE executes in the same transaction as DROP above
     op.create_check_constraint(
         "ck_asset_conflicts_action",
         "asset_conflict_resolutions",
@@ -39,7 +46,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Revert to original constraint with 'replace'"""
+    """Revert to original constraint with 'replace'
+
+    CC: Migration atomicity is guaranteed by Alembic's automatic transaction wrapping.
+    Downgrade operations execute atomically within a single transaction.
+    """
 
     # Drop new constraint if it exists (idempotent)
     op.execute(
@@ -50,6 +61,7 @@ def downgrade() -> None:
     )
 
     # Restore old constraint
+    # CC: This CREATE executes in the same transaction as DROP above
     op.create_check_constraint(
         "ck_asset_conflicts_action",
         "asset_conflict_resolutions",
