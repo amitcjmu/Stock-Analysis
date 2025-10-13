@@ -141,8 +141,8 @@ class MappingGenerator:
                         sample_data.append(record.raw_data)
 
                 if sample_data:
-                    # Get service registry instance
-                    service_registry = ServiceRegistry()
+                    # Get service registry instance with required db and context parameters
+                    service_registry = ServiceRegistry(self.db, self.context)
 
                     # Execute field mapping using persistent agent
                     mapping_result = await execute_field_mapping(
