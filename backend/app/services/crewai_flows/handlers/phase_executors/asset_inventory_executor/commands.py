@@ -40,8 +40,15 @@ async def mark_records_processed(
         logger.info(f"✅ Marked {len(raw_records)} raw records as processed")
 
     except Exception as e:
-        logger.error(f"❌ Failed to mark records as processed: {e}")
-        # Don't raise - asset creation succeeded even if we can't mark records
+        logger.error(f"❌ CRITICAL: Failed to mark records as processed: {e}")
+        import traceback
+
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        # CC: RAISE exception - this is critical for preventing infinite loops
+        # If we can't mark records as processed, we'll re-process them after conflict resolution
+        raise RuntimeError(
+            f"Failed to mark raw_import_records as processed: {e}"
+        ) from e
 
 
 async def persist_asset_inventory_completion(
@@ -104,11 +111,20 @@ async def persist_asset_inventory_completion(
                 "✅ Successfully persisted asset_inventory completion to database"
             )
         else:
-            logger.warning(f"⚠️ Could not find discovery flow for flow_id {flow_id}")
+            error_msg = f"Discovery flow not found for flow_id {flow_id} - UPDATE returned 0 rows"
+            logger.error(f"❌ CRITICAL: {error_msg}")
+            raise ValueError(error_msg)
 
     except Exception as e:
-        logger.error(f"❌ Failed to persist asset_inventory completion: {e}")
-        # Don't raise - asset creation succeeded even if we can't mark phase complete
+        logger.error(f"❌ CRITICAL: Failed to persist asset_inventory completion: {e}")
+        import traceback
+
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        # CC: RAISE exception - this is critical for preventing infinite loops
+        # If asset_inventory_completed doesn't get set to True, flow will re-execute after conflict resolution
+        raise RuntimeError(
+            f"Failed to persist asset_inventory_completed flag: {e}"
+        ) from e
 
 
 __all__ = ["mark_records_processed", "persist_asset_inventory_completion"]
