@@ -22,6 +22,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
@@ -85,6 +86,7 @@ export const useAttributeMappingActions = (
   onMappingChange?: (mappingId: string, newTarget: string) => void
 ): AttributeMappingActionsResult => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, getAuthHeaders } = useAuth();
 
   // Subscribe to real-time agent decisions via SSE
@@ -385,10 +387,17 @@ export const useAttributeMappingActions = (
         );
       }
 
-      // Immediately refetch to get updated data
+      // Immediately invalidate cache and refetch to get updated data
       try {
-        console.log('🔄 Refetching field mappings to update UI...');
+        console.log('🔄 Invalidating cache and refetching field mappings to update UI...');
+        // First invalidate the cache to ensure fresh data
+        await queryClient.invalidateQueries({
+          queryKey: ['field-mappings', flowId],
+          exact: true
+        });
+        // Then refetch with fresh data
         await refetchFieldMappings();
+        console.log('✅ Cache invalidated and UI refreshed');
       } catch (refetchError) {
         console.error('⚠️ Failed to refetch mappings:', refetchError);
       }
@@ -402,7 +411,7 @@ export const useAttributeMappingActions = (
         (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
     }
-  }, [flow, fieldMappings, getAuthHeaders, refetchFieldMappings]);
+  }, [flow, fieldMappings, getAuthHeaders, refetchFieldMappings, queryClient]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {

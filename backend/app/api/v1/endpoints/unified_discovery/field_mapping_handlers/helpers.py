@@ -43,11 +43,20 @@ async def get_discovery_flow(
 
 
 async def check_and_mark_field_mapping_complete(
-    data_import_id: str, db: AsyncSession, context: RequestContext
+    data_import_id: str,
+    db: AsyncSession,
+    context: RequestContext,
+    flow_id: Optional[str] = None,
 ) -> bool:
     """
     Check if ALL field mappings have a final status (approved/rejected).
     If yes, mark field_mapping_completed=true on the discovery flow.
+
+    Args:
+        data_import_id: The data import ID to check mappings for
+        db: Database session
+        context: Request context for tenant scoping
+        flow_id: Optional flow ID to update (prevents duplicate flow issues)
 
     Returns:
         bool: True if phase was marked complete, False otherwise
@@ -75,14 +84,26 @@ async def check_and_mark_field_mapping_complete(
 
     # Mark complete only if ALL mappings have final status
     if counts.total > 0 and counts.finalized == counts.total:
-        # Find and update the discovery flow
-        flow_stmt = select(DiscoveryFlow).where(
-            and_(
-                DiscoveryFlow.data_import_id == data_import_id,
-                DiscoveryFlow.client_account_id == context.client_account_id,
-                DiscoveryFlow.engagement_id == context.engagement_id,
+        # CC FIX: Query by flow_id (if provided) to avoid duplicate flow issues
+        # Multiple flows can point to same data_import_id
+        if flow_id:
+            flow_stmt = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == context.client_account_id,
+                    DiscoveryFlow.engagement_id == context.engagement_id,
+                )
             )
-        )
+        else:
+            # Fallback to data_import_id query (legacy behavior)
+            flow_stmt = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.data_import_id == data_import_id,
+                    DiscoveryFlow.client_account_id == context.client_account_id,
+                    DiscoveryFlow.engagement_id == context.engagement_id,
+                )
+            )
+
         flow_result = await db.execute(flow_stmt)
         flow = flow_result.scalar_one_or_none()
 

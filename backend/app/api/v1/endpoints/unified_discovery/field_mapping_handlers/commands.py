@@ -172,30 +172,40 @@ async def approve_needs_review_as_custom_attributes(
                 detail="No data import associated with this flow",
             )
 
-        # Find all mappings that need review:
-        # 1. Status is 'suggested' (not yet finalized)
-        # 2. Target field is empty, UNMAPPED, or confidence < 0.7
+        # CC FIX: Align backend filter with frontend's "Needs Review" logic
+        # Frontend counts mappings where:
+        # 1. Status is NOT 'approved' or 'rejected'
+        # 2. Target field is empty, UNMAPPED, or similar
+        #
+        # Backend should match this logic instead of only looking for 'suggested' status
         stmt = select(ImportFieldMapping).where(
             and_(
                 ImportFieldMapping.data_import_id == flow.data_import_id,
                 ImportFieldMapping.client_account_id == context.client_account_id,
-                ImportFieldMapping.status == "suggested",
             )
         )
 
         result = await db.execute(stmt)
-        all_suggested = result.scalars().all()
+        all_mappings = result.scalars().all()
 
-        # Filter to only those needing review (UNMAPPED or low confidence)
+        logger.info(
+            f"DEBUG: Found {len(all_mappings)} total mappings, checking for needs review..."
+        )
+
+        # Filter to match frontend's needsReviewCount logic:
+        # - Status is NOT 'approved' or 'rejected'
+        # - Target field is empty, UNMAPPED, unmapped, or Unassigned
         needs_review = []
-        for mapping in all_suggested:
-            if (
+        for mapping in all_mappings:
+            logger.info(
+                f"DEBUG: Mapping {mapping.source_field}: status={mapping.status}, target={mapping.target_field}"
+            )
+            if mapping.status not in ["approved", "rejected"] and (
                 not mapping.target_field
-                or mapping.target_field == "UNMAPPED"
-                or mapping.target_field == ""
-                or (mapping.confidence_score and mapping.confidence_score < 0.7)
+                or mapping.target_field in ["UNMAPPED", "", "unmapped", "Unassigned"]
             ):
                 needs_review.append(mapping)
+                logger.info(f"DEBUG: ✅ {mapping.source_field} NEEDS REVIEW")
 
         if not needs_review:
             return {
@@ -221,9 +231,10 @@ async def approve_needs_review_as_custom_attributes(
             f"✅ Bulk approved {approved_count} needs review mappings as custom_attributes"
         )
 
+        # CC FIX: Pass flow_id to avoid duplicate flow issues
         # Check if ALL mappings are now finalized
         await check_and_mark_field_mapping_complete(
-            str(flow.data_import_id), db, context
+            str(flow.data_import_id), db, context, flow_id=flow_id
         )
 
         return {
