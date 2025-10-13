@@ -426,19 +426,36 @@ async def resolve_conflicts_bulk(  # noqa: C901
         remaining_conflicts = remaining_result.scalars().all()
 
         if len(remaining_conflicts) == 0:
-            # All conflicts resolved - resume flow
+            # All conflicts resolved - resume flow AND mark as completed
             from app.repositories.discovery_flow_repository import (
                 DiscoveryFlowRepository,
+            )
+            from app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor.commands import (
+                persist_asset_inventory_completion,
             )
 
             discovery_repo = DiscoveryFlowRepository(
                 db, str(client_account_id), str(engagement_id)
             )
+
+            # Step 1: Clear conflict resolution flags (removes phase_state flags, sets status='active')
             await discovery_repo.clear_conflict_resolution_pending(flow.flow_id)
-            await db.commit()  # Commit conflict resolutions + flow resumption
+
+            # Step 2: Mark flow as completed (since asset_inventory is the FINAL phase)
+            # CC CRITICAL: asset_inventory is the last phase of discovery flow
+            # After all conflicts resolved, the flow should be marked as "completed"
+            await persist_asset_inventory_completion(
+                db,
+                flow_id=str(flow.flow_id),
+                client_account_id=str(client_account_id),
+                engagement_id=str(engagement_id),
+                mark_flow_complete=True,  # ✅ Mark discovery flow as completed
+            )
+
+            await db.commit()  # Commit conflict resolutions + flow completion
 
             logger.info(
-                f"🎉 All conflicts resolved for flow {flow.flow_id} - flow resumed"
+                f"🎉 All conflicts resolved for flow {flow.flow_id} - flow marked as COMPLETED"
             )
         else:
             logger.info(
