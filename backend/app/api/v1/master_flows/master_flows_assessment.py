@@ -127,10 +127,8 @@ async def get_assessment_applications_via_master(
         from app.services.integrations.discovery_integration import (
             DiscoveryFlowIntegration,
         )
-        from app.models.assessment_flow_state import AssessmentPhase
-        from app.services.assessment_flow_service.core.asset_resolution_service import (
-            AssetResolutionService,
-        )
+        from app.models.canonical_applications import CollectionFlowApplication
+        from sqlalchemy import select, and_
 
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
@@ -141,37 +139,35 @@ async def get_assessment_applications_via_master(
         if not flow_state.selected_application_ids:
             return []
 
-        # CC: Check if ASSET_APPLICATION_RESOLUTION phase is complete (per ADR/planning docs)
-        # If not complete, return empty array with resolution_required flag
-        if flow_state.current_phase == AssessmentPhase.ASSET_APPLICATION_RESOLUTION:
-            # Check if resolution is complete
-            # CC: Fix per Qodo #4 - convert client_account_id string to UUID
-            resolution_service = AssetResolutionService(
-                db=db,
-                client_account_id=UUID(client_account_id),
-                engagement_id=flow_state.engagement_id,
+        # CC: Check if asset-to-canonical resolution is complete by querying collection_flow_applications
+        # Per refactor design: Use existing collection infrastructure instead of removed asset_resolution_service
+        # Query for unmapped assets (WHERE canonical_application_id IS NULL)
+        unmapped_stmt = select(CollectionFlowApplication).where(
+            and_(
+                CollectionFlowApplication.collection_flow_id == UUID(flow_id),
+                CollectionFlowApplication.asset_id.is_not(None),
+                CollectionFlowApplication.canonical_application_id.is_(None),
+                CollectionFlowApplication.client_account_id == UUID(client_account_id),
+                CollectionFlowApplication.engagement_id == flow_state.engagement_id,
             )
-            is_complete, unmapped_ids = (
-                await resolution_service.validate_resolution_complete(
-                    assessment_flow_id=flow_state.flow_id,
-                    selected_asset_ids=flow_state.selected_application_ids,
-                )
-            )
+        )
+        unmapped_result = await db.execute(unmapped_stmt)
+        unmapped_assets = unmapped_result.scalars().all()
 
-            if not is_complete:
-                # Return structured response indicating resolution needed
-                logger.warning(
-                    f"Asset resolution incomplete for flow {flow_id}: "
-                    f"{len(unmapped_ids)} unmapped assets"
-                )
-                return [
-                    {
-                        "resolution_required": True,
-                        "unmapped_count": len(unmapped_ids),
-                        "total_count": len(flow_state.selected_application_ids),
-                        "message": "Asset resolution phase must be completed before accessing applications",
-                    }
-                ]
+        if unmapped_assets:
+            # Return structured response indicating resolution needed
+            logger.warning(
+                f"Asset resolution incomplete for flow {flow_id}: "
+                f"{len(unmapped_assets)} unmapped assets"
+            )
+            return [
+                {
+                    "resolution_required": True,
+                    "unmapped_count": len(unmapped_assets),
+                    "total_count": len(flow_state.selected_application_ids),
+                    "message": "Asset-to-canonical application mapping must be completed before accessing applications",
+                }
+            ]
 
         # Get application details using Discovery Integration
         applications = []

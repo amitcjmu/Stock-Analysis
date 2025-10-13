@@ -21,6 +21,7 @@ import ContextBreadcrumbs from "../context/ContextBreadcrumbs";
 import AgentClarificationPanel from "../discovery/AgentClarificationPanel";
 import AgentInsightsSection from "../discovery/AgentInsightsSection";
 import AgentPlanningDashboard from "../discovery/AgentPlanningDashboard";
+import { AssetResolutionBanner } from "./AssetResolutionBanner";
 
 interface AssessmentFlowLayoutProps {
   children: React.ReactNode;
@@ -37,14 +38,6 @@ interface PhaseConfig {
 }
 
 const PHASE_CONFIG: PhaseConfig[] = [
-  {
-    id: "asset_application_resolution",
-    title: "Asset Resolution",
-    description: "Map selected assets to applications",
-    route: "asset-resolution",
-    icon: ({ className }) => <Circle className={className} />,
-    estimatedTime: "5-15 min",
-  },
   {
     id: "architecture_minimums",
     title: "Architecture Standards",
@@ -258,6 +251,9 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Asset Resolution Banner - Shows if unmapped assets exist */}
+              <AssetResolutionBanner flowId={flowId} />
 
               {/* Main Content */}
               {children}
