@@ -44,14 +44,19 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
 
   // Count mappings that need review
+  // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization
+  // Must match the "Needs Review" column logic in mappingUtils.ts
   const needsReviewCount = React.useMemo(() => {
     if (!fieldMappings) return 0;
     return fieldMappings.filter(m =>
-      m.status === 'suggested' && (
+      m.status !== 'approved' &&
+      m.status !== 'rejected' &&
+      (
         !m.target_field ||
         m.target_field === 'UNMAPPED' ||
         m.target_field === '' ||
-        (m.confidence_score !== null && m.confidence_score !== undefined && m.confidence_score < 0.7)
+        m.target_field === 'unmapped' ||
+        m.target_field === 'Unassigned'
       )
     ).length;
   }, [fieldMappings]);
