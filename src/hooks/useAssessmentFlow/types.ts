@@ -22,7 +22,6 @@ export type AssessmentFlowStatus =
 
 export type AssessmentPhase =
   | "initialization"
-  | "asset_application_resolution"
   | "architecture_minimums"
   | "tech_debt_analysis"
   | "component_sixr_strategies"

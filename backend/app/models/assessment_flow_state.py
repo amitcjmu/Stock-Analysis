@@ -37,7 +37,6 @@ class AssessmentPhase(str, Enum):
     """
 
     INITIALIZATION = "initialization"
-    ASSET_APPLICATION_RESOLUTION = "asset_application_resolution"
     ARCHITECTURE_MINIMUMS = "architecture_minimums"
     TECH_DEBT_ANALYSIS = "tech_debt_analysis"
     COMPONENT_SIXR_STRATEGIES = "component_sixr_strategies"

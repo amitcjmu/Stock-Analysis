@@ -24,7 +24,6 @@ def get_next_phase_for_navigation(
         Next phase in the sequence, or None if at the end
     """
     phase_sequence = [
-        AssessmentPhase.ASSET_APPLICATION_RESOLUTION,
         AssessmentPhase.ARCHITECTURE_MINIMUMS,
         AssessmentPhase.TECH_DEBT_ANALYSIS,
         AssessmentPhase.COMPONENT_SIXR_STRATEGIES,
@@ -53,7 +52,6 @@ def get_progress_for_phase(phase: AssessmentPhase) -> int:
     """
     progress_map = {
         AssessmentPhase.INITIALIZATION: 10,
-        AssessmentPhase.ASSET_APPLICATION_RESOLUTION: 15,
         AssessmentPhase.ARCHITECTURE_MINIMUMS: 25,
         AssessmentPhase.TECH_DEBT_ANALYSIS: 50,
         AssessmentPhase.COMPONENT_SIXR_STRATEGIES: 75,
@@ -157,7 +155,6 @@ def get_phase_sequence() -> List[AssessmentPhase]:
     """
     return [
         AssessmentPhase.INITIALIZATION,
-        AssessmentPhase.ASSET_APPLICATION_RESOLUTION,
         AssessmentPhase.ARCHITECTURE_MINIMUMS,
         AssessmentPhase.TECH_DEBT_ANALYSIS,
         AssessmentPhase.COMPONENT_SIXR_STRATEGIES,
@@ -177,7 +174,6 @@ def get_phase_description(phase: AssessmentPhase) -> str:
     """
     descriptions = {
         AssessmentPhase.INITIALIZATION: "Initializing assessment flow with selected applications",
-        AssessmentPhase.ASSET_APPLICATION_RESOLUTION: "Resolving asset to application mappings",
         AssessmentPhase.ARCHITECTURE_MINIMUMS: "Defining architecture standards and minimums",
         AssessmentPhase.TECH_DEBT_ANALYSIS: "Analyzing technical debt and modernization opportunities",
         AssessmentPhase.COMPONENT_SIXR_STRATEGIES: "Determining 6R strategies for application components",
@@ -291,14 +287,8 @@ def get_assessment_phase_requirements(phase: AssessmentPhase) -> Dict[str, Any]:
             "user_interaction": False,
             "estimated_duration": "2-5 minutes",
         },
-        AssessmentPhase.ASSET_APPLICATION_RESOLUTION: {
-            "prerequisites": ["INITIALIZATION"],
-            "required_inputs": ["asset_to_application_mappings"],
-            "user_interaction": True,
-            "estimated_duration": "10-20 minutes",
-        },
         AssessmentPhase.ARCHITECTURE_MINIMUMS: {
-            "prerequisites": ["ASSET_APPLICATION_RESOLUTION"],
+            "prerequisites": ["INITIALIZATION"],
             "required_inputs": ["engagement_standards", "application_overrides"],
             "user_interaction": True,
             "estimated_duration": "15-30 minutes",

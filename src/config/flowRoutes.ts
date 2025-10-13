@@ -130,8 +130,6 @@ export const FLOW_PHASE_ROUTES: Record<
   },
 
   assessment: {
-    asset_application_resolution: (flowId: string) =>
-      flowId ? `/assessment/${flowId}/asset-resolution` : "/assess",
     migration_readiness: (flowId: string) =>
       flowId ? `/assess/migration-readiness/${flowId}` : "/assess",
     business_impact: (flowId: string) =>
@@ -274,7 +272,6 @@ export const PHASE_SEQUENCES: Record<FlowType, string[]> = {
   ],
   assessment: [
     "initialization",
-    "asset_application_resolution",
     "architecture_minimums",
     "tech_debt_analysis",
     "component_sixr_strategies",
