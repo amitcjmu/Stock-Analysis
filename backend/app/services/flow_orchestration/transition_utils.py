@@ -120,21 +120,51 @@ def needs_ai_analysis(
     try:
         current_phase = flow_data.get("current_phase", "")
 
-        # FIX: Only require AI for phases that need actual execution
-        # asset_inventory and dependency_analysis need AI agents to do work
-        ai_execution_required_phases = [
-            "asset_inventory",
-            "dependency_analysis",
-        ]
-        if current_phase in ai_execution_required_phases:
-            # Check if phase was already processed by AI
-            ai_processed_key = f"{current_phase}_ai_processed"
-            if flow_data.get(ai_processed_key, False):
-                logger.info(f"✅ Phase {current_phase} already processed by AI")
-                return False, "phase_already_ai_processed"
-            else:
-                logger.info(f"🤖 AI agent required for phase {current_phase}")
-                return True, f"ai_processing_required_for_{current_phase}"
+        # CC FIX: Check if phase is COMPLETED, not if AI "processed" it
+        # If phase is complete, use simple heuristics to progress (< 1 second)
+        # If phase is incomplete, it may need execution (but that's handled in commands.py)
+        phases_completed = flow_data.get("phases_completed", {})
+
+        # For asset_inventory phase (final phase of Discovery flow):
+        # - If phase is COMPLETED → Flow is complete, no next phase
+        # - If phase is NOT completed → May need execution, but check phase_valid first
+        # CC FIX: dependency_analysis removed - it's now in Assessment flow
+        phase_completion_map = {
+            "asset_inventory": "asset_inventory",
+        }
+
+        if current_phase in phase_completion_map:
+            phase_key = phase_completion_map[current_phase]
+            is_phase_complete = phases_completed.get(phase_key, False)
+
+            if is_phase_complete:
+                # Phase already complete, just need to progress to next phase
+                # Use simple heuristics, no AI needed
+                logger.info(
+                    f"✅ Phase {current_phase} is complete, using simple progression (no AI)"
+                )
+                return False, f"{current_phase}_already_complete"
+
+            # Phase not complete - check if it's currently valid
+            # If valid, it's ready to progress (e.g., assets exist but phase not marked complete)
+            # If not valid, may need execution (handled in commands.py, not here)
+            phase_valid = validation_data.get("phase_valid", False)
+            if phase_valid:
+                logger.info(
+                    f"✅ Phase {current_phase} is valid, using simple progression"
+                )
+                return False, f"{current_phase}_valid_can_progress"
+
+            # Phase not complete and not valid - only use AI if there are actual issues
+            # Otherwise, let commands.py handle execution
+            has_errors = validation_data.get("error") is not None
+            has_issues = bool(validation_data.get("issues", []))
+
+            if not has_errors and not has_issues:
+                logger.info(
+                    f"⚡ Phase {current_phase} needs execution but no issues - simple logic will handle it"
+                )
+                return False, f"{current_phase}_needs_execution_no_ai"
 
         # Field mapping scenarios requiring AI
         if _requires_field_mapping_analysis(flow_data, validation_data):
@@ -365,13 +395,13 @@ def _get_next_phase_simple(flow_type: str, current_phase: str) -> Optional[str]:
     """Get next phase using simple logic for common flow types."""
 
     # Discovery flow phase progression
-    # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow, not Discovery flow
+    # CC FIX: Discovery flow ENDS at asset_inventory
+    # dependency_analysis has been moved to Assessment flow
     discovery_phases = [
         "data_import",
         "field_mapping",
         "data_cleansing",
-        "asset_inventory",
-        "dependency_analysis",
+        "asset_inventory",  # FINAL PHASE - flow completes here
     ]
 
     # Collection flow phase progression (aligned with actual routes)
