@@ -298,7 +298,7 @@ export const masterFlowService = {
       flow_type: string;
       flow_name: string;
       status: string;
-      phase?: string;
+      current_phase?: string;  // CC FIX: Backend returns current_phase, not phase
       progress_percentage?: number;
       created_at?: string;
       updated_at?: string;
@@ -346,23 +346,24 @@ export const masterFlowService = {
         );
       }
 
-      // Transform snake_case backend response to camelCase ActiveFlowSummary[]
+      // CC FIX: Transform to snake_case ActiveFlowSummary[] to match type definition
+      // Backend returns snake_case, frontend types expect snake_case
       return response.map((flow) => ({
-        flowId: flow.master_flow_id || flow.flow_id,
-        flowType: flow.flow_type,
-        flowName: flow.flow_name || flow.flow_type,
+        flow_id: flow.master_flow_id || flow.flow_id || "",
+        flow_type: flow.flow_type,
+        flow_name: flow.flow_name || flow.flow_type,
         status: flow.status as FlowStatus,
         progress: flow.progress_percentage || 0,
-        currentPhase: flow.phase || "initialization",
-        assignedAgents: 0, // Default values as these are not in backend response
-        activeCrews: 0,
-        childFlows: 0,
+        current_phase: flow.current_phase || "initialization",  // FIX: Use current_phase, not phase
+        assigned_agents: 0, // Default values as these are not in backend response
+        active_crews: 0,
+        child_flows: 0,
         priority: "normal",
-        startTime: flow.created_at || new Date().toISOString(),
-        estimatedCompletion: undefined,
-        clientAccountId: client_account_id,
-        engagementId: engagement_id || "",
-        userId: "",
+        start_time: flow.updated_at || flow.created_at || new Date().toISOString(),  // FIX: Use updated_at for last activity
+        estimated_completion: undefined,
+        client_account_id: client_account_id,
+        engagement_id: engagement_id || "",
+        user_id: "",
       }));
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
@@ -446,20 +447,22 @@ export const masterFlowService = {
           }
         }
 
-        // Transform unified-discovery response to ActiveFlowSummary[] format
+        // CC FIX: Transform unified-discovery response to snake_case ActiveFlowSummary[] format
         return flowsToProcess.map((flow) => {
-          // Extract flow ID with multiple field name support
+          // Extract values with multiple field name support
           const flowId = flow.flow_id || flow.flowId || flow.id || "";
           const flowType =
             flow.flow_type || flow.flowType || flow.type || "discovery";
           const flowName = flow.flow_name || flow.flowName || flowType;
           const currentPhase =
-            flow.phase ||
             flow.current_phase ||
+            flow.phase ||
             flow.currentPhase ||
-            "initialization";
+            "initialization";  // FIX: Prioritize current_phase over phase
           const progress = flow.progress_percentage || flow.progress || 0;
           const startTime =
+            flow.updated_at ||  // FIX: Use updated_at for last activity
+            flow.last_updated ||
             flow.created_at ||
             flow.start_time ||
             flow.startTime ||
@@ -472,22 +475,23 @@ export const masterFlowService = {
             flow.clientAccountId ||
             client_account_id;
 
+          // Return snake_case to match ActiveFlowSummary type
           return {
-            flowId,
-            flowType,
-            flowName,
+            flow_id: flowId,
+            flow_type: flowType,
+            flow_name: flowName,
             status: flow.status as FlowStatus,
             progress,
-            currentPhase,
-            assignedAgents: 0, // Default values - unified-discovery doesn't provide these
-            activeCrews: 0,
-            childFlows: 0,
+            current_phase: currentPhase,
+            assigned_agents: 0, // Default values - unified-discovery doesn't provide these
+            active_crews: 0,
+            child_flows: 0,
             priority: "normal",
-            startTime,
-            estimatedCompletion: undefined,
-            clientAccountId: clientAccountIdFromFlow,
-            engagementId: engagementIdFromFlow,
-            userId: "",
+            start_time: startTime,
+            estimated_completion: undefined,
+            client_account_id: clientAccountIdFromFlow,
+            engagement_id: engagementIdFromFlow,
+            user_id: "",
           };
         });
       } catch (fallbackError) {
