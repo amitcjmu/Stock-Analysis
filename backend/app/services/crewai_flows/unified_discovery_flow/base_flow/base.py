@@ -211,7 +211,7 @@ class UnifiedDiscoveryFlow(
         self.finalizer = FlowFinalizer(self.state, self.state_manager)
 
         # Initialize bridge for flow-specific database operations
-        from ..flow_state_bridge import FlowStateBridge
+        from ...flow_state_bridge import FlowStateBridge
 
         self.flow_bridge = FlowStateBridge(self.context)
 

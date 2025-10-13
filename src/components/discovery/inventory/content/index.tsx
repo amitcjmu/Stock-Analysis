@@ -318,9 +318,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         conflicts={assetConflicts}
         isOpen={showConflictModal}
         onClose={() => {
-          // Qodo Bot feedback: Clear conflicts when modal closes to allow proper re-triggering
+          // Keep conflicts in state so user can re-open the modal via the banner
+          // Conflicts are only cleared when actually resolved in handleConflictResolutionComplete
           setShowConflictModal(false);
-          setAssetConflicts([]);
         }}
         onResolutionComplete={handleConflictResolutionComplete}
       />
@@ -373,6 +373,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           refetchAssets={refetchAssets}
           refreshFlow={refreshFlow}
           setHasTriggeredInventory={setHasTriggeredInventory}
+          onOpenConflictModal={() => setShowConflictModal(true)}
         />
       )}
 

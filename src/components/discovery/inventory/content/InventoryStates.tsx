@@ -55,6 +55,7 @@ interface EmptyStateProps {
     phases_completed?: string[];
     phase_completion?: { data_cleansing?: boolean; inventory?: boolean };
     current_phase?: string;
+    phase_state?: { conflict_resolution_pending?: boolean };
   } | null;
   viewMode: 'all' | 'current_flow';
   isExecutingPhase: boolean;
@@ -63,6 +64,7 @@ interface EmptyStateProps {
   refetchAssets: () => void;
   refreshFlow: () => void;
   setHasTriggeredInventory: (value: boolean) => void;
+  onOpenConflictModal?: () => void;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -73,7 +75,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   executeFlowPhase,
   refetchAssets,
   refreshFlow,
-  setHasTriggeredInventory
+  setHasTriggeredInventory,
+  onOpenConflictModal
 }) => {
   // Memory leak prevention: Track if component is mounted
   const isMountedRef = React.useRef(true);
@@ -99,14 +102,42 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     flow.current_phase !== 'asset_inventory' &&
     !isExecutingPhase;
 
+  // Check if flow is paused for conflict resolution (PR #567 fix)
+  const hasConflictsPending = flow?.phase_state?.conflict_resolution_pending === true;
+
   // Check if inventory processing might be starting soon
-  const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory;
+  // FIX: Don't show "Preparing" if conflicts are pending - user needs to resolve them first
+  const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory && !hasConflictsPending;
 
   return (
     <Card>
       <CardContent className="p-8">
         <div className="text-center">
-          {mightStartProcessing ? (
+          {hasConflictsPending ? (
+            <>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Conflict Resolution Required</h3>
+              <p className="text-gray-600 mb-4">
+                The asset inventory phase detected duplicate assets and is paused waiting for your decision.
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                Please resolve the conflicts using the banner above to continue. Once resolved, assets will be created automatically.
+              </p>
+              <div className="inline-flex items-center mb-4">
+                <div className="rounded-full h-3 w-3 bg-yellow-600 mr-2"></div>
+                <span className="text-sm text-gray-500">Flow paused for conflict resolution</span>
+              </div>
+              {onOpenConflictModal && (
+                <div className="mt-4">
+                  <Button
+                    onClick={onOpenConflictModal}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  >
+                    Open Conflict Resolution
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : mightStartProcessing ? (
             <>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Preparing Asset Inventory</h3>
               <p className="text-gray-600 mb-4">
