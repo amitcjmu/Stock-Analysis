@@ -170,7 +170,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
         console.log(`📍 Current phase: ${currentPhase}`);
 
         // CRITICAL: Handle "initialization" or unknown phases by navigating to first valid phase
-        // Valid collection phases: asset_selection, gap_analysis, questionnaire_generation, manual_collection, synthesis
+        // Valid collection phases: asset_selection, gap_analysis, questionnaire_generation, manual_collection, synthesis, finalization
         // "initialization" is a master flow phase, not a collection flow phase
         if (currentPhase === 'initialization' || !FLOW_PHASE_ROUTES.collection[currentPhase]) {
           console.log(`⚠️ Phase "${currentPhase}" is not a valid collection phase, navigating to asset_selection`);
@@ -216,7 +216,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
       // If no phase route found, start polling for questionnaires as fallback
       console.log("⏳ No phase route available, starting polling for questionnaires...");
       await pollForQuestionnaires();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error in handleContinue:", error);
 
       // Extract user-friendly error message from backend response
@@ -387,8 +387,8 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            {/* Continue button for stuck or completed flows */}
-            {(isFlowStuck ||
+            {/* Continue button - always show for running or completed flows so user can navigate to phase page */}
+            {(flow.status === "running" ||
               flow.status === "completed" ||
               flow.progress === 100) && (
               <Button
@@ -397,9 +397,9 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                 onClick={handleContinue}
                 disabled={isCheckingReadiness}
                 title={
-                  flow.status === "completed"
+                  flow.status === "completed" || flow.progress === 100
                     ? "Continue to Assessment"
-                    : "Continue Flow"
+                    : "View Current Phase"
                 }
               >
                 {isCheckingReadiness ? (
@@ -410,13 +410,13 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                 ) : (
                   <>
                     <ArrowRight className="h-4 w-4 mr-1" />
-                    Continue
+                    {flow.status === "completed" || flow.progress === 100 ? "Continue" : "View Progress"}
                   </>
                 )}
               </Button>
             )}
 
-            {flow.status === "running" && !isFlowStuck && (
+            {flow.status === "running" && (
               <Button
                 variant="outline"
                 size="sm"

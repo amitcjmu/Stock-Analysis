@@ -122,15 +122,35 @@ const ApplicationSelection: React.FC = () => {
   // Cache invalidation hook
   const { invalidateCollectionFlowCache } = useCacheInvalidation();
 
-  // Filter assets based on selected asset types (client-side)
+  // Filter and sort assets based on selected asset types (client-side)
+  // Selected applications appear at the top of the list
   const filteredAssets = useMemo(() => {
-    if (selectedAssetTypes.has("ALL")) {
-      return allAssets;
+    let filtered = allAssets;
+
+    // Apply asset type filter
+    if (!selectedAssetTypes.has("ALL")) {
+      filtered = allAssets.filter((asset) =>
+        selectedAssetTypes.has(asset.asset_type?.toUpperCase() || "UNKNOWN"),
+      );
     }
-    return allAssets.filter((asset) =>
-      selectedAssetTypes.has(asset.asset_type?.toUpperCase() || "UNKNOWN"),
-    );
-  }, [allAssets, selectedAssetTypes]);
+
+    // Sort: selected applications first, then unselected
+    // Within each group, sort alphabetically by asset_name
+    return filtered.sort((a, b) => {
+      const aSelected = selectedApplications.has(a.id.toString());
+      const bSelected = selectedApplications.has(b.id.toString());
+
+      // If selection status differs, prioritize selected items
+      if (aSelected !== bSelected) {
+        return aSelected ? -1 : 1;
+      }
+
+      // If both have same selection status, sort alphabetically
+      const aName = a.asset_name || a.name || "";
+      const bName = b.asset_name || b.name || "";
+      return aName.localeCompare(bName);
+    });
+  }, [allAssets, selectedAssetTypes, selectedApplications]);
 
   // Reset to first page when filters change
   useEffect(() => {

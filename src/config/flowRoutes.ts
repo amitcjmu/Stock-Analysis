@@ -68,6 +68,9 @@ export const FLOW_PHASE_ROUTES: Record<FlowType, Record<string, (flowId: string)
     // Synthesis phase - Final data compilation and validation
     'synthesis': (flowId: string) => flowId ? `/collection/synthesis/${flowId}` : '/collection',
 
+    // Finalization phase - Maps to synthesis (backend child flow uses this)
+    'finalization': (flowId: string) => flowId ? `/collection/synthesis/${flowId}` : '/collection',
+
     // Completed flow
     'completed': (flowId: string) => flowId ? `/collection/summary/${flowId}` : '/collection',
 
