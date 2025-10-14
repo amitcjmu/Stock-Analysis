@@ -356,7 +356,11 @@ const AssessmentTechDebtAssessment = (): JSX.Element => {
                               </span>
                               {daysUntilEOL !== null && (
                                 <p className={`text-xs mt-1 ${daysUntilEOL < 30 ? 'text-red-500' : 'text-gray-500'}`}>
-                                  {daysUntilEOL > 0 ? `${daysUntilEOL} days left` : `EOL ${-daysUntilEOL} days ago`}
+                                  {daysUntilEOL > 0
+                                    ? `${daysUntilEOL} days left`
+                                    : daysUntilEOL === 0
+                                    ? 'EOL today'
+                                    : `EOL ${-daysUntilEOL} days ago`}
                                 </p>
                               )}
                             </td>

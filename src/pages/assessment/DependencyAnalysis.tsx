@@ -12,6 +12,7 @@
  */
 
 import type React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Button } from '../../components/ui/button';
@@ -30,6 +31,8 @@ import {
 } from 'lucide-react';
 
 const AssessmentDependencyAnalysisPage = (): JSX.Element => {
+  const navigate = useNavigate();
+
   // TODO: Replace with Assessment flow hooks when implemented
   // For now, this is a placeholder that matches the expected structure
 
@@ -50,11 +53,11 @@ const AssessmentDependencyAnalysisPage = (): JSX.Element => {
   };
 
   const handleBackToReadiness = () => {
-    window.location.href = '/assessment/overview';
+    navigate('/assessment/overview');
   };
 
   const handleContinueToTechDebt = () => {
-    window.location.href = '/assessment/tech-debt-assessment';
+    navigate('/assessment/tech-debt');
   };
 
   // Extract dependency information from dependencyData
@@ -147,7 +150,9 @@ const AssessmentDependencyAnalysisPage = (): JSX.Element => {
               <CardContent className="pt-6">
                 <div className="flex items-center text-red-700">
                   <AlertCircle className="mr-2 h-5 w-5" />
-                  <span>Error: {error.message}</span>
+                  <span>
+                    Error: {error instanceof Error ? error.message : String(error)}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -193,7 +198,7 @@ const AssessmentDependencyAnalysisPage = (): JSX.Element => {
                   {appServerDependencies.length > 0 ? (
                     <div className="space-y-3">
                       {appServerDependencies.slice(0, 5).map((relationship: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={`${relationship.application}-${relationship.server}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{relationship.application || `App ${index + 1}`}</p>
                             <p className="text-sm text-gray-600">{relationship.server || `Server ${index + 1}`}</p>
