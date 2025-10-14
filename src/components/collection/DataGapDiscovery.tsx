@@ -429,28 +429,62 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsSaving(true);
 
+      // Debug: Log current state
+      console.log('🔍 Accept Selected Debug:', {
+        selectedGapsCount: selectedGaps.length,
+        gapsArrayCount: gaps.length,
+        gapsWithResolutionsCount: gapsWithResolutions.length,
+        sampleSelectedGap: selectedGaps[0],
+        sampleGapFromArray: gaps[0],
+      });
+
       // CRITICAL FIX: Look up full gap data from gaps state to get database IDs
       // AG Grid selection may not preserve all fields, so we use asset_id + field_name as key
-      const updates: GapUpdate[] = gapsWithResolutions.map((selectedGap) => {
+      const updates: GapUpdate[] = [];
+      const missingGaps: string[] = [];
+
+      for (const selectedGap of gapsWithResolutions) {
         // Find the full gap object in the gaps array using composite key
         const fullGap = gaps.find(
           (g) => g.asset_id === selectedGap.asset_id && g.field_name === selectedGap.field_name
         );
 
         if (!fullGap || !fullGap.id) {
-          throw new Error(
-            `Gap ID not found for ${selectedGap.field_name} on asset ${selectedGap.asset_id}`
+          console.warn(
+            `Gap not found in state: ${selectedGap.field_name} (asset: ${selectedGap.asset_id})`
           );
+          missingGaps.push(selectedGap.field_name);
+          continue; // Skip this gap instead of throwing
         }
 
-        return {
+        updates.push({
           gap_id: fullGap.id,  // Use ID from gaps state
           field_name: selectedGap.field_name,
           resolved_value: selectedGap.suggested_resolution,
           resolution_status: "resolved",
           resolution_method: "ai_suggestion",
-        };
-      });
+        });
+      }
+
+      if (updates.length === 0) {
+        toast({
+          title: "No Gaps Could Be Processed",
+          description: `Could not find gap IDs for selected gaps. Try refreshing the page.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (missingGaps.length > 0) {
+        console.warn(
+          `Skipping ${missingGaps.length} gaps that could not be found: ${missingGaps.join(", ")}`
+        );
+        toast({
+          title: "Some Gaps Skipped",
+          description: `Processing ${updates.length} of ${gapsWithResolutions.length} gaps (${missingGaps.length} skipped due to missing data)`,
+          variant: "default",
+        });
+      }
 
       // Debug log to see what we're sending
       console.log('📤 Sending gap updates:', JSON.stringify(updates, null, 2));

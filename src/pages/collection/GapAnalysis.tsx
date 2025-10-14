@@ -72,21 +72,27 @@ const GapAnalysis: React.FC = () => {
 
     try {
       setIsContinuing(true);
-      await collectionFlowApi.continueFlow(flowId);
 
-      // Get updated flow details
-      const updatedFlows = await collectionFlowApi.getIncompleteFlows();
-      const updatedFlow = updatedFlows.find(f => f.id === flowId);
+      // Call continueFlow and use the response to get the correct flow_id and next phase
+      const continueResult = await collectionFlowApi.continueFlow(flowId);
 
-      if (updatedFlow && updatedFlow.current_phase) {
-        // Navigate to next phase
-        const phaseRoute = FLOW_PHASE_ROUTES.collection[updatedFlow.current_phase];
+      console.log('📋 Continue flow result:', continueResult);
+
+      // CRITICAL FIX: Use the flow_id from the response instead of refetching
+      // The response includes current_phase and flow_id (may differ from input flowId)
+      const responseFlowId = continueResult.flow_id || flowId;
+      const currentPhase = continueResult.current_phase;
+
+      if (currentPhase) {
+        // Navigate to next phase using the flow_id from the response
+        const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
         if (phaseRoute) {
-          const route = phaseRoute(flowId);
+          const route = phaseRoute(responseFlowId);
+          console.log(`🔄 Navigating to ${currentPhase} phase with flow ID ${responseFlowId}: ${route}`);
           navigate(route);
           toast({
             title: "Proceeding to Next Phase",
-            description: `Moving to ${updatedFlow.current_phase.replace('_', ' ')} phase...`,
+            description: `Moving to ${currentPhase.replace('_', ' ')} phase...`,
             variant: "default"
           });
           return;
@@ -94,7 +100,8 @@ const GapAnalysis: React.FC = () => {
       }
 
       // Fallback navigation
-      navigate(`/collection/progress/${flowId}`);
+      console.warn('⚠️ No phase route found, using fallback navigation');
+      navigate(`/collection/progress/${responseFlowId}`);
     } catch (err: unknown) {
       console.error('Failed to continue flow:', err);
       const errorMessage = err instanceof Error ? err.message : "Failed to continue to next phase";
