@@ -7,6 +7,7 @@
 export interface AdaptiveFormData {
   formId: string;
   applicationId: string;
+  applicationName?: string; // CRITICAL FIX: Actual asset name for display (not UUID)
   sections: FormSection[];
   totalFields: number;
   requiredFields: number;
