@@ -80,6 +80,7 @@ def convert_fast_path_to_api_response(
             confidence=fast_response.get("confidence", 0.95),
             success=True,
             user_guidance=fast_response.get("user_guidance", ""),
+            next_actions=[],  # Empty list for fast path (no specific actions)
         )
 
         # Use the same function as AI path to ensure consistent phase display
