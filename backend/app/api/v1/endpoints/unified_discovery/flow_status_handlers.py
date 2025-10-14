@@ -102,6 +102,23 @@ async def get_flow_status(
                 detail=f"Failed to access flow: {str(e)}",
             )
 
+        # Build phases dict from actual database completion flags (Issue #557 related fix)
+        phases_completed = {
+            "data_import": flow.data_import_completed,
+            "field_mapping": flow.field_mapping_completed,
+            "data_cleansing": flow.data_cleansing_completed,
+            "asset_inventory": flow.asset_inventory_completed,
+            "dependency_analysis": flow.dependency_analysis_completed,
+            "tech_debt_assessment": flow.tech_debt_assessment_completed,
+        }
+
+        # Calculate actual progress percentage from completed phases
+        completed_count = sum(1 for completed in phases_completed.values() if completed)
+        total_phases = len(phases_completed)
+        actual_progress = (
+            round((completed_count / total_phases) * 100, 1) if total_phases > 0 else 0
+        )
+
         # Build comprehensive flow status response
         flow_status = {
             "flow_id": flow.flow_id,
@@ -110,7 +127,7 @@ async def get_flow_status(
             "next_phase": getattr(
                 flow, "next_phase", None
             ),  # Safe access - may not exist
-            "progress_percentage": flow.progress_percentage or 0,
+            "progress_percentage": actual_progress,  # Use calculated progress (Bug #560 fix)
             "phase_state": flow.phase_state
             or {},  # CC: Include phase_state for conflict resolution tracking
             "created_at": flow.created_at.isoformat() if flow.created_at else None,
@@ -126,7 +143,7 @@ async def get_flow_status(
                     "data_import_id": flow.data_import_id,
                     "master_flow_id": flow.master_flow_id,
                     "field_mappings": flow.field_mappings,
-                    "phases": getattr(flow, "phases", {}) or {},  # Safe access
+                    "phases": phases_completed,  # Use actual completion flags from database
                     "error_details": getattr(
                         flow, "error_details", None
                     ),  # Safe access
