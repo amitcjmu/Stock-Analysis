@@ -39,16 +39,18 @@ async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
     current_phase = discovery_flow.current_phase
     status = discovery_flow.status
 
-    # Map variations of phase names to standard names
-    phase_mapping = {
-        "field_mapping_suggestions": "field_mapping",
-        "data_cleaning": "data_cleansing",
-        "assets": "asset_inventory",
-    }
-
-    # Normalize the current phase name if it exists
+    # Normalize the current phase name if it exists using centralized aliases
     if current_phase:
-        current_phase = phase_mapping.get(current_phase, current_phase)
+        from app.services.flow_configs.phase_aliases import normalize_phase_name
+
+        try:
+            current_phase = normalize_phase_name("discovery", current_phase)
+        except ValueError:
+            # If normalization fails, keep original phase name
+            logger.warning(
+                f"Could not normalize phase '{current_phase}', keeping original"
+            )
+            pass
 
     # CC: Handle 'initialization' phase - map to field_mapping for discovery flows
     if current_phase == "initialization":
