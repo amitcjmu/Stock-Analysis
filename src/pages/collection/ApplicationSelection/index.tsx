@@ -218,28 +218,26 @@ const ApplicationSelection: React.FC = () => {
           variant: "default",
         });
 
-        // Navigate based on flow phase
-        try {
-          const flowDetails = await collectionFlowApi.getFlow(flowId);
-          const currentPhase = flowDetails.current_phase || "gap_analysis";
-          const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+        // CRITICAL FIX: Use flow_id from response (collection flow ID, not master flow ID)
+        // Backend returns correct collection flow ID to use for gap analysis navigation
+        const responseFlowId = response.flow_id || flowId;
+        const currentPhase = "gap_analysis"; // Backend transitions to gap_analysis phase
 
-          if (phaseRoute) {
-            const targetRoute = phaseRoute(flowId);
-            console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
-            navigate(targetRoute);
-          } else {
-            console.warn(
-              `⚠️ No route found for phase: ${currentPhase}, falling back to adaptive-forms`,
-            );
-            navigate(`/collection/adaptive-forms?flowId=${flowId}`);
-          }
-        } catch (error) {
-          console.warn(
-            "⚠️ Failed to get flow details for phase routing, using fallback:",
-            error,
-          );
-          navigate(`/collection/adaptive-forms?flowId=${flowId}`);
+        console.log(`📋 POST /applications response:`, {
+          responseFlowId,
+          inputFlowId: flowId,
+          masterFlowId: response.master_flow_id,
+          phase: currentPhase
+        });
+
+        const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+        if (phaseRoute) {
+          const targetRoute = phaseRoute(responseFlowId);
+          console.log(`🧭 Navigating to ${currentPhase} with flow ID ${responseFlowId}: ${targetRoute}`);
+          navigate(targetRoute);
+        } else {
+          console.warn(`⚠️ No route found for phase: ${currentPhase}`);
+          navigate(`/collection/adaptive-forms?flowId=${responseFlowId}`);
         }
       } else {
         throw new Error("Invalid response from server");

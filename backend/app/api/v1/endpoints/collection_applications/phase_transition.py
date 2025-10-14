@@ -78,6 +78,8 @@ async def transition_to_gap_analysis(
             f"GAP_ANALYSIS (skipping MFO - UI-driven phase)"
         )
 
+        # CRITICAL FIX: Return collection flow ID (not master flow ID)
+        # Frontend must navigate to collection flow ID for gap analysis page
         return {
             "success": True,
             "message": (
@@ -85,7 +87,14 @@ async def transition_to_gap_analysis(
                 f"applications, created {normalized_records_count} normalized records, "
                 "and transitioned to gap analysis phase"
             ),
-            "flow_id": flow_id,
+            "flow_id": str(
+                collection_flow.id
+            ),  # Use collection flow ID, not input flow_id
+            "master_flow_id": (
+                str(collection_flow.master_flow_id)
+                if collection_flow.master_flow_id
+                else None
+            ),
             "selected_application_count": processed_count,
             "normalized_records_created": normalized_records_count,
             "mfo_execution_triggered": False,
@@ -103,13 +112,19 @@ async def transition_to_gap_analysis(
         f"Collection flow {flow_id} already in phase {collection_flow.current_phase} - "
         "no transition needed"
     )
+    # CRITICAL FIX: Return collection flow ID (not master flow ID)
     return {
         "success": True,
         "message": (
             f"Successfully updated collection flow with {processed_count} "
             f"applications, created {normalized_records_count} normalized records"
         ),
-        "flow_id": flow_id,
+        "flow_id": str(collection_flow.id),  # Use collection flow ID, not input flow_id
+        "master_flow_id": (
+            str(collection_flow.master_flow_id)
+            if collection_flow.master_flow_id
+            else None
+        ),
         "selected_application_count": processed_count,
         "normalized_records_created": normalized_records_count,
         "mfo_execution_triggered": False,
