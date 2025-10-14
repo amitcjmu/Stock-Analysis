@@ -3,6 +3,9 @@ Route handlers for collection flows API endpoints.
 
 This module contains the actual handler functions for each API endpoint,
 separated from the router definitions for better modularity.
+
+Advanced handlers (refresh_completeness_metrics, transition_to_assessment)
+have been extracted to advanced_handlers.py to keep file under 400 lines.
 """
 
 import logging
@@ -414,85 +417,4 @@ async def get_completeness_metrics_handler(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve completeness metrics",
-        )
-
-
-async def refresh_completeness_metrics_handler(
-    flow_id: str,
-    db: AsyncSession,
-    context: RequestContext,
-) -> Dict[str, Any]:
-    """
-    Refresh completeness metrics for a collection flow.
-
-    Forces recalculation of all completeness metrics and returns updated values.
-    """
-    try:
-        # Verify flow exists
-        collection_repo = CollectionFlowRepository(
-            db, context.client_account_id, context.engagement_id
-        )
-        collection_flow = await collection_repo.get_by_filters(flow_id=flow_id)
-
-        if not collection_flow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Collection flow not found",
-            )
-
-        # Force refresh by clearing any cached data (if applicable)
-        # This would typically invalidate caches or trigger recalculation
-
-        # Get fresh data snapshot
-        existing_data_snapshot = await get_existing_data_snapshot(
-            db, context.client_account_id, context.engagement_id
-        )
-
-        # Recalculate completeness metrics
-        completeness_by_category = await calculate_completeness_metrics(
-            db, context.client_account_id, context.engagement_id
-        )
-
-        # Calculate overall completeness
-        if completeness_by_category:
-            overall_completeness = sum(completeness_by_category.values()) / len(
-                completeness_by_category
-            )
-        else:
-            overall_completeness = 0.0
-
-        # Get updated gaps count
-        pending_gaps = await calculate_pending_gaps(
-            db, context.client_account_id, context.engagement_id
-        )
-
-        logger.info(
-            f"✅ Refreshed completeness metrics for flow {flow_id} - "
-            f"Overall: {overall_completeness:.1f}%, Pending gaps: {pending_gaps}"
-        )
-
-        return {
-            "flow_id": flow_id,
-            "overall_completeness": round(overall_completeness, 2),
-            "completeness_by_category": completeness_by_category,
-            "pending_gaps": pending_gaps,
-            "last_calculated": "now",  # Could add actual timestamp
-            "categories": (
-                list(completeness_by_category.keys())
-                if completeness_by_category
-                else []
-            ),
-            "refreshed": True,
-            "data_points_analyzed": (
-                len(existing_data_snapshot) if existing_data_snapshot else 0
-            ),
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to refresh completeness metrics for flow {flow_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to refresh completeness metrics",
         )

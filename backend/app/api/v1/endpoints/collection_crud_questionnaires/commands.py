@@ -235,13 +235,15 @@ async def _background_generate(
                         .where(CollectionFlow.flow_id == UUID(flow_id))
                         .values(
                             current_phase="manual_collection",
-                            status="manual_collection",
+                            status="paused",  # FIXED: Use valid enum value (awaiting user questionnaire input)
                             progress_percentage=50.0,  # Questionnaire generated = 50% progress
                             updated_at=datetime.now(timezone.utc),
                         )
                     )
                     await db.commit()
-                    logger.info(f"Progressed flow {flow_id} to manual_collection phase")
+                    logger.info(
+                        f"Progressed flow {flow_id} to manual_collection phase with status=paused"
+                    )
 
             logger.info(
                 f"Successfully generated {len(questions)} questions for flow {flow_id}"

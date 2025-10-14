@@ -66,6 +66,14 @@ async def update_gaps(
         logger.info(
             f"💾 Update gaps request - Flow: {flow_id}, Updates: {len(request_body.updates)}"
         )
+        # DEBUG: Log first update for troubleshooting
+        if request_body.updates:
+            first_update = request_body.updates[0]
+            logger.info(
+                f"DEBUG: First update - gap_id={first_update.gap_id}, "
+                f"status={first_update.resolution_status}, "
+                f"method={first_update.resolution_method}"
+            )
 
         # Resolve collection flow
         collection_flow = await resolve_collection_flow(

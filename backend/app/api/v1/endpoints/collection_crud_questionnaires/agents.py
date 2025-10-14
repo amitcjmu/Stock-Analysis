@@ -187,6 +187,18 @@ async def _generate_agent_questionnaires(
 
             # Build comprehensive inputs for agent
             # Note: selected_assets is a list of dicts from _analyze_selected_assets, not Asset objects
+
+            # CRITICAL FIX: Build asset_names mapping for questionnaire generation
+            # Resolves issue where questions showed "Asset df0d34a9" instead of "Admin Dashboard"
+            asset_names = {
+                asset["asset_id"]: asset["asset_name"]
+                for asset in selected_assets
+                if asset.get("asset_id") and asset.get("asset_name")
+            }
+            logger.info(
+                f"Built asset_names mapping with {len(asset_names)} entries: {asset_names}"
+            )
+
             agent_inputs = {
                 **base_inputs,
                 "flow_id": flow_id,
@@ -197,6 +209,7 @@ async def _generate_agent_questionnaires(
                     "client_account_id": context.client_account_id,
                     "total_assets": len(selected_assets),
                     "assets_with_gaps": len(asset_analysis.get("assets_with_gaps", [])),
+                    "asset_names": asset_names,  # CRITICAL: Pass asset names for proper display in questions
                 },
             }
 

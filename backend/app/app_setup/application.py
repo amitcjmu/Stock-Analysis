@@ -1,6 +1,8 @@
 import logging
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 
 def create_app():  # factory to assemble app
@@ -55,6 +57,37 @@ def create_app():  # factory to assemble app
         redoc_url="/redoc",
         lifespan=get_lifespan(),
     )
+
+    # Exception Handlers
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
+        """
+        Custom handler for Pydantic validation errors to log full details.
+        This captures validation failures before they reach endpoint handlers.
+        """
+        logger = logging.getLogger("app.validation")
+
+        # Get request body
+        body_bytes = await request.body()
+        body_str = body_bytes.decode("utf-8") if body_bytes else "No body"
+
+        # Log full validation error details directly in message
+        logger.error(
+            f"❌ VALIDATION ERROR on {request.method} {request.url.path}\n"
+            f"Errors: {exc.errors()}\n"
+            f"Request Body: {body_str}"
+        )
+
+        # Return detailed error response
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "detail": exc.errors(),
+                "body": body_str,
+            },
+        )
 
     # Middleware and CORS
     from app.app_setup.middleware import add_middlewares

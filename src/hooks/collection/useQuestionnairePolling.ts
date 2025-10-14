@@ -32,7 +32,7 @@ export interface QuestionnairePollingOptions {
   onFailed?: (_errorMessage: string) => void;
 }
 
-const POLLING_INTERVAL_MS = 30000; // 30 seconds
+const POLLING_INTERVAL_MS = 5000; // 5 seconds (CRITICAL: Fast polling to catch questionnaire ready status)
 const TOTAL_POLLING_TIMEOUT_MS = 12 * 60 * 1000; // 12 minutes total timeout
 const MAX_RETRY_ATTEMPTS = 3; // Allow up to 3 manual retries
 const RETRY_DELAY_BASE = 2000; // Base delay for exponential backoff

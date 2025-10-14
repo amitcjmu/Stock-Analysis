@@ -1,20 +1,27 @@
-import React from 'react';
-import { useParams } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ChevronRight } from 'lucide-react'
-import { CheckCircle2, Circle, Clock, AlertCircle, Loader2 } from 'lucide-react'
-import type { AssessmentPhase } from '@/hooks/useAssessmentFlow'
-import { useAssessmentFlow } from '@/hooks/useAssessmentFlow'
-import { cn } from '@/lib/utils';
+import React from "react";
+import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronRight } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Clock,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import type { AssessmentPhase } from "@/hooks/useAssessmentFlow";
+import { useAssessmentFlow } from "@/hooks/useAssessmentFlow";
+import { cn } from "@/lib/utils";
 
-import MainSidebar from '../Sidebar';
-import ContextBreadcrumbs from '../context/ContextBreadcrumbs';
-import AgentClarificationPanel from '../discovery/AgentClarificationPanel';
-import AgentInsightsSection from '../discovery/AgentInsightsSection';
-import AgentPlanningDashboard from '../discovery/AgentPlanningDashboard';
+import MainSidebar from "../Sidebar";
+import ContextBreadcrumbs from "../context/ContextBreadcrumbs";
+import AgentClarificationPanel from "../discovery/AgentClarificationPanel";
+import AgentInsightsSection from "../discovery/AgentInsightsSection";
+import AgentPlanningDashboard from "../discovery/AgentPlanningDashboard";
+import { AssetResolutionBanner } from "./AssetResolutionBanner";
 
 interface AssessmentFlowLayoutProps {
   children: React.ReactNode;
@@ -32,96 +39,108 @@ interface PhaseConfig {
 
 const PHASE_CONFIG: PhaseConfig[] = [
   {
-    id: 'architecture_minimums',
-    title: 'Architecture Standards',
-    description: 'Define engagement-level minimums and application exceptions',
-    route: 'architecture',
+    id: "architecture_minimums",
+    title: "Architecture Standards",
+    description: "Define engagement-level minimums and application exceptions",
+    route: "architecture",
     icon: ({ className }) => <Circle className={className} />,
-    estimatedTime: '15-30 min'
+    estimatedTime: "15-30 min",
   },
   {
-    id: 'tech_debt_analysis',
-    title: 'Technical Debt Analysis',
-    description: 'Identify and analyze technical debt across applications',
-    route: 'tech-debt',
+    id: "tech_debt_analysis",
+    title: "Technical Debt Analysis",
+    description: "Identify and analyze technical debt across applications",
+    route: "tech-debt",
     icon: ({ className }) => <AlertCircle className={className} />,
-    estimatedTime: '20-40 min'
+    estimatedTime: "20-40 min",
   },
   {
-    id: 'component_sixr_strategies',
-    title: '6R Strategy Review',
-    description: 'Review and approve component-level migration strategies',
-    route: 'sixr-review',
+    id: "component_sixr_strategies",
+    title: "6R Strategy Review",
+    description: "Review and approve component-level migration strategies",
+    route: "sixr-review",
     icon: ({ className }) => <CheckCircle2 className={className} />,
-    estimatedTime: '30-60 min'
+    estimatedTime: "30-60 min",
   },
   {
-    id: 'app_on_page_generation',
-    title: 'Application Summary',
-    description: 'Generate comprehensive application summaries',
-    route: 'app-on-page',
+    id: "app_on_page_generation",
+    title: "Application Summary",
+    description: "Generate comprehensive application summaries",
+    route: "app-on-page",
     icon: ({ className }) => <Circle className={className} />,
-    estimatedTime: '10-20 min'
+    estimatedTime: "10-20 min",
   },
   {
-    id: 'finalization',
-    title: 'Summary & Export',
-    description: 'Review assessment and export to planning',
-    route: 'summary',
+    id: "finalization",
+    title: "Summary & Export",
+    description: "Review assessment and export to planning",
+    route: "summary",
     icon: ({ className }) => <CheckCircle2 className={className} />,
-    estimatedTime: '5-10 min'
-  }
+    estimatedTime: "5-10 min",
+  },
 ];
 
 export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
   children,
-  flowId
+  flowId,
 }) => {
   const navigate = useNavigate();
   const { state, navigateToPhase } = useAssessmentFlow(flowId);
 
   const getPhaseStatus = (phaseId: AssessmentPhase): JSX.Element => {
-    if (state.error) return 'error';
+    if (state.error) return "error";
     if (state.currentPhase === phaseId) {
-      return state.status === 'processing' ? 'processing' : 'active';
+      return state.status === "processing" ? "processing" : "active";
     }
     // Simple phase completion logic - can be enhanced
-    const phaseOrder = ['architecture_minimums', 'tech_debt_analysis', 'component_sixr_strategies', 'app_on_page_generation', 'finalization'];
+    const phaseOrder = [
+      "initialization",
+      ...PHASE_CONFIG.map((p) => p.id),
+    ];
     const currentIndex = phaseOrder.indexOf(state.currentPhase);
     const phaseIndex = phaseOrder.indexOf(phaseId);
 
-    if (phaseIndex < currentIndex) return 'completed';
-    if (phaseIndex === currentIndex) return 'active';
-    return 'disabled';
+    if (phaseIndex < currentIndex) return "completed";
+    if (phaseIndex === currentIndex) return "active";
+    return "disabled";
   };
 
   const isPhaseComplete = (phaseId: AssessmentPhase): unknown => {
-    return getPhaseStatus(phaseId) === 'completed';
+    return getPhaseStatus(phaseId) === "completed";
   };
 
   const canNavigateToPhase = (phaseId: AssessmentPhase): unknown => {
     const status = getPhaseStatus(phaseId);
-    return status === 'completed' || status === 'active' || status === 'processing';
+    return (
+      status === "completed" || status === "active" || status === "processing"
+    );
   };
 
-  const getPhaseIcon = (phaseId: AssessmentPhase, status: string): JSX.Element => {
-    if (status === 'completed') return <CheckCircle2 className="h-4 w-4" />;
-    if (status === 'processing') return <Loader2 className="h-4 w-4 animate-spin" />;
-    if (status === 'error') return <AlertCircle className="h-4 w-4" />;
+  const getPhaseIcon = (
+    phaseId: AssessmentPhase,
+    status: string,
+  ): JSX.Element => {
+    if (status === "completed") return <CheckCircle2 className="h-4 w-4" />;
+    if (status === "processing")
+      return <Loader2 className="h-4 w-4 animate-spin" />;
+    if (status === "error") return <AlertCircle className="h-4 w-4" />;
 
-    const phase = PHASE_CONFIG.find(p => p.id === phaseId);
+    const phase = PHASE_CONFIG.find((p) => p.id === phaseId);
     const IconComponent = phase?.icon || Circle;
     return <IconComponent className="h-4 w-4" />;
   };
 
-  const handlePhaseNavigation = async (phase: AssessmentPhase, route: string): void => {
+  const handlePhaseNavigation = async (
+    phase: AssessmentPhase,
+    route: string,
+  ): void => {
     if (!canNavigateToPhase(phase)) return;
 
     try {
       await navigateToPhase(phase);
       await navigate(`/assessment/${flowId}/${route}`);
     } catch (error) {
-      console.error('Navigation failed:', error);
+      console.error("Navigation failed:", error);
     }
   };
 
@@ -146,18 +165,23 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                     Assessment Flow Progress
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    {state.selectedApplicationIds?.length || 0} applications • {state.currentPhase?.replace('_', ' ') || 'Unknown phase'}
+                    {state.selectedApplicationIds?.length || 0} applications •{" "}
+                    {state.currentPhase?.replace("_", " ") || "Unknown phase"}
                   </p>
                 </div>
 
                 <Badge
                   variant={
-                    state.status === 'completed' ? 'default' :
-                    state.status === 'error' ? 'destructive' :
-                    state.status === 'processing' ? 'default' : 'secondary'
+                    state.status === "completed"
+                      ? "default"
+                      : state.status === "error"
+                        ? "destructive"
+                        : state.status === "processing"
+                          ? "default"
+                          : "secondary"
                   }
                 >
-                  {state.status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
+                  {state.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
                 </Badge>
               </div>
 
@@ -186,11 +210,14 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                       key={phase.id}
                       variant={isCurrentPhase ? "default" : "outline"}
                       size="sm"
-                      onClick={() => handlePhaseNavigation(phase.id, phase.route)}
+                      onClick={() =>
+                        handlePhaseNavigation(phase.id, phase.route)
+                      }
                       disabled={!canNavigate}
                       className={cn(
                         "flex items-center space-x-2",
-                        status === 'completed' && "border-green-300 text-green-700"
+                        status === "completed" &&
+                          "border-green-300 text-green-700",
                       )}
                     >
                       {getPhaseIcon(phase.id, status)}
@@ -214,7 +241,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                 </div>
               )}
 
-              {state.status === 'paused_for_user_input' && (
+              {state.status === "paused_for_user_input" && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Clock className="h-5 w-5 text-blue-600" />
@@ -225,6 +252,9 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                 </div>
               )}
 
+              {/* Asset Resolution Banner - Shows if unmapped assets exist */}
+              <AssetResolutionBanner flowId={flowId} />
+
               {/* Main Content */}
               {children}
             </div>
@@ -232,47 +262,57 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
             <div className="xl:col-span-1 space-y-6">
               {/* Agent Communication Panel */}
               <AgentClarificationPanel
-                pageContext={`assessment-${state.currentPhase || 'unknown'}`}
+                pageContext={`assessment-${state.currentPhase || "unknown"}`}
                 refreshTrigger={0}
                 onQuestionAnswered={(questionId, response) => {
-                  console.log('Assessment question answered:', questionId, response);
+                  console.log(
+                    "Assessment question answered:",
+                    questionId,
+                    response,
+                  );
                 }}
               />
 
               {/* Agent Insights */}
               <AgentInsightsSection
-                pageContext={`assessment-${state.currentPhase || 'unknown'}`}
+                pageContext={`assessment-${state.currentPhase || "unknown"}`}
                 refreshTrigger={0}
                 onInsightAction={(insightId, action) => {
-                  console.log('Assessment insight action:', insightId, action);
+                  console.log("Assessment insight action:", insightId, action);
                 }}
               />
 
               {/* Agent Planning Dashboard */}
-              <AgentPlanningDashboard pageContext={`assessment-${state.currentPhase || 'unknown'}`} />
+              <AgentPlanningDashboard
+                pageContext={`assessment-${state.currentPhase || "unknown"}`}
+              />
 
               {/* Real-time Agent Updates */}
-              {state.agentUpdates?.length > 0 && state.status === 'processing' && (
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-                    <span className="text-sm font-medium text-gray-900">
-                      AI Agents Working...
-                    </span>
-                  </div>
+              {state.agentUpdates?.length > 0 &&
+                state.status === "processing" && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                      <span className="text-sm font-medium text-gray-900">
+                        AI Agents Working...
+                      </span>
+                    </div>
 
-                  <div className="space-y-2">
-                    {state.agentUpdates.slice(-3).map((update, index) => (
-                      <p key={index} className="text-xs text-gray-600 p-2 bg-gray-50 rounded">
-                        {update.message}
-                      </p>
-                    ))}
+                    <div className="space-y-2">
+                      {state.agentUpdates.slice(-3).map((update, index) => (
+                        <p
+                          key={index}
+                          className="text-xs text-gray-600 p-2 bg-gray-50 rounded"
+                        >
+                          {update.message}
+                        </p>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Continue to Planning */}
-              {state.status === 'completed' && (
+              {state.status === "completed" && (
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
                   <Button
                     className="w-full"

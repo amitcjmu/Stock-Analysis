@@ -240,8 +240,11 @@ class GapUpdate(BaseModel):
 
     @validator("resolution_status")
     def validate_resolution_status(cls, v):
-        if v not in ["pending", "resolved"]:
-            raise ValueError("Resolution status must be pending or resolved")
+        allowed_statuses = ["pending", "resolved", "skipped", "unresolved"]
+        if v not in allowed_statuses:
+            raise ValueError(
+                f"Resolution status must be one of: {', '.join(allowed_statuses)}"
+            )
         return v
 
     @validator("resolution_method")

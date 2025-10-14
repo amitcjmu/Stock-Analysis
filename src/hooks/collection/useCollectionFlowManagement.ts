@@ -71,7 +71,20 @@ export interface FlowContinueResult {
   status: string;
   message: string;
   flow_id: string;
+  current_phase?: string;
+  flow_status?: string;
+  action_status?: string;
+  action_description?: string;
+  has_applications?: boolean;
+  mfo_execution_triggered?: boolean;
+  master_flow_id?: string;
   resume_result?: Record<string, unknown>;
+  mfo_result?: Record<string, unknown>;
+  next_steps?: Array<{
+    action: string;
+    endpoint: string;
+    description: string;
+  }>;
 }
 
 // Hook for detecting incomplete collection flows

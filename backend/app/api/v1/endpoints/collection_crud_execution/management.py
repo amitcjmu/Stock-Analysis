@@ -19,6 +19,7 @@ from app.api.v1.endpoints import collection_validators
 from app.api.v1.endpoints import collection_utils
 from .base import sanitize_mfo_result
 from .creation import create_master_flow_for_orphan
+from .phase_handlers import handle_gap_analysis_phase
 
 logger = logging.getLogger(__name__)
 
@@ -150,15 +151,17 @@ async def continue_flow(  # noqa: C901  # Complex but necessary for proper error
                 }
             )
         elif current_phase == "gap_analysis":
-            action_status = "gap_analysis"
-            action_description = "Gap analysis is running or will be triggered"
-            next_steps.append(
-                {
-                    "action": "poll_questionnaires",
-                    "endpoint": f"/api/v1/collection/flows/{flow_id}/questionnaires",
-                    "description": "Check for generated questionnaires",
-                }
+            # Delegate gap analysis handling to helper function
+            # This prevents MFO invocation and handles phase progression
+            result = await handle_gap_analysis_phase(
+                collection_flow, flow_id, has_applications, db
             )
+            # If result contains "status": "success", return immediately (phase progressed)
+            if "status" in result:
+                return result
+            # Otherwise, update action_status/action_description and continue
+            action_status = result.get("action_status", action_status)
+            action_description = result.get("action_description", action_description)
         elif current_phase == "manual_collection":
             action_status = "questionnaires_ready"
             action_description = "Manual collection phase - questionnaires may be ready"
@@ -170,7 +173,50 @@ async def continue_flow(  # noqa: C901  # Complex but necessary for proper error
                 }
             )
 
-        # Resume flow through MFO
+        # CRITICAL FIX: Gap analysis and manual collection should NOT trigger MFO agents
+        # These phases are UI-driven - agents only invoked via explicit user action
+        # (e.g., "Perform Agentic Analysis" button on AI Grid)
+        if current_phase in ["gap_analysis", "manual_collection"]:
+            logger.info(
+                safe_log_format(
+                    "Skipping MFO resume for phase {phase} - UI-driven phase does not auto-invoke agents",
+                    flow_id=flow_id,
+                    phase=current_phase,
+                )
+            )
+
+            return {
+                "status": "success",
+                "message": "Collection flow ready for user interaction",
+                "flow_id": flow_id,
+                "action_status": action_status,
+                "action_description": action_description,
+                "current_phase": current_phase,
+                "flow_status": flow_status,
+                "has_applications": has_applications,
+                "mfo_execution_triggered": False,
+                "mfo_result": {
+                    "status": "skipped",
+                    "reason": f"Phase '{current_phase}' requires user interaction, not automated agent execution",
+                },
+                "next_steps": next_steps,
+                "continued_at": datetime.now(timezone.utc).isoformat(),
+                "master_flow_id": (
+                    str(collection_flow.master_flow_id)
+                    if collection_flow.master_flow_id
+                    else None
+                ),
+                "recovery_performed": bool(
+                    collection_flow.flow_metadata
+                    and collection_flow.flow_metadata.get("recovery_info")
+                ),
+                "resume_result": {
+                    "status": "skipped",
+                    "reason": f"Phase '{current_phase}' requires user interaction",
+                },
+            }
+
+        # Resume flow through MFO for phases that need automated agent execution
         # At this point we should have a valid master_flow_id (either existing or newly created)
         if not collection_flow.master_flow_id:
             # This should not happen after the repair logic above, but add defensive check

@@ -28,11 +28,16 @@ class SixRStrategy(str, Enum):
 
 
 class AssessmentPhase(str, Enum):
-    """Assessment flow phases in order of execution"""
+    """Assessment flow phases in order of execution
+
+    Deprecated values (removed October 2025):
+    - component_discovery (merged into tech_debt_analysis)
+    - final_report_generation (renamed to finalization)
+    - completed (use AssessmentFlowStatus.COMPLETED instead)
+    """
 
     INITIALIZATION = "initialization"
     ARCHITECTURE_MINIMUMS = "architecture_minimums"
-    COMPONENT_DISCOVERY = "component_discovery"
     TECH_DEBT_ANALYSIS = "tech_debt_analysis"
     COMPONENT_SIXR_STRATEGIES = "component_sixr_strategies"
     APP_ON_PAGE_GENERATION = "app_on_page_generation"

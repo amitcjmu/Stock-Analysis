@@ -52,7 +52,7 @@ def get_progress_for_phase(phase: AssessmentPhase) -> int:
     """
     progress_map = {
         AssessmentPhase.INITIALIZATION: 10,
-        AssessmentPhase.ARCHITECTURE_MINIMUMS: 20,
+        AssessmentPhase.ARCHITECTURE_MINIMUMS: 25,
         AssessmentPhase.TECH_DEBT_ANALYSIS: 50,
         AssessmentPhase.COMPONENT_SIXR_STRATEGIES: 75,
         AssessmentPhase.APP_ON_PAGE_GENERATION: 90,
@@ -336,7 +336,11 @@ def validate_phase_prerequisites(
     """
     missing_prerequisites = []
 
-    if target_phase == AssessmentPhase.TECH_DEBT_ANALYSIS:
+    if target_phase == AssessmentPhase.ARCHITECTURE_MINIMUMS:
+        # Check if asset resolution is complete (will be validated by asset resolution service)
+        pass  # Validation handled by asset resolution service
+
+    elif target_phase == AssessmentPhase.TECH_DEBT_ANALYSIS:
         if not flow_state.architecture_captured:
             missing_prerequisites.append("Architecture standards must be captured")
 

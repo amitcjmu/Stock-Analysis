@@ -538,9 +538,9 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                {formData.applicationId ? (
+                {formData.applicationName || formData.applicationId ? (
                   <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 rounded-md font-semibold">
-                    {formData.applicationId}
+                    {formData.applicationName || formData.applicationId}
                   </span>
                 ) : (
                   'Application Data Collection'

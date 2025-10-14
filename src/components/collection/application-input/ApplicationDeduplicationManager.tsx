@@ -16,10 +16,10 @@ import type {
   CanonicalApplicationSelection,
   SimilarityMatch,
   DuplicateDecision,
-  DEFAULT_DEDUPLICATION_CONFIG,
   CreateCanonicalApplicationRequest,
   LinkToCanonicalApplicationRequest,
 } from '@/types/collection/canonical-applications';
+import { DEFAULT_DEDUPLICATION_CONFIG } from '@/types/collection/canonical-applications';
 
 interface ApplicationDeduplicationManagerProps {
   collectionFlowId: string;

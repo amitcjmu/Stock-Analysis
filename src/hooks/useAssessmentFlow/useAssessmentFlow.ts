@@ -4,12 +4,12 @@
  * Main React hook for managing assessment flow state and operations.
  */
 
-import { useState, useRef } from 'react'
-import { useCallback, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { assessmentFlowAPI } from './api';
-import { eventSourceService } from './eventSource';
+import { useState, useRef } from "react";
+import { useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { assessmentFlowAPI } from "./api";
+import { eventSourceService } from "./eventSource";
 import type {
   AssessmentFlowState,
   AssessmentFlowStatus,
@@ -20,11 +20,11 @@ import type {
   TechDebtItem,
   SixRDecision,
   UserInput,
-  AssessmentApplication
-} from './types';
+  AssessmentApplication,
+} from "./types";
 
 export const useAssessmentFlow = (
-  initialFlowId?: string
+  initialFlowId?: string,
 ): UseAssessmentFlowReturn => {
   const navigate = useNavigate();
   const { user, getAuthHeaders } = useAuth();
@@ -37,14 +37,14 @@ export const useAssessmentFlow = (
   // Initial state
   const [state, setState] = useState<AssessmentFlowState>({
     flowId: initialFlowId || null,
-    status: 'initialized',
+    status: "initialized",
     progress: 0,
-    currentPhase: 'architecture_minimums',
+    currentPhase: "architecture_minimums",
     nextPhase: null,
     pausePoints: [],
     selectedApplicationIds: [],
-    selectedApplications: [],  // Add application details
-    applicationCount: 0,  // Add application count
+    selectedApplications: [], // Add application details
+    applicationCount: 0, // Add application count
     engagementStandards: [],
     applicationOverrides: {},
     applicationComponents: {},
@@ -54,7 +54,7 @@ export const useAssessmentFlow = (
     error: null,
     lastUserInteraction: null,
     appsReadyForPlanning: [],
-    agentUpdates: []
+    agentUpdates: [],
   });
 
   // Subscribe to real-time updates
@@ -69,14 +69,22 @@ export const useAssessmentFlow = (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
             let data: any;
             try {
-              if (!event?.data || event.data === ':keepalive' || event.data === 'heartbeat') return;
+              if (
+                !event?.data ||
+                event.data === ":keepalive" ||
+                event.data === "heartbeat"
+              )
+                return;
               data = JSON.parse(event.data);
             } catch {
               return;
             }
 
-            setState(prev => {
-              const nextProgress = typeof data.progress === 'number' ? Math.max(prev.progress ?? 0, data.progress) : prev.progress;
+            setState((prev) => {
+              const nextProgress =
+                typeof data.progress === "number"
+                  ? Math.max(prev.progress ?? 0, data.progress)
+                  : prev.progress;
               return {
                 ...prev,
                 status: data.status ?? prev.status,
@@ -88,286 +96,335 @@ export const useAssessmentFlow = (
                   {
                     timestamp: new Date(),
                     phase: data.phase ?? prev.currentPhase,
-                    message: data.message ?? 'Processing...',
-                    progress: nextProgress
-                  }
-                ].slice(-20)
+                    message: data.message ?? "Processing...",
+                    progress: nextProgress,
+                  },
+                ].slice(-20),
               };
             });
           },
           onError: (error) => {
-            console.error('Assessment flow SSE error:', error);
+            console.error("Assessment flow SSE error:", error);
             try {
               eventSourceRef.current?.close();
             } catch (closeError) {
               // Ignore close errors - connection may already be closed
-              console.debug('EventSource close error:', closeError);
+              console.debug("EventSource close error:", closeError);
             }
             eventSourceRef.current = null;
-            setState(prev => ({ ...prev, error: 'Real-time updates disconnected' }));
-          }
-        }
+            setState((prev) => ({
+              ...prev,
+              error: "Real-time updates disconnected",
+            }));
+          },
+        },
       );
 
       eventSourceRef.current = eventSource;
     } catch (error) {
-      console.error('Failed to subscribe to updates:', error);
+      console.error("Failed to subscribe to updates:", error);
     }
   }, [state.flowId]);
 
   // Initialize assessment flow
-  const initializeFlow = useCallback(async (selectedAppIds: string[]) => {
-    if (!clientAccountId || !engagementId) {
-      throw new Error('Client account and engagement context required');
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    try {
-      const headers = getAuthHeaders?.() || {};
-      const response = await assessmentFlowAPI.initialize({
-        selected_application_ids: selectedAppIds
-      }, headers);
-
-      setState(prev => ({
-        ...prev,
-        flowId: response.flow_id,
-        status: response.status as AssessmentFlowStatus,
-        currentPhase: response.current_phase as AssessmentPhase,
-        nextPhase: response.next_phase as AssessmentPhase,
-        selectedApplicationIds: selectedAppIds,
-        progress: 10,
-        isLoading: false
-      }));
-
-      // Start real-time updates
-      subscribeToUpdates();
-
-      // Navigate to first phase
-      if (navigate) {
-        navigate(`/assessment/${response.flow_id}/architecture`);
+  const initializeFlow = useCallback(
+    async (selectedAppIds: string[]) => {
+      if (!clientAccountId || !engagementId) {
+        throw new Error("Client account and engagement context required");
       }
 
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to initialize assessment',
-        isLoading: false
-      }));
-      throw error;
-    }
-  }, [clientAccountId, engagementId, navigate, getAuthHeaders, subscribeToUpdates]);
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        const headers = getAuthHeaders?.() || {};
+        const response = await assessmentFlowAPI.initialize(
+          {
+            selected_application_ids: selectedAppIds,
+          },
+          headers,
+        );
+
+        setState((prev) => ({
+          ...prev,
+          flowId: response.flow_id,
+          status: response.status as AssessmentFlowStatus,
+          currentPhase: response.current_phase as AssessmentPhase,
+          nextPhase: response.next_phase as AssessmentPhase,
+          selectedApplicationIds: selectedAppIds,
+          progress: 10,
+          isLoading: false,
+        }));
+
+        // Start real-time updates
+        subscribeToUpdates();
+
+        // Navigate to first phase
+        if (navigate) {
+          navigate(`/assessment/${response.flow_id}/architecture`);
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to initialize assessment",
+          isLoading: false,
+        }));
+        throw error;
+      }
+    },
+    [
+      clientAccountId,
+      engagementId,
+      navigate,
+      getAuthHeaders,
+      subscribeToUpdates,
+    ],
+  );
 
   // Resume flow from current phase
-  const resumeFlow = useCallback(async (userInput: UserInput) => {
-    if (!state.flowId) {
-      throw new Error('No active flow to resume');
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    try {
-      await assessmentFlowAPI.resume(state.flowId, {
-        user_input: userInput,
-        save_progress: true
-      });
-
-      setState(prev => ({
-        ...prev,
-        status: 'processing',
-        lastUserInteraction: new Date(),
-        isLoading: false
-      }));
-
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to resume flow',
-        isLoading: false
-      }));
-      throw error;
-    }
-  }, [state.flowId]);
-
-  // Utility function to check if navigation to phase is allowed
-  const canNavigateToPhase = useCallback((phase: AssessmentPhase): boolean => {
-    const phaseOrder: AssessmentPhase[] = [
-      'architecture_minimums',
-      'tech_debt_analysis',
-      'component_sixr_strategies',
-      'app_on_page_generation',
-      'finalization'
-    ];
-
-    const currentIndex = phaseOrder.indexOf(state.currentPhase);
-    const targetIndex = phaseOrder.indexOf(phase);
-
-    // Can navigate to current phase or any previous completed phase
-    return targetIndex <= currentIndex || state.pausePoints.includes(phase);
-  }, [state.currentPhase, state.pausePoints]);
-
-  // Navigate to specific phase
-  const navigateToPhase = useCallback(async (phase: AssessmentPhase) => {
-    if (!state.flowId) {
-      throw new Error('No active flow for navigation');
-    }
-
-    if (!canNavigateToPhase(phase)) {
-      throw new Error(`Cannot navigate to phase: ${phase}`);
-    }
-
-    try {
-      await assessmentFlowAPI.navigateToPhase(state.flowId, phase);
-
-      setState(prev => ({
-        ...prev,
-        currentPhase: phase,
-        nextPhase: getNextPhaseForNavigation(phase)
-      }));
-
-      // Update URL
-      const phaseRoutes: Record<AssessmentPhase, string> = {
-        'initialization': 'initialize',
-        'architecture_minimums': 'architecture',
-        'tech_debt_analysis': 'tech-debt',
-        'component_sixr_strategies': 'sixr-review',
-        'app_on_page_generation': 'app-on-page',
-        'finalization': 'summary'
-      };
-
-      if (navigate) {
-        navigate(`/assessment/${state.flowId}/${phaseRoutes[phase]}`);
+  const resumeFlow = useCallback(
+    async (userInput: UserInput) => {
+      if (!state.flowId) {
+        throw new Error("No active flow to resume");
       }
 
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Navigation failed'
-      }));
-      throw error;
-    }
-  }, [state.flowId, navigate, canNavigateToPhase]);
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        await assessmentFlowAPI.resume(state.flowId, {
+          user_input: userInput,
+          save_progress: true,
+        });
+
+        setState((prev) => ({
+          ...prev,
+          status: "processing",
+          lastUserInteraction: new Date(),
+          isLoading: false,
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error ? error.message : "Failed to resume flow",
+          isLoading: false,
+        }));
+        throw error;
+      }
+    },
+    [state.flowId],
+  );
+
+  // Utility function to check if navigation to phase is allowed
+  const canNavigateToPhase = useCallback(
+    (phase: AssessmentPhase): boolean => {
+      const phaseOrder: AssessmentPhase[] = [
+        "initialization",
+        "asset_application_resolution",
+        "architecture_minimums",
+        "tech_debt_analysis",
+        "component_sixr_strategies",
+        "app_on_page_generation",
+        "finalization",
+      ];
+
+      const currentIndex = phaseOrder.indexOf(state.currentPhase);
+      const targetIndex = phaseOrder.indexOf(phase);
+
+      // Can navigate to current phase or any previous completed phase
+      return targetIndex <= currentIndex || state.pausePoints.includes(phase);
+    },
+    [state.currentPhase, state.pausePoints],
+  );
+
+  // Navigate to specific phase
+  const navigateToPhase = useCallback(
+    async (phase: AssessmentPhase) => {
+      if (!state.flowId) {
+        throw new Error("No active flow for navigation");
+      }
+
+      if (!canNavigateToPhase(phase)) {
+        throw new Error(`Cannot navigate to phase: ${phase}`);
+      }
+
+      try {
+        await assessmentFlowAPI.navigateToPhase(state.flowId, phase);
+
+        setState((prev) => ({
+          ...prev,
+          currentPhase: phase,
+          nextPhase: getNextPhaseForNavigation(phase),
+        }));
+
+        // Update URL
+        const phaseRoutes: Record<AssessmentPhase, string> = {
+          initialization: "initialize",
+          asset_application_resolution: "asset-resolution",
+          architecture_minimums: "architecture",
+          tech_debt_analysis: "tech-debt",
+          component_sixr_strategies: "sixr-review",
+          app_on_page_generation: "app-on-page",
+          finalization: "summary",
+        };
+
+        if (navigate) {
+          navigate(`/assessment/${state.flowId}/${phaseRoutes[phase]}`);
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error: error instanceof Error ? error.message : "Navigation failed",
+        }));
+        throw error;
+      }
+    },
+    [state.flowId, navigate, canNavigateToPhase],
+  );
 
   // Update architecture standards
-  const updateArchitectureStandards = useCallback(async (
-    standards: ArchitectureStandard[],
-    overrides: Record<string, ArchitectureStandard>
-  ) => {
-    if (!state.flowId) {
-      throw new Error('No active flow');
-    }
+  const updateArchitectureStandards = useCallback(
+    async (
+      standards: ArchitectureStandard[],
+      overrides: Record<string, ArchitectureStandard>,
+    ) => {
+      if (!state.flowId) {
+        throw new Error("No active flow");
+      }
 
-    try {
-      await assessmentFlowAPI.updateArchitectureStandards(state.flowId, {
-        engagement_standards: standards,
-        application_overrides: overrides
-      });
+      try {
+        await assessmentFlowAPI.updateArchitectureStandards(state.flowId, {
+          engagement_standards: standards,
+          application_overrides: overrides,
+        });
 
-      setState(prev => ({
-        ...prev,
-        engagementStandards: standards,
-        applicationOverrides: overrides,
-        lastUserInteraction: new Date()
-      }));
-
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to update standards'
-      }));
-      throw error;
-    }
-  }, [state.flowId]);
+        setState((prev) => ({
+          ...prev,
+          engagementStandards: standards,
+          applicationOverrides: overrides,
+          lastUserInteraction: new Date(),
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to update standards",
+        }));
+        throw error;
+      }
+    },
+    [state.flowId],
+  );
 
   // Update application components
-  const updateApplicationComponents = useCallback(async (
-    appId: string,
-    components: ApplicationComponent[]
-  ) => {
-    if (!state.flowId) {
-      throw new Error('No active flow');
-    }
+  const updateApplicationComponents = useCallback(
+    async (appId: string, components: ApplicationComponent[]) => {
+      if (!state.flowId) {
+        throw new Error("No active flow");
+      }
 
-    try {
-      await assessmentFlowAPI.updateApplicationComponents(state.flowId, appId, components);
+      try {
+        await assessmentFlowAPI.updateApplicationComponents(
+          state.flowId,
+          appId,
+          components,
+        );
 
-      setState(prev => ({
-        ...prev,
-        applicationComponents: {
-          ...prev.applicationComponents,
-          [appId]: components
-        },
-        lastUserInteraction: new Date()
-      }));
-
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to update components'
-      }));
-      throw error;
-    }
-  }, [state.flowId]);
+        setState((prev) => ({
+          ...prev,
+          applicationComponents: {
+            ...prev.applicationComponents,
+            [appId]: components,
+          },
+          lastUserInteraction: new Date(),
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to update components",
+        }));
+        throw error;
+      }
+    },
+    [state.flowId],
+  );
 
   // Update tech debt analysis
-  const updateTechDebtAnalysis = useCallback(async (
-    appId: string,
-    techDebt: TechDebtItem[]
-  ) => {
-    if (!state.flowId) {
-      throw new Error('No active flow');
-    }
+  const updateTechDebtAnalysis = useCallback(
+    async (appId: string, techDebt: TechDebtItem[]) => {
+      if (!state.flowId) {
+        throw new Error("No active flow");
+      }
 
-    try {
-      // Note: API endpoint would need to be implemented for tech debt updates
-      setState(prev => ({
-        ...prev,
-        techDebtAnalysis: {
-          ...prev.techDebtAnalysis,
-          [appId]: techDebt
-        },
-        lastUserInteraction: new Date()
-      }));
-
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to update tech debt analysis'
-      }));
-      throw error;
-    }
-  }, [state.flowId]);
+      try {
+        // Note: API endpoint would need to be implemented for tech debt updates
+        setState((prev) => ({
+          ...prev,
+          techDebtAnalysis: {
+            ...prev.techDebtAnalysis,
+            [appId]: techDebt,
+          },
+          lastUserInteraction: new Date(),
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to update tech debt analysis",
+        }));
+        throw error;
+      }
+    },
+    [state.flowId],
+  );
 
   // Update 6R decision
-  const updateSixRDecision = useCallback(async (
-    appId: string,
-    decision: Partial<SixRDecision>
-  ) => {
-    if (!state.flowId) {
-      throw new Error('No active flow');
-    }
+  const updateSixRDecision = useCallback(
+    async (appId: string, decision: Partial<SixRDecision>) => {
+      if (!state.flowId) {
+        throw new Error("No active flow");
+      }
 
-    try {
-      await assessmentFlowAPI.updateSixRDecision(state.flowId, appId, decision);
+      try {
+        await assessmentFlowAPI.updateSixRDecision(
+          state.flowId,
+          appId,
+          decision,
+        );
 
-      setState(prev => ({
-        ...prev,
-        sixrDecisions: {
-          ...prev.sixrDecisions,
-          [appId]: { ...prev.sixrDecisions[appId], ...decision } as SixRDecision
-        },
-        lastUserInteraction: new Date()
-      }));
-
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to update decision'
-      }));
-      throw error;
-    }
-  }, [state.flowId]);
-
+        setState((prev) => ({
+          ...prev,
+          sixrDecisions: {
+            ...prev.sixrDecisions,
+            [appId]: {
+              ...prev.sixrDecisions[appId],
+              ...decision,
+            } as SixRDecision,
+          },
+          lastUserInteraction: new Date(),
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to update decision",
+        }));
+        throw error;
+      }
+    },
+    [state.flowId],
+  );
 
   // Unsubscribe from updates
   const unsubscribeFromUpdates = useCallback(() => {
@@ -380,12 +437,13 @@ export const useAssessmentFlow = (
   // Utility functions
   const getPhaseProgress = useCallback((phase: AssessmentPhase): number => {
     const progressMap: Record<AssessmentPhase, number> = {
-      'initialization': 10,
-      'architecture_minimums': 20,
-      'tech_debt_analysis': 50,
-      'component_sixr_strategies': 75,
-      'app_on_page_generation': 90,
-      'finalization': 100
+      initialization: 5,
+      asset_application_resolution: 15,
+      architecture_minimums: 25,
+      tech_debt_analysis: 50,
+      component_sixr_strategies: 75,
+      app_on_page_generation: 90,
+      finalization: 100,
     };
     return progressMap[phase] || 0;
   }, []);
@@ -396,54 +454,76 @@ export const useAssessmentFlow = (
       .map(([appId, _]) => appId);
   }, [state.sixrDecisions]);
 
-  const isPhaseComplete = useCallback((phase: AssessmentPhase): boolean => {
-    return state.pausePoints.includes(phase);
-  }, [state.pausePoints]);
+  const isPhaseComplete = useCallback(
+    (phase: AssessmentPhase): boolean => {
+      return state.pausePoints.includes(phase);
+    },
+    [state.pausePoints],
+  );
 
   // Load phase-specific data
-  const loadPhaseData = useCallback(async (phase: AssessmentPhase): Promise<void> => {
-    if (!state.flowId) return;
+  const loadPhaseData = useCallback(
+    async (phase: AssessmentPhase): Promise<void> => {
+      if (!state.flowId) return;
 
-    try {
-      switch (phase) {
-        case 'architecture_minimums': {
-          const archData = await assessmentFlowAPI.getArchitectureStandards(state.flowId);
-          setState(prev => ({
-            ...prev,
-            engagementStandards: archData.engagement_standards,
-            applicationOverrides: archData.application_overrides
-          }));
-          break;
-        }
+      try {
+        switch (phase) {
+          case "asset_application_resolution": {
+            // Asset resolution data is fetched directly in the page component
+            // No additional loading needed here
+            break;
+          }
 
-        case 'tech_debt_analysis': {
-          const techDebtData = await assessmentFlowAPI.getTechDebtAnalysis(state.flowId);
-          const componentsData = await assessmentFlowAPI.getApplicationComponents(state.flowId);
-          setState(prev => ({
-            ...prev,
-            techDebtAnalysis: techDebtData.applications,
-            applicationComponents: componentsData.applications
-          }));
-          break;
-        }
+          case "architecture_minimums": {
+            const archData = await assessmentFlowAPI.getArchitectureStandards(
+              state.flowId,
+            );
+            setState((prev) => ({
+              ...prev,
+              engagementStandards: archData.engagement_standards,
+              applicationOverrides: archData.application_overrides,
+            }));
+            break;
+          }
 
-        case 'component_sixr_strategies':
-        case 'app_on_page_generation': {
-          const decisionsData = await assessmentFlowAPI.getSixRDecisions(state.flowId);
-          setState(prev => ({
-            ...prev,
-            sixrDecisions: decisionsData.decisions.reduce((acc: Record<string, SixRDecision>, decision: SixRDecision) => {
-              acc[decision.application_id] = decision;
-              return acc;
-            }, {})
-          }));
-          break;
+          case "tech_debt_analysis": {
+            const techDebtData = await assessmentFlowAPI.getTechDebtAnalysis(
+              state.flowId,
+            );
+            const componentsData =
+              await assessmentFlowAPI.getApplicationComponents(state.flowId);
+            setState((prev) => ({
+              ...prev,
+              techDebtAnalysis: techDebtData.applications,
+              applicationComponents: componentsData.applications,
+            }));
+            break;
+          }
+
+          case "component_sixr_strategies":
+          case "app_on_page_generation": {
+            const decisionsData = await assessmentFlowAPI.getSixRDecisions(
+              state.flowId,
+            );
+            setState((prev) => ({
+              ...prev,
+              sixrDecisions: decisionsData.decisions.reduce(
+                (acc: Record<string, SixRDecision>, decision: SixRDecision) => {
+                  acc[decision.application_id] = decision;
+                  return acc;
+                },
+                {},
+              ),
+            }));
+            break;
+          }
         }
+      } catch (error) {
+        console.error(`Failed to load ${phase} data:`, error);
       }
-    } catch (error) {
-      console.error(`Failed to load ${phase} data:`, error);
-    }
-  }, [state.flowId]);
+    },
+    [state.flowId],
+  );
 
   // Load application data
   const loadApplicationData = useCallback(async (): Promise<void> => {
@@ -452,19 +532,28 @@ export const useAssessmentFlow = (
     try {
       // Load both status with count and full application details
       const [statusResponse, applicationsResponse] = await Promise.all([
-        assessmentFlowAPI.getAssessmentStatus(state.flowId, clientAccountId, engagementId),
-        assessmentFlowAPI.getAssessmentApplications(state.flowId, clientAccountId, engagementId)
+        assessmentFlowAPI.getAssessmentStatus(
+          state.flowId,
+          clientAccountId,
+          engagementId,
+        ),
+        assessmentFlowAPI.getAssessmentApplications(
+          state.flowId,
+          clientAccountId,
+          engagementId,
+        ),
       ]);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         applicationCount: statusResponse.application_count,
         selectedApplications: applicationsResponse.applications,
-        selectedApplicationIds: applicationsResponse.applications.map(app => app.application_id)
+        selectedApplicationIds: applicationsResponse.applications.map(
+          (app) => app.application_id,
+        ),
       }));
-
     } catch (error) {
-      console.error('Failed to load application data:', error);
+      console.error("Failed to load application data:", error);
       // Don't throw here - this is supplementary data
     }
   }, [state.flowId, clientAccountId, engagementId]);
@@ -474,11 +563,11 @@ export const useAssessmentFlow = (
     if (!state.flowId) return;
 
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
+      setState((prev) => ({ ...prev, isLoading: true }));
 
       const flowStatus = await assessmentFlowAPI.getStatus(state.flowId);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         status: flowStatus.status as AssessmentFlowStatus,
         progress: flowStatus.progress,
@@ -486,9 +575,10 @@ export const useAssessmentFlow = (
         nextPhase: flowStatus.next_phase as AssessmentPhase,
         pausePoints: flowStatus.pause_points,
         appsReadyForPlanning: flowStatus.apps_ready_for_planning,
-        lastUserInteraction: flowStatus.last_user_interaction ?
-          new Date(flowStatus.last_user_interaction) : null,
-        isLoading: false
+        lastUserInteraction: flowStatus.last_user_interaction
+          ? new Date(flowStatus.last_user_interaction)
+          : null,
+        isLoading: false,
       }));
 
       // Load phase-specific data
@@ -496,12 +586,12 @@ export const useAssessmentFlow = (
 
       // Load application data
       await loadApplicationData();
-
     } catch (error) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Failed to load flow state',
-        isLoading: false
+        error:
+          error instanceof Error ? error.message : "Failed to load flow state",
+        isLoading: false,
       }));
     }
   }, [state.flowId, loadPhaseData, loadApplicationData]);
@@ -516,7 +606,13 @@ export const useAssessmentFlow = (
     return () => {
       unsubscribeFromUpdates();
     };
-  }, [state.flowId, clientAccountId, loadFlowState, subscribeToUpdates, unsubscribeFromUpdates]);
+  }, [
+    state.flowId,
+    clientAccountId,
+    loadFlowState,
+    subscribeToUpdates,
+    unsubscribeFromUpdates,
+  ]);
 
   // Expose loadApplicationData for manual refresh
   const refreshApplicationData = useCallback(() => {
@@ -524,17 +620,23 @@ export const useAssessmentFlow = (
   }, [loadApplicationData]);
 
   // Helper function for navigation
-  const getNextPhaseForNavigation = (currentPhase: AssessmentPhase): AssessmentPhase | null => {
+  const getNextPhaseForNavigation = (
+    currentPhase: AssessmentPhase,
+  ): AssessmentPhase | null => {
     const phaseOrder: AssessmentPhase[] = [
-      'architecture_minimums',
-      'tech_debt_analysis',
-      'component_sixr_strategies',
-      'app_on_page_generation',
-      'finalization'
+      "initialization",
+      "asset_application_resolution",
+      "architecture_minimums",
+      "tech_debt_analysis",
+      "component_sixr_strategies",
+      "app_on_page_generation",
+      "finalization",
     ];
 
     const currentIndex = phaseOrder.indexOf(currentPhase);
-    return currentIndex < phaseOrder.length - 1 ? phaseOrder[currentIndex + 1] : null;
+    return currentIndex < phaseOrder.length - 1
+      ? phaseOrder[currentIndex + 1]
+      : null;
   };
 
   return {
@@ -556,6 +658,6 @@ export const useAssessmentFlow = (
     canNavigateToPhase,
     getApplicationsNeedingReview,
     isPhaseComplete,
-    refreshApplicationData  // Add method to refresh application data
+    refreshApplicationData, // Add method to refresh application data
   };
 };

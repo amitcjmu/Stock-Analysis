@@ -144,13 +144,18 @@ except ImportError:
 
 # Collection Flow endpoints
 collection_router: Optional[APIRouter]
+collection_post_completion_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.collection import router as collection_router
+    from app.api.v1.endpoints.collection_post_completion import (
+        router as collection_post_completion_router,
+    )
 
     COLLECTION_AVAILABLE = True
 except ImportError:
     COLLECTION_AVAILABLE = False
     collection_router = None
+    collection_post_completion_router = None
 
 # Collection Gaps endpoints
 collection_gaps_vendor_products_router: Optional[APIRouter]

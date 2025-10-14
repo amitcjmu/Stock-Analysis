@@ -5,6 +5,7 @@ Assessment-specific endpoints integrated into master flows for MFO compatibility
 
 import logging
 from typing import Any, Dict, List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -126,6 +127,8 @@ async def get_assessment_applications_via_master(
         from app.services.integrations.discovery_integration import (
             DiscoveryFlowIntegration,
         )
+        from app.models.canonical_applications import CollectionFlowApplication
+        from sqlalchemy import select, and_
 
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
@@ -135,6 +138,56 @@ async def get_assessment_applications_via_master(
 
         if not flow_state.selected_application_ids:
             return []
+
+        # CC: Check if asset-to-canonical resolution is complete by querying collection_flow_applications
+        # Per refactor design: Use existing collection infrastructure instead of removed asset_resolution_service
+
+        # CRITICAL FIX: Assessment flow_id ≠ Collection flow_id!
+        # Lookup collection_flow_id from assessment's flow_metadata.source_collection
+        collection_flow_id = None
+        if flow_state.flow_metadata and isinstance(flow_state.flow_metadata, dict):
+            source_collection = flow_state.flow_metadata.get("source_collection", {})
+            if isinstance(source_collection, dict):
+                collection_flow_id = source_collection.get("collection_flow_id")
+
+        if not collection_flow_id:
+            # No collection reference found - assessment may not have been created from collection
+            logger.warning(
+                f"Assessment flow {flow_id} has no source_collection metadata - "
+                f"cannot check unmapped assets. May be standalone assessment."
+            )
+            # Skip asset resolution check for standalone assessments
+            unmapped_assets = []
+        else:
+            # Query for unmapped assets using correct collection_flow_id
+            unmapped_stmt = select(CollectionFlowApplication).where(
+                and_(
+                    CollectionFlowApplication.collection_flow_id
+                    == UUID(collection_flow_id),
+                    CollectionFlowApplication.asset_id.is_not(None),
+                    CollectionFlowApplication.canonical_application_id.is_(None),
+                    CollectionFlowApplication.client_account_id
+                    == UUID(client_account_id),
+                    CollectionFlowApplication.engagement_id == flow_state.engagement_id,
+                )
+            )
+            unmapped_result = await db.execute(unmapped_stmt)
+            unmapped_assets = unmapped_result.scalars().all()
+
+        if unmapped_assets:
+            # Return structured response indicating resolution needed
+            logger.warning(
+                f"Asset resolution incomplete for flow {flow_id}: "
+                f"{len(unmapped_assets)} unmapped assets"
+            )
+            return [
+                {
+                    "resolution_required": True,
+                    "unmapped_count": len(unmapped_assets),
+                    "total_count": len(flow_state.selected_application_ids),
+                    "message": "Asset-to-canonical application mapping must be completed before accessing applications",
+                }
+            ]
 
         # Get application details using Discovery Integration
         applications = []

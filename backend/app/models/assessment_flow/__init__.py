@@ -12,10 +12,12 @@ Modules:
 - analysis_models: Analysis models (TechDebtAnalysis, SixRDecision, etc.)
 """
 
-# Import all enums and exceptions
+# Import canonical AssessmentPhase from assessment_flow_state
+from app.models.assessment_flow_state import AssessmentPhase
+
+# Import all other enums and exceptions
 from .enums_and_exceptions import (
     AssessmentFlowStatus,
-    AssessmentPhase,
     AssessmentStatus,
     ArchitectureRequirementType,
     ComponentType,

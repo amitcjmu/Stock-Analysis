@@ -134,6 +134,17 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setGaps(response.gaps);
       setScanSummary(response.summary);
 
+      // CRITICAL FIX: Refetch gaps from database to ensure component state is synchronized
+      // This prevents race condition where user clicks "Accept Selected" before state updates
+      try {
+        const dbGaps = await collectionFlowApi.getGaps(flowId);
+        setGaps(dbGaps);
+        console.log(`✅ Refetched ${dbGaps.length} gaps from database after scan (race condition fix)`);
+      } catch (refetchError) {
+        console.error("Failed to refetch gaps after scan:", refetchError);
+        // Don't fail the whole operation, just log the error
+      }
+
       toast({
         title: "Gap Scan Complete",
         description: `Found ${response.summary.total_gaps} gaps across ${response.summary.assets_analyzed} assets (${response.summary.execution_time_ms}ms)`,
@@ -355,13 +366,19 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsSaving(true);
 
-      const updates: GapUpdate[] = highConfidenceGaps.map((gap) => ({
-        gap_id: gap.id,  // Backend always returns database UUID
-        field_name: gap.field_name,
-        resolved_value: gap.suggested_resolution,
-        resolution_status: "resolved",
-        resolution_method: "ai_suggestion",
-      }));
+      const updates: GapUpdate[] = highConfidenceGaps.map((gap) => {
+        if (!gap.id) {
+          throw new Error(`Gap ID missing for ${gap.field_name}`);
+        }
+
+        return {
+          gap_id: gap.id,  // Backend always returns database UUID
+          field_name: gap.field_name,
+          resolved_value: gap.suggested_resolution,
+          resolution_status: "resolved",
+          resolution_method: "ai_suggestion",
+        };
+      });
 
       const response = await collectionFlowApi.updateGaps(flowId, updates);
 
@@ -423,13 +440,62 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsSaving(true);
 
-      const updates: GapUpdate[] = gapsWithResolutions.map((gap) => ({
-        gap_id: gap.id,  // Backend always returns database UUID
-        field_name: gap.field_name,
-        resolved_value: gap.suggested_resolution,
-        resolution_status: "resolved",
-        resolution_method: "ai_suggestion",
-      }));
+      // Debug: Log current state
+      console.log('🔍 Accept Selected Debug:', {
+        selectedGapsCount: selectedGaps.length,
+        gapsArrayCount: gaps.length,
+        gapsWithResolutionsCount: gapsWithResolutions.length,
+        sampleSelectedGap: selectedGaps[0],
+        sampleGapFromArray: gaps[0],
+      });
+
+      // CRITICAL FIX: Look up full gap data from gaps state to get database IDs
+      // AG Grid selection may not preserve all fields, so we use asset_id + field_name as key
+      const updates: GapUpdate[] = [];
+      const missingGaps: string[] = [];
+
+      for (const selectedGap of gapsWithResolutions) {
+        // Find the full gap object in the gaps array using composite key
+        const fullGap = gaps.find(
+          (g) => g.asset_id === selectedGap.asset_id && g.field_name === selectedGap.field_name
+        );
+
+        if (!fullGap || !fullGap.id) {
+          console.warn(
+            `Gap not found in state: ${selectedGap.field_name} (asset: ${selectedGap.asset_id})`
+          );
+          missingGaps.push(selectedGap.field_name);
+          continue; // Skip this gap instead of throwing
+        }
+
+        updates.push({
+          gap_id: fullGap.id,  // Use ID from gaps state
+          field_name: selectedGap.field_name,
+          resolved_value: selectedGap.suggested_resolution,
+          resolution_status: "resolved",
+          resolution_method: "ai_suggestion",
+        });
+      }
+
+      if (updates.length === 0) {
+        toast({
+          title: "No Gaps Could Be Processed",
+          description: `Could not find gap IDs for selected gaps. Try refreshing the page.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (missingGaps.length > 0) {
+        console.warn(
+          `Skipping ${missingGaps.length} gaps that could not be found: ${missingGaps.join(", ")}`
+        );
+        toast({
+          title: "Some Gaps Skipped",
+          description: `Processing ${updates.length} of ${gapsWithResolutions.length} gaps (${missingGaps.length} skipped due to missing data)`,
+          variant: "default",
+        });
+      }
 
       // Debug log to see what we're sending
       console.log('📤 Sending gap updates:', JSON.stringify(updates, null, 2));
@@ -477,13 +543,19 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsSaving(true);
 
-      const updates: GapUpdate[] = aiSuggestedGaps.map((gap) => ({
-        gap_id: gap.id,  // Backend always returns database UUID
-        field_name: gap.field_name,
-        resolved_value: "",
-        resolution_status: "skipped",
-        resolution_method: "manual_entry",
-      }));
+      const updates: GapUpdate[] = aiSuggestedGaps.map((gap) => {
+        if (!gap.id) {
+          throw new Error(`Gap ID missing for ${gap.field_name}`);
+        }
+
+        return {
+          gap_id: gap.id,  // Backend always returns database UUID
+          field_name: gap.field_name,
+          resolved_value: "",
+          resolution_status: "skipped",
+          resolution_method: "manual_entry",
+        };
+      });
 
       await collectionFlowApi.updateGaps(flowId, updates);
 

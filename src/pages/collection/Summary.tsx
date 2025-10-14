@@ -24,11 +24,29 @@ const CollectionSummary: React.FC = () => {
     enabled: !!flowId,
   });
 
-  // Fetch readiness status to check for assessment flow
-  const { data: readiness } = useQuery({
-    queryKey: ['collectionReadiness', flowId],
-    queryFn: () => collectionFlowApi.checkReadiness(flowId),
-    enabled: !!flowId,
+  // Auto-trigger transition to assessment if not already done
+  const { data: transitionResult, isLoading: isTransitioning } = useQuery({
+    queryKey: ['collectionTransition', flowId],
+    queryFn: async () => {
+      // Check if assessment_flow_id already exists in flow metadata
+      if (flow?.flow_metadata?.assessment_handoff?.assessment_flow_id) {
+        return {
+          assessment_flow_id: flow.flow_metadata.assessment_handoff.assessment_flow_id,
+          already_transitioned: true
+        };
+      }
+
+      // If not, trigger the transition
+      try {
+        return await collectionFlowApi.transitionToAssessment(flowId);
+      } catch (err) {
+        console.warn('Assessment transition not ready or already exists:', err);
+        return null;
+      }
+    },
+    enabled: !!flowId && !!flow,
+    retry: false, // Don't retry on failure - user may need to complete more collection steps
+    staleTime: Infinity, // Don't refetch - transition is one-time operation
   });
 
   if (isLoading) {
@@ -55,7 +73,19 @@ const CollectionSummary: React.FC = () => {
     );
   }
 
-  const assessmentFlowId = readiness?.assessment_flow_id;
+  // Show loading state while assessment transition is in progress
+  if (isTransitioning) {
+    return (
+      <CollectionPageLayout title="Collection Complete">
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <div className="text-gray-500">Creating assessment flow...</div>
+          <div className="text-sm text-gray-400">This will only take a moment</div>
+        </div>
+      </CollectionPageLayout>
+    );
+  }
+
+  const assessmentFlowId = transitionResult?.assessment_flow_id;
 
   return (
     <CollectionPageLayout title="Collection Complete">
@@ -101,7 +131,7 @@ const CollectionSummary: React.FC = () => {
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-orange-600">
-                  {readiness?.is_assessment_ready ? '100%' : `${Math.round((readiness?.completion_percentage || 0))}%`}
+                  {transitionResult ? '100%' : `${Math.round((flow.progress_percentage || 0))}%`}
                 </div>
                 <div className="text-sm text-gray-600">Completion</div>
               </div>

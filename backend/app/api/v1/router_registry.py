@@ -96,6 +96,7 @@ def register_conditional_routers(api_router: APIRouter):
         # assessment_flow_router,     # Currently disabled
         COLLECTION_AVAILABLE,
         collection_router,
+        collection_post_completion_router,
         COLLECTION_GAPS_AVAILABLE,
         collection_gaps_vendor_products_router,
         collection_gaps_maintenance_windows_router,
@@ -173,6 +174,12 @@ def register_conditional_routers(api_router: APIRouter):
     if COLLECTION_AVAILABLE:
         api_router.include_router(collection_router, prefix="/collection")
         logger.info("✅ Collection Flow API router included at /collection")
+
+        # Collection Post-Completion API - Asset resolution after collection
+        api_router.include_router(
+            collection_post_completion_router, prefix="/collection"
+        )
+        logger.info("✅ Collection Post-Completion router included at /collection")
     else:
         logger.warning("⚠️ Collection Flow API router not available")
 

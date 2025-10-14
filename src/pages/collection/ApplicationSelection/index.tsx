@@ -210,6 +210,8 @@ const ApplicationSelection: React.FC = () => {
         response &&
         (response.success || response.status === "success" || response.id)
       ) {
+        console.log('📋 POST /applications full response:', JSON.stringify(response, null, 2));
+
         await invalidateCollectionFlowCache(flowId);
 
         toast({
@@ -218,28 +220,28 @@ const ApplicationSelection: React.FC = () => {
           variant: "default",
         });
 
-        // Navigate based on flow phase
-        try {
-          const flowDetails = await collectionFlowApi.getFlow(flowId);
-          const currentPhase = flowDetails.current_phase || "gap_analysis";
-          const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+        // CRITICAL FIX: Backend transitions to gap_analysis, navigate directly to that phase
+        // Use flow_id from response (should match input flowId since backend's resolve accepts both)
+        const responseFlowId = response.flow_id || flowId;
+        const currentPhase = "gap_analysis";
 
-          if (phaseRoute) {
-            const targetRoute = phaseRoute(flowId);
-            console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
-            navigate(targetRoute);
-          } else {
-            console.warn(
-              `⚠️ No route found for phase: ${currentPhase}, falling back to adaptive-forms`,
-            );
-            navigate(`/collection/adaptive-forms?flowId=${flowId}`);
-          }
-        } catch (error) {
-          console.warn(
-            "⚠️ Failed to get flow details for phase routing, using fallback:",
-            error,
-          );
-          navigate(`/collection/adaptive-forms?flowId=${flowId}`);
+        console.log(`📋 Navigation decision:`, {
+          responseFlowId,
+          inputFlowId: flowId,
+          masterFlowId: response.master_flow_id,
+          phase: currentPhase,
+          responseKeys: Object.keys(response)
+        });
+
+        // Always navigate to gap_analysis since backend transitions to that phase
+        const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+        if (phaseRoute) {
+          const targetRoute = phaseRoute(responseFlowId);
+          console.log(`🧭 Navigating to ${currentPhase} with flow ID ${responseFlowId}: ${targetRoute}`);
+          navigate(targetRoute);
+        } else {
+          console.error(`⚠️ No route found for phase: ${currentPhase}`);
+          navigate(`/collection/adaptive-forms?flowId=${responseFlowId}`);
         }
       } else {
         throw new Error("Invalid response from server");

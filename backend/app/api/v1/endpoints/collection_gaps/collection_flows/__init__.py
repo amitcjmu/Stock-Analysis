@@ -32,7 +32,10 @@ from .handlers import (
     get_collection_gaps_handler,
     get_flow_status_handler,
     get_completeness_metrics_handler,
+)
+from .advanced_handlers import (
     refresh_completeness_metrics_handler,
+    transition_to_assessment_handler,
 )
 
 # Router setup
@@ -202,6 +205,33 @@ async def refresh_completeness_metrics(
     return await refresh_completeness_metrics_handler(flow_id, db, context)
 
 
+@router.post(
+    "/flows/{flow_id}/transition-to-assessment",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="Transition to Assessment",
+    description="Create assessment flow from completed collection flow. Validates readiness and links flows.",
+    responses={
+        201: {"description": "Assessment flow created successfully"},
+        400: {
+            "model": StandardErrorResponse,
+            "description": "Collection not ready for assessment",
+        },
+        404: {
+            "model": StandardErrorResponse,
+            "description": "Collection flow not found",
+        },
+    },
+)
+async def transition_to_assessment(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_request_context),
+):
+    """Create assessment flow from completed collection flow."""
+    return await transition_to_assessment_handler(flow_id, db, context)
+
+
 # Backward compatibility exports
 __all__ = [
     "router",
@@ -213,4 +243,5 @@ __all__ = [
     "get_flow_status",
     "get_completeness_metrics",
     "refresh_completeness_metrics",
+    "transition_to_assessment",
 ]
