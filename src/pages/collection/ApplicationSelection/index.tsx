@@ -210,6 +210,8 @@ const ApplicationSelection: React.FC = () => {
         response &&
         (response.success || response.status === "success" || response.id)
       ) {
+        console.log('📋 POST /applications full response:', JSON.stringify(response, null, 2));
+
         await invalidateCollectionFlowCache(flowId);
 
         toast({
@@ -218,25 +220,27 @@ const ApplicationSelection: React.FC = () => {
           variant: "default",
         });
 
-        // CRITICAL FIX: Use flow_id from response (collection flow ID, not master flow ID)
-        // Backend returns correct collection flow ID to use for gap analysis navigation
+        // CRITICAL FIX: Backend transitions to gap_analysis, navigate directly to that phase
+        // Use flow_id from response (should match input flowId since backend's resolve accepts both)
         const responseFlowId = response.flow_id || flowId;
-        const currentPhase = "gap_analysis"; // Backend transitions to gap_analysis phase
+        const currentPhase = "gap_analysis";
 
-        console.log(`📋 POST /applications response:`, {
+        console.log(`📋 Navigation decision:`, {
           responseFlowId,
           inputFlowId: flowId,
           masterFlowId: response.master_flow_id,
-          phase: currentPhase
+          phase: currentPhase,
+          responseKeys: Object.keys(response)
         });
 
+        // Always navigate to gap_analysis since backend transitions to that phase
         const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
         if (phaseRoute) {
           const targetRoute = phaseRoute(responseFlowId);
           console.log(`🧭 Navigating to ${currentPhase} with flow ID ${responseFlowId}: ${targetRoute}`);
           navigate(targetRoute);
         } else {
-          console.warn(`⚠️ No route found for phase: ${currentPhase}`);
+          console.error(`⚠️ No route found for phase: ${currentPhase}`);
           navigate(`/collection/adaptive-forms?flowId=${responseFlowId}`);
         }
       } else {

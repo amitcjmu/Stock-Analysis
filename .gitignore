@@ -144,3 +144,4 @@ backend/data/**
 backend/.adcs/
 
 .playwright-mcp/*
+test-data/

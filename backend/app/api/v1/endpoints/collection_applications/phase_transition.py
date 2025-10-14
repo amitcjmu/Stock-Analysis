@@ -78,8 +78,7 @@ async def transition_to_gap_analysis(
             f"GAP_ANALYSIS (skipping MFO - UI-driven phase)"
         )
 
-        # CRITICAL FIX: Return collection flow ID (not master flow ID)
-        # Frontend must navigate to collection flow ID for gap analysis page
+        # Return the flow_id as-is (backend's resolve_collection_flow handles both master and collection IDs)
         return {
             "success": True,
             "message": (
@@ -87,9 +86,7 @@ async def transition_to_gap_analysis(
                 f"applications, created {normalized_records_count} normalized records, "
                 "and transitioned to gap analysis phase"
             ),
-            "flow_id": str(
-                collection_flow.id
-            ),  # Use collection flow ID, not input flow_id
+            "flow_id": flow_id,  # Return input flow_id (backend resolver accepts both types)
             "master_flow_id": (
                 str(collection_flow.master_flow_id)
                 if collection_flow.master_flow_id
@@ -112,14 +109,13 @@ async def transition_to_gap_analysis(
         f"Collection flow {flow_id} already in phase {collection_flow.current_phase} - "
         "no transition needed"
     )
-    # CRITICAL FIX: Return collection flow ID (not master flow ID)
     return {
         "success": True,
         "message": (
             f"Successfully updated collection flow with {processed_count} "
             f"applications, created {normalized_records_count} normalized records"
         ),
-        "flow_id": str(collection_flow.id),  # Use collection flow ID, not input flow_id
+        "flow_id": flow_id,  # Return input flow_id (backend resolver accepts both types)
         "master_flow_id": (
             str(collection_flow.master_flow_id)
             if collection_flow.master_flow_id
