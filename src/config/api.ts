@@ -127,14 +127,13 @@ export const API_CONFIG = {
       ASSESSMENT_READINESS: '/unified-discovery/agents/assessment-readiness',  // Updated to unified-discovery endpoint as part of API migration
       STAKEHOLDER_SIGNOFF_PACKAGE: '/unified-discovery/agents/stakeholder-signoff-package',  // Updated to unified-discovery endpoint as part of API migration
       STAKEHOLDER_SIGNOFF_FEEDBACK: '/unified-discovery/agents/stakeholder-signoff-feedback',  // Updated to unified-discovery endpoint as part of API migration
-      // Tech Debt Analysis endpoints - Updated to unified-discovery as part of API migration
-      TECH_DEBT_ANALYSIS: '/unified-discovery/agents/tech-debt-analysis',  // Updated to unified-discovery endpoint as part of API migration
-      TECH_DEBT_FEEDBACK: '/unified-discovery/agents/tech-debt-feedback',  // Updated to unified-discovery endpoint as part of API migration
-      // Dependency Analysis endpoints - Updated to unified-discovery as part of API migration
-      DEPENDENCY_ANALYSIS: '/unified-discovery/dependency-analysis/execute',  // Updated to unified-discovery endpoint as part of API migration
-      DEPENDENCY_FEEDBACK: '/unified-discovery/agents/dependencies/dependency-feedback',  // Updated to unified-discovery endpoint as part of API migration
-      DEPENDENCIES: '/unified-discovery/dependencies',  // Updated to unified-discovery endpoint as part of API migration
-      EXPORT_VISUALIZATION: '/unified-discovery/dependencies/export-visualization',  // Updated to unified-discovery endpoint as part of API migration
+      // ADR-027 v3.0.0: Tech Debt and Dependency Analysis moved to Assessment flow
+      // Legacy endpoints kept for backward compatibility, will be removed in v4.0.0
+      TECH_DEBT_ANALYSIS: '/unified-discovery/agents/tech-debt-analysis',  // @deprecated - moved to Assessment flow
+      TECH_DEBT_FEEDBACK: '/unified-discovery/agents/tech-debt-feedback',  // @deprecated - moved to Assessment flow
+      DEPENDENCY_FEEDBACK: '/unified-discovery/agents/dependencies/dependency-feedback',  // @deprecated - moved to Assessment flow
+      DEPENDENCIES: '/unified-discovery/dependencies',  // @deprecated - moved to Assessment flow
+      EXPORT_VISUALIZATION: '/unified-discovery/dependencies/export-visualization',  // @deprecated - moved to Assessment flow
       // Data cleanup endpoints - Updated to unified-discovery as part of API migration
       DATA_CLEANUP_ANALYZE: '/unified-discovery/data-cleanup/agent-analyze',  // Updated to unified-discovery endpoint as part of API migration
       DATA_CLEANUP_PROCESS: '/unified-discovery/data-cleanup/agent-process',  // Updated to unified-discovery endpoint as part of API migration

@@ -100,6 +100,11 @@ def get_risk_assessment_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=1800,  # 30 minutes
         metadata={
+            "ui_route": "/assessment/risk",
+            "ui_short_name": "Risk",  # Compact name for sidebar navigation
+            "estimated_duration_minutes": 30,
+            "icon": "alert-circle",
+            "help_text": "Assess migration risks and mitigation strategies",
             "risk_categories": [
                 "technical_risk",
                 "business_risk",

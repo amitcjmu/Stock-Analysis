@@ -66,6 +66,7 @@ def get_data_cleansing_phase() -> PhaseConfig:
         timeout_seconds=1800,  # 30 minutes
         metadata={
             "ui_route": "/discovery/data-cleansing",
+            "ui_short_name": "Data Cleansing",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 15,
             "icon": "filter",
             "help_text": "Clean and normalize data",

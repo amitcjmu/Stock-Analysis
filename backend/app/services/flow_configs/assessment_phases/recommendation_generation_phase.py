@@ -42,6 +42,11 @@ def get_recommendation_generation_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=1500,  # 25 minutes
         metadata={
+            "ui_route": "/assessment/recommendations",
+            "ui_short_name": "Recommendations",  # Compact name for sidebar navigation
+            "estimated_duration_minutes": 25,
+            "icon": "lightbulb",
+            "help_text": "Generate migration recommendations and roadmap",
             "recommendation_types": [
                 "migration_approach",
                 "wave_grouping",

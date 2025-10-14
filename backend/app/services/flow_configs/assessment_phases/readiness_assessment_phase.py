@@ -103,6 +103,11 @@ def get_readiness_assessment_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=2700,  # 45 minutes
         metadata={
+            "ui_route": "/assessment/readiness",
+            "ui_short_name": "Readiness",  # Compact name for sidebar navigation
+            "estimated_duration_minutes": 45,
+            "icon": "clipboard-check",
+            "help_text": "Assess migration readiness of discovered assets",
             "assessment_dimensions": [
                 "technical_readiness",
                 "business_readiness",

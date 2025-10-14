@@ -22,8 +22,7 @@
  * ```
  */
 export const DISCOVERY_PHASE_ROUTES_LEGACY: Record<string, (flowId: string) => string> = {
-  // Initialization phases go to monitoring view
-  'initialization': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
+  // ADR-027 v3.0.0: initialization phase removed from Discovery flow
   'data_import_validation': () => '/discovery/cmdb-import',
   'data_import': () => '/discovery/cmdb-import',
 
@@ -38,15 +37,14 @@ export const DISCOVERY_PHASE_ROUTES_LEGACY: Record<string, (flowId: string) => s
   'asset_inventory': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
   'inventory': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',
 
-  // Dependency analysis phases
-  'dependency_analysis': (flowId: string) => flowId ? `/discovery/dependencies/${flowId}` : '/discovery/cmdb-import',
-  'dependencies': (flowId: string) => flowId ? `/discovery/dependencies/${flowId}` : '/discovery/cmdb-import',
-
-  // Tech debt assessment phases
-  'tech_debt_assessment': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
-  'tech_debt_analysis': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
-  'tech_debt': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
-  'technical_debt': (flowId: string) => flowId ? `/discovery/tech-debt/${flowId}` : '/discovery/cmdb-import',
+  // ADR-027 v3.0.0: dependency_analysis and tech_debt_assessment moved to Assessment flow
+  // Legacy routes redirect to Assessment flow for backward compatibility
+  'dependency_analysis': (flowId: string) => flowId ? `/assessment/dependency-analysis` : '/assess/overview',
+  'dependencies': (flowId: string) => flowId ? `/assessment/dependency-analysis` : '/assess/overview',
+  'tech_debt_assessment': (flowId: string) => flowId ? `/assessment/tech-debt` : '/assess/overview',
+  'tech_debt_analysis': (flowId: string) => flowId ? `/assessment/tech-debt` : '/assess/overview',
+  'tech_debt': (flowId: string) => flowId ? `/assessment/tech-debt` : '/assess/overview',
+  'technical_debt': (flowId: string) => flowId ? `/assessment/tech-debt` : '/assess/overview',
 
   // Completed flow - route to inventory
   'completed': (flowId: string) => flowId ? `/discovery/inventory/${flowId}` : '/discovery/cmdb-import',

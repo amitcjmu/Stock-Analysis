@@ -70,6 +70,7 @@ def get_dependency_analysis_phase() -> PhaseConfig:
         timeout_seconds=1800,  # 30 minutes
         metadata={
             "ui_route": "/assessment/dependency-analysis",
+            "ui_short_name": "Dependencies",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 20,
             "icon": "share-2",
             "help_text": "Analyze asset dependencies and relationships",

@@ -28,6 +28,7 @@ class PhaseDetail(BaseModel):
     can_pause: bool
     can_skip: bool
     ui_route: str
+    ui_short_name: str | None = None  # Compact name for sidebar navigation (ADR-027)
     icon: str | None = None
     help_text: str | None = None
 
@@ -90,6 +91,7 @@ async def get_all_flow_phases() -> Dict[str, Any]:
                     can_pause=phase_config.can_pause,
                     can_skip=phase_config.can_skip,
                     ui_route=phase_config.metadata.get("ui_route", f"/{config.name}"),
+                    ui_short_name=phase_config.metadata.get("ui_short_name"),
                     icon=phase_config.metadata.get("icon"),
                     help_text=phase_config.metadata.get("help_text"),
                 )
@@ -144,6 +146,7 @@ async def get_flow_type_phases(flow_type: str) -> FlowPhasesResponse:
                     can_pause=phase_config.can_pause,
                     can_skip=phase_config.can_skip,
                     ui_route=phase_config.metadata.get("ui_route", f"/{config.name}"),
+                    ui_short_name=phase_config.metadata.get("ui_short_name"),
                     icon=phase_config.metadata.get("icon"),
                     help_text=phase_config.metadata.get("help_text"),
                 )

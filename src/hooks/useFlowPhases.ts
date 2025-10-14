@@ -26,6 +26,7 @@ export interface PhaseDetail {
   can_pause: boolean;
   can_skip: boolean;
   ui_route: string;
+  ui_short_name?: string;  // Compact name for sidebar navigation (ADR-027)
   icon?: string;
   help_text?: string;
 }

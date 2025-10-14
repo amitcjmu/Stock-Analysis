@@ -66,6 +66,7 @@ def get_field_mapping_phase() -> PhaseConfig:
         timeout_seconds=1800,  # 30 minutes
         metadata={
             "ui_route": "/discovery/field-mapping",
+            "ui_short_name": "Attribute Mapping",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 20,
             "icon": "git-branch",
             "help_text": "Map source fields to target schema",

@@ -63,6 +63,7 @@ def get_data_import_phase() -> PhaseConfig:
         timeout_seconds=1800,  # 30 minutes
         metadata={
             "ui_route": "/discovery/cmdb-import",
+            "ui_short_name": "Data Import",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 10,
             "icon": "upload",
             "help_text": "Upload your CMDB export file",

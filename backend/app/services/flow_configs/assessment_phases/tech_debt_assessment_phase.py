@@ -71,6 +71,7 @@ def get_tech_debt_assessment_phase() -> PhaseConfig:
         timeout_seconds=1800,  # 30 minutes
         metadata={
             "ui_route": "/assessment/tech-debt",
+            "ui_short_name": "Tech Debt",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 30,
             "icon": "alert-triangle",
             "help_text": "Assess technical debt across assets",

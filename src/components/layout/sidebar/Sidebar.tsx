@@ -107,8 +107,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     }
 
     // Map API phases to NavigationItem format
+    // Use ui_short_name for compact sidebar labels, fallback to display_name
     const phases = allFlowPhases.discovery.phase_details.map(phase => ({
-      name: phase.display_name,
+      name: phase.ui_short_name || phase.display_name,
       path: phase.ui_route,
       icon: getIconForPhase(phase.name)
     }));
@@ -133,8 +134,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     }
 
     // Map API phases to NavigationItem format
+    // Use ui_short_name for compact sidebar labels, fallback to display_name
     const phases = allFlowPhases.assessment.phase_details.map(phase => ({
-      name: phase.display_name,
+      name: phase.ui_short_name || phase.display_name,
       path: phase.ui_route,
       icon: getIconForPhase(phase.name)
     }));
