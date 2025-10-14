@@ -34,16 +34,16 @@ async def handle_gap_analysis_phase(
     Returns:
         Response dictionary with phase progression status
     """
-    from app.models.collection_flow.collection_flow_gaps import CollectionFlowGap
+    from app.models.collection_data_gap import CollectionDataGap
 
     try:
         # Check for unresolved gaps using direct query
         unresolved_count_stmt = (
             select(func.count())
-            .select_from(CollectionFlowGap)
+            .select_from(CollectionDataGap)
             .where(
-                CollectionFlowGap.collection_flow_id == collection_flow.id,
-                CollectionFlowGap.resolution_status.in_(["unresolved", "pending"]),
+                CollectionDataGap.collection_flow_id == collection_flow.id,
+                CollectionDataGap.resolution_status.in_(["unresolved", "pending"]),
             )
         )
         unresolved_result = await db.execute(unresolved_count_stmt)
