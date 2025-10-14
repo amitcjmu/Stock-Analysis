@@ -150,9 +150,9 @@ async def continue_flow(  # noqa: C901  # Complex but necessary for proper error
                 }
             )
         elif current_phase == "gap_analysis":
-            # CRITICAL FIX: Check if gap_analysis is complete before proceeding
-            # If all gaps are resolved, progress to next phase automatically
-            # Otherwise, just return status without triggering agents
+            # CRITICAL FIX: Gap analysis should NOT block progression
+            # Gaps are informational - user can proceed to manual collection
+            # But we log gap count for transparency
             from sqlalchemy import select, func
             from app.models.collection_flow.collection_flow_gaps import (
                 CollectionFlowGap,
@@ -173,45 +173,39 @@ async def continue_flow(  # noqa: C901  # Complex but necessary for proper error
                 unresolved_result = await db.execute(unresolved_count_stmt)
                 unresolved_gaps = unresolved_result.scalar() or 0
 
-                if unresolved_gaps == 0:
-                    # Gap analysis complete - progress to next phase
-                    next_phase = collection_flow.get_next_phase()
-                    if next_phase:
-                        logger.info(
-                            safe_log_format(
-                                "Gap analysis complete for flow {flow_id} (0 unresolved gaps) "
-                                "- progressing to {next_phase}",
-                                flow_id=flow_id,
-                                next_phase=next_phase,
-                            )
+                # Always allow progression from gap_analysis
+                # Gaps are recommendations, not blockers
+                # Assessment transition will validate minimum data collection
+                next_phase = collection_flow.get_next_phase()
+                if next_phase:
+                    logger.info(
+                        safe_log_format(
+                            "Progressing from gap_analysis to {next_phase} "
+                            "({unresolved_gaps} unresolved gaps remain)",
+                            flow_id=flow_id,
+                            next_phase=next_phase,
+                            unresolved_gaps=unresolved_gaps,
                         )
-                        collection_flow.current_phase = next_phase
-                        collection_flow.status = CollectionFlowStatus.RUNNING
-                        collection_flow.updated_at = datetime.now(timezone.utc)
-                        await db.commit()
+                    )
+                    collection_flow.current_phase = next_phase
+                    collection_flow.status = CollectionFlowStatus.RUNNING
+                    collection_flow.updated_at = datetime.now(timezone.utc)
+                    await db.commit()
 
-                        action_status = "phase_progressed"
+                    action_status = "phase_progressed"
+                    if unresolved_gaps == 0:
                         action_description = (
                             f"Gap analysis complete - progressed to {next_phase}"
                         )
-                        current_phase = next_phase
                     else:
-                        action_status = "gap_analysis_complete"
                         action_description = (
-                            "Gap analysis complete but no next phase defined"
+                            f"Proceeding to {next_phase} with {unresolved_gaps} "
+                            f"unresolved gaps (data can be collected manually)"
                         )
+                    current_phase = next_phase
                 else:
-                    action_status = "gap_analysis_pending"
-                    action_description = (
-                        f"Gap analysis has {unresolved_gaps} unresolved gaps"
-                    )
-                    next_steps.append(
-                        {
-                            "action": "resolve_gaps",
-                            "endpoint": f"/api/v1/collection/{flow_id}/scan-gaps",
-                            "description": f"Resolve {unresolved_gaps} remaining gaps",
-                        }
-                    )
+                    action_status = "gap_analysis_complete"
+                    action_description = f"Gap analysis reviewed ({unresolved_gaps} gaps) but no next phase defined"
             except Exception as gap_check_error:
                 logger.warning(
                     safe_log_format(
@@ -220,15 +214,17 @@ async def continue_flow(  # noqa: C901  # Complex but necessary for proper error
                         error=str(gap_check_error),
                     )
                 )
-                # Fallback to default behavior
+                # Fallback: still allow progression
+                next_phase = collection_flow.get_next_phase()
+                if next_phase:
+                    collection_flow.current_phase = next_phase
+                    collection_flow.status = CollectionFlowStatus.RUNNING
+                    collection_flow.updated_at = datetime.now(timezone.utc)
+                    await db.commit()
+                    current_phase = next_phase
                 action_status = "gap_analysis"
-                action_description = "Gap analysis phase - status check failed"
-                next_steps.append(
-                    {
-                        "action": "poll_questionnaires",
-                        "endpoint": f"/api/v1/collection/flows/{flow_id}/questionnaires",
-                        "description": "Check for generated questionnaires",
-                    }
+                action_description = (
+                    "Gap analysis complete - proceeding to manual collection"
                 )
         elif current_phase == "manual_collection":
             action_status = "questionnaires_ready"
