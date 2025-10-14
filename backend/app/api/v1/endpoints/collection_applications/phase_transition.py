@@ -26,6 +26,10 @@ async def transition_to_gap_analysis(
 ) -> Dict[str, Any]:
     """Transition collection flow to gap analysis phase.
 
+    CRITICAL FIX: Gap analysis phase is UI-driven and should NOT auto-invoke MFO agents.
+    This endpoint only updates the phase and returns immediately, allowing the frontend
+    to navigate to the gap-analysis page where users can manually trigger AI analysis.
+
     Args:
         db: Database session
         collection_flow: Collection flow object
@@ -61,45 +65,19 @@ async def transition_to_gap_analysis(
             },
         )
 
-    try:
-        orchestrator = MasterFlowOrchestrator(db, context)
-
-        # Only transition if currently in ASSET_SELECTION phase
-        if collection_flow.current_phase == CollectionPhase.ASSET_SELECTION.value:
-            execution_result = await _execute_gap_analysis_phase(
-                orchestrator=orchestrator,
-                collection_flow=collection_flow,
-                normalized_ids=normalized_ids,
-                flow_id=flow_id,
-                context=context,
-            )
-
-            # Update collection flow phase
-            collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
-            # Per ADR-012: Status reflects lifecycle, not phase
-            collection_flow.status = CollectionFlowStatus.RUNNING.value
-            await db.commit()
-
-            logger.info(
-                f"Transitioned collection flow {flow_id} from ASSET_SELECTION to GAP_ANALYSIS"
-            )
-        else:
-            # If not in asset_selection, just trigger execution of current phase
-            execution_result = await orchestrator.execute_phase(
-                flow_id=str(collection_flow.master_flow_id),
-                phase_name=collection_flow.current_phase,
-            )
-
-        # Sync master flow changes back to collection flow
-        await _sync_master_flow_changes(
-            db=db,
-            collection_flow=collection_flow,
-            flow_id=flow_id,
-            context=context,
-        )
+    # CRITICAL FIX: Do NOT invoke MFO for gap_analysis phase
+    # Gap analysis is UI-driven - agents only triggered via explicit user action
+    # (e.g., "Perform Agentic Analysis" button on AI Grid)
+    if collection_flow.current_phase == CollectionPhase.ASSET_SELECTION.value:
+        # Update collection flow phase without triggering agents
+        collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
+        # Per ADR-012: Set status to PAUSED (waiting for user to review gaps on AI Grid)
+        collection_flow.status = CollectionFlowStatus.PAUSED.value
+        await db.commit()
 
         logger.info(
-            f"Triggered phase execution for master flow {collection_flow.master_flow_id}"
+            f"Transitioned collection flow {flow_id} from ASSET_SELECTION to "
+            f"GAP_ANALYSIS (skipping MFO - UI-driven phase)"
         )
 
         return {
@@ -112,26 +90,36 @@ async def transition_to_gap_analysis(
             "flow_id": flow_id,
             "selected_application_count": processed_count,
             "normalized_records_created": normalized_records_count,
-            "mfo_execution_triggered": True,
-            "execution_result": execution_result,
+            "mfo_execution_triggered": False,
+            "execution_result": {
+                "status": "skipped",
+                "reason": (
+                    "Gap analysis is UI-driven - agents only invoked via "
+                    "manual user action on AI Grid"
+                ),
+            },
         }
 
-    except Exception as mfo_error:
-        logger.error(f"MFO execution failed: {str(mfo_error)}")
-        # Still return success for the application selection part
-        return {
-            "success": True,
-            "message": (
-                f"Successfully updated collection flow with {processed_count} "
-                f"applications, created {normalized_records_count} normalized records "
-                "(phase transition failed)"
-            ),
-            "flow_id": flow_id,
-            "selected_application_count": processed_count,
-            "normalized_records_created": normalized_records_count,
-            "mfo_execution_triggered": False,
-            "mfo_error": str(mfo_error),
-        }
+    # If not in asset_selection phase, just return current state
+    logger.info(
+        f"Collection flow {flow_id} already in phase {collection_flow.current_phase} - "
+        "no transition needed"
+    )
+    return {
+        "success": True,
+        "message": (
+            f"Successfully updated collection flow with {processed_count} "
+            f"applications, created {normalized_records_count} normalized records"
+        ),
+        "flow_id": flow_id,
+        "selected_application_count": processed_count,
+        "normalized_records_created": normalized_records_count,
+        "mfo_execution_triggered": False,
+        "execution_result": {
+            "status": "skipped",
+            "reason": f"Already in phase {collection_flow.current_phase}",
+        },
+    }
 
 
 async def _execute_gap_analysis_phase(
