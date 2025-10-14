@@ -4,10 +4,13 @@ Tools for generating adaptive questionnaire questions based on gaps.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from uuid import UUID
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import section builder functions
 from .section_builders import (
@@ -51,8 +54,71 @@ class QuestionnaireGenerationTool(BaseTool):
     )
     args_schema: type[BaseModel] = QuestionnaireGenerationInput
 
-    def __init__(self, **kwargs):
+    def __init__(self, db_session: Optional[AsyncSession] = None, **kwargs):
         super().__init__(**kwargs)
+        self.db_session = db_session
+        self._asset_name_cache: Dict[str, str] = {}
+
+    async def _get_asset_name(
+        self, asset_id: str, business_context: Dict[str, Any] = None
+    ) -> str:
+        """
+        Fetch asset name from business_context, database, or cache.
+
+        CRITICAL FIX: Uses actual asset names instead of UUID prefix.
+        Resolves issue where questions showed "Asset df0d34a9" instead of "Admin Dashboard".
+
+        Priority order:
+        1. business_context['asset_names'] dict (passed from caller)
+        2. Cache from previous lookups
+        3. Database query (if db_session available)
+        4. Fallback to "Asset {uuid_prefix}" (preserves existing behavior)
+
+        Args:
+            asset_id: Asset UUID as string
+            business_context: Optional dict with asset_names mapping
+
+        Returns:
+            Asset name or "Asset {uuid_prefix}" as fallback
+        """
+        # Check business_context first (most efficient)
+        if business_context and "asset_names" in business_context:
+            asset_names = business_context["asset_names"]
+            if asset_id in asset_names:
+                asset_name = asset_names[asset_id]
+                self._asset_name_cache[asset_id] = asset_name
+                return asset_name
+
+        # Check cache
+        if asset_id in self._asset_name_cache:
+            return self._asset_name_cache[asset_id]
+
+        # Try database if available
+        if self.db_session:
+            try:
+                from app.models.asset import Asset
+
+                asset_uuid = UUID(asset_id) if isinstance(asset_id, str) else asset_id
+                stmt = select(Asset.name).where(Asset.id == asset_uuid)
+                result = await self.db_session.execute(stmt)
+                asset_name = result.scalar_one_or_none()
+
+                if asset_name:
+                    self._asset_name_cache[asset_id] = asset_name
+                    logger.debug(
+                        f"✅ Fetched asset name from DB for {asset_id}: {asset_name}"
+                    )
+                    return asset_name
+            except Exception as e:
+                logger.warning(
+                    f"Failed to fetch asset name from DB for {asset_id}: {e}"
+                )
+
+        # Fallback to UUID prefix (preserves existing behavior)
+        fallback_name = f"Asset {asset_id[:8]}"
+        logger.debug(f"⚠️ Using UUID prefix for {asset_id}: {fallback_name}")
+        self._asset_name_cache[asset_id] = fallback_name
+        return fallback_name
 
     def _create_basic_info_section(self) -> dict:
         """Create basic information section."""
@@ -145,9 +211,11 @@ class QuestionnaireGenerationTool(BaseTool):
             if quality_issues:
                 quality_questions = []
                 for asset_id, issue_data in quality_issues.items():
+                    # CRITICAL FIX: Use actual asset name instead of UUID prefix
+                    asset_name = await self._get_asset_name(asset_id, business_context)
                     asset_context = {
                         "asset_id": asset_id,
-                        "asset_name": f"Asset {asset_id[:8]}",
+                        "asset_name": asset_name,
                         "quality_issue": (
                             f"Completeness: {issue_data.get('completeness', 0):.0%}, "
                             f"Confidence: {issue_data.get('confidence', 0):.0%}"
@@ -171,12 +239,14 @@ class QuestionnaireGenerationTool(BaseTool):
             if unmapped:
                 unmapped_questions = []
                 for asset_id, attributes in unmapped.items():
+                    # CRITICAL FIX: Use actual asset name instead of UUID prefix
+                    asset_name = await self._get_asset_name(asset_id, business_context)
                     for attr in attributes[
                         :5
                     ]:  # Limit to 5 per asset to avoid overwhelming
                         asset_context = {
                             "asset_id": asset_id,
-                            "asset_name": f"Asset {asset_id[:8]}",
+                            "asset_name": asset_name,
                             "attribute_name": attr.get("field"),
                             "attribute_value": attr.get("value"),
                             "suggested_mapping": attr.get("potential_mapping"),
@@ -201,9 +271,11 @@ class QuestionnaireGenerationTool(BaseTool):
             if assets_with_gaps:
                 technical_questions = []
                 for asset_id in assets_with_gaps[:3]:  # Limit to first 3 assets
+                    # CRITICAL FIX: Use actual asset name instead of UUID prefix
+                    asset_name = await self._get_asset_name(asset_id, business_context)
                     asset_context = {
                         "asset_id": asset_id,
-                        "asset_name": f"Asset {asset_id[:8]}",
+                        "asset_name": asset_name,
                         "asset_type": "application",  # Default, should come from actual asset data
                     }
                     question = self._generate_technical_detail_question(
