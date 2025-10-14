@@ -15,6 +15,9 @@ from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.utils.flow_constants.flow_states import FlowType, FlowStatus
 from app.core.context import RequestContext
 from app.core.security.secure_logging import safe_log_format
+from app.services.agents.agent_service_layer.handlers.flow_handler_helpers import (
+    FlowHandlerHelpers,
+)
 
 from .query_helpers import get_discovery_flow, get_master_flow, debug_flow_context
 from .data_helpers import (
@@ -28,6 +31,9 @@ from .data_helpers import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Total number of discovery flow phases for progress calculation
+TOTAL_DISCOVERY_PHASES = 6
 
 
 async def get_flow_status(
@@ -242,19 +248,33 @@ async def get_active_flows(
     flow_ids_seen = set()
     active_flows = []
 
+    # TODO: Performance Optimization - N+1 Query Issue
+    # Current implementation calls check_actual_data_via_import_id() for each flow
+    # Should batch query all import_ids upfront:
+    #   1. Collect all import_ids: import_ids = [f.data_import_id for f in all_flows if f.data_import_id]
+    #   2. Batch query import_field_mappings and data_imports tables with IN clause
+    #   3. Build lookup dict: import_data_cache = {import_id: {...}}
+    #   4. Use cache in loop below instead of individual queries
+    # Estimated impact: 100 flows = 200 queries → 2 queries
+
     for flow in all_flows:
         if flow.flow_id not in flow_ids_seen:
             flow_ids_seen.add(flow.flow_id)
 
             # 🔧 FIX for Bug #560 (Progress Bar) & Bug #578 (Success Criteria)
             # Apply smart detection for data_import and field_mapping (same logic as FlowHandler)
-            from app.services.agents.agent_service_layer.handlers.flow_handler_helpers import (
-                FlowHandlerHelpers,
-            )
-
-            actual_data_status = (
-                await FlowHandlerHelpers.check_actual_data_via_import_id(flow)
-            )
+            try:
+                actual_data_status = (
+                    await FlowHandlerHelpers.check_actual_data_via_import_id(flow)
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Smart detection failed for flow {flow.flow_id}: {e}, using DB flags"
+                )
+                actual_data_status = {
+                    "has_import_data": flow.data_import_completed,
+                    "has_field_mappings": flow.field_mapping_completed,
+                }
 
             # Use smart detection: check for actual data, fallback to DB flags
             phases_dict = {
@@ -283,7 +303,9 @@ async def get_active_flows(
                     phases_dict["tech_debt_assessment"],
                 ]
             )
-            actual_progress = round((completed_phases / 6) * 100, 1)
+            actual_progress = round(
+                (completed_phases / TOTAL_DISCOVERY_PHASES) * 100, 1
+            )
 
             active_flows.append(
                 {
@@ -326,15 +348,20 @@ async def get_active_flows(
                 if discovery_flow:
                     # 🔧 FIX for Bug #560 (Progress Bar) & Bug #578 (Success Criteria)
                     # Apply smart detection (same logic as FlowHandler)
-                    from app.services.agents.agent_service_layer.handlers.flow_handler_helpers import (
-                        FlowHandlerHelpers,
-                    )
-
-                    actual_data_status = (
-                        await FlowHandlerHelpers.check_actual_data_via_import_id(
-                            discovery_flow
+                    try:
+                        actual_data_status = (
+                            await FlowHandlerHelpers.check_actual_data_via_import_id(
+                                discovery_flow
+                            )
                         )
-                    )
+                    except Exception as e:
+                        logger.warning(
+                            f"Smart detection failed for flow {discovery_flow.flow_id}: {e}, using DB flags"
+                        )
+                        actual_data_status = {
+                            "has_import_data": discovery_flow.data_import_completed,
+                            "has_field_mappings": discovery_flow.field_mapping_completed,
+                        }
 
                     # Build phases dict with smart detection
                     phases_dict = {
@@ -363,7 +390,9 @@ async def get_active_flows(
                             phases_dict["tech_debt_assessment"],
                         ]
                     )
-                    progress = round((completed_phases / 6) * 100, 1)
+                    progress = round(
+                        (completed_phases / TOTAL_DISCOVERY_PHASES) * 100, 1
+                    )
                 else:
                     # Fallback to master flow's progress_percentage
                     progress = getattr(master_flow, "progress_percentage", 0) or 0

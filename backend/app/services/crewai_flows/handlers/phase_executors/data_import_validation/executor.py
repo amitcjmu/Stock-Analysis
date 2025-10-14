@@ -105,11 +105,9 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             self.state.phase_completion["data_import"] = True
             logger.info("✅ DEBUG: Data import phase marked as completed")
 
-            # 🔧 CC FIX: Sync phase completion to discovery flow database
+            # 🔧 CC FIX + Bug #579: Sync phase completion to discovery flow database
+            # Also updates data_imports status to "completed" in same transaction
             await self._sync_phase_completion_to_database("data_import", True)
-            # 🔧 Bug #579 FIX: Update data_imports table status to "completed"
-            # This ensures data_import_completed flag gets set properly in discovery_flows table
-            await self._update_data_import_status_to_completed()
         else:
             # Only log failure if validation actually failed
             if not reason:
@@ -430,6 +428,51 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                     agent_insights=None,
                 )
 
+                # 🔧 Bug #579 FIX: Update data_imports status in SAME transaction
+                # This ensures atomic operation - both updates succeed or fail together
+                if phase == "data_import" and completed:
+                    import_id = None
+                    if hasattr(self.state, "import_metadata"):
+                        import_id = self.state.import_metadata.get("import_id")
+                    elif hasattr(self.state, "metadata"):
+                        import_id = self.state.metadata.get("import_id")
+
+                    if import_id:
+                        from app.models.data_import import DataImport
+                        from app.services.data_import.storage_manager.import_commands import (
+                            ImportCommandsMixin,
+                        )
+                        from sqlalchemy import select
+                        from uuid import UUID
+
+                        stmt = select(DataImport).where(
+                            DataImport.id == UUID(import_id)
+                        )
+                        result = await db.execute(stmt)
+                        data_import = result.scalar_one_or_none()
+
+                        if data_import:
+                            import_commands = ImportCommandsMixin(
+                                db, str(context.client_account_id)
+                            )
+                            await import_commands.update_import_status(
+                                data_import=data_import,
+                                status="completed",
+                                total_records=data_import.total_records or 0,
+                                processed_records=data_import.total_records or 0,
+                            )
+                            logger.info(
+                                f"✅ Updated data_imports status to 'completed' for import_id: {import_id}"
+                            )
+                        else:
+                            logger.warning(
+                                f"⚠️ Data import record not found for import_id: {import_id}"
+                            )
+                    else:
+                        logger.warning(
+                            "⚠️ Cannot update data import status: import_id missing from state"
+                        )
+
                 await db.commit()
                 logger.info(f"✅ Successfully synced {phase} completion to database")
 
@@ -438,73 +481,3 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                 f"❌ Failed to sync phase completion to database: {e}", exc_info=True
             )
             # Don't fail the flow execution if sync fails - log and continue
-
-    async def _update_data_import_status_to_completed(self) -> None:
-        """🔧 Bug #579 FIX: Update data_imports status to completed after validation."""
-        try:
-            # Get import_id from state metadata
-            import_id = None
-            if hasattr(self.state, "import_metadata"):
-                import_id = self.state.import_metadata.get("import_id")
-            elif hasattr(self.state, "metadata"):
-                import_id = self.state.metadata.get("import_id")
-
-            if not import_id:
-                logger.warning(
-                    "⚠️ Cannot update data import status: import_id missing from state"
-                )
-                return
-
-            logger.info(
-                f"🔧 Updating data_imports table status to 'completed' for import_id: {import_id}"
-            )
-
-            # Use fresh database session to update data import status
-            from app.core.database import AsyncSessionLocal
-            from app.core.context import RequestContext
-            from app.services.data_import.storage_manager.import_commands import (
-                ImportCommandsMixin,
-            )
-
-            async with AsyncSessionLocal() as db:
-                # Create context from state attributes
-                context = RequestContext(
-                    client_account_id=getattr(self.state, "client_account_id", None),
-                    engagement_id=getattr(self.state, "engagement_id", None),
-                    user_id=getattr(self.state, "user_id", "system"),
-                )
-
-                # Get the data import record
-                from app.models.data_import import DataImport
-                from sqlalchemy import select
-                from uuid import UUID
-
-                stmt = select(DataImport).where(DataImport.id == UUID(import_id))
-                result = await db.execute(stmt)
-                data_import = result.scalar_one_or_none()
-
-                if not data_import:
-                    logger.warning(
-                        f"⚠️ Data import record not found for import_id: {import_id}"
-                    )
-                    return
-
-                # Update status using the import commands mixin
-                import_commands = ImportCommandsMixin(
-                    db, str(context.client_account_id)
-                )
-                await import_commands.update_import_status(
-                    data_import=data_import,
-                    status="completed",
-                    total_records=data_import.total_records or 0,
-                    processed_records=data_import.total_records or 0,
-                )
-
-                await db.commit()
-                logger.info(
-                    f"✅ Successfully updated data_imports status to 'completed' for import_id: {import_id}"
-                )
-
-        except Exception as e:
-            logger.error(f"❌ Failed to update data_imports status: {e}", exc_info=True)
-            # Don't fail the flow execution if update fails - log and continue

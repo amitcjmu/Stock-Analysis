@@ -4,8 +4,8 @@ Utilities for converting between different response formats
 """
 
 import logging
-from types import SimpleNamespace
-from typing import Any, Dict, List
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from app.services.discovery.phase_persistence_helpers.base import (
     API_TO_DB_PHASE_MAP,
@@ -21,6 +21,18 @@ from .flow_processing_models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class MinimalPhaseResult:
+    """Type-safe result object for fast path processing"""
+
+    current_phase: str
+    next_phase: Optional[str]
+    confidence: float
+    success: bool
+    user_guidance: str
+    next_actions: List[str]
 
 
 def convert_fast_path_to_api_response(
@@ -73,8 +85,8 @@ def convert_fast_path_to_api_response(
         phases_completed = flow_data.get("phases_completed", {})
 
         # Create a minimal result object for compatibility with create_checklist_status
-        # Use SimpleNamespace to create an object with attributes (not a dict)
-        minimal_result = SimpleNamespace(
+        # Use type-safe dataclass instead of SimpleNamespace
+        minimal_result = MinimalPhaseResult(
             current_phase=current_phase,
             next_phase=fast_response.get("next_phase"),
             confidence=fast_response.get("confidence", 0.95),
