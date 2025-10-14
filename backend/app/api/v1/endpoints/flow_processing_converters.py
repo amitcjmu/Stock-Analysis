@@ -64,28 +64,19 @@ def convert_fast_path_to_api_response(
             estimated_completion_time=1,  # Fast path
         )
 
-        # Determine completion status
-        is_complete = fast_response.get("completion_status") == "phase_complete"
+        # Bug #557 FIX: Use full checklist with actual phase completion status
+        # Instead of minimal checklist, show all phases with their completion state
+        phases_completed = flow_data.get("phases_completed", {})
 
-        # Create minimal checklist status for fast path
-        checklist_status = [
-            PhaseStatus(
-                phase_id=current_phase,
-                phase_name=current_phase.replace("_", " ").title(),
-                status="completed" if is_complete else "in_progress",
-                completion_percentage=100.0 if is_complete else 50.0,
-                tasks=[
-                    TaskResult(
-                        task_id=f"{current_phase}_main",
-                        task_name=f"{current_phase.replace('_', ' ').title()} phase",
-                        status="completed" if is_complete else "in_progress",
-                        confidence=fast_response.get("confidence", 0.95),
-                        next_steps=[],
-                    )
-                ],
-                estimated_time_remaining=None if is_complete else 5,
-            )
-        ]
+        # Create a minimal result object for compatibility with create_checklist_status
+        minimal_result = {
+            "current_phase": current_phase,
+            "next_phase": fast_response.get("next_phase"),
+            "confidence": fast_response.get("confidence", 0.95),
+        }
+
+        # Use the same function as AI path to ensure consistent phase display
+        checklist_status = create_checklist_status(minimal_result, phases_completed)
 
         return FlowContinuationResponse(
             success=True,
