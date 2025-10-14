@@ -4,13 +4,10 @@ Tools for generating adaptive questionnaire questions based on gaps.
 """
 
 import logging
-from typing import Any, Dict, Optional
-from uuid import UUID
+from typing import Any, Dict
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import section builder functions
 from .section_builders import (
@@ -54,9 +51,8 @@ class QuestionnaireGenerationTool(BaseTool):
     )
     args_schema: type[BaseModel] = QuestionnaireGenerationInput
 
-    def __init__(self, db_session: Optional[AsyncSession] = None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.db_session = db_session
         self._asset_name_cache: Dict[str, str] = {}
 
     async def _get_asset_name(
@@ -93,28 +89,7 @@ class QuestionnaireGenerationTool(BaseTool):
         if asset_id in self._asset_name_cache:
             return self._asset_name_cache[asset_id]
 
-        # Try database if available
-        if self.db_session:
-            try:
-                from app.models.asset import Asset
-
-                asset_uuid = UUID(asset_id) if isinstance(asset_id, str) else asset_id
-                stmt = select(Asset.name).where(Asset.id == asset_uuid)
-                result = await self.db_session.execute(stmt)
-                asset_name = result.scalar_one_or_none()
-
-                if asset_name:
-                    self._asset_name_cache[asset_id] = asset_name
-                    logger.debug(
-                        f"✅ Fetched asset name from DB for {asset_id}: {asset_name}"
-                    )
-                    return asset_name
-            except Exception as e:
-                logger.warning(
-                    f"Failed to fetch asset name from DB for {asset_id}: {e}"
-                )
-
-        # Fallback to UUID prefix (preserves existing behavior)
+        # Fallback to UUID prefix (preserves existing behavior for cases where asset_names not provided)
         fallback_name = f"Asset {asset_id[:8]}"
         logger.debug(f"⚠️ Using UUID prefix for {asset_id}: {fallback_name}")
         self._asset_name_cache[asset_id] = fallback_name
