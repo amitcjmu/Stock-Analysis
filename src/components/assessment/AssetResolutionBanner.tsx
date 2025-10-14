@@ -47,8 +47,10 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
       }
 
       try {
+        // CRITICAL FIX: flowId is assessment flow ID, not collection flow ID
+        // Use new endpoint that looks up source collection from assessment metadata
         const response = await apiClient.get<UnmappedAsset[]>(
-          `/collection/${flowId}/unmapped-assets`,
+          `/collection/assessment/${flowId}/unmapped-assets`,
           {
             headers: {
               'X-Client-Account-ID': client.id,

@@ -347,5 +347,154 @@ async def link_asset_to_canonical_application(
         )
 
 
+@router.get(
+    "/assessment/{assessment_flow_id}/unmapped-assets",
+    response_model=List[UnmappedAssetResponse],
+)
+async def get_unmapped_assets_for_assessment(
+    assessment_flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context: RequestContext = Depends(get_request_context),
+) -> List[UnmappedAssetResponse]:
+    """
+    Get unmapped assets for an assessment flow by looking up its source collection.
+
+    This endpoint accepts an assessment flow ID, looks up the source collection flow ID
+    from the assessment's metadata, and returns unmapped assets from that collection.
+
+    Args:
+        assessment_flow_id: UUID of the assessment flow (NOT collection flow)
+
+    Returns:
+        List of unmapped assets from the source collection flow
+
+    Security:
+        - Validates tenant scoping (client_account_id + engagement_id)
+        - Verifies assessment flow belongs to user's engagement
+    """
+    try:
+        assessment_uuid = UUID(assessment_flow_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid assessment_flow_id format: {assessment_flow_id}",
+        )
+
+    # Validate context has required tenant scoping
+    if not context.client_account_id or not context.engagement_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Missing tenant context (client_account_id or engagement_id)",
+        )
+
+    logger.info(
+        f"Fetching unmapped assets for assessment flow {assessment_flow_id}, "
+        f"client={context.client_account_id}, engagement={context.engagement_id}"
+    )
+
+    try:
+        # Step 1: Get assessment flow and extract collection_flow_id from metadata
+        from app.models.assessment_flow import AssessmentFlow
+
+        assessment_stmt = select(AssessmentFlow).where(
+            and_(
+                AssessmentFlow.id == assessment_uuid,
+                AssessmentFlow.client_account_id == UUID(context.client_account_id),
+                AssessmentFlow.engagement_id == UUID(context.engagement_id),
+            )
+        )
+        assessment_result = await db.execute(assessment_stmt)
+        assessment_flow = assessment_result.scalar_one_or_none()
+
+        if not assessment_flow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Assessment flow {assessment_flow_id} not found or access denied",
+            )
+
+        # Step 2: Extract collection_flow_id from assessment metadata
+        collection_flow_id = None
+        if assessment_flow.flow_metadata and isinstance(
+            assessment_flow.flow_metadata, dict
+        ):
+            source_collection = assessment_flow.flow_metadata.get(
+                "source_collection", {}
+            )
+            if isinstance(source_collection, dict):
+                collection_flow_id = source_collection.get("collection_flow_id")
+
+        if not collection_flow_id:
+            # Assessment has no source collection - may be standalone
+            logger.warning(
+                f"Assessment flow {assessment_flow_id} has no source_collection metadata. "
+                f"Cannot query unmapped assets. Returning empty list."
+            )
+            return []
+
+        # Step 3: Query unmapped assets from the source collection
+        collection_uuid = UUID(collection_flow_id)
+
+        stmt = (
+            select(
+                CollectionFlowApplication.id.label("collection_app_id"),
+                CollectionFlowApplication.asset_id,
+                CollectionFlowApplication.application_name,
+                Asset.name.label("asset_name"),
+                Asset.asset_type,
+            )
+            .join(
+                Asset,
+                CollectionFlowApplication.asset_id == Asset.id,
+            )
+            .where(
+                and_(
+                    CollectionFlowApplication.collection_flow_id == collection_uuid,
+                    CollectionFlowApplication.asset_id.is_not(None),
+                    CollectionFlowApplication.canonical_application_id.is_(None),
+                    CollectionFlowApplication.client_account_id
+                    == UUID(context.client_account_id),
+                    CollectionFlowApplication.engagement_id
+                    == UUID(context.engagement_id),
+                )
+            )
+            .order_by(Asset.name)
+        )
+
+        result = await db.execute(stmt)
+        rows = result.fetchall()
+
+        unmapped_assets = [
+            UnmappedAssetResponse(
+                collection_app_id=str(row.collection_app_id),
+                asset_id=str(row.asset_id),
+                asset_name=row.asset_name,
+                asset_type=row.asset_type,
+                application_name=row.application_name,
+            )
+            for row in rows
+        ]
+
+        logger.info(
+            f"Found {len(unmapped_assets)} unmapped assets for assessment flow "
+            f"{assessment_flow_id} (from collection {collection_flow_id})"
+        )
+
+        return unmapped_assets
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to fetch unmapped assets for assessment flow {assessment_flow_id}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch unmapped assets: {str(e)}",
+        )
+
+
 # Export router for registration
 __all__ = ["router"]

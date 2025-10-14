@@ -237,7 +237,8 @@ class CollectionTransitionService:
                 collection_flow.assessment_flow_id = assessment_flow.id
                 collection_flow.assessment_transition_date = datetime.utcnow()
 
-            # Store in flow_metadata (with safe attribute access)
+            # Store bidirectional references in metadata for flow coordination
+            # Collection → Assessment (existing)
             current_metadata = getattr(collection_flow, "flow_metadata", {}) or {}
             collection_flow.flow_metadata = {
                 **current_metadata,
@@ -247,6 +248,18 @@ class CollectionTransitionService:
                     "transitioned_by": (
                         str(self.context.user_id) if self.context.user_id else None
                     ),
+                },
+            }
+
+            # Assessment → Collection (NEW - enables asset resolution)
+            # Store collection reference in assessment's flow_metadata for AssetResolutionBanner
+            assessment_metadata = getattr(assessment_flow, "flow_metadata", {}) or {}
+            assessment_flow.flow_metadata = {
+                **assessment_metadata,
+                "source_collection": {
+                    "collection_flow_id": str(collection_flow.id),
+                    "collection_master_flow_id": str(collection_flow.flow_id),
+                    "transitioned_from": datetime.utcnow().isoformat(),
                 },
             }
 

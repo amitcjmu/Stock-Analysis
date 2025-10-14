@@ -141,18 +141,38 @@ async def get_assessment_applications_via_master(
 
         # CC: Check if asset-to-canonical resolution is complete by querying collection_flow_applications
         # Per refactor design: Use existing collection infrastructure instead of removed asset_resolution_service
-        # Query for unmapped assets (WHERE canonical_application_id IS NULL)
-        unmapped_stmt = select(CollectionFlowApplication).where(
-            and_(
-                CollectionFlowApplication.collection_flow_id == UUID(flow_id),
-                CollectionFlowApplication.asset_id.is_not(None),
-                CollectionFlowApplication.canonical_application_id.is_(None),
-                CollectionFlowApplication.client_account_id == UUID(client_account_id),
-                CollectionFlowApplication.engagement_id == flow_state.engagement_id,
+
+        # CRITICAL FIX: Assessment flow_id ≠ Collection flow_id!
+        # Lookup collection_flow_id from assessment's flow_metadata.source_collection
+        collection_flow_id = None
+        if flow_state.flow_metadata and isinstance(flow_state.flow_metadata, dict):
+            source_collection = flow_state.flow_metadata.get("source_collection", {})
+            if isinstance(source_collection, dict):
+                collection_flow_id = source_collection.get("collection_flow_id")
+
+        if not collection_flow_id:
+            # No collection reference found - assessment may not have been created from collection
+            logger.warning(
+                f"Assessment flow {flow_id} has no source_collection metadata - "
+                f"cannot check unmapped assets. May be standalone assessment."
             )
-        )
-        unmapped_result = await db.execute(unmapped_stmt)
-        unmapped_assets = unmapped_result.scalars().all()
+            # Skip asset resolution check for standalone assessments
+            unmapped_assets = []
+        else:
+            # Query for unmapped assets using correct collection_flow_id
+            unmapped_stmt = select(CollectionFlowApplication).where(
+                and_(
+                    CollectionFlowApplication.collection_flow_id
+                    == UUID(collection_flow_id),
+                    CollectionFlowApplication.asset_id.is_not(None),
+                    CollectionFlowApplication.canonical_application_id.is_(None),
+                    CollectionFlowApplication.client_account_id
+                    == UUID(client_account_id),
+                    CollectionFlowApplication.engagement_id == flow_state.engagement_id,
+                )
+            )
+            unmapped_result = await db.execute(unmapped_stmt)
+            unmapped_assets = unmapped_result.scalars().all()
 
         if unmapped_assets:
             # Return structured response indicating resolution needed
