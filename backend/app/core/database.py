@@ -107,9 +107,15 @@ if SQLALCHEMY_AVAILABLE:
         pool_config["connect_args"]["server_settings"] = pool_config[
             "connect_args"
         ].get("server_settings", {})
-        pool_config["connect_args"]["server_settings"]["search_path"] = "migration"
+        # CRITICAL FIX: Include 'public' schema in search_path for pgvector type
+        # The vector type is defined in the public schema by the pgvector extension
+        pool_config["connect_args"]["server_settings"][
+            "search_path"
+        ] = "migration, public"
     else:
-        pool_config["connect_args"] = {"server_settings": {"search_path": "migration"}}
+        pool_config["connect_args"] = {
+            "server_settings": {"search_path": "migration, public"}
+        }
 
     # Unified database engine with pgvector support
     engine = create_async_engine(
