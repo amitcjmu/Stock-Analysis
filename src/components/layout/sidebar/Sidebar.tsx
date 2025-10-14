@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getVersionInfo } from '../../../utils/version';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useAllFlowPhases } from '../../../hooks/useFlowPhases';
 import {
   Home,
   Search,
@@ -49,11 +50,36 @@ import NavigationMenu from './NavigationMenu';
 import AuthenticationIndicator from './AuthenticationIndicator';
 import VersionDisplay from './VersionDisplay';
 
+/**
+ * Icon mapping helper for phase names
+ * Maps phase_name (snake_case) to appropriate Lucide icons
+ */
+const getIconForPhase = (phaseName: string) => {
+  const iconMap: Record<string, any> = {
+    data_import: Upload,
+    data_validation: CheckCircle,
+    field_mapping: Settings2,
+    data_cleansing: Wand2,
+    asset_inventory: Database,
+    dependency_analysis: Network,
+    tech_debt_assessment: ShieldAlert,
+    readiness_assessment: FileText,
+    complexity_analysis: BarChart3,
+    risk_assessment: AlertTriangle,
+    recommendation_generation: Target
+  };
+
+  return iconMap[phaseName] || FileText;
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const versionInfo = getVersionInfo();
   const { isAuthenticated, isAdmin, user, logout, isLoading } = useAuth();
+
+  // Fetch API-driven phase configuration
+  const { data: allFlowPhases, isLoading: isPhasesLoading } = useAllFlowPhases();
 
   const [expandedStates, setExpandedStates] = useState<ExpandedStates>({
     collection: location.pathname.startsWith('/collection'),
@@ -68,6 +94,60 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     admin: location.pathname.startsWith('/admin')
   });
 
+  /**
+   * Build dynamic Discovery submenu from API-driven phases
+   * Per ADR-027: Use FlowTypeConfig as single source of truth
+   */
+  const discoverySubmenu = React.useMemo(() => {
+    // Fallback while loading or if API fails
+    if (!allFlowPhases?.discovery) {
+      return [
+        { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard }
+      ];
+    }
+
+    // Map API phases to NavigationItem format
+    const phases = allFlowPhases.discovery.phase_details.map(phase => ({
+      name: phase.display_name,
+      path: phase.ui_route,
+      icon: getIconForPhase(phase.name)
+    }));
+
+    // Always include Overview at the top
+    return [
+      { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
+      ...phases
+    ];
+  }, [allFlowPhases]);
+
+  /**
+   * Build dynamic Assessment submenu from API-driven phases
+   * Per ADR-027: Use FlowTypeConfig as single source of truth
+   */
+  const assessmentSubmenu = React.useMemo(() => {
+    // Fallback while loading or if API fails
+    if (!allFlowPhases?.assessment) {
+      return [
+        { name: 'Overview', path: '/assess/overview', icon: FileText }
+      ];
+    }
+
+    // Map API phases to NavigationItem format
+    const phases = allFlowPhases.assessment.phase_details.map(phase => ({
+      name: phase.display_name,
+      path: phase.ui_route,
+      icon: getIconForPhase(phase.name)
+    }));
+
+    // Custom menu structure: Overview → Treatment → Phases → Editor
+    return [
+      { name: 'Overview', path: '/assess/overview', icon: FileText },
+      { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
+      ...phases,
+      { name: 'Editor', path: '/assess/editor', icon: Edit }
+    ];
+  }, [allFlowPhases]);
+
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', path: '/', icon: Home },
     {
@@ -75,15 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       path: '/discovery',
       icon: Search,
       hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
-        { name: 'Data Import', path: '/discovery/cmdb-import', icon: Upload },
-        { name: 'Attribute Mapping', path: '/discovery/attribute-mapping', icon: Settings2 },
-        { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Wand2 },
-        { name: 'Inventory', path: '/discovery/inventory', icon: Database },
-        { name: 'Dependencies', path: '/discovery/dependencies', icon: Network },
-        // Tech Debt moved under Assess
-      ]
+      submenu: discoverySubmenu // ✅ API-driven submenu
     },
     {
       name: 'Collection',
@@ -103,13 +175,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       path: '/assess',
       icon: FileText,
       hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/assess/overview', icon: FileText },
-        { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
-        { name: 'Tech Debt', path: '/assess/tech-debt', icon: ShieldAlert },
-        { name: 'Editor', path: '/assess/editor', icon: Edit },
-        { name: 'Assessment Flow', path: '/assess/overview', icon: GitBranch }
-      ]
+      submenu: assessmentSubmenu // ✅ API-driven submenu
     },
     {
       name: 'Plan',

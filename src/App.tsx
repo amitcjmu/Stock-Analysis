@@ -70,6 +70,8 @@ import {
   LazyAssessmentArchitecture,
   LazyAssessmentTechDebt,
   LazyAssessmentSixRReview,
+  LazyAssessmentDependencyAnalysis,
+  LazyAssessmentTechDebtAssessment,
   LazyPlanIndex,
   LazySixRAnalysis,
   LazyTimeline,
@@ -382,6 +384,15 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/assessment/:flowId/summary"
         element={<LazyAssessmentSummary />}
+      />
+      {/* Assessment Phase Routes - ADR-027 (Migrated from Discovery) */}
+      <Route
+        path="/assessment/dependency-analysis"
+        element={<LazyAssessmentDependencyAnalysis />}
+      />
+      <Route
+        path="/assessment/tech-debt"
+        element={<LazyAssessmentTechDebtAssessment />}
       />
 
       {/* Plan sub-routes */}

@@ -1,9 +1,27 @@
 /**
  * Centralized discovery flow routing configuration
  * Maps backend phase names to frontend routes
+ *
+ * @deprecated Use useFlowPhases hook to get routes from FlowTypeConfig
+ *
+ * This constant is kept for backward compatibility only.
+ * New code should fetch phase routes from API using useFlowPhases hook.
+ *
+ * Will be removed in v4.0.0
+ *
+ * Per ADR-027: Phase routes come from FlowTypeConfig phase_details.ui_route
+ *
+ * Migration guide:
+ * ```tsx
+ * // Old way:
+ * const route = DISCOVERY_PHASE_ROUTES_LEGACY[phase](flowId);
+ *
+ * // New way:
+ * const { data: phases } = useFlowPhases('discovery');
+ * const route = getPhaseRoute(phases, phase); // from useFlowPhases hook
+ * ```
  */
-
-export const DISCOVERY_PHASE_ROUTES: Record<string, (flowId: string) => string> = {
+export const DISCOVERY_PHASE_ROUTES_LEGACY: Record<string, (flowId: string) => string> = {
   // Initialization phases go to monitoring view
   'initialization': (flowId: string) => flowId ? `/discovery/monitor/${flowId}` : '/discovery/cmdb-import',
   'data_import_validation': () => '/discovery/cmdb-import',
@@ -50,13 +68,34 @@ export const DISCOVERY_PHASE_ROUTES: Record<string, (flowId: string) => string> 
 };
 
 /**
+ * Alias for backward compatibility
+ * @deprecated Use DISCOVERY_PHASE_ROUTES_LEGACY or preferably useFlowPhases hook
+ */
+export const DISCOVERY_PHASE_ROUTES = DISCOVERY_PHASE_ROUTES_LEGACY;
+
+/**
  * Get the appropriate route for a discovery flow phase
+ *
+ * @deprecated Use getPhaseRoute from useFlowPhases hook instead
+ *
+ * Per ADR-027: Phase routes should come from API FlowTypeConfig, not hardcoded
+ *
+ * Migration guide:
+ * ```tsx
+ * // Old way:
+ * const route = getDiscoveryPhaseRoute(phase, flowId);
+ *
+ * // New way:
+ * const { data: phases } = useFlowPhases('discovery');
+ * const route = getPhaseRoute(phases, phase); // from useFlowPhases hook
+ * ```
+ *
  * @param phase - The current phase of the flow
  * @param flowId - The flow ID
  * @returns The route to navigate to
  */
 export function getDiscoveryPhaseRoute(phase: string, flowId: string): string {
-  const routeFunction = DISCOVERY_PHASE_ROUTES[phase];
+  const routeFunction = DISCOVERY_PHASE_ROUTES_LEGACY[phase];
   if (routeFunction) {
     return routeFunction(flowId);
   }
