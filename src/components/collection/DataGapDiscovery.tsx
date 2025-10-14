@@ -355,13 +355,19 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsSaving(true);
 
-      const updates: GapUpdate[] = highConfidenceGaps.map((gap) => ({
-        gap_id: gap.id,  // Backend always returns database UUID
-        field_name: gap.field_name,
-        resolved_value: gap.suggested_resolution,
-        resolution_status: "resolved",
-        resolution_method: "ai_suggestion",
-      }));
+      const updates: GapUpdate[] = highConfidenceGaps.map((gap) => {
+        if (!gap.id) {
+          throw new Error(`Gap ID missing for ${gap.field_name}`);
+        }
+
+        return {
+          gap_id: gap.id,  // Backend always returns database UUID
+          field_name: gap.field_name,
+          resolved_value: gap.suggested_resolution,
+          resolution_status: "resolved",
+          resolution_method: "ai_suggestion",
+        };
+      });
 
       const response = await collectionFlowApi.updateGaps(flowId, updates);
 
@@ -423,13 +429,28 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsSaving(true);
 
-      const updates: GapUpdate[] = gapsWithResolutions.map((gap) => ({
-        gap_id: gap.id,  // Backend always returns database UUID
-        field_name: gap.field_name,
-        resolved_value: gap.suggested_resolution,
-        resolution_status: "resolved",
-        resolution_method: "ai_suggestion",
-      }));
+      // CRITICAL FIX: Look up full gap data from gaps state to get database IDs
+      // AG Grid selection may not preserve all fields, so we use asset_id + field_name as key
+      const updates: GapUpdate[] = gapsWithResolutions.map((selectedGap) => {
+        // Find the full gap object in the gaps array using composite key
+        const fullGap = gaps.find(
+          (g) => g.asset_id === selectedGap.asset_id && g.field_name === selectedGap.field_name
+        );
+
+        if (!fullGap || !fullGap.id) {
+          throw new Error(
+            `Gap ID not found for ${selectedGap.field_name} on asset ${selectedGap.asset_id}`
+          );
+        }
+
+        return {
+          gap_id: fullGap.id,  // Use ID from gaps state
+          field_name: selectedGap.field_name,
+          resolved_value: selectedGap.suggested_resolution,
+          resolution_status: "resolved",
+          resolution_method: "ai_suggestion",
+        };
+      });
 
       // Debug log to see what we're sending
       console.log('📤 Sending gap updates:', JSON.stringify(updates, null, 2));
@@ -477,13 +498,19 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsSaving(true);
 
-      const updates: GapUpdate[] = aiSuggestedGaps.map((gap) => ({
-        gap_id: gap.id,  // Backend always returns database UUID
-        field_name: gap.field_name,
-        resolved_value: "",
-        resolution_status: "skipped",
-        resolution_method: "manual_entry",
-      }));
+      const updates: GapUpdate[] = aiSuggestedGaps.map((gap) => {
+        if (!gap.id) {
+          throw new Error(`Gap ID missing for ${gap.field_name}`);
+        }
+
+        return {
+          gap_id: gap.id,  // Backend always returns database UUID
+          field_name: gap.field_name,
+          resolved_value: "",
+          resolution_status: "skipped",
+          resolution_method: "manual_entry",
+        };
+      });
 
       await collectionFlowApi.updateGaps(flowId, updates);
 
