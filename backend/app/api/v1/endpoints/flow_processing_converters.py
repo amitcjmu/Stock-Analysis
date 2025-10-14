@@ -6,7 +6,10 @@ Utilities for converting between different response formats
 import logging
 from typing import Any, Dict, List
 
-from app.services.discovery.phase_persistence_helpers.base import API_TO_DB_PHASE_MAP
+from app.services.discovery.phase_persistence_helpers.base import (
+    API_TO_DB_PHASE_MAP,
+    DB_TO_API_PHASE_MAP,
+)
 
 from .flow_processing_models import (
     FlowContinuationResponse,
@@ -235,8 +238,15 @@ def create_checklist_status(
 
         current_phase_index = 0
         try:
-            current_phase_index = phases.index(result.current_phase)
+            # Convert current_phase from DB name to API name if needed
+            current_phase_api = DB_TO_API_PHASE_MAP.get(
+                result.current_phase, result.current_phase
+            )
+            current_phase_index = phases.index(current_phase_api)
         except ValueError:
+            logger.warning(
+                f"Unknown phase {result.current_phase}, defaulting to index 0"
+            )
             current_phase_index = 0
 
         for i, phase in enumerate(phases):

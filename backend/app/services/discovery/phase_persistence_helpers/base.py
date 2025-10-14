@@ -22,6 +22,10 @@ API_TO_DB_PHASE_MAP = {
     "tech_debt": "tech_debt_assessment",
 }
 
+# Reverse mapping: Database phase names to API phase names
+# Used to convert current_phase from DB format to API format
+DB_TO_API_PHASE_MAP = {v: k for k, v in API_TO_DB_PHASE_MAP.items()}
+
 # Phase flag mapping for completion tracking
 # Derived from API_TO_DB_PHASE_MAP to avoid duplication
 PHASE_FLAG_MAP = {
