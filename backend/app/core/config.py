@@ -247,6 +247,25 @@ class Settings(BaseSettings):
 
         return LearningScope[self.DEFAULT_LEARNING_SCOPE]
 
+    # FlowTypeConfig Feature Flags (ADR-027)
+    USE_FLOW_TYPE_CONFIG: bool = Field(
+        default=True,
+        env="USE_FLOW_TYPE_CONFIG",
+        description=(
+            "Use FlowTypeConfig pattern for phase information. "
+            "Default ON for new pattern. Set to False only for emergency rollback."
+        ),
+    )
+    LEGACY_PHASE_SEQUENCES_ENABLED: bool = Field(
+        default=False,
+        env="LEGACY_PHASE_SEQUENCES_ENABLED",
+        description=(
+            "Enable legacy PHASE_SEQUENCES fallback. "
+            "Should only be True during emergency rollback. "
+            "Will be removed in v4.0.0."
+        ),
+    )
+
     model_config = ConfigDict(
         env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",
