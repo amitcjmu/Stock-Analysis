@@ -24,6 +24,22 @@ def get_lifespan():  # noqa: C901
         except Exception as e:  # pragma: no cover
             logging.getLogger(__name__).warning("RBAC initialization warning: %s", e)
 
+        # Initialize FlowTypeConfig registry (ADR-027)
+        try:
+            from app.services.flow_type_registry_helpers import (
+                initialize_default_flow_configs,
+            )
+
+            logging.getLogger(__name__).info(
+                "🔄 Initializing FlowTypeConfig registry..."
+            )
+            initialize_default_flow_configs()
+            logging.getLogger(__name__).info("✅ FlowTypeConfig registry initialized")
+        except Exception as e:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "FlowTypeConfig initialization warning: %s", e
+            )
+
         # Initialize Master Flow Orchestrator configurations
         try:
             from app.core.flow_initialization import initialize_flows_on_startup
