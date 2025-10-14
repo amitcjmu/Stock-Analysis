@@ -134,6 +134,17 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setGaps(response.gaps);
       setScanSummary(response.summary);
 
+      // CRITICAL FIX: Refetch gaps from database to ensure component state is synchronized
+      // This prevents race condition where user clicks "Accept Selected" before state updates
+      try {
+        const dbGaps = await collectionFlowApi.getGaps(flowId);
+        setGaps(dbGaps);
+        console.log(`✅ Refetched ${dbGaps.length} gaps from database after scan (race condition fix)`);
+      } catch (refetchError) {
+        console.error("Failed to refetch gaps after scan:", refetchError);
+        // Don't fail the whole operation, just log the error
+      }
+
       toast({
         title: "Gap Scan Complete",
         description: `Found ${response.summary.total_gaps} gaps across ${response.summary.assets_analyzed} assets (${response.summary.execution_time_ms}ms)`,
