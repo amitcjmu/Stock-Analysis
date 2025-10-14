@@ -237,7 +237,50 @@ async def continue_flow(  # noqa: C901  # Complex but necessary for proper error
                 }
             )
 
-        # Resume flow through MFO
+        # CRITICAL FIX: Gap analysis and manual collection should NOT trigger MFO agents
+        # These phases are UI-driven - agents only invoked via explicit user action
+        # (e.g., "Perform Agentic Analysis" button on AI Grid)
+        if current_phase in ["gap_analysis", "manual_collection"]:
+            logger.info(
+                safe_log_format(
+                    "Skipping MFO resume for phase {phase} - UI-driven phase does not auto-invoke agents",
+                    flow_id=flow_id,
+                    phase=current_phase,
+                )
+            )
+
+            return {
+                "status": "success",
+                "message": "Collection flow ready for user interaction",
+                "flow_id": flow_id,
+                "action_status": action_status,
+                "action_description": action_description,
+                "current_phase": current_phase,
+                "flow_status": flow_status,
+                "has_applications": has_applications,
+                "mfo_execution_triggered": False,
+                "mfo_result": {
+                    "status": "skipped",
+                    "reason": f"Phase '{current_phase}' requires user interaction, not automated agent execution",
+                },
+                "next_steps": next_steps,
+                "continued_at": datetime.now(timezone.utc).isoformat(),
+                "master_flow_id": (
+                    str(collection_flow.master_flow_id)
+                    if collection_flow.master_flow_id
+                    else None
+                ),
+                "recovery_performed": bool(
+                    collection_flow.flow_metadata
+                    and collection_flow.flow_metadata.get("recovery_info")
+                ),
+                "resume_result": {
+                    "status": "skipped",
+                    "reason": f"Phase '{current_phase}' requires user interaction",
+                },
+            }
+
+        # Resume flow through MFO for phases that need automated agent execution
         # At this point we should have a valid master_flow_id (either existing or newly created)
         if not collection_flow.master_flow_id:
             # This should not happen after the repair logic above, but add defensive check
