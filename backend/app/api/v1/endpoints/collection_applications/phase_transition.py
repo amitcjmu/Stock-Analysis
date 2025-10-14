@@ -9,8 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow
 from app.models.collection_flow.schemas import CollectionFlowStatus, CollectionPhase
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from app.services.master_flow_sync_service import MasterFlowSyncService
 
 logger = logging.getLogger(__name__)
 
@@ -120,50 +118,3 @@ async def transition_to_gap_analysis(
             "reason": f"Already in phase {collection_flow.current_phase}",
         },
     }
-
-
-async def _execute_gap_analysis_phase(
-    orchestrator: MasterFlowOrchestrator,
-    collection_flow: CollectionFlow,
-    normalized_ids: List[str],
-    flow_id: str,
-    context: RequestContext,
-) -> Dict[str, Any]:
-    """Execute gap analysis phase with proper input.
-
-    CRITICAL: Pass selected application IDs to gap analysis phase.
-    Gap analysis needs asset IDs to create collection_data_gap records.
-    """
-    phase_input = {
-        "selected_application_ids": normalized_ids,
-        "client_account_id": str(context.client_account_id),
-        "engagement_id": str(context.engagement_id),
-        "flow_id": flow_id,
-    }
-
-    execution_result = await orchestrator.execute_phase(
-        flow_id=str(collection_flow.master_flow_id),
-        phase_name="gap_analysis",
-        phase_input=phase_input,
-    )
-
-    return execution_result
-
-
-async def _sync_master_flow_changes(
-    db: AsyncSession,
-    collection_flow: CollectionFlow,
-    flow_id: str,
-    context: RequestContext,
-) -> None:
-    """Sync master flow changes back to collection flow."""
-    try:
-        sync_service = MasterFlowSyncService(db, context)
-        await sync_service.sync_master_to_collection_flow(
-            master_flow_id=str(collection_flow.master_flow_id),
-            collection_flow_id=flow_id,
-        )
-    except Exception as sync_error:
-        logger.warning(
-            f"Failed to sync master flow after phase execution: {sync_error}"
-        )
