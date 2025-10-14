@@ -11,14 +11,21 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
+# API phase names to database phase names mapping (SINGLE SOURCE OF TRUTH)
+# Used when reading phases_completed from FlowHandler (Issue #557 fix)
+API_TO_DB_PHASE_MAP = {
+    "data_import": "data_import",
+    "attribute_mapping": "field_mapping",
+    "data_cleansing": "data_cleansing",
+    "inventory": "asset_inventory",
+    "dependencies": "dependency_analysis",
+    "tech_debt": "tech_debt_assessment",
+}
+
 # Phase flag mapping for completion tracking
+# Derived from API_TO_DB_PHASE_MAP to avoid duplication
 PHASE_FLAG_MAP = {
-    "data_import": "data_import_completed",
-    "field_mapping": "field_mapping_completed",
-    "data_cleansing": "data_cleansing_completed",
-    "asset_inventory": "asset_inventory_completed",
-    "dependency_analysis": "dependency_analysis_completed",
-    "tech_debt_assessment": "tech_debt_assessment_completed",
+    db_phase: f"{db_phase}_completed" for db_phase in set(API_TO_DB_PHASE_MAP.values())
 }
 
 # Valid phase transitions - defines the state machine

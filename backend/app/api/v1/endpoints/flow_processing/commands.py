@@ -392,6 +392,7 @@ async def _update_phase_if_needed(
 
 async def _handle_ai_processing(
     flow_id: str,
+    flow_data: dict,
     context: RequestContext,
     start_time: float,
     flow_metrics,
@@ -458,7 +459,8 @@ async def _handle_ai_processing(
     # Record metrics for AI path
     await flow_metrics.record_ai_path(execution_time)
 
-    return convert_to_api_response(result, execution_time)
+    # Pass flow_data to include actual phase completion status (Issue #557 fix)
+    return convert_to_api_response(result, flow_data, execution_time)
 
 
 async def use_intelligent_agent(flow_id: str, context: RequestContext) -> Any:

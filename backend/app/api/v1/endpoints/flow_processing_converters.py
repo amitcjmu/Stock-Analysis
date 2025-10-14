@@ -6,6 +6,8 @@ Utilities for converting between different response formats
 import logging
 from typing import Any, Dict, List
 
+from app.services.discovery.phase_persistence_helpers.base import API_TO_DB_PHASE_MAP
+
 from .flow_processing_models import (
     FlowContinuationResponse,
     PhaseStatus,
@@ -141,7 +143,7 @@ def create_simple_transition_response(flow_data: Dict[str, Any]) -> Dict[str, An
 
 
 def convert_to_api_response(
-    result: Any, execution_time: float
+    result: Any, flow_data: Dict[str, Any], execution_time: float
 ) -> FlowContinuationResponse:
     """Convert agent result to API response format with defensive access (FIX for Qodo review)"""
     try:
@@ -191,8 +193,10 @@ def convert_to_api_response(
             estimated_completion_time=30,  # Fast single agent
         )
 
-        # Create checklist status based on current phase
-        checklist_status = create_checklist_status(result)
+        # Create checklist status based on ACTUAL phase completion from database (Issue #557 fix)
+        checklist_status = create_checklist_status(
+            result, flow_data.get("phases_completed", {})
+        )
 
         return FlowContinuationResponse(
             success=success,
@@ -222,9 +226,12 @@ def convert_to_api_response(
         )
 
 
-def create_checklist_status(result: Any) -> List[PhaseStatus]:
-    """Create checklist status based on agent analysis"""
+def create_checklist_status(
+    result: Any, phases_completed: Dict[str, bool] = None
+) -> List[PhaseStatus]:
+    """Create checklist status based on ACTUAL database phase completion (Issue #557 fix)"""
     try:
+        # API phase names (used in response)
         phases = [
             "data_import",
             "attribute_mapping",
@@ -242,9 +249,20 @@ def create_checklist_status(result: Any) -> List[PhaseStatus]:
             current_phase_index = 0
 
         for i, phase in enumerate(phases):
-            if i < current_phase_index:
+            # ✅ FIX: Check ACTUAL completion from database using phase name mapping
+            db_phase_name = API_TO_DB_PHASE_MAP.get(phase, phase)
+            is_actually_completed = (
+                phases_completed.get(db_phase_name, False)
+                if phases_completed
+                else False
+            )
+
+            # Determine status based on ACTUAL completion, not just index
+            if is_actually_completed:
+                # Phase is actually completed in database
                 status = "completed"
                 completion = 100.0
+                task_status = "completed"
                 tasks = [
                     TaskResult(
                         task_id=f"{phase}_main",

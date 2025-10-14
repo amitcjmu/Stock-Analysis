@@ -121,9 +121,9 @@ async def process_flow_continuation(
                 flow_metrics,
             )
 
-        # Step 6: AI analysis is needed
+        # Step 6: AI analysis is needed (pass flow_data for phase completion status)
         return await _handle_ai_processing(
-            flow_id, context, start_time, flow_metrics, db, current_phase
+            flow_id, flow_data, context, start_time, flow_metrics, db, current_phase
         )
 
     except Exception as e:
