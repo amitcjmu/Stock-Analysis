@@ -255,8 +255,10 @@ class FlowCommands:
 
         if not next_phase:
             # Already at final phase, stay at current
-            next_phase = current_phase
-            logger.info(f"Flow {flow_id} already at final phase: {current_phase}")
+            next_phase = normalized_current_phase
+            logger.info(
+                f"Flow {flow_id} already at final phase: {normalized_current_phase}"
+            )
 
         # Per ADR-027: Calculate progress using FlowTypeConfig.get_phase_index()
         total_phases = len(flow_config.phases)

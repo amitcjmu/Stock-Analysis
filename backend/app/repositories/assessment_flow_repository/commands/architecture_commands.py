@@ -42,7 +42,7 @@ class ArchitectureCommands:
                 engagement_id=engagement_id,
                 client_account_id=self.client_account_id,  # Required NOT NULL field
                 requirement_type=standard.requirement_type,
-                standard_name=standard.requirement_type,  # Use requirement_type as standard_name
+                standard_name=standard.description,  # Use description as unique standard_name
                 description=standard.description,
                 is_mandatory=standard.mandatory,  # Map mandatory -> is_mandatory
                 supported_versions=standard.supported_versions,
