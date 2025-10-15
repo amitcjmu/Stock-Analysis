@@ -53,6 +53,7 @@ import {
   LazyAttributeMapping,
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
+  LazyFlowStatusMonitor,
   LazyCollectionIndex,
   LazyAdaptiveForms,
   LazyBulkUpload,
@@ -227,7 +228,7 @@ const AuthenticatedApp = (): JSX.Element => {
       />
       <Route
         path="/discovery/monitor/:flowId"
-        element={<LazyDiscoveryDashboard />}
+        element={<LazyFlowStatusMonitor />}
       />
       <Route path="/discovery/cmdb-import" element={<LazyDataImport />} />
       <Route path="/discovery/data-import" element={<LazyDataImport />} />

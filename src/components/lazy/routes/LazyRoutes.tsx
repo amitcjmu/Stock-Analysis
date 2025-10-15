@@ -155,6 +155,11 @@ export const LazyDiscoveryDashboard = createLazyRoute(
   "Discovery Dashboard",
 );
 
+export const LazyFlowStatusMonitor = createLazyRoute(
+  () => import("@/pages/discovery/FlowStatusMonitor"),
+  "Flow Status Monitor",
+);
+
 // Collection Sub-routes (HIGH priority - frequently accessed workflows)
 export const LazyCollectionIndex = createLazyRoute(
   () => import("@/pages/collection/Index"),
