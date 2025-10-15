@@ -49,6 +49,7 @@ class FlowSpecifications:
         """
         return ~and_(
             DiscoveryFlow.data_import_completed is True,
+            DiscoveryFlow.data_validation_completed is True,
             DiscoveryFlow.field_mapping_completed is True,
             DiscoveryFlow.data_cleansing_completed is True,
             DiscoveryFlow.asset_inventory_completed is True,

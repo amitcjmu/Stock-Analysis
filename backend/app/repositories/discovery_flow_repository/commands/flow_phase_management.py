@@ -256,6 +256,7 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
             # Bug: Legacy completion check for removed phases prevents multi-import workflow
             required_phases = {
                 "data_import": flow.data_import_completed,
+                "data_validation": flow.data_validation_completed,
                 "field_mapping": flow.field_mapping_completed,
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
