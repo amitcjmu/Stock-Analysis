@@ -67,6 +67,12 @@ class PhaseController:
         self.execution_halted = False
 
         # Define phase execution order
+        # NOTE: This sequence is independent of FlowTypeConfig per ADR-027.
+        # PhaseController manages UI-level orchestration (initialization, approval, finalization)
+        # while FlowTypeConfig defines operational phases (data_import, field_mapping, etc.).
+        # These are complementary, not redundant:
+        # - FlowTypeConfig: Operational phase definitions (what work is done)
+        # - PhaseController: UI flow control (when to pause for user input)
         self.phase_sequence = [
             FlowPhase.INITIALIZATION,
             FlowPhase.DATA_IMPORT_VALIDATION,
@@ -74,8 +80,8 @@ class PhaseController:
             FlowPhase.FIELD_MAPPING_APPROVAL,  # User input required
             FlowPhase.DATA_CLEANSING,
             FlowPhase.ASSET_INVENTORY,
-            FlowPhase.DEPENDENCY_ANALYSIS,
-            FlowPhase.TECH_DEBT_ASSESSMENT,
+            FlowPhase.DEPENDENCY_ANALYSIS,  # Legacy (moved to Assessment flow v3.0.0)
+            FlowPhase.TECH_DEBT_ASSESSMENT,  # Legacy (moved to Assessment flow v3.0.0)
             FlowPhase.FINALIZATION,
         ]
 
