@@ -120,23 +120,6 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   // FIX: Don't show "Preparing" if inventory is already complete (even with 0 assets)
   const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory && !hasConflictsPending && !hasCompletedWithZeroAssets;
 
-  // CC DEBUG: Log state to diagnose which message is shown
-  console.log('🔍 [EmptyState] Conditions check:', {
-    flowId: flow?.flow_id,
-    viewMode,
-    hasConflictsPending,
-    inventoryDone,
-    isFlowComplete,
-    hasCompletedWithZeroAssets,
-    mightStartProcessing,
-    hasRawData: !!flow?.raw_data,
-    rawDataLength: flow?.raw_data?.length,
-    hasTriggeredInventory,
-    flowStatus: flow?.status,
-    phases_completed: flow?.phases_completed,
-    phase_completion: flow?.phase_completion,
-  });
-
   return (
     <Card>
       <CardContent className="p-8">
