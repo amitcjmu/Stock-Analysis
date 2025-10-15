@@ -243,13 +243,13 @@ def create_checklist_status(
     """Create checklist status based on ACTUAL database phase completion (Issue #557 fix)"""
     try:
         # API phase names (used in response)
+        # Per ADR-027: Discovery v3.0.0 has only 5 phases
         phases = [
             "data_import",
+            "data_validation",
             "attribute_mapping",
             "data_cleansing",
             "inventory",
-            "dependencies",
-            "tech_debt",
         ]
         checklist_status = []
 

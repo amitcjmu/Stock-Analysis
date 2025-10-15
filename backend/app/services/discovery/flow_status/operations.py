@@ -33,7 +33,8 @@ from .data_helpers import (
 logger = logging.getLogger(__name__)
 
 # Total number of discovery flow phases for progress calculation
-TOTAL_DISCOVERY_PHASES = 6
+# Per ADR-027: Discovery v3.0.0 has only 5 phases
+TOTAL_DISCOVERY_PHASES = 5
 
 
 async def get_flow_status(
@@ -277,30 +278,29 @@ async def get_active_flows(
                 }
 
             # Use smart detection: check for actual data, fallback to DB flags
+            # Per ADR-027: Discovery v3.0.0 has only 5 phases
             phases_dict = {
                 "data_import": actual_data_status.get(
                     "has_import_data", flow.data_import_completed
                 ),
+                "data_validation": flow.data_validation_completed,
                 "field_mapping": actual_data_status.get(
                     "has_field_mappings", flow.field_mapping_completed
                 ),
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
-                "dependency_analysis": flow.dependency_analysis_completed,
-                "tech_debt_assessment": flow.tech_debt_assessment_completed,
             }
 
             # Calculate actual progress from detected phases
             # Bug #560: Fixed progress bar showing 0%
-            # Bug #578: Fixed success criteria showing 0/6
+            # Bug #578: Fixed success criteria showing 0/5 (updated per ADR-027)
             completed_phases = sum(
                 [
                     phases_dict["data_import"],
+                    phases_dict["data_validation"],
                     phases_dict["field_mapping"],
                     phases_dict["data_cleansing"],
                     phases_dict["asset_inventory"],
-                    phases_dict["dependency_analysis"],
-                    phases_dict["tech_debt_assessment"],
                 ]
             )
             actual_progress = round(
