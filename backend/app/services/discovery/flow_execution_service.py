@@ -13,7 +13,7 @@ from app.models.discovery_flow import DiscoveryFlow
 from app.core.context import RequestContext
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.core.security.secure_logging import safe_log_format
-from app.utils.flow_constants.flow_states import FlowType, PHASE_SEQUENCES
+from app.services.flow_type_registry_helpers import get_flow_config
 from .flow_state_helpers import load_flow_state_for_phase
 from .phase_persistence_helpers import (
     persist_phase_completion,
@@ -28,10 +28,19 @@ logger = logging.getLogger(__name__)
 
 
 def validate_discovery_phase(phase: str) -> bool:
-    """Validate that a phase is valid for discovery flows."""
-    discovery_phases = PHASE_SEQUENCES.get(FlowType.DISCOVERY, [])
-    valid_phase_names = [p.value for p in discovery_phases]
-    return phase in valid_phase_names
+    """
+    Validate that a phase is valid for discovery flows.
+
+    Per ADR-027: Uses FlowTypeConfig as single source of truth for phase validation.
+    """
+    try:
+        config = get_flow_config("discovery")
+        valid_phase_names = [p.name for p in config.phases]
+        return phase in valid_phase_names
+    except ValueError:
+        # Fallback if config not found (shouldn't happen in production)
+        logger.error("Discovery FlowTypeConfig not found, validation failed")
+        return False
 
 
 async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:

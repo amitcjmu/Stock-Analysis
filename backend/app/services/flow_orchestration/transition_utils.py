@@ -331,28 +331,26 @@ def get_fast_path_response(
         next_phase = _get_next_phase_simple(flow_type, current_phase)
 
         if next_phase:
-            # Continue to next phase - FIX: Don't append flow_id to phase routes
-            # Map phase names to proper route paths
-            phase_routes = {
-                "discovery": {
-                    "data_import": "/discovery/data-import",
-                    "field_mapping": "/discovery/attribute-mapping",  # UI uses attribute-mapping route
-                    "data_cleansing": "/discovery/data-cleansing",
-                    "asset_inventory": "/discovery/inventory",
-                    "dependency_analysis": "/discovery/dependencies",
-                    "tech_debt_assessment": "/discovery/tech-debt",
-                },
-                "collection": {
-                    "questionnaires": "/collection/questionnaires",
-                    "validation": "/collection/validation",
-                    "review": "/collection/review",
-                },
-            }
+            # Get route from FlowTypeConfig metadata (ADR-027)
+            try:
+                from app.services.flow_type_registry_helpers import get_flow_config
 
-            # Get proper route for the phase
-            routing_decision = phase_routes.get(flow_type, {}).get(
-                next_phase, f"/{flow_type}/overview"
-            )
+                config = get_flow_config(flow_type)
+                phase_obj = next(
+                    (p for p in config.phases if p.name == next_phase), None
+                )
+                if (
+                    phase_obj
+                    and phase_obj.metadata
+                    and "ui_route" in phase_obj.metadata
+                ):
+                    routing_decision = phase_obj.metadata["ui_route"]
+                else:
+                    # Fallback to overview if no ui_route defined
+                    routing_decision = f"/{flow_type}/overview"
+            except Exception:
+                # Fallback if config not available
+                routing_decision = f"/{flow_type}/overview"
 
             return {
                 "routing_decision": routing_decision,
@@ -392,40 +390,17 @@ def get_fast_path_response(
 
 
 def _get_next_phase_simple(flow_type: str, current_phase: str) -> Optional[str]:
-    """Get next phase using simple logic for common flow types."""
+    """
+    Get next phase using FlowTypeConfig as single source of truth.
 
-    # Discovery flow phase progression
-    # CC FIX: Discovery flow ENDS at asset_inventory
-    # dependency_analysis has been moved to Assessment flow
-    discovery_phases = [
-        "data_import",
-        "field_mapping",
-        "data_cleansing",
-        "asset_inventory",  # FINAL PHASE - flow completes here
-    ]
-
-    # Collection flow phase progression (aligned with actual routes)
-    collection_phases = [
-        "select-applications",  # Start with application selection
-        "adaptive-forms",  # Then adaptive forms
-        "bulk-upload",  # Or bulk upload
-        "data-integration",  # Data integration phase
-        "progress",  # Final progress/completion phase
-    ]
-
-    # Assessment flow phase progression (basic)
-    assessment_phases = ["preparation", "analysis", "scoring", "reporting"]
-
+    Per ADR-027: Uses authoritative phase sequences from FlowTypeConfig registry.
+    """
     try:
-        if flow_type == "discovery":
-            phases = discovery_phases
-        elif flow_type == "collection":
-            phases = collection_phases
-        elif flow_type == "assessment":
-            phases = assessment_phases
-        else:
-            # Unknown flow type, can't do simple progression
-            return None
+        from app.services.flow_type_registry_helpers import get_flow_config
+
+        # Get authoritative phase sequence from FlowTypeConfig
+        config = get_flow_config(flow_type)
+        phases = [p.name for p in config.phases]
 
         if current_phase in phases:
             current_index = phases.index(current_phase)
@@ -435,6 +410,10 @@ def _get_next_phase_simple(flow_type: str, current_phase: str) -> Optional[str]:
         # Current phase not found or is last phase
         return None
 
+    except ValueError:
+        # FlowTypeConfig not found for this flow type
+        logger.warning(f"FlowTypeConfig not found for flow type: {flow_type}")
+        return None
     except Exception as e:
         logger.warning(f"Error getting next phase for {flow_type}: {e}")
         return None
