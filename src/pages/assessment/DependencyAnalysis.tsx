@@ -30,6 +30,18 @@ import {
   Play
 } from 'lucide-react';
 
+// Per ADR-027: Type definitions for dependency analysis data
+interface AppServerDependency {
+  application: string;
+  server: string;
+}
+
+interface AppAppDependency {
+  source: string;
+  target: string;
+  type: string;
+}
+
 const AssessmentDependencyAnalysisPage = (): JSX.Element => {
   const navigate = useNavigate();
 
@@ -197,7 +209,7 @@ const AssessmentDependencyAnalysisPage = (): JSX.Element => {
                 <CardContent>
                   {appServerDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appServerDependencies.slice(0, 5).map((relationship: any, index: number) => (
+                      {appServerDependencies.slice(0, 5).map((relationship: AppServerDependency, index: number) => (
                         <div key={`${relationship.application}-${relationship.server}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{relationship.application || `App ${index + 1}`}</p>
@@ -232,7 +244,7 @@ const AssessmentDependencyAnalysisPage = (): JSX.Element => {
                 <CardContent>
                   {appAppDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appAppDependencies.slice(0, 5).map((pattern: any, index: number) => (
+                      {appAppDependencies.slice(0, 5).map((pattern: AppAppDependency, index: number) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{pattern.source || `Source ${index + 1}`}</p>

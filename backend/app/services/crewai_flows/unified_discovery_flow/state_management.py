@@ -282,11 +282,13 @@ class StateManager:
         return {}
 
     def calculate_progress(self) -> float:
-        """Calculate overall flow progress percentage"""
-        total_phases = len(FlowConfig.PHASE_ORDER)
+        """Calculate overall flow progress percentage (Per ADR-027)"""
+        # Get phase order from FlowTypeConfig (ADR-027)
+        phase_order = FlowConfig.get_phase_order()
+        total_phases = len(phase_order)
         phase_completion = getattr(self.state, "phase_completion", {})
         completed_phases = len(
-            [p for p in FlowConfig.PHASE_ORDER if phase_completion.get(p, False)]
+            [p for p in phase_order if phase_completion.get(p, False)]
         )
 
         # Base progress from completed phases
@@ -311,8 +313,10 @@ class StateManager:
         return round(base_progress, 1)
 
     def get_next_phase(self) -> Optional[str]:
-        """Get the next phase to execute"""
-        for phase in FlowConfig.PHASE_ORDER:
+        """Get the next phase to execute (Per ADR-027)"""
+        # Get phase order from FlowTypeConfig (ADR-027)
+        phase_order = FlowConfig.get_phase_order()
+        for phase in phase_order:
             if not self.state.phase_completion.get(phase, False):
                 return phase
         return None

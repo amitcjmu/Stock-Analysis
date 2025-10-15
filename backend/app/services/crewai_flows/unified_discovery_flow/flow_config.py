@@ -3,19 +3,30 @@ Flow Configuration and Constants
 
 Contains all configuration, constants, and phase definitions
 for the Unified Discovery Flow.
+
+Per ADR-027: Phase sequences now read from FlowTypeConfig.
 """
 
+import logging
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 
 class PhaseNames(str, Enum):
-    """Phase names enumeration for type safety"""
+    """
+    Phase names enumeration for type safety
+
+    NOTE: Some legacy phase names retained for backward compatibility.
+    See get_phase_order() for mapping to FlowTypeConfig phases.
+    """
 
     DATA_IMPORT_VALIDATION = "data_import_validation"
     FIELD_MAPPING = "field_mapping"
     DATA_CLEANSING = "data_cleansing"
     ASSET_INVENTORY = "asset_inventory"
+    # Legacy phases (moved to Assessment flow per ADR-027 v3.0.0)
     DEPENDENCY_ANALYSIS = "dependency_analysis"
     TECH_DEBT_ASSESSMENT = "tech_debt_assessment"
 
@@ -25,23 +36,42 @@ class FlowConfig:
 
     # Flow metadata
     FLOW_NAME = "unified_discovery_flow"
-    FLOW_VERSION = "1.0.0"
+    FLOW_VERSION = "3.0.0"  # Per ADR-027: Aligned with FlowTypeConfig
 
-    # Phase order
-    PHASE_ORDER = [
-        PhaseNames.DATA_IMPORT_VALIDATION,
-        PhaseNames.FIELD_MAPPING,
-        PhaseNames.DATA_CLEANSING,
-        PhaseNames.ASSET_INVENTORY,
-        PhaseNames.DEPENDENCY_ANALYSIS,
-        PhaseNames.TECH_DEBT_ASSESSMENT,
-    ]
+    @classmethod
+    def get_phase_order(cls) -> List[str]:
+        """
+        Get Discovery phase order from FlowTypeConfig (Per ADR-027).
 
-    # Parallel analysis phases
-    PARALLEL_ANALYSIS_PHASES = [
-        PhaseNames.DEPENDENCY_ANALYSIS,
-        PhaseNames.TECH_DEBT_ASSESSMENT,
-    ]
+        Returns phase names as strings for backward compatibility.
+
+        Fallback: If FlowTypeConfig unavailable, returns legacy phases.
+        """
+        try:
+            from app.services.flow_type_registry_helpers import get_flow_config
+
+            config = get_flow_config("discovery")
+            phase_names = [p.name for p in config.phases]
+            logger.debug(f"Phase order from FlowTypeConfig: {phase_names}")
+            return phase_names
+        except (ValueError, ImportError) as e:
+            logger.warning(f"FlowTypeConfig not found, using legacy phase order: {e}")
+            # Legacy fallback (5 phases post-ADR-027 v3.0.0)
+            return [
+                "data_import",
+                "data_validation",
+                "field_mapping",
+                "data_cleansing",
+                "asset_inventory",
+            ]
+
+    # DEPRECATED: Use get_phase_order() instead (ADR-027)
+    # Retained for backward compatibility with existing code
+    PHASE_ORDER = None  # Will be populated dynamically
+
+    # Parallel analysis phases (DEPRECATED - moved to Assessment flow)
+    # Retained for backward compatibility
+    PARALLEL_ANALYSIS_PHASES = []
 
     # User approval configuration
     USER_APPROVAL_REQUIRED_FIELDS = [
