@@ -447,7 +447,10 @@ async def _handle_ai_processing(
     # CC FIX: Update current_phase in database after AI analysis
     # This ensures the phase is updated even when AI path is used
     if db and current_phase and result:
-        next_phase = result.get("next_phase") or result.get("current_phase")
+        # FlowIntelligenceResult is a Pydantic BaseModel, not a dict - use attribute access
+        next_phase = getattr(result, "next_phase", None) or getattr(
+            result, "current_phase", None
+        )
         if next_phase:
             await _update_phase_if_needed(
                 flow_id, next_phase, current_phase, db, context
