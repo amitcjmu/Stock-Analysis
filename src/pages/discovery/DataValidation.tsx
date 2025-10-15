@@ -141,12 +141,10 @@ const DataValidation: React.FC = () => {
       });
 
       SecureLogger.info('Data validation triggered successfully');
-
-      // Refresh the data to get updated results
-      await refresh();
     } catch (error) {
       SecureLogger.error('Failed to trigger data validation', error);
-      // Still refresh to get any available data
+    } finally {
+      // Always refresh to get the latest state, even if triggering failed
       await refresh();
     }
   };
@@ -174,12 +172,12 @@ const DataValidation: React.FC = () => {
         await executeFlowPhase('data_validation', { complete: true });
       }
 
-      // Navigate to inventory
+      // Navigate to inventory only on success
       secureNavigation.navigateToDiscoveryPhase('inventory', effectiveFlowId);
     } catch (error) {
       SecureLogger.error('Failed to complete data validation phase', error);
-      // Still navigate even if phase completion fails
-      secureNavigation.navigateToDiscoveryPhase('inventory', effectiveFlowId);
+      // Do not navigate if phase completion fails to avoid inconsistent state
+      // The UI should show an error to the user
     }
   };
 
