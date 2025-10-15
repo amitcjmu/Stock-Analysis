@@ -413,14 +413,39 @@ async def update_architecture_standards_via_mfo(
     """Update architecture standards through MFO"""
 
     client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
         from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+        from app.models.assessment_flow_state import ArchitectureRequirement
 
         repo = AssessmentFlowRepository(db, client_account_id)
-        await repo.update_phase_data(flow_id, "architecture_standards", standards_data)
+
+        # Extract engagement standards from request
+        engagement_standards = standards_data.get("engagement_standards", [])
+        # TODO: Handle application_overrides when needed
+        # application_overrides = standards_data.get("application_overrides", {})
+
+        # Convert engagement standards to ArchitectureRequirement objects
+        arch_requirements = []
+        for std in engagement_standards:
+            arch_req = ArchitectureRequirement(
+                requirement_type=std.get("requirement_type"),
+                description=std.get("description"),
+                mandatory=std.get("mandatory", False),
+                supported_versions=std.get("supported_versions", []),
+                requirement_details=std.get("requirement_details", {}),
+                created_by=context.user_id,
+            )
+            arch_requirements.append(arch_req)
+
+        # Save engagement-level standards
+        if arch_requirements:
+            await repo.save_architecture_standards(engagement_id, arch_requirements)
 
         return {
             "flow_id": flow_id,
@@ -430,6 +455,9 @@ async def update_architecture_standards_via_mfo(
         }
 
     except Exception as e:
+        logger.error(
+            f"Failed to update architecture standards: {str(e)}", exc_info=True
+        )
         raise HTTPException(
             status_code=500, detail=f"Failed to update standards: {str(e)}"
         )
