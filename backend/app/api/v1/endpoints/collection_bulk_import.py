@@ -74,11 +74,30 @@ async def _process_csv_rows(
     db: AsyncSession,
     current_user: User,
     context: RequestContext,
-) -> tuple[int, List[Dict], List[Any]]:
-    """Process CSV rows and create assets."""
+) -> tuple[int, List[Dict], List[Any], Dict[str, int]]:
+    """Process CSV rows and create assets with canonical deduplication.
+
+    ENHANCED (October 2025): Now includes:
+    - Canonical application deduplication via CanonicalApplication.find_or_create_canonical()
+    - CollectionFlowApplication junction table entries for canonical linking
+    - Tracking of canonical stats (created, linked, failed)
+
+    Returns:
+        Tuple of (processed_count, errors, created_assets, canonical_stats)
+    """
+    from app.models.canonical_applications import (
+        CanonicalApplication,
+        CollectionFlowApplication,
+    )
+
     processed_count = 0
     errors = []
     created_assets = []
+    canonical_stats = {
+        "created": 0,
+        "linked_existing": 0,
+        "failed": 0,
+    }
 
     for row_idx, row_data in enumerate(csv_data):
         try:
@@ -112,11 +131,75 @@ async def _process_csv_rows(
                 db.add(response)
                 processed_count += 1
 
+                # NEW: Canonical application deduplication
+                # Extract application name from asset or questionnaire data
+                application_name = (
+                    getattr(asset, "application_name", None)
+                    or questionnaire_data.get("application_name")
+                    or getattr(asset, "asset_name", None)
+                    or f"Asset-{asset.id}"
+                )
+
+                try:
+                    # Call canonical deduplication service
+                    canonical_app, is_new, variant = (
+                        await CanonicalApplication.find_or_create_canonical(
+                            db=db,
+                            application_name=application_name,
+                            client_account_id=context.client_account_id,
+                            engagement_id=context.engagement_id,
+                            user_id=current_user.id,
+                            # Additional metadata for matching
+                            application_type=getattr(asset, "application_type", None)
+                            or questionnaire_data.get("application_type"),
+                            technology_stack=getattr(asset, "technology_stack", None)
+                            or questionnaire_data.get("technology_stack"),
+                            business_criticality=getattr(
+                                asset, "business_criticality", None
+                            )
+                            or questionnaire_data.get("business_criticality"),
+                        )
+                    )
+
+                    # Track canonical stats
+                    if is_new:
+                        canonical_stats["created"] += 1
+                    else:
+                        canonical_stats["linked_existing"] += 1
+
+                    # Create CollectionFlowApplication junction entry
+                    collection_flow_app = CollectionFlowApplication(
+                        id=uuid.uuid4(),
+                        collection_flow_id=uuid.UUID(flow_id),
+                        asset_id=asset.id,
+                        application_name=application_name,
+                        canonical_application_id=canonical_app.id,
+                        name_variant_id=variant.id if variant else None,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        deduplication_method="bulk_import_auto",
+                        match_confidence=canonical_app.confidence_score,
+                        collection_status="pending",
+                    )
+                    db.add(collection_flow_app)
+
+                    logger.info(
+                        f"Asset {asset.id} linked to canonical application "
+                        f"{canonical_app.canonical_name} ({'new' if is_new else 'existing'})"
+                    )
+
+                except Exception as canon_error:
+                    canonical_stats["failed"] += 1
+                    logger.error(
+                        f"Failed canonical deduplication for asset {asset.id}: {canon_error}"
+                    )
+                    # Don't fail the entire import - continue with next asset
+
         except Exception as e:
             errors.append({"row": row_idx + 1, "error": str(e), "data": row_data})
             logger.error(f"Error processing row {row_idx + 1}: {e}")
 
-    return processed_count, errors, created_assets
+    return processed_count, errors, created_assets, canonical_stats
 
 
 def _update_flow_after_import(
@@ -224,14 +307,20 @@ async def process_bulk_import(
     current_user: User,
     context: RequestContext,
 ) -> Dict[str, Any]:
-    """Process bulk CSV import for Collection flow.
+    """Process bulk CSV import for Collection flow with canonical deduplication.
+
+    ENHANCED (October 2025 - Phase 2 Day 10): Now includes automatic canonical
+    application deduplication and junction table linking.
 
     This function orchestrates the bulk import process by:
     1. Validating the Collection flow exists and is in correct state
     2. Processing each row through the Collection questionnaire system
     3. Creating/updating assets in the database
-    4. Updating flow configuration and status
-    5. Triggering gap analysis for all imported assets
+    4. **NEW**: Running canonical deduplication via CanonicalApplication.find_or_create_canonical()
+    5. **NEW**: Creating collection_flow_applications junction entries
+    6. Updating flow configuration and status
+    7. Triggering gap analysis for all imported assets
+    8. **NEW**: Preparing enrichment pipeline trigger (Phase 3)
 
     All database operations are performed within a single atomic transaction
     to ensure consistency. Gap analysis is triggered after successful commit.
@@ -246,7 +335,15 @@ async def process_bulk_import(
         context: Request context
 
     Returns:
-        Dict with import results including processed count and any errors
+        Dict with import results including:
+        - success: Boolean indicating success
+        - processed_count: Number of assets created
+        - canonical_applications_created: Number of new canonical apps created
+        - canonical_applications_linked: Number of assets linked to existing canonical apps
+        - canonical_applications_failed: Number of assets that failed deduplication
+        - enrichment_triggered: Whether enrichment pipeline was triggered (Phase 3)
+        - errors: List of errors encountered
+        - message: Human-readable summary
     """
     require_role(current_user, COLLECTION_CREATE_ROLES, "bulk import collection data")
 
@@ -271,9 +368,11 @@ async def process_bulk_import(
 
         # Atomic transaction for all database operations
         async with db.begin():
-            # 3. Process CSV rows and create assets
-            processed_count, errors, created_assets = await _process_csv_rows(
-                csv_data, asset_type, flow_id, db, current_user, context
+            # 3. Process CSV rows and create assets (ENHANCED with canonical deduplication)
+            processed_count, errors, created_assets, canonical_stats = (
+                await _process_csv_rows(
+                    csv_data, asset_type, flow_id, db, current_user, context
+                )
             )
 
             # 4. Update flow configuration and status
@@ -297,7 +396,9 @@ async def process_bulk_import(
 
         logger.info(
             f"Bulk import completed for flow {flow_id}: "
-            f"{processed_count} {asset_type} processed, {len(errors)} errors"
+            f"{processed_count} {asset_type} processed, {len(errors)} errors, "
+            f"Canonical: {canonical_stats['created']} new, {canonical_stats['linked_existing']} linked, "
+            f"{canonical_stats['failed']} failed"
         )
 
         return {
@@ -308,7 +409,16 @@ async def process_bulk_import(
             "created_assets": [str(asset.id) for asset in created_assets],
             "errors": errors,
             "gap_analysis_triggered": gap_analysis_triggered,
-            "message": f"Successfully imported {processed_count} {asset_type}",
+            # NEW: Canonical deduplication stats
+            "canonical_applications_created": canonical_stats["created"],
+            "canonical_applications_linked": canonical_stats["linked_existing"],
+            "canonical_applications_failed": canonical_stats["failed"],
+            "enrichment_triggered": False,  # Placeholder for Phase 3
+            "message": (
+                f"Successfully imported {processed_count} {asset_type}, "
+                f"{canonical_stats['created']} new canonical apps, "
+                f"linked {canonical_stats['linked_existing']} to existing apps"
+            ),
         }
 
     except HTTPException:

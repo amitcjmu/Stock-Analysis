@@ -90,3 +90,178 @@ class AssessmentReport(BaseModel):
     apps_ready_for_planning: List[str]
     overall_readiness_score: float
     report_generated_at: datetime
+
+
+class AssessmentApplicationsListResponse(BaseModel):
+    """
+    Response for GET /master-flows/{flow_id}/assessment-applications.
+
+    Returns application-centric view with canonical grouping.
+    Enhanced in October 2025 to use AssessmentApplicationResolver.
+    """
+
+    flow_id: str
+    applications: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="List of application groups with their assets",
+    )
+    total_applications: int = Field(
+        0, ge=0, description="Total number of application groups"
+    )
+    total_assets: int = Field(0, ge=0, description="Total number of assets")
+    unmapped_assets: int = Field(
+        0, ge=0, description="Number of assets without canonical mapping"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "flow_id": "ced44ce1-effc-403f-89cc-aeeb05ceba84",
+                "applications": [
+                    {
+                        "canonical_application_id": "05459507-86cb-41f9-9c2d-2a9f4a50445a",
+                        "canonical_application_name": "CRM System",
+                        "asset_count": 3,
+                        "asset_types": ["server", "database", "network_device"],
+                        "readiness_summary": {
+                            "ready": 2,
+                            "not_ready": 1,
+                            "in_progress": 0,
+                        },
+                    }
+                ],
+                "total_applications": 1,
+                "total_assets": 3,
+                "unmapped_assets": 0,
+            }
+        }
+    )
+
+
+class AssetReadinessDetail(BaseModel):
+    """Detailed readiness information for a single asset."""
+
+    asset_id: str
+    asset_name: str
+    asset_type: str
+    assessment_readiness: str
+    completeness_score: float = Field(ge=0.0, le=1.0)
+    assessment_blockers: List[str] = Field(default_factory=list)
+    missing_critical_attributes: List[str] = Field(default_factory=list)
+
+
+class AssessmentReadinessResponse(BaseModel):
+    """
+    Response for GET /master-flows/{flow_id}/assessment-readiness.
+
+    Provides detailed readiness information with blockers and guidance.
+    """
+
+    flow_id: str
+    readiness_summary: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Overall readiness summary",
+    )
+    enrichment_status: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Enrichment table population status",
+    )
+    blockers: List[AssetReadinessDetail] = Field(
+        default_factory=list,
+        description="Assets with blockers (not ready)",
+    )
+    actionable_guidance: List[str] = Field(
+        default_factory=list,
+        description="Actionable guidance for addressing blockers",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "flow_id": "ced44ce1-effc-403f-89cc-aeeb05ceba84",
+                "readiness_summary": {
+                    "total_assets": 5,
+                    "ready": 2,
+                    "not_ready": 3,
+                    "in_progress": 0,
+                    "avg_completeness_score": 0.64,
+                },
+                "enrichment_status": {
+                    "compliance_flags": 2,
+                    "licenses": 0,
+                    "vulnerabilities": 3,
+                },
+                "blockers": [
+                    {
+                        "asset_id": "c4ed088f-6658-405b-b011-8ce50c065ddf",
+                        "asset_name": "DevTestVM01",
+                        "asset_type": "server",
+                        "assessment_readiness": "not_ready",
+                        "completeness_score": 0.42,
+                        "assessment_blockers": [
+                            "missing_business_owner",
+                            "missing_dependencies",
+                        ],
+                        "missing_critical_attributes": [
+                            "business_owner",
+                            "annual_operating_cost",
+                        ],
+                    }
+                ],
+                "actionable_guidance": ["3 asset(s) missing business owner"],
+            }
+        }
+    )
+
+
+class AssessmentProgressCategory(BaseModel):
+    """Progress for a single attribute category."""
+
+    name: str = Field(..., description="Category name")
+    attributes: List[str] = Field(
+        default_factory=list, description="Attribute names in category"
+    )
+    completed: int = Field(0, ge=0, description="Number of completed attributes")
+    total: int = Field(0, ge=0, description="Total attributes in category")
+    progress_percent: float = Field(
+        0.0, ge=0.0, le=100.0, description="Progress percentage"
+    )
+
+
+class AssessmentProgressResponse(BaseModel):
+    """
+    Response for GET /master-flows/{flow_id}/assessment-progress.
+
+    Returns attribute-level progress tracking by category.
+    """
+
+    flow_id: str
+    categories: List[AssessmentProgressCategory] = Field(
+        default_factory=list,
+        description="Progress by category",
+    )
+    overall_progress: float = Field(
+        0.0, ge=0.0, le=100.0, description="Overall progress percentage"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "flow_id": "ced44ce1-effc-403f-89cc-aeeb05ceba84",
+                "categories": [
+                    {
+                        "name": "Infrastructure",
+                        "attributes": [
+                            "asset_name",
+                            "technology_stack",
+                            "operating_system",
+                        ],
+                        "completed": 15,
+                        "total": 18,
+                        "progress_percent": 83.3,
+                    }
+                ],
+                "overall_progress": 65.5,
+            }
+        }
+    )
