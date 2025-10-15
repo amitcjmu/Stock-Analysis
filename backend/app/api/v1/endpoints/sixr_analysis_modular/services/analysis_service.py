@@ -61,6 +61,7 @@ class AnalysisService:
                             try:
                                 # Only attempt asset lookup if app_id could be a UUID
                                 from uuid import UUID
+
                                 if isinstance(app_id, str):
                                     UUID(app_id)  # Validate UUID format
                                     app_result = await db.execute(
@@ -69,7 +70,9 @@ class AnalysisService:
                                     app_asset = app_result.scalar_one_or_none()
                             except (ValueError, TypeError):
                                 # app_id is not a valid UUID, skip asset lookup
-                                logger.debug(f"Application ID {app_id} is not a UUID, using fallback data")
+                                logger.debug(
+                                    f"Application ID {app_id} is not a UUID, using fallback data"
+                                )
 
                             if app_asset:
                                 # Extract real application characteristics
@@ -168,7 +171,7 @@ class AnalysisService:
                     await db.commit()
 
                     # Calculate recommendation using decision engine
-                    recommendation_data = self.decision_engine.analyze_parameters(
+                    recommendation_data = await self.decision_engine.analyze_parameters(
                         param_obj, application_data[0] if application_data else None
                     )
 
@@ -300,7 +303,7 @@ class AnalysisService:
                     analysis.progress_percentage = 60.0
                     await db.commit()
 
-                    recommendation_data = self.decision_engine.analyze_parameters(
+                    recommendation_data = await self.decision_engine.analyze_parameters(
                         param_obj, app_context
                     )
 
@@ -411,7 +414,7 @@ class AnalysisService:
                         param_obj = SixRParameterBase(**param_dict)
 
                         # Run enhanced analysis
-                        recommendation_data = self.decision_engine.analyze_parameters(
+                        recommendation_data = await self.decision_engine.analyze_parameters(
                             param_obj, question_context
                         )
 
@@ -526,7 +529,7 @@ class AnalysisService:
                     analysis.progress_percentage = 70.0
                     await db.commit()
 
-                    recommendation_data = self.decision_engine.analyze_parameters(
+                    recommendation_data = await self.decision_engine.analyze_parameters(
                         param_obj, context
                     )
 
