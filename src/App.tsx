@@ -49,6 +49,7 @@ import {
   LazyInventory,
   LazyDependencies,
   LazyDataCleansing,
+  LazyDataValidation,
   LazyAttributeMapping,
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
@@ -241,6 +242,11 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/discovery/data-cleansing/:flowId"
         element={<LazyDataCleansing />}
+      />
+      <Route path="/discovery/data-validation" element={<LazyDataValidation />} />
+      <Route
+        path="/discovery/data-validation/:flowId"
+        element={<LazyDataValidation />}
       />
       <Route
         path="/discovery/attribute-mapping"

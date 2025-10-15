@@ -135,6 +135,11 @@ export const LazyDataCleansing = createLazyRoute(
   "Data Cleansing",
 );
 
+export const LazyDataValidation = createLazyRoute(
+  () => import("@/pages/discovery/DataValidation"),
+  "Data Validation",
+);
+
 export const LazyAttributeMapping = createLazyRoute(
   () => import("@/pages/discovery/AttributeMapping"),
   "Attribute Mapping",
