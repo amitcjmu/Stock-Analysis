@@ -98,6 +98,17 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     };
   }, [flowId]);
 
+  // CC FIX #582: Refresh flow state on Inventory page mount to get latest phase_state
+  // This ensures conflict_resolution_pending flag is loaded from server
+  // React Query cache with refetchOnMount: false prevents fresh data without explicit refresh
+  React.useEffect(() => {
+    if (flowId && refreshFlow) {
+      console.log('🔄 [InventoryContent] Refreshing flow state on mount to fetch latest phase_state');
+      refreshFlow();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps array - only run on mount, not when flowId/refreshFlow change
+
   // Check for collectionFlowId parameter to auto-show application selection modal
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

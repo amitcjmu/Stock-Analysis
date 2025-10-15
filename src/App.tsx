@@ -49,9 +49,11 @@ import {
   LazyInventory,
   LazyDependencies,
   LazyDataCleansing,
+  LazyDataValidation,
   LazyAttributeMapping,
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
+  LazyFlowStatusMonitor,
   LazyCollectionIndex,
   LazyAdaptiveForms,
   LazyBulkUpload,
@@ -226,7 +228,7 @@ const AuthenticatedApp = (): JSX.Element => {
       />
       <Route
         path="/discovery/monitor/:flowId"
-        element={<LazyDiscoveryDashboard />}
+        element={<LazyFlowStatusMonitor />}
       />
       <Route path="/discovery/cmdb-import" element={<LazyDataImport />} />
       <Route path="/discovery/data-import" element={<LazyDataImport />} />
@@ -241,6 +243,11 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/discovery/data-cleansing/:flowId"
         element={<LazyDataCleansing />}
+      />
+      <Route path="/discovery/data-validation" element={<LazyDataValidation />} />
+      <Route
+        path="/discovery/data-validation/:flowId"
+        element={<LazyDataValidation />}
       />
       <Route
         path="/discovery/attribute-mapping"
