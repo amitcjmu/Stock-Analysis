@@ -245,18 +245,33 @@ class FlowTypeRegistry:
             config: Flow type configuration to register
 
         Raises:
-            ValueError: If configuration is invalid or name already exists
+            ValueError: If configuration is invalid
+
+        Note:
+            Idempotent operation - if flow type is already registered with same version,
+            it will be skipped silently. If different version, it will be updated.
         """
         # Validate configuration
         errors = config.validate()
         if errors:
             raise ValueError(f"Invalid flow configuration: {', '.join(errors)}")
 
-        # Check for duplicate registration
+        # Check for duplicate registration - make idempotent
         if config.name in self._flow_types:
-            raise ValueError(f"Flow type '{config.name}' is already registered")
+            existing_config = self._flow_types[config.name]
+            if existing_config.version == config.version:
+                # Same version - skip silently (idempotent)
+                logger.debug(
+                    f"Flow type '{config.name}' v{config.version} already registered (skipping)"
+                )
+                return
+            else:
+                # Different version - update with warning
+                logger.warning(
+                    f"Updating flow type '{config.name}' from v{existing_config.version} to v{config.version}"
+                )
 
-        # Register the flow type
+        # Register or update the flow type
         self._flow_types[config.name] = config
         logger.info(f"✅ Registered flow type: {config.name} (v{config.version})")
 
