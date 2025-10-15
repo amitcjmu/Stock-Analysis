@@ -37,20 +37,30 @@ class ArchitectureCommands:
         """Save or update engagement architecture standards"""
 
         for standard in standards:
-            # Fix P0: Map Pydantic field 'mandatory' to database column 'is_mandatory'
+            # Fix: Map Pydantic fields to database columns and provide required fields
             stmt = insert(EngagementArchitectureStandard).values(
                 engagement_id=engagement_id,
+                client_account_id=self.client_account_id,  # Required NOT NULL field
                 requirement_type=standard.requirement_type,
+                standard_name=standard.description,  # Use description as unique standard_name
                 description=standard.description,
                 is_mandatory=standard.mandatory,  # Map mandatory -> is_mandatory
                 supported_versions=standard.supported_versions,
                 requirement_details=standard.requirement_details,
-                created_by=standard.created_by or "system",
+                # Provide required NOT NULL fields with sensible defaults
+                minimum_requirements={},
+                preferred_patterns={},
+                constraints={},
+                compliance_level="standard",
+                priority=5,
+                business_impact="medium",
+                score_metadata={},
                 updated_at=datetime.utcnow(),
             )
 
+            # Unique constraint is (engagement_id, requirement_type, standard_name)
             stmt = stmt.on_conflict_do_update(
-                index_elements=["engagement_id", "requirement_type"],
+                index_elements=["engagement_id", "requirement_type", "standard_name"],
                 set_=dict(
                     description=stmt.excluded.description,
                     is_mandatory=stmt.excluded.is_mandatory,  # Map mandatory -> is_mandatory
