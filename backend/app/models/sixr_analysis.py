@@ -101,7 +101,13 @@ class SixRAnalysis(Base):
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text)
     status = Column(
-        Enum(AnalysisStatus), default=AnalysisStatus.PENDING, nullable=False
+        Enum(
+            AnalysisStatus,
+            name="analysis_status",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        default=AnalysisStatus.PENDING,
+        nullable=False,
     )
     priority = Column(Integer, default=3)  # 1-5 scale
 
@@ -115,7 +121,13 @@ class SixRAnalysis(Base):
     estimated_completion = Column(DateTime(timezone=True))
 
     # Results
-    final_recommendation = Column(Enum(SixRStrategy))
+    final_recommendation = Column(
+        Enum(
+            SixRStrategy,
+            name="sixr_strategy",
+            values_callable=lambda x: [e.value for e in x],
+        )
+    )
     confidence_score = Column(Float)  # 0-1 confidence in final recommendation
 
     # Metadata
@@ -275,7 +287,14 @@ class SixRRecommendation(Base):
     iteration_number = Column(Integer, default=1)
 
     # Core recommendation
-    recommended_strategy = Column(Enum(SixRStrategy), nullable=False)
+    recommended_strategy = Column(
+        Enum(
+            SixRStrategy,
+            name="sixr_strategy",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+    )
     confidence_score = Column(Float, nullable=False)
 
     # Strategy scores (JSON)
@@ -375,7 +394,14 @@ class SixRQuestion(Base):
     # Question definition
     question_id = Column(String(100), unique=True, nullable=False, index=True)
     question_text = Column(Text, nullable=False)
-    question_type = Column(Enum(QuestionType), nullable=False)
+    question_type = Column(
+        Enum(
+            QuestionType,
+            name="question_type",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+    )
     category = Column(String(100), nullable=False)
 
     # Question metadata

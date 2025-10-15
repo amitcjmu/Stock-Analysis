@@ -1,8 +1,14 @@
 """
 Flow state definitions and management utilities.
 Provides standardized flow status, phases, and state transitions.
+
+.. deprecated:: 3.0.0
+    PHASE_SEQUENCES is deprecated. Use FlowTypeConfig pattern instead.
+    See backend/app/services/flow_configs/ for new implementations.
+    Will be removed in v4.0.0
 """
 
+import warnings
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Set
@@ -145,6 +151,10 @@ FLOW_STATUS_MESSAGES: Dict[FlowStatus, str] = {
 }
 
 # Phase sequences for different flow types
+# .. deprecated:: 3.0.0
+#     PHASE_SEQUENCES is no longer authoritative.
+#     Use FlowTypeConfig instead via get_flow_config().
+#     Will be removed in v4.0.0
 PHASE_SEQUENCES: Dict[FlowType, List[FlowPhase]] = {
     FlowType.DISCOVERY: [
         FlowPhase.INITIALIZATION,
@@ -235,17 +245,37 @@ def get_flow_status_message(status: FlowStatus) -> str:
 def get_next_phase(
     flow_type: FlowType, current_phase: FlowPhase
 ) -> Optional[FlowPhase]:
-    """Get the next phase in the flow sequence."""
-    phases = PHASE_SEQUENCES.get(flow_type, [])
+    """
+    Get the next phase in the flow sequence.
+
+    .. deprecated:: 3.0.0
+        Use FlowTypeConfig.get_next_phase() instead.
+        Will be removed in v4.0.0
+    """
+    warnings.warn(
+        "get_next_phase() with PHASE_SEQUENCES is deprecated. "
+        "Use FlowTypeConfig.get_next_phase() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     try:
-        current_index = phases.index(current_phase)
-        if current_index < len(phases) - 1:
-            return phases[current_index + 1]
-    except ValueError:
-        pass
+        from app.services.flow_type_registry_helpers import get_flow_config
 
-    return None
+        config = get_flow_config(flow_type.value)
+        return config.get_next_phase(current_phase.value)
+    except Exception:
+        # Fallback to legacy behavior if config not available
+        phases = PHASE_SEQUENCES.get(flow_type, [])
+
+        try:
+            current_index = phases.index(current_phase)
+            if current_index < len(phases) - 1:
+                return phases[current_index + 1]
+        except ValueError:
+            pass
+
+        return None
 
 
 def get_previous_phase(
@@ -308,14 +338,39 @@ def get_phase_sequence(flow_type: FlowType) -> List[FlowPhase]:
 def calculate_progress_percentage(
     flow_type: FlowType, current_phase: FlowPhase, phase_progress: float = 0.0
 ) -> float:
-    """Calculate overall progress percentage for a flow."""
-    phases = PHASE_SEQUENCES.get(flow_type, [])
+    """
+    Calculate overall progress percentage for a flow.
 
-    if not phases:
-        return 0.0
+    Migrated from hardcoded PHASE_SEQUENCES to config-driven approach.
 
+    Args:
+        flow_type: Flow type (discovery, collection, assessment, etc.)
+        current_phase: Current phase name
+        phase_progress: Progress within current phase (0.0 to 1.0)
+
+    Returns:
+        Progress percentage (0.0 to 100.0)
+    """
     try:
-        current_index = phases.index(current_phase)
+        from app.services.flow_type_registry_helpers import get_flow_config
+
+        config = get_flow_config(flow_type.value)
+        phases = [p.name for p in config.phases]
+
+        if not phases:
+            return 0.0
+
+        # Convert FlowPhase enum to string for matching
+        current_phase_str = (
+            current_phase.value
+            if isinstance(current_phase, FlowPhase)
+            else current_phase
+        )
+
+        if current_phase_str not in phases:
+            return 0.0
+
+        current_index = phases.index(current_phase_str)
 
         # Calculate progress based on completed phases plus current phase progress
         completed_phases = current_index
@@ -328,8 +383,31 @@ def calculate_progress_percentage(
         progress = (completed_phases * phase_weight) + (phase_progress * phase_weight)
 
         return min(100.0, max(0.0, progress))
-    except ValueError:
-        return 0.0
+    except Exception:
+        # Fallback to legacy behavior if config not available
+        phases = PHASE_SEQUENCES.get(flow_type, [])
+
+        if not phases:
+            return 0.0
+
+        try:
+            current_index = phases.index(current_phase)
+
+            # Calculate progress based on completed phases plus current phase progress
+            completed_phases = current_index
+            total_phases = len(phases)
+
+            # Each phase represents an equal portion of the total progress
+            phase_weight = 100.0 / total_phases
+
+            # Progress = (completed phases * phase weight) + (current phase progress * phase weight)
+            progress = (completed_phases * phase_weight) + (
+                phase_progress * phase_weight
+            )
+
+            return min(100.0, max(0.0, progress))
+        except ValueError:
+            return 0.0
 
 
 def get_flow_type_display_name(flow_type: FlowType) -> str:

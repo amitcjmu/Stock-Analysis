@@ -33,6 +33,7 @@ def register_core_routers(api_router: APIRouter):
         flow_sync_debug_router,
         plan_router,
     )
+    from app.api.v1.endpoints.flow_metadata import router as flow_metadata_router
 
     logger.info("--- Registering Core Routers ---")
 
@@ -78,6 +79,10 @@ def register_core_routers(api_router: APIRouter):
     # Planning
     api_router.include_router(plan_router, prefix="/plan")
     logger.info("✅ Plan router registered")
+
+    # Flow Metadata (for FlowTypeConfig pattern per ADR-027)
+    api_router.include_router(flow_metadata_router)
+    logger.info("✅ Flow metadata router registered")
 
 
 def register_conditional_routers(api_router: APIRouter):

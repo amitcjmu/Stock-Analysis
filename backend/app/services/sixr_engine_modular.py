@@ -238,12 +238,17 @@ class SixRDecisionEngine:
             return {
                 "recommended_strategy": recommended_strategy,
                 "confidence_score": confidence_score,
-                "all_strategies": strategy_scores,
+                "strategy_scores": strategy_scores,
                 "rationale": "AI-driven analysis using CrewAI Technical Debt Crew",
                 "key_factors": [
                     "Technical debt assessment",
                     "Modernization opportunities",
                     "Risk analysis",
+                ],
+                "assumptions": ["AI-driven analysis based on technical debt crew"],
+                "next_steps": [
+                    "Review AI recommendations",
+                    "Validate with stakeholders",
                 ],
                 "validation_errors": [],
                 "crew_analysis": (
@@ -276,12 +281,20 @@ class SixRDecisionEngine:
         return {
             "recommended_strategy": recommended_strategy,
             "confidence_score": 0.6,
-            "all_strategies": [
+            "strategy_scores": [
                 {"strategy": recommended_strategy, "score": 0.7, "confidence": 0.6},
                 {"strategy": "retain", "score": 0.5, "confidence": 0.5},
             ],
             "rationale": "Simple rule-based analysis (fallback mode)",
             "key_factors": ["Technical complexity", "Business criticality"],
+            "assumptions": [
+                "Limited analysis data available",
+                "Using default parameters",
+            ],
+            "next_steps": [
+                "Conduct detailed assessment",
+                "Gather additional application data",
+            ],
             "validation_errors": [],
             "fallback_mode": True,
         }
@@ -376,7 +389,7 @@ class SixRDecisionEngine:
         return {
             "recommended_strategy": "rehost",
             "confidence_score": 0.3,
-            "all_strategies": [
+            "strategy_scores": [
                 {"strategy": "rehost", "score": 0.6, "confidence": 0.3},
                 {"strategy": "retain", "score": 0.5, "confidence": 0.3},
             ],

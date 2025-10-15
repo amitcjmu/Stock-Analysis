@@ -253,9 +253,23 @@ export const FLOW_PHASE_ROUTES: Record<
 };
 
 /**
+ * @deprecated Use useFlowPhases hook instead
+ *
+ * This constant is kept for backward compatibility only.
+ * New code should fetch phases from API using useFlowPhases.
+ *
+ * Will be removed in v4.0.0
+ *
+ * Per ADR-027: FlowTypeConfig is the single source of truth for phase sequences.
+ * This hardcoded data can become out of sync with backend configuration.
+ *
+ * Migration guide:
+ * - Old: const phases = PHASE_SEQUENCES_LEGACY[flowType];
+ * - New: const { data: phases } = useFlowPhases(flowType); // then use phases?.phases
+ *
  * Phase sequences for determining next phase - matches backend phase_sequences
  */
-export const PHASE_SEQUENCES: Record<FlowType, string[]> = {
+export const PHASE_SEQUENCES_LEGACY: Record<FlowType, string[]> = {
   discovery: [
     "data_import",
     "attribute_mapping",
@@ -289,6 +303,12 @@ export const PHASE_SEQUENCES: Record<FlowType, string[]> = {
   observability: ["monitoring_setup", "performance_optimization"],
   decommission: ["decommission_planning", "data_migration", "system_shutdown"],
 };
+
+/**
+ * Alias for backward compatibility
+ * @deprecated Use PHASE_SEQUENCES_LEGACY or preferably useFlowPhases hook
+ */
+export const PHASE_SEQUENCES = PHASE_SEQUENCES_LEGACY;
 
 /**
  * Get the appropriate route for any flow type and phase
@@ -360,12 +380,27 @@ export function phaseRequiresFlowId(
 
 /**
  * Get next phase for a flow
+ *
+ * @deprecated Use getNextPhase from useFlowPhases hook instead
+ *
+ * Per ADR-027: Phase sequences should come from API, not hardcoded constants
+ *
+ * Migration guide:
+ * ```tsx
+ * // Old way:
+ * const nextPhase = getNextPhase(flowType, currentPhase);
+ *
+ * // New way:
+ * const { data: phases } = useFlowPhases(flowType);
+ * const nextPhase = getNextPhase(phases, currentPhase); // from useFlowPhases hook
+ * ```
+ *
  * @param flowType - The type of flow
  * @param currentPhase - The current phase
  * @returns The next phase or 'completed'
  */
 export function getNextPhase(flowType: FlowType, currentPhase: string): string {
-  const sequence = PHASE_SEQUENCES[flowType];
+  const sequence = PHASE_SEQUENCES_LEGACY[flowType];
   if (!sequence) return "completed";
 
   const currentIndex = sequence.indexOf(currentPhase);

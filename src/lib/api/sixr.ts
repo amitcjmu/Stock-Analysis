@@ -558,7 +558,8 @@ export class SixRApiClient {
         });
       }
 
-      const endpoint = `/6r${queryParams.toString() ? `?${queryParams}` : ''}`;
+      // CC: Add trailing slash to match FastAPI route definition and avoid 307 redirect
+      const endpoint = `/6r/${queryParams.toString() ? `?${queryParams}` : ''}`;
       // Use the new API client directly to ensure proper URL handling in Docker
       return await apiClient.get<SixRAnalysisResponse[]>(endpoint);
     } catch (error) {

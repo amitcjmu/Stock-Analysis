@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -287,7 +288,7 @@ class IterationRequest(BaseModel):
 class SixRAnalysisResponse(BaseModel):
     """Response schema for 6R analysis."""
 
-    analysis_id: int = Field(..., description="Analysis ID")
+    analysis_id: UUID = Field(..., description="Analysis ID")
     status: AnalysisStatus = Field(..., description="Analysis status")
     current_iteration: int = Field(..., description="Current iteration number")
     applications: List[Dict[str, Any]] = Field(..., description="Application details")
@@ -320,7 +321,7 @@ class SixRAnalysisListResponse(BaseModel):
 class SixRRecommendationResponse(BaseModel):
     """Response schema for 6R recommendation."""
 
-    analysis_id: int = Field(..., description="Analysis ID")
+    analysis_id: UUID = Field(..., description="Analysis ID")
     iteration_number: int = Field(..., description="Iteration number")
     recommendation: SixRRecommendation = Field(..., description="6R recommendation")
     comparison_with_previous: Optional[Dict[str, Any]] = Field(
@@ -349,7 +350,7 @@ class BulkAnalysisRequest(BaseModel):
 class BulkAnalysisResponse(BaseModel):
     """Response schema for bulk analysis."""
 
-    bulk_analysis_id: int = Field(..., description="Bulk analysis ID")
+    bulk_analysis_id: UUID = Field(..., description="Bulk analysis ID")
     total_applications: int = Field(..., description="Total applications to analyze")
     completed_applications: int = Field(default=0, description="Completed applications")
     failed_applications: int = Field(default=0, description="Failed applications")

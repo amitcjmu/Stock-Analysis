@@ -6,56 +6,26 @@ This module provides a simplified, non-AI flow continuation approach that:
 2. Uses simple business logic for routing decisions
 3. Provides immediate responses without CrewAI overhead
 4. Falls back gracefully when data is missing
+
+Per ADR-027: Uses FlowTypeConfig as single source of truth for phase sequences and routes.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
+from app.services.flow_type_registry_helpers import get_flow_config
 
 logger = logging.getLogger(__name__)
 
 
 class SimpleFlowRouter:
-    """Direct database-based flow routing without AI agents"""
+    """
+    Direct database-based flow routing without AI agents.
 
-    # Flow phase progression mapping
-    PHASE_PROGRESSION = {
-        "discovery": {
-            "data_import": "attribute_mapping",
-            "attribute_mapping": "data_cleansing",
-            "data_cleansing": "inventory",
-            "inventory": "dependencies",
-            "dependencies": "tech_debt",
-            "tech_debt": "completion",
-        },
-        "collection": {
-            "initialization": "questionnaires",
-            "questionnaires": "validation",
-            "validation": "review",
-            "review": "completion",
-        },
-    }
-
-    # Routing decisions per phase
-    PHASE_ROUTES = {
-        "discovery": {
-            "data_import": "/discovery/data-import",
-            "attribute_mapping": "/discovery/attribute-mapping",
-            "data_cleansing": "/discovery/data-cleansing",
-            "inventory": "/discovery/inventory",
-            "dependencies": "/discovery/dependencies",
-            "tech_debt": "/discovery/tech-debt",
-            "completion": "/discovery/overview",
-        },
-        "collection": {
-            "initialization": "/collection/start",
-            "questionnaires": "/collection/questionnaires",
-            "validation": "/collection/validation",
-            "review": "/collection/review",
-            "completion": "/collection/summary",
-        },
-    }
+    Per ADR-027: Phase progression and routes come from FlowTypeConfig registry,
+    not hardcoded dictionaries.
+    """
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -233,25 +203,65 @@ class SimpleFlowRouter:
             "blocking_issues": ["Unknown phase"],
         }
 
+    def _get_next_phase(self, flow_type: str, current_phase: str) -> Optional[str]:
+        """
+        Get next phase from FlowTypeConfig.
+
+        Per ADR-027: Uses authoritative phase sequence from config registry.
+        """
+        try:
+            config = get_flow_config(flow_type)
+            phases = [p.name for p in config.phases]
+
+            if current_phase in phases:
+                current_index = phases.index(current_phase)
+                if current_index < len(phases) - 1:
+                    return phases[current_index + 1]
+
+            return None  # Last phase or phase not found
+        except ValueError:
+            logger.warning(f"FlowTypeConfig not found for: {flow_type}")
+            return None
+
+    def _get_phase_route(self, flow_type: str, phase_name: str) -> str:
+        """
+        Get phase route from FlowTypeConfig metadata.
+
+        Per ADR-027: Uses authoritative ui_route from phase metadata.
+        """
+        try:
+            config = get_flow_config(flow_type)
+            phase_obj = next((p for p in config.phases if p.name == phase_name), None)
+
+            if phase_obj and phase_obj.metadata and "ui_route" in phase_obj.metadata:
+                return phase_obj.metadata["ui_route"]
+
+            # Fallback to overview
+            return f"/{flow_type}/overview"
+        except ValueError:
+            logger.warning(f"FlowTypeConfig not found for: {flow_type}")
+            return f"/{flow_type}/overview"
+
     def _determine_routing(
         self, flow_type: str, current_phase: str, phase_status: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Determine routing based on phase completion"""
+        """Determine routing based on phase completion using FlowTypeConfig"""
 
         if phase_status["is_complete"]:
             # Move to next phase
-            next_phase = self.PHASE_PROGRESSION.get(flow_type, {}).get(
-                current_phase, current_phase
-            )
-            target_page = self.PHASE_ROUTES.get(flow_type, {}).get(
-                next_phase, f"/{flow_type}/overview"
-            )
-            reasoning = f"Phase '{current_phase}' is complete, moving to '{next_phase}'"
+            next_phase = self._get_next_phase(flow_type, current_phase)
+            if next_phase:
+                target_page = self._get_phase_route(flow_type, next_phase)
+                reasoning = (
+                    f"Phase '{current_phase}' is complete, moving to '{next_phase}'"
+                )
+            else:
+                # Last phase - flow complete
+                target_page = f"/{flow_type}/overview"
+                reasoning = f"Flow complete - '{current_phase}' was final phase"
         else:
             # Stay in current phase
-            target_page = self.PHASE_ROUTES.get(flow_type, {}).get(
-                current_phase, f"/{flow_type}/overview"
-            )
+            target_page = self._get_phase_route(flow_type, current_phase)
             reasoning = (
                 f"Phase '{current_phase}' is not complete, staying in current phase"
             )

@@ -1,82 +1,112 @@
 """
-Discovery Flow Configuration - Compact Version
-MFO-039: Create Discovery flow configuration
+Discovery Flow Configuration
+Per ADR-027: FlowTypeConfig as universal pattern
 
-Comprehensive asset discovery and inventory flow configuration
-with all 6 phases and associated validators/handlers.
+Comprehensive asset discovery and inventory flow configuration.
+Version 3.0.0 reduces scope to 5 phases (removed dependency_analysis
+and tech_debt_assessment which moved to Assessment flow).
 """
 
-from app.services.flow_type_registry import FlowCapabilities, FlowTypeConfig
-
-# Import phase constants from separate file to reduce file size
-from app.services.flow_configs.discovery_phase_constants import ALL_PHASES
-
-# Import the UnifiedDiscoveryFlow class for crew_class registration
-from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
-
-# Import the DiscoveryChildFlowService for child flow operations
+from app.services.flow_type_registry import (
+    FlowCapabilities,
+    FlowTypeConfig,
+)
 from app.services.child_flow_services import DiscoveryChildFlowService
+from .discovery_phases import (
+    get_asset_inventory_phase,
+    get_data_cleansing_phase,
+    get_data_import_phase,
+    get_data_validation_phase,
+    get_field_mapping_phase,
+)
 
 
 def get_discovery_flow_config() -> FlowTypeConfig:
     """
-    Get the Discovery flow configuration with all 6 phases
+    Get Discovery flow configuration
+
+    Per ADR-027: Discovery focuses on data acquisition and normalization.
+    Dependency analysis and tech debt moved to Assessment flow.
 
     Phases:
-    1. Data Import - Import and validate data from various sources
-    2. Field Mapping - Map imported fields to standard schema
-    3. Data Cleansing - Clean and normalize data
-    4. Asset Creation - Create asset records from cleansed data
-    5. Asset Inventory - Build comprehensive asset inventory
-    6. Dependency Analysis - Analyze asset dependencies
+    1. Data Import - Import CMDB data
+    2. Data Validation - Validate imported data
+    3. Field Mapping - Map source fields to target schema
+    4. Data Cleansing - Clean and normalize data
+    5. Asset Inventory - Create asset records
     """
 
-    discovery_config = FlowTypeConfig(
-        name="discovery",
-        display_name="Discovery Flow",
-        description="Comprehensive asset discovery and inventory flow for migration assessment",
-        version="2.0.0",
-        phases=ALL_PHASES,  # Import from constants file
-        capabilities=FlowCapabilities(
-            supports_parallel_execution=True,
-            supports_phase_rollback=True,
-            supports_incremental_execution=True,
-            supports_checkpointing=True,
-            supports_failure_recovery=True,
-            supports_real_time_monitoring=True,
-            supports_dynamic_scaling=True,
-        ),
-        metadata={
-            "max_parallel_phases": 3,
-            "estimated_total_duration_minutes": 60,
-            "resource_requirements": {
-                "cpu": "moderate",
-                "memory": "high",
-                "storage": "moderate",
-                "network": "low",
-            },
-            "required_integrations": ["crewai", "database"],
-            "optional_integrations": ["external_apis", "file_systems"],
-            "validation_config": {
-                "strict_phase_validation": True,
-                "allow_phase_skipping": False,
-                "require_all_outputs": False,
-                "validate_input_schemas": True,
-                "enforce_dependencies": True,
-            },
-            "ui_config": {
-                "show_phase_progress": True,
-                "allow_manual_intervention": True,
-                "display_real_time_logs": True,
-                "enable_phase_restart": True,
-                "supports_templates": True,
-            },
-        },
-        crew_class=UnifiedDiscoveryFlow,
-        # CC FIX: Comment out crew factory to use persistent agents instead
-        # crew_factory=create_discovery_crew,  # Deprecated - now uses persistent agents
-        child_flow_service=DiscoveryChildFlowService,
-        tags=["discovery", "data_import", "inventory", "assessment_prerequisite"],
+    # Define flow capabilities
+    capabilities = FlowCapabilities(
+        supports_pause_resume=True,
+        supports_rollback=True,
+        supports_branching=False,
+        supports_iterations=True,
+        max_iterations=3,
+        supports_scheduling=True,
+        supports_parallel_phases=False,
+        supports_checkpointing=True,
+        required_permissions=[
+            "discovery.read",
+            "discovery.write",
+            "discovery.execute",
+        ],
     )
 
-    return discovery_config
+    # Create flow configuration
+    return FlowTypeConfig(
+        name="discovery",
+        display_name="Discovery Flow",
+        description=(
+            "Data discovery flow for importing, validating, mapping, "
+            "and creating asset inventory from CMDB exports"
+        ),
+        version="3.0.0",  # Major version for phase scope change
+        phases=[
+            get_data_import_phase(),
+            get_data_validation_phase(),
+            get_field_mapping_phase(),
+            get_data_cleansing_phase(),
+            get_asset_inventory_phase(),
+        ],
+        child_flow_service=DiscoveryChildFlowService,  # Per ADR-025
+        capabilities=capabilities,
+        default_configuration={
+            "auto_validate": True,
+            "quality_threshold": 0.8,
+            "enable_smart_mapping": True,
+            "create_assets_incrementally": True,
+            "agent_collaboration": True,
+            "confidence_threshold": 0.85,
+        },
+        initialization_handler="discovery_initialization",
+        finalization_handler="discovery_finalization",
+        error_handler="discovery_error_handler",
+        metadata={
+            "category": "data_acquisition",
+            "complexity": "medium",
+            "estimated_duration_minutes": 60,
+            "required_agents": [
+                "data_import_agent",
+                "validation_agent",
+                "mapping_agent",
+                "cleansing_agent",
+                "inventory_agent",
+            ],
+            "output_formats": ["json", "excel", "dashboard"],
+            "prerequisite_flows": [],
+            "next_flows": ["collection", "assessment"],
+            "phase_scope_change": {
+                "version": "3.0.0",
+                "removed_phases": ["dependency_analysis", "tech_debt_assessment"],
+                "reason": "Moved to Assessment flow per ADR-027",
+                "backward_compatibility": "Database flags retained for legacy data",
+            },
+        },
+        tags=[
+            "discovery",
+            "data_import",
+            "asset_inventory",
+            "cmdb",
+        ],
+    )

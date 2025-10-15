@@ -7,6 +7,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from uuid import UUID
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import (
     analysis_service,
 )
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
 from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
@@ -70,6 +73,7 @@ async def create_sixr_analysis(
     request: SixRAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Create a new 6R analysis for the specified applications.
@@ -81,8 +85,10 @@ async def create_sixr_analysis(
     4. Generates qualifying questions for refinement
     """
     try:
-        # Create analysis record
+        # Create analysis record with tenant context
         analysis = SixRAnalysis(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
             name=request.analysis_name
             or f"6R Analysis {datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
             description=request.description,
@@ -162,7 +168,7 @@ async def create_sixr_analysis(
 
 
 @router.get("/{analysis_id}", response_model=SixRAnalysisResponse)
-async def get_analysis(analysis_id: int, db: AsyncSession = Depends(get_db)):
+async def get_analysis(analysis_id: UUID, db: AsyncSession = Depends(get_db)):
     """Get analysis by ID with current recommendation."""
     # Get analysis
     result = await db.execute(
@@ -238,7 +244,7 @@ async def get_analysis(analysis_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.put("/{analysis_id}/parameters", response_model=SixRAnalysisResponse)
 async def update_sixr_parameters(
-    analysis_id: int,
+    analysis_id: UUID,
     request: SixRParameterUpdateRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -321,7 +327,7 @@ async def update_sixr_parameters(
 
 @router.post("/{analysis_id}/questions", response_model=SixRAnalysisResponse)
 async def submit_qualifying_responses(
-    analysis_id: int,
+    analysis_id: UUID,
     request: QualifyingQuestionsRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -383,7 +389,7 @@ async def submit_qualifying_responses(
 
 @router.post("/{analysis_id}/iterate", response_model=SixRAnalysisResponse)
 async def create_analysis_iteration(
-    analysis_id: int,
+    analysis_id: UUID,
     request: IterationRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -464,7 +470,7 @@ async def create_analysis_iteration(
 
 @router.get("/{analysis_id}/recommendation", response_model=SixRRecommendationResponse)
 async def get_sixr_recommendation(
-    analysis_id: int,
+    analysis_id: UUID,
     iteration_number: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
 ):
@@ -650,6 +656,7 @@ async def create_bulk_analysis(
     request: BulkAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Create bulk 6R analysis for multiple applications.
@@ -669,8 +676,10 @@ async def create_bulk_analysis(
                 priority=request.priority,
             )
 
-            # Create analysis (simplified version)
+            # Create analysis with tenant context
             analysis = SixRAnalysis(
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
                 name=analysis_request.analysis_name,
                 status=AnalysisStatus.PENDING,
                 priority=analysis_request.priority,

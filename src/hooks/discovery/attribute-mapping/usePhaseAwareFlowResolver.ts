@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
+import { useFlowPhases, getPhaseOrder } from '@/hooks/useFlowPhases';
 
 interface ImportData {
   id: string;
@@ -27,22 +28,13 @@ type DiscoveryPhase =
   | 'inventory'
   | 'dependencies';
 
-// Define phase order for comparison
-const PHASE_ORDER: Record<DiscoveryPhase, number> = {
-  'data_import': 1,
-  'attribute_mapping': 2,
-  'field_mapping': 2, // Same as attribute_mapping
-  'field_mapping_approval': 3,
-  'data_cleansing': 4,
-  'inventory': 5,
-  'dependencies': 6
-};
-
 /**
  * Phase-aware smart flow resolver that handles all flow detection scenarios:
  * 1. If provided ID is a valid flow ID - use it directly
  * 2. If provided ID is an import ID - resolve it to flow ID
  * 3. If no ID provided - find the most appropriate flow for the target phase
+ *
+ * Per ADR-027: Uses useFlowPhases hook to get phase ordering dynamically from FlowTypeConfig
  *
  * @param providedId - Optional flow ID or import ID from URL
  * @param targetPhase - The phase the page is for (e.g., 'data_cleansing')
@@ -58,7 +50,15 @@ export function usePhaseAwareFlowResolver(
   const [resolutionMethod, setResolutionMethod] = useState<UsePhaseAwareFlowResolverResult['resolutionMethod']>(null);
   const { client, engagement } = useAuth();
 
+  // Per ADR-027: Fetch dynamic phase configuration from backend
+  const { data: discoveryPhases, isLoading: isPhasesLoading } = useFlowPhases('discovery');
+
   useEffect(() => {
+    // Wait for phase configuration to load
+    if (isPhasesLoading || !discoveryPhases) {
+      return;
+    }
+
     if (!client?.id || !engagement?.id) {
       return;
     }
@@ -139,13 +139,14 @@ export function usePhaseAwareFlowResolver(
           return dateB - dateA;
         });
 
-        // Get target phase order
-        const targetPhaseOrder = PHASE_ORDER[targetPhase] || 2;
+        // Per ADR-027: Get target phase order from dynamic configuration
+        const targetPhaseOrder = getPhaseOrder(discoveryPhases, targetPhase);
 
         // Filter flows that are at the target phase or eligible for it
         const eligibleFlows = sortedFlows.filter(flow => {
           const currentPhase = flow.currentPhase as DiscoveryPhase;
-          const currentPhaseOrder = PHASE_ORDER[currentPhase] || 0;
+          // Per ADR-027: Use dynamic phase ordering
+          const currentPhaseOrder = getPhaseOrder(discoveryPhases, currentPhase);
 
           // Flow is eligible if:
           // 1. It's exactly at the target phase
@@ -171,10 +172,11 @@ export function usePhaseAwareFlowResolver(
         );
 
         // Priority 2: Flow at phase just before (ready to transition)
-        if (!targetFlow) {
-          const previousPhases = Object.entries(PHASE_ORDER)
-            .filter(([_, order]) => order === targetPhaseOrder - 1)
-            .map(([phase, _]) => phase);
+        if (!targetFlow && discoveryPhases) {
+          // Per ADR-027: Find previous phases using dynamic phase configuration
+          const previousPhases = discoveryPhases.phase_details
+            .filter(phase => getPhaseOrder(discoveryPhases, phase.name) === targetPhaseOrder - 1)
+            .map(phase => phase.name);
 
           targetFlow = eligibleFlows.find(flow =>
             previousPhases.includes(flow.currentPhase)
@@ -229,7 +231,7 @@ export function usePhaseAwareFlowResolver(
     };
 
     resolveFlow();
-  }, [providedId, targetPhase, client?.id, engagement?.id]);
+  }, [providedId, targetPhase, client?.id, engagement?.id, discoveryPhases, isPhasesLoading]);
 
   return {
     resolvedFlowId,

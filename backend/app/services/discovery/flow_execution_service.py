@@ -13,7 +13,7 @@ from app.models.discovery_flow import DiscoveryFlow
 from app.core.context import RequestContext
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.core.security.secure_logging import safe_log_format
-from app.utils.flow_constants.flow_states import FlowType, PHASE_SEQUENCES
+from app.services.flow_type_registry_helpers import get_flow_config
 from .flow_state_helpers import load_flow_state_for_phase
 from .phase_persistence_helpers import (
     persist_phase_completion,
@@ -28,10 +28,19 @@ logger = logging.getLogger(__name__)
 
 
 def validate_discovery_phase(phase: str) -> bool:
-    """Validate that a phase is valid for discovery flows."""
-    discovery_phases = PHASE_SEQUENCES.get(FlowType.DISCOVERY, [])
-    valid_phase_names = [p.value for p in discovery_phases]
-    return phase in valid_phase_names
+    """
+    Validate that a phase is valid for discovery flows.
+
+    Per ADR-027: Uses FlowTypeConfig as single source of truth for phase validation.
+    """
+    try:
+        config = get_flow_config("discovery")
+        valid_phase_names = [p.name for p in config.phases]
+        return phase in valid_phase_names
+    except ValueError:
+        # Fallback if config not found (shouldn't happen in production)
+        logger.error("Discovery FlowTypeConfig not found, validation failed")
+        return False
 
 
 async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
@@ -39,16 +48,18 @@ async def determine_phase_to_execute(discovery_flow: DiscoveryFlow) -> str:
     current_phase = discovery_flow.current_phase
     status = discovery_flow.status
 
-    # Map variations of phase names to standard names
-    phase_mapping = {
-        "field_mapping_suggestions": "field_mapping",
-        "data_cleaning": "data_cleansing",
-        "assets": "asset_inventory",
-    }
-
-    # Normalize the current phase name if it exists
+    # Normalize the current phase name if it exists using centralized aliases
     if current_phase:
-        current_phase = phase_mapping.get(current_phase, current_phase)
+        from app.services.flow_configs.phase_aliases import normalize_phase_name
+
+        try:
+            current_phase = normalize_phase_name("discovery", current_phase)
+        except ValueError:
+            # If normalization fails, keep original phase name
+            logger.warning(
+                f"Could not normalize phase '{current_phase}', keeping original"
+            )
+            pass
 
     # CC: Handle 'initialization' phase - map to field_mapping for discovery flows
     if current_phase == "initialization":

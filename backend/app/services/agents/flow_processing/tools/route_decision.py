@@ -3,13 +3,16 @@ Route Decision Tool
 
 This tool makes intelligent routing decisions based on flow analysis
 and phase validation results.
+
+Per ADR-027: Uses FlowTypeConfig as single source of truth for phase routes.
 """
 
 import logging
 import re
-from typing import ClassVar, Dict, List
+from typing import List, Optional
 
 from ..crewai_imports import BaseTool
+from app.services.flow_type_registry_helpers import get_flow_config
 
 logger = logging.getLogger(__name__)
 
@@ -21,60 +24,6 @@ class RouteDecisionTool(BaseTool):
     description: str = (
         "Makes intelligent routing decisions based on flow analysis and phase validation results"
     )
-
-    # Route mapping for all flow types - ClassVar to avoid Pydantic field annotation requirement
-    ROUTE_MAPPING: ClassVar[Dict[str, Dict[str, str]]] = {
-        "discovery": {
-            "data_import": "/discovery/cmdb-import",
-            "field_mapping": "/discovery/attribute-mapping/{flow_id}",  # Alias for attribute_mapping
-            "attribute_mapping": "/discovery/attribute-mapping/{flow_id}",
-            "data_cleansing": "/discovery/data-cleansing/{flow_id}",
-            "inventory": "/discovery/inventory/{flow_id}",
-            "dependencies": "/discovery/dependencies/{flow_id}",
-            "tech_debt": "/discovery/tech-debt/{flow_id}",
-            "completed": "/discovery/inventory/{flow_id}",
-        },
-        "assessment": {
-            "migration_readiness": "/assess/migration-readiness",
-            "business_impact": "/assess/business-impact",
-            "technical_assessment": "/assess/technical-assessment",
-            "completed": "/assess/summary",
-        },
-        "plan": {
-            "wave_planning": "/plan/wave-planning",
-            "runbook_creation": "/plan/runbook-creation",
-            "resource_allocation": "/plan/resource-allocation",
-            "completed": "/plan/summary",
-        },
-        "execute": {
-            "pre_migration": "/execute/pre-migration",
-            "migration_execution": "/execute/migration-execution",
-            "post_migration": "/execute/post-migration",
-            "completed": "/execute/summary",
-        },
-        "modernize": {
-            "modernization_assessment": "/modernize/assessment",
-            "architecture_design": "/modernize/architecture-design",
-            "implementation_planning": "/modernize/implementation-planning",
-            "completed": "/modernize/summary",
-        },
-        "finops": {
-            "cost_analysis": "/finops/cost-analysis",
-            "budget_planning": "/finops/budget-planning",
-            "completed": "/finops/summary",
-        },
-        "observability": {
-            "monitoring_setup": "/observability/monitoring-setup",
-            "performance_optimization": "/observability/performance-optimization",
-            "completed": "/observability/summary",
-        },
-        "decommission": {
-            "decommission_planning": "/decommission/planning",
-            "data_migration": "/decommission/data-migration",
-            "system_shutdown": "/decommission/system-shutdown",
-            "completed": "/decommission/summary",
-        },
-    }
 
     def _run(self, flow_analysis: str, validation_result: str) -> str:
         """Make intelligent routing decision based on actionable guidance"""
@@ -104,36 +53,36 @@ class RouteDecisionTool(BaseTool):
             if user_actions:
                 # User action required - route to appropriate page
                 target_page = self._determine_user_action_route(
-                    current_phase, user_actions, flow_id
+                    flow_type, current_phase, user_actions, flow_id
                 )
                 reasoning = f"User action required: {'; '.join(user_actions)}"
                 confidence = 0.9
             elif system_actions:
                 # System action required - trigger internal processing
                 target_page = self._determine_system_action_route(
-                    current_phase, system_actions, flow_id
+                    flow_type, current_phase, system_actions, flow_id
                 )
                 reasoning = f"System action required: {'; '.join(system_actions)}"
                 confidence = 0.8
             else:
                 # Default routing based on phase completion
                 is_complete = "COMPLETE" in validation_result
-                routes = self.ROUTE_MAPPING.get(flow_type, {})
 
                 if is_complete:
                     next_phase = self._get_next_phase(flow_type, current_phase)
-                    target_page = routes.get(next_phase, routes.get("completed", "/"))
-                    # Substitute flow_id in template
-                    if "{flow_id}" in target_page and flow_id:
-                        target_page = target_page.format(flow_id=flow_id)
-                    reasoning = (
-                        f"Phase {current_phase} complete - advancing to {next_phase}"
-                    )
+                    if next_phase:
+                        target_page = self._get_phase_route(
+                            flow_type, next_phase, flow_id
+                        )
+                        reasoning = f"Phase {current_phase} complete - advancing to {next_phase}"
+                    else:
+                        # Last phase - flow complete
+                        target_page = f"/{flow_type}/overview"
+                        reasoning = f"Flow complete - {current_phase} was final phase"
                 else:
-                    target_page = routes.get(current_phase, "/")
-                    # Substitute flow_id in template
-                    if "{flow_id}" in target_page and flow_id:
-                        target_page = target_page.format(flow_id=flow_id)
+                    target_page = self._get_phase_route(
+                        flow_type, current_phase, flow_id
+                    )
                     reasoning = (
                         f"Phase {current_phase} incomplete - staying in current phase"
                     )
@@ -173,82 +122,49 @@ class RouteDecisionTool(BaseTool):
         return []
 
     def _determine_user_action_route(
-        self, current_phase: str, user_actions: List[str], flow_id: str
+        self, flow_type: str, current_phase: str, user_actions: List[str], flow_id: str
     ) -> str:
-        """Determine route based on required user actions"""
+        """
+        Determine route based on required user actions.
+
+        Per ADR-027: Uses FlowTypeConfig for route determination.
+        """
         # Check if user needs to upload data
         if any("upload" in action.lower() for action in user_actions):
-            return "/discovery/data-import"
+            return self._get_phase_route(flow_type, "data_import", flow_id)
 
         # Check if user needs to configure mappings
         if any("mapping" in action.lower() for action in user_actions):
-            # Use ROUTE_MAPPING for consistent route generation
-            route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
-                "attribute_mapping", "/discovery/attribute-mapping/{flow_id}"
-            )
-            return (
-                route_template.format(flow_id=flow_id)
-                if flow_id
-                else route_template.replace("/{flow_id}", "")
-            )
+            return self._get_phase_route(flow_type, "field_mapping", flow_id)
 
-        # Check if user needs to review something
-        if any("review" in action.lower() for action in user_actions):
-            # Use ROUTE_MAPPING if phase exists there
-            route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
-                current_phase,
-                f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}",
-            )
-            # Always ensure template substitution happens
-            if "{flow_id}" in route_template:
-                if flow_id and flow_id != "unknown":
-                    return route_template.format(flow_id=flow_id)
-                else:
-                    # If no flow_id, return to overview page instead of broken template
-                    return "/discovery/overview"
-            return route_template
-
-        # Default to current phase page using ROUTE_MAPPING
-        route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
-            current_phase, f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}"
-        )
-        # Always ensure template substitution happens
-        if "{flow_id}" in route_template:
-            if flow_id and flow_id != "unknown":
-                return route_template.format(flow_id=flow_id)
-            else:
-                # If no flow_id, return to overview page instead of broken template
-                return "/discovery/overview"
-        return route_template
+        # Check if user needs to review something or default to current phase
+        return self._get_phase_route(flow_type, current_phase, flow_id)
 
     def _determine_system_action_route(
-        self, current_phase: str, system_actions: List[str], flow_id: str
+        self,
+        flow_type: str,
+        current_phase: str,
+        system_actions: List[str],
+        flow_id: str,
     ) -> str:
-        """Determine route for system actions (usually stay on current page while processing)"""
+        """
+        Determine route for system actions (usually stay on current page while processing).
+
+        Per ADR-027: Uses FlowTypeConfig for route determination.
+        """
         # For system actions, usually stay on enhanced dashboard to show processing
         if any(
             "trigger" in action.lower() or "process" in action.lower()
             for action in system_actions
         ):
-            return "/discovery/enhanced-dashboard"
+            return f"/{flow_type}/enhanced-dashboard"
 
-        # For navigation actions, go to the specified page using ROUTE_MAPPING
+        # For navigation actions, go to the specified page
         if any("navigate" in action.lower() for action in system_actions):
-            route_template = self.ROUTE_MAPPING.get("discovery", {}).get(
-                current_phase,
-                f"/discovery/{current_phase.replace('_', '-')}/{{flow_id}}",
-            )
-            # Always ensure template substitution happens
-            if "{flow_id}" in route_template:
-                if flow_id and flow_id != "unknown":
-                    return route_template.format(flow_id=flow_id)
-                else:
-                    # If no flow_id, return to overview page instead of broken template
-                    return "/discovery/overview"
-            return route_template
+            return self._get_phase_route(flow_type, current_phase, flow_id)
 
         # Default to enhanced dashboard
-        return "/discovery/enhanced-dashboard"
+        return f"/{flow_type}/enhanced-dashboard"
 
     def _extract_flow_type(self, analysis: str) -> str:
         """Extract flow type from analysis"""
@@ -276,44 +192,68 @@ class RouteDecisionTool(BaseTool):
         match = re.search(r"Flow ([a-f0-9-]+)", analysis)
         return match.group(1) if match else ""
 
-    def _get_next_phase(self, flow_type: str, current_phase: str) -> str:
-        """Get the next phase for a flow type"""
-        phase_sequences = {
-            "discovery": [
-                "data_import",
-                "attribute_mapping",
-                "data_cleansing",
-                "inventory",
-                "dependencies",
-                "tech_debt",
-            ],
-            "assess": [
-                "migration_readiness",
-                "business_impact",
-                "technical_assessment",
-            ],
-            "plan": ["wave_planning", "runbook_creation", "resource_allocation"],
-            "execute": ["pre_migration", "migration_execution", "post_migration"],
-            "modernize": [
-                "modernization_assessment",
-                "architecture_design",
-                "implementation_planning",
-            ],
-            "finops": ["cost_analysis", "budget_planning"],
-            "observability": ["monitoring_setup", "performance_optimization"],
-            "decommission": [
-                "decommission_planning",
-                "data_migration",
-                "system_shutdown",
-            ],
-        }
+    def _get_phase_route(
+        self, flow_type: str, phase_name: str, flow_id: str = ""
+    ) -> str:
+        """
+        Get phase route from FlowTypeConfig metadata.
 
-        sequence = phase_sequences.get(flow_type, [])
+        Per ADR-027: Uses authoritative ui_route from phase metadata.
+
+        Args:
+            flow_type: Type of flow (discovery, assessment, etc.)
+            phase_name: Name of the phase
+            flow_id: Optional flow ID for template substitution
+
+        Returns:
+            UI route with flow_id substituted if applicable
+        """
         try:
-            current_index = sequence.index(current_phase)
-            if current_index + 1 < len(sequence):
-                return sequence[current_index + 1]
-        except ValueError:
-            pass
+            config = get_flow_config(flow_type)
+            phase_obj = next((p for p in config.phases if p.name == phase_name), None)
 
-        return "completed"
+            if phase_obj and phase_obj.metadata and "ui_route" in phase_obj.metadata:
+                route = phase_obj.metadata["ui_route"]
+
+                # Substitute flow_id if template exists
+                if "{flow_id}" in route:
+                    if flow_id and flow_id != "unknown":
+                        return route.format(flow_id=flow_id)
+                    else:
+                        # If no flow_id, return to overview instead of broken template
+                        return f"/{flow_type}/overview"
+
+                return route
+
+            # Fallback to overview if phase not found
+            return f"/{flow_type}/overview"
+        except ValueError:
+            logger.warning(f"FlowTypeConfig not found for: {flow_type}")
+            return f"/{flow_type}/overview"
+
+    def _get_next_phase(self, flow_type: str, current_phase: str) -> Optional[str]:
+        """
+        Get next phase from FlowTypeConfig.
+
+        Per ADR-027: Uses authoritative phase sequence from config registry.
+
+        Args:
+            flow_type: Type of flow (discovery, assessment, etc.)
+            current_phase: Current phase name
+
+        Returns:
+            Next phase name, or None if last phase/phase not found
+        """
+        try:
+            config = get_flow_config(flow_type)
+            phases = [p.name for p in config.phases]
+
+            if current_phase in phases:
+                current_index = phases.index(current_phase)
+                if current_index < len(phases) - 1:
+                    return phases[current_index + 1]
+
+            return None  # Last phase or phase not found
+        except ValueError:
+            logger.warning(f"FlowTypeConfig not found for: {flow_type}")
+            return None

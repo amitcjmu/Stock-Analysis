@@ -55,6 +55,7 @@ interface EmptyStateProps {
     phases_completed?: string[];
     phase_completion?: { data_cleansing?: boolean; inventory?: boolean };
     current_phase?: string;
+    status?: string;
     phase_state?: { conflict_resolution_pending?: boolean };
   } | null;
   viewMode: 'all' | 'current_flow';
@@ -105,9 +106,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   // Check if flow is paused for conflict resolution (PR #567 fix)
   const hasConflictsPending = flow?.phase_state?.conflict_resolution_pending === true;
 
+  // CC FIX: Check if flow is complete with inventory phase done but 0 assets
+  // This happens when all conflicts were resolved as "keep_existing" - no new assets imported
+  const inventoryDone =
+    flow?.phases_completed?.includes('asset_inventory') ||
+    flow?.phase_completion?.inventory === true ||
+    (flow?.current_phase === 'asset_inventory' && flow?.status === 'completed');
+  const isFlowComplete = flow?.status === 'completed';
+  const hasCompletedWithZeroAssets = inventoryDone && isFlowComplete;
+
   // Check if inventory processing might be starting soon
   // FIX: Don't show "Preparing" if conflicts are pending - user needs to resolve them first
-  const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory && !hasConflictsPending;
+  // FIX: Don't show "Preparing" if inventory is already complete (even with 0 assets)
+  const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory && !hasConflictsPending && !hasCompletedWithZeroAssets;
 
   return (
     <Card>
@@ -183,6 +194,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                   </Button>
                 </div>
               )}
+            </>
+          ) : hasCompletedWithZeroAssets ? (
+            <>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No New Assets Imported</h3>
+              <p className="text-gray-600 mb-4">
+                The asset inventory phase completed successfully, but no new assets were created for this flow.
+              </p>
+              <p className="text-sm text-gray-500 mb-2">
+                This typically happens when all detected items were duplicates of existing assets, and you chose to keep the existing records.
+              </p>
+              <p className="text-sm text-blue-600">
+                💡 Switch to "All Assets" view mode to see all existing assets across all flows.
+              </p>
             </>
           ) : (
             <>

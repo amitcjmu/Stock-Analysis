@@ -272,6 +272,17 @@ export const LazyAssessmentSummary = createLazyRoute(
   "Assessment Summary",
 );
 
+// Assessment Phase Routes (ADR-027 - Migrated from Discovery)
+export const LazyAssessmentDependencyAnalysis = createLazyRoute(
+  () => import("@/pages/assessment/DependencyAnalysis"),
+  "Assessment Dependency Analysis",
+);
+
+export const LazyAssessmentTechDebtAssessment = createLazyRoute(
+  () => import("@/pages/assessment/TechDebtAssessment"),
+  "Assessment Tech Debt Assessment",
+);
+
 // Plan Sub-routes
 export const LazyPlanIndex = createLazyRoute(
   () => import("@/pages/plan/Index"),
