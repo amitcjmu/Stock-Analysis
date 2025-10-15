@@ -83,7 +83,7 @@ async def list_assessment_flows_via_mfo(
                     "selected_applications": len(flow.selected_application_ids or []),
                     "created_at": flow.created_at.isoformat(),
                     "updated_at": flow.updated_at.isoformat(),
-                    "created_by": str(flow.created_by) if flow.created_by else "system",
+                    "created_by": "system",  # AssessmentFlow table doesn't have created_by column
                 }
             )
 
