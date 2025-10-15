@@ -121,10 +121,25 @@ const AssessmentFlowOverview = (): JSX.Element => {
     queryFn: async () => ({ total_flows: 0, active_flows: 0, completed_flows: 0, total_applications_assessed: 0 })
   });
 
-  // Flows list placeholder (no mocks for now)
+  // Fetch assessment flows from MFO list endpoint
   const { data: flows = [], isLoading: flowsLoading } = useQuery<AssessmentFlow[]>({
     queryKey: ['assessment-flows'],
-    queryFn: async () => []
+    queryFn: async () => {
+      try {
+        const headers = getAuthHeaders();
+        const response = await apiCall('/master-flows/list', {
+          method: 'GET',
+          headers
+        });
+
+        return Array.isArray(response) ? response : [];
+      } catch (error) {
+        console.error('Failed to fetch assessment flows:', error);
+        return [];
+      }
+    },
+    staleTime: 30000,
+    refetchInterval: 15000 // Refresh every 15 seconds
   });
 
   const getStatusIcon = (status: string): JSX.Element => {

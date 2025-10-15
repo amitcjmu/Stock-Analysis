@@ -46,6 +46,59 @@ async def get_current_user_context(
     }
 
 
+@router.get("/list")
+async def list_assessment_flows_via_mfo(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> List[Dict[str, Any]]:
+    """List all assessment flows for current tenant via Master Flow Orchestrator"""
+
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
+
+    try:
+        from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+
+        # Initialize repository with tenant scoping
+        repository = AssessmentFlowRepository(db, client_account_id)
+
+        # Get all flows for the engagement
+        flows = await repository.get_flows_by_engagement(str(engagement_id))
+
+        # Transform to frontend format
+        result = []
+        for flow in flows:
+            result.append(
+                {
+                    "id": str(flow.id),
+                    "status": flow.status,
+                    "current_phase": flow.current_phase or "initialization",
+                    "progress": flow.progress or 0,
+                    "selected_applications": len(flow.selected_application_ids or []),
+                    "created_at": flow.created_at.isoformat(),
+                    "updated_at": flow.updated_at.isoformat(),
+                    "created_by": str(flow.created_by) if flow.created_by else "system",
+                }
+            )
+
+        logger.info(
+            f"Retrieved {len(result)} assessment flows for engagement {engagement_id}"
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"Failed to list assessment flows: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list assessment flows: {str(e)}"
+        )
+
+
 @router.get("/{flow_id}/assessment-status")
 async def get_assessment_flow_status_via_master(
     flow_id: str,
