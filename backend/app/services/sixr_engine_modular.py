@@ -238,7 +238,7 @@ class SixRDecisionEngine:
             return {
                 "recommended_strategy": recommended_strategy,
                 "confidence_score": confidence_score,
-                "all_strategies": strategy_scores,
+                "strategy_scores": strategy_scores,
                 "rationale": "AI-driven analysis using CrewAI Technical Debt Crew",
                 "key_factors": [
                     "Technical debt assessment",
@@ -276,7 +276,7 @@ class SixRDecisionEngine:
         return {
             "recommended_strategy": recommended_strategy,
             "confidence_score": 0.6,
-            "all_strategies": [
+            "strategy_scores": [
                 {"strategy": recommended_strategy, "score": 0.7, "confidence": 0.6},
                 {"strategy": "retain", "score": 0.5, "confidence": 0.5},
             ],
@@ -376,7 +376,7 @@ class SixRDecisionEngine:
         return {
             "recommended_strategy": "rehost",
             "confidence_score": 0.3,
-            "all_strategies": [
+            "strategy_scores": [
                 {"strategy": "rehost", "score": 0.6, "confidence": 0.3},
                 {"strategy": "retain", "score": 0.5, "confidence": 0.3},
             ],
