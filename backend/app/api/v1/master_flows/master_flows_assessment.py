@@ -433,11 +433,19 @@ async def update_architecture_standards_via_mfo(
         # Convert engagement standards to ArchitectureRequirement objects
         arch_requirements = []
         for std in engagement_standards:
+            # Fix P0: Convert supported_versions from list to dict if needed
+            supported_vers = std.get("supported_versions", {})
+            if isinstance(supported_vers, list):
+                # Frontend may send empty list, convert to empty dict
+                supported_vers = (
+                    {} if not supported_vers else {v: v for v in supported_vers}
+                )
+
             arch_req = ArchitectureRequirement(
                 requirement_type=std.get("requirement_type"),
                 description=std.get("description"),
                 mandatory=std.get("mandatory", False),
-                supported_versions=std.get("supported_versions", []),
+                supported_versions=supported_vers,
                 requirement_details=std.get("requirement_details", {}),
                 created_by=context.user_id,
             )
