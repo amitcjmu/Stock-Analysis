@@ -49,6 +49,20 @@ cd backend && alembic revision --autogenerate -m "Description"
 docker exec -it migration_postgres psql -U postgres -d migration_db -c "SELECT * FROM migration.discovery_flows;"
 ```
 
+### Bug Fix Workflow Commands
+```bash
+# Automated bug fixing with multi-agent orchestration
+/fix-bugs execute          # Fix all open bugs (up to 10)
+/fix-bugs execute 588      # Fix specific bug
+/fix-bugs dry-run          # Analyze bugs without fixing
+
+# Check issues with pending fixes
+gh issue list --label fixed-pending-review --state open
+
+# See full workflow documentation
+# /docs/guidelines/AUTOMATED_BUG_FIX_WORKFLOW.md
+```
+
 ## High-Level Architecture
 
 ### System Overview
