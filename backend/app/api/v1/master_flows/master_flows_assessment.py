@@ -65,7 +65,7 @@ async def list_assessment_flows_via_mfo(
     try:
         from app.models.assessment_flow import AssessmentFlow
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-        from sqlalchemy import select, and_
+        from sqlalchemy import select, and_, cast, String
 
         # Get all flows for the engagement with user information
         # Join with crewai_flow_state_extensions to get user_id, then join with users
@@ -77,7 +77,7 @@ async def list_assessment_flows_via_mfo(
             )
             .outerjoin(
                 User,
-                CrewAIFlowStateExtensions.user_id == str(User.id),
+                CrewAIFlowStateExtensions.user_id == cast(User.id, String),
             )
             .where(
                 and_(
