@@ -251,14 +251,14 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
             True if flow was completed, False otherwise
         """
         try:
-            # Define the required phases for completion (Discovery flow phases only)
-            # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow, not Discovery flow
+            # Define the required phases for completion (Discovery flow v3.0.0 phases only)
+            # Per ADR-027: Discovery flow now has only 5 phases (dependency_analysis moved to Assessment)
+            # Bug: Legacy completion check for removed phases prevents multi-import workflow
             required_phases = {
                 "data_import": flow.data_import_completed,
                 "field_mapping": flow.field_mapping_completed,
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
-                "dependency_analysis": flow.dependency_analysis_completed,
             }
 
             # Check if all required phases are complete
