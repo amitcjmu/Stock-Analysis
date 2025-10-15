@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import (
     analysis_service,
 )
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
 from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
@@ -70,6 +71,7 @@ async def create_sixr_analysis(
     request: SixRAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Create a new 6R analysis for the specified applications.
@@ -81,8 +83,10 @@ async def create_sixr_analysis(
     4. Generates qualifying questions for refinement
     """
     try:
-        # Create analysis record
+        # Create analysis record with tenant context
         analysis = SixRAnalysis(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
             name=request.analysis_name
             or f"6R Analysis {datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
             description=request.description,
@@ -650,6 +654,7 @@ async def create_bulk_analysis(
     request: BulkAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Create bulk 6R analysis for multiple applications.
@@ -669,8 +674,10 @@ async def create_bulk_analysis(
                 priority=request.priority,
             )
 
-            # Create analysis (simplified version)
+            # Create analysis with tenant context
             analysis = SixRAnalysis(
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
                 name=analysis_request.analysis_name,
                 status=AnalysisStatus.PENDING,
                 priority=analysis_request.priority,
