@@ -135,6 +135,16 @@ class AssessmentFlowRepository(ContextAwareRepository):
         # Log agent collaboration to master flow
         await self._flow_specs.log_agent_collaboration(flow_id, phase, insights)
 
+    async def resume_flow(
+        self, flow_id: str, user_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Resume assessment flow from pause point, advance to next phase"""
+        return await self._flow_commands.resume_flow(flow_id, user_input)
+
+    async def update_flow_status(self, flow_id: str, status: str):
+        """Update flow status"""
+        await self._flow_commands.update_flow_phase(flow_id, flow_id, status=status)
+
     # === ARCHITECTURE STANDARDS MANAGEMENT ===
 
     async def save_architecture_standards(

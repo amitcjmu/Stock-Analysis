@@ -189,6 +189,8 @@ class EngagementArchitectureStandard(Base):
     minimum_requirements = Column(JSONB, default=lambda: {}, nullable=False)
     preferred_patterns = Column(JSONB, default=lambda: {}, nullable=False)
     constraints = Column(JSONB, default=lambda: {}, nullable=False)
+    supported_versions = Column(JSONB, nullable=True)  # Migration 092
+    requirement_details = Column(JSONB, nullable=True)  # Migration 092
 
     # Validation and compliance
     is_mandatory = Column(Boolean, default=False, nullable=False)

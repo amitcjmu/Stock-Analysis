@@ -204,3 +204,92 @@ class FlowCommands:
             .values(agent_insights=current_insights, updated_at=datetime.utcnow())
         )
         await self.db.commit()
+
+    async def resume_flow(
+        self, flow_id: str, user_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Resume assessment flow from pause point, advance to next phase"""
+
+        from sqlalchemy import select
+
+        # Get current flow state
+        result = await self.db.execute(
+            select(AssessmentFlow).where(
+                and_(
+                    AssessmentFlow.id == flow_id,
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                )
+            )
+        )
+        flow = result.scalar_one_or_none()
+
+        if not flow:
+            raise ValueError(f"Assessment flow {flow_id} not found")
+
+        current_phase = flow.current_phase
+
+        # Define phase progression order
+        phase_order = [
+            AssessmentPhase.INITIALIZATION.value,
+            AssessmentPhase.ARCHITECTURE_MINIMUMS.value,
+            AssessmentPhase.TECH_DEBT_ANALYSIS.value,
+            AssessmentPhase.COMPONENT_SIXR_STRATEGIES.value,
+            AssessmentPhase.APP_ON_PAGE_GENERATION.value,
+            AssessmentPhase.FINALIZATION.value,
+        ]
+
+        # Determine next phase
+        try:
+            current_index = phase_order.index(current_phase)
+            next_phase = (
+                phase_order[current_index + 1]
+                if current_index < len(phase_order) - 1
+                else current_phase
+            )
+        except ValueError:
+            # Current phase not in order, stay at current
+            next_phase = current_phase
+            logger.warning(f"Unknown phase {current_phase}, not advancing")
+
+        # Calculate progress percentage
+        try:
+            progress_index = phase_order.index(next_phase)
+            progress_percentage = int(((progress_index + 1) / len(phase_order)) * 100)
+        except ValueError:
+            progress_percentage = flow.progress or 0
+
+        # Save user input for current phase
+        current_inputs = flow.user_inputs or {}
+        current_inputs[current_phase] = user_input
+
+        # Update flow to next phase
+        await self.db.execute(
+            update(AssessmentFlow)
+            .where(
+                and_(
+                    AssessmentFlow.id == flow_id,
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                )
+            )
+            .values(
+                current_phase=next_phase,
+                status=AssessmentFlowStatus.IN_PROGRESS.value,
+                progress=progress_percentage,
+                user_inputs=current_inputs,
+                last_user_interaction=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+        )
+        await self.db.commit()
+
+        logger.info(
+            f"Resumed flow {flow_id}: {current_phase} -> {next_phase} ({progress_percentage}%)"
+        )
+
+        return {
+            "flow_id": flow_id,
+            "current_phase": next_phase,
+            "previous_phase": current_phase,
+            "progress_percentage": progress_percentage,
+            "status": AssessmentFlowStatus.IN_PROGRESS.value,
+        }
