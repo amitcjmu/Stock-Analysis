@@ -208,9 +208,18 @@ class FlowCommands:
     async def resume_flow(
         self, flow_id: str, user_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Resume assessment flow from pause point, advance to next phase"""
-
+        """
+        Resume assessment flow from pause point, advance to next phase.
+        Per ADR-027: Uses FlowTypeConfig as single source of truth for phase progression.
+        Supports legacy phase names via phase alias normalization.
+        """
         from sqlalchemy import select
+
+        # Per ADR-027: Get flow configuration from registry
+        from app.services.flow_type_registry import flow_type_registry
+        from app.services.flow_configs.phase_aliases import normalize_phase_name
+
+        flow_config = flow_type_registry.get_flow_config("assessment")
 
         # Get current flow state
         result = await self.db.execute(
@@ -228,35 +237,39 @@ class FlowCommands:
 
         current_phase = flow.current_phase
 
-        # Define phase progression order
-        phase_order = [
-            AssessmentPhase.INITIALIZATION.value,
-            AssessmentPhase.ARCHITECTURE_MINIMUMS.value,
-            AssessmentPhase.TECH_DEBT_ANALYSIS.value,
-            AssessmentPhase.COMPONENT_SIXR_STRATEGIES.value,
-            AssessmentPhase.APP_ON_PAGE_GENERATION.value,
-            AssessmentPhase.FINALIZATION.value,
-        ]
-
-        # Determine next phase
+        # Normalize legacy phase names to ADR-027 canonical names
         try:
-            current_index = phase_order.index(current_phase)
-            next_phase = (
-                phase_order[current_index + 1]
-                if current_index < len(phase_order) - 1
-                else current_phase
+            normalized_current_phase = normalize_phase_name("assessment", current_phase)
+            logger.info(
+                f"Normalized phase {current_phase} -> {normalized_current_phase}"
             )
-        except ValueError:
-            # Current phase not in order, stay at current
-            next_phase = current_phase
-            logger.warning(f"Unknown phase {current_phase}, not advancing")
+        except ValueError as e:
+            # Phase not recognized - log warning and keep original
+            logger.warning(
+                f"Could not normalize phase {current_phase}: {e}. Using as-is."
+            )
+            normalized_current_phase = current_phase
 
-        # Calculate progress percentage
-        try:
-            progress_index = phase_order.index(next_phase)
-            progress_percentage = int(((progress_index + 1) / len(phase_order)) * 100)
-        except ValueError:
+        # Per ADR-027: Use FlowTypeConfig.get_next_phase() instead of hardcoded array
+        next_phase = flow_config.get_next_phase(normalized_current_phase)
+
+        if not next_phase:
+            # Already at final phase, stay at current
+            next_phase = current_phase
+            logger.info(f"Flow {flow_id} already at final phase: {current_phase}")
+
+        # Per ADR-027: Calculate progress using FlowTypeConfig.get_phase_index()
+        total_phases = len(flow_config.phases)
+        next_phase_index = flow_config.get_phase_index(next_phase)
+
+        if next_phase_index >= 0:
+            progress_percentage = int(((next_phase_index + 1) / total_phases) * 100)
+        else:
+            # Phase not found in config - use current progress
             progress_percentage = flow.progress or 0
+            logger.warning(
+                f"Phase {next_phase} not found in flow config, keeping current progress"
+            )
 
         # Save user input for current phase
         current_inputs = flow.user_inputs or {}

@@ -27,12 +27,17 @@ PHASE_ALIASES: Dict[str, Dict[str, str]] = {
         "finalization": "synthesis",
     },
     "assessment": {
+        # Legacy phase mappings to ADR-027 compliant names
+        "initialization": "readiness_assessment",  # Legacy start phase
         "architecture_minimums": "readiness_assessment",
         "component_sixr_strategies": "risk_assessment",
         "app_on_page_generation": "recommendation_generation",
         # Migrated from Discovery
         "dependencies": "dependency_analysis",
         "tech_debt": "tech_debt_assessment",
+        # Legacy phase names
+        "tech_debt_analysis": "tech_debt_assessment",
+        "finalization": "recommendation_generation",  # Legacy final phase
     },
 }
 
