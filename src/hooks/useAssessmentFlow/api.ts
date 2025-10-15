@@ -12,6 +12,7 @@ import type {
   UserInput,
 } from "./types";
 import { masterFlowService } from "../../services/api/masterFlowService";
+import { apiCall } from "../../config/api";
 
 // API base URL
 const getApiBase = (): string => {
@@ -123,25 +124,14 @@ export const assessmentFlowAPI = {
       application_overrides: Record<string, ArchitectureStandard>;
     },
   ): Promise<Response> {
-    // Use MFO endpoint for architecture standards
-    const response = await fetch(
-      `${API_BASE}/api/v1/master-flows/${flowId}/assessment/architecture-standards`,
+    // Use MFO endpoint for architecture standards with apiCall for auth headers
+    return apiCall(
+      `/master-flows/${flowId}/assessment/architecture-standards`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(data),
-      },
+      }
     );
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to update architecture standards: ${response.statusText}`,
-      );
-    }
-
-    return response.json();
   },
 
   async updateApplicationComponents(

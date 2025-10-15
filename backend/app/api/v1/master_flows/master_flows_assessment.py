@@ -46,6 +46,92 @@ async def get_current_user_context(
     }
 
 
+@router.get("/list")
+async def list_assessment_flows_via_mfo(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> List[Dict[str, Any]]:
+    """List all assessment flows for current tenant via Master Flow Orchestrator"""
+
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
+
+    try:
+        from app.models.assessment_flow import AssessmentFlow
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from sqlalchemy import select, and_, cast, String
+
+        # Get all flows for the engagement with user information
+        # Join with crewai_flow_state_extensions to get user_id, then join with users
+        stmt = (
+            select(AssessmentFlow, User)
+            .outerjoin(
+                CrewAIFlowStateExtensions,
+                AssessmentFlow.id == CrewAIFlowStateExtensions.flow_id,
+            )
+            .outerjoin(
+                User,
+                CrewAIFlowStateExtensions.user_id == cast(User.id, String),
+            )
+            .where(
+                and_(
+                    AssessmentFlow.engagement_id == UUID(engagement_id),
+                    AssessmentFlow.client_account_id == UUID(client_account_id),
+                )
+            )
+            .order_by(AssessmentFlow.created_at.desc())
+        )
+
+        result_rows = await db.execute(stmt)
+        flows_with_users = result_rows.all()
+
+        # Transform to frontend format
+        result = []
+        for flow, user in flows_with_users:
+            # Build user display name from joined user data
+            if user:
+                if user.first_name and user.last_name:
+                    created_by = f"{user.first_name} {user.last_name}"
+                elif user.email:
+                    created_by = user.email
+                elif user.username:
+                    created_by = user.username
+                else:
+                    created_by = "Unknown User"
+            else:
+                created_by = "System"
+
+            result.append(
+                {
+                    "id": str(flow.id),
+                    "status": flow.status,
+                    "current_phase": flow.current_phase or "initialization",
+                    "progress": flow.progress or 0,
+                    "selected_applications": len(flow.selected_application_ids or []),
+                    "created_at": flow.created_at.isoformat(),
+                    "updated_at": flow.updated_at.isoformat(),
+                    "created_by": created_by,
+                }
+            )
+
+        logger.info(
+            f"Retrieved {len(result)} assessment flows for engagement {engagement_id}"
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"Failed to list assessment flows: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list assessment flows: {str(e)}"
+        )
+
+
 @router.get("/{flow_id}/assessment-status")
 async def get_assessment_flow_status_via_master(
     flow_id: str,
@@ -327,14 +413,47 @@ async def update_architecture_standards_via_mfo(
     """Update architecture standards through MFO"""
 
     client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
         from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+        from app.models.assessment_flow_state import ArchitectureRequirement
 
         repo = AssessmentFlowRepository(db, client_account_id)
-        await repo.update_phase_data(flow_id, "architecture_standards", standards_data)
+
+        # Extract engagement standards from request
+        engagement_standards = standards_data.get("engagement_standards", [])
+        # TODO: Handle application_overrides when needed
+        # application_overrides = standards_data.get("application_overrides", {})
+
+        # Convert engagement standards to ArchitectureRequirement objects
+        arch_requirements = []
+        for std in engagement_standards:
+            # Fix P0: Convert supported_versions from list to dict if needed
+            supported_vers = std.get("supported_versions", {})
+            if isinstance(supported_vers, list):
+                # Frontend may send empty list, convert to empty dict
+                supported_vers = (
+                    {} if not supported_vers else {v: v for v in supported_vers}
+                )
+
+            arch_req = ArchitectureRequirement(
+                requirement_type=std.get("requirement_type"),
+                description=std.get("description"),
+                mandatory=std.get("mandatory", False),
+                supported_versions=supported_vers,
+                requirement_details=std.get("requirement_details", {}),
+                created_by=context.user_id,
+            )
+            arch_requirements.append(arch_req)
+
+        # Save engagement-level standards
+        if arch_requirements:
+            await repo.save_architecture_standards(engagement_id, arch_requirements)
 
         return {
             "flow_id": flow_id,
@@ -344,6 +463,9 @@ async def update_architecture_standards_via_mfo(
         }
 
     except Exception as e:
+        logger.error(
+            f"Failed to update architecture standards: {str(e)}", exc_info=True
+        )
         raise HTTPException(
             status_code=500, detail=f"Failed to update standards: {str(e)}"
         )

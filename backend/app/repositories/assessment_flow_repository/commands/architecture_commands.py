@@ -37,11 +37,12 @@ class ArchitectureCommands:
         """Save or update engagement architecture standards"""
 
         for standard in standards:
+            # Fix P0: Map Pydantic field 'mandatory' to database column 'is_mandatory'
             stmt = insert(EngagementArchitectureStandard).values(
                 engagement_id=engagement_id,
                 requirement_type=standard.requirement_type,
                 description=standard.description,
-                mandatory=standard.mandatory,
+                is_mandatory=standard.mandatory,  # Map mandatory -> is_mandatory
                 supported_versions=standard.supported_versions,
                 requirement_details=standard.requirement_details,
                 created_by=standard.created_by or "system",
@@ -52,7 +53,7 @@ class ArchitectureCommands:
                 index_elements=["engagement_id", "requirement_type"],
                 set_=dict(
                     description=stmt.excluded.description,
-                    mandatory=stmt.excluded.mandatory,
+                    is_mandatory=stmt.excluded.is_mandatory,  # Map mandatory -> is_mandatory
                     supported_versions=stmt.excluded.supported_versions,
                     requirement_details=stmt.excluded.requirement_details,
                     updated_at=stmt.excluded.updated_at,
