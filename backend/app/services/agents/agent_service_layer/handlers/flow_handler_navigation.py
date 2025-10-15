@@ -41,9 +41,10 @@ class FlowHandlerNavigation:
                         "message": "Cannot provide guidance for non-existent flow",
                     }
 
-                # Extract phases completed from flow model
+                # Extract phases completed from flow model (Discovery v3.0.0 - all phases)
                 phases_completed = {
                     "data_import": flow.data_import_completed,
+                    "data_validation": flow.data_validation_completed,
                     "field_mapping": flow.field_mapping_completed,
                     "data_cleansing": flow.data_cleansing_completed,
                     "asset_inventory": flow.asset_inventory_completed,
