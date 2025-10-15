@@ -63,17 +63,50 @@ async def list_assessment_flows_via_mfo(
         raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
-        from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+        from app.models.assessment_flow import AssessmentFlow
+        from app.models.crewai_flow_state import CrewAIFlowStateExtension
+        from sqlalchemy import select, and_
 
-        # Initialize repository with tenant scoping
-        repository = AssessmentFlowRepository(db, client_account_id)
+        # Get all flows for the engagement with user information
+        # Join with crewai_flow_state_extensions to get user_id, then join with users
+        stmt = (
+            select(AssessmentFlow, User)
+            .outerjoin(
+                CrewAIFlowStateExtension,
+                AssessmentFlow.id == CrewAIFlowStateExtension.flow_id,
+            )
+            .outerjoin(
+                User,
+                CrewAIFlowStateExtension.user_id == str(User.id),
+            )
+            .where(
+                and_(
+                    AssessmentFlow.engagement_id == UUID(engagement_id),
+                    AssessmentFlow.client_account_id == UUID(client_account_id),
+                )
+            )
+            .order_by(AssessmentFlow.created_at.desc())
+        )
 
-        # Get all flows for the engagement
-        flows = await repository.get_flows_by_engagement(str(engagement_id))
+        result_rows = await db.execute(stmt)
+        flows_with_users = result_rows.all()
 
         # Transform to frontend format
         result = []
-        for flow in flows:
+        for flow, user in flows_with_users:
+            # Build user display name from joined user data
+            if user:
+                if user.first_name and user.last_name:
+                    created_by = f"{user.first_name} {user.last_name}"
+                elif user.email:
+                    created_by = user.email
+                elif user.username:
+                    created_by = user.username
+                else:
+                    created_by = "Unknown User"
+            else:
+                created_by = "System"
+
             result.append(
                 {
                     "id": str(flow.id),
@@ -83,7 +116,7 @@ async def list_assessment_flows_via_mfo(
                     "selected_applications": len(flow.selected_application_ids or []),
                     "created_at": flow.created_at.isoformat(),
                     "updated_at": flow.updated_at.isoformat(),
-                    "created_by": "system",  # AssessmentFlow table doesn't have created_by column
+                    "created_by": created_by,
                 }
             )
 
