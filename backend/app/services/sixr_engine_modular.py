@@ -245,6 +245,11 @@ class SixRDecisionEngine:
                     "Modernization opportunities",
                     "Risk analysis",
                 ],
+                "assumptions": ["AI-driven analysis based on technical debt crew"],
+                "next_steps": [
+                    "Review AI recommendations",
+                    "Validate with stakeholders",
+                ],
                 "validation_errors": [],
                 "crew_analysis": (
                     result_str[:500] + "..." if len(result_str) > 500 else result_str
@@ -282,6 +287,14 @@ class SixRDecisionEngine:
             ],
             "rationale": "Simple rule-based analysis (fallback mode)",
             "key_factors": ["Technical complexity", "Business criticality"],
+            "assumptions": [
+                "Limited analysis data available",
+                "Using default parameters",
+            ],
+            "next_steps": [
+                "Conduct detailed assessment",
+                "Gather additional application data",
+            ],
             "validation_errors": [],
             "fallback_mode": True,
         }
