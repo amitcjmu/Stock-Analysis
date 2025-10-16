@@ -27,12 +27,12 @@ export const useAssessmentFlow = (
   initialFlowId?: string,
 ): UseAssessmentFlowReturn => {
   const navigate = useNavigate();
-  const { user, getAuthHeaders } = useAuth();
+  const { user, client, engagement, getAuthHeaders } = useAuth();
   const eventSourceRef = useRef<EventSource | null>(null);
 
   // Get client account and engagement from auth context
-  const clientAccountId = user?.client_account_id;
-  const engagementId = user?.engagement_id;
+  const clientAccountId = client?.id;
+  const engagementId = engagement?.id;
 
   // Initial state
   const [state, setState] = useState<AssessmentFlowState>({
@@ -527,9 +527,22 @@ export const useAssessmentFlow = (
 
   // Load application data
   const loadApplicationData = useCallback(async (): Promise<void> => {
-    if (!state.flowId || !clientAccountId) return;
+    console.log('[useAssessmentFlow] loadApplicationData called', {
+      flowId: state.flowId,
+      clientAccountId,
+      engagementId,
+    });
+
+    if (!state.flowId || !clientAccountId) {
+      console.log('[useAssessmentFlow] Early return - missing flowId or clientAccountId', {
+        flowId: state.flowId,
+        clientAccountId,
+      });
+      return;
+    }
 
     try {
+      console.log('[useAssessmentFlow] Fetching application data...');
       // Load both status with count and full application details
       const [statusResponse, applicationsResponse] = await Promise.all([
         assessmentFlowAPI.getAssessmentStatus(
@@ -544,6 +557,11 @@ export const useAssessmentFlow = (
         ),
       ]);
 
+      console.log('[useAssessmentFlow] Application data loaded successfully', {
+        applicationCount: statusResponse.application_count,
+        applications: applicationsResponse.applications.length,
+      });
+
       setState((prev) => ({
         ...prev,
         applicationCount: statusResponse.application_count,
@@ -553,7 +571,7 @@ export const useAssessmentFlow = (
         ),
       }));
     } catch (error) {
-      console.error("Failed to load application data:", error);
+      console.error("[useAssessmentFlow] Failed to load application data:", error);
       // Don't throw here - this is supplementary data
     }
   }, [state.flowId, clientAccountId, engagementId]);

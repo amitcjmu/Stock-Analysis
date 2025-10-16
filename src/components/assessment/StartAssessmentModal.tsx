@@ -12,9 +12,9 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiCall } from '@/lib/api/apiClient';
+import { apiCall } from '@/config/api';
 
 interface CanonicalApplication {
   id: string;
@@ -43,8 +43,8 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const router = useRouter();
-  const { user, clientAccount, engagement } = useAuth();
+  const navigate = useNavigate();
+  const { user, client, engagement } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppIds, setSelectedAppIds] = useState<Set<string>>(new Set());
@@ -55,7 +55,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
   // Fetch canonical applications
   useEffect(() => {
-    if (!isOpen || !clientAccount?.id || !engagement?.id) return;
+    if (!isOpen || !client?.id || !engagement?.id) return;
 
     const fetchApplications = async () => {
       setLoading(true);
@@ -67,7 +67,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
           {
             method: 'GET',
             headers: {
-              'X-Client-Account-ID': clientAccount.id,
+              'X-Client-Account-ID': client.id,
               'X-Engagement-ID': engagement.id,
             },
           }
@@ -83,7 +83,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
     };
 
     fetchApplications();
-  }, [isOpen, searchQuery, clientAccount?.id, engagement?.id]);
+  }, [isOpen, searchQuery, client?.id, engagement?.id]);
 
   // Filter applications based on search
   const filteredApplications = useMemo(() => {
@@ -113,7 +113,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       return;
     }
 
-    if (!clientAccount?.id || !engagement?.id || !user?.id) {
+    if (!client?.id || !engagement?.id || !user?.id) {
       setError('Missing authentication context');
       return;
     }
@@ -128,7 +128,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Client-Account-ID': clientAccount.id,
+            'X-Client-Account-ID': client.id,
             'X-Engagement-ID': engagement.id,
             'X-User-ID': user.id,
           },
@@ -140,7 +140,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
       // Navigate to new assessment flow
       const flowId = response.flow_id;
-      router.push(`/assessment?flow_id=${flowId}`);
+      navigate(`/assessment?flow_id=${flowId}`);
       onClose();
     } catch (err: any) {
       console.error('Failed to create assessment:', err);

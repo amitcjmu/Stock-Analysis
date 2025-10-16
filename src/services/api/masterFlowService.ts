@@ -814,6 +814,9 @@ export const masterFlowService = {
 
   /**
    * Get assessment flow status with application count (via MFO)
+   *
+   * CC FIX: Backend returns `selected_applications` and `progress_percentage`,
+   * but hook expects `application_count` and `progress`. Transform at service layer.
    */
   async getAssessmentStatus(
     flowId: string,
@@ -827,19 +830,28 @@ export const masterFlowService = {
     application_count: number;
   }> {
     try {
+      // Backend actual response format (snake_case fields from Python)
       const response = await apiClient.get<{
         flow_id: string;
         status: string;
-        progress: number;
+        progress_percentage: number;  // Backend returns this
         current_phase: string;
-        application_count: number;
+        selected_applications: number;  // Backend returns this (count of apps)
       }>(
         `/api/v1/master-flows/${flowId}/assessment-status`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         },
       );
-      return response;
+
+      // Transform to hook's expected format
+      return {
+        flow_id: response.flow_id,
+        status: response.status,
+        progress: response.progress_percentage,  // Transform field name
+        current_phase: response.current_phase,
+        application_count: response.selected_applications,  // Transform field name
+      };
     } catch (error) {
       handleApiError(error, "getAssessmentStatus");
       throw error;
@@ -848,6 +860,9 @@ export const masterFlowService = {
 
   /**
    * Get assessment applications with full details (via MFO)
+   *
+   * CC FIX: Backend returns application_asset_groups (canonical applications),
+   * but hook expects individual application details. Transform groups to individual app records.
    */
   async getAssessmentApplications(
     flowId: string,
@@ -867,37 +882,57 @@ export const masterFlowService = {
     }>;
   }> {
     try {
-      // Call MFO endpoint directly - returns array without wrapper
-      const applications = await apiClient.get<Array<{
-        id: string;
-        name: string;
-        type: string;
-        environment: string;
-        business_criticality: string;
-        technology_stack: string[];
-        complexity_score: number;
-        readiness_score: number;
-        discovery_completed_at: string;
-      }>>(
+      // Backend returns application_asset_groups structure
+      const response = await apiClient.get<{
+        flow_id: string;
+        applications: Array<{
+          canonical_application_id: string | null;
+          canonical_application_name: string;
+          asset_ids: string[];
+          asset_count: number;
+          asset_types: string[];
+          readiness_summary: {
+            ready: number;
+            not_ready: number;
+            in_progress: number;
+          };
+        }>;
+        total_applications: number;
+        total_assets: number;
+        unmapped_assets: number;
+      }>(
         `/api/v1/master-flows/${flowId}/assessment-applications`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         },
       );
 
-      // Transform to match expected format with snake_case field names
+      // Transform application groups to individual application records
+      // NOTE: Each group represents a canonical application with multiple assets
       return {
-        applications: applications.map(app => ({
-          application_id: app.id,
-          application_name: app.name,
-          application_type: app.type,
-          environment: app.environment,
-          business_criticality: app.business_criticality,
-          technology_stack: app.technology_stack,
-          complexity_score: app.complexity_score,
-          readiness_score: app.readiness_score,
-          discovery_completed_at: app.discovery_completed_at,
-        })),
+        applications: response.applications.map(group => {
+          // Calculate readiness score from readiness_summary
+          const totalAssets = group.asset_count;
+          const readyAssets = group.readiness_summary.ready;
+          const readiness_score = totalAssets > 0 ? (readyAssets / totalAssets) * 10 : 0;
+
+          // Determine business criticality based on readiness
+          const notReady = group.readiness_summary.not_ready;
+          const business_criticality = notReady > totalAssets * 0.7 ? 'high' :
+                                       notReady > totalAssets * 0.4 ? 'medium' : 'low';
+
+          return {
+            application_id: group.canonical_application_id || `unmapped-${group.canonical_application_name}`,
+            application_name: group.canonical_application_name,
+            application_type: group.asset_types[0] || 'application',  // Use first asset type
+            environment: 'production',  // Default - not in group data
+            business_criticality,
+            technology_stack: [],  // Not available in group summary
+            complexity_score: Math.min(group.asset_count, 10),  // Asset count as proxy for complexity
+            readiness_score: Math.round(readiness_score * 10) / 10,  // Round to 1 decimal
+            discovery_completed_at: new Date().toISOString(),  // Not available in group data
+          };
+        }),
       };
     } catch (error) {
       handleApiError(error, "getAssessmentApplications");

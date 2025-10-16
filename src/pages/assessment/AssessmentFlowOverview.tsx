@@ -1,4 +1,3 @@
-import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -244,13 +243,11 @@ const AssessmentFlowOverview = (): JSX.Element => {
   };
 
   return (
-    <>
+    <div className="flex min-h-screen bg-gray-50">
       <StartAssessmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-
-      <div className="flex min-h-screen bg-gray-50">
-        <div className="hidden lg:block w-64 border-r bg-white">
-          <Sidebar />
-        </div>
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
@@ -553,7 +550,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
