@@ -84,12 +84,11 @@ class LicensingEnrichmentAgent:
 
         for asset in assets:
             try:
-                # Step 1: Retrieve similar patterns
+                # Step 1: Retrieve similar patterns (scope is implicit via engagement_id)
                 patterns = await self.memory_manager.retrieve_similar_patterns(
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
-                    scope=LearningScope.ENGAGEMENT,
-                    pattern_type="licensing_analysis",
+                    pattern_type="LICENSING_ANALYSIS",
                     query_context={
                         "asset_type": asset.asset_type,
                         "technology_stack": asset.technology_stack or [],
@@ -104,12 +103,10 @@ class LicensingEnrichmentAgent:
                     prompt=prompt,
                     task_type="licensing_analysis",
                     complexity=TaskComplexity.AGENTIC,
-                    client_account_id=self.client_account_id,
-                    engagement_id=self.engagement_id,
                 )
 
                 # Step 4: Parse response
-                licensing_data = self._parse_licensing_response(response)
+                licensing_data = self._parse_licensing_response(response["response"])
 
                 # Step 5: Store enrichment data
                 if asset.custom_attributes is None:
@@ -132,7 +129,7 @@ class LicensingEnrichmentAgent:
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
                     scope=LearningScope.ENGAGEMENT,
-                    pattern_type="licensing_analysis",
+                    pattern_type="LICENSING_ANALYSIS",
                     pattern_data={
                         "asset_type": asset.asset_type,
                         "technology_stack": asset.technology_stack or [],

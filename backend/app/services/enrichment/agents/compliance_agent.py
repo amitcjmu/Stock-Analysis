@@ -91,12 +91,11 @@ class ComplianceEnrichmentAgent:
 
         for asset in assets:
             try:
-                # Step 1: Retrieve similar patterns (ADR-024)
+                # Step 1: Retrieve similar patterns (ADR-024) (scope is implicit via engagement_id)
                 patterns = await self.memory_manager.retrieve_similar_patterns(
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
-                    scope=LearningScope.ENGAGEMENT,
-                    pattern_type="compliance_analysis",
+                    pattern_type="COMPLIANCE_ANALYSIS",
                     query_context={
                         "asset_type": asset.asset_type,
                         "technology_stack": asset.technology_stack or [],
@@ -111,12 +110,10 @@ class ComplianceEnrichmentAgent:
                     prompt=prompt,
                     task_type="compliance_analysis",
                     complexity=TaskComplexity.AGENTIC,
-                    client_account_id=self.client_account_id,
-                    engagement_id=self.engagement_id,
                 )
 
                 # Step 4: Parse LLM response
-                compliance_data = self._parse_compliance_response(response)
+                compliance_data = self._parse_compliance_response(response["response"])
 
                 # Step 5: Store enrichment data
                 # TODO: Create/update asset_compliance_flags table entry when schema exists
@@ -139,7 +136,7 @@ class ComplianceEnrichmentAgent:
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
                     scope=LearningScope.ENGAGEMENT,
-                    pattern_type="compliance_analysis",
+                    pattern_type="COMPLIANCE_ANALYSIS",
                     pattern_data={
                         "asset_type": asset.asset_type,
                         "technology_stack": asset.technology_stack or [],
@@ -184,9 +181,9 @@ Analyze the following asset for compliance requirements and data classification:
 Asset Name: {asset.asset_name or 'Unknown'}
 Asset Type: {asset.asset_type}
 Technology Stack: {asset.technology_stack or 'Not specified'}
-Data Sensitivity: {asset.data_sensitivity or 'Unknown'}
+Data Sensitivity: {getattr(asset, 'data_sensitivity', None) or 'Unknown'}
 Environment: {asset.environment or 'Unknown'}
-Location: {asset.location or 'Unknown'}
+Location: {getattr(asset, 'location', None) or 'Unknown'}
 
 {pattern_context}
 

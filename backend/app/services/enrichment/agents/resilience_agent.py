@@ -85,12 +85,11 @@ class ResilienceEnrichmentAgent:
 
         for asset in assets:
             try:
-                # Step 1: Retrieve similar resilience patterns
+                # Step 1: Retrieve similar resilience patterns (scope is implicit via engagement_id)
                 patterns = await self.memory_manager.retrieve_similar_patterns(
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
-                    scope=LearningScope.ENGAGEMENT,
-                    pattern_type="resilience_analysis",
+                    pattern_type="RESILIENCE_ANALYSIS",
                     query_context={
                         "asset_type": asset.asset_type,
                         "business_criticality": asset.business_criticality,
@@ -106,12 +105,10 @@ class ResilienceEnrichmentAgent:
                     prompt=prompt,
                     task_type="resilience_analysis",
                     complexity=TaskComplexity.AGENTIC,
-                    client_account_id=self.client_account_id,
-                    engagement_id=self.engagement_id,
                 )
 
                 # Step 4: Parse response
-                resilience_data = self._parse_resilience_response(response)
+                resilience_data = self._parse_resilience_response(response["response"])
 
                 # Step 5: Store enrichment data
                 if asset.custom_attributes is None:
@@ -135,7 +132,7 @@ class ResilienceEnrichmentAgent:
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
                     scope=LearningScope.ENGAGEMENT,
-                    pattern_type="resilience_analysis",
+                    pattern_type="RESILIENCE_ANALYSIS",
                     pattern_data={
                         "asset_type": asset.asset_type,
                         "business_criticality": asset.business_criticality,
