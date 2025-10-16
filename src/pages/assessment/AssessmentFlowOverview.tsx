@@ -12,6 +12,7 @@ import AgentInsightsSection from '../../components/discovery/AgentInsightsSectio
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
 import { ApplicationGroupsWidget } from '@/components/assessment/ApplicationGroupsWidget';
 import { ReadinessDashboardWidget } from '@/components/assessment/ReadinessDashboardWidget';
+import { StartAssessmentModal } from '@/components/assessment/StartAssessmentModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '../../config/api';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
   const [isEnsuringFlow, setIsEnsuringFlow] = useState<boolean>(true);
   const [isInitializingAssessment, setIsInitializingAssessment] = useState<boolean>(false);
   const [selectedFlowForDetails, setSelectedFlowForDetails] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [readiness, setReadiness] = useState<{
     apps_ready_for_assessment: number;
     phase_scores: { collection: number; discovery: number };
@@ -242,10 +244,13 @@ const AssessmentFlowOverview = (): JSX.Element => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <div className="hidden lg:block w-64 border-r bg-white">
-        <Sidebar />
-      </div>
+    <>
+      <StartAssessmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
@@ -269,12 +274,20 @@ const AssessmentFlowOverview = (): JSX.Element => {
                 Filter
               </Button>
               <Button
-                onClick={handleStartAssessment}
-                disabled={!readinessPasses || isInitializingAssessment}
-                title={!readinessPasses ? 'Complete intelligent data enrichment first' : 'Start AI-powered assessment'}
+                onClick={() => setIsModalOpen(true)}
+                title="Start assessment from canonical applications"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Start AI-powered Assessment
+                New Assessment
+              </Button>
+              <Button
+                onClick={handleStartAssessment}
+                disabled={!readinessPasses || isInitializingAssessment}
+                title={!readinessPasses ? 'Complete intelligent data enrichment first' : 'Start AI-powered assessment from collection'}
+                variant="outline"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                From Collection
               </Button>
             </div>
           </div>
@@ -540,7 +553,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
