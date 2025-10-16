@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
-import type { GetServerSideProps } from 'next/router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ComponentIdentificationPanel } from '@/components/assessment/ComponentIdentificationPanel';
 import { TechDebtAnalysisGrid } from '@/components/assessment/TechDebtAnalysisGrid';
@@ -18,13 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Save, ArrowRight, Loader2, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface TechDebtPageProps {
-  flowId: string;
-}
-
 type SeverityLevel = 'critical' | 'high' | 'medium' | 'low';
 
-const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
+const TechDebtPage: React.FC = () => {
+  const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
+  const navigate = useNavigate();
   const {
     state,
     updateApplicationComponents,
@@ -39,12 +37,24 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
   const [editingComponent, setEditingComponent] = useState<string | null>(null);
   const [editingTechDebt, setEditingTechDebt] = useState<string | null>(null);
 
+  // Guard: redirect to overview if flowId missing
+  useEffect(() => {
+    if (!flowId) {
+      navigate('/assess/overview', { replace: true });
+    }
+  }, [flowId, navigate]);
+
   // Set first application as selected by default
   useEffect(() => {
     if (state.selectedApplicationIds.length > 0 && !selectedApp) {
       setSelectedApp(state.selectedApplicationIds[0]);
     }
   }, [state.selectedApplicationIds, selectedApp]);
+
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
 
   // Get current application data
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
@@ -362,8 +372,5 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     </AssessmentFlowLayout>
   );
 };
-
-// eslint-disable-next-line react-refresh/only-export-components
-export { getServerSideProps } from './utils';
 
 export default TechDebtPage;

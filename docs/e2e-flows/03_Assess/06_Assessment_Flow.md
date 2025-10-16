@@ -1,24 +1,30 @@
 
 # Assessment Flow: MFO-Integrated Data Flow Analysis
 
-This document provides a complete, end-to-end data flow analysis for the Assessment Flow, which is fully integrated with the Master Flow Orchestrator (MFO) architecture.
-
-**Last Updated:** 2025-08-23  
+**Analysis Date:** October 16, 2025
+**Last Updated:** October 16, 2025 (Enhanced for PR #600)
 **MFO Integration Status:** Complete
+**Status:** ✅ UPDATED FOR OCTOBER 2025 ENHANCEMENTS
 
 ## 🏗️ MFO Integration Overview
 
-The Assessment Flow now follows the **Master Flow Orchestrator** architecture:
+The Assessment Flow follows the **Master Flow Orchestrator** architecture:
 
 - **Primary Identifier**: `master_flow_id` is used for ALL Assessment flow operations
-- **Unified API Pattern**: All flow lifecycle operations use `/api/v1/master-flows/*` endpoints  
+- **Unified API Pattern**: All flow lifecycle operations use `/api/v1/master-flows/*` endpoints
 - **MFO Coordination**: Assessment flows are created, managed, and executed through MFO
 - **Internal Implementation**: Assessment-specific data linked via master_flow_id
 
-**Key Architectural Change:**
-All Assessment flow operations now go through MFO, with `master_flow_id` as the primary identifier. Child flow IDs are internal implementation details only.
+**October 2025 Enhancements (PR #600):**
+- Added **ApplicationGroupsWidget** for canonical application grouping (see `01_Overview.md`)
+- Added **ReadinessDashboardWidget** for assessment readiness visualization
+- Added **AssessmentApplicationResolver** service for asset-to-application resolution
+- Enhanced with 3 new API endpoints: `/assessment-applications`, `/assessment-readiness`, `/assessment-progress`
+- Pre-computed data in JSONB fields: `application_asset_groups`, `enrichment_status`, `readiness_summary`
+- Full multi-tenant scoping on all queries (client_account_id + engagement_id)
 
-**Analysis Date:** 2024-07-29 (Updated for MFO: 2025-08-23)
+**Key Architectural Changes:**
+All Assessment flow operations go through MFO, with `master_flow_id` as the primary identifier. Child flow IDs are internal implementation details only. See `01_Overview.md` for comprehensive details on the new assessment architecture.
 
 **Current Assumptions:**
 *   The Assessment Flow is integrated with Master Flow Orchestrator (MFO)

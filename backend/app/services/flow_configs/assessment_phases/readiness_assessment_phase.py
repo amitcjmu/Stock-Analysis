@@ -103,7 +103,7 @@ def get_readiness_assessment_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=2700,  # 45 minutes
         metadata={
-            "ui_route": "/assessment/readiness",
+            "ui_route": "/assessment/[flowId]/architecture",  # Issue #4 fix: map to existing route
             "ui_short_name": "Readiness",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 45,
             "icon": "clipboard-check",

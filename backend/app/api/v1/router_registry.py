@@ -451,6 +451,18 @@ def register_special_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ FinOps router not available")
 
+    # Canonical Applications
+    if routers_with_flags.get("CANONICAL_APPLICATIONS", (False, None))[0]:
+        canonical_applications_router = routers_with_flags["CANONICAL_APPLICATIONS"][1]
+        api_router.include_router(
+            canonical_applications_router, prefix="/canonical-applications"
+        )
+        logger.info(
+            "✅ Canonical Applications router included at /canonical-applications"
+        )
+    else:
+        logger.warning("⚠️ Canonical Applications router not available")
+
 
 def register_all_routers(api_router: APIRouter):
     """Register all routers in organized groups."""

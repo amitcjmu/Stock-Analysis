@@ -414,8 +414,10 @@ class AnalysisService:
                         param_obj = SixRParameterBase(**param_dict)
 
                         # Run enhanced analysis
-                        recommendation_data = await self.decision_engine.analyze_parameters(
-                            param_obj, question_context
+                        recommendation_data = (
+                            await self.decision_engine.analyze_parameters(
+                                param_obj, question_context
+                            )
                         )
 
                         # Create updated recommendation

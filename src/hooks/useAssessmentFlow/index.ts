@@ -12,6 +12,3 @@ export type * from './types';
 
 // Re-export API client (if needed elsewhere)
 export { assessmentFlowAPI } from './api';
-
-// Re-export event source service (if needed elsewhere)
-export { eventSourceService } from './eventSource';

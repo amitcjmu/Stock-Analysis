@@ -27,8 +27,121 @@ class FlowCommands:
         engagement_id: str,
         selected_application_ids: List[str],
         created_by: Optional[str] = None,
+        collection_flow_id: Optional[str] = None,
     ) -> str:
-        """Create new assessment flow with initial state and register with master flow system"""
+        """
+        Create new assessment flow with initial state and register with master flow system.
+
+        ENHANCED (October 2025 - Phase 2 Days 8-9): Now populates application_asset_groups,
+        enrichment_status, and readiness_summary during initialization using
+        AssessmentApplicationResolver service.
+
+        Collection → Assessment Handoff: When collection_flow_id is provided,
+        automatically resolves assets to canonical applications via junction table.
+
+        Args:
+            engagement_id: Engagement UUID
+            selected_application_ids: Asset IDs (DEPRECATED name, actually asset UUIDs)
+            created_by: User ID who created the flow
+            collection_flow_id: Optional collection flow ID for asset resolution
+
+        Returns:
+            Assessment flow ID (UUID as string)
+        """
+        from uuid import UUID
+        from app.services.assessment.application_resolver import (
+            AssessmentApplicationResolver,
+        )
+
+        # Convert string IDs to UUIDs for resolver
+        try:
+            asset_ids = [UUID(aid) for aid in selected_application_ids]
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid asset IDs provided: {e}")
+            asset_ids = []
+
+        # Convert collection_flow_id to UUID if provided
+        collection_flow_uuid = None
+        if collection_flow_id:
+            try:
+                collection_flow_uuid = UUID(collection_flow_id)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid collection_flow_id: {collection_flow_id}")
+
+        # Step 1: Initialize AssessmentApplicationResolver
+        resolver = AssessmentApplicationResolver(
+            db=self.db,
+            client_account_id=UUID(str(self.client_account_id)),
+            engagement_id=UUID(str(engagement_id)),
+        )
+
+        # Step 2: Resolve assets to canonical applications (with grouping)
+        application_groups = []
+        canonical_app_ids = []
+        if asset_ids:
+            try:
+                application_groups = await resolver.resolve_assets_to_applications(
+                    asset_ids=asset_ids, collection_flow_id=collection_flow_uuid
+                )
+
+                # Extract canonical application IDs
+                canonical_app_ids = [
+                    str(group.canonical_application_id)
+                    for group in application_groups
+                    if group.canonical_application_id is not None
+                ]
+            except Exception as e:
+                logger.error(f"Failed to resolve assets to applications: {e}")
+                # Continue with flow creation even if resolution fails
+
+        # Step 3: Calculate enrichment status
+        enrichment_status = {}
+        if asset_ids:
+            try:
+                enrichment_obj = await resolver.calculate_enrichment_status(asset_ids)
+                enrichment_status = enrichment_obj.dict()
+            except Exception as e:
+                logger.error(f"Failed to calculate enrichment status: {e}")
+
+        # Step 4: Calculate readiness summary
+        readiness_summary = {}
+        if asset_ids:
+            try:
+                readiness_obj = await resolver.calculate_readiness_summary(asset_ids)
+                readiness_summary = readiness_obj.dict()
+            except Exception as e:
+                logger.error(f"Failed to calculate readiness summary: {e}")
+
+        # Step 5: Convert application groups to dict for JSONB storage
+        # PERFORMANCE FIX: Use model_dump(mode="json") instead of json.loads/dumps
+        # This is more efficient and handles UUID serialization automatically
+        application_groups_dict = [
+            group.model_dump(mode="json") for group in application_groups
+        ]
+
+        # Step 6: Log warnings for edge cases
+        unmapped_count = sum(
+            1 for group in application_groups if group.canonical_application_id is None
+        )
+        if unmapped_count > 0:
+            logger.warning(
+                f"Assessment flow has {unmapped_count} unmapped assets. "
+                f"Consider running canonical deduplication."
+            )
+
+        total_enrichment = sum(enrichment_status.values()) if enrichment_status else 0
+        if total_enrichment == 0 and asset_ids:
+            logger.warning(
+                f"Assessment flow has no enrichment data for {len(asset_ids)} assets. "
+                f"Consider running enrichment pipeline."
+            )
+
+        avg_completeness = readiness_summary.get("avg_completeness_score", 0.0)
+        if avg_completeness < 0.5 and asset_ids:
+            logger.warning(
+                f"Assessment flow has low readiness: {avg_completeness:.1%}. "
+                f"Only {readiness_summary.get('ready', 0)}/{len(asset_ids)} assets ready."
+            )
 
         # Convert string IDs to proper format for JSONB storage
         app_ids_jsonb = [str(app_id) for app_id in selected_application_ids]
@@ -40,8 +153,14 @@ class FlowCommands:
             configuration={
                 "selected_application_ids": selected_application_ids,
             },
-            # Set the separate selected_application_ids column to satisfy NOT NULL constraint
+            # DEPRECATED: Keep for backward compatibility (semantic mismatch)
             selected_application_ids=app_ids_jsonb,
+            # NEW: Proper semantic fields (October 2025)
+            selected_asset_ids=app_ids_jsonb,
+            selected_canonical_application_ids=canonical_app_ids,
+            application_asset_groups=application_groups_dict,
+            enrichment_status=enrichment_status,
+            readiness_summary=readiness_summary,
             status=AssessmentFlowStatus.INITIALIZED.value,
             current_phase=AssessmentPhase.INITIALIZATION.value,
             progress=0.0,
@@ -53,6 +172,14 @@ class FlowCommands:
         self.db.add(flow_record)
         await self.db.commit()
         await self.db.refresh(flow_record)
+
+        # Log creation with metadata
+        logger.info(
+            f"Created assessment flow {flow_record.id} with "
+            f"{len(application_groups)} application groups, "
+            f"{len(asset_ids)} assets, "
+            f"readiness: {readiness_summary.get('ready', 0)}/{len(asset_ids)} ready"
+        )
 
         # Register with master flow system
         from app.repositories.crewai_flow_state_extensions_repository import (

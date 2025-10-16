@@ -222,6 +222,9 @@ class CollectionTransitionService:
                 engagement_id=str(self.context.engagement_id),
                 selected_application_ids=selected_app_ids,
                 created_by=str(self.context.user_id) if self.context.user_id else None,
+                collection_flow_id=str(
+                    collection_flow_id
+                ),  # NEW: Pass collection flow ID for asset resolution
             )
 
             # Get the created assessment flow record for metadata

@@ -101,7 +101,7 @@ def get_complexity_analysis_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=2100,  # 35 minutes
         metadata={
-            "ui_route": "/assessment/complexity",
+            "ui_route": "/assessment/[flowId]/tech-debt",  # Issue #4 fix: complexity feeds into tech debt analysis
             "ui_short_name": "Complexity",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 35,
             "icon": "activity",

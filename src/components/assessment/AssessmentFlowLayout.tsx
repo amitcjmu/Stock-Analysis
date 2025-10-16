@@ -165,7 +165,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                     Assessment Flow Progress
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    {state.selectedApplicationIds?.length || 0} applications •{" "}
+                    {state.applicationCount || state.selectedApplicationIds?.length || 0} applications •{" "}
                     {state.currentPhase?.replace("_", " ") || "Unknown phase"}
                   </p>
                 </div>

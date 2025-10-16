@@ -9,7 +9,6 @@ import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { assessmentFlowAPI } from "./api";
-import { eventSourceService } from "./eventSource";
 import type {
   AssessmentFlowState,
   AssessmentFlowStatus,
@@ -27,12 +26,12 @@ export const useAssessmentFlow = (
   initialFlowId?: string,
 ): UseAssessmentFlowReturn => {
   const navigate = useNavigate();
-  const { user, getAuthHeaders } = useAuth();
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const { user, client, engagement, getAuthHeaders } = useAuth();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get client account and engagement from auth context
-  const clientAccountId = user?.client_account_id;
-  const engagementId = user?.engagement_id;
+  const clientAccountId = client?.id;
+  const engagementId = engagement?.id;
 
   // Initial state
   const [state, setState] = useState<AssessmentFlowState>({
@@ -57,74 +56,43 @@ export const useAssessmentFlow = (
     agentUpdates: [],
   });
 
-  // Subscribe to real-time updates
-  const subscribeToUpdates = useCallback(() => {
-    if (!state.flowId || eventSourceRef.current) return;
+  // Start HTTP/2 polling for status updates
+  const startPolling = useCallback(() => {
+    if (!state.flowId || !clientAccountId || pollingIntervalRef.current) return;
 
-    try {
-      const eventSource = eventSourceService.subscribe(
-        `/api/v1/assessment-flow/${state.flowId}/events`,
-        {
-          onMessage: (event) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
-            let data: any;
-            try {
-              if (
-                !event?.data ||
-                event.data === ":keepalive" ||
-                event.data === "heartbeat"
-              )
-                return;
-              data = JSON.parse(event.data);
-            } catch {
-              return;
-            }
+    const pollStatus = async () => {
+      try {
+        const status = await assessmentFlowAPI.getStatus(
+          state.flowId,
+          clientAccountId,
+          engagementId,
+        );
 
-            setState((prev) => {
-              const nextProgress =
-                typeof data.progress === "number"
-                  ? Math.max(prev.progress ?? 0, data.progress)
-                  : prev.progress;
-              return {
-                ...prev,
-                status: data.status ?? prev.status,
-                progress: nextProgress,
-                currentPhase: data.current_phase ?? prev.currentPhase,
-                nextPhase: data.next_phase ?? prev.nextPhase,
-                agentUpdates: [
-                  ...prev.agentUpdates,
-                  {
-                    timestamp: new Date(),
-                    phase: data.phase ?? prev.currentPhase,
-                    message: data.message ?? "Processing...",
-                    progress: nextProgress,
-                  },
-                ].slice(-20),
-              };
-            });
-          },
-          onError: (error) => {
-            console.error("Assessment flow SSE error:", error);
-            try {
-              eventSourceRef.current?.close();
-            } catch (closeError) {
-              // Ignore close errors - connection may already be closed
-              console.debug("EventSource close error:", closeError);
-            }
-            eventSourceRef.current = null;
-            setState((prev) => ({
-              ...prev,
-              error: "Real-time updates disconnected",
-            }));
-          },
-        },
-      );
+        setState((prev) => {
+          const nextProgress =
+            typeof status.progress === "number"
+              ? Math.max(prev.progress ?? 0, status.progress)
+              : prev.progress;
 
-      eventSourceRef.current = eventSource;
-    } catch (error) {
-      console.error("Failed to subscribe to updates:", error);
-    }
-  }, [state.flowId]);
+          return {
+            ...prev,
+            status: status.status as AssessmentFlowStatus,
+            progress: nextProgress,
+            currentPhase: status.current_phase as AssessmentPhase,
+            applicationCount: status.application_count,
+            error: null, // Clear error on successful poll
+          };
+        });
+      } catch (error) {
+        console.error("Assessment flow polling error:", error);
+        // Don't set error state - allow retries
+      }
+    };
+
+    // Poll immediately, then every 5 seconds
+    pollStatus();
+    pollingIntervalRef.current = setInterval(pollStatus, 5000);
+  }, [state.flowId, clientAccountId, engagementId]);
 
   // Initialize assessment flow
   const initializeFlow = useCallback(
@@ -155,8 +123,8 @@ export const useAssessmentFlow = (
           isLoading: false,
         }));
 
-        // Start real-time updates
-        subscribeToUpdates();
+        // Start HTTP/2 polling
+        startPolling();
 
         // Navigate to first phase
         if (navigate) {
@@ -179,7 +147,7 @@ export const useAssessmentFlow = (
       engagementId,
       navigate,
       getAuthHeaders,
-      subscribeToUpdates,
+      startPolling,
     ],
   );
 
@@ -426,11 +394,11 @@ export const useAssessmentFlow = (
     [state.flowId],
   );
 
-  // Unsubscribe from updates
-  const unsubscribeFromUpdates = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+  // Stop HTTP/2 polling
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
   }, []);
 
@@ -527,9 +495,22 @@ export const useAssessmentFlow = (
 
   // Load application data
   const loadApplicationData = useCallback(async (): Promise<void> => {
-    if (!state.flowId || !clientAccountId) return;
+    console.log('[useAssessmentFlow] loadApplicationData called', {
+      flowId: state.flowId,
+      clientAccountId,
+      engagementId,
+    });
+
+    if (!state.flowId || !clientAccountId) {
+      console.log('[useAssessmentFlow] Early return - missing flowId or clientAccountId', {
+        flowId: state.flowId,
+        clientAccountId,
+      });
+      return;
+    }
 
     try {
+      console.log('[useAssessmentFlow] Fetching application data...');
       // Load both status with count and full application details
       const [statusResponse, applicationsResponse] = await Promise.all([
         assessmentFlowAPI.getAssessmentStatus(
@@ -544,6 +525,11 @@ export const useAssessmentFlow = (
         ),
       ]);
 
+      console.log('[useAssessmentFlow] Application data loaded successfully', {
+        applicationCount: statusResponse.application_count,
+        applications: applicationsResponse.applications.length,
+      });
+
       setState((prev) => ({
         ...prev,
         applicationCount: statusResponse.application_count,
@@ -553,38 +539,42 @@ export const useAssessmentFlow = (
         ),
       }));
     } catch (error) {
-      console.error("Failed to load application data:", error);
+      console.error("[useAssessmentFlow] Failed to load application data:", error);
       // Don't throw here - this is supplementary data
     }
   }, [state.flowId, clientAccountId, engagementId]);
 
   // Load current flow state
   const loadFlowState = useCallback(async (): Promise<void> => {
-    if (!state.flowId) return;
+    if (!state.flowId || !clientAccountId) return;
 
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      const flowStatus = await assessmentFlowAPI.getStatus(state.flowId);
+      // Call getStatus with required multi-tenant parameters
+      const flowStatus = await assessmentFlowAPI.getStatus(
+        state.flowId,
+        clientAccountId,
+        engagementId,
+      );
 
       setState((prev) => ({
         ...prev,
         status: flowStatus.status as AssessmentFlowStatus,
         progress: flowStatus.progress,
         currentPhase: flowStatus.current_phase as AssessmentPhase,
-        nextPhase: flowStatus.next_phase as AssessmentPhase,
-        pausePoints: flowStatus.pause_points,
-        appsReadyForPlanning: flowStatus.apps_ready_for_planning,
-        lastUserInteraction: flowStatus.last_user_interaction
-          ? new Date(flowStatus.last_user_interaction)
-          : null,
+        applicationCount: flowStatus.application_count,
+        // Note: Backend doesn't return these fields, keep previous values
+        // nextPhase: populated by phase logic
+        // pausePoints: populated by phase completion
+        // appsReadyForPlanning: populated by phase logic
         isLoading: false,
       }));
 
       // Load phase-specific data
-      await loadPhaseData(flowStatus.current_phase);
+      await loadPhaseData(flowStatus.current_phase as AssessmentPhase);
 
-      // Load application data
+      // Load application data (full details)
       await loadApplicationData();
     } catch (error) {
       setState((prev) => ({
@@ -594,24 +584,24 @@ export const useAssessmentFlow = (
         isLoading: false,
       }));
     }
-  }, [state.flowId, loadPhaseData, loadApplicationData]);
+  }, [state.flowId, clientAccountId, engagementId, loadPhaseData, loadApplicationData]);
 
   // Load flow state on mount or flowId change
   useEffect(() => {
     if (state.flowId && clientAccountId) {
       loadFlowState();
-      subscribeToUpdates();
+      startPolling();
     }
 
     return () => {
-      unsubscribeFromUpdates();
+      stopPolling();
     };
   }, [
     state.flowId,
     clientAccountId,
     loadFlowState,
-    subscribeToUpdates,
-    unsubscribeFromUpdates,
+    startPolling,
+    stopPolling,
   ]);
 
   // Expose loadApplicationData for manual refresh
@@ -652,8 +642,8 @@ export const useAssessmentFlow = (
     updateApplicationComponents,
     updateTechDebtAnalysis,
     updateSixRDecision,
-    subscribeToUpdates,
-    unsubscribeFromUpdates,
+    startPolling,
+    stopPolling,
     getPhaseProgress,
     canNavigateToPhase,
     getApplicationsNeedingReview,

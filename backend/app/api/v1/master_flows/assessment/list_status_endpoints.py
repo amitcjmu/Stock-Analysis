@@ -1,0 +1,191 @@
+"""
+Assessment list and status endpoints.
+
+Endpoints for listing assessment flows and getting status information.
+"""
+
+import logging
+from typing import Any, Dict, List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_, cast, String
+
+from app.core.context import RequestContext, get_current_context_dependency
+from app.core.database import get_db
+from app.models import User
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.get("/list")
+async def list_assessment_flows_via_mfo(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> List[Dict[str, Any]]:
+    """List all assessment flows for current tenant via Master Flow Orchestrator"""
+
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
+
+    try:
+        from app.models.assessment_flow import AssessmentFlow
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
+        # Get all flows for the engagement with user information
+        stmt = (
+            select(AssessmentFlow, User)
+            .outerjoin(
+                CrewAIFlowStateExtensions,
+                AssessmentFlow.id == CrewAIFlowStateExtensions.flow_id,
+            )
+            .outerjoin(
+                User,
+                CrewAIFlowStateExtensions.user_id == cast(User.id, String),
+            )
+            .where(
+                and_(
+                    AssessmentFlow.engagement_id == UUID(engagement_id),
+                    AssessmentFlow.client_account_id == UUID(client_account_id),
+                )
+            )
+            .order_by(AssessmentFlow.created_at.desc())
+        )
+
+        result_rows = await db.execute(stmt)
+        flows_with_users = result_rows.all()
+
+        # Transform to frontend format
+        result = []
+        for flow, user in flows_with_users:
+            # Build user display name from joined user data
+            if user:
+                if user.first_name and user.last_name:
+                    created_by = f"{user.first_name} {user.last_name}"
+                elif user.email:
+                    created_by = user.email
+                elif user.username:
+                    created_by = user.username
+                else:
+                    created_by = "Unknown User"
+            else:
+                created_by = "System"
+
+            result.append(
+                {
+                    "id": str(flow.id),
+                    "status": flow.status,
+                    "current_phase": flow.current_phase or "initialization",
+                    "progress": flow.progress or 0,
+                    "selected_applications": len(flow.selected_application_ids or []),
+                    "created_at": flow.created_at.isoformat(),
+                    "updated_at": flow.updated_at.isoformat(),
+                    "created_by": created_by,
+                }
+            )
+
+        logger.info(
+            f"Retrieved {len(result)} assessment flows for engagement {engagement_id}"
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"Failed to list assessment flows: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list assessment flows: {str(e)}"
+        )
+
+
+@router.get("/{flow_id}/assessment-status")
+async def get_assessment_flow_status_via_master(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> Dict[str, Any]:
+    """Get assessment flow status via Master Flow Orchestrator"""
+
+    client_account_id = context.client_account_id
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+
+    try:
+        from app.repositories.assessment_flow_repository import (
+            AssessmentFlowRepository,
+        )
+        from app.models.assessment_flow import AssessmentFlowStatus
+
+        repository = AssessmentFlowRepository(db, client_account_id)
+        flow_state = await repository.get_assessment_flow_state(flow_id)
+
+        if not flow_state:
+            raise HTTPException(status_code=404, detail="Assessment flow not found")
+
+        # Calculate progress percentage using FlowTypeConfig (ADR-027)
+        from app.services.flow_type_registry_helpers import get_flow_config
+
+        try:
+            config = get_flow_config("assessment")
+            phase_names = [phase.name for phase in config.phases]
+
+            # Get current phase as string
+            current_phase_str = (
+                flow_state.current_phase.value
+                if hasattr(flow_state.current_phase, "value")
+                else str(flow_state.current_phase)
+            )
+
+            progress_percentage = 0
+            if flow_state.status == AssessmentFlowStatus.COMPLETED:
+                progress_percentage = 100
+            elif current_phase_str in phase_names:
+                current_index = phase_names.index(current_phase_str)
+                progress_percentage = int(
+                    ((current_index + 1) / len(phase_names)) * 100
+                )
+            else:
+                # Phase not in config, default to 0
+                logger.warning(
+                    f"Phase '{current_phase_str}' not found in assessment config"
+                )
+                progress_percentage = 0
+
+        except Exception as e:
+            logger.error(f"Error calculating progress: {e}")
+            progress_percentage = 0
+
+        return {
+            "flow_id": flow_id,
+            "status": (
+                flow_state.status.value
+                if hasattr(flow_state.status, "value")
+                else str(flow_state.status)
+            ),
+            "progress_percentage": progress_percentage,
+            "current_phase": (
+                flow_state.current_phase.value
+                if hasattr(flow_state.current_phase, "value")
+                else str(flow_state.current_phase)
+            ),
+            "next_phase": None,  # Will be calculated by frontend
+            "phase_data": flow_state.phase_results or {},
+            "selected_applications": len(flow_state.selected_application_ids or []),
+            "assessment_complete": (
+                flow_state.status == AssessmentFlowStatus.COMPLETED
+            ),
+            "created_at": flow_state.created_at.isoformat(),
+            "updated_at": flow_state.updated_at.isoformat(),
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get assessment status: {str(e)}"
+        )
