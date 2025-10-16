@@ -212,12 +212,28 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       return candidateFlowId;
     }
 
-    // IMPORTANT: Trust URL flow ID even if not in current flow list
-    // The flow list might be filtered (only "active" flows) or not loaded yet
-    // URL flow IDs are explicitly provided by navigation and should be trusted
+    // CRITICAL FIX #326: Validate URL flow_id exists in flowList before trusting it
+    // Backend now returns 404 when flow_id doesn't exist - frontend must validate first
     if (urlFlowId) {
-      console.log(`✅ Using URL flow ID: ${urlFlowId}`);
-      return urlFlowId;
+      // Wait for flowList to load before validating
+      if (!flowList) {
+        console.log(`⏳ Waiting for flowList to validate URL flow ID: ${urlFlowId}`);
+        return null; // Return null while loading - will trigger "No Active Flow" state
+      }
+
+      // Check if URL flow_id exists in user's flow list
+      const flowExists = flowList.some((flow: DiscoveryFlow) => {
+        const flowId = flow.flow_id || flow.id;
+        return flowId === urlFlowId;
+      });
+
+      if (flowExists) {
+        console.log(`✅ Using validated URL flow ID: ${urlFlowId}`);
+        return urlFlowId;
+      } else {
+        console.warn(`❌ URL flow ID ${urlFlowId} not found in user's flow list - invalid flow`);
+        return null; // Return null for invalid flow_id - will trigger error state
+      }
     }
 
     // For auto-detected flows, validate against flow list

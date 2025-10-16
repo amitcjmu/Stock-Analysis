@@ -172,15 +172,38 @@ async def list_assets(
             flow_result = await db.execute(stmt)
             discovery_flow = flow_result.scalar_one_or_none()
 
-            if discovery_flow:
-                logger.info(
-                    f"📊 Flow found - current_phase: {discovery_flow.current_phase}, "
-                    f"asset_inventory_completed: {discovery_flow.asset_inventory_completed}"
+            if not discovery_flow:
+                logger.error(
+                    safe_log_format(
+                        "Invalid flow_id provided: flow does not exist or access denied | {flow_id}",
+                        flow_id=flow_id,
+                    )
                 )
-            else:
-                logger.warning(f"⚠️ No discovery flow found for flow_id: {flow_id}")
+                raise HTTPException(
+                    status_code=404,
+                    detail={
+                        "error": "flow_not_found",
+                        "message": "Discovery flow does not exist or access is denied.",
+                        "flow_id": flow_id,
+                        "suggestion": "Please navigate from the Discovery Dashboard or verify your flow ID.",
+                        "context": {
+                            "client_account_id": str(context.client_account_id),
+                            "engagement_id": str(context.engagement_id),
+                        },
+                    },
+                )
 
-            if discovery_flow and discovery_flow.current_phase == "asset_inventory":
+            logger.info(
+                safe_log_format(
+                    "Flow found | current_phase: {phase}, asset_inventory_completed: {completed}, flow_id: {flow_id}",
+                    phase=discovery_flow.current_phase,
+                    completed=discovery_flow.asset_inventory_completed,
+                    flow_id=discovery_flow.flow_id,
+                )
+            )
+
+            # At this point, discovery_flow is guaranteed to exist (validated above)
+            if discovery_flow.current_phase == "asset_inventory":
                 # CC: CRITICAL FIX - Check for pending conflict resolution BEFORE auto-execution
                 # If conflicts are pending, DON'T re-run phase (would create duplicate conflicts)
                 has_pending_conflicts = (
