@@ -81,17 +81,17 @@ class FlowHandlerStatus:
             )
 
             # Merge the database completion flags with actual data detection
+            # Per ADR-027: Discovery v3.0.0 has only 5 phases
             actual_phases = {
                 "data_import": actual_data_status.get(
                     "has_import_data", flow.data_import_completed
                 ),
+                "data_validation": flow.data_validation_completed,
                 "field_mapping": actual_data_status.get(
                     "has_field_mappings", flow.field_mapping_completed
                 ),
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
-                "dependency_analysis": flow.dependency_analysis_completed,
-                "tech_debt_assessment": flow.tech_debt_assessment_completed,
             }
 
             # Determine current phase based on actual data

@@ -230,7 +230,7 @@ class UnifiedDiscoveryFlow(
     def _initialize_phases(self):
         """Initialize phase handlers"""
         # Import phase executors
-        from ..handlers.phase_executors import (
+        from ...handlers.phase_executors import (
             AssetInventoryExecutor,
             DataCleansingExecutor,
             DataImportValidationExecutor,

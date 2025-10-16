@@ -89,13 +89,13 @@ class FlowHandlerHelpers:
         """Determine current phase based on actual data detection"""
         try:
             # Phase order for discovery flows
+            # Per ADR-027: Discovery v3.0.0 has only 5 phases
             phase_order = [
                 "data_import",
+                "data_validation",
                 "field_mapping",
                 "data_cleansing",
                 "asset_inventory",
-                "dependency_analysis",
-                "tech_debt_assessment",
             ]
 
             # Find the first incomplete phase

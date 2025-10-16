@@ -247,15 +247,54 @@ class UnifiedFlowCrewManager:
             # Create wrapper factories for backward compatibility with crew interface
             def create_data_import_validation_crew(*args, **kwargs):
                 """Wrapper: persistent data import validation executor"""
-                return None  # Persistent executors return results directly
+
+                # Return a minimal crew adapter that phase executors can use
+                class DataImportCrewAdapter:
+                    def __init__(self, *args, **kwargs):
+                        self.agents = []
+                        self.tasks = []
+
+                    async def kickoff_async(self, inputs=None):
+                        # Phase executor will handle the actual execution
+                        return {"status": "ready", "phase": "data_import"}
+
+                    def kickoff(self, inputs=None):
+                        # Synchronous fallback
+                        return {"status": "ready", "phase": "data_import"}
+
+                return DataImportCrewAdapter(*args, **kwargs)
 
             def create_dependency_analysis_crew(*args, **kwargs):
                 """Wrapper: persistent dependency analysis executor"""
-                return None
+
+                class DependencyAnalysisCrewAdapter:
+                    def __init__(self, *args, **kwargs):
+                        self.agents = []
+                        self.tasks = []
+
+                    async def kickoff_async(self, inputs=None):
+                        return {"status": "ready", "phase": "dependency_analysis"}
+
+                    def kickoff(self, inputs=None):
+                        return {"status": "ready", "phase": "dependency_analysis"}
+
+                return DependencyAnalysisCrewAdapter(*args, **kwargs)
 
             def create_technical_debt_crew(*args, **kwargs):
                 """Wrapper: persistent tech debt executor"""
-                return None
+
+                class TechDebtCrewAdapter:
+                    def __init__(self, *args, **kwargs):
+                        self.agents = []
+                        self.tasks = []
+
+                    async def kickoff_async(self, inputs=None):
+                        return {"status": "ready", "phase": "tech_debt"}
+
+                    def kickoff(self, inputs=None):
+                        return {"status": "ready", "phase": "tech_debt"}
+
+                return TechDebtCrewAdapter(*args, **kwargs)
 
             logger.info("✅ Phase B1 COMPLETE: All 4 crews using PERSISTENT wrappers")
 
