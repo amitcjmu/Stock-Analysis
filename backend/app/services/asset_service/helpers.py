@@ -149,6 +149,11 @@ def convert_single_field_value(field_name: str, raw_value):
     if raw_value is None or raw_value == "":
         return None
 
+    # CC FIX: Do not attempt to convert booleans to numbers
+    # Prevents True→1, False→0 incorrect conversions
+    if isinstance(raw_value, bool):
+        return raw_value
+
     # Apply type conversion if field is numeric
     if field_name in NUMERIC_FIELD_CONVERTERS:
         converter = NUMERIC_FIELD_CONVERTERS[field_name]

@@ -442,8 +442,10 @@ async def enrich_asset(
             logger.warning(f"⚠️ Attempted to merge protected field '{field}' - skipping")
             continue
 
-        # Only update if existing value is None/empty
-        if value and not getattr(existing, field, None):
+        # Only update if existing value is None
+        # CC FIX: Use explicit 'is None' check to prevent overwriting existing falsy values
+        # This ensures enrichment only fills missing (None) values, not overwrites 0/False/""
+        if value is not None and getattr(existing, field, None) is None:
             # CC FIX: Convert value to proper type (fixes cpu_cores='8' string->int error)
             typed_value = convert_single_field_value(field, value)
             setattr(existing, field, typed_value)
