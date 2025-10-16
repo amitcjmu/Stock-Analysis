@@ -103,13 +103,13 @@ async def get_flow_status(
             )
 
         # Build phases dict from actual database completion flags (Issue #557 related fix)
+        # Per ADR-027: Discovery v3.0.0 has only 5 phases
         phases_completed = {
             "data_import": flow.data_import_completed,
+            "data_validation": flow.data_validation_completed,
             "field_mapping": flow.field_mapping_completed,
             "data_cleansing": flow.data_cleansing_completed,
             "asset_inventory": flow.asset_inventory_completed,
-            "dependency_analysis": flow.dependency_analysis_completed,
-            "tech_debt_assessment": flow.tech_debt_assessment_completed,
         }
 
         # Calculate actual progress percentage from completed phases

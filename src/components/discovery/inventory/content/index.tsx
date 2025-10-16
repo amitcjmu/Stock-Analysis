@@ -30,6 +30,7 @@ import { useAssetSelection } from '../hooks/useAssetSelection';
 import { useInventoryData } from './hooks/useInventoryData';
 import { useAutoExecution } from './hooks/useAutoExecution';
 import { useInventoryActions } from './InventoryActions';
+import { useIntelligentDataSync } from './hooks/useIntelligentDataSync';
 
 // Utils
 import { exportAssets } from '../utils/exportHelpers';
@@ -129,6 +130,18 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     setNeedsClassification,
     setHasTriggeredInventory,
     getAssetsFromFlow
+  });
+
+  // Intelligent data synchronization - replaces forced page reload mechanism
+  const { invalidateRelevantQueries } = useIntelligentDataSync({
+    flowId,
+    flow,
+    clientId: client?.id,
+    engagementId: engagement?.id,
+    assetsLength: assets.length,
+    assetsLoading,
+    refetchAssets,
+    refreshFlow
   });
 
   // Get all available columns
