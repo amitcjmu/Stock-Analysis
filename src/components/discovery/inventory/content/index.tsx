@@ -30,6 +30,7 @@ import { useAssetSelection } from '../hooks/useAssetSelection';
 import { useInventoryData } from './hooks/useInventoryData';
 import { useAutoExecution } from './hooks/useAutoExecution';
 import { useInventoryActions } from './InventoryActions';
+import { useIntelligentDataSync } from './hooks/useIntelligentDataSync';
 
 // Utils
 import { exportAssets } from '../utils/exportHelpers';
@@ -120,49 +121,17 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     getAssetsFromFlow
   });
 
-  // Auto-refresh page logic to show duplicate conflicts on first load
-  React.useEffect(() => {
-    // Only refresh once per session to avoid infinite loops
-    const hasRefreshed = sessionStorage.getItem('inventory-refreshed');
-    
-    console.log('🔄 [AutoRefresh] Checking conditions:', {
-      hasRefreshed,
-      flowId,
-      hasFlow: !!flow,
-      assetsLoading,
-      currentPhase: flow?.current_phase,
-      assetsLength: assets.length,
-      hasRawData: !!(flow?.raw_data && flow.raw_data.length > 0),
-      conflictFlag: flow?.phase_state?.conflict_resolution_pending,
-    });
-    
-    // Check if we're in a state where conflicts might exist but aren't showing
-    const isInAssetInventoryPhase = flow?.current_phase === 'asset_inventory';
-    const hasNoAssets = assets.length === 0;
-    const hasRawData = flow?.raw_data && flow.raw_data.length > 0;
-    const noConflictsFlag = !flow?.phase_state?.conflict_resolution_pending;
-    
-    console.log('🔄 [AutoRefresh] Detailed conditions:', {
-      isInAssetInventoryPhase,
-      hasNoAssets,
-      hasRawData,
-      noConflictsFlag,
-      shouldRefresh: isInAssetInventoryPhase && hasNoAssets && hasRawData && noConflictsFlag,
-    });
-    
-    // Modified logic: refresh if conditions are met, regardless of previous refresh
-    // Only skip if we're currently showing conflicts (conflict flag is set)
-    if (flowId && flow && isInAssetInventoryPhase && hasNoAssets && hasRawData && noConflictsFlag) {
-      console.log('🔄 Auto-refreshing page to check for conflicts in 5 seconds...');
-      sessionStorage.setItem('inventory-refreshed', 'true');
-      
-      // Add 5 second delay before refresh
-      setTimeout(() => {
-        console.log('🔄 Refreshing page now...');
-        window.location.reload();
-      }, 5000);
-    }
-  }, [flowId, flow, assets.length, assetsLoading]);
+  // Intelligent data synchronization - replaces forced page reload mechanism
+  const { invalidateRelevantQueries } = useIntelligentDataSync({
+    flowId,
+    flow,
+    clientId: client?.id,
+    engagementId: engagement?.id,
+    assetsLength: assets.length,
+    assetsLoading,
+    refetchAssets,
+    refreshFlow
+  });
 
   // Get all available columns
   const allColumns = useMemo(() => {
