@@ -443,7 +443,8 @@ async def enrich_asset(
             continue
 
         # Only update if existing value is None/empty
-        if value and not getattr(existing, field, None):
+        # CC FIX: Use 'is not None' instead of truthiness to allow zero values (0, 0.0, etc.)
+        if value is not None and not getattr(existing, field, None):
             # CC FIX: Convert value to proper type (fixes cpu_cores='8' string->int error)
             typed_value = convert_single_field_value(field, value)
             setattr(existing, field, typed_value)
