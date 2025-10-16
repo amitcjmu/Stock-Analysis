@@ -89,8 +89,9 @@ export const ApplicationGroupsWidget: React.FC<ApplicationGroupsWidgetProps> = (
         headers,
       });
 
-      // Backend returns array of ApplicationAssetGroup
-      return Array.isArray(response) ? response : [];
+      // Backend returns object with applications array property
+      // API response: {flow_id, applications: [...], total_applications, total_assets}
+      return Array.isArray(response?.applications) ? response.applications : [];
     },
     enabled: !!flow_id && !!client_account_id, // engagement_id is optional
     staleTime: 30000, // 30 seconds

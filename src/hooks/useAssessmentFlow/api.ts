@@ -54,11 +54,24 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async getStatus(flowId: string): Promise<AssessmentFlowStatus> {
-    // Use MFO endpoint for status with apiCall for auth headers
-    return apiCall(`/master-flows/${flowId}/assessment-status`, {
-      method: "GET",
-    });
+  async getStatus(
+    flowId: string,
+    clientAccountId: string,
+    engagementId?: string,
+  ): Promise<{
+    flow_id: string;
+    status: string;
+    progress: number;
+    current_phase: string;
+    application_count: number;
+  }> {
+    // Use masterFlowService which handles proper field transformations
+    // progress_percentage → progress, selected_applications → application_count
+    return masterFlowService.getAssessmentStatus(
+      flowId,
+      clientAccountId,
+      engagementId,
+    );
   },
 
   async resume(

@@ -838,7 +838,7 @@ export const masterFlowService = {
         current_phase: string;
         selected_applications: number;  // Backend returns this (count of apps)
       }>(
-        `/api/v1/master-flows/${flowId}/assessment-status`,
+        `/master-flows/${flowId}/assessment-status`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         },
@@ -901,7 +901,7 @@ export const masterFlowService = {
         total_assets: number;
         unmapped_assets: number;
       }>(
-        `/api/v1/master-flows/${flowId}/assessment-applications`,
+        `/master-flows/${flowId}/assessment-applications`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         },
@@ -951,7 +951,7 @@ export const masterFlowService = {
   ): Promise<import('@/types/assessment').AssessmentReadinessResponse> {
     try {
       const response = await apiClient.get<import('@/types/assessment').AssessmentReadinessResponse>(
-        `/api/v1/master-flows/${flow_id}/assessment-readiness`,
+        `/master-flows/${flow_id}/assessment-readiness`,
         {
           headers: getMultiTenantHeaders(client_account_id, engagement_id),
         },
@@ -975,7 +975,7 @@ export const masterFlowService = {
   ): Promise<import('@/types/assessment').AssessmentProgressResponse> {
     try {
       const response = await apiClient.get<import('@/types/assessment').AssessmentProgressResponse>(
-        `/api/v1/master-flows/${flow_id}/assessment-progress`,
+        `/master-flows/${flow_id}/assessment-progress`,
         {
           headers: getMultiTenantHeaders(client_account_id, engagement_id),
         },
