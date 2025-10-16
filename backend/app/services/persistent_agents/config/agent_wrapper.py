@@ -73,9 +73,10 @@ class AgentWrapper:
             )
 
             # Create a task for the agent
+            # CRITICAL: Pass wrapper (self) not unwrapped agent to preserve context property
             agent_task = create_task(
                 description=task or "Execute assigned task",
-                agent=self._agent,
+                agent=self,
                 expected_output="Structured analysis and recommendations based on the given task",
             )
 
@@ -156,9 +157,11 @@ class AgentWrapper:
                 )
 
                 # Create a task for the agent to process the data
+                # CRITICAL: Pass wrapper (self) not unwrapped agent to preserve context property
+                # Fixes "Agent object has no field context" error (Issue #395)
                 task = Task(
                     description=task_description,
-                    agent=self._agent,
+                    agent=self,
                     expected_output=(
                         "Structured analysis with processed data, insights, and "
                         "classifications in JSON format"

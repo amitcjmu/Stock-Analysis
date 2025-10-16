@@ -10,13 +10,13 @@
 // Import from the modularized structure
 import { useAssessmentFlow as useAssessmentFlowImpl } from './useAssessmentFlow/useAssessmentFlow';
 import { assessmentFlowAPI } from './useAssessmentFlow/api';
-import { eventSourceService } from './useAssessmentFlow/eventSource';
+// NOTE: eventSourceService removed per SSE elimination (HTTP/2 polling only)
 
 // Re-export the main hook
 export const useAssessmentFlow = useAssessmentFlowImpl;
 
-// Re-export API client and event source
-export { assessmentFlowAPI, eventSourceService };
+// Re-export API client
+export { assessmentFlowAPI };
 
 // Re-export all types
 export type {

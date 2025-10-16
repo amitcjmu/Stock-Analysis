@@ -49,6 +49,20 @@ cd backend && alembic revision --autogenerate -m "Description"
 docker exec -it migration_postgres psql -U postgres -d migration_db -c "SELECT * FROM migration.discovery_flows;"
 ```
 
+### Bug Fix Workflow Commands
+```bash
+# Automated bug fixing with multi-agent orchestration
+/fix-bugs execute          # Fix all open bugs (up to 10)
+/fix-bugs execute 588      # Fix specific bug
+/fix-bugs dry-run          # Analyze bugs without fixing
+
+# Check issues with pending fixes
+gh issue list --label fixed-pending-review --state open
+
+# See full workflow documentation
+# /docs/guidelines/AUTOMATED_BUG_FIX_WORKFLOW.md
+```
+
 ## High-Level Architecture
 
 ### System Overview
@@ -518,6 +532,17 @@ When modifying API endpoints, **ALWAYS**:
 - Use CHECK constraints, not PostgreSQL ENUMs
 - Make migrations idempotent with existence checks
 - Foreign keys reference primary keys only (id column)
+
+### CRITICAL: Alembic Migration Conventions
+
+**ALL migrations MUST:**
+1. Use 3-digit prefix: `092_description.py` (NOT `228e0eae6242_description.py`)
+2. Be idempotent: Use `IF EXISTS`/`IF NOT EXISTS` in PostgreSQL DO blocks
+3. Chain properly: `down_revision = "091_previous_migration"`
+4. Use `migration.` schema prefix for all table references
+
+Find next number: `ls -1 backend/alembic/versions/ | grep "^[0-9]" | tail -1`
+Reference: `backend/alembic/versions/092_add_supported_versions_requirement_details.py`
 
 ### SQLAlchemy Patterns
 ```python

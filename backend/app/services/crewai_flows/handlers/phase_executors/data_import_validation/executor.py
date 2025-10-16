@@ -436,10 +436,32 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                 # This ensures atomic operation - both updates succeed or fail together
                 if phase == "data_import" and completed:
                     import_id = None
+
+                    # ENHANCEMENT: Try multiple sources for import_id with fallback
+                    # Priority 1: state.import_metadata
                     if hasattr(self.state, "import_metadata"):
                         import_id = self.state.import_metadata.get("import_id")
-                    elif hasattr(self.state, "metadata"):
+
+                    # Priority 2: state.metadata
+                    if not import_id and hasattr(self.state, "metadata"):
                         import_id = self.state.metadata.get("import_id")
+
+                    # Priority 3: Get from discovery flow's data_import_id
+                    if not import_id:
+                        from app.models.discovery_flow import DiscoveryFlow
+                        from sqlalchemy import select
+
+                        stmt = select(DiscoveryFlow).where(
+                            DiscoveryFlow.flow_id == str(flow_id)
+                        )
+                        result = await db.execute(stmt)
+                        flow = result.scalar_one_or_none()
+
+                        if flow and flow.data_import_id:
+                            import_id = str(flow.data_import_id)
+                            logger.info(
+                                f"✅ Retrieved import_id from discovery flow: {import_id}"
+                            )
 
                     if import_id:
                         from app.models.data_import import DataImport
@@ -473,9 +495,12 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                                 f"⚠️ Data import record not found for import_id: {import_id}"
                             )
                     else:
-                        logger.warning(
-                            "⚠️ Cannot update data import status: import_id missing from state"
+                        logger.error(
+                            "❌ Bug #579: Cannot update data_imports status - import_id missing from all sources "
+                            "(state.import_metadata, state.metadata, discovery_flow.data_import_id)"
                         )
+                        # Continue anyway - discovery_flows.data_import_completed is still updated
+                        # Progress calculation will use smart detection from check_actual_data_via_import_id()
 
                 await db.commit()
                 logger.info(f"✅ Successfully synced {phase} completion to database")

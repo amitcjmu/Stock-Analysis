@@ -1,5 +1,6 @@
 import React from 'react';
-import type { GetServerSideProps } from 'next/router';
+import { useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationRollupView } from '@/components/assessment/ApplicationRollupView';
 import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';
@@ -11,17 +12,26 @@ import { useSixRReviewState } from '@/hooks/assessment/useSixRReviewState';
 import { useSixRSubmission } from '@/hooks/assessment/useSixRSubmission';
 import { useSixRStatistics } from '@/hooks/assessment/useSixRStatistics';
 
-interface SixRReviewPageProps {
-  flowId: string;
-}
-
-
-const SixRReviewPage: React.FC<SixRReviewPageProps> = ({ flowId }) => {
+const SixRReviewPage: React.FC = () => {
+  const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
+  const navigate = useNavigate();
   const {
     state,
     updateSixRDecision,
     resumeFlow
   } = useAssessmentFlow(flowId);
+
+  // Guard: redirect to overview if flowId missing
+  useEffect(() => {
+    if (!flowId) {
+      navigate('/assess/overview', { replace: true });
+    }
+  }, [flowId, navigate]);
+
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
 
   // Use custom hooks for modular state management
   const {
@@ -188,8 +198,5 @@ const SixRReviewPage: React.FC<SixRReviewPageProps> = ({ flowId }) => {
     </AssessmentFlowLayout>
   );
 };
-
-// eslint-disable-next-line react-refresh/only-export-components
-export { getServerSideProps } from './utils';
 
 export default SixRReviewPage;

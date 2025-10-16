@@ -16,7 +16,11 @@ from sqlalchemy import select, and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from app.models.asset import Asset, AssetStatus
-from .helpers import get_smart_asset_name, convert_numeric_fields
+from .helpers import (
+    get_smart_asset_name,
+    convert_numeric_fields,
+    convert_single_field_value,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -438,9 +442,13 @@ async def enrich_asset(
             logger.warning(f"⚠️ Attempted to merge protected field '{field}' - skipping")
             continue
 
-        # Only update if existing value is None/empty
-        if value and not getattr(existing, field, None):
-            setattr(existing, field, value)
+        # Only update if existing value is None
+        # CC FIX: Use explicit 'is None' check to prevent overwriting existing falsy values
+        # This ensures enrichment only fills missing (None) values, not overwrites 0/False/""
+        if value is not None and getattr(existing, field, None) is None:
+            # CC FIX: Convert value to proper type (fixes cpu_cores='8' string->int error)
+            typed_value = convert_single_field_value(field, value)
+            setattr(existing, field, typed_value)
 
     # Special handling for custom_attributes (merge dicts)
     if "custom_attributes" in new_data and "custom_attributes" in allowlist:
@@ -476,7 +484,9 @@ async def overwrite_asset(
 
         # Overwrite existing value with new value
         if value is not None:
-            setattr(existing, field, value)
+            # CC FIX: Convert value to proper type (fixes cpu_cores='8' string->int error)
+            typed_value = convert_single_field_value(field, value)
+            setattr(existing, field, typed_value)
 
     existing.updated_at = datetime.utcnow()
     await service_instance.db.flush()

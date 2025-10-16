@@ -107,3 +107,57 @@ def convert_numeric_fields(asset_data: Dict[str, Any]) -> Dict[str, Any]:
             asset_data.get("assessment_readiness_score"), None
         ),
     }
+
+
+# Type conversion mapping for single field conversion
+# CC: CRITICAL - Used during conflict resolution to convert CSV string values
+NUMERIC_FIELD_CONVERTERS = {
+    # INTEGER fields
+    "cpu_cores": safe_int_convert,
+    "migration_priority": safe_int_convert,
+    "migration_wave": safe_int_convert,
+    # FLOAT fields
+    "memory_gb": safe_float_convert,
+    "storage_gb": safe_float_convert,
+    "cpu_utilization_percent": safe_float_convert,
+    "memory_utilization_percent": safe_float_convert,
+    "disk_iops": safe_float_convert,
+    "network_throughput_mbps": safe_float_convert,
+    "completeness_score": safe_float_convert,
+    "quality_score": safe_float_convert,
+    "confidence_score": safe_float_convert,
+    "current_monthly_cost": safe_float_convert,
+    "estimated_cloud_cost": safe_float_convert,
+    "assessment_readiness_score": safe_float_convert,
+}
+
+
+def convert_single_field_value(field_name: str, raw_value):
+    """
+    Convert a single field value to proper type based on field name.
+
+    CC: Fixes production bug where CSV imports provide string values
+    but database expects typed values (e.g., cpu_cores='8' as INTEGER).
+
+    Args:
+        field_name: Name of the field
+        raw_value: Raw value from data source (may be string)
+
+    Returns:
+        Properly typed value for database insertion
+    """
+    if raw_value is None or raw_value == "":
+        return None
+
+    # CC FIX: Do not attempt to convert booleans to numbers
+    # Prevents True→1, False→0 incorrect conversions
+    if isinstance(raw_value, bool):
+        return raw_value
+
+    # Apply type conversion if field is numeric
+    if field_name in NUMERIC_FIELD_CONVERTERS:
+        converter = NUMERIC_FIELD_CONVERTERS[field_name]
+        return converter(raw_value, None)
+
+    # For non-numeric fields, return as-is
+    return raw_value

@@ -135,6 +135,11 @@ export const LazyDataCleansing = createLazyRoute(
   "Data Cleansing",
 );
 
+export const LazyDataValidation = createLazyRoute(
+  () => import("@/pages/discovery/DataValidation"),
+  "Data Validation",
+);
+
 export const LazyAttributeMapping = createLazyRoute(
   () => import("@/pages/discovery/AttributeMapping"),
   "Attribute Mapping",
@@ -148,6 +153,11 @@ export const LazyTechDebtAnalysis = createLazyRoute(
 export const LazyDiscoveryDashboard = createLazyRoute(
   () => import("@/pages/discovery/EnhancedDiscoveryDashboard"),
   "Discovery Dashboard",
+);
+
+export const LazyFlowStatusMonitor = createLazyRoute(
+  () => import("@/pages/discovery/FlowStatusMonitor"),
+  "Flow Status Monitor",
 );
 
 // Collection Sub-routes (HIGH priority - frequently accessed workflows)

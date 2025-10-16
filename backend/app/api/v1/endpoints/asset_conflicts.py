@@ -34,6 +34,7 @@ from app.services.asset_service.deduplication import (
     DEFAULT_ALLOWED_MERGE_FIELDS,
     NEVER_MERGE_FIELDS,
 )
+from app.services.asset_service.helpers import convert_single_field_value
 
 router = APIRouter(prefix="/asset-conflicts")
 logger = logging.getLogger(__name__)
@@ -369,7 +370,11 @@ async def resolve_conflicts_bulk(  # noqa: C901
                                 setattr(existing_asset, field_name, new_value)
                         else:
                             # Normal field update - replace value
-                            setattr(existing_asset, field_name, new_value)
+                            # CC FIX: Convert value to proper type (fixes cpu_cores='8' string->int error)
+                            typed_value = convert_single_field_value(
+                                field_name, new_value
+                            )
+                            setattr(existing_asset, field_name, typed_value)
 
                 # CC FIX: Associate asset with current flow after merge
                 # This ensures the flow has assets even when resolving conflicts

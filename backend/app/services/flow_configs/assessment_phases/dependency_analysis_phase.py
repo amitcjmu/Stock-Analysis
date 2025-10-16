@@ -69,7 +69,7 @@ def get_dependency_analysis_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=1800,  # 30 minutes
         metadata={
-            "ui_route": "/assessment/dependency-analysis",
+            "ui_route": "/assessment/[flowId]/sixr-review",  # Issue #4 fix: dependencies inform 6R strategy
             "ui_short_name": "Dependencies",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 20,
             "icon": "share-2",

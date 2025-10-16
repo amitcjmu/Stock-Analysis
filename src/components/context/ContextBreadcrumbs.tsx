@@ -278,13 +278,13 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
               variant="outline"
               className={
                 crumb.type === 'Client'
-                  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                  : 'bg-green-50 text-green-700 border-green-200'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 max-w-[120px] sm:max-w-none truncate'
+                  : 'bg-green-50 text-green-700 border-green-200 max-w-[120px] sm:max-w-none truncate'
               }
             >
-              {crumb.type === 'Client' && <Building2 className="h-3 w-3 mr-1" />}
-              {crumb.type === 'Engagement' && <Calendar className="h-3 w-3 mr-1" />}
-              {crumb.label}
+              {crumb.type === 'Client' && <Building2 className="h-3 w-3 mr-1 flex-shrink-0" />}
+              {crumb.type === 'Engagement' && <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />}
+              <span className="truncate">{crumb.label}</span>
             </Badge>
           </React.Fragment>
         ))}
@@ -296,10 +296,11 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           {/* Context Switcher Popover - No duplicate badges */}
           <Popover open={isContextSelectorOpen} onOpenChange={setIsContextSelectorOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-3">
-                <Settings className="h-4 w-4 mr-1" />
-                Switch Context
-                <ChevronDown className="h-3 w-3 ml-1" />
+              {/* Show icon-only button on mobile, full button on sm and up */}
+              <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3">
+                <Settings className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Switch Context</span>
+                <ChevronDown className="h-3 w-3 ml-1 hidden sm:inline" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-96 p-4" align="end">

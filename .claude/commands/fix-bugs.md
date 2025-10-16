@@ -13,6 +13,15 @@ I'll systematically address all GitHub issues labeled as 'bug' using multi-agent
 - Target: ${2:-all}
 - Max Issues: 10 per run
 - Single PR for all fixes
+- **Auto-Label**: All fixed issues labeled with "fixed-pending-review"
+
+## Workflow Overview
+1. Fetch and triage bug issues from GitHub
+2. Create feature branch for batch fixes
+3. Multi-agent pipeline: QA → SRE → DevSecOps → QA Validation
+4. Batch commit all fixes to single PR
+5. **Update issues with fix comments and apply "fixed-pending-review" label**
+6. Generate final report with PR link
 
 ## Phase 1: Issue Discovery & Triage
 
@@ -276,6 +285,7 @@ Each fix was validated by:
 
 ### For Successfully Fixed Issues
 ```bash
+# Add comment to issue
 gh issue comment ${ISSUE_NUMBER} --body "## ✅ Issue Fixed
 
 ### Resolution Summary
@@ -297,6 +307,9 @@ ${CHANGES_LIST}
 Fixed in PR: #${PR_NUMBER}
 
 The fix has been validated through automated testing and is ready for review."
+
+# Apply fixed-pending-review label
+gh issue edit ${ISSUE_NUMBER} --add-label "fixed-pending-review"
 ```
 
 ### For Issues That Couldn't Be Fixed
@@ -339,11 +352,15 @@ ${FIXED_ISSUES_LIST}
 Pull Request: #${PR_NUMBER}
 Branch: ${BRANCH_NAME}
 
+Issue Labels Applied:
+- All fixed issues labeled with "fixed-pending-review"
+- Users can verify fixes and close issues once confirmed
+
 Next Steps:
 1. Review PR: ${PR_URL}
 2. Run CI/CD pipeline
 3. Merge when approved
-4. Close fixed issues
+4. Users verify fixes and close issues with "fixed-pending-review" label
 ```
 
 ## Safety Features
@@ -367,6 +384,12 @@ Next Steps:
 5. **Test Discovery**
    - Agents determine relevant tests
    - Use available tests in /tests/
+
+6. **Automatic Issue Labeling**
+   - All fixed issues automatically labeled with "fixed-pending-review"
+   - Enables users to track fixes awaiting verification
+   - Label applied immediately after posting fix comment
+   - Users can verify and close issues once confirmed working
 
 ## Error Handling
 

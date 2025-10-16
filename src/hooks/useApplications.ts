@@ -88,16 +88,23 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
       const sixrClient = new SixRApiClient();
       const analyses = await sixrClient.listAnalyses();
 
-      // Create a map of application ID to analysis status
-      analyses.forEach(analysis => {
-        analysis.applications.forEach(app => {
-          analysisStatusMap[app.id] = {
-            status: analysis.status as 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
-            recommended_strategy: analysis.recommendation?.recommended_strategy,
-            confidence_score: analysis.recommendation?.confidence_score
-          };
+      // Fix P2: Validate analyses is an array before calling forEach
+      if (Array.isArray(analyses)) {
+        // Create a map of application ID to analysis status
+        analyses.forEach(analysis => {
+          if (analysis.applications && Array.isArray(analysis.applications)) {
+            analysis.applications.forEach(app => {
+              analysisStatusMap[app.id] = {
+                status: analysis.status as 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
+                recommended_strategy: analysis.recommendation?.recommended_strategy,
+                confidence_score: analysis.recommendation?.confidence_score
+              };
+            });
+          }
         });
-      });
+      } else {
+        console.warn('6R analyses response is not an array:', typeof analyses);
+      }
     } catch (error) {
       console.warn('Could not fetch 6R analysis status, using default status:', error);
       // Gracefully continue with default 'not_analyzed' status

@@ -21,7 +21,7 @@ import AssetConflictModal from '../../AssetConflictModal';
 // Modularized Components
 import { ViewModeToggle } from './ViewModeToggle';
 import { CleansingRequiredBanner, ExecutionErrorBanner, ConflictResolutionBanner } from './ErrorBanners';
-import { LoadingState, ErrorState, EmptyState } from './InventoryStates';
+import { LoadingState, ErrorState, EmptyState, InvalidFlowState } from './InventoryStates';
 
 // Hooks
 import { useInventoryProgress } from '../hooks/useInventoryProgress';
@@ -30,6 +30,7 @@ import { useAssetSelection } from '../hooks/useAssetSelection';
 import { useInventoryData } from './hooks/useInventoryData';
 import { useAutoExecution } from './hooks/useAutoExecution';
 import { useInventoryActions } from './InventoryActions';
+import { useIntelligentDataSync } from './hooks/useIntelligentDataSync';
 
 // Utils
 import { exportAssets } from '../utils/exportHelpers';
@@ -98,6 +99,17 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     };
   }, [flowId]);
 
+  // CC FIX #582: Refresh flow state on Inventory page mount to get latest phase_state
+  // This ensures conflict_resolution_pending flag is loaded from server
+  // React Query cache with refetchOnMount: false prevents fresh data without explicit refresh
+  React.useEffect(() => {
+    if (flowId && refreshFlow) {
+      console.log('🔄 [InventoryContent] Refreshing flow state on mount to fetch latest phase_state');
+      refreshFlow();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps array - only run on mount, not when flowId/refreshFlow change
+
   // Check for collectionFlowId parameter to auto-show application selection modal
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -110,7 +122,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   }, []);
 
   // Use inventory data hook (lines 108-348 from original)
-  const { assets, assetsLoading, refetchAssets, hasBackendError } = useInventoryData({
+  const { assets, assetsLoading, refetchAssets, hasBackendError, isFlowNotFound } = useInventoryData({
     clientId: client?.id,
     engagementId: engagement?.id,
     viewMode,
@@ -118,6 +130,18 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     setNeedsClassification,
     setHasTriggeredInventory,
     getAssetsFromFlow
+  });
+
+  // Intelligent data synchronization - replaces forced page reload mechanism
+  const { invalidateRelevantQueries } = useIntelligentDataSync({
+    flowId,
+    flow,
+    clientId: client?.id,
+    engagementId: engagement?.id,
+    assetsLength: assets.length,
+    assetsLoading,
+    refetchAssets,
+    refreshFlow
   });
 
   // Get all available columns
@@ -372,8 +396,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         <ErrorState viewMode={viewMode} refetchAssets={refetchAssets} />
       )}
 
+      {/* Invalid Flow State - FIX #326: Show when flow_id doesn't exist */}
+      {isFlowNotFound && !assetsLoading && (
+        <InvalidFlowState flowId={flowId} />
+      )}
+
       {/* Empty State */}
-      {assets.length === 0 && !assetsLoading && !hasBackendError && (
+      {assets.length === 0 && !assetsLoading && !hasBackendError && !isFlowNotFound && (
         <EmptyState
           flow={flow}
           viewMode={viewMode}
@@ -388,7 +417,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       )}
 
       {/* Main Content State - Only render when we have assets */}
-      {assets.length > 0 && !assetsLoading && !hasBackendError && (
+      {assets.length > 0 && !assetsLoading && !hasBackendError && !isFlowNotFound && (
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>

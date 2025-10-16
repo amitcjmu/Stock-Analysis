@@ -15,6 +15,14 @@ from app.core.security.secure_logging import (
     sanitize_headers_for_logging,
     mask_id,
 )
+from app.core.jwt_extraction import extract_user_id_from_jwt
+from app.core.header_extraction import (
+    DEMO_CLIENT_CONFIG,
+    extract_client_account_id,
+    extract_engagement_id,
+    extract_user_id_from_headers,
+    extract_flow_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +38,6 @@ _client_account_id: ContextVar[Optional[str]] = ContextVar(
 _engagement_id: ContextVar[Optional[str]] = ContextVar("engagement_id", default=None)
 _user_id: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
 _flow_id: ContextVar[Optional[str]] = ContextVar("flow_id", default=None)
-
-# Demo client configuration with fixed UUIDs for frontend fallback
-DEMO_CLIENT_CONFIG = {
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "client_name": "Demo Corporation",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "engagement_name": "Demo Cloud Migration Project",
-}
 
 try:
     from app.models.client_account import ClientAccount, Engagement, User
@@ -89,222 +89,6 @@ class RequestContext:
         )
 
 
-def _decode_jwt_payload(token: str) -> Optional[str]:
-    """
-    Decode JWT payload and extract user_id (sub claim).
-
-    SECURITY WARNING: This function decodes JWT without verification.
-    It should only be used as a fallback when proper JWT verification fails.
-    """
-    import base64
-    import json
-
-    try:
-        parts = token.split(".")
-        if len(parts) != 3:
-            return None
-
-        payload_part = parts[1]
-        # Add padding only if needed
-        missing_padding = (-len(payload_part)) % 4
-        if missing_padding:
-            payload_part += "=" * missing_padding
-        decoded_payload = base64.urlsafe_b64decode(payload_part)
-        payload = json.loads(decoded_payload)
-
-        # SECURITY FIX: Validate payload structure and prevent system user impersonation
-        sub_claim = payload.get("sub")
-
-        # CRITICAL: Never trust or use 'system' or empty subjects
-        if not sub_claim or sub_claim in ["system", "admin", "root", ""]:
-            logger.warning(
-                safe_log_format(
-                    "🚨 SECURITY: Rejecting suspicious JWT subject claim: {sub_claim}",
-                    sub_claim=sub_claim or "empty",
-                )
-            )
-            return None
-
-        # Additional validation: subject should be a valid UUID or identifier
-        if len(str(sub_claim).strip()) < 3:
-            logger.warning(
-                safe_log_format(
-                    "🚨 SECURITY: Rejecting too-short JWT subject claim: {sub_claim}",
-                    sub_claim=sub_claim,
-                )
-            )
-            return None
-
-        # Validate that sub claim doesn't contain suspicious patterns
-        suspicious_patterns = ["system", "admin", "root", "service", "internal", "api"]
-        sub_lower = str(sub_claim).lower()
-        if any(pattern in sub_lower for pattern in suspicious_patterns):
-            logger.warning(
-                safe_log_format(
-                    "🚨 SECURITY: Rejecting JWT with suspicious subject pattern: {sub_claim}",
-                    sub_claim=sub_claim,
-                )
-            )
-            return None
-
-        return sub_claim
-    except Exception as e:
-        logger.warning(
-            safe_log_format("JWT payload decode failed: {error}", error=str(e))
-        )
-        return None
-
-
-def _extract_user_id_via_jwt_service(token: str) -> Optional[str]:
-    """Extract user_id using JWT service as fallback."""
-    try:
-        from app.services.auth_services.jwt_service import JWTService
-
-        jwt_service = JWTService()
-        payload = jwt_service.verify_token(token)
-        return payload.get("sub") if payload else None
-    except Exception as jwt_error:
-        logger.warning(
-            safe_log_format(
-                "JWT service verification failed: {jwt_error}",
-                jwt_error=str(jwt_error),
-            )
-        )
-        return None
-
-
-def _extract_user_id_from_jwt(auth_header: str) -> Optional[str]:
-    """
-    Extract user_id from JWT token in Authorization header.
-
-    This is a critical security fix that prevents flows from being created
-    with user_id="system" which causes validation errors.
-
-    Args:
-        auth_header: Authorization header value
-
-    Returns:
-        User ID extracted from JWT token, or None if extraction fails
-    """
-    # SECURITY FIX: Normalize header value for case variations and extra spaces
-    if not auth_header:
-        return None
-
-    # Strip extra spaces and normalize case
-    normalized_header = auth_header.strip()
-
-    # Check for Bearer token with case insensitive comparison
-    if not normalized_header.lower().startswith("bearer "):
-        return None
-
-    try:
-        # SECURITY FIX: Handle extra spaces properly and guard against headers with only scheme
-        parts = normalized_header.split()
-        if len(parts) != 2:
-            logger.warning(
-                "Authorization header does not contain exactly 2 parts (scheme and token)"
-            )
-            return None
-
-        scheme, token = parts
-        if not token:
-            logger.warning("Authorization header contains empty token")
-            return None
-
-        # Try direct JWT decode first (more reliable for user_id extraction)
-        user_id = _decode_jwt_payload(token)
-        if user_id:
-            logger.info(
-                safe_log_format(
-                    "✅ Extracted user_id from JWT token: {user_id}",
-                    user_id=mask_id(user_id),
-                )
-            )
-            return user_id
-
-        # Fallback to JWT service for proper verification
-        logger.debug("Direct JWT decode failed, trying JWT service")
-        user_id = _extract_user_id_via_jwt_service(token)
-        if user_id:
-            logger.info(
-                safe_log_format(
-                    "✅ Extracted user_id from JWT service: {user_id}",
-                    user_id=mask_id(user_id),
-                )
-            )
-            return user_id
-
-    except Exception as e:
-        logger.warning(
-            safe_log_format("Failed to extract user_id from JWT: {error}", error=str(e))
-        )
-    return None
-
-
-def _clean_header_value(value: str) -> str:
-    """
-    Clean header value by taking first non-empty value if comma-separated.
-    SECURITY FIX: Enhanced normalization for header processing.
-    """
-    if not value:
-        return value
-
-    # SECURITY FIX: Strip extra spaces and normalize
-    normalized_value = value.strip()
-    if not normalized_value:
-        return value
-
-    # Split by comma and take the first non-empty value
-    parts = [part.strip() for part in normalized_value.split(",") if part.strip()]
-    return parts[0] if parts else normalized_value
-
-
-def _extract_client_account_id(headers) -> Optional[str]:
-    """Extract client account ID from various header formats."""
-    client_account_id = (
-        headers.get("X-Client-Account-ID")  # Frontend sends this format
-        or headers.get("x-client-account-id")
-        or headers.get("X-Client-Account-Id")
-        or headers.get("x-context-client-id")
-        or headers.get("client-account-id")
-        or headers.get("X-Client-ID")  # Frontend uses X-Client-ID
-        or headers.get("x-client-id")  # Frontend uses x-client-id
-    )
-    return _clean_header_value(client_account_id) if client_account_id else None
-
-
-def _extract_engagement_id(headers) -> Optional[str]:
-    """Extract engagement ID from various header formats."""
-    engagement_id = (
-        headers.get("X-Engagement-ID")  # Frontend sends this format
-        or headers.get("x-engagement-id")
-        or headers.get("X-Engagement-Id")
-        or headers.get("x-context-engagement-id")
-        or headers.get("engagement-id")
-    )
-    return _clean_header_value(engagement_id) if engagement_id else None
-
-
-def _extract_user_id_from_headers(headers) -> Optional[str]:
-    """Extract user ID from various header formats."""
-    user_id = (
-        headers.get("X-User-ID")  # Frontend sends this format
-        or headers.get("x-user-id")
-        or headers.get("X-User-Id")
-        or headers.get("x-context-user-id")
-        or headers.get("user-id")
-    )
-    return _clean_header_value(user_id) if user_id else None
-
-
-def _extract_flow_id(headers) -> Optional[str]:
-    """Extract flow ID from various header formats."""
-    flow_id = (
-        headers.get("X-Flow-ID") or headers.get("x-flow-id") or headers.get("X-Flow-Id")
-    )
-    return _clean_header_value(flow_id) if flow_id else None
-
-
 def extract_context_from_request(request: Request) -> RequestContext:
     """
     Extract context from request headers. Supports X-Client-Account-Id,
@@ -319,9 +103,9 @@ def extract_context_from_request(request: Request) -> RequestContext:
     )
 
     # Extract context values from headers
-    client_account_id = _extract_client_account_id(headers)
-    engagement_id = _extract_engagement_id(headers)
-    user_id = _extract_user_id_from_headers(headers)
+    client_account_id = extract_client_account_id(headers)
+    engagement_id = extract_engagement_id(headers)
+    user_id = extract_user_id_from_headers(headers)
 
     # CRITICAL FIX: If user_id not found in headers, extract from JWT token
     if not user_id:
@@ -332,9 +116,9 @@ def extract_context_from_request(request: Request) -> RequestContext:
             or headers.get("AUTHORIZATION")
             or ""
         )
-        user_id = _extract_user_id_from_jwt(auth_header)
+        user_id = extract_user_id_from_jwt(auth_header)
 
-    flow_id = _extract_flow_id(headers)
+    flow_id = extract_flow_id(headers)
 
     # Log extracted values (with ID masking)
     logger.info(

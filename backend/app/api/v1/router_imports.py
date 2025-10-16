@@ -392,6 +392,15 @@ try:
 except ImportError:
     routers_with_flags["FINOPS"] = (False, None)
 
+# Canonical Applications
+try:
+    from app.api.v1.canonical_applications import (
+        router as canonical_applications_router,
+    )
+
+    routers_with_flags["CANONICAL_APPLICATIONS"] = (True, canonical_applications_router)
+except ImportError:
+    routers_with_flags["CANONICAL_APPLICATIONS"] = (False, None)
 
 # RBAC Admin router
 try:
