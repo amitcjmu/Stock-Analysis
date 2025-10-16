@@ -38,7 +38,7 @@ export const useInventoryData = ({
 }: UseInventoryDataProps) => {
   // Get assets data - fetch from API endpoint that returns assets based on view mode
   // Updated to support both "All Assets" and "Current Flow Only" modes
-  const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
+  const { data: assetsData, isLoading: assetsLoading, error: assetsError, refetch: refetchAssets } = useQuery({
     queryKey: ['discovery-assets', String(clientId ?? ''), String(engagementId ?? ''), viewMode, flowId || 'no-flow'],
     queryFn: async () => {
       try {
@@ -265,6 +265,21 @@ export const useInventoryData = ({
       } catch (error) {
         console.error('Error fetching assets:', error);
 
+        // FIX #326: Normalize error shape across different API clients (fetch/axios/custom)
+        // Check multiple common locations for HTTP status code
+        const anyErr = error as any;
+        const status =
+          anyErr?.response?.status ?? // Axios format
+          anyErr?.status ?? // Custom/fetch format
+          (typeof anyErr?.code === 'string' && anyErr.code.startsWith('4')
+            ? Number(anyErr.code)
+            : undefined);
+
+        if (status === 404) {
+          console.error('❌ 404 Error: Flow not found or invalid flow_id');
+          throw new Error('FLOW_NOT_FOUND');
+        }
+
         // Fallback to flow assets if API fails completely
         const flowAssets = getAssetsFromFlow();
         console.log('📊 Using flow assets as fallback:', flowAssets.length);
@@ -292,10 +307,15 @@ export const useInventoryData = ({
   // Check if we have a backend error
   const hasBackendError = assetsData === null || (assetsData && (assetsData as AssetApiResponse).data_source === 'error');
 
+  // FIX #326: Check if this is a flow not found error (404)
+  const isFlowNotFound = assetsError?.message === 'FLOW_NOT_FOUND';
+
   return {
     assets,
     assetsLoading,
     refetchAssets,
-    hasBackendError
+    hasBackendError,
+    isFlowNotFound,
+    error: assetsError
   };
 };

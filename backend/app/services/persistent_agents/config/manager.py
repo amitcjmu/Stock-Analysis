@@ -33,7 +33,9 @@ except ImportError:
         return None
 
 
-from app.services.agentic_memory.three_tier_memory_manager import ThreeTierMemoryManager
+# Per ADR-024: TenantMemoryManager replaces ThreeTierMemoryManager
+# Memory is now managed explicitly via TenantMemoryManager in task handlers,
+# not passed to Agent constructors (agents created with memory=False)
 from ..tool_manager import AgentToolManager
 from .agent_wrapper import AgentWrapper
 from .health import AgentHealth
@@ -61,23 +63,20 @@ class AgentConfigManager:
             # Get agent configuration
             config = cls.get_agent_config(agent_type)
 
-            # Initialize memory manager ONLY if memory_enabled=True in config (ADR-024)
-            memory_manager = None
+            # Per ADR-024: CrewAI memory is DISABLED (memory=False)
+            # Agent learning uses TenantMemoryManager explicitly in task handlers
+            # via store_learning() and retrieve_similar_patterns() methods
             if config.get("memory_enabled", False):
-                try:
-                    memory_manager = ThreeTierMemoryManager(
-                        client_account_id=client_account_id,
-                        engagement_id=engagement_id,
-                    )
-                    # Memory manager initializes synchronously in __init__, no async initialize() needed
-                    logger.info(f"Memory manager initialized for {agent_type}")
-                except Exception as e:
-                    logger.warning(f"Failed to initialize memory manager: {e}")
-                    memory_manager = None
-            else:
-                logger.info(
-                    f"Memory DISABLED for {agent_type} (per ADR-024 - use TenantMemoryManager instead)"
+                logger.warning(
+                    f"⚠️ Agent {agent_type} has memory_enabled=True in config, "
+                    f"but per ADR-024 all agents must use memory=False. "
+                    f"Use TenantMemoryManager explicitly in task handlers instead."
                 )
+
+            logger.info(
+                f"✅ Agent {agent_type} created with memory=False per ADR-024. "
+                f"Use TenantMemoryManager for pattern storage/retrieval."
+            )
 
             # Get LLM for the agent
             llm = get_crewai_llm() if LLM_CONFIG_AVAILABLE else None
@@ -88,16 +87,15 @@ class AgentConfigManager:
             logger.info(f"🔧 Agent {agent_type} tools: {tool_names}")
 
             # Create the agent with configuration
-            # Per ADR-024: Set memory=False if memory_enabled=False in config
+            # Per ADR-024: ALWAYS set memory=False
+            # Use TenantMemoryManager explicitly in task handlers for agent learning
             agent = Agent(
                 role=config["role"],
                 goal=config["goal"],
                 backstory=config["backstory"],
                 tools=tools,
                 llm=llm,
-                memory=(
-                    memory_manager if memory_manager else False
-                ),  # False if memory_enabled=False
+                memory=False,  # Per ADR-024: CrewAI memory disabled, use TenantMemoryManager
                 verbose=config.get("verbose", True),
                 allow_delegation=config.get("allow_delegation", False),
                 max_iter=config.get("max_iter", 5),
