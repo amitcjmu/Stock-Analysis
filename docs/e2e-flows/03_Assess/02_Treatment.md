@@ -1,9 +1,22 @@
 
 # Data Flow Analysis Report: Treatment Page
 
-This document provides a complete, end-to-end data flow analysis for the `Treatment` page in the Assess phase of the AI Modernize Migration Platform.
+**Analysis Date:** October 16, 2025
+**Status:** ⚠️ PARTIALLY UPDATED (Core architecture unchanged since 2024-07-29)
 
-**Analysis Date:** 2024-07-29
+**Note:** This page's implementation remains largely unchanged from the previous version. The major updates in PR #600 focused on the **Assessment Overview page** (see `01_Overview.md` for comprehensive details on the new ApplicationGroupsWidget, ReadinessDashboardWidget, and AssessmentApplicationResolver service).
+
+The Treatment/6R Analysis page continues to function as previously documented, with the following key points:
+- Uses Master Flow Orchestrator (MFO) pattern for all API calls
+- Multi-tenant scoping required on all database queries (client_account_id + engagement_id)
+- All field names use snake_case (per CLAUDE.md requirements)
+- Database tables reside in `migration` schema (not `public`)
+
+---
+
+## Original Documentation (2024-07-29)
+
+This document provides a complete, end-to-end data flow analysis for the `Treatment` page in the Assess phase of the AI Modernize Migration Platform.
 
 **Assumptions:**
 *   The analysis focuses on the `Treatment.tsx` page and its associated hooks.
