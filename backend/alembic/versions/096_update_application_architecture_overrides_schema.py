@@ -1,7 +1,7 @@
 """Update application_architecture_overrides schema to match October 2025 refactor
 
-Revision ID: 095_update_application_architecture_overrides_schema
-Revises: 094_add_architecture_standards_unique_constraint
+Revision ID: 096_update_application_architecture_overrides_schema
+Revises: 095_add_architecture_standards_unique_constraint
 Create Date: 2025-10-16
 
 SCHEMA ALIGNMENT: Updates table from migration 001 schema to modern model schema.
@@ -18,8 +18,8 @@ Table is EMPTY (0 rows) - safe to drop/add columns.
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "095_update_application_architecture_overrides_schema"
-down_revision = "094_add_architecture_standards_unique_constraint"
+revision = "096_update_application_architecture_overrides_schema"
+down_revision = "095_add_architecture_standards_unique_constraint"
 branch_labels = None
 depends_on = None
 

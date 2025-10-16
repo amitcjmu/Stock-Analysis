@@ -4,8 +4,8 @@ Add supported_versions and requirement_details columns to
 engagement_architecture_standards table to support architecture
 standards workflow.
 
-Revision ID: 092_add_supported_versions_requirement_details
-Revises: 091_add_phase_deprecation_comments_adr027
+Revision ID: 093_add_supported_versions_requirement_details
+Revises: 092_add_data_validation_completed
 Create Date: 2025-10-15 01:18:03.651744
 
 """
@@ -14,8 +14,8 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision = "092_add_supported_versions_requirement_details"
-down_revision = "091_add_phase_deprecation_comments_adr027"
+revision = "093_add_supported_versions_requirement_details"
+down_revision = "092_add_data_validation_completed"
 branch_labels = None
 depends_on = None
 

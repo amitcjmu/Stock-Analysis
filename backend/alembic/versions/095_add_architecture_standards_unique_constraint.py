@@ -1,7 +1,7 @@
 """Add unique constraint to engagement_architecture_standards
 
-Revision ID: 094_add_architecture_standards_unique_constraint
-Revises: 093_assessment_data_model_refactor
+Revision ID: 095_add_architecture_standards_unique_constraint
+Revises: 094_assessment_data_model_refactor
 Create Date: 2025-10-16
 
 CRITICAL BUG FIX: Adds missing unique constraint required by architecture_commands.py
@@ -12,13 +12,13 @@ Error message:
   sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError:
   there is no unique or exclusion constraint matching the ON CONFLICT specification
 """
+
 from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '094_add_architecture_standards_unique_constraint'
-down_revision = '093_assessment_data_model_refactor'
+revision = "095_add_architecture_standards_unique_constraint"
+down_revision = "094_assessment_data_model_refactor"
 branch_labels = None
 depends_on = None
 
@@ -28,7 +28,8 @@ def upgrade() -> None:
 
     # Add unique constraint on (engagement_id, requirement_type, standard_name)
     # This enables ON CONFLICT DO UPDATE in save_architecture_standards()
-    op.execute("""
+    op.execute(
+        """
         DO $$
         BEGIN
             -- Check if constraint already exists
@@ -42,13 +43,15 @@ def upgrade() -> None:
                 UNIQUE (engagement_id, requirement_type, standard_name);
             END IF;
         END $$;
-    """)
+    """
+    )
 
 
 def downgrade() -> None:
     """Remove unique constraint"""
 
-    op.execute("""
+    op.execute(
+        """
         DO $$
         BEGIN
             -- Check if constraint exists before dropping
@@ -61,4 +64,5 @@ def downgrade() -> None:
                 DROP CONSTRAINT uq_engagement_architecture_standards_composite;
             END IF;
         END $$;
-    """)
+    """
+    )

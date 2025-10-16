@@ -14,8 +14,8 @@ Key Changes:
 - Migrate data from selected_application_ids to selected_asset_ids
 - Mark selected_application_ids as deprecated (kept for backward compatibility)
 
-Revision ID: 093_assessment_data_model_refactor
-Revises: 092_add_supported_versions_requirement_details
+Revision ID: 094_assessment_data_model_refactor
+Revises: 093_add_supported_versions_requirement_details
 Create Date: 2025-10-15 12:00:00.000000
 
 """
@@ -24,8 +24,8 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision = "093_assessment_data_model_refactor"
-down_revision = "092_add_supported_versions_requirement_details"
+revision = "094_assessment_data_model_refactor"
+down_revision = "093_add_supported_versions_requirement_details"
 branch_labels = None
 depends_on = None
 
