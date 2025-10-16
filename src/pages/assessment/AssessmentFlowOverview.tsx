@@ -331,7 +331,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
                 <ApplicationGroupsWidget
                   flow_id={flowForWidgets.id}
                   client_account_id={clientAccountId}
-                  engagement_id={engagementId || ''}
+                  engagement_id={engagementId}
                   onAssetClick={(asset_id) => {
                     console.log('Asset clicked:', asset_id);
                     // TODO: Navigate to asset detail page when available
@@ -344,7 +344,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
                 <ReadinessDashboardWidget
                   flow_id={flowForWidgets.id}
                   client_account_id={clientAccountId}
-                  engagement_id={engagementId || ''}
+                  engagement_id={engagementId}
                   onCollectDataClick={handleCollectMissingData}
                 />
               </section>

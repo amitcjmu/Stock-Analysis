@@ -14,7 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
-from .helpers import get_missing_critical_attributes, get_actionable_guidance
+from .helpers import get_missing_critical_attributes
+from .uuid_utils import ensure_uuid
+from .query_helpers import get_assessment_flow, get_asset_ids, get_collection_flow_id
+from .progress_calculator import calculate_progress_categories
 
 logger = logging.getLogger(__name__)
 
@@ -43,36 +46,18 @@ async def get_assessment_applications_via_master(
         - asset_types (server, database, etc.)
         - readiness_summary (how many assets ready/not_ready)
     """
-    client_account_id = context.client_account_id
-    engagement_id = context.engagement_id
-
-    if not client_account_id:
-        raise HTTPException(status_code=400, detail="Client account ID required")
-
-    if not engagement_id:
-        raise HTTPException(status_code=400, detail="Engagement ID required")
-
     try:
         from app.services.assessment.application_resolver import (
             AssessmentApplicationResolver,
         )
-        from app.models.assessment_flow import AssessmentFlow
-        from sqlalchemy import select
 
-        # Get assessment flow
-        query = select(AssessmentFlow).where(
-            AssessmentFlow.flow_id == UUID(flow_id),
-            AssessmentFlow.client_account_id == UUID(client_account_id),
-            AssessmentFlow.engagement_id == UUID(engagement_id),
+        # Get assessment flow with tenant scoping
+        flow = await get_assessment_flow(
+            db, flow_id, context.client_account_id, context.engagement_id
         )
-        result = await db.execute(query)
-        flow = result.scalar_one_or_none()
 
-        if not flow:
-            raise HTTPException(status_code=404, detail="Assessment flow not found")
-
-        # Use new semantic field with fallback to deprecated field
-        asset_ids = flow.selected_asset_ids or flow.selected_application_ids or []
+        # Get asset IDs with semantic field fallback
+        asset_ids = get_asset_ids(flow)
 
         if not asset_ids:
             return {
@@ -86,8 +71,8 @@ async def get_assessment_applications_via_master(
         # Initialize resolver
         resolver = AssessmentApplicationResolver(
             db=db,
-            client_account_id=UUID(client_account_id),
-            engagement_id=UUID(engagement_id),
+            client_account_id=ensure_uuid(context.client_account_id),
+            engagement_id=ensure_uuid(context.engagement_id),
         )
 
         # Check if flow has pre-computed application_asset_groups (fast path)
@@ -113,13 +98,7 @@ async def get_assessment_applications_via_master(
             )
 
             # Get collection_flow_id if available
-            collection_flow_id = None
-            if flow.flow_metadata and isinstance(flow.flow_metadata, dict):
-                source_collection = flow.flow_metadata.get("source_collection", {})
-                if isinstance(source_collection, dict):
-                    collection_flow_id_str = source_collection.get("collection_flow_id")
-                    if collection_flow_id_str:
-                        collection_flow_id = UUID(collection_flow_id_str)
+            collection_flow_id = await get_collection_flow_id(flow)
 
             # Resolve assets to applications using AssessmentApplicationResolver
             application_groups_objs = await resolver.resolve_assets_to_applications(
@@ -177,66 +156,38 @@ async def get_assessment_readiness(
 
     Use Case: Powers the ReadinessDashboard widget in frontend.
     """
-    client_account_id = context.client_account_id
-    engagement_id = context.engagement_id
-
-    if not client_account_id:
-        raise HTTPException(status_code=400, detail="Client account ID required")
-
-    if not engagement_id:
-        raise HTTPException(status_code=400, detail="Engagement ID required")
-
     try:
-        from app.models.assessment_flow import AssessmentFlow
         from app.models.asset import Asset
         from app.services.assessment.application_resolver import (
             AssessmentApplicationResolver,
         )
         from sqlalchemy import select
 
-        # Get assessment flow
-        query = select(AssessmentFlow).where(
-            AssessmentFlow.flow_id == UUID(flow_id),
-            AssessmentFlow.client_account_id == UUID(client_account_id),
-            AssessmentFlow.engagement_id == UUID(engagement_id),
+        # Get assessment flow with tenant scoping
+        flow = await get_assessment_flow(
+            db, flow_id, context.client_account_id, context.engagement_id
         )
-        result = await db.execute(query)
-        flow = result.scalar_one_or_none()
 
-        if not flow:
-            raise HTTPException(status_code=404, detail="Assessment flow not found")
-
-        # Use new semantic field with fallback
-        asset_ids = flow.selected_asset_ids or flow.selected_application_ids or []
+        # Get asset IDs with semantic field fallback
+        asset_ids = get_asset_ids(flow)
 
         if not asset_ids:
             return {
-                "flow_id": flow_id,
+                "total_assets": 0,  # ← Root level per frontend type
                 "readiness_summary": {
-                    "total_assets": 0,
                     "ready": 0,
                     "not_ready": 0,
                     "in_progress": 0,
                     "avg_completeness_score": 0.0,
                 },
-                "enrichment_status": {
-                    "compliance_flags": 0,
-                    "licenses": 0,
-                    "vulnerabilities": 0,
-                    "resilience": 0,
-                    "dependencies": 0,
-                    "product_links": 0,
-                    "field_conflicts": 0,
-                },
-                "blockers": [],
-                "actionable_guidance": [],
+                "asset_details": [],  # ← Renamed from "blockers" to match frontend
             }
 
         # Initialize resolver
         resolver = AssessmentApplicationResolver(
             db=db,
-            client_account_id=UUID(client_account_id),
-            engagement_id=UUID(engagement_id),
+            client_account_id=ensure_uuid(context.client_account_id),
+            engagement_id=ensure_uuid(context.engagement_id),
         )
 
         # Check if flow has pre-computed summaries (fast path)
@@ -247,7 +198,6 @@ async def get_assessment_readiness(
             and flow.enrichment_status
         ):
             readiness = flow.readiness_summary
-            enrichment = flow.enrichment_status
             logger.info(f"Using pre-computed readiness for flow {flow_id}")
         else:
             # Compute on-the-fly (fallback)
@@ -255,19 +205,15 @@ async def get_assessment_readiness(
             readiness_obj = await resolver.calculate_readiness_summary(
                 [UUID(aid) if isinstance(aid, str) else aid for aid in asset_ids]
             )
-            enrichment_obj = await resolver.calculate_enrichment_status(
-                [UUID(aid) if isinstance(aid, str) else aid for aid in asset_ids]
-            )
             readiness = readiness_obj.model_dump()
-            enrichment = enrichment_obj.model_dump()
 
         # Get detailed asset readiness (for blockers)
         assets_query = select(Asset).where(
             Asset.id.in_(
                 [UUID(aid) if isinstance(aid, str) else aid for aid in asset_ids]
             ),
-            Asset.client_account_id == UUID(client_account_id),
-            Asset.engagement_id == UUID(engagement_id),
+            Asset.client_account_id == ensure_uuid(context.client_account_id),
+            Asset.engagement_id == ensure_uuid(context.engagement_id),
         )
         assets_result = await db.execute(assets_query)
         assets = assets_result.scalars().all()
@@ -292,15 +238,21 @@ async def get_assessment_readiness(
                     }
                 )
 
-        # Generate actionable guidance
-        actionable_guidance = get_actionable_guidance(blockers)
+        # Extract total_assets from readiness_summary for root-level placement
+        # Frontend expects total_assets at root, not nested in readiness_summary
+        total_assets = readiness.get("total_assets", len(assets))
+
+        # Remove total_assets from nested readiness_summary to match frontend type
+        readiness_clean = (
+            {k: v for k, v in readiness.items() if k != "total_assets"}
+            if isinstance(readiness, dict)
+            else readiness
+        )
 
         return {
-            "flow_id": flow_id,
-            "readiness_summary": readiness,
-            "enrichment_status": enrichment,
-            "blockers": blockers,
-            "actionable_guidance": actionable_guidance,
+            "total_assets": total_assets,  # ← Root level per frontend type
+            "readiness_summary": readiness_clean,  # ← Without total_assets
+            "asset_details": blockers,  # ← Renamed from "blockers" to match frontend
         }
 
     except Exception as e:
@@ -330,34 +282,17 @@ async def get_assessment_progress(
 
     Use Case: Powers the ProgressTracker widget in frontend.
     """
-    client_account_id = context.client_account_id
-    engagement_id = context.engagement_id
-
-    if not client_account_id:
-        raise HTTPException(status_code=400, detail="Client account ID required")
-
-    if not engagement_id:
-        raise HTTPException(status_code=400, detail="Engagement ID required")
-
     try:
-        from app.models.assessment_flow import AssessmentFlow
         from app.models.asset import Asset
         from sqlalchemy import select
 
-        # Get assessment flow
-        query = select(AssessmentFlow).where(
-            AssessmentFlow.flow_id == UUID(flow_id),
-            AssessmentFlow.client_account_id == UUID(client_account_id),
-            AssessmentFlow.engagement_id == UUID(engagement_id),
+        # Get assessment flow with tenant scoping
+        flow = await get_assessment_flow(
+            db, flow_id, context.client_account_id, context.engagement_id
         )
-        result = await db.execute(query)
-        flow = result.scalar_one_or_none()
 
-        if not flow:
-            raise HTTPException(status_code=404, detail="Assessment flow not found")
-
-        # Use new semantic field with fallback
-        asset_ids = flow.selected_asset_ids or flow.selected_application_ids or []
+        # Get asset IDs with semantic field fallback
+        asset_ids = get_asset_ids(flow)
 
         if not asset_ids:
             return {
@@ -371,8 +306,8 @@ async def get_assessment_progress(
             Asset.id.in_(
                 [UUID(aid) if isinstance(aid, str) else aid for aid in asset_ids]
             ),
-            Asset.client_account_id == UUID(client_account_id),
-            Asset.engagement_id == UUID(engagement_id),
+            Asset.client_account_id == ensure_uuid(context.client_account_id),
+            Asset.engagement_id == ensure_uuid(context.engagement_id),
         )
         assets_result = await db.execute(assets_query)
         assets = assets_result.scalars().all()
@@ -384,100 +319,12 @@ async def get_assessment_progress(
                 "overall_progress": 0.0,
             }
 
-        # Define attribute categories (22 critical attributes)
-        categories = [
-            {
-                "name": "Infrastructure",
-                "attributes": [
-                    "asset_name",
-                    "technology_stack",
-                    "operating_system",
-                    "cpu_cores",
-                    "memory_gb",
-                    "storage_gb",
-                ],
-                "completed": 0,
-                "total": 6 * len(assets),
-            },
-            {
-                "name": "Application",
-                "attributes": [
-                    "business_criticality",
-                    "application_type",
-                    "architecture_pattern",
-                    "dependencies",
-                    "user_base",
-                    "data_sensitivity",
-                    "compliance_requirements",
-                    "sla_requirements",
-                ],
-                "completed": 0,
-                "total": 8 * len(assets),
-            },
-            {
-                "name": "Business Context",
-                "attributes": [
-                    "business_owner",
-                    "annual_operating_cost",
-                    "business_value",
-                    "strategic_importance",
-                ],
-                "completed": 0,
-                "total": 4 * len(assets),
-            },
-            {
-                "name": "Technical Debt",
-                "attributes": [
-                    "code_quality_score",
-                    "last_update_date",
-                    "support_status",
-                    "known_vulnerabilities",
-                ],
-                "completed": 0,
-                "total": 4 * len(assets),
-            },
-        ]
-
-        # Count completed attributes for each asset
-        for asset in assets:
-            for category in categories:
-                for attr_name in category["attributes"]:
-                    # Check if attribute has a value
-                    attr_value = getattr(asset, attr_name, None)
-                    if attr_value is not None:
-                        # Handle special cases
-                        if isinstance(attr_value, list) and len(attr_value) > 0:
-                            category["completed"] += 1
-                        elif isinstance(attr_value, dict) and len(attr_value) > 0:
-                            category["completed"] += 1
-                        elif isinstance(attr_value, str) and attr_value.strip():
-                            category["completed"] += 1
-                        elif isinstance(attr_value, (int, float)) and attr_value > 0:
-                            category["completed"] += 1
-                        elif isinstance(attr_value, bool):
-                            category["completed"] += 1
-
-                # Calculate progress percent for category
-                if category["total"] > 0:
-                    category["progress_percent"] = round(
-                        (category["completed"] / category["total"]) * 100, 1
-                    )
-                else:
-                    category["progress_percent"] = 0.0
-
-        # Calculate overall progress
-        total_completed = sum(c["completed"] for c in categories)
-        total_attributes = sum(c["total"] for c in categories)
-        overall_progress = (
-            round((total_completed / total_attributes) * 100, 1)
-            if total_attributes > 0
-            else 0.0
-        )
+        # Calculate progress by category
+        progress_data = calculate_progress_categories(assets)
 
         return {
             "flow_id": flow_id,
-            "categories": categories,
-            "overall_progress": overall_progress,
+            **progress_data,
         }
 
     except Exception as e:

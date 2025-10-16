@@ -46,7 +46,7 @@ import type { ApplicationAssetGroup } from '@/types/assessment';
 export interface ApplicationGroupsWidgetProps {
   flow_id: string;
   client_account_id: string;
-  engagement_id: string;
+  engagement_id?: string; // Optional - not required for tenant scoping
   onAssetClick?: (asset_id: string) => void;
 }
 
@@ -81,7 +81,7 @@ export const ApplicationGroupsWidget: React.FC<ApplicationGroupsWidgetProps> = (
       const headers = {
         ...getAuthHeaders(),
         'X-Client-Account-ID': client_account_id,
-        'X-Engagement-ID': engagement_id,
+        ...(engagement_id && { 'X-Engagement-ID': engagement_id }), // Conditionally include
       };
 
       const response = await apiCall(`/master-flows/${flow_id}/assessment-applications`, {
@@ -92,7 +92,7 @@ export const ApplicationGroupsWidget: React.FC<ApplicationGroupsWidgetProps> = (
       // Backend returns array of ApplicationAssetGroup
       return Array.isArray(response) ? response : [];
     },
-    enabled: !!flow_id && !!client_account_id,
+    enabled: !!flow_id && !!client_account_id, // engagement_id is optional
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Refresh every minute
   });

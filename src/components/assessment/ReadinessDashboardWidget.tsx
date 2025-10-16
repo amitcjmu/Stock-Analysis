@@ -54,7 +54,7 @@ import {
 export interface ReadinessDashboardWidgetProps {
   flow_id: string;
   client_account_id: string;
-  engagement_id: string;
+  engagement_id?: string; // Optional - not required for tenant scoping
   onCollectDataClick?: () => void;
 }
 
@@ -87,7 +87,7 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
       const headers = {
         ...getAuthHeaders(),
         'X-Client-Account-ID': client_account_id,
-        'X-Engagement-ID': engagement_id,
+        ...(engagement_id && { 'X-Engagement-ID': engagement_id }), // Conditionally include
       };
 
       const response = await apiCall(`/master-flows/${flow_id}/assessment-readiness`, {
@@ -97,7 +97,7 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
 
       return response as AssessmentReadinessResponse;
     },
-    enabled: !!flow_id && !!client_account_id,
+    enabled: !!flow_id && !!client_account_id, // engagement_id is optional
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Refresh every minute
   });
