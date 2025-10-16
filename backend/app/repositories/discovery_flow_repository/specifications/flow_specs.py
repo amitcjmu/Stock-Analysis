@@ -40,14 +40,19 @@ class FlowSpecifications:
 
     @staticmethod
     def incomplete_phases_spec() -> ColumnElement:
-        """Specification for flows with incomplete phases"""
+        """
+        Specification for flows with incomplete phases.
+
+        Per ADR-027: Discovery v3.0.0 has only 5 phases.
+        Legacy dependency_analysis and tech_debt_assessment columns
+        retained for backward compatibility but not checked for completion.
+        """
         return ~and_(
             DiscoveryFlow.data_import_completed is True,
+            DiscoveryFlow.data_validation_completed is True,
             DiscoveryFlow.field_mapping_completed is True,
             DiscoveryFlow.data_cleansing_completed is True,
             DiscoveryFlow.asset_inventory_completed is True,
-            DiscoveryFlow.dependency_analysis_completed is True,
-            DiscoveryFlow.tech_debt_assessment_completed is True,
         )
 
     @staticmethod

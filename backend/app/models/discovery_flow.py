@@ -53,9 +53,11 @@ class DiscoveryFlow(Base):
 
     # Phase completion tracking - HYBRID APPROACH
     # Boolean flags (keep for backward compatibility)
-    data_import_completed = Column(
+    # Per ADR-027: Discovery v3.0.0 has 5 phases
+    data_import_completed = Column(Boolean, nullable=False, default=False)
+    data_validation_completed = Column(
         Boolean, nullable=False, default=False
-    )  # was data_validation_completed
+    )  # Added per ADR-027
     field_mapping_completed = Column(
         Boolean, nullable=False, default=False
     )  # was attribute_mapping_completed
@@ -65,10 +67,10 @@ class DiscoveryFlow(Base):
     )  # was inventory_completed
     dependency_analysis_completed = Column(
         Boolean, nullable=False, default=False
-    )  # was dependencies_completed
+    )  # was dependencies_completed (DEPRECATED per ADR-027)
     tech_debt_assessment_completed = Column(
         Boolean, nullable=False, default=False
-    )  # was tech_debt_completed
+    )  # was tech_debt_completed (DEPRECATED per ADR-027)
 
     # Multi-tenant learning and memory isolation (REQUIRED for agent system)
     learning_scope = Column(
@@ -144,14 +146,14 @@ class DiscoveryFlow(Base):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"
 
     def calculate_progress(self) -> float:
-        """Calculate progress percentage based on completed phases"""
+        """Calculate progress percentage based on completed phases (Discovery v3.0.0 only)"""
+        # Per ADR-027: Only count the 5 active Discovery phases
         phases = [
             self.data_import_completed,
+            self.data_validation_completed,
             self.field_mapping_completed,
             self.data_cleansing_completed,
             self.asset_inventory_completed,
-            self.dependency_analysis_completed,
-            self.tech_debt_assessment_completed,
         ]
         completed_count = sum(1 for phase in phases if phase)
         return round((completed_count / len(phases)) * 100, 1)
@@ -161,18 +163,18 @@ class DiscoveryFlow(Base):
         self.progress_percentage = self.calculate_progress()
 
     def get_current_phase(self) -> str:
-        """Get the current phase based on completion status"""
+        """Get the current phase based on completion status (Discovery v3.0.0)"""
         # Use JSON field if available, otherwise calculate from booleans
         if self.current_phase:
             return self.current_phase
 
+        # Per ADR-027: Only use the 5 active Discovery phases
         phases = [
             ("data_import", self.data_import_completed),
+            ("data_validation", self.data_validation_completed),
             ("field_mapping", self.field_mapping_completed),
             ("data_cleansing", self.data_cleansing_completed),
             ("asset_inventory", self.asset_inventory_completed),
-            ("dependency_analysis", self.dependency_analysis_completed),
-            ("tech_debt_assessment", self.tech_debt_assessment_completed),
         ]
 
         # Find the last completed phase
@@ -186,14 +188,14 @@ class DiscoveryFlow(Base):
         return current_phase
 
     def get_next_phase(self) -> Optional[str]:
-        """Get the next phase that needs to be completed"""
+        """Get the next phase that needs to be completed (Discovery v3.0.0)"""
+        # Per ADR-027: Only use the 5 active Discovery phases
         phases = [
             ("data_import", self.data_import_completed),
+            ("data_validation", self.data_validation_completed),
             ("field_mapping", self.field_mapping_completed),
             ("data_cleansing", self.data_cleansing_completed),
             ("asset_inventory", self.asset_inventory_completed),
-            ("dependency_analysis", self.dependency_analysis_completed),
-            ("tech_debt_assessment", self.tech_debt_assessment_completed),
         ]
 
         for phase_name, completed in phases:
@@ -202,15 +204,15 @@ class DiscoveryFlow(Base):
         return None
 
     def is_complete(self) -> bool:
-        """Check if all phases are completed"""
+        """Check if all phases are completed (Discovery v3.0.0)"""
+        # Per ADR-027: Only check the 5 active Discovery phases
         return all(
             [
                 self.data_import_completed,
+                self.data_validation_completed,
                 self.field_mapping_completed,
                 self.data_cleansing_completed,
                 self.asset_inventory_completed,
-                self.dependency_analysis_completed,
-                self.tech_debt_assessment_completed,
             ]
         )
 
@@ -262,6 +264,7 @@ class DiscoveryFlow(Base):
             "progress_percentage": self.progress_percentage,
             "phases": {
                 "data_import_completed": self.data_import_completed,
+                "data_validation_completed": self.data_validation_completed,
                 "field_mapping_completed": self.field_mapping_completed,
                 "data_cleansing_completed": self.data_cleansing_completed,
                 "asset_inventory_completed": self.asset_inventory_completed,

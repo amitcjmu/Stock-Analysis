@@ -57,9 +57,15 @@ class FlowStateValidator:
         "data_cleansing": ["field_mapping"],
         "asset_creation": ["data_cleansing"],
         "asset_inventory": ["asset_creation"],
-        "dependency_analysis": ["asset_inventory"],
-        "tech_debt_analysis": ["dependency_analysis"],
-        "completed": ["tech_debt_analysis"],
+        "dependency_analysis": [
+            "asset_inventory"
+        ],  # Legacy - moved to Assessment v3.0.0
+        "tech_debt_analysis": [
+            "dependency_analysis"
+        ],  # Legacy - moved to Assessment v3.0.0
+        "completed": [
+            "asset_inventory"
+        ],  # Per ADR-027: Discovery completes after asset_inventory
     }
 
     @staticmethod
