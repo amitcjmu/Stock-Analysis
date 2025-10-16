@@ -159,7 +159,15 @@ class AssessmentApplicationResolver:
                     "assets": [],
                     "asset_types": set(),
                     "readiness": {"ready": 0, "not_ready": 0, "in_progress": 0},
+                    "seen_asset_ids": set(),  # Track seen assets to prevent duplicates
                 }
+
+            # Skip duplicate assets (can occur when asset has multiple collection_flow_applications entries)
+            if row.asset_id in app_groups[app_key]["seen_asset_ids"]:
+                continue
+
+            # Mark this asset as seen for this group
+            app_groups[app_key]["seen_asset_ids"].add(row.asset_id)
 
             # Add asset to group
             app_groups[app_key]["assets"].append(
