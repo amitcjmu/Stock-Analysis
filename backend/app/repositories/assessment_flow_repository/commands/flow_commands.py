@@ -113,7 +113,23 @@ class FlowCommands:
                 logger.error(f"Failed to calculate readiness summary: {e}")
 
         # Step 5: Convert application groups to dict for JSONB storage
-        application_groups_dict = [group.dict() for group in application_groups]
+        # Serialize UUIDs to strings for JSON compatibility
+        import json
+        from uuid import UUID as UUIDType
+
+        def uuid_serializer(obj):
+            """Custom JSON serializer for UUID objects"""
+            if isinstance(obj, UUIDType):
+                return str(obj)
+            raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+        application_groups_dict = []
+        for group in application_groups:
+            group_dict = group.dict()
+            # Convert all UUID objects to strings via JSON serialization
+            application_groups_dict.append(
+                json.loads(json.dumps(group_dict, default=uuid_serializer))
+            )
 
         # Step 6: Log warnings for edge cases
         unmapped_count = sum(

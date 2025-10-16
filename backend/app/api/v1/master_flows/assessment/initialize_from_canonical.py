@@ -162,7 +162,6 @@ async def initialize_assessment_from_canonical(
         engagement_id=str(engagement_id),
         selected_application_ids=[str(aid) for aid in all_asset_ids],
         created_by=context.user_id,
-        collection_flow_id=request.optional_collection_flow_id,
     )
 
     # Step 6: Update flow metadata with traceability info
