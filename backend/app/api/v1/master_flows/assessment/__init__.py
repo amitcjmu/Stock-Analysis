@@ -10,11 +10,15 @@ from fastapi import APIRouter
 from .list_status_endpoints import router as list_status_router
 from .info_endpoints import router as info_router
 from .lifecycle_endpoints import router as lifecycle_router
+from .initialize_from_canonical import router as initialize_canonical_router
 
 # Create main router that combines all sub-routers
 router = APIRouter()
 
 # Include all sub-routers (order matters for route precedence)
+router.include_router(
+    initialize_canonical_router
+)  # Must come first (most specific route)
 router.include_router(list_status_router)
 router.include_router(info_router)
 router.include_router(lifecycle_router)
