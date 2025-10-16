@@ -121,7 +121,7 @@ async def get_assessment_flow_status_via_master(
         from app.repositories.assessment_flow_repository import (
             AssessmentFlowRepository,
         )
-        from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
+        from app.models.assessment_flow import AssessmentFlowStatus
 
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
@@ -129,32 +129,52 @@ async def get_assessment_flow_status_via_master(
         if not flow_state:
             raise HTTPException(status_code=404, detail="Assessment flow not found")
 
-        # Calculate progress percentage
-        phase_order = [
-            AssessmentPhase.ARCHITECTURE_MINIMUMS,
-            AssessmentPhase.COMPONENT_ANALYSIS,
-            AssessmentPhase.TECH_DEBT_ANALYSIS,
-            AssessmentPhase.SIX_R_DECISION,
-            AssessmentPhase.FINALIZATION,
-        ]
+        # Calculate progress percentage using FlowTypeConfig (ADR-027)
+        from app.services.flow_type_registry_helpers import get_flow_config
 
-        progress_percentage = 0
         try:
+            config = get_flow_config("assessment")
+            phase_names = [phase.name for phase in config.phases]
+
+            # Get current phase as string
+            current_phase_str = (
+                flow_state.current_phase.value
+                if hasattr(flow_state.current_phase, "value")
+                else str(flow_state.current_phase)
+            )
+
+            progress_percentage = 0
             if flow_state.status == AssessmentFlowStatus.COMPLETED:
                 progress_percentage = 100
-            else:
-                current_index = phase_order.index(flow_state.current_phase)
+            elif current_phase_str in phase_names:
+                current_index = phase_names.index(current_phase_str)
                 progress_percentage = int(
-                    ((current_index + 1) / len(phase_order)) * 100
+                    ((current_index + 1) / len(phase_names)) * 100
                 )
-        except ValueError:
+            else:
+                # Phase not in config, default to 0
+                logger.warning(
+                    f"Phase '{current_phase_str}' not found in assessment config"
+                )
+                progress_percentage = 0
+
+        except Exception as e:
+            logger.error(f"Error calculating progress: {e}")
             progress_percentage = 0
 
         return {
             "flow_id": flow_id,
-            "status": flow_state.status.value,
+            "status": (
+                flow_state.status.value
+                if hasattr(flow_state.status, "value")
+                else str(flow_state.status)
+            ),
             "progress_percentage": progress_percentage,
-            "current_phase": flow_state.current_phase.value,
+            "current_phase": (
+                flow_state.current_phase.value
+                if hasattr(flow_state.current_phase, "value")
+                else str(flow_state.current_phase)
+            ),
             "next_phase": None,  # Will be calculated by frontend
             "phase_data": flow_state.phase_results or {},
             "selected_applications": len(flow_state.selected_application_ids or []),

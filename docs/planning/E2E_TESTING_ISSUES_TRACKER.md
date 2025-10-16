@@ -197,6 +197,84 @@ Updated phase metadata `ui_route` values to map to existing frontend routes:
 
 ---
 
+### Issue #5: Phase Enum Mismatch (ADR-027 Compliance)
+**Status**: ✅ FIXED
+**Severity**: CRITICAL
+**Component**: Backend Architecture / Assessment Phase Management
+
+**Problem**:
+- AssessmentPhase enum used old phase names that didn't match ADR-027 canonical phases
+- Database stored new phase names (`complexity_analysis`) but enum expected old names (`tech_debt_analysis`)
+- Endpoint hardcoded phase order instead of using FlowTypeConfig
+- 500 errors: "Failed to get assessment status: ARCHITECTURE_MINIMUMS"
+- Architectural violation of ADR-027 Universal FlowTypeConfig Pattern
+
+**Root Causes**:
+1. AssessmentPhase enum not updated after ADR-027 refactor
+2. `list_status_endpoints.py` used hardcoded phase lists with old enum constants
+3. Mixed usage of enums vs strings violating ADR-027 principle
+
+**Enum Mismatch Details**:
+
+**OLD Enum (Pre-Fix)**:
+- `ARCHITECTURE_MINIMUMS` = "architecture_minimums"
+- `TECH_DEBT_ANALYSIS` = "tech_debt_analysis"
+- `COMPONENT_SIXR_STRATEGIES` = "component_sixr_strategies"
+- `APP_ON_PAGE_GENERATION` = "app_on_page_generation"
+
+**NEW Enum (ADR-027 Compliant)**:
+- `READINESS_ASSESSMENT` = "readiness_assessment"
+- `COMPLEXITY_ANALYSIS` = "complexity_analysis"
+- `DEPENDENCY_ANALYSIS` = "dependency_analysis" (moved from Discovery)
+- `TECH_DEBT_ASSESSMENT` = "tech_debt_assessment"
+- `RISK_ASSESSMENT` = "risk_assessment"
+- `RECOMMENDATION_GENERATION` = "recommendation_generation"
+
+**Fixes Applied**:
+1. ✅ Updated `AssessmentPhase` enum in `assessment_flow_state.py` to match ADR-027 canonical phases
+2. ✅ Replaced hardcoded phase list in `list_status_endpoints.py` with FlowTypeConfig approach
+3. ✅ Added `hasattr()` checks for safe enum/string conversion
+4. ✅ Documented deprecated phase names in enum docstring
+
+**Files Modified**:
+- `backend/app/models/assessment_flow_state.py` (lines 30-52)
+- `backend/app/api/v1/master_flows/assessment/list_status_endpoints.py` (lines 132-170)
+
+**Architectural Improvement**:
+- **BEFORE**: Hardcoded phase list with old enums
+  ```python
+  phase_order = [AssessmentPhase.ARCHITECTURE_MINIMUMS, ...]
+  ```
+- **AFTER**: Dynamic phase loading via FlowTypeConfig (ADR-027)
+  ```python
+  config = get_flow_config("assessment")
+  phase_names = [phase.name for phase in config.phases]
+  ```
+
+**Verification**:
+```bash
+curl -H "X-Client-Account-Id: ..." /api/v1/master-flows/.../assessment-status
+{
+  "status": "in_progress",
+  "progress_percentage": 33,
+  "current_phase": "complexity_analysis",  # Correct new phase name
+  "selected_applications": 16
+}
+```
+
+**Impact**:
+- ✅ **UNBLOCKS API ENDPOINTS** - assessment-status now returns correct data
+- ✅ Backend adheres to ADR-027 Universal FlowTypeConfig Pattern
+- ✅ Phase progression calculated dynamically from config
+- ✅ Backward compatibility via phase_aliases.py
+- ⚠️ Frontend integration still pending (separate Issue #2 work)
+
+**Remaining Cleanup**:
+- Other files still using old enum constants (non-critical, legacy code paths)
+- Consider deprecating enum usage entirely in favor of string phase names per ADR-027
+
+---
+
 ## 📋 Test Coverage Progress
 
 ### Phase 1: Architecture Standards ✅ COMPLETE
@@ -260,12 +338,12 @@ Updated phase metadata `ui_route` values to map to existing frontend routes:
 
 ## 📊 Summary Statistics
 
-**Total Issues Found**: 4
-**Critical Issues Fixed**: 2 (Issue #1: Unique Constraint, Issue #4: Phase Routing)
+**Total Issues Found**: 5
+**Critical Issues Fixed**: 3 (Issue #1: Unique Constraint, Issue #4: Phase Routing, Issue #5: Enum Mismatch)
 **Critical Issues Open**: 1 (Issue #2: Data Loading - Partially Fixed)
 **Low Priority Issues**: 1 (Issue #3: Log Noise)
 **Test Phases Completed**: 0 / 5 (0%)
-**Overall Progress**: **PARTIALLY UNBLOCKED** - Phase routing fixed, data loading issue remains
+**Overall Progress**: **SIGNIFICANTLY UNBLOCKED** - Backend API working, phase enum fixed, frontend integration pending
 
 ---
 
