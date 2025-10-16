@@ -84,9 +84,7 @@ class StateQueries:
 
         return grouped
 
-    async def get_application_components(
-        self, flow_id: str
-    ) -> Dict[str, List[Any]]:
+    async def get_application_components(self, flow_id: str) -> Dict[str, List[Any]]:
         """Get application components grouped by app"""
 
         # Note: application_components table doesn't have assessment_flow_id column
