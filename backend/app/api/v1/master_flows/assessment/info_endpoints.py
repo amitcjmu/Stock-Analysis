@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
-from .helpers import get_missing_critical_attributes
+from .helpers import get_missing_critical_attributes, categorize_missing_attributes
 from .uuid_utils import ensure_uuid
 from .query_helpers import get_assessment_flow, get_asset_ids, get_collection_flow_id
 from .progress_calculator import calculate_progress_categories
@@ -222,7 +222,14 @@ async def get_assessment_readiness(
         blockers = []
         for asset in assets:
             if asset.assessment_readiness != "ready":
-                missing_attrs = get_missing_critical_attributes(asset)
+                # Get flat list of missing attributes
+                missing_attrs_flat = get_missing_critical_attributes(asset)
+
+                # Categorize for frontend (infrastructure/application/business/technical_debt)
+                missing_attrs_categorized = categorize_missing_attributes(
+                    missing_attrs_flat
+                )
+
                 blockers.append(
                     {
                         "asset_id": str(asset.id),
@@ -230,11 +237,14 @@ async def get_assessment_readiness(
                         "asset_type": asset.asset_type or "unknown",
                         "assessment_readiness": asset.assessment_readiness
                         or "not_ready",
+                        "assessment_readiness_score": float(
+                            asset.assessment_readiness_score or 0.0
+                        ),
                         "completeness_score": float(
                             asset.assessment_readiness_score or 0.0
                         ),
                         "assessment_blockers": asset.assessment_blockers or [],
-                        "missing_critical_attributes": missing_attrs,
+                        "missing_attributes": missing_attrs_categorized,
                     }
                 )
 
