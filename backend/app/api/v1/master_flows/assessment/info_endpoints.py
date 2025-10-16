@@ -87,8 +87,12 @@ async def get_assessment_applications_via_master(
                 f"({len(flow.application_asset_groups)} groups)"
             )
             application_groups = flow.application_asset_groups
-            # Convert to list of dicts if needed
+            # Validate data type and handle corruption gracefully
             if not isinstance(application_groups, list):
+                logger.warning(
+                    f"Expected 'application_asset_groups' to be a list for flow {flow_id}, "
+                    f"but got {type(application_groups)}. Resetting to empty list."
+                )
                 application_groups = []
         else:
             # Compute on-the-fly (fallback for old flows)

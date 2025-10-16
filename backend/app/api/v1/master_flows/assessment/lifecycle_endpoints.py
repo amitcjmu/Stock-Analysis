@@ -70,15 +70,18 @@ async def resume_assessment_flow_via_mfo(
     """Resume assessment flow phase through MFO"""
 
     client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
         from app.repositories.assessment_flow_repository import (
             AssessmentFlowRepository,
         )
 
-        repo = AssessmentFlowRepository(db, client_account_id)
+        repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
         result = await repo.resume_flow(flow_id, user_input)
 
         return {
@@ -116,7 +119,7 @@ async def update_architecture_standards_via_mfo(
         )
         from app.models.assessment_flow_state import ArchitectureRequirement
 
-        repo = AssessmentFlowRepository(db, client_account_id)
+        repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
 
         # Extract engagement standards from request
         engagement_standards = standards_data.get("engagement_standards", [])
@@ -172,8 +175,11 @@ async def finalize_assessment_via_mfo(
     """Finalize assessment and prepare for planning through MFO"""
 
     client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
         from app.repositories.assessment_flow_repository import (
@@ -181,7 +187,7 @@ async def finalize_assessment_via_mfo(
         )
         from app.models.assessment_flow import AssessmentFlowStatus
 
-        repo = AssessmentFlowRepository(db, client_account_id)
+        repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
 
         # Update flow status to completed
         await repo.update_flow_status(flow_id, AssessmentFlowStatus.COMPLETED)

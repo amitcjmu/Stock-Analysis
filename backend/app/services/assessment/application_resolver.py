@@ -259,13 +259,14 @@ class AssessmentApplicationResolver:
                 model_class.asset_id.in_(asset_ids)
             )
 
-            # Add tenant scoping for models that have these fields
-            # AssetFieldConflict has tenant fields
-            if model_class == AssetFieldConflict:
+            # SECURITY: Add tenant scoping for ALL models that have these fields
+            # This prevents data leakage between tenants
+            if hasattr(model_class, "client_account_id"):
                 query = query.where(
-                    model_class.client_account_id == self.client_account_id,
-                    model_class.engagement_id == self.engagement_id,
+                    model_class.client_account_id == self.client_account_id
                 )
+            if hasattr(model_class, "engagement_id"):
+                query = query.where(model_class.engagement_id == self.engagement_id)
 
             result = await self.db.execute(query)
             count = result.scalar() or 0

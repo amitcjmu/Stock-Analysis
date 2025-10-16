@@ -267,13 +267,23 @@ async def _resolve_assets_from_canonical_apps(
         Dict mapping canonical_app_id → [asset_ids]
     """
     # Build query with tenant scoping
-    query = select(
-        CollectionFlowApplication.canonical_application_id,
-        CollectionFlowApplication.asset_id,
-    ).where(
-        CollectionFlowApplication.canonical_application_id.in_(canonical_app_uuids),
-        CollectionFlowApplication.client_account_id == client_account_id,
-        CollectionFlowApplication.engagement_id == engagement_id,
+    # PERFORMANCE FIX: JOIN with Asset table to avoid N+1 query
+    query = (
+        select(
+            CollectionFlowApplication.canonical_application_id,
+            CollectionFlowApplication.asset_id,
+        )
+        .join(
+            Asset,
+            (Asset.id == CollectionFlowApplication.asset_id)
+            & (Asset.client_account_id == client_account_id)
+            & (Asset.engagement_id == engagement_id),
+        )
+        .where(
+            CollectionFlowApplication.canonical_application_id.in_(canonical_app_uuids),
+            CollectionFlowApplication.client_account_id == client_account_id,
+            CollectionFlowApplication.engagement_id == engagement_id,
+        )
     )
 
     # Optional: Filter by collection flow if provided
@@ -301,15 +311,8 @@ async def _resolve_assets_from_canonical_apps(
         asset_id = row.asset_id
 
         if canonical_id in assets_map and asset_id:
-            # Verify asset exists and matches tenant
-            asset_query = select(Asset.id).where(
-                Asset.id == asset_id,
-                Asset.client_account_id == client_account_id,
-                Asset.engagement_id == engagement_id,
-            )
-            asset_result = await db.execute(asset_query)
-            if asset_result.scalar_one_or_none():
-                assets_map[canonical_id].append(asset_id)
+            # Asset already verified via JOIN - no need for additional query
+            assets_map[canonical_id].append(asset_id)
 
     return assets_map
 
