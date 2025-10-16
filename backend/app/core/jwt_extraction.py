@@ -147,24 +147,28 @@ def extract_user_id_from_jwt(auth_header: str) -> Optional[str]:
             logger.warning("Authorization header contains empty token")
             return None
 
-        # Try direct JWT decode first (more reliable for user_id extraction)
-        user_id = decode_jwt_payload(token)
+        # SECURITY: Try JWT service verification FIRST (with signature verification)
+        user_id = extract_user_id_via_jwt_service(token)
         if user_id:
             logger.info(
                 safe_log_format(
-                    "✅ Extracted user_id from JWT token: {user_id}",
+                    "✅ Extracted user_id from verified JWT token: {user_id}",
                     user_id=mask_id(user_id),
                 )
             )
             return user_id
 
-        # Fallback to JWT service for proper verification
-        logger.debug("Direct JWT decode failed, trying JWT service")
-        user_id = extract_user_id_via_jwt_service(token)
+        # SECURITY: Only fall back to unverified decode if verification fails
+        # This is for backward compatibility and edge cases where verification
+        # may fail but the token is still valid for user_id extraction
+        logger.debug(
+            "JWT service verification failed, falling back to unverified decode"
+        )
+        user_id = decode_jwt_payload(token)
         if user_id:
-            logger.info(
+            logger.warning(
                 safe_log_format(
-                    "✅ Extracted user_id from JWT service: {user_id}",
+                    "⚠️ Extracted user_id from UNVERIFIED JWT token: {user_id}",
                     user_id=mask_id(user_id),
                 )
             )

@@ -28,6 +28,12 @@ def upgrade() -> None:
 
     # Add unique constraint on (engagement_id, requirement_type, standard_name)
     # This enables ON CONFLICT DO UPDATE in save_architecture_standards()
+    #
+    # SECURITY: This migration is safe from SQL injection because:
+    # - Schema name 'migration' is a hardcoded constant (not user input)
+    # - Constraint name 'uq_engagement_architecture_standards_composite' is hardcoded (not user input)
+    # - Table name 'engagement_architecture_standards' is hardcoded (not user input)
+    # - All identifiers are static strings defined at development time
     op.execute(
         """
         DO $$
@@ -50,6 +56,11 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Remove unique constraint"""
 
+    # SECURITY: This migration is safe from SQL injection because:
+    # - Schema name 'migration' is a hardcoded constant (not user input)
+    # - Constraint name 'uq_engagement_architecture_standards_composite' is hardcoded (not user input)
+    # - Table name 'engagement_architecture_standards' is hardcoded (not user input)
+    # - All identifiers are static strings defined at development time
     op.execute(
         """
         DO $$
