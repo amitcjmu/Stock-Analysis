@@ -38,6 +38,17 @@ PHASE_ALIASES: Dict[str, Dict[str, str]] = {
         # Legacy phase names
         "tech_debt_analysis": "tech_debt_assessment",
         "finalization": "recommendation_generation",  # Legacy final phase
+        # Frontend route name mappings (Issue #4 fix)
+        "architecture": "readiness_assessment",  # /assessment/[flowId]/architecture
+        "readiness": "readiness_assessment",  # /assessment/readiness
+        "complexity": "complexity_analysis",  # /assessment/complexity
+        "dependency-analysis": "dependency_analysis",  # /assessment/dependency-analysis
+        "tech-debt": "tech_debt_assessment",  # /assessment/tech-debt
+        "sixr-review": "risk_assessment",  # /assessment/[flowId]/sixr-review
+        "risk": "risk_assessment",  # /assessment/risk
+        "app-on-page": "recommendation_generation",  # /assessment/[flowId]/app-on-page
+        "recommendations": "recommendation_generation",  # /assessment/recommendations
+        "summary": "recommendation_generation",  # /assessment/[flowId]/summary (legacy)
     },
 }
 
