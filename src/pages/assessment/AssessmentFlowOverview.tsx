@@ -10,6 +10,8 @@ import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
+import { ApplicationGroupsWidget } from '@/components/assessment/ApplicationGroupsWidget';
+import { ReadinessDashboardWidget } from '@/components/assessment/ReadinessDashboardWidget';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '../../config/api';
 import { Button } from '@/components/ui/button';
@@ -45,10 +47,12 @@ const AssessmentFlowOverview = (): JSX.Element => {
   const navigate = useNavigate();
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [collectionFlowId, setCollectionFlowId] = useState<string | null>(null);
   const [isEnsuringFlow, setIsEnsuringFlow] = useState<boolean>(true);
   const [isInitializingAssessment, setIsInitializingAssessment] = useState<boolean>(false);
+  const [selectedFlowForDetails, setSelectedFlowForDetails] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<{
     apps_ready_for_assessment: number;
     phase_scores: { collection: number; discovery: number };
@@ -205,6 +209,25 @@ const AssessmentFlowOverview = (): JSX.Element => {
 
   const showNotReadyBanner = !isEnsuringFlow && collectionFlowId && !readinessPasses;
 
+  // Get selected flow for widgets (either manually selected or first processing/initialized flow)
+  const flowForWidgets = useMemo(() => {
+    if (selectedFlowForDetails && flows.some(f => f.id === selectedFlowForDetails)) {
+      return flows.find(f => f.id === selectedFlowForDetails);
+    }
+    // Auto-select first processing or initialized flow
+    return flows.find(f => f.status === 'processing' || f.status === 'initialized') || flows[0];
+  }, [selectedFlowForDetails, flows]);
+
+  // Extract multi-tenant context from user
+  const clientAccountId = user?.client_account_id || '1'; // Default fallback
+  const engagementId = user?.engagement_id || undefined;
+
+  const handleCollectMissingData = () => {
+    if (collectionFlowId) {
+      navigate(`/collection/progress?flowId=${collectionFlowId}`);
+    }
+  };
+
   const formatPhase = (phase: string): unknown => {
     return phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
@@ -273,6 +296,58 @@ const AssessmentFlowOverview = (): JSX.Element => {
                   View Collection Progress
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* Phase 4 Days 21-22: Assessment Widgets - Application Groups & Readiness Dashboard */}
+          {flowForWidgets && (
+            <div className="mb-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Assessment Details
+                  {flows.length > 1 && (
+                    <span className="ml-3 text-sm font-normal text-gray-500">
+                      (Flow: {flowForWidgets.id.substring(0, 8)}...)
+                    </span>
+                  )}
+                </h2>
+                {flows.length > 1 && (
+                  <select
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={selectedFlowForDetails || flowForWidgets.id}
+                    onChange={(e) => setSelectedFlowForDetails(e.target.value)}
+                  >
+                    {flows.map((flow) => (
+                      <option key={flow.id} value={flow.id}>
+                        {flow.id.substring(0, 8)}... - {flow.status} ({flow.selected_applications} apps)
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Application Portfolio Widget */}
+              <section>
+                <ApplicationGroupsWidget
+                  flow_id={flowForWidgets.id}
+                  client_account_id={clientAccountId}
+                  engagement_id={engagementId || ''}
+                  onAssetClick={(asset_id) => {
+                    console.log('Asset clicked:', asset_id);
+                    // TODO: Navigate to asset detail page when available
+                  }}
+                />
+              </section>
+
+              {/* Assessment Readiness Dashboard Widget */}
+              <section>
+                <ReadinessDashboardWidget
+                  flow_id={flowForWidgets.id}
+                  client_account_id={clientAccountId}
+                  engagement_id={engagementId || ''}
+                  onCollectDataClick={handleCollectMissingData}
+                />
+              </section>
             </div>
           )}
 

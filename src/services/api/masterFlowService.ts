@@ -904,6 +904,54 @@ export const masterFlowService = {
       throw error;
     }
   },
+
+  /**
+   * Get assessment readiness summary and asset-level blockers (via MFO)
+   * Phase 4 Day 21: Assessment Architecture Enhancement
+   */
+  async getAssessmentReadiness(
+    flow_id: string,
+    client_account_id: string,
+    engagement_id?: string,
+  ): Promise<import('@/types/assessment').AssessmentReadinessResponse> {
+    try {
+      const response = await apiClient.get<import('@/types/assessment').AssessmentReadinessResponse>(
+        `/api/v1/master-flows/${flow_id}/assessment-readiness`,
+        {
+          headers: getMultiTenantHeaders(client_account_id, engagement_id),
+        },
+      );
+      // Backend returns snake_case directly
+      return response;
+    } catch (error) {
+      handleApiError(error, "getAssessmentReadiness");
+      throw error;
+    }
+  },
+
+  /**
+   * Get assessment progress by attribute category (via MFO)
+   * Phase 4 Day 21: Assessment Architecture Enhancement
+   */
+  async getAssessmentProgress(
+    flow_id: string,
+    client_account_id: string,
+    engagement_id?: string,
+  ): Promise<import('@/types/assessment').AssessmentProgressResponse> {
+    try {
+      const response = await apiClient.get<import('@/types/assessment').AssessmentProgressResponse>(
+        `/api/v1/master-flows/${flow_id}/assessment-progress`,
+        {
+          headers: getMultiTenantHeaders(client_account_id, engagement_id),
+        },
+      );
+      // Backend returns snake_case directly
+      return response;
+    } catch (error) {
+      handleApiError(error, "getAssessmentProgress");
+      throw error;
+    }
+  },
 };
 
 export default masterFlowService;
