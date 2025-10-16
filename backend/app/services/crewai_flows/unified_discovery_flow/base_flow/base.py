@@ -230,7 +230,10 @@ class UnifiedDiscoveryFlow(
     def _initialize_phases(self):
         """Initialize phase handlers"""
         # Import phase executors
-        from ..handlers.phase_executors import (
+        # CC FIX: Corrected relative import path (was ..handlers, should be ...handlers)
+        # From: app/services/crewai_flows/unified_discovery_flow/base_flow/base.py
+        # Need to go up 3 levels to reach app/services/crewai_flows/handlers/phase_executors
+        from ...handlers.phase_executors import (
             AssetInventoryExecutor,
             DataCleansingExecutor,
             DataImportValidationExecutor,
