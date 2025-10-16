@@ -58,7 +58,7 @@ export const useIntelligentDataSync = ({
   refreshFlow
 }: UseIntelligentDataSyncProps) => {
   const queryClient = useQueryClient();
-  
+
   // State for conflict detection
   const conflictStateRef = useRef<ConflictDetectionState>({
     hasCheckedForConflicts: false,
@@ -71,7 +71,7 @@ export const useIntelligentDataSync = ({
     if (!flowId || !clientId || !engagementId) return;
 
     console.log('🔄 [DataSync] Invalidating relevant queries...');
-    
+
     // Invalidate flow state query
     await queryClient.invalidateQueries({
       queryKey: ['unifiedDiscoveryFlow', flowId, clientId, engagementId],
@@ -98,11 +98,11 @@ export const useIntelligentDataSync = ({
     }
 
     console.log('🔍 [DataSync] Starting intelligent conflict detection polling...');
-    
+
     const pollForConflicts = async () => {
       const now = Date.now();
       const timeSinceLastCheck = now - conflictStateRef.current.lastConflictCheck;
-      
+
       // Only check every 10 seconds to avoid excessive API calls
       if (timeSinceLastCheck < 10000) {
         return;
@@ -136,7 +136,7 @@ export const useIntelligentDataSync = ({
 
     // Start polling every 15 seconds
     conflictStateRef.current.conflictCheckInterval = setInterval(pollForConflicts, 15000);
-    
+
     // Initial check after 5 seconds
     setTimeout(pollForConflicts, 5000);
   }, [flow, assetsLength, invalidateRelevantQueries]);
