@@ -468,7 +468,7 @@ const ArchitecturePage: React.FC = () => {
               'Processing...'
             ) : (
               <>
-                Continue to Tech Debt Analysis
+                Continue to Next Phase
                 <ArrowRight className="h-4 w-4 ml-2" />
               </>
             )}

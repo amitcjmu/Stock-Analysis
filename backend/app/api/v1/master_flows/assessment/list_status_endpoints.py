@@ -143,18 +143,27 @@ async def get_assessment_flow_status_via_master(
                 else str(flow_state.current_phase)
             )
 
+            # Normalize phase name to handle aliases (Fix for issue #629)
+            from app.services.flow_configs.phase_aliases import normalize_phase_name
+
+            try:
+                normalized_phase = normalize_phase_name("assessment", current_phase_str)
+            except ValueError:
+                # Phase not recognized, use original
+                normalized_phase = current_phase_str
+
             progress_percentage = 0
             if flow_state.status == AssessmentFlowStatus.COMPLETED:
                 progress_percentage = 100
-            elif current_phase_str in phase_names:
-                current_index = phase_names.index(current_phase_str)
+            elif normalized_phase in phase_names:
+                current_index = phase_names.index(normalized_phase)
                 progress_percentage = int(
                     ((current_index + 1) / len(phase_names)) * 100
                 )
             else:
                 # Phase not in config, default to 0
                 logger.warning(
-                    f"Phase '{current_phase_str}' not found in assessment config"
+                    f"Phase '{current_phase_str}' (normalized: '{normalized_phase}') not found in assessment config"
                 )
                 progress_percentage = 0
 
