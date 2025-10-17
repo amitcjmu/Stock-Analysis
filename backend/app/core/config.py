@@ -266,6 +266,23 @@ class Settings(BaseSettings):
         ),
     )
 
+    # Unmapped Asset Handling Configuration (Phase 1.2 - October 2025)
+    UNMAPPED_ASSET_HANDLING: str = Field(
+        default="banner",
+        env="UNMAPPED_ASSET_HANDLING",
+        description=(
+            "How to handle unmapped assets in assessment flows. "
+            "Options: 'banner' (warn + proceed), 'block' (reject if >threshold), 'strict' (always reject)"
+        ),
+    )
+    UNMAPPED_ASSET_THRESHOLD: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        env="UNMAPPED_ASSET_THRESHOLD",
+        description="Maximum percentage of unmapped assets allowed (0.0-1.0, default 0.5 = 50%)",
+    )
+
     model_config = ConfigDict(
         env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",

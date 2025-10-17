@@ -119,15 +119,66 @@ class FlowCommands:
             group.model_dump(mode="json") for group in application_groups
         ]
 
-        # Step 6: Log warnings for edge cases
+        # Step 6: Feature-flagged unmapped asset handling (Phase 1.2 - October 2025)
+        from app.core.config import settings
+
         unmapped_count = sum(
             1 for group in application_groups if group.canonical_application_id is None
         )
+        unmapped_percentage = (
+            unmapped_count / len(application_groups) if application_groups else 0
+        )
+
+        # Collect unmapped asset names for error/warning messages
+        unmapped_names = [
+            group.canonical_application_name
+            for group in application_groups
+            if group.canonical_application_id is None
+        ]
+
+        # Log tenant-scoped metrics for monitoring (GPT-5 recommendation)
         if unmapped_count > 0:
-            logger.warning(
-                f"Assessment flow has {unmapped_count} unmapped assets. "
-                f"Consider running canonical deduplication."
+            logger.info(
+                f"Assessment flow unmapped asset metrics: "
+                f"total={len(application_groups)}, "
+                f"unmapped={unmapped_count}, "
+                f"percentage={unmapped_percentage:.1%}, "
+                f"client_account_id={self.client_account_id}, "
+                f"engagement_id={engagement_id}"
             )
+
+            # Feature-flagged handling based on environment configuration
+            if settings.UNMAPPED_ASSET_HANDLING == "strict":
+                # Always reject unmapped assets
+                raise ValueError(
+                    f"Assessment initialization blocked: {unmapped_count} unmapped assets detected. "
+                    f"Unmapped assets: {', '.join(unmapped_names[:5])}{'...' if len(unmapped_names) > 5 else ''}. "
+                    f"Strict mode requires all assets mapped to canonical applications. "
+                    f"Use Asset Resolution workflow in collection flow."
+                )
+            elif settings.UNMAPPED_ASSET_HANDLING == "block":
+                # Reject if exceeds threshold
+                if unmapped_percentage > settings.UNMAPPED_ASSET_THRESHOLD:
+                    # Format unmapped asset list with ellipsis if needed
+                    unmapped_list = ", ".join(unmapped_names[:5])
+                    more_indicator = "..." if len(unmapped_names) > 5 else ""
+
+                    raise ValueError(
+                        f"Assessment initialization blocked: {unmapped_percentage:.1%} unmapped assets "
+                        f"exceeds threshold of {settings.UNMAPPED_ASSET_THRESHOLD:.1%}. "
+                        f"Unmapped assets ({unmapped_count}): {unmapped_list}{more_indicator}. "
+                        f"Please complete canonical application mapping to proceed."
+                    )
+                else:
+                    logger.warning(
+                        f"Assessment flow has {unmapped_count} unmapped assets ({unmapped_percentage:.1%}) "
+                        f"but within threshold ({settings.UNMAPPED_ASSET_THRESHOLD:.1%}). Proceeding with banner."
+                    )
+            else:  # "banner" mode (default)
+                logger.warning(
+                    f"Assessment flow has {unmapped_count} unmapped assets. "
+                    f"Asset Resolution banner will be shown in UI."
+                )
 
         total_enrichment = sum(enrichment_status.values()) if enrichment_status else 0
         if total_enrichment == 0 and asset_ids:
