@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import type { ArchitectureStandard } from '@/hooks/useAssessmentFlow';
 import { Network } from 'lucide-react'
 import { Building2, Cloud, Shield, Cpu, Database } from 'lucide-react'
@@ -206,13 +205,13 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
                   id={template.id}
                   className="sr-only"
                 />
-                <Label
-                  htmlFor={template.id}
-                  className="cursor-pointer"
-                >
-                  <Card className={`transition-all duration-200 hover:shadow-md ${
+                {/* Fix for issue #638: Remove Label wrapper to prevent click interception */}
+                <Card
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
                     isSelected ? 'ring-2 ring-blue-500 border-blue-200' : ''
-                  }`}>
+                  }`}
+                  onClick={() => handleTemplateSelect(template.id)}
+                >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
@@ -263,7 +262,6 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
                       </div>
                     </CardContent>
                   </Card>
-                </Label>
               </div>
             );
           })}

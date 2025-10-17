@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Save, ArrowRight, Package, Calendar, Star, Zap, RefreshCw, Loader2, Link } from 'lucide-react';
 import type { AssessmentApplication } from '@/hooks/useAssessmentFlow/types';
+import { toast } from '@/hooks/use-toast';
 
 const ArchitecturePage: React.FC = () => {
   const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
@@ -63,8 +64,20 @@ const ArchitecturePage: React.FC = () => {
     setIsDraft(true);
     try {
       await updateArchitectureStandards(standards, overrides);
+      // Show success notification (fix for issue #639)
+      toast({
+        title: "Draft Saved",
+        description: "Architecture standards have been saved successfully.",
+        variant: "default"
+      });
     } catch (error) {
       console.error('Failed to save draft:', error);
+      // Show error notification (fix for issue #639)
+      toast({
+        title: "Save Failed",
+        description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsDraft(false);
     }
