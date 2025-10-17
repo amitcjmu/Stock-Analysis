@@ -86,7 +86,13 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
 
     try {
       const sixrClient = new SixRApiClient();
-      const analyses = await sixrClient.listAnalyses();
+      const analysesResponse = await sixrClient.listAnalyses();
+
+      // Fix #633: Backend returns object {analyses: [], total_count, page, page_size}
+      // Extract the analyses array from the response
+      const analyses = Array.isArray(analysesResponse)
+        ? analysesResponse
+        : (analysesResponse as any)?.analyses || [];
 
       // Fix P2: Validate analyses is an array before calling forEach
       if (Array.isArray(analyses)) {

@@ -122,6 +122,13 @@ export interface AnalysisFilters {
   offset?: number;
 }
 
+export interface SixRAnalysisListResponse {
+  analyses: SixRAnalysisResponse[];
+  total_count: number;
+  page: number;
+  page_size: number;
+}
+
 // WebSocket Manager
 class WebSocketManager {
   private connections = new Map<string, WebSocket>();
@@ -546,7 +553,7 @@ export class SixRApiClient {
   }
 
   // List all analyses
-  async listAnalyses(filters?: AnalysisFilters): Promise<SixRAnalysisResponse[]> {
+  async listAnalyses(filters?: AnalysisFilters): Promise<SixRAnalysisListResponse> {
     try {
       const queryParams = new URLSearchParams();
 
@@ -561,7 +568,8 @@ export class SixRApiClient {
       // CC: Add trailing slash to match FastAPI route definition and avoid 307 redirect
       const endpoint = `/6r/${queryParams.toString() ? `?${queryParams}` : ''}`;
       // Use the new API client directly to ensure proper URL handling in Docker
-      return await apiClient.get<SixRAnalysisResponse[]>(endpoint);
+      // Fix #633: Backend returns paginated response object, not array
+      return await apiClient.get<SixRAnalysisListResponse>(endpoint);
     } catch (error) {
       this.handleError('Failed to list analyses', error);
       throw error;
