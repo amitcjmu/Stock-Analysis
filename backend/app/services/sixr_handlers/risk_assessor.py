@@ -24,6 +24,7 @@ class RiskAssessor:
     ) -> List[str]:
         """Assess risks for a given strategy."""
         try:
+            # 6R Canonical strategies risk mapping
             risk_map = {
                 "rehost": ["Data migration complexity", "Downtime during migration"],
                 "replatform": [
@@ -31,8 +32,14 @@ class RiskAssessor:
                     "Performance degradation",
                 ],
                 "refactor": ["Development timeline overruns", "Feature regression"],
-                "repurchase": ["Vendor lock-in", "Data migration challenges"],
-                "retain": ["Ongoing maintenance costs", "Technology obsolescence"],
+                "rearchitect": [
+                    "Extended timeline and cost overruns",
+                    "Complexity in microservices decomposition",
+                ],
+                "replace": [  # Replaces "repurchase"
+                    "Vendor lock-in",
+                    "Data migration challenges",
+                ],
                 "retire": ["Data loss", "Functionality gaps"],
             }
 

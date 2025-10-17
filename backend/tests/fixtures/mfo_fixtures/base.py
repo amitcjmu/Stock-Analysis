@@ -4,7 +4,7 @@ Base constants and classes for MFO test fixtures.
 Contains core constants, mock classes, and shared data structures.
 """
 
-from typing import Any, Dict
+from typing import Dict
 from unittest.mock import AsyncMock, MagicMock
 
 # Demo tenant constants

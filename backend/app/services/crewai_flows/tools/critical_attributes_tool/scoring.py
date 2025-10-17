@@ -83,16 +83,13 @@ class MigrationReadinessScorer:
                     "blockers": [],
                     "requirements": ["Business criticality", "Stakeholder impact"],
                 },
-                "rewrite": {
-                    "score": max(0, readiness_score - 30),  # Most complex
+                "retire": {
+                    "score": min(100, readiness_score + 15),  # Simple decommissioning
                     "confidence": (
-                        0.5 if category_coverage.get("technical_debt", 0) >= 3 else 0.1
+                        0.9 if category_coverage.get("business", 0) >= 2 else 0.5
                     ),
                     "blockers": [],
-                    "requirements": [
-                        "All attributes",
-                        "Complete technical debt assessment",
-                    ],
+                    "requirements": ["Business approval", "Data archival plan"],
                 },
             }
 

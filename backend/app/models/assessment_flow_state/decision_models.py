@@ -11,7 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from .component_models import ComponentTreatment
-from .enums import SixRStrategy
+from app.models.asset.enums import SixRStrategy  # Canonical enum location
 
 
 class SixRDecision(BaseModel):
@@ -99,27 +99,29 @@ class SixRDecision(BaseModel):
     def calculate_overall_strategy(self) -> SixRStrategy:
         """Calculate app-level strategy from component treatments"""
         if not self.component_treatments:
-            return SixRStrategy.RETAIN  # Default fallback
+            return (
+                SixRStrategy.REHOST
+            )  # Default fallback (retain → rehost per 6R standardization)
 
         strategies = [ct.recommended_strategy for ct in self.component_treatments]
 
-        # Return highest modernization strategy
+        # Return highest modernization strategy (6R framework - standardized Oct 2025)
         strategy_order = [
-            SixRStrategy.REWRITE,
+            SixRStrategy.REPLACE,  # Consolidates rewrite + repurchase
             SixRStrategy.REARCHITECT,
             SixRStrategy.REFACTOR,
             SixRStrategy.REPLATFORM,
             SixRStrategy.REHOST,
-            SixRStrategy.REPURCHASE,
             SixRStrategy.RETIRE,
-            SixRStrategy.RETAIN,
         ]
 
         for strategy in strategy_order:
             if strategy in strategies:
                 return strategy
 
-        return SixRStrategy.RETAIN  # Default fallback
+        return (
+            SixRStrategy.REHOST
+        )  # Default fallback (retain → rehost per 6R standardization)
 
     def get_compatibility_issues(self) -> List[str]:
         """Get all compatibility issues across components"""
@@ -139,17 +141,17 @@ class SixRDecision(BaseModel):
 
         # Check for incompatible combinations
         if (
-            treatments.get("frontend") == SixRStrategy.REWRITE
-            and treatments.get("backend") == SixRStrategy.RETAIN
+            treatments.get("frontend") == SixRStrategy.REPLACE
+            and treatments.get("backend") == SixRStrategy.REHOST
         ):
             issues.append(
-                "Frontend rewrite with backend retain may cause integration issues"
+                "Frontend replacement with backend rehost may cause integration issues"
             )
 
         if treatments.get("database") == SixRStrategy.RETIRE and any(
-            s in [SixRStrategy.RETAIN, SixRStrategy.REHOST] for s in treatments.values()
+            s == SixRStrategy.REHOST for s in treatments.values()
         ):
-            issues.append("Database retirement conflicts with retained components")
+            issues.append("Database retirement conflicts with rehosted components")
 
         return issues
 

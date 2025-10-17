@@ -11,8 +11,10 @@
 export type * from '../shared';
 
 // Modernization-specific API endpoints (extending shared flow management)
+// Updated October 2025: Aligned with 6R canonical strategies
+// Note: "rebuild" is now part of "replace" strategy
 export interface InitializeModernizeFlowRequest extends InitializeStrategyFlowRequest {
-  modernizationType: 'replatform' | 'refactor' | 'rearchitect' | 'rebuild' | 'hybrid';
+  modernizationType: 'replatform' | 'refactor' | 'rearchitect' | 'replace' | 'hybrid';
   modernizationScope: ModernizationScope;
   configuration?: ModernizeFlowConfiguration;
   targetArchitecture?: TargetArchitecture;
@@ -40,7 +42,9 @@ export interface ModernizationTarget {
   type: 'application' | 'service' | 'database' | 'integration' | 'infrastructure';
   currentState: ComponentState;
   targetState: ComponentState;
-  modernizationApproach: 'rehost' | 'replatform' | 'refactor' | 'rearchitect' | 'rebuild' | 'replace';
+  // Updated October 2025: Aligned with 6R canonical strategies
+  // "replace" consolidates both COTS (formerly "repurchase") and rewrites (formerly "rebuild")
+  modernizationApproach: 'rehost' | 'replatform' | 'refactor' | 'rearchitect' | 'replace' | 'retire';
   priority: 'low' | 'medium' | 'high' | 'critical';
   complexity: 'low' | 'medium' | 'high';
   dependencies: string[];

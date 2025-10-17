@@ -8,7 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .enums import ComponentType, SixRStrategy, TechDebtSeverity
+from app.models.asset.enums import SixRStrategy
+from .enums import ComponentType, TechDebtSeverity
 
 
 class ApplicationComponent(BaseModel):

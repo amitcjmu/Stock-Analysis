@@ -47,19 +47,37 @@ class AssetStatus(str, enum.Enum):
 
 
 class SixRStrategy(str, enum.Enum):
-    """5R cloud migration strategy framework."""
+    """6R cloud migration strategy framework aligned with platform business logic.
+
+    This platform focuses on migration and modernization - assets that stay behind
+    (retain/keep as-is) are out of scope.
+
+    The 6 strategies are:
+    - REHOST: Lift and shift with minimal changes
+    - REPLATFORM: Reconfigure as PaaS
+    - REFACTOR: Modify code for cloud deployment
+    - REARCHITECT: Microservices/cloud-native transformation
+    - REPLACE: Replace with COTS/SaaS OR rewrite custom apps
+    - RETIRE: Decommission/sunset assets
+
+    Note: "REPLACE" consolidates both:
+    - Repurchase (buy COTS/SaaS to replace)
+    - Rewrite (rewrite custom apps from scratch)
+    """
 
     # Migration Lift and Shift
-    REHOST = "rehost"  # Like to Like Migration: Lift and Shift (P2V/V2V), Reconfigure using IAAS
+    REHOST = (
+        "rehost"  # Like to Like Migration: Lift and Shift (P2V/V2V), minimal changes
+    )
 
-    # Legacy Modernization Treatments
-    REPLATFORM = "replatform"  # Reconfigure as PaaS/IAAS treatment, framework upgrades, containerize
+    # Modernization Treatments
+    REPLATFORM = "replatform"  # Reconfigure as PaaS, framework upgrades, containerize
     REFACTOR = "refactor"  # Modify/extend code base for cloud VM/container deployment
     REARCHITECT = "rearchitect"  # Modify/extend for native container/cloud native services, microservices
 
-    # Cloud Native
-    REPLACE = "replace"  # Applications identified to be retired/modernized, replace with COTS/SaaS
-    REWRITE = "rewrite"  # Re-write application in cloud native code
+    # Replace or Retire
+    REPLACE = "replace"  # Replace with COTS/SaaS (repurchase) OR rewrite custom apps
+    RETIRE = "retire"  # Decommission/sunset assets
 
 
 # Migration wave status constants

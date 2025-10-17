@@ -325,14 +325,14 @@ class ReportGenerationHelper:
             if strategy:
                 strategy_dist[strategy] = strategy_dist.get(strategy, 0) + 1
 
-        if strategy_dist.get("rebuild", 0) > 0:
+        if strategy_dist.get("replace", 0) > 0:
             recommendations.append(
-                "Consider modern architecture patterns for rebuild components"
+                "Consider modern architecture patterns for replacement components"
             )
 
-        if strategy_dist.get("retain", 0) > len(sixr_decisions) * 0.5:
+        if strategy_dist.get("rehost", 0) > len(sixr_decisions) * 0.5:
             recommendations.append(
-                "Review retain decisions to ensure migration opportunities aren't missed"
+                "Review rehost decisions to ensure modernization opportunities aren't missed"
             )
 
         recommendations.extend(

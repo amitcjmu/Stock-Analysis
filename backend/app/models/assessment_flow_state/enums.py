@@ -1,22 +1,12 @@
 """
 Assessment Flow State Enums
 All enum definitions for assessment flow state management.
+
+Note: SixRStrategy has been moved to app.models.asset.enums (canonical location).
+Import from there instead: from app.models.asset.enums import SixRStrategy
 """
 
 from enum import Enum
-
-
-class SixRStrategy(str, Enum):
-    """The six strategies for cloud migration (6R framework)"""
-
-    REWRITE = "rewrite"
-    REARCHITECT = "rearchitect"
-    REFACTOR = "refactor"
-    REPLATFORM = "replatform"
-    REHOST = "rehost"
-    REPURCHASE = "repurchase"
-    RETIRE = "retire"
-    RETAIN = "retain"
 
 
 class AssessmentPhase(str, Enum):

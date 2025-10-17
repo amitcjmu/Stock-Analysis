@@ -122,10 +122,10 @@ def validate_sixr_decisions(decisions: list[Dict[str, Any]]) -> None:
     valid_strategies = [
         "rehost",
         "replatform",
-        "repurchase",
         "refactor",
+        "rearchitect",
+        "replace",  # Consolidates rewrite + repurchase
         "retire",
-        "retain",
     ]
 
     for decision in decisions:

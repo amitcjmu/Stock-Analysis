@@ -6,8 +6,6 @@ Provides essential fixtures for database sessions, request contexts, and service
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 
 from .base import MockRequestContext, MockServiceRegistry
 

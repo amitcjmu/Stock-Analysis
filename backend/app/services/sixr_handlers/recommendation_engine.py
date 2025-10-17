@@ -24,6 +24,7 @@ class RecommendationEngine:
     ) -> List[str]:
         """Generate next steps for a strategy."""
         try:
+            # 6R Canonical strategies next steps mapping
             next_steps_map = {
                 "rehost": [
                     "Assess cloud provider options",
@@ -43,17 +44,17 @@ class RecommendationEngine:
                     "Set up CI/CD pipeline",
                     "Begin incremental refactoring",
                 ],
-                "repurchase": [
+                "rearchitect": [
+                    "Design target cloud-native architecture",
+                    "Plan microservices decomposition",
+                    "Establish API contracts",
+                    "Execute phased rearchitecture",
+                ],
+                "replace": [  # Replaces "repurchase"
                     "Evaluate SaaS vendors",
                     "Plan data migration",
                     "Negotiate contracts",
                     "Execute cutover",
-                ],
-                "retain": [
-                    "Document current state",
-                    "Plan maintenance strategy",
-                    "Optimize current infrastructure",
-                    "Monitor for future opportunities",
                 ],
                 "retire": [
                     "Plan data archival",
@@ -76,6 +77,7 @@ class RecommendationEngine:
     ) -> List[str]:
         """Identify benefits for a strategy."""
         try:
+            # 6R Canonical strategies benefits mapping
             benefits_map = {
                 "rehost": [
                     "Quick cloud adoption",
@@ -92,15 +94,15 @@ class RecommendationEngine:
                     "Improved scalability",
                     "Technical debt reduction",
                 ],
-                "repurchase": [
+                "rearchitect": [
+                    "Cloud-native architecture",
+                    "Maximum scalability and resilience",
+                    "Future-proof design",
+                ],
+                "replace": [  # Replaces "repurchase"
                     "Latest features",
                     "Reduced maintenance",
                     "Vendor support",
-                ],
-                "retain": [
-                    "Minimal disruption",
-                    "Cost predictability",
-                    "Risk avoidance",
                 ],
                 "retire": [
                     "Cost savings",
@@ -126,12 +128,12 @@ class RecommendationEngine:
                 "Technical team availability",
             ]
 
-            # Add strategy-specific assumptions
+            # Add strategy-specific assumptions for 6R canonical strategies
             if strategy in ["rehost", "replatform"]:
                 assumptions.append("Cloud provider selection completed")
-            elif strategy == "refactor":
+            elif strategy in ["refactor", "rearchitect"]:
                 assumptions.append("Development resources available")
-            elif strategy == "repurchase":
+            elif strategy == "replace":  # Replaces "repurchase"
                 assumptions.append("Vendor evaluation completed")
 
             return assumptions

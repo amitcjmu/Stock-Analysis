@@ -24,12 +24,13 @@ class CostCalculator:
     ) -> str:
         """Estimate cost impact for a strategy."""
         try:
+            # 6R Canonical strategies cost mapping
             base_costs = {
                 "rehost": "Medium",
                 "replatform": "Medium-High",
                 "refactor": "High",
-                "repurchase": "Medium",
-                "retain": "Low",
+                "rearchitect": "Very High",
+                "replace": "Medium",  # Replaces "repurchase" - similar SaaS replacement cost
                 "retire": "Low",
             }
 
@@ -53,12 +54,13 @@ class CostCalculator:
     ) -> str:
         """Estimate effort required for a strategy."""
         try:
+            # 6R Canonical strategies effort mapping
             effort_map = {
                 "rehost": "3-6 months",
                 "replatform": "6-12 months",
                 "refactor": "12-24 months",
-                "repurchase": "3-9 months",
-                "retain": "1-3 months",
+                "rearchitect": "18-36 months",
+                "replace": "3-9 months",  # Replaces "repurchase" - SaaS migration timeline
                 "retire": "1-6 months",
             }
 

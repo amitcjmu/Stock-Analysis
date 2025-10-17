@@ -23,7 +23,7 @@ const Rewrite = (): JSX.Element => {
         <div className="flex-1 ml-64 flex items-center justify-center">
           <div className="flex flex-col items-center space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <p className="text-gray-600">Loading rewrite projects...</p>
+            <p className="text-gray-600">Loading replace projects...</p>
           </div>
         </div>
       </div>
@@ -37,7 +37,7 @@ const Rewrite = (): JSX.Element => {
         <div className="flex-1 ml-64 p-8">
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <p>Error loading rewrite data: {error?.message}</p>
+            <p>Error loading replace data: {error?.message}</p>
           </Alert>
         </div>
       </div>
@@ -72,9 +72,9 @@ const Rewrite = (): JSX.Element => {
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Application Rewrite</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Replace Strategy</h1>
                   <p className="text-lg text-gray-600">
-                    Manage and track complete application rewrites with modern technologies
+                    Replace with COTS/SaaS solutions or rewrite custom applications with modern technologies
                   </p>
                 </div>
                 <div className="flex space-x-3">
@@ -84,7 +84,7 @@ const Rewrite = (): JSX.Element => {
                   </Button>
                   <Button variant="primary">
                     <Code2 className="h-5 w-5 mr-2" />
-                    New Rewrite
+                    New Replace Project
                   </Button>
                 </div>
               </div>
@@ -133,7 +133,7 @@ const Rewrite = (): JSX.Element => {
                   {activeTab === 'projects' && (
                     <div>
                       <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900">Rewrite Projects</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">Replace Projects</h3>
                         <Select
                           value={statusFilter}
                           onValueChange={(value) => setStatusFilter(value)}
