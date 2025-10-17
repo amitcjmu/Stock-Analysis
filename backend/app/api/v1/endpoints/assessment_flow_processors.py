@@ -229,10 +229,10 @@ async def process_component_sixr_strategies_phase(
             "available_strategies": [
                 "rehost",
                 "replatform",
-                "repurchase",
                 "refactor",
+                "rearchitect",
+                "replace",  # Consolidates rewrite + repurchase
                 "retire",
-                "retain",
             ],
             "processing_timestamp": "2024-01-01T00:00:00Z",
         }

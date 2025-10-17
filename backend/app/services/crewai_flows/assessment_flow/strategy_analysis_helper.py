@@ -79,9 +79,9 @@ class StrategyAnalysisHelper:
             return InMemorySixRDecision(
                 component_id=component.get("component_id", "unknown"),
                 component_name=component.get("name", "Unknown Component"),
-                sixr_strategy="retain",
+                sixr_strategy="rehost",  # Map retain → rehost per 6R standardization
                 confidence=0.1,
-                reasoning=f"Analysis failed: {str(e)}. Defaulting to retain for safety.",
+                reasoning=f"Analysis failed: {str(e)}. Defaulting to rehost for safety.",
                 risk_level="high",
             )
 
@@ -168,28 +168,32 @@ class StrategyAnalysisHelper:
                     )
                 else:
                     return (
-                        "retain",
+                        "rehost",  # Map retain → rehost per 6R standardization
                         0.4,
-                        "High complexity component may need to be retained",
+                        "High complexity component will be rehosted with minimal changes",
                     )
 
         except Exception as e:
             logger.warning(f"Error in strategy determination: {str(e)}")
-            return "retain", 0.1, f"Strategy analysis failed: {str(e)}"
+            return (
+                "rehost",
+                0.1,
+                f"Strategy analysis failed: {str(e)}",
+            )  # Map retain → rehost
 
     def _estimate_effort(self, component: Dict[str, Any], strategy: str) -> str:
         """Estimate the effort required for the chosen strategy."""
         try:
             complexity_score = component.get("complexity_score", 5.0)
 
-            # Base effort mapping
+            # Base effort mapping (6R framework - standardized Oct 2025)
             effort_mapping = {
                 "rehost": "low",
+                "replatform": "medium",
                 "refactor": "medium",
                 "rearchitect": "high",
-                "rebuild": "high",
-                "replace": "medium",
-                "retain": "minimal",
+                "replace": "high",  # Consolidates rewrite + repurchase
+                "retire": "low",
             }
 
             base_effort = effort_mapping.get(strategy, "medium")
@@ -215,24 +219,24 @@ class StrategyAnalysisHelper:
             complexity_score = component.get("complexity_score", 5.0)
             component_type = component.get("type", "").lower()
 
-            # Base risk mapping
+            # Base risk mapping (6R framework - standardized Oct 2025)
             risk_mapping = {
                 "rehost": "low",
+                "replatform": "medium",
                 "refactor": "medium",
                 "rearchitect": "high",
-                "rebuild": "high",
-                "replace": "medium",
-                "retain": "low",
+                "replace": "high",  # Consolidates rewrite + repurchase
+                "retire": "low",
             }
 
             base_risk = risk_mapping.get(strategy, "medium")
 
             # Adjust for critical components
-            if "database" in component_type and strategy in ["rearchitect", "rebuild"]:
+            if "database" in component_type and strategy in ["rearchitect", "replace"]:
                 return "high"
 
             # Adjust for complexity
-            if complexity_score > 8.0 and strategy != "retain":
+            if complexity_score > 8.0 and strategy not in ["rehost", "retire"]:
                 if base_risk == "low":
                     return "medium"
                 elif base_risk == "medium":
@@ -265,12 +269,12 @@ class StrategyAnalysisHelper:
 
             distribution = validation_results["strategy_stats"]
 
-            # Check for excessive retain strategies
-            retain_percentage = (distribution.get("retain", 0) / total_decisions) * 100
-            if retain_percentage > 60:
+            # Check for excessive rehost strategies (low modernization)
+            rehost_percentage = (distribution.get("rehost", 0) / total_decisions) * 100
+            if rehost_percentage > 60:
                 validation_results["warnings"].append(
-                    f"High percentage of 'retain' decisions ({retain_percentage:.1f}%) "
-                    "may indicate missed migration opportunities"
+                    f"High percentage of 'rehost' decisions ({rehost_percentage:.1f}%) "
+                    "may indicate missed modernization opportunities"
                 )
 
             # Check for lack of diversity in strategies

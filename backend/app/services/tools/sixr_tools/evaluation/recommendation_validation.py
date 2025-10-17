@@ -68,18 +68,18 @@ class RecommendationValidationTool(BaseTool):
                         "Rearchitect strategy conflicts with high urgency requirements"
                     )
 
-            elif strategy == "rewrite":
+            elif strategy == "replace":  # Changed from "rewrite" - 6R canonical
                 if application_context.get("innovation_priority", 5) < 6:
                     validation_result["warnings"].append(
-                        "Rewrite strategy requires high innovation priority and commitment"
+                        "Replace strategy requires high innovation priority and commitment"
                     )
 
-            # Technical feasibility checks
+            # Technical feasibility checks (6R canonical strategies)
             tech_complexity = application_context.get("technical_complexity", 5)
             if tech_complexity > 8 and strategy in [
                 "refactor",
                 "rearchitect",
-                "rewrite",
+                "replace",  # Changed from "rewrite"
             ]:
                 validation_result["warnings"].append(
                     "High technical complexity may increase implementation risk"

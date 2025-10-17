@@ -373,7 +373,7 @@ export const LazyRearchitect = createLazyRoute(
 
 export const LazyRewrite = createLazyRoute(
   () => import("@/pages/modernize/Rewrite"),
-  "Rewriting",
+  "Replace (COTS/SaaS or Rewrite)",
 );
 
 export const LazyProgress = createLazyRoute(

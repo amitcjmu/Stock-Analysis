@@ -8,7 +8,6 @@ test types, performance characteristics, and agent-related testing.
 Generated with CC for standardized test organization.
 """
 
-import pytest
 
 # Architecture Pattern Markers
 

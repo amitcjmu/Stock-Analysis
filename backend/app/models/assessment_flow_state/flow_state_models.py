@@ -9,13 +9,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
+from app.models.asset.enums import SixRStrategy
+
 from .architecture_models import (
     ApplicationArchitectureOverride,
     ArchitectureRequirement,
 )
 from .component_models import ApplicationComponent, TechDebtItem
 from .decision_models import SixRDecision
-from .enums import AssessmentFlowStatus, AssessmentPhase, SixRStrategy, TechDebtSeverity
+from .enums import AssessmentFlowStatus, AssessmentPhase, TechDebtSeverity
 
 
 class AssessmentFlowState(BaseModel):

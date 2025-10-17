@@ -43,11 +43,13 @@ async def execute_fallback(context: Dict[str, Any]) -> Dict[str, Any]:
         component_type = component.get("type", "unknown")
         complexity_score = component.get("complexity_score", 5.0)
 
-        # Simple strategy selection based on complexity and type
+        # Simple strategy selection based on complexity and type (6R framework - Oct 2025)
         if complexity_score >= 8.0:
-            strategy = SixRStrategy.REWRITE.value
+            strategy = (
+                SixRStrategy.REPLACE.value
+            )  # Map rewrite → replace per 6R standardization
             confidence = 0.7
-            rationale = "High complexity suggests rewrite for modernization"
+            rationale = "High complexity suggests replacement for modernization"
         elif complexity_score >= 6.0:
             strategy = SixRStrategy.REFACTOR.value
             confidence = 0.8

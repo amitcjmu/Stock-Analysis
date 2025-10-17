@@ -13,13 +13,13 @@ def get_six_r_decision_fields(asset_type: str = None) -> Dict[str, List[str]]:
     """
     Get fields organized by which 6R strategy they inform.
 
-    This helps understand what data is needed for each migration strategy:
+    This helps understand what data is needed for each migration strategy (6R framework - Oct 2025):
     - Rehost: Infrastructure specs, dependencies
     - Replatform: Tech stack, cloud readiness
     - Refactor: Architecture, code base
-    - Repurchase: Business process, alternatives
+    - Rearchitect: Microservices/cloud-native transformation
+    - Replace: Business process, alternatives (consolidates rewrite + repurchase)
     - Retire: Usage, business value
-    - Retain: Compliance, constraints
 
     Args:
         asset_type: Optional asset type to filter fields
@@ -33,9 +33,9 @@ def get_six_r_decision_fields(asset_type: str = None) -> Dict[str, List[str]]:
         "rehost": [],
         "replatform": [],
         "refactor": [],
-        "repurchase": [],
+        "rearchitect": [],
+        "replace": [],  # Consolidates rewrite + repurchase
         "retire": [],
-        "retain": [],
     }
 
     for field_name, field_def in fields.items():

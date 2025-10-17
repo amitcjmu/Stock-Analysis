@@ -114,17 +114,58 @@ export const ASSET_TYPES = {
 
 export type AssetType = typeof ASSET_TYPES[keyof typeof ASSET_TYPES];
 
-// Six R Strategy constants
+// Six R Strategy constants - Standardized to 6 canonical strategies (October 2025)
+// Note: "replace" consolidates both COTS replacement (formerly "repurchase")
+// and custom rewrites (formerly "rewrite")
+// "retain" is out of scope for migration platform
 export const SIX_R_STRATEGIES = {
-  REHOST: 'Rehost',
-  REPLATFORM: 'Replatform',
-  REFACTOR: 'Refactor',
-  REARCHITECT: 'Rearchitect',
-  RETIRE: 'Retire',
-  RETAIN: 'Retain'
+  REHOST: 'rehost',
+  REPLATFORM: 'replatform',
+  REFACTOR: 'refactor',
+  REARCHITECT: 'rearchitect',
+  REPLACE: 'replace',
+  RETIRE: 'retire'
 } as const;
 
 export type SixRStrategy = typeof SIX_R_STRATEGIES[keyof typeof SIX_R_STRATEGIES];
+
+// Display labels for UI presentation
+export const SIX_R_STRATEGY_LABELS: Record<SixRStrategy, string> = {
+  rehost: 'Rehost (Lift & Shift)',
+  replatform: 'Replatform (Reconfigure)',
+  refactor: 'Refactor (Modify Code)',
+  rearchitect: 'Rearchitect (Cloud-Native)',
+  replace: 'Replace (COTS/SaaS or Rewrite)',
+  retire: 'Retire (Decommission)'
+};
+
+// Backward compatibility helper - maps old strategy values to new canonical ones
+export function normalizeStrategy(strategy: string | undefined): SixRStrategy | undefined {
+  if (!strategy) return undefined;
+
+  const normalized = strategy.toLowerCase().trim();
+
+  // Map deprecated strategies to new ones
+  const strategyMapping: Record<string, SixRStrategy> = {
+    'rewrite': 'replace',
+    'repurchase': 'replace',
+    'retain': 'rehost' // Fallback since retention is out of scope
+  };
+
+  // Check if it's a deprecated strategy
+  if (normalized in strategyMapping) {
+    return strategyMapping[normalized];
+  }
+
+  // Check if it's already a valid canonical strategy
+  const validStrategies = Object.values(SIX_R_STRATEGIES);
+  if (validStrategies.includes(normalized as SixRStrategy)) {
+    return normalized as SixRStrategy;
+  }
+
+  // Unknown strategy
+  return undefined;
+}
 
 // Business criticality constants
 export const BUSINESS_CRITICALITY = {

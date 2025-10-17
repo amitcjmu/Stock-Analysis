@@ -434,6 +434,8 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/modernize/overview" element={<LazyModernizeIndex />} />
       <Route path="/modernize/refactor" element={<LazyRefactor />} />
       <Route path="/modernize/rearchitect" element={<LazyRearchitect />} />
+      <Route path="/modernize/replace" element={<LazyRewrite />} />
+      {/* Backward compatibility redirect for old /modernize/rewrite route */}
       <Route path="/modernize/rewrite" element={<LazyRewrite />} />
       <Route path="/modernize/progress" element={<LazyProgress />} />
 

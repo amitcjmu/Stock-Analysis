@@ -216,7 +216,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Overview', path: '/modernize/overview', icon: Sparkles },
         { name: 'Refactor', path: '/modernize/refactor', icon: Code },
         { name: 'Rearchitect', path: '/modernize/rearchitect', icon: Layers },
-        { name: 'Rewrite', path: '/modernize/rewrite', icon: Zap },
+        { name: 'Replace', path: '/modernize/replace', icon: Zap },
         { name: 'Progress', path: '/modernize/progress', icon: Activity }
       ]
     },

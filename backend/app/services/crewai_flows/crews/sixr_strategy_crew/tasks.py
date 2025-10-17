@@ -64,14 +64,14 @@ def create_sixr_strategy_tasks(agents: List[Agent]) -> List[Task]:
            - Budget allocation and cost sensitivity
            - Risk tolerance and change management capacity
 
-        3. 6R Strategy Selection Framework:
+        3. 6R Strategy Selection Framework (Oct 2025 - Standardized):
 
-           REWRITE Criteria:
+           REPLACE Criteria (consolidates rewrite + repurchase):
            - High technical debt with significant architecture limitations
-           - Strategic importance justifying complete rebuilding
-           - Modern technology stack adoption requirements
-           - Team has expertise in target technologies
-           - Sufficient budget and timeline for greenfield development
+           - Strategic importance justifying complete replacement
+           - Modern technology stack adoption or SaaS migration requirements
+           - Team has expertise in target technologies or vendor management
+           - Sufficient budget and timeline for replacement or COTS adoption
            - Opportunity to significantly improve performance/scalability
 
            REARCHITECT Criteria:

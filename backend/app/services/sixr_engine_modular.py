@@ -204,14 +204,14 @@ class SixRDecisionEngine:
             # This is a simplified parser - in production, this would be more sophisticated
             result_str = str(crew_result) if crew_result else ""
 
-            # Look for 6R strategy mentions in the result
+            # Look for 6R strategy mentions in the result (6R canonical)
             strategies = [
                 "rehost",
                 "replatform",
                 "refactor",
                 "rearchitect",
+                "replace",
                 "retire",
-                "retain",
             ]
             strategy_scores = []
 
@@ -274,7 +274,9 @@ class SixRDecisionEngine:
         if technical_complexity <= 2 and business_criticality >= 4:
             recommended_strategy = "rehost"
         elif technical_complexity >= 4:
-            recommended_strategy = "retain"
+            recommended_strategy = (
+                "rehost"  # Changed from "retain" - prefer rehost for complex systems
+            )
         else:
             recommended_strategy = "replatform"
 
@@ -283,7 +285,11 @@ class SixRDecisionEngine:
             "confidence_score": 0.6,
             "strategy_scores": [
                 {"strategy": recommended_strategy, "score": 0.7, "confidence": 0.6},
-                {"strategy": "retain", "score": 0.5, "confidence": 0.5},
+                {
+                    "strategy": "rehost",
+                    "score": 0.5,
+                    "confidence": 0.5,
+                },  # Changed from "retain"
             ],
             "rationale": "Simple rule-based analysis (fallback mode)",
             "key_factors": ["Technical complexity", "Business criticality"],
@@ -391,7 +397,11 @@ class SixRDecisionEngine:
             "confidence_score": 0.3,
             "strategy_scores": [
                 {"strategy": "rehost", "score": 0.6, "confidence": 0.3},
-                {"strategy": "retain", "score": 0.5, "confidence": 0.3},
+                {
+                    "strategy": "replatform",
+                    "score": 0.5,
+                    "confidence": 0.3,
+                },  # Changed from "retain"
             ],
             "rationale": "Default conservative recommendation due to analysis limitations.",
             "key_factors": ["Limited analysis capability"],

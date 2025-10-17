@@ -208,7 +208,7 @@ EFFORT_MATRIX = {
 # Base effort hours by difficulty (simplified)
 BASE_EFFORT_HOURS = {"easy": 2, "medium": 8, "hard": 24, "very_hard": 40}
 
-# Strategy requirements mapping
+# Strategy requirements mapping (6R canonical strategies)
 STRATEGY_REQUIREMENTS = {
     "rehost": [
         "hostname",
@@ -235,7 +235,16 @@ STRATEGY_REQUIREMENTS = {
         "data_flows",
         "criticality_level",
     ],
-    "repurchase": [
+    "rearchitect": [
+        "technology_stack",
+        "application_type",
+        "application_dependencies",
+        "database_dependencies",
+        "integration_points",
+        "data_flows",
+        "criticality_level",
+    ],
+    "replace": [  # Replaces "repurchase"
         "application_name",
         "application_type",
         "criticality_level",
@@ -248,14 +257,6 @@ STRATEGY_REQUIREMENTS = {
         "owner",
         "application_dependencies",
         "cost_center",
-    ],
-    "retain": [
-        "owner",
-        "cost_center",
-        "backup_strategy",
-        "monitoring_status",
-        "patch_level",
-        "criticality_level",
     ],
 }
 

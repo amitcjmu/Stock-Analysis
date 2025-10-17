@@ -9,9 +9,11 @@ from .enums import (
     AssessmentPhase,
     ComponentType,
     OverrideType,
-    SixRStrategy,
     TechDebtSeverity,
 )
+
+# Import SixRStrategy from canonical location (app.models.asset.enums)
+from app.models.asset.enums import SixRStrategy
 
 # Architecture Models
 from .architecture_models import (
