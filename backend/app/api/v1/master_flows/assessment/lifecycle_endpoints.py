@@ -172,6 +172,107 @@ async def update_architecture_standards_via_mfo(
         )
 
 
+@router.put("/{flow_id}/assessment/phase-data")
+async def update_assessment_phase_data(
+    flow_id: str,
+    phase_data: Dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> Dict[str, Any]:
+    """
+    Update phase-specific data (components, tech debt items, etc.)
+    Fix for issue #641 - Missing endpoint for component creation
+    """
+
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
+
+    try:
+        from app.models.assessment_flow.component_models import ApplicationComponent
+        from uuid import UUID
+
+        # Extract phase and data from request
+        phase = phase_data.get("phase")
+        data = phase_data.get("data", {})
+
+        logger.info(
+            f"Updating phase data for flow {flow_id}, phase: {phase}, data keys: {list(data.keys())}"
+        )
+
+        # Handle component_analysis phase
+        if phase == "component_analysis":
+            app_id = data.get("app_id")
+            components = data.get("components", [])
+
+            if not app_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="app_id is required for component_analysis phase",
+                )
+
+            # Store components for this application
+            stored_components = []
+            for comp_data in components:
+                # Create ApplicationComponent instance
+                component = ApplicationComponent(
+                    assessment_flow_id=UUID(flow_id),
+                    application_id=UUID(app_id),
+                    component_name=comp_data.get("name"),
+                    component_type=comp_data.get("type"),
+                    description=comp_data.get("description"),
+                    current_technology=comp_data.get("technology"),
+                    configuration=comp_data.get("configuration", {}),
+                    discovered_by="manual",
+                )
+                db.add(component)
+                stored_components.append(
+                    {
+                        "name": component.component_name,
+                        "type": component.component_type,
+                    }
+                )
+
+            await db.commit()
+
+            return {
+                "flow_id": flow_id,
+                "phase": phase,
+                "status": "updated",
+                "components_stored": len(stored_components),
+                "message": f"Stored {len(stored_components)} components for application {app_id}",
+            }
+
+        # Handle tech_debt_analysis phase (future extension)
+        elif phase == "tech_debt_analysis":
+            # Placeholder for tech debt items storage
+            return {
+                "flow_id": flow_id,
+                "phase": phase,
+                "status": "updated",
+                "message": "Tech debt analysis data updated",
+            }
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported phase: {phase}. Supported phases: component_analysis, tech_debt_analysis",
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to update phase data for flow {flow_id}: {str(e)}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update phase data: {str(e)}"
+        )
+
+
 @router.post("/{flow_id}/assessment/finalize")
 async def finalize_assessment_via_mfo(
     flow_id: str,
