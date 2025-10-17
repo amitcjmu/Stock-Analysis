@@ -60,6 +60,7 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
         flow_configuration: Dict[str, Any] = None,
         initial_state: Dict[str, Any] = None,
         auto_commit: bool = True,
+        collection_flow_id: str = None,
     ) -> CrewAIFlowStateExtensions:
         return await self.commands.create_master_flow(
             flow_id,
@@ -69,6 +70,7 @@ class CrewAIFlowStateExtensionsRepository(BaseRepo):
             flow_configuration,
             initial_state,
             auto_commit,
+            collection_flow_id,
         )
 
     async def get_by_flow_id(self, flow_id: str) -> Optional[CrewAIFlowStateExtensions]:

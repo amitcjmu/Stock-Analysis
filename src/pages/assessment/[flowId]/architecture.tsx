@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureStandardsForm';
 import { TemplateSelector } from '@/components/assessment/TemplateSelector';
 import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrides';
+import { BulkAssetMappingDialog } from '@/components/assessment/BulkAssetMappingDialog';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Save, ArrowRight, Package, Calendar, Star, Zap, RefreshCw } from 'lucide-react';
+import { AlertCircle, Save, ArrowRight, Package, Calendar, Star, Zap, RefreshCw, Loader2, Link } from 'lucide-react';
 import type { AssessmentApplication } from '@/hooks/useAssessmentFlow/types';
 
 const ArchitecturePage: React.FC = () => {
@@ -21,12 +23,23 @@ const ArchitecturePage: React.FC = () => {
     refreshApplicationData
   } = useAssessmentFlow(flowId);
   const navigate = useNavigate();
+  const { client, engagement } = useAuth();
 
   const [standards, setStandards] = useState(state.engagementStandards);
   const [overrides, setOverrides] = useState(state.applicationOverrides);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [showBulkMapping, setShowBulkMapping] = useState(false);
+  const [enrichmentProgress, setEnrichmentProgress] = useState<{
+    compliance_flags: number;
+    licenses: number;
+    vulnerabilities: number;
+    resilience: number;
+    dependencies: number;
+    product_links: number;
+  } | null>(null);
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -58,12 +71,52 @@ const ArchitecturePage: React.FC = () => {
   };
 
   const handleSubmit = async (): void => {
+    console.log('[ArchitecturePage] handleSubmit called', {
+      flowId,
+      hasStandards: standards.length,
+      hasOverrides: Object.keys(overrides).length,
+      isSubmitting,
+      isLoading: state.isLoading,
+    });
+
     setIsSubmitting(true);
     try {
+      console.log('[ArchitecturePage] Updating architecture standards...');
       await updateArchitectureStandards(standards, overrides);
-      await resumeFlow({ standards, overrides });
+
+      console.log('[ArchitecturePage] Resuming flow...');
+      const resumeResponse = await resumeFlow({ standards, overrides });
+
+      console.log('[ArchitecturePage] Flow resumed successfully', {
+        newPhase: resumeResponse.current_phase,
+        progress: resumeResponse.progress,
+      });
+
+      // ADR-027: Map canonical phase name to frontend route
+      // Each phase now has its own dedicated page
+      const phaseToRouteMap: Record<string, string> = {
+        'readiness_assessment': 'architecture',
+        'complexity_analysis': 'complexity',      // New page: complexity analysis metrics
+        'dependency_analysis': 'dependency',      // New page: dependency mapping
+        'tech_debt_assessment': 'tech-debt',      // Existing page: tech debt items
+        'risk_assessment': 'sixr-review',
+        'recommendation_generation': 'app-on-page',
+      };
+
+      // Get next phase from backend response (not state - ADR-027)
+      const nextPhase = resumeResponse.current_phase;
+      const routeName = phaseToRouteMap[nextPhase] || 'tech-debt'; // fallback
+
+      console.log('[ArchitecturePage] Navigating to next phase', {
+        currentPhase: nextPhase,
+        routeName,
+      });
+
+      navigate(`/assessment/${flowId}/${routeName}`);
     } catch (error) {
-      console.error('Failed to submit architecture standards:', error);
+      console.error('[ArchitecturePage] Failed to submit architecture standards:', error);
+      // Show error to user
+      alert(`Failed to continue: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -84,6 +137,96 @@ const ArchitecturePage: React.FC = () => {
       setIsRefreshing(false);
     }
   };
+
+  const handleEnrichApplications = async (): Promise<void> => {
+    setIsEnriching(true);
+    setEnrichmentProgress(null);
+
+    try {
+      // Start enrichment
+      const response = await fetch(
+        `/api/v1/master-flows/${flowId}/trigger-enrichment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Client-Account-ID': client?.id || '',
+            'X-Engagement-ID': engagement?.id || '',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Enrichment failed');
+      }
+
+      console.log('[Architecture] Enrichment started successfully');
+
+      // Poll for status updates (GPT-5 recommendation)
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(
+            `/api/v1/master-flows/${flowId}/enrichment-status`,
+            {
+              headers: {
+                'X-Client-Account-ID': client?.id || '',
+                'X-Engagement-ID': engagement?.id || '',
+              },
+            }
+          );
+
+          if (statusResponse.ok) {
+            const status = await statusResponse.json();
+            setEnrichmentProgress(status.enrichment_status);
+
+            // Check if enrichment complete (any non-zero counts)
+            const totalEnriched = Object.values(status.enrichment_status || {}).reduce(
+              (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 0
+            );
+
+            if (totalEnriched > 0) {
+              clearInterval(pollInterval);
+              clearTimeout(timeoutId); // Clear timeout to prevent memory leak (Qodo review fix)
+              setIsEnriching(false);
+              await refreshApplicationData();
+              console.log('[Architecture] Enrichment completed:', status);
+            }
+          }
+        } catch (pollError) {
+          console.error('[Architecture] Failed to poll enrichment status:', pollError);
+        }
+      }, 3000); // Poll every 3 seconds
+
+      // Timeout after 5 minutes (Qodo review fix: store timeout ID for cleanup)
+      const timeoutId = setTimeout(() => {
+        clearInterval(pollInterval);
+        setIsEnriching(false);
+      }, 300000);
+
+    } catch (error) {
+      console.error('Failed to enrich applications:', error);
+      alert(`Enrichment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsEnriching(false);
+    }
+  };
+
+  // Calculate unmapped assets for bulk mapping dialog
+  const unmappedAssets = useMemo(() => {
+    return state.selectedApplications
+      .filter((app: AssessmentApplication) => {
+        // Check if the application has a canonical_application_id field
+        // If not present or null, it's unmapped
+        const appWithCanonicalId = app as AssessmentApplication & { canonical_application_id?: string | null };
+        return !appWithCanonicalId.canonical_application_id;
+      })
+      .map((app: AssessmentApplication) => ({
+        asset_id: app.application_id,
+        asset_name: app.application_name,
+        asset_type: app.application_type || 'unknown',
+        technology_stack: app.technology_stack || [],
+      }));
+  }, [state.selectedApplications]);
 
   return (
     <SidebarProvider>
@@ -159,19 +302,58 @@ const ArchitecturePage: React.FC = () => {
                   </Badge>
                 </CardTitle>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefreshApplications}
-                disabled={isRefreshing}
-                className="text-xs"
-              >
-                <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                {unmappedAssets.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkMapping(true)}
+                    className="text-xs"
+                  >
+                    <Link className="h-3 w-3 mr-1" />
+                    Map {unmappedAssets.length} Unmapped Asset{unmappedAssets.length !== 1 ? 's' : ''}
+                  </Button>
+                )}
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleEnrichApplications}
+                  disabled={isEnriching || state.isLoading}
+                  className="text-xs"
+                >
+                  {isEnriching ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Enriching...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-3 w-3 mr-1" />
+                      Enrich Applications
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshApplications}
+                  disabled={isRefreshing}
+                  className="text-xs"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
             </div>
             <CardDescription>
               Applications included in this assessment flow
+              {isEnriching && enrichmentProgress && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  • Enriched: {Object.entries(enrichmentProgress).map(([key, count]) =>
+                    `${key}: ${count}`
+                  ).join(', ')}
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -292,6 +474,18 @@ const ArchitecturePage: React.FC = () => {
             )}
           </Button>
         </div>
+
+        {/* Bulk Asset Mapping Dialog */}
+        {showBulkMapping && (
+          <BulkAssetMappingDialog
+            unmappedAssets={unmappedAssets}
+            onComplete={() => {
+              setShowBulkMapping(false);
+              refreshApplicationData();
+            }}
+            onCancel={() => setShowBulkMapping(false)}
+          />
+        )}
       </div>
       </AssessmentFlowLayout>
     </SidebarProvider>

@@ -63,7 +63,7 @@ async def initialize_assessment_flow_via_mfo(
 @router.post("/{flow_id}/assessment/resume")
 async def resume_assessment_flow_via_mfo(
     flow_id: str,
-    user_input: Dict[str, Any],
+    request_body: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
@@ -81,6 +81,10 @@ async def resume_assessment_flow_via_mfo(
             AssessmentFlowRepository,
         )
 
+        # Extract user_input from request body (unwrap double-nesting)
+        user_input = request_body.get("user_input", request_body)
+        logger.info(f"Resuming assessment flow {flow_id} with user_input: {user_input}")
+
         repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
         result = await repo.resume_flow(flow_id, user_input)
 
@@ -92,6 +96,9 @@ async def resume_assessment_flow_via_mfo(
         }
 
     except Exception as e:
+        logger.error(
+            f"Failed to resume assessment flow {flow_id}: {str(e)}", exc_info=True
+        )
         raise HTTPException(
             status_code=500, detail=f"Failed to resume assessment: {str(e)}"
         )

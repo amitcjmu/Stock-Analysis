@@ -12,13 +12,20 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.api_tags import APITags
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
 from app.models.canonical_applications import CanonicalApplication
 
+# Import bulk mapping router
+from . import bulk_mapping
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Include bulk mapping endpoints
+router.include_router(bulk_mapping.router, tags=[APITags.CANONICAL_APPLICATIONS])
 
 
 @router.get("")

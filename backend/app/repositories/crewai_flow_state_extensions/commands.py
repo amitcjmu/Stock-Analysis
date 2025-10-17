@@ -39,6 +39,7 @@ class MasterFlowCommands(BaseRepo):
         flow_configuration: Optional[Dict[str, Any]] = None,
         initial_state: Optional[Dict[str, Any]] = None,
         auto_commit: bool = True,
+        collection_flow_id: Optional[str] = None,
     ) -> CrewAIFlowStateExtensions:
         demo_client_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
         demo_engagement_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
@@ -75,6 +76,20 @@ class MasterFlowCommands(BaseRepo):
 
         safe_user_id = user_id or "test-user"
 
+        # Parse collection_flow_id if provided
+        parsed_collection_flow_id = None
+        if collection_flow_id:
+            try:
+                parsed_collection_flow_id = (
+                    collection_flow_id
+                    if isinstance(collection_flow_id, uuid.UUID)
+                    else uuid.UUID(collection_flow_id)
+                )
+            except (ValueError, TypeError):
+                logger.warning(
+                    f"Invalid collection_flow_id: {collection_flow_id}, ignoring"
+                )
+
         master_flow = CrewAIFlowStateExtensions(
             flow_id=parsed_flow_id,
             client_account_id=(
@@ -95,6 +110,7 @@ class MasterFlowCommands(BaseRepo):
             flow_persistence_data=initial_state or {},
             agent_collaboration_log=[],
             phase_execution_times={},
+            collection_flow_id=parsed_collection_flow_id,  # NEW: Link to collection flow
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )

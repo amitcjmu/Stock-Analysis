@@ -27,6 +27,7 @@ from app.services.crewai_flows.memory.tenant_memory_manager import (
     LearningScope,
     TenantMemoryManager,
 )
+from app.services.enrichment.constants import get_db_pattern_type
 from app.services.multi_model_service import TaskComplexity, multi_model_service
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
@@ -88,7 +89,7 @@ class LicensingEnrichmentAgent:
                 patterns = await self.memory_manager.retrieve_similar_patterns(
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
-                    pattern_type="LICENSING_ANALYSIS",
+                    pattern_type=get_db_pattern_type("licensing_analysis").value,
                     query_context={
                         "asset_type": asset.asset_type,
                         "technology_stack": asset.technology_stack or [],
@@ -129,7 +130,7 @@ class LicensingEnrichmentAgent:
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
                     scope=LearningScope.ENGAGEMENT,
-                    pattern_type="LICENSING_ANALYSIS",
+                    pattern_type=get_db_pattern_type("licensing_analysis").value,
                     pattern_data={
                         "asset_type": asset.asset_type,
                         "technology_stack": asset.technology_stack or [],

@@ -90,10 +90,11 @@ class AssessmentFlowRepository(ContextAwareRepository):
         engagement_id: str,
         selected_application_ids: List[str],
         created_by: Optional[str] = None,
+        collection_flow_id: Optional[str] = None,
     ) -> str:
         """Create new assessment flow with initial state and register with master flow system"""
         return await self._flow_commands.create_assessment_flow(
-            engagement_id, selected_application_ids, created_by
+            engagement_id, selected_application_ids, created_by, collection_flow_id
         )
 
     async def get_assessment_flow_state(

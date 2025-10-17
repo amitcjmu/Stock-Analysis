@@ -243,8 +243,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
                           Key Requirements ({template.standards.length}):
                         </p>
                         <div className="space-y-1">
-                          {template.standards.slice(0, 3).map((standard, index) => (
-                            <div key={index} className="flex items-center space-x-2">
+                          {template.standards.slice(0, 3).map((standard) => (
+                            <div key={`${template.id}-${standard.requirement_type}`} className="flex items-center space-x-2">
                               <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
                               <span className="text-xs text-gray-600">
                                 {standard.requirement_type}: {standard.description.split('.')[0]}

@@ -266,6 +266,57 @@ class Settings(BaseSettings):
         ),
     )
 
+    # Unmapped Asset Handling Configuration (Phase 1.2 - October 2025)
+    UNMAPPED_ASSET_HANDLING: str = Field(
+        default="banner",
+        env="UNMAPPED_ASSET_HANDLING",
+        description=(
+            "How to handle unmapped assets in assessment flows. "
+            "Options: 'banner' (warn + proceed), 'block' (reject if >threshold), 'strict' (always reject)"
+        ),
+    )
+    UNMAPPED_ASSET_THRESHOLD: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        env="UNMAPPED_ASSET_THRESHOLD",
+        description="Maximum percentage of unmapped assets allowed (0.0-1.0, default 0.5 = 50%)",
+    )
+
+    # Enrichment Performance Configuration (Phase 2.3 - October 2025)
+    ENRICHMENT_BATCH_SIZE: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        env="ENRICHMENT_BATCH_SIZE",
+        description="Number of assets to process per enrichment batch (default 10 for optimal performance)",
+    )
+    ENRICHMENT_MAX_CONCURRENT_BATCHES: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        env="ENRICHMENT_MAX_CONCURRENT_BATCHES",
+        description="Maximum concurrent enrichment batches (backpressure control, default 3)",
+    )
+    ENRICHMENT_BATCHES_PER_MINUTE: int = Field(
+        default=10,
+        ge=1,
+        le=60,
+        env="ENRICHMENT_BATCHES_PER_MINUTE",
+        description="Maximum enrichment batches per minute (rate limiting, default 10)",
+    )
+
+    # Auto-Enrichment Configuration (Phase 3.1 - October 2025)
+    AUTO_ENRICHMENT_ENABLED: bool = Field(
+        default=False,
+        env="AUTO_ENRICHMENT_ENABLED",
+        description=(
+            "Enable automatic enrichment on assessment flow initialization. "
+            "When enabled, triggers background enrichment for all assets. "
+            "Default: False (manual trigger only)"
+        ),
+    )
+
     model_config = ConfigDict(
         env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",

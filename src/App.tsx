@@ -70,6 +70,8 @@ import {
   LazyAssessmentFlowOverview,
   LazyInitializeFlowWithInventory,
   LazyAssessmentArchitecture,
+  LazyAssessmentComplexity,
+  LazyAssessmentDependency,
   LazyAssessmentTechDebt,
   LazyAssessmentSixRReview,
   LazyAssessmentDependencyAnalysis,
@@ -375,6 +377,14 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/assessment/:flowId/architecture"
         element={<LazyAssessmentArchitecture />}
+      />
+      <Route
+        path="/assessment/:flowId/complexity"
+        element={<LazyAssessmentComplexity />}
+      />
+      <Route
+        path="/assessment/:flowId/dependency"
+        element={<LazyAssessmentDependency />}
       />
       <Route
         path="/assessment/:flowId/tech-debt"

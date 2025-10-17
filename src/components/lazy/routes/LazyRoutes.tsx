@@ -262,6 +262,16 @@ export const LazyAssessmentArchitecture = createLazyRoute(
   "Assessment Architecture",
 );
 
+export const LazyAssessmentComplexity = createLazyRoute(
+  () => import("@/pages/assessment/[flowId]/complexity"),
+  "Assessment Complexity Analysis",
+);
+
+export const LazyAssessmentDependency = createLazyRoute(
+  () => import("@/pages/assessment/[flowId]/dependency"),
+  "Assessment Dependency Analysis",
+);
+
 export const LazyAssessmentTechDebt = createLazyRoute(
   () => import("@/pages/assessment/[flowId]/tech-debt"),
   "Assessment Tech Debt",

@@ -27,6 +27,7 @@ class APITags:
     IMPORT_STORAGE = "Import Storage"
     IMPORT_RETRIEVAL = "Import Retrieval"
     ASSET_PROCESSING = "Asset Processing"
+    CANONICAL_APPLICATIONS = "Canonical Applications"
     CRITICAL_ATTRIBUTES = "Critical Attributes"
     CLEAN_API = "Clean API"
 

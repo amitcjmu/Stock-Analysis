@@ -15,11 +15,16 @@ AutoEnrichmentPipeline - Automated enrichment pipeline for assets using AI agent
 6. asset_product_links - Vendor product catalog matching
 7. asset_field_conflicts - Multi-source conflict resolution
 
-**Performance Target**: 100 assets < 10 minutes
+**Performance Target**: 100 assets < 5 minutes (Phase 2.3 optimization)
+**Phase 2.3 Updates (October 2025)**:
+- Uses EnrichmentBatchProcessor with backpressure controls
+- Rate limiting: 10 batches per minute (configurable)
+- Concurrent batch limit: 3 batches (configurable)
 """
 
 import asyncio
 import logging
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
 from uuid import UUID
@@ -28,21 +33,9 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.services.crewai_flows.memory.tenant_memory_manager import TenantMemoryManager
-from app.services.persistent_agents.tenant_scoped_agent_pool import (
-    TenantScopedAgentPool,
-)
 
-# Import enrichment executors (modularized for 400-line limit compliance)
-from app.services.enrichment.enrichment_executors import (
-    enrich_compliance,
-    enrich_dependencies,
-    enrich_field_conflicts,
-    enrich_licenses,
-    enrich_product_links,
-    enrich_resilience,
-    enrich_vulnerabilities,
-)
+# Import Phase 2.3 batch processor with backpressure controls
+from app.services.enrichment.batch_processor import EnrichmentBatchProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +49,6 @@ ENRICHMENT_TYPES = [
     "product_links",
     "field_conflicts",
 ]
-
-# Batch processing configuration
-BATCH_SIZE = 10  # Process 10 assets per batch for optimal performance
 
 # Critical attributes for assessment readiness (22 total)
 CRITICAL_ATTRIBUTES = {
@@ -113,7 +103,7 @@ class AutoEnrichmentPipeline:
     6. asset_product_links - Vendor product catalog matching
     7. asset_field_conflicts - Multi-source conflict resolution
 
-    **Performance Target**: 100 assets < 10 minutes
+    **Performance Target**: 100 assets < 5 minutes (Phase 2.3 optimization)
     """
 
     def __init__(self, db: AsyncSession, client_account_id: UUID, engagement_id: UUID):
@@ -129,39 +119,34 @@ class AutoEnrichmentPipeline:
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
 
-        # Initialize TenantScopedAgentPool (ADR-015)
-        # Agents are retrieved from pool, not instantiated per execution
-        self.agent_pool = TenantScopedAgentPool
-
-        # Initialize TenantMemoryManager (ADR-024)
-        # CrewAI memory is DISABLED, use TenantMemoryManager instead
-        self.memory_manager = TenantMemoryManager(
-            crewai_service=None,  # Not using CrewAI memory
-            database_session=db,
+        # Initialize EnrichmentBatchProcessor with backpressure controls (Phase 2.3)
+        self.batch_processor = EnrichmentBatchProcessor(
+            db=db,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
         )
 
         logger.info(
             f"Initialized AutoEnrichmentPipeline for client {client_account_id}, "
-            f"engagement {engagement_id}"
+            f"engagement {engagement_id} with Phase 2.3 backpressure controls"
         )
 
     async def trigger_auto_enrichment(self, asset_ids: List[UUID]) -> Dict[str, Any]:
         """
         Trigger automated enrichment for specified assets with batch processing.
 
-        **Execution Pattern (Batched)**:
-        1. Retrieve assets from database
-        2. Split assets into batches of BATCH_SIZE (10)
-        3. For each batch:
-           a. Run all 6 agents concurrently on the batch
-           b. Commit results
-        4. Recalculate assessment readiness for all assets
-        5. Return enrichment statistics
+        **Phase 2.3 Optimizations (October 2025)**:
+        - Uses EnrichmentBatchProcessor with backpressure controls
+        - Semaphore limits concurrent batches (default 3)
+        - Rate limiting: max batches per minute (default 10)
+        - Progress tracking with ETA logging
+        - Performance target: 100 assets < 5 minutes
 
-        **Performance Optimization**:
-        - Batch size: 10 assets per batch
-        - Target: 100 assets in < 10 minutes
-        - Memory efficient: Commits after each batch
+        **Execution Pattern**:
+        1. Retrieve assets from database (tenant-scoped)
+        2. Pass to EnrichmentBatchProcessor for batch processing
+        3. Recalculate assessment readiness for all assets
+        4. Return enrichment statistics
 
         Args:
             asset_ids: List of asset UUIDs to enrich
@@ -179,12 +164,17 @@ class AutoEnrichmentPipeline:
                     "product_links": 90,
                     "field_conflicts": 0
                 },
-                "elapsed_time_seconds": 480.5,
-                "batches_processed": 10
+                "elapsed_time_seconds": 280.5,
+                "batches_processed": 10,
+                "avg_batch_time_seconds": 28.05,
+                "assets_per_minute": 21.4
             }
         """
         start_time = datetime.utcnow()
-        logger.info(f"Starting batched auto-enrichment for {len(asset_ids)} assets")
+        logger.info(
+            f"Starting Phase 2.3 auto-enrichment for {len(asset_ids)} assets "
+            f"with backpressure controls"
+        )
 
         try:
             # Step 1: Query assets with tenant scoping (CRITICAL)
@@ -210,144 +200,25 @@ class AutoEnrichmentPipeline:
 
             logger.info(f"Retrieved {len(all_assets)} assets for enrichment")
 
-            # Step 2: Split assets into batches
-            batches = [
-                all_assets[i : i + BATCH_SIZE]
-                for i in range(0, len(all_assets), BATCH_SIZE)
-            ]
-            num_batches = len(batches)
-            logger.info(
-                f"Processing {len(all_assets)} assets in {num_batches} batches "
-                f"(batch size: {BATCH_SIZE})"
+            # Step 2: Process assets using batch processor with backpressure
+            enrichment_stats = (
+                await self.batch_processor.process_assets_with_backpressure(all_assets)
             )
 
-            # Initialize aggregated stats
-            total_enrichment_stats = {
-                enrichment_type: 0 for enrichment_type in ENRICHMENT_TYPES
-            }
-
-            # Step 3: Process each batch sequentially
-            for batch_idx, batch_assets in enumerate(batches, 1):
-                batch_start = datetime.utcnow()
-                logger.info(
-                    f"Processing batch {batch_idx}/{num_batches} "
-                    f"({len(batch_assets)} assets)"
-                )
-
-                # Run ALL enrichment agents concurrently for this batch
-                # This is the performance optimization - parallel agent execution
-                enrichment_tasks = [
-                    enrich_compliance(
-                        batch_assets,
-                        self.db,
-                        self.agent_pool,
-                        self.memory_manager,
-                        self.client_account_id,
-                        self.engagement_id,
-                    ),
-                    enrich_licenses(
-                        batch_assets,
-                        self.db,
-                        self.agent_pool,
-                        self.memory_manager,
-                        self.client_account_id,
-                        self.engagement_id,
-                    ),
-                    enrich_vulnerabilities(
-                        batch_assets,
-                        self.db,
-                        self.agent_pool,
-                        self.memory_manager,
-                        self.client_account_id,
-                        self.engagement_id,
-                    ),
-                    enrich_resilience(
-                        batch_assets,
-                        self.db,
-                        self.agent_pool,
-                        self.memory_manager,
-                        self.client_account_id,
-                        self.engagement_id,
-                    ),
-                    enrich_dependencies(
-                        batch_assets,
-                        self.db,
-                        self.agent_pool,
-                        self.memory_manager,
-                        self.client_account_id,
-                        self.engagement_id,
-                    ),
-                    enrich_product_links(
-                        batch_assets,
-                        self.db,
-                        self.agent_pool,
-                        self.memory_manager,
-                        self.client_account_id,
-                        self.engagement_id,
-                    ),
-                    enrich_field_conflicts(
-                        batch_assets,
-                        self.db,
-                        self.agent_pool,
-                        self.memory_manager,
-                        self.client_account_id,
-                        self.engagement_id,
-                    ),
-                ]
-
-                # Execute batch concurrently with error handling
-                batch_results = await asyncio.gather(
-                    *enrichment_tasks, return_exceptions=True
-                )
-
-                # Aggregate batch results
-                for i, result in enumerate(batch_results):
-                    enrichment_type = ENRICHMENT_TYPES[i]
-                    if isinstance(result, Exception):
-                        logger.error(
-                            f"Batch {batch_idx} - {enrichment_type} failed: {result}"
-                        )
-                    else:
-                        total_enrichment_stats[enrichment_type] += result
-                        logger.debug(
-                            f"Batch {batch_idx} - {enrichment_type}: {result} assets"
-                        )
-
-                # Commit batch results
-                try:
-                    await self.db.commit()
-                    batch_elapsed = (datetime.utcnow() - batch_start).total_seconds()
-                    logger.info(
-                        f"Batch {batch_idx}/{num_batches} completed in {batch_elapsed:.2f}s"
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to commit batch {batch_idx}: {e}")
-                    await self.db.rollback()
-
-            # Step 4: Recalculate assessment readiness for all assets
+            # Step 3: Recalculate assessment readiness for all assets
             await self._recalculate_readiness(asset_ids)
 
-            # Calculate elapsed time
-            elapsed_time = (datetime.utcnow() - start_time).total_seconds()
+            # Add readiness recalculation to stats
+            enrichment_stats["readiness_recalculated"] = len(all_assets)
 
-            logger.info(
-                f"Batched auto-enrichment completed for {len(all_assets)} assets "
-                f"in {num_batches} batches, total time: {elapsed_time:.2f}s "
-                f"(avg {elapsed_time/num_batches:.2f}s per batch)"
-            )
+            logger.info(f"Phase 2.3 auto-enrichment completed: {enrichment_stats}")
 
-            return {
-                "total_assets": len(all_assets),
-                "enrichment_results": total_enrichment_stats,
-                "elapsed_time_seconds": elapsed_time,
-                "batches_processed": num_batches,
-                "avg_batch_time_seconds": (
-                    elapsed_time / num_batches if num_batches > 0 else 0
-                ),
-            }
+            return enrichment_stats
 
         except Exception as e:
-            logger.error(f"Batched auto-enrichment pipeline failed: {e}", exc_info=True)
+            logger.error(
+                f"Phase 2.3 auto-enrichment pipeline failed: {e}", exc_info=True
+            )
             return {
                 "total_assets": 0,
                 "enrichment_results": {
@@ -449,3 +320,89 @@ class AutoEnrichmentPipeline:
                 f"Failed to recalculate assessment readiness: {e}", exc_info=True
             )
             await self.db.rollback()
+
+
+# In-memory lock to prevent concurrent enrichment for same flow (Phase 3.1)
+# Using defaultdict for thread-safe lock creation and retrieval (Qodo review fix)
+# TODO: For multi-instance deployment (e.g., Kubernetes), replace with Redis distributed lock
+# Current Railway deployment is single-instance (HTTP polling only), so in-memory locks are sufficient
+_enrichment_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+
+
+async def trigger_auto_enrichment_background(
+    db: AsyncSession,
+    flow_id: str,
+    client_account_id: str | UUID,
+    engagement_id: str | UUID,
+    asset_ids: List[UUID],
+) -> None:
+    """
+    Background task for auto-enrichment on flow initialization (Phase 3.1).
+
+    Uses per-flow lock to prevent concurrent enrichment.
+    Logs errors but doesn't fail flow creation.
+
+    **CRITICAL ADR COMPLIANCE**:
+    - Uses EnrichmentBatchProcessor with backpressure (Phase 2.3)
+    - Tenant scoping on all database operations
+    - NO asyncio.run() in async context (BANNED PATTERN)
+
+    Args:
+        db: Database session
+        flow_id: Assessment flow ID
+        client_account_id: Tenant client account ID
+        engagement_id: Tenant engagement ID
+        asset_ids: List of asset UUIDs to enrich
+    """
+    # Acquire per-flow lock (thread-safe with defaultdict)
+    lock = _enrichment_locks[flow_id]
+
+    # Try to acquire lock (non-blocking)
+    if lock.locked():
+        logger.warning(
+            f"Auto-enrichment already in progress for flow {flow_id}, skipping"
+        )
+        return
+
+    async with lock:
+        try:
+            logger.info(
+                f"Starting auto-enrichment for flow {flow_id} "
+                f"({len(asset_ids)} assets)"
+            )
+
+            # Convert IDs to UUID if needed
+            if isinstance(client_account_id, (str, int)):
+                client_account_uuid = UUID(str(client_account_id))
+            else:
+                client_account_uuid = client_account_id
+
+            if isinstance(engagement_id, str):
+                engagement_uuid = UUID(engagement_id)
+            else:
+                engagement_uuid = engagement_id
+
+            # Initialize AutoEnrichmentPipeline with Phase 2.3 batch processor
+            enrichment_pipeline = AutoEnrichmentPipeline(
+                db=db,
+                client_account_id=client_account_uuid,
+                engagement_id=engagement_uuid,
+            )
+
+            # Process with backpressure controls (Phase 2.3)
+            result = await enrichment_pipeline.trigger_auto_enrichment(asset_ids)
+
+            logger.info(
+                f"Auto-enrichment completed for flow {flow_id}: "
+                f"{result['total_assets']} assets, "
+                f"{result['batches_processed']} batches, "
+                f"{result['elapsed_time_seconds']:.1f}s"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Auto-enrichment failed for flow {flow_id}: {str(e)}", exc_info=True
+            )
+            # Don't re-raise - background task failure shouldn't block flow creation
+        # NOTE: Lock is automatically released when exiting async with block
+        # No manual cleanup needed with defaultdict - locks persist for flow lifetime

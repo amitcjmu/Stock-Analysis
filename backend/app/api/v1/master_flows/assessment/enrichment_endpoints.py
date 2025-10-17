@@ -34,7 +34,7 @@ class TriggerEnrichmentRequest(BaseModel):
 
 
 class TriggerEnrichmentResponse(BaseModel):
-    """Response model for enrichment trigger"""
+    """Response model for enrichment trigger (Phase 2.3 - October 2025)"""
 
     flow_id: str = Field(..., description="Assessment flow UUID")
     total_assets: int = Field(..., description="Total number of assets enriched")
@@ -43,10 +43,16 @@ class TriggerEnrichmentResponse(BaseModel):
     )
     elapsed_time_seconds: float = Field(..., description="Time taken for enrichment")
     batches_processed: Optional[int] = Field(
-        None, description="Number of batches processed (batch size: 10)"
+        None, description="Number of batches processed (configurable batch size)"
     )
     avg_batch_time_seconds: Optional[float] = Field(
         None, description="Average time per batch in seconds"
+    )
+    assets_per_minute: Optional[float] = Field(
+        None, description="Enrichment throughput (assets per minute)"
+    )
+    readiness_recalculated: Optional[int] = Field(
+        None, description="Number of assets with recalculated assessment readiness"
     )
     error: Optional[str] = Field(None, description="Error message if enrichment failed")
 
@@ -72,10 +78,12 @@ class TriggerEnrichmentResponse(BaseModel):
     4. Recalculates assessment readiness scores
     5. Returns enrichment statistics
 
-    **Performance Optimization (October 2025)**:
-    - Batch processing: 10 assets per batch
-    - Target: 100 assets in < 10 minutes
-    - Concurrent agent execution within each batch
+    **Phase 2.3 Performance Optimization (October 2025)**:
+    - Batch processing: Configurable batch size (default 10 assets)
+    - Backpressure control: Max 3 concurrent batches (configurable)
+    - Rate limiting: Max 10 batches per minute (configurable)
+    - Progress tracking: ETA logging and metrics
+    - Performance target: 100 assets in < 5 minutes
 
     **ADR Compliance**:
     - ADR-015: Uses TenantScopedAgentPool for persistent agents
@@ -175,6 +183,8 @@ async def trigger_enrichment(
             elapsed_time_seconds=result["elapsed_time_seconds"],
             batches_processed=result.get("batches_processed"),
             avg_batch_time_seconds=result.get("avg_batch_time_seconds"),
+            assets_per_minute=result.get("assets_per_minute"),
+            readiness_recalculated=result.get("readiness_recalculated"),
             error=result.get("error"),
         )
 
