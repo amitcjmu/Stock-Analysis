@@ -129,32 +129,47 @@ class DiscoveryToCollectionBridge:
         automation_tier: str,
         start_phase: str = "gap_analysis",
     ) -> CollectionFlow:
-        """Create Collection flow with Discovery context"""
+        """
+        Create Collection flow with Discovery context.
+        Uses CollectionFlowRepository to ensure MFO registration (ADR-006).
+        """
+        from app.repositories.collection_flow_repository import CollectionFlowRepository
         from uuid import uuid4
 
         flow_id = uuid4()
-        collection_flow = CollectionFlow(
-            flow_id=flow_id,
-            flow_name=f"Collection from Discovery - {len(applications)} apps",
+
+        # Use repository pattern to ensure MFO registration (ADR-006)
+        collection_repo = CollectionFlowRepository(
+            db=self.db,
             client_account_id=self.context.client_account_id,
             engagement_id=self.context.engagement_id,
-            user_id=self.context.user_id,
-            created_by=self.context.user_id,
-            discovery_flow_id=discovery_flow_id,
-            status=CollectionFlowStatus.INITIALIZED.value,
+        )
+
+        # Create flow with MFO registration
+        collection_flow = await collection_repo.create(
+            flow_name=f"Collection from Discovery - {len(applications)} apps",
             automation_tier=automation_tier,
-            current_phase=start_phase,
+            flow_metadata={
+                "discovery_flow_id": str(discovery_flow_id),
+                "created_from": "discovery_bridge",
+                "application_count": len(applications),
+            },
             collection_config={
                 "discovery_flow_id": str(discovery_flow_id),
                 "application_count": len(applications),
                 "start_phase": start_phase,
                 "applications": applications,
             },
+            flow_id=flow_id,
+            user_id=self.context.user_id,
+            discovery_flow_id=discovery_flow_id,
+            current_phase=start_phase,
         )
 
-        self.db.add(collection_flow)
-        await self.db.commit()
-        await self.db.refresh(collection_flow)
+        logger.info(
+            f"✅ Collection flow {collection_flow.id} registered with MFO "
+            f"(master_flow_id: {collection_flow.flow_id})"
+        )
 
         return collection_flow
 

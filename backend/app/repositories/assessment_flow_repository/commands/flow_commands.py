@@ -204,15 +204,22 @@ class FlowCommands:
                     "assessment_type": "sixr_analysis",
                     "created_by": created_by,
                     "engagement_id": str(engagement_id),
+                    "collection_flow_id": collection_flow_id,  # Store in config too
                 },
                 initial_state={
                     "phase": AssessmentPhase.INITIALIZATION.value,
                     "applications_count": len(selected_application_ids),
                 },
+                collection_flow_id=collection_flow_id,  # NEW: Link to collection flow
             )
 
             logger.info(
                 f"Registered assessment flow {flow_record.id} with master flow system"
+                + (
+                    f" (linked to collection flow {collection_flow_id})"
+                    if collection_flow_id
+                    else ""
+                )
             )
 
         except Exception as e:

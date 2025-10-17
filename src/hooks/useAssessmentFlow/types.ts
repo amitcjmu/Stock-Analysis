@@ -124,13 +124,21 @@ export interface AssessmentFlowState {
   }>;
 }
 
+// Response from resume flow API (ADR-027)
+export interface AssessmentFlowStatusResponse {
+  flow_id: string;
+  status: string;
+  current_phase: string;
+  progress: number;
+}
+
 export interface UseAssessmentFlowReturn {
   // State
   state: AssessmentFlowState;
 
   // Flow control
   initializeFlow: (selectedAppIds: string[]) => Promise<void>;
-  resumeFlow: (userInput: UserInput) => Promise<void>;
+  resumeFlow: (userInput: UserInput) => Promise<AssessmentFlowStatusResponse>;
   navigateToPhase: (phase: AssessmentPhase) => Promise<void>;
   finalizeAssessment: () => Promise<void>;
 

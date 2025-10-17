@@ -77,7 +77,12 @@ export const assessmentFlowAPI = {
   async resume(
     flowId: string,
     data: { user_input: UserInput; save_progress: boolean },
-  ): Promise<AssessmentFlowStatus> {
+  ): Promise<{
+    flow_id: string;
+    status: string;
+    current_phase: string;
+    progress: number;
+  }> {
     // Use MFO endpoint for resume with apiCall for auth headers
     return apiCall(
       `/master-flows/${flowId}/assessment/resume`,

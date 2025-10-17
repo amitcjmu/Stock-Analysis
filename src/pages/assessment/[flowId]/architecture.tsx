@@ -58,12 +58,52 @@ const ArchitecturePage: React.FC = () => {
   };
 
   const handleSubmit = async (): void => {
+    console.log('[ArchitecturePage] handleSubmit called', {
+      flowId,
+      hasStandards: standards.length,
+      hasOverrides: Object.keys(overrides).length,
+      isSubmitting,
+      isLoading: state.isLoading,
+    });
+
     setIsSubmitting(true);
     try {
+      console.log('[ArchitecturePage] Updating architecture standards...');
       await updateArchitectureStandards(standards, overrides);
-      await resumeFlow({ standards, overrides });
+
+      console.log('[ArchitecturePage] Resuming flow...');
+      const resumeResponse = await resumeFlow({ standards, overrides });
+
+      console.log('[ArchitecturePage] Flow resumed successfully', {
+        newPhase: resumeResponse.current_phase,
+        progress: resumeResponse.progress,
+      });
+
+      // ADR-027: Map canonical phase name to frontend route
+      // Each phase now has its own dedicated page
+      const phaseToRouteMap: Record<string, string> = {
+        'readiness_assessment': 'architecture',
+        'complexity_analysis': 'complexity',      // New page: complexity analysis metrics
+        'dependency_analysis': 'dependency',      // New page: dependency mapping
+        'tech_debt_assessment': 'tech-debt',      // Existing page: tech debt items
+        'risk_assessment': 'sixr-review',
+        'recommendation_generation': 'app-on-page',
+      };
+
+      // Get next phase from backend response (not state - ADR-027)
+      const nextPhase = resumeResponse.current_phase;
+      const routeName = phaseToRouteMap[nextPhase] || 'tech-debt'; // fallback
+
+      console.log('[ArchitecturePage] Navigating to next phase', {
+        currentPhase: nextPhase,
+        routeName,
+      });
+
+      navigate(`/assessment/${flowId}/${routeName}`);
     } catch (error) {
-      console.error('Failed to submit architecture standards:', error);
+      console.error('[ArchitecturePage] Failed to submit architecture standards:', error);
+      // Show error to user
+      alert(`Failed to continue: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }

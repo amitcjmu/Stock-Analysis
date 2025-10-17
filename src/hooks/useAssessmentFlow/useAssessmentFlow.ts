@@ -161,17 +161,22 @@ export const useAssessmentFlow = (
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        await assessmentFlowAPI.resume(state.flowId, {
+        const response = await assessmentFlowAPI.resume(state.flowId, {
           user_input: userInput,
           save_progress: true,
         });
 
+        // Update state with new phase from backend response (ADR-027)
         setState((prev) => ({
           ...prev,
           status: "processing",
+          currentPhase: response.current_phase as AssessmentPhase,
+          progress: response.progress || prev.progress,
           lastUserInteraction: new Date(),
           isLoading: false,
         }));
+
+        return response; // Return response for navigation
       } catch (error) {
         setState((prev) => ({
           ...prev,
