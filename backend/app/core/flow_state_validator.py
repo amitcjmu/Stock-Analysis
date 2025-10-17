@@ -31,6 +31,7 @@ class FlowStateValidator:
     VALID_PHASES = [
         "initialization",
         "data_import",
+        "data_validation",
         "field_mapping",
         "data_cleansing",
         "asset_creation",
@@ -53,7 +54,8 @@ class FlowStateValidator:
     PHASE_DEPENDENCIES = {
         "initialization": [],
         "data_import": ["initialization"],
-        "field_mapping": ["data_import"],
+        "data_validation": ["data_import"],
+        "field_mapping": ["data_validation"],
         "data_cleansing": ["field_mapping"],
         "asset_creation": ["data_cleansing"],
         "asset_inventory": ["asset_creation"],

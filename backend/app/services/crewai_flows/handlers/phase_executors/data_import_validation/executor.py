@@ -108,6 +108,10 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             # 🔧 CC FIX + Bug #579: Sync phase completion to discovery flow database
             # Also updates data_imports status to "completed" in same transaction
             await self._sync_phase_completion_to_database("data_import", True)
+
+            # Per ADR-027: Data import validation also completes data_validation phase
+            await self._sync_phase_completion_to_database("data_validation", True)
+            logger.info("✅ Data validation phase marked as completed")
         else:
             # Only log failure if validation actually failed
             if not reason:

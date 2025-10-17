@@ -41,15 +41,14 @@ class FlowHandlerNavigation:
                         "message": "Cannot provide guidance for non-existent flow",
                     }
 
-                # Extract phases completed from flow model (Discovery v3.0.0 - all phases)
+                # Extract phases completed from flow model
+                # Per ADR-027: Discovery v3.0.0 has only 5 phases
                 phases_completed = {
                     "data_import": flow.data_import_completed,
                     "data_validation": flow.data_validation_completed,
                     "field_mapping": flow.field_mapping_completed,
                     "data_cleansing": flow.data_cleansing_completed,
                     "asset_inventory": flow.asset_inventory_completed,
-                    "dependency_analysis": flow.dependency_analysis_completed,
-                    "tech_debt_assessment": flow.tech_debt_assessment_completed,
                 }
 
                 # Generate contextual guidance

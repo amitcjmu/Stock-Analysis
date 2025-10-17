@@ -33,14 +33,15 @@ PHASE_FLAG_MAP = {
 }
 
 # Valid phase transitions - defines the state machine
+# Per ADR-027: Discovery v3.0.0 has 5 phases
+# (data_import, data_validation, field_mapping, data_cleansing, asset_inventory)
 VALID_PHASE_TRANSITIONS = {
     None: {"data_import"},  # Initial state
-    "data_import": {"field_mapping"},
+    "data_import": {"data_validation"},
+    "data_validation": {"field_mapping"},
     "field_mapping": {"data_cleansing"},
     "data_cleansing": {"asset_inventory"},
-    "asset_inventory": {"dependency_analysis"},
-    "dependency_analysis": {"tech_debt_assessment"},
-    "tech_debt_assessment": set(),  # Terminal state
+    "asset_inventory": set(),  # Terminal state - Discovery v3.0.0 ends here
 }
 
 

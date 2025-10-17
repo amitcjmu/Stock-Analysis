@@ -3,16 +3,16 @@
 Add data_validation_completed column to discovery_flows table
 to align with ADR-027 Discovery v3.0.0 flow configuration.
 
-Revision ID: 092_add_data_validation_completed
-Revises: 091_add_phase_deprecation_comments_adr027
+Revision ID: 093_add_data_validation_completed
+Revises: 092_add_supported_versions_requirement_details
 Create Date: 2025-10-15 18:30:00.000000
 """
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "092_add_data_validation_completed"
-down_revision = "091_add_phase_deprecation_comments_adr027"
+revision = "093_add_data_validation_completed"
+down_revision = "092_add_supported_versions_requirement_details"
 branch_labels = None
 depends_on = None
 
