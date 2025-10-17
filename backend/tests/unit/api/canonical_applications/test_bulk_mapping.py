@@ -21,12 +21,19 @@ from app.core.context import RequestContext
 
 @pytest.fixture
 def mock_db_session():
-    """Create mock database session."""
+    """Create mock database session with async context manager support."""
     session = MagicMock(spec=AsyncSession)
-    session.begin = AsyncMock()
+
+    # Create async context manager for begin()
+    async_context_manager = MagicMock()
+    async_context_manager.__aenter__ = AsyncMock(return_value=None)
+    async_context_manager.__aexit__ = AsyncMock(return_value=None)
+    session.begin = MagicMock(return_value=async_context_manager)
+
     session.execute = AsyncMock()
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
+    session.add = MagicMock()
     return session
 
 
@@ -225,22 +232,30 @@ class TestBulkMapAssets:
 
         async def execute_side_effect(*args, **kwargs):
             """Mock execute behavior."""
+            call_num = mock_db_session.execute.call_count
+
             # First call: canonical app query
-            if mock_db_session.execute.call_count == 1:
+            if call_num == 1:
                 return mock_canonical_result
-            # Subsequent calls: asset queries and inserts
-            else:
+
+            # Subsequent calls alternate: asset query, existing mapping query, asset query, ...
+            # Call 2, 4, 6: asset queries
+            # Call 3, 5, 7: existing mapping queries (should return None for new mappings)
+            if (call_num - 2) % 2 == 0:
+                # Asset query - return mock asset
+                asset_index = (call_num - 2) // 2
                 mock_asset_result = MagicMock()
                 mock_asset_result.scalar_one_or_none.return_value = mock_assets[
-                    (mock_db_session.execute.call_count - 2) % len(mock_assets)
+                    asset_index % len(mock_assets)
                 ]
                 return mock_asset_result
+            else:
+                # Existing mapping query - return None (no existing mapping)
+                mock_mapping_result = MagicMock()
+                mock_mapping_result.scalar_one_or_none.return_value = None
+                return mock_mapping_result
 
         mock_db_session.execute.side_effect = execute_side_effect
-
-        # Mock transaction context
-        mock_db_session.begin.return_value.__aenter__ = AsyncMock()
-        mock_db_session.begin.return_value.__aexit__ = AsyncMock()
 
         mappings = [
             AssetMapping(asset_id=aid, canonical_application_id=sample_canonical_app_id)
@@ -293,32 +308,28 @@ class TestBulkMapAssets:
             if call_count == 1:
                 return mock_canonical_result
 
-            # Second call: first asset (exists)
+            # Second call: first asset query (exists)
             if call_count == 2:
                 mock_result = MagicMock()
                 mock_result.scalar_one_or_none.return_value = mock_asset_1
                 return mock_result
 
-            # Third call: first asset insert
+            # Third call: first asset existing mapping query (None - new mapping)
             if call_count == 3:
                 mock_result = MagicMock()
-                mock_result.rowcount = 1
+                mock_result.scalar_one_or_none.return_value = None
                 return mock_result
 
-            # Fourth call: second asset (doesn't exist)
+            # Fourth call: second asset query (doesn't exist)
             if call_count == 4:
                 mock_result = MagicMock()
                 mock_result.scalar_one_or_none.return_value = None
                 return mock_result
 
-            # Default
+            # Default - shouldn't reach here in this test
             return MagicMock()
 
         mock_db_session.execute.side_effect = execute_side_effect
-
-        # Mock transaction context
-        mock_db_session.begin.return_value.__aenter__ = AsyncMock()
-        mock_db_session.begin.return_value.__aexit__ = AsyncMock()
 
         mappings = [
             AssetMapping(
