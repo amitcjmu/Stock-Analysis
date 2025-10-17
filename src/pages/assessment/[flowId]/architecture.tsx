@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureStandardsForm';
 import { TemplateSelector } from '@/components/assessment/TemplateSelector';
 import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrides';
+import { BulkAssetMappingDialog } from '@/components/assessment/BulkAssetMappingDialog';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Save, ArrowRight, Package, Calendar, Star, Zap, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertCircle, Save, ArrowRight, Package, Calendar, Star, Zap, RefreshCw, Loader2, Link } from 'lucide-react';
 import type { AssessmentApplication } from '@/hooks/useAssessmentFlow/types';
 
 const ArchitecturePage: React.FC = () => {
@@ -30,6 +31,7 @@ const ArchitecturePage: React.FC = () => {
   const [isDraft, setIsDraft] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [showBulkMapping, setShowBulkMapping] = useState(false);
   const [enrichmentProgress, setEnrichmentProgress] = useState<{
     compliance_flags: number;
     licenses: number;
@@ -208,6 +210,23 @@ const ArchitecturePage: React.FC = () => {
     }
   };
 
+  // Calculate unmapped assets for bulk mapping dialog
+  const unmappedAssets = useMemo(() => {
+    return state.selectedApplications
+      .filter((app: AssessmentApplication) => {
+        // Check if the application has a canonical_application_id field
+        // If not present or null, it's unmapped
+        const appWithCanonicalId = app as AssessmentApplication & { canonical_application_id?: string | null };
+        return !appWithCanonicalId.canonical_application_id;
+      })
+      .map((app: AssessmentApplication) => ({
+        asset_id: app.application_id,
+        asset_name: app.application_name,
+        asset_type: app.application_type || 'unknown',
+        technology_stack: app.technology_stack || [],
+      }));
+  }, [state.selectedApplications]);
+
   return (
     <SidebarProvider>
       <AssessmentFlowLayout flowId={flowId}>
@@ -283,6 +302,17 @@ const ArchitecturePage: React.FC = () => {
                 </CardTitle>
               </div>
               <div className="flex items-center gap-2">
+                {unmappedAssets.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkMapping(true)}
+                    className="text-xs"
+                  >
+                    <Link className="h-3 w-3 mr-1" />
+                    Map {unmappedAssets.length} Unmapped Asset{unmappedAssets.length !== 1 ? 's' : ''}
+                  </Button>
+                )}
                 <Button
                   variant="default"
                   size="sm"
@@ -443,6 +473,18 @@ const ArchitecturePage: React.FC = () => {
             )}
           </Button>
         </div>
+
+        {/* Bulk Asset Mapping Dialog */}
+        {showBulkMapping && (
+          <BulkAssetMappingDialog
+            unmappedAssets={unmappedAssets}
+            onComplete={() => {
+              setShowBulkMapping(false);
+              refreshApplicationData();
+            }}
+            onCancel={() => setShowBulkMapping(false)}
+          />
+        )}
       </div>
       </AssessmentFlowLayout>
     </SidebarProvider>

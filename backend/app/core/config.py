@@ -283,6 +283,29 @@ class Settings(BaseSettings):
         description="Maximum percentage of unmapped assets allowed (0.0-1.0, default 0.5 = 50%)",
     )
 
+    # Enrichment Performance Configuration (Phase 2.3 - October 2025)
+    ENRICHMENT_BATCH_SIZE: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        env="ENRICHMENT_BATCH_SIZE",
+        description="Number of assets to process per enrichment batch (default 10 for optimal performance)",
+    )
+    ENRICHMENT_MAX_CONCURRENT_BATCHES: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        env="ENRICHMENT_MAX_CONCURRENT_BATCHES",
+        description="Maximum concurrent enrichment batches (backpressure control, default 3)",
+    )
+    ENRICHMENT_BATCHES_PER_MINUTE: int = Field(
+        default=10,
+        ge=1,
+        le=60,
+        env="ENRICHMENT_BATCHES_PER_MINUTE",
+        description="Maximum enrichment batches per minute (rate limiting, default 10)",
+    )
+
     model_config = ConfigDict(
         env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",
