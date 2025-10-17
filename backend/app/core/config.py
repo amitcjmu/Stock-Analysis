@@ -306,6 +306,17 @@ class Settings(BaseSettings):
         description="Maximum enrichment batches per minute (rate limiting, default 10)",
     )
 
+    # Auto-Enrichment Configuration (Phase 3.1 - October 2025)
+    AUTO_ENRICHMENT_ENABLED: bool = Field(
+        default=False,
+        env="AUTO_ENRICHMENT_ENABLED",
+        description=(
+            "Enable automatic enrichment on assessment flow initialization. "
+            "When enabled, triggers background enrichment for all assets. "
+            "Default: False (manual trigger only)"
+        ),
+    )
+
     model_config = ConfigDict(
         env_file=".env" if os.getenv("RAILWAY_ENVIRONMENT") is None else None,
         env_file_encoding="utf-8",

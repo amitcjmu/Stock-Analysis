@@ -22,6 +22,7 @@ AutoEnrichmentPipeline - Automated enrichment pipeline for assets using AI agent
 - Concurrent batch limit: 3 batches (configurable)
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Any, Dict, List
@@ -318,3 +319,91 @@ class AutoEnrichmentPipeline:
                 f"Failed to recalculate assessment readiness: {e}", exc_info=True
             )
             await self.db.rollback()
+
+
+# In-memory lock to prevent concurrent enrichment for same flow (Phase 3.1)
+_enrichment_locks: Dict[str, asyncio.Lock] = {}
+
+
+async def trigger_auto_enrichment_background(
+    db: AsyncSession,
+    flow_id: str,
+    client_account_id: str | UUID,
+    engagement_id: str | UUID,
+    asset_ids: List[UUID],
+) -> None:
+    """
+    Background task for auto-enrichment on flow initialization (Phase 3.1).
+
+    Uses per-flow lock to prevent concurrent enrichment.
+    Logs errors but doesn't fail flow creation.
+
+    **CRITICAL ADR COMPLIANCE**:
+    - Uses EnrichmentBatchProcessor with backpressure (Phase 2.3)
+    - Tenant scoping on all database operations
+    - NO asyncio.run() in async context (BANNED PATTERN)
+
+    Args:
+        db: Database session
+        flow_id: Assessment flow ID
+        client_account_id: Tenant client account ID
+        engagement_id: Tenant engagement ID
+        asset_ids: List of asset UUIDs to enrich
+    """
+    # Acquire per-flow lock
+    if flow_id not in _enrichment_locks:
+        _enrichment_locks[flow_id] = asyncio.Lock()
+
+    lock = _enrichment_locks[flow_id]
+
+    # Try to acquire lock (non-blocking)
+    if lock.locked():
+        logger.warning(
+            f"Auto-enrichment already in progress for flow {flow_id}, skipping"
+        )
+        return
+
+    async with lock:
+        try:
+            logger.info(
+                f"Starting auto-enrichment for flow {flow_id} "
+                f"({len(asset_ids)} assets)"
+            )
+
+            # Convert IDs to UUID if needed
+            if isinstance(client_account_id, (str, int)):
+                client_account_uuid = UUID(str(client_account_id))
+            else:
+                client_account_uuid = client_account_id
+
+            if isinstance(engagement_id, str):
+                engagement_uuid = UUID(engagement_id)
+            else:
+                engagement_uuid = engagement_id
+
+            # Initialize AutoEnrichmentPipeline with Phase 2.3 batch processor
+            enrichment_pipeline = AutoEnrichmentPipeline(
+                db=db,
+                client_account_id=client_account_uuid,
+                engagement_id=engagement_uuid,
+            )
+
+            # Process with backpressure controls (Phase 2.3)
+            result = await enrichment_pipeline.trigger_auto_enrichment(asset_ids)
+
+            logger.info(
+                f"Auto-enrichment completed for flow {flow_id}: "
+                f"{result['total_assets']} assets, "
+                f"{result['batches_processed']} batches, "
+                f"{result['elapsed_time_seconds']:.1f}s"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Auto-enrichment failed for flow {flow_id}: {str(e)}", exc_info=True
+            )
+            # Don't re-raise - background task failure shouldn't block flow creation
+        finally:
+            # Clean up lock after completion
+            if flow_id in _enrichment_locks:
+                del _enrichment_locks[flow_id]
