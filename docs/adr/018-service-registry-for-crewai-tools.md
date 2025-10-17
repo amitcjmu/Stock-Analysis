@@ -3,6 +3,8 @@
 ## Status
 Proposed (2025-01-13)
 
+**HISTORICAL CONTEXT NOTE (October 2025)**: Code examples in this ADR predate ADR-024 and may reference `memory=True`. As of October 2025, CrewAI memory is disabled (`memory=False`) and TenantMemoryManager is used for all agent learning. See [ADR-024](024-tenant-memory-manager-architecture.md) for current memory architecture.
+
 ## Context
 
 The AI Modernize Migration Platform's CrewAI tools currently create their own database sessions using `AsyncSessionLocal()`, which violates our orchestrator-first architectural pattern and creates significant risks for multi-tenant isolation and data integrity.
@@ -334,11 +336,13 @@ async def create_agent_with_service_registry(
         tools.extend(create_data_validation_tools(context_info))
     
     # Create agent with memory and tools
+    # NOTE (October 2025): This code is historical. Current implementation uses memory=False
+    # and TenantMemoryManager for agent learning. See ADR-024 for details.
     agent = CrewAIAgent(
         role=AGENT_ROLES[agent_type],
         goal=AGENT_GOALS[agent_type],
         backstory=AGENT_BACKSTORIES[agent_type],
-        memory=True,
+        memory=True,  # HISTORICAL: Changed to False in October 2025 per ADR-024
         memory_manager=memory_manager,
         tools=tools
     )
