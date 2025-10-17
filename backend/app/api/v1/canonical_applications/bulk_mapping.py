@@ -197,6 +197,16 @@ async def bulk_map_assets(
             detail=f"Failed to validate canonical applications: {str(e)}",
         )
 
+    # Pre-fetch all assets in a single query to avoid N+1 problem (Qodo review fix)
+    asset_ids_to_validate = [UUID(m.asset_id) for m in request.mappings]
+    assets_query = select(Asset).where(
+        Asset.id.in_(asset_ids_to_validate),
+        Asset.client_account_id == client_account_uuid,
+        Asset.engagement_id == engagement_uuid,
+    )
+    assets_result = await db.execute(assets_query)
+    valid_assets = {str(asset.id): asset for asset in assets_result.scalars().all()}
+
     # Process each mapping with tenant validation and idempotent upsert
     async with db.begin():
         for mapping in request.mappings:
@@ -204,14 +214,8 @@ async def bulk_map_assets(
                 asset_uuid = UUID(mapping.asset_id)
                 canonical_uuid = UUID(mapping.canonical_application_id)
 
-                # Validate asset exists and belongs to tenant
-                asset_query = select(Asset).where(
-                    Asset.id == asset_uuid,
-                    Asset.client_account_id == client_account_uuid,
-                    Asset.engagement_id == engagement_uuid,
-                )
-                asset_result = await db.execute(asset_query)
-                asset = asset_result.scalar_one_or_none()
+                # Validate asset exists and belongs to tenant (pre-fetched)
+                asset = valid_assets.get(mapping.asset_id)
 
                 if not asset:
                     results["errors"].append(

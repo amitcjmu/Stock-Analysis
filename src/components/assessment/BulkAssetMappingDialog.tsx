@@ -13,7 +13,7 @@
  * Phase 2.2 Implementation - Assessment Canonical Grouping Remediation
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -111,18 +111,27 @@ export const BulkAssetMappingDialog: React.FC<BulkAssetMappingDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['assessment-applications'] });
       queryClient.invalidateQueries({ queryKey: ['flow-status'] });
 
-      // Auto-close after 2 seconds if all successful
-      if (data.errors.length === 0) {
-        setTimeout(() => {
-          onComplete();
-        }, 2000);
-      }
+      // Auto-close handled by useEffect with proper cleanup (see below)
     },
     onError: (error) => {
       console.error('[BulkMapping] Failed:', error);
       alert(`Mapping failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     },
   });
+
+  // Auto-close dialog after 2 seconds if all mappings successful (Qodo review fix: useEffect cleanup)
+  useEffect(() => {
+    if (bulkMapMutation.isSuccess && bulkMapMutation.data?.errors.length === 0) {
+      const timeoutId = setTimeout(() => {
+        onComplete();
+      }, 2000);
+
+      // Cleanup function to prevent memory leak on unmount
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [bulkMapMutation.isSuccess, bulkMapMutation.data?.errors.length, onComplete]);
 
   // Handlers
   const handleToggleAsset = (assetId: string) => {

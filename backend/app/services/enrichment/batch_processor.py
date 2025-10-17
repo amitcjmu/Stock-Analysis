@@ -90,8 +90,9 @@ class RateLimiter:
                 if current_time - ts < self.time_window_seconds
             ]
 
-            # If at capacity, wait until oldest timestamp expires
-            while len(self.timestamps) >= self.max_operations:
+            # If at capacity, wait until oldest timestamp expires (Qodo review fix: use 'if' not 'while')
+            # Using 'if' instead of 'while' prevents unnecessary re-checks after wait completes
+            if len(self.timestamps) >= self.max_operations:
                 oldest_ts = self.timestamps[0]
                 wait_time = self.time_window_seconds - (current_time - oldest_ts)
 
@@ -102,13 +103,13 @@ class RateLimiter:
                     )
                     await asyncio.sleep(wait_time + 0.1)  # Add small buffer
 
-                # Refresh current time and clean timestamps
-                current_time = time.time()
-                self.timestamps = [
-                    ts
-                    for ts in self.timestamps
-                    if current_time - ts < self.time_window_seconds
-                ]
+                    # Refresh current time and clean timestamps after wait
+                    current_time = time.time()
+                    self.timestamps = [
+                        ts
+                        for ts in self.timestamps
+                        if current_time - ts < self.time_window_seconds
+                    ]
 
             # Add current timestamp
             self.timestamps.append(current_time)

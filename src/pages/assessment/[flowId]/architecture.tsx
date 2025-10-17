@@ -187,6 +187,7 @@ const ArchitecturePage: React.FC = () => {
 
             if (totalEnriched > 0) {
               clearInterval(pollInterval);
+              clearTimeout(timeoutId); // Clear timeout to prevent memory leak (Qodo review fix)
               setIsEnriching(false);
               await refreshApplicationData();
               console.log('[Architecture] Enrichment completed:', status);
@@ -197,8 +198,8 @@ const ArchitecturePage: React.FC = () => {
         }
       }, 3000); // Poll every 3 seconds
 
-      // Timeout after 5 minutes
-      setTimeout(() => {
+      // Timeout after 5 minutes (Qodo review fix: store timeout ID for cleanup)
+      const timeoutId = setTimeout(() => {
         clearInterval(pollInterval);
         setIsEnriching(false);
       }, 300000);

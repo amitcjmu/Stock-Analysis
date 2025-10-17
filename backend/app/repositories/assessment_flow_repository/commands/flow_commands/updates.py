@@ -48,20 +48,12 @@ async def update_flow_phase(
 
 
 async def save_user_input(self, flow_id: str, phase: str, user_input: Dict[str, Any]):
-    """Save user input for specific phase"""
+    """
+    Save user input for specific phase using atomic JSONB merge.
 
-    # Get current user_inputs
-    result = await self.db.execute(
-        select(AssessmentFlow.user_inputs).where(
-            and_(
-                AssessmentFlow.id == flow_id,
-                AssessmentFlow.client_account_id == self.client_account_id,
-            )
-        )
-    )
-    current_inputs = result.scalar() or {}
-    current_inputs[phase] = user_input
-
+    Uses PostgreSQL's || operator to prevent race conditions (Qodo review fix).
+    This is safer than read-modify-write as it's atomic at the database level.
+    """
     await self.db.execute(
         update(AssessmentFlow)
         .where(
@@ -71,7 +63,8 @@ async def save_user_input(self, flow_id: str, phase: str, user_input: Dict[str, 
             )
         )
         .values(
-            user_inputs=current_inputs,
+            # Use JSONB || operator for atomic merge (prevents race conditions)
+            user_inputs=AssessmentFlow.user_inputs.op("||")({phase: user_input}),
             last_user_interaction=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )

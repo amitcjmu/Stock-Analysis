@@ -24,6 +24,7 @@ AutoEnrichmentPipeline - Automated enrichment pipeline for assets using AI agent
 
 import asyncio
 import logging
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
 from uuid import UUID
@@ -322,7 +323,10 @@ class AutoEnrichmentPipeline:
 
 
 # In-memory lock to prevent concurrent enrichment for same flow (Phase 3.1)
-_enrichment_locks: Dict[str, asyncio.Lock] = {}
+# Using defaultdict for thread-safe lock creation and retrieval (Qodo review fix)
+# TODO: For multi-instance deployment (e.g., Kubernetes), replace with Redis distributed lock
+# Current Railway deployment is single-instance (HTTP polling only), so in-memory locks are sufficient
+_enrichment_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
 async def trigger_auto_enrichment_background(
@@ -350,10 +354,7 @@ async def trigger_auto_enrichment_background(
         engagement_id: Tenant engagement ID
         asset_ids: List of asset UUIDs to enrich
     """
-    # Acquire per-flow lock
-    if flow_id not in _enrichment_locks:
-        _enrichment_locks[flow_id] = asyncio.Lock()
-
+    # Acquire per-flow lock (thread-safe with defaultdict)
     lock = _enrichment_locks[flow_id]
 
     # Try to acquire lock (non-blocking)
@@ -403,7 +404,5 @@ async def trigger_auto_enrichment_background(
                 f"Auto-enrichment failed for flow {flow_id}: {str(e)}", exc_info=True
             )
             # Don't re-raise - background task failure shouldn't block flow creation
-        finally:
-            # Clean up lock after completion
-            if flow_id in _enrichment_locks:
-                del _enrichment_locks[flow_id]
+        # NOTE: Lock is automatically released when exiting async with block
+        # No manual cleanup needed with defaultdict - locks persist for flow lifetime
