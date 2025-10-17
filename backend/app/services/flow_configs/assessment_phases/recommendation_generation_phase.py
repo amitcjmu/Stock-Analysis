@@ -42,7 +42,7 @@ def get_recommendation_generation_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=1500,  # 25 minutes
         metadata={
-            "ui_route": "/assessment/[flowId]/app-on-page",  # Issue #4 fix: recommendations shown in app-on-page
+            "ui_route": "/assessment/:flowId/app-on-page",  # Fix #632: Use React Router syntax
             "ui_short_name": "Recommendations",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 25,
             "icon": "lightbulb",

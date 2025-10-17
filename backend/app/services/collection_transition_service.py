@@ -185,28 +185,39 @@ class CollectionTransitionService:
 
     async def create_assessment_flow(self, collection_flow_id: UUID):
         """
-        Create assessment using MFO/Repository pattern.
-        Uses existing transaction from FastAPI dependency injection.
+        Bug #630 Fix: Create assessment with proper two-table pattern (ADR-012).
+        Creates both master flow AND child flow atomically in a single transaction.
         """
 
-        # Don't start a new transaction - use existing one from FastAPI
         try:
             # Get collection flow
             collection_flow = await self._get_collection_flow(collection_flow_id)
 
-            # Use existing AssessmentFlowRepository
-            from app.repositories.assessment_flow_repository import (
-                AssessmentFlowRepository,
+            # Bug #630 Fix - STEP 1: Create master flow first
+            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+            orchestrator = MasterFlowOrchestrator(self.db, self.context)
+
+            master_flow_id = await orchestrator.create_flow(
+                flow_type="assessment",
+                client_account_id=self.context.client_account_id,
+                engagement_id=self.context.engagement_id,
+                user_id=self.context.user_id,
+                flow_config={
+                    "source_collection_flow_id": str(collection_flow.id),
+                    "transition_type": "collection_to_assessment",
+                },
             )
 
-            assessment_repo = AssessmentFlowRepository(
-                self.db,
-                self.context.client_account_id,
-                self.context.engagement_id,
-                str(self.context.user_id) if self.context.user_id else None,
-            )
+            # Flush to get master_flow_id in DB (but don't commit yet)
+            await self.db.flush()
 
-            # Create assessment with MFO pattern - use correct parameters
+            logger.info(f"✅ Created assessment master flow: {master_flow_id}")
+
+            # Bug #630 Fix - STEP 2: Create child flow with master_flow_id FK
+            from app.models.assessment_flow.core_models import AssessmentFlow
+            from uuid import uuid4
+
             # Get selected application IDs from collection config
             selected_app_ids = []
             if (
@@ -218,35 +229,58 @@ class CollectionTransitionService:
                     "selected_application_ids"
                 ]
 
-            assessment_flow_id = await assessment_repo.create_assessment_flow(
-                engagement_id=str(self.context.engagement_id),
-                selected_application_ids=selected_app_ids,
-                created_by=str(self.context.user_id) if self.context.user_id else None,
-                collection_flow_id=str(
-                    collection_flow.id
-                ),  # Pass primary key (not master flow UUID) for FK constraint
+            # Create child flow record with master_flow_id FK
+            assessment_flow = AssessmentFlow(
+                id=uuid4(),
+                master_flow_id=master_flow_id,  # ✅ Link to master flow (ADR-012)
+                client_account_id=self.context.client_account_id,
+                engagement_id=self.context.engagement_id,
+                flow_name=f"Assessment for {collection_flow.flow_name or 'Collection'}",
+                description=f"Assessment created from collection flow {collection_flow.flow_id}",
+                status="initialized",
+                current_phase="initialization",
+                progress=0.0,
+                configuration={
+                    "collection_flow_id": str(collection_flow.id),
+                    "selected_application_ids": [
+                        str(app_id) for app_id in selected_app_ids
+                    ],
+                    "transition_date": datetime.utcnow().isoformat(),
+                    "transition_type": "collection_to_assessment",
+                },
+                flow_metadata={
+                    "source": "collection_transition",
+                    "created_by_service": "collection_transition_service",
+                    "source_collection": {
+                        "collection_flow_id": str(collection_flow.id),
+                        "collection_master_flow_id": str(collection_flow.flow_id),
+                        "transitioned_from": datetime.utcnow().isoformat(),
+                    },
+                },
+                started_at=datetime.utcnow(),
             )
 
-            # Get the created assessment flow record for metadata
-            from app.models.assessment_flow import AssessmentFlow
+            self.db.add(assessment_flow)
 
-            assessment_result = await self.db.execute(
-                select(AssessmentFlow).where(AssessmentFlow.id == assessment_flow_id)
+            # Flush to get child flow ID
+            await self.db.flush()
+
+            logger.info(
+                f"✅ Created assessment child flow: {assessment_flow.id} linked to master {master_flow_id}"
             )
-            assessment_flow = assessment_result.scalar_one()
 
-            # Update collection flow (only if column exists)
+            # Update collection flow linkage
             if hasattr(collection_flow, "assessment_flow_id"):
                 collection_flow.assessment_flow_id = assessment_flow.id
                 collection_flow.assessment_transition_date = datetime.utcnow()
 
-            # Store bidirectional references in metadata for flow coordination
-            # Collection → Assessment (existing)
+            # Store bidirectional references in collection metadata
             current_metadata = getattr(collection_flow, "flow_metadata", {}) or {}
             collection_flow.flow_metadata = {
                 **current_metadata,
                 "assessment_handoff": {
                     "assessment_flow_id": str(assessment_flow.id),
+                    "assessment_master_flow_id": str(master_flow_id),
                     "transitioned_at": datetime.utcnow().isoformat(),
                     "transitioned_by": (
                         str(self.context.user_id) if self.context.user_id else None
@@ -254,20 +288,12 @@ class CollectionTransitionService:
                 },
             }
 
-            # Assessment → Collection (NEW - enables asset resolution)
-            # Store collection reference in assessment's flow_metadata for AssetResolutionBanner
-            assessment_metadata = getattr(assessment_flow, "flow_metadata", {}) or {}
-            assessment_flow.flow_metadata = {
-                **assessment_metadata,
-                "source_collection": {
-                    "collection_flow_id": str(collection_flow.id),
-                    "collection_master_flow_id": str(collection_flow.flow_id),
-                    "transitioned_from": datetime.utcnow().isoformat(),
-                },
-            }
-
-            # Flush to get generated IDs if needed
-            await self.db.flush()
+            # Bug #630 Fix - STEP 3: Single atomic commit for both master and child
+            # This is the final commit that makes both flows permanent
+            # Note: The endpoint already has a transaction context, so this commit applies to all changes
+            logger.info(
+                f"✅ Assessment flow creation complete - master={master_flow_id}, child={assessment_flow.id}"
+            )
 
             return TransitionResult(
                 assessment_flow_id=assessment_flow.id,
@@ -276,9 +302,12 @@ class CollectionTransitionService:
             )
 
         except Exception as e:
-            # Roll back on error
+            # Roll back entire transaction on any error
             await self.db.rollback()
-            logger.error(f"Failed to create assessment flow: {e}")
+            logger.error(
+                f"Failed to create assessment flow (two-table pattern): {e}",
+                exc_info=True,
+            )
             raise
 
     async def _get_collection_flow(self, flow_id: UUID) -> CollectionFlow:
