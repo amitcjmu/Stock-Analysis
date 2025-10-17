@@ -150,8 +150,14 @@ const CollectionProgress: React.FC = () => {
     );
   }
 
-  // Phase 1 fix: Show assessment CTA for completed flows
-  if (showAssessmentCTA || currentFlow?.assessment_ready || currentFlow?.status === 'completed') {
+  // Bug #627 Fix: Only show assessment CTA if flow is ACTUALLY complete
+  // Defensive checks to prevent showing "Complete" for running flows even if assessment_ready flag is incorrectly set
+  if (
+    (showAssessmentCTA || currentFlow?.assessment_ready || currentFlow?.status === 'completed') &&
+    currentFlow?.progress >= 95 &&  // Require near-complete progress
+    currentFlow?.status !== 'running' &&  // Explicitly exclude running flows
+    currentFlow?.status !== 'paused'  // Explicitly exclude paused flows
+  ) {
     return (
       <CollectionPageLayout
         title="Collection Progress Monitor"

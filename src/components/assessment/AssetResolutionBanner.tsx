@@ -47,31 +47,25 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
       }
 
       try {
-        // CRITICAL FIX: flowId is assessment flow ID, not collection flow ID
-        // Use new endpoint that looks up source collection from assessment metadata
-        // Use fetch with auth headers from apiCall pattern
-        const response = await fetch(
-          `/api/v1/collection/assessment/${flowId}/unmapped-assets`,
+        // Bug #628 Fix: Use ApiClient with multi-tenant headers instead of raw fetch()
+        // This ensures proper authentication and multi-tenant security headers are included
+        const data = await apiClient.get<UnmappedAsset[]>(
+          `/collection/assessment/${flowId}/unmapped-assets`,
           {
-            method: 'GET',
             headers: {
-              'Content-Type': 'application/json',
-            },
+              'X-Client-Account-Id': client.id.toString(),
+              'X-Engagement-Id': engagement.id.toString(),
+            }
           }
         );
 
-        if (!response.ok) {
-          if (response.status === 404 || response.status === 401) {
-            // Assessment has no source collection or auth issue - hide banner
-            console.warn(`Unmapped assets endpoint returned ${response.status} - hiding banner`);
-            return [];
-          }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
         return Array.isArray(data) ? data : [];
-      } catch (error) {
+      } catch (error: any) {
+        // Handle 404/401 gracefully by hiding banner
+        if (error?.response?.status === 404 || error?.response?.status === 401) {
+          console.warn(`Unmapped assets endpoint returned ${error.response.status} - hiding banner`);
+          return [];
+        }
         console.error('Failed to fetch unmapped assets:', error);
         // Return empty array on error to hide banner gracefully
         return [];
