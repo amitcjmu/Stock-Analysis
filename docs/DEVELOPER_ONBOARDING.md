@@ -36,7 +36,7 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 
 ### 🎯 Test Your Setup (15 minutes)
 1. **Open the frontend**: Navigate to http://localhost:8081 (NOT port 3000)
-2. **Login with demo credentials**: Use current platform admin patterns (NOT demo@democorp.com)
+2. **Login credentials**: Contact your team lead or check the team onboarding documentation for current authentication setup
 3. **Create a test discovery flow**: Upload a sample CSV file
 4. **Watch the AI agents work**: See real-time processing and field mapping
 5. **Explore the admin dashboard**: Check LLM cost tracking and agent monitoring
@@ -156,6 +156,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 #### **Deep Dive**
 7. **[docs/development/master_flow_orchestrator/](./development/master_flow_orchestrator/)** (15 min)
    - Flow orchestration patterns
+8. **[docs/adr/025-collection-flow-child-service-migration.md](./adr/025-collection-flow-child-service-migration.md)** (10 min) ⭐ **OCTOBER 2025**
+   - Child flow service pattern (replaces crew_class)
+   - Single execution path architecture
+   - How to implement new flow types
 
 ### 🗄️ Database/DevOps Developer Path (45 minutes total)
 
@@ -180,6 +184,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 #### **Deep Dive**
 4. **[docs/development/agentic-memory-architecture/](./development/agentic-memory-architecture/)** (15 min)
    - Memory and learning patterns
+5. **[docs/adr/024-tenant-memory-manager-architecture.md](./adr/024-tenant-memory-manager-architecture.md)** (15 min) ⭐ **OCTOBER 2025**
+   - Why CrewAI memory is disabled (memory=False)
+   - How TenantMemoryManager provides enterprise agent learning
+   - Multi-tenant memory isolation patterns
 
 ### 🧪 QA/Testing Developer Path (40 minutes total)
 
@@ -239,6 +247,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 3. **Never skip multi-tenant context** - All data must be client-scoped
 4. **Never mix sync/async patterns** - Use `AsyncSessionLocal` in async contexts
 5. **Never bypass pre-commit checks** - Run them at least once
+6. **Never enable CrewAI memory** - Always set `memory=False` (ADR-024, October 2025)
+7. **Never use crew_class parameter** - Always use `child_flow_service` pattern (ADR-025, October 2025)
+8. **Never make direct LLM calls** - Always use `multi_model_service.generate_response()` for tracking
+9. **Never use camelCase in new code** - Always use snake_case (migration completed August 2025)
 
 ### ✅ Always Do These Things
 1. **Always use Docker for everything** - `docker exec` for all debugging
@@ -246,6 +258,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 3. **Always include context headers** - `X-Client-Account-ID`, `X-Engagement-ID`
 4. **Always update CHANGELOG.md** - After every task completion
 5. **Always test in containers** - Never trust local testing
+6. **Always use TenantMemoryManager** - For all agent learning and pattern storage (ADR-024, October 2025)
+7. **Always use child_flow_service pattern** - When implementing new flow types (ADR-025, October 2025)
+8. **Always use multi_model_service** - For automatic LLM usage tracking and cost monitoring (October 2025)
+9. **Always use snake_case** - For all new API fields and TypeScript interfaces (August 2025)
 
 ### 🔧 Development Patterns
 
