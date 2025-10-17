@@ -402,16 +402,13 @@ async def get_active_flows(
                 progress = getattr(master_flow, "progress_percentage", 0) or 0
 
             # Determine current phase and status based on completed phases (ADR-027: Discovery v3.0.0)
-            current_phase = None
-            flow_status = getattr(master_flow, "flow_status", "unknown")
+            current_phase = getattr(discovery_flow, "current_phase", None)
+            flow_status = getattr(
+                discovery_flow, "status", getattr(master_flow, "flow_status", "unknown")
+            )
 
-            if discovery_flow:
-                # Use discovery flow's current_phase if available
-                current_phase = discovery_flow.current_phase
-                # Use discovery flow's status if available
-                flow_status = discovery_flow.status
-            else:
-                # Calculate current phase from completion flags
+            # Calculate current phase from completion flags if not available on discovery_flow
+            if not current_phase:
                 phase_order = [
                     "data_import",
                     "data_validation",
@@ -423,10 +420,11 @@ async def get_active_flows(
                     if not phases_dict.get(phase, False):
                         current_phase = phase
                         break
-                # If all phases completed, set to completed
-                if current_phase is None:
-                    current_phase = "completed"
-                    flow_status = "completed"
+
+            # If all phases are completed, ensure status reflects this
+            if all(phases_dict.values()):
+                current_phase = "completed"
+                flow_status = "completed"
 
             active_flows.append(
                 {

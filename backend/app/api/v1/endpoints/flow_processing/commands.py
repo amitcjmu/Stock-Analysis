@@ -5,11 +5,18 @@ Core processing operations and state modifications
 
 import logging
 import time
+from datetime import datetime
 from typing import Any
 
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.flow_orchestration.transition_utils import (
     get_fast_path_response,
     _get_next_phase_simple,
@@ -351,35 +358,43 @@ async def _update_phase_if_needed(
             agent_insights=None,
         )
 
-        # TODO: Re-enable after adding update_persistence_data() to repository (pre-existing bug)
         # Also update master flow's persistence data to track current phase
-        # flow_repo = DiscoveryFlowRepository(
-        #     db, context.client_account_id, context.engagement_id
-        # )
-        # discovery_flow = await flow_repo.get_by_flow_id(flow_id)
-        # if discovery_flow and discovery_flow.master_flow_id:
-        #     master_repo = CrewAIFlowStateExtensionsRepository(
-        #         db, context.client_account_id, context.engagement_id
-        #     )
-        #     # Update master flow persistence data to track phase transition
-        #     master_flow = await master_repo.get_by_flow_id(
-        #         str(discovery_flow.master_flow_id)
-        #     )
-        #     if master_flow and master_flow.flow_persistence_data:
-        #         persistence_data = master_flow.flow_persistence_data
-        #         persistence_data["current_phase"] = next_phase
-        #         persistence_data["last_phase_transition"] = {
-        #             "from": current_phase,
-        #             "to": next_phase,
-        #             "timestamp": datetime.utcnow().isoformat(),
-        #         }
-        #         await master_repo.update_persistence_data(
-        #             flow_id=str(discovery_flow.master_flow_id),
-        #             persistence_data=persistence_data,
-        #         )
-        #         logger.info(
-        #             f"✅ Updated master flow {discovery_flow.master_flow_id} phase metadata"
-        #         )
+        flow_repo = DiscoveryFlowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+        discovery_flow = await flow_repo.get_by_flow_id(flow_id)
+        if discovery_flow and discovery_flow.master_flow_id:
+            # Update master flow persistence data using SQLAlchemy update
+            master_repo = CrewAIFlowStateExtensionsRepository(
+                db, context.client_account_id, context.engagement_id
+            )
+            master_flow = await master_repo.get_by_flow_id(
+                str(discovery_flow.master_flow_id)
+            )
+            if master_flow and master_flow.flow_persistence_data:
+                persistence_data = dict(master_flow.flow_persistence_data or {})
+                persistence_data["current_phase"] = next_phase
+                persistence_data["last_phase_transition"] = {
+                    "from": current_phase,
+                    "to": next_phase,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+
+                # Use SQLAlchemy update to modify JSONB field
+                stmt = (
+                    update(CrewAIFlowStateExtensions)
+                    .where(
+                        CrewAIFlowStateExtensions.flow_id
+                        == str(discovery_flow.master_flow_id)
+                    )
+                    .values(flow_persistence_data=persistence_data)
+                )
+                await db.execute(stmt)
+                await db.commit()
+
+                logger.info(
+                    f"✅ Updated master flow {discovery_flow.master_flow_id} phase metadata"
+                )
 
         logger.info(
             f"✅ Advanced current_phase from {current_phase} to {next_phase} in all tables"
