@@ -573,7 +573,7 @@ export const useAssessmentFlow = (
         // nextPhase: populated by phase logic
         // pausePoints: populated by phase completion
         // appsReadyForPlanning: populated by phase logic
-        isLoading: false,
+        // Keep isLoading=true until ALL data loads (Bug #640 fix)
       }));
 
       // Load phase-specific data
@@ -581,6 +581,9 @@ export const useAssessmentFlow = (
 
       // Load application data (full details)
       await loadApplicationData();
+
+      // Only set isLoading=false after ALL data loading completes (Bug #640 fix)
+      setState((prev) => ({ ...prev, isLoading: false }));
     } catch (error) {
       setState((prev) => ({
         ...prev,

@@ -51,12 +51,7 @@ const TechDebtPage: React.FC = () => {
     }
   }, [state.selectedApplicationIds, selectedApp]);
 
-  // Prevent rendering until flow is hydrated
-  if (!flowId || state.status === 'idle') {
-    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
-  }
-
-  // Get current application data
+  // Get current application data (hooks must be called before any early returns)
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
   const currentAppTechDebt = useMemo(() =>
     selectedApp ? state.techDebtAnalysis[selectedApp] || [] : [],
@@ -91,6 +86,11 @@ const TechDebtPage: React.FC = () => {
 
     return stats;
   }, [currentAppTechDebt]);
+
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
 
   const handleSaveDraft = async (): void => {
     if (!selectedApp) return;
@@ -149,7 +149,15 @@ const TechDebtPage: React.FC = () => {
     }
   };
 
+  // Bug #640 fix: Improved guard to check loading state before showing error
+  // Don't show "No Applications Selected" error while data is still loading
   if (state.selectedApplicationIds.length === 0) {
+    // If still loading, show loading indicator instead of error
+    if (state.isLoading) {
+      return <div className="p-6 text-sm text-muted-foreground">Loading application data...</div>;
+    }
+
+    // Only show error if loading is complete and still no applications
     return (
       <AssessmentFlowLayout flowId={flowId}>
         <div className="p-6 text-center">
