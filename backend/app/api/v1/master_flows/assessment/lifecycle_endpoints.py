@@ -203,30 +203,77 @@ async def update_assessment_phase_data(
             f"Updating phase data for flow {flow_id}, phase: {phase}, data keys: {list(data.keys())}"
         )
 
-        # Handle component_analysis phase
+        # Handle component_analysis phase (placeholder)
         if phase == "component_analysis":
+            # Placeholder for component analysis data
+            return {
+                "flow_id": flow_id,
+                "phase": phase,
+                "status": "updated",
+                "message": "Component analysis data updated",
+            }
+
+        # Handle tech_debt_analysis phase - FIX FOR ISSUE #641
+        elif phase == "tech_debt_analysis":
             app_id = data.get("app_id")
             components = data.get("components", [])
 
             if not app_id:
                 raise HTTPException(
                     status_code=400,
-                    detail="app_id is required for component_analysis phase",
+                    detail="app_id is required for tech_debt_analysis phase",
+                )
+
+            # Validate UUID formats (Qodo Bot suggestion #3)
+            try:
+                flow_uuid = UUID(flow_id)
+                app_uuid = UUID(app_id)
+            except ValueError as uuid_err:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid UUID format for flow_id '{flow_id}' or app_id '{app_id}': {str(uuid_err)}",
                 )
 
             # Store components for this application
             stored_components = []
             for comp_data in components:
+                # Validate required component fields (Qodo Bot suggestion #2)
+                component_name = comp_data.get("name")
+                component_type = comp_data.get("type")
+
+                if not component_name or not component_type:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Component data is missing required fields 'name' or 'type': {comp_data}",
+                    )
+
+                # Security: Validate input size limits (Qodo Bot security issue)
+                if len(component_name) > 255:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Component name exceeds 255 character limit: {len(component_name)} chars",
+                    )
+
+                description = comp_data.get("description")
+                if description and len(description) > 2000:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Description exceeds 2000 character limit: {len(description)} chars",
+                    )
+
                 # Create ApplicationComponent instance
                 component = ApplicationComponent(
-                    assessment_flow_id=UUID(flow_id),
-                    application_id=UUID(app_id),
-                    component_name=comp_data.get("name"),
-                    component_type=comp_data.get("type"),
-                    description=comp_data.get("description"),
+                    assessment_flow_id=flow_uuid,
+                    application_id=app_uuid,
+                    component_name=component_name,
+                    component_type=component_type,
+                    description=description,
                     current_technology=comp_data.get("technology"),
                     configuration=comp_data.get("configuration", {}),
                     discovered_by="manual",
+                    # Multi-tenant scoping (from code review)
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
                 )
                 db.add(component)
                 stored_components.append(
@@ -246,16 +293,6 @@ async def update_assessment_phase_data(
                 "message": f"Stored {len(stored_components)} components for application {app_id}",
             }
 
-        # Handle tech_debt_analysis phase (future extension)
-        elif phase == "tech_debt_analysis":
-            # Placeholder for tech debt items storage
-            return {
-                "flow_id": flow_id,
-                "phase": phase,
-                "status": "updated",
-                "message": "Tech debt analysis data updated",
-            }
-
         else:
             raise HTTPException(
                 status_code=400,
@@ -265,6 +302,8 @@ async def update_assessment_phase_data(
     except HTTPException:
         raise
     except Exception as e:
+        # Qodo Bot suggestion #1 - Add rollback on error
+        await db.rollback()
         logger.error(
             f"Failed to update phase data for flow {flow_id}: {str(e)}", exc_info=True
         )
