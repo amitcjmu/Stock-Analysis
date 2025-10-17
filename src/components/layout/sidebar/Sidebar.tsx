@@ -133,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   /**
    * Build dynamic Assessment submenu from API-driven phases
    * Per ADR-027: Use FlowTypeConfig as single source of truth
-   * Fix #632: Replace :flowId with actual flowId from current URL
+   * Fix #637: Only show phase links when active assessment flow exists
    */
   const assessmentSubmenu = React.useMemo(() => {
     // Fallback while loading or if API fails
@@ -143,16 +143,20 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       ];
     }
 
-    // Map API phases to NavigationItem format
-    // Use ui_short_name for compact sidebar labels, fallback to display_name
-    // Fix #632: Replace :flowId with actual flowId from current URL
-    const phases = allFlowPhases.assessment.phase_details.map(phase => {
-      let routePath = phase.ui_route;
+    // If no active flow, only show non-flow-specific routes
+    // Fix #637: Don't show phase links with :flowId placeholders
+    if (!currentFlowId) {
+      return [
+        { name: 'Overview', path: '/assess/overview', icon: FileText },
+        { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
+        { name: 'Editor', path: '/assess/editor', icon: Edit }
+      ];
+    }
 
-      // Replace :flowId with actual flow ID if available
-      if (currentFlowId && routePath.includes(':flowId')) {
-        routePath = routePath.replace(':flowId', currentFlowId);
-      }
+    // Active flow exists - show all phase links with real flowId
+    // Use ui_short_name for compact sidebar labels, fallback to display_name
+    const phases = allFlowPhases.assessment.phase_details.map(phase => {
+      const routePath = phase.ui_route.replace(':flowId', currentFlowId);
 
       return {
         name: phase.ui_short_name || phase.display_name,
