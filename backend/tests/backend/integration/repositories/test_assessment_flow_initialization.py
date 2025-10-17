@@ -8,7 +8,7 @@ Tests verify that create_assessment_flow() properly populates:
 """
 
 import pytest
-from uuid import uuid4
+from uuid import uuid4, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -22,11 +22,17 @@ from app.models.canonical_applications import (
 )
 from app.models.assessment_flow import AssessmentFlow
 
+# Use existing Demo Corporation client account and engagement for integration tests
+DEMO_CLIENT_ACCOUNT_ID = UUID("11111111-1111-1111-1111-111111111111")
+DEMO_ENGAGEMENT_ID = "22222222-2222-2222-2222-222222222222"
+
 
 @pytest.mark.asyncio
 async def test_create_assessment_flow_with_enrichment_metadata(
-    db_session: AsyncSession,
+    async_db_session: AsyncSession,
 ):
+    """Integration test uses async_db_session fixture."""
+    db_session = async_db_session
     """
     Test assessment flow creation populates enrichment metadata correctly.
 
@@ -38,8 +44,8 @@ async def test_create_assessment_flow_with_enrichment_metadata(
     - Verify all new fields populated
     """
     # Setup: Generate tenant context
-    client_account_id = 1
-    engagement_id = str(uuid4())
+    client_account_id = DEMO_CLIENT_ACCOUNT_ID
+    engagement_id = DEMO_ENGAGEMENT_ID
     collection_flow_id = uuid4()
 
     # Setup: Create assets
@@ -81,6 +87,7 @@ async def test_create_assessment_flow_with_enrichment_metadata(
     link1 = CollectionFlowApplication(
         collection_flow_id=collection_flow_id,
         asset_id=asset1.id,
+        application_name="Test Application",
         canonical_application_id=canonical_app.id,
         deduplication_method="manual",
         match_confidence=1.0,
@@ -90,6 +97,7 @@ async def test_create_assessment_flow_with_enrichment_metadata(
     link2 = CollectionFlowApplication(
         collection_flow_id=collection_flow_id,
         asset_id=asset2.id,
+        application_name="Test Application",
         canonical_application_id=canonical_app.id,
         deduplication_method="manual",
         match_confidence=1.0,
@@ -138,7 +146,11 @@ async def test_create_assessment_flow_with_enrichment_metadata(
 
 
 @pytest.mark.asyncio
-async def test_create_assessment_flow_with_unmapped_assets(db_session: AsyncSession):
+async def test_create_assessment_flow_with_unmapped_assets(
+    async_db_session: AsyncSession,
+):
+    """Integration test uses async_db_session fixture."""
+    db_session = async_db_session
     """
     Test assessment flow creation handles unmapped assets gracefully.
 
@@ -148,8 +160,8 @@ async def test_create_assessment_flow_with_unmapped_assets(db_session: AsyncSess
     - Verify unmapped asset grouped separately
     """
     # Setup: Generate tenant context
-    client_account_id = 1
-    engagement_id = str(uuid4())
+    client_account_id = DEMO_CLIENT_ACCOUNT_ID
+    engagement_id = DEMO_ENGAGEMENT_ID
 
     # Setup: Create asset WITHOUT canonical mapping
     asset = Asset(
@@ -187,7 +199,9 @@ async def test_create_assessment_flow_with_unmapped_assets(db_session: AsyncSess
 
 
 @pytest.mark.asyncio
-async def test_create_assessment_flow_empty_assets(db_session: AsyncSession):
+async def test_create_assessment_flow_empty_assets(async_db_session: AsyncSession):
+    """Integration test uses async_db_session fixture."""
+    db_session = async_db_session
     """
     Test assessment flow creation with empty asset list.
 
@@ -196,8 +210,8 @@ async def test_create_assessment_flow_empty_assets(db_session: AsyncSession):
     - Verify flow created but metadata empty
     """
     # Setup: Generate tenant context
-    client_account_id = 1
-    engagement_id = str(uuid4())
+    client_account_id = DEMO_CLIENT_ACCOUNT_ID
+    engagement_id = DEMO_ENGAGEMENT_ID
 
     # Execute: Create assessment flow with empty asset list
     flow_commands = FlowCommands(db=db_session, client_account_id=client_account_id)
@@ -222,7 +236,11 @@ async def test_create_assessment_flow_empty_assets(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_create_assessment_flow_multiple_applications(db_session: AsyncSession):
+async def test_create_assessment_flow_multiple_applications(
+    async_db_session: AsyncSession,
+):
+    """Integration test uses async_db_session fixture."""
+    db_session = async_db_session
     """
     Test assessment flow creation with assets from multiple canonical applications.
 
@@ -234,8 +252,8 @@ async def test_create_assessment_flow_multiple_applications(db_session: AsyncSes
     - Verify 2 application groups created
     """
     # Setup: Generate tenant context
-    client_account_id = 1
-    engagement_id = str(uuid4())
+    client_account_id = DEMO_CLIENT_ACCOUNT_ID
+    engagement_id = DEMO_ENGAGEMENT_ID
     collection_flow_id = uuid4()
 
     # Setup: Create assets
@@ -295,6 +313,7 @@ async def test_create_assessment_flow_multiple_applications(db_session: AsyncSes
         CollectionFlowApplication(
             collection_flow_id=collection_flow_id,
             asset_id=asset1.id,
+            application_name="CRM System",
             canonical_application_id=crm_app.id,
             deduplication_method="auto",
             match_confidence=0.95,
@@ -304,6 +323,7 @@ async def test_create_assessment_flow_multiple_applications(db_session: AsyncSes
         CollectionFlowApplication(
             collection_flow_id=collection_flow_id,
             asset_id=asset2.id,
+            application_name="CRM System",
             canonical_application_id=crm_app.id,
             deduplication_method="auto",
             match_confidence=0.90,
@@ -313,6 +333,7 @@ async def test_create_assessment_flow_multiple_applications(db_session: AsyncSes
         CollectionFlowApplication(
             collection_flow_id=collection_flow_id,
             asset_id=asset3.id,
+            application_name="ERP System",
             canonical_application_id=erp_app.id,
             deduplication_method="auto",
             match_confidence=0.88,
@@ -368,7 +389,11 @@ async def test_create_assessment_flow_multiple_applications(db_session: AsyncSes
 
 
 @pytest.mark.asyncio
-async def test_create_assessment_flow_backward_compatibility(db_session: AsyncSession):
+async def test_create_assessment_flow_backward_compatibility(
+    async_db_session: AsyncSession,
+):
+    """Integration test uses async_db_session fixture."""
+    db_session = async_db_session
     """
     Test that old selected_application_ids field is still populated for backward compatibility.
 
@@ -377,8 +402,8 @@ async def test_create_assessment_flow_backward_compatibility(db_session: AsyncSe
     - Verify BOTH selected_application_ids (old) and selected_asset_ids (new) populated
     """
     # Setup: Generate tenant context
-    client_account_id = 1
-    engagement_id = str(uuid4())
+    client_account_id = DEMO_CLIENT_ACCOUNT_ID
+    engagement_id = DEMO_ENGAGEMENT_ID
 
     # Setup: Create asset
     asset = Asset(
