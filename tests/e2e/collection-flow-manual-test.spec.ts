@@ -13,10 +13,14 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import path from 'path';
 
 const BASE_URL = 'http://localhost:8081';
 const DEMO_EMAIL = 'demo@demo-corp.com';
 const DEMO_PASSWORD = 'Demo123!';
+
+// Project-relative screenshot directory (not user-specific absolute path)
+const SCREENSHOT_DIR = path.resolve(__dirname, '../../qa-test-screenshots');
 
 /**
  * Enhanced login helper that waits for full auth context initialization
@@ -87,7 +91,7 @@ test.describe('Collection Flow - Full Journey', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/01-collection-landing.png',
+      path: path.join(SCREENSHOT_DIR, '01-collection-landing.png'),
       fullPage: true
     });
     console.log('✅ Collection page loaded');
@@ -118,7 +122,7 @@ test.describe('Collection Flow - Full Journey', () => {
       await page.waitForTimeout(3000);
 
       await page.screenshot({
-        path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/02-after-start-click.png',
+        path: path.join(SCREENSHOT_DIR, '02-after-start-click.png'),
         fullPage: true
       });
 
@@ -129,7 +133,7 @@ test.describe('Collection Flow - Full Journey', () => {
     } else {
       console.error('❌ No start or resume button found!');
       await page.screenshot({
-        path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/ERROR-no-buttons.png',
+        path: path.join(SCREENSHOT_DIR, 'ERROR-no-buttons.png'),
         fullPage: true
       });
 
@@ -144,7 +148,7 @@ test.describe('Collection Flow - Full Journey', () => {
 
     // Take screenshot of asset selection
     await page.screenshot({
-      path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/03-asset-selection.png',
+      path: path.join(SCREENSHOT_DIR, '03-asset-selection.png'),
       fullPage: true
     });
 
@@ -193,7 +197,7 @@ test.describe('Collection Flow - Full Journey', () => {
     }
 
     await page.screenshot({
-      path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/04-assets-selected.png',
+      path: path.join(SCREENSHOT_DIR, '04-assets-selected.png'),
       fullPage: true
     });
 
@@ -213,7 +217,7 @@ test.describe('Collection Flow - Full Journey', () => {
       await page.waitForTimeout(3000);
 
       await page.screenshot({
-        path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/05-after-next-click.png',
+        path: path.join(SCREENSHOT_DIR, '05-after-next-click.png'),
         fullPage: true
       });
 
@@ -244,7 +248,7 @@ test.describe('Collection Flow - Full Journey', () => {
         console.log(`✅ Phase detected: ${indicator}`);
 
         await page.screenshot({
-          path: `/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/06-phase-${indicator.toLowerCase().replace(/\s+/g, '-')}.png`,
+          path: path.join(SCREENSHOT_DIR, `06-phase-${indicator.toLowerCase().replace(/\s+/g, '-')}.png`),
           fullPage: true
         });
 
@@ -269,7 +273,7 @@ test.describe('Collection Flow - Full Journey', () => {
       await page.waitForTimeout(30000);
 
       await page.screenshot({
-        path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/07-after-loading.png',
+        path: path.join(SCREENSHOT_DIR, '07-after-loading.png'),
         fullPage: true
       });
     }
@@ -278,7 +282,7 @@ test.describe('Collection Flow - Full Journey', () => {
     console.log('\n📝 STEP 7: Final state verification');
 
     await page.screenshot({
-      path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/qa-test-screenshots/08-final-state.png',
+      path: path.join(SCREENSHOT_DIR, '08-final-state.png'),
       fullPage: true
     });
 

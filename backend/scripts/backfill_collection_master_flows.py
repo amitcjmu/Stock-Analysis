@@ -34,21 +34,18 @@ logger = logging.getLogger(__name__)
 
 async def find_orphaned_flows(db: AsyncSession) -> list[CollectionFlow]:
     """Find collection flows without master flow records."""
+    # Get all existing master flow IDs in a single query (optimization)
+    master_flow_ids_result = await db.execute(select(CrewAIFlowStateExtensions.flow_id))
+    existing_master_flow_ids = {f_id for f_id, in master_flow_ids_result}
+
     # Get all collection flows
     result = await db.execute(select(CollectionFlow))
     all_flows = result.scalars().all()
 
     orphaned = []
     for flow in all_flows:
-        # Check if master flow exists
-        master_result = await db.execute(
-            select(CrewAIFlowStateExtensions).where(
-                CrewAIFlowStateExtensions.flow_id == flow.flow_id
-            )
-        )
-        master_flow = master_result.scalar_one_or_none()
-
-        if not master_flow:
+        # Check for existence in the set (in-memory, no DB query)
+        if flow.flow_id not in existing_master_flow_ids:
             orphaned.append(flow)
             logger.warning(
                 f"Found orphaned flow: {flow.flow_id} (name: {flow.flow_name}, "
@@ -126,10 +123,14 @@ async def main(dry_run: bool = False):
     logger.info(f"Mode: {'DRY RUN' if dry_run else 'PRODUCTION'}")
     logger.info("")
 
-    # Create async engine
+    # Validate DATABASE_URL exists (without logging credentials)
+    if not settings.DATABASE_URL:
+        raise ValueError("DATABASE_URL not configured in settings")
+
+    # Create async engine (echo=False prevents SQL/URL logging for security)
     engine = create_async_engine(
         settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
-        echo=False,
+        echo=False,  # Security: Prevents credentials from being logged in SQL statements
     )
 
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

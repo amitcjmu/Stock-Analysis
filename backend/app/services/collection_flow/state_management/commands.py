@@ -198,10 +198,14 @@ class CollectionFlowCommandService:
 
             # ADR-028: Complete previous phase in master flow
             if master_flow.phase_transitions:
-                last_transition = master_flow.phase_transitions[-1]
+                # Create mutable copy to notify SQLAlchemy of changes
+                transitions = list(master_flow.phase_transitions)
+                last_transition = transitions[-1]
                 if last_transition.get("status") == "active":
                     last_transition["status"] = "completed"
                     last_transition["completed_at"] = datetime.utcnow().isoformat()
+                # Re-assign to notify SQLAlchemy of JSONB mutation
+                master_flow.phase_transitions = transitions
 
             # ADR-028: Add new phase transition to master flow (single source of truth)
             master_flow.add_phase_transition(
@@ -371,13 +375,17 @@ class CollectionFlowCommandService:
                 if master_flow:
                     # Mark current phase as failed in master flow
                     if master_flow.phase_transitions:
-                        last_transition = master_flow.phase_transitions[-1]
+                        # Create mutable copy to notify SQLAlchemy of changes
+                        transitions = list(master_flow.phase_transitions)
+                        last_transition = transitions[-1]
                         if last_transition.get("status") == "active":
                             last_transition["status"] = "failed"
                             last_transition["completed_at"] = (
                                 datetime.utcnow().isoformat()
                             )
                             last_transition["error"] = error_message
+                        # Re-assign to notify SQLAlchemy of JSONB mutation
+                        master_flow.phase_transitions = transitions
 
                     # Add error to master flow's error history
                     master_flow.add_error(

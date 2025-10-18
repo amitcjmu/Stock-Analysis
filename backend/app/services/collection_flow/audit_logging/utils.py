@@ -242,7 +242,10 @@ def calculate_phase_durations(
                     end_dt = datetime.utcnow()
 
                 duration_minutes = (end_dt - start_dt).total_seconds() / 60
-                durations[phase_name] = round(duration_minutes, 2)
+                # Sum durations if a phase is re-entered
+                durations[phase_name] = durations.get(phase_name, 0) + round(
+                    duration_minutes, 2
+                )
             except Exception:
                 pass
 
