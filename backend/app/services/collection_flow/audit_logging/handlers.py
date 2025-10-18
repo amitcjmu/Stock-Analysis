@@ -166,8 +166,23 @@ class MonitoringService:
             if flow.completed_at and flow.created_at:
                 duration = (flow.completed_at - flow.created_at).total_seconds() / 60
 
-            # Get phase durations
-            phase_durations = calculate_phase_durations(flow.phase_state)
+            # ADR-028: Get phase durations from master flow
+            phase_durations = {}
+            if flow.master_flow_id:
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
+
+                master_flow_result = await self.db.execute(
+                    select(CrewAIFlowStateExtensions).where(
+                        CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
+                    )
+                )
+                master_flow = master_flow_result.scalar_one_or_none()
+                if master_flow and master_flow.phase_transitions:
+                    phase_durations = calculate_phase_durations(
+                        master_flow.phase_transitions
+                    )
 
             # Get event count
             event_count = await self.storage.count_flow_events(flow_id)

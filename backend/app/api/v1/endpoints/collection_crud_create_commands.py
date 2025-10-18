@@ -365,28 +365,8 @@ async def create_collection_flow(
         # Create flow record
         flow_id = uuid.uuid4()
 
-        # Initialize phase state with asset selection phase for non-Discovery flows
-        phase_state = {
-            "current_phase": CollectionPhase.ASSET_SELECTION.value,
-            "phase_history": [
-                {
-                    "phase": CollectionPhase.ASSET_SELECTION.value,
-                    "started_at": datetime.now(timezone.utc).isoformat(),
-                    "status": "active",
-                    "metadata": {
-                        "started_directly": True,
-                        "reason": "Collection flow starts with asset selection for user to choose assets",
-                    },
-                }
-            ],
-            "phase_metadata": {
-                "asset_selection": {
-                    "started_directly": True,
-                    "requires_user_selection": True,
-                    "source": "collection_overview",
-                }
-            },
-        }
+        # Per ADR-028: phase_state eliminated - phase tracking will be added to master flow
+        # Phase tracking will be managed via master flow's phase_transitions after creation
 
         collection_flow = CollectionFlow(
             flow_id=flow_id,
@@ -403,7 +383,7 @@ async def create_collection_flow(
                 "use_agent_generation": True
             },  # Enable CrewAI agent generation
             current_phase=CollectionPhase.ASSET_SELECTION.value,
-            phase_state=phase_state,
+            # phase_state removed per ADR-028 - use master flow's phase_transitions
         )
 
         db.add(collection_flow)

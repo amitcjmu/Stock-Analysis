@@ -36,17 +36,26 @@ class WorkflowStateManager:
             raise CollectionFlowError("Missing engagement_id in context")
 
     def get_workflow_progress(self, state: CollectionFlowState) -> WorkflowProgress:
-        """Extract workflow progress from collection flow state"""
-        workflow_data = state.phase_state.get("workflow_progress", {})
+        """
+        Extract workflow progress from collection flow state.
+
+        Per ADR-028: Uses metadata instead of phase_state for workflow-specific data.
+        """
+        workflow_data = state.metadata.get("workflow_progress", {})
         return WorkflowProgress.from_dict(workflow_data)
 
     def save_workflow_progress(
         self, state: CollectionFlowState, progress: WorkflowProgress
     ) -> None:
-        """Save workflow progress to collection flow state"""
-        if not state.phase_state:
-            state.phase_state = {}
-        state.phase_state["workflow_progress"] = progress.to_dict()
+        """
+        Save workflow progress to collection flow state.
+
+        Per ADR-028: Uses metadata instead of phase_state for workflow-specific data.
+        Phase tracking itself is in master flow's phase_transitions.
+        """
+        if not state.metadata:
+            state.metadata = {}
+        state.metadata["workflow_progress"] = progress.to_dict()
         state.updated_at = datetime.utcnow()
 
     async def check_bootstrap_questionnaire_exists(

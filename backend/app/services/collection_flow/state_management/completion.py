@@ -42,6 +42,8 @@ class CollectionFlowCompletionService:
         """
         Mark Collection Flow as completed.
 
+        Per ADR-028: Updates master flow phase transitions, not local phase_state.
+
         Args:
             flow_id: Flow ID
             final_quality_score: Final quality score
@@ -52,6 +54,10 @@ class CollectionFlowCompletionService:
             Updated CollectionFlow instance
         """
         try:
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
+
             # Get the collection flow
             result = await self.db.execute(
                 select(CollectionFlow).where(
@@ -83,21 +89,30 @@ class CollectionFlowCompletionService:
             }
             collection_flow.metadata = metadata
 
-            # Update phase state
-            phase_state = collection_flow.phase_state or {}
-            if "phase_history" in phase_state and phase_state["phase_history"]:
-                phase_state["phase_history"][-1]["status"] = "completed"
-                phase_state["phase_history"][-1][
-                    "completed_at"
-                ] = datetime.utcnow().isoformat()
-            collection_flow.phase_state = phase_state
-
-            # CRITICAL BUG FIX: Synchronize master flow status to prevent desynchronization
-            # When collection flow is marked as completed, ensure master flow is also completed
+            # ADR-028: Mark current phase as completed in master flow
             if collection_flow.master_flow_id:
-                await self._sync_master_flow_completion(
-                    collection_flow, final_quality_score, final_confidence_score
+                master_flow_result = await self.db.execute(
+                    select(CrewAIFlowStateExtensions).where(
+                        CrewAIFlowStateExtensions.flow_id
+                        == collection_flow.master_flow_id
+                    )
                 )
+                master_flow = master_flow_result.scalar_one_or_none()
+
+                if master_flow:
+                    # Complete current phase in master flow
+                    if master_flow.phase_transitions:
+                        last_transition = master_flow.phase_transitions[-1]
+                        if last_transition.get("status") == "active":
+                            last_transition["status"] = "completed"
+                            last_transition["completed_at"] = (
+                                datetime.utcnow().isoformat()
+                            )
+
+                    # Synchronize master flow status to completed
+                    await self._sync_master_flow_completion(
+                        collection_flow, final_quality_score, final_confidence_score
+                    )
 
             await self.db.commit()
             await self.db.refresh(collection_flow)

@@ -176,20 +176,43 @@ class DiscoveryToCollectionBridge:
     async def trigger_gap_analysis(
         self, collection_flow: CollectionFlow, app_data: List[Dict[str, Any]]
     ) -> None:
-        """Trigger immediate gap analysis for selected applications"""
+        """
+        Trigger immediate gap analysis for selected applications.
+
+        Per ADR-028: Uses master flow for phase tracking, not local phase_state.
+        """
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
         # This will be handled by the CrewAI flow phases
         # Here we just update the flow state to indicate gap analysis should start
         collection_flow.status = (
             CollectionFlowStatus.RUNNING.value
         )  # Per ADR-012: Flow is now actively running
+
+        # ADR-028: Update master flow phase transition
+        if collection_flow.master_flow_id:
+            master_flow_result = await self.db.execute(
+                select(CrewAIFlowStateExtensions).where(
+                    CrewAIFlowStateExtensions.flow_id == collection_flow.master_flow_id
+                )
+            )
+            master_flow = master_flow_result.scalar_one_or_none()
+
+            if master_flow:
+                # Add gap analysis phase to master flow
+                master_flow.add_phase_transition(
+                    phase=CollectionPhase.GAP_ANALYSIS.value,
+                    status="active",
+                    metadata={
+                        "status": "pending",
+                        "applications_to_analyze": [app["id"] for app in app_data],
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
+
+        # Synchronize current_phase column
         collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
-        collection_flow.phase_state = {
-            "gap_analysis": {
-                "status": "pending",
-                "applications_to_analyze": [app["id"] for app in app_data],
-                "started_at": datetime.now(timezone.utc).isoformat(),
-            }
-        }
+
         await self.db.commit()
 
     def _calculate_completeness(self, app: Asset) -> float:
