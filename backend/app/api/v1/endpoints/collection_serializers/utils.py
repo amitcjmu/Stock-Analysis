@@ -22,10 +22,9 @@ def build_cleanup_flow_details(flow: CollectionFlow) -> Dict[str, Any]:
     from app.api.v1.endpoints.collection_utils import calculate_time_since_creation
 
     time_since_update = calculate_time_since_creation(flow.updated_at)
-    estimated_size = (
-        len(str(flow.collection_config or {}))
-        + len(str(flow.phase_state or {}))
-        + len(str(flow.collection_results or {}))
+    # Per ADR-028: phase_state field removed from collection_flow
+    estimated_size = len(str(flow.collection_config or {})) + len(
+        str(flow.collection_results or {})
     )
 
     return {

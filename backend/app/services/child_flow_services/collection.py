@@ -55,7 +55,7 @@ class CollectionChildFlowService(BaseChildFlowService):
                 "progress_percentage": child_flow.progress_percentage,
                 "automation_tier": child_flow.automation_tier,
                 "collection_config": child_flow.collection_config,
-                "phase_state": getattr(child_flow, "phase_state", {}),
+                # Per ADR-028: phase_state field removed from collection_flow
             }
         except Exception as e:
             logger.warning(f"Failed to get collection child flow status: {e}")
