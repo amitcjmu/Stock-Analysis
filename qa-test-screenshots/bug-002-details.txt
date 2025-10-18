@@ -1,0 +1,57 @@
+BUG #2: Assessment API Call Missing Required Multi-Tenant Headers (400 Error)
+
+## Severity: CRITICAL
+
+## Description
+When the assessment page loads, it attempts to fetch unmapped assets but fails with a 400 Bad Request error because the frontend is not including required multi-tenant security headers (X-Client-Account-Id and X-Engagement-Id).
+
+## Steps to Reproduce
+1. Login with demo@demo-corp.com / Demo123!
+2. Navigate to Collection > Overview
+3. Click "View Progress" on active collection flow
+4. Click "Start Assessment Phase"
+5. Observe browser console error: "Failed to fetch unmapped assets: Error: HTTP 400: Bad Request"
+
+## Expected Behavior
+- Frontend should include X-Client-Account-Id and X-Engagement-Id headers in all API calls
+- Backend should successfully return unmapped assets data
+- No 400 errors in console
+
+## Actual Behavior
+- Frontend makes API call WITHOUT multi-tenant headers ✗
+- Backend returns 400 Bad Request ✗
+- Browser console shows error ✗
+
+## Backend Log Evidence
+```
+Context extraction failed for /api/v1/collection/assessment/55610227.../unmapped-assets:
+403: Client account context is required for multi-tenant security.
+Please provide X-Client-Account-Id header.
+Status: 400
+```
+
+## API Call Details
+- Endpoint: `/api/v1/collection/assessment/55610227-7481-45e5-87ff-dc776dd8d5f8/unmapped-assets`
+- Method: GET
+- Missing Headers: X-Client-Account-Id, X-Engagement-Id
+
+## Frontend Screenshot
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/.playwright-mcp/05-assessment-architecture-page.png
+
+## URL
+http://localhost:8081/assessment/55610227-7481-45e5-87ff-dc776dd8d5f8/architecture
+
+## Potential Root Cause
+- Frontend API service not properly configured to include multi-tenant headers
+- Missing header injection in React Query configuration
+- Inconsistent API client usage across different pages
+
+## Impact
+- Assessment page cannot load application data
+- Users stuck on "No applications loaded yet" message
+- Complete blocker for assessment phase workflow
+- Violates multi-tenant security requirements (CRITICAL security issue per CLAUDE.md)
+
+## Related Documentation
+- /CLAUDE.md: "Multi-tenant headers (REQUIRED)" section
+- /docs/analysis/Notes/coding-agent-guide.md: "Multi-Tenant Security (ENTERPRISE CRITICAL)" section

@@ -1,0 +1,98 @@
+[
+  {
+    "type": "debug",
+    "text": "[vite] connecting..."
+  },
+  {
+    "type": "debug",
+    "text": "[vite] connected."
+  },
+  {
+    "type": "info",
+    "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold"
+  },
+  {
+    "type": "log",
+    "text": "✅ FieldOptionsProvider - Using hardcoded asset fields list with 53 fields"
+  },
+  {
+    "type": "log",
+    "text": "✅ FieldOptionsProvider - Using hardcoded asset fields list with 53 fields"
+  },
+  {
+    "type": "debug",
+    "text": "Navigation performance: PerformanceNavigationTiming"
+  },
+  {
+    "type": "debug",
+    "text": "Chunk loaded: http://localhost:8081/node_modules/.vite/deps/chunk-6ZMM2PAV.js?v=12dedce4 1.60ms"
+  },
+  {
+    "type": "debug",
+    "text": "Chunk loaded: http://localhost:8081/node_modules/.vite/deps/chunk-TFX6JGDG.js?v=12dedce4 1.60ms"
+  },
+  {
+    "type": "verbose",
+    "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o"
+  },
+  {
+    "type": "log",
+    "text": "🚀 Parallel context operations completed: {elapsed: 93ms, contextStatus: fulfilled, hasCachedClient: null, hasCachedEngagement: null}"
+  },
+  {
+    "type": "log",
+    "text": "✅ Using fresh context from API"
+  },
+  {
+    "type": "log",
+    "text": "🔄 Syncing context data to individual localStorage keys"
+  },
+  {
+    "type": "log",
+    "text": "✅ Synced client data to localStorage"
+  },
+  {
+    "type": "log",
+    "text": "✅ Synced engagement data to localStorage"
+  },
+  {
+    "type": "log",
+    "text": "✅ Context synchronization completed successfully: {client: true, engagement: true, flow: false}"
+  },
+  {
+    "type": "log",
+    "text": "🔐 User role updated from context: analyst"
+  },
+  {
+    "type": "log",
+    "text": "🔐 Context applied: {hasClient: true, hasEngagement: true, hasFlow: false, source: api}"
+  },
+  {
+    "type": "log",
+    "text": "🔍 updateUserDefaults - Starting with: {client_id: 11111111-1111-1111-1111-111111111111, engagement_id: 22222222-2222-2222-2222-222222222222}"
+  },
+  {
+    "type": "log",
+    "text": "🔐 Login completed - Performance metrics: {totalTime: 446ms, improvement: ~78% faster, redirectPath: /, finalRole: analyst}"
+  },
+  {
+    "type": "log",
+    "text": "🔄 ClientContext: User available, fetching clients"
+  },
+  {
+    "type": "log",
+    "text": "🔄 ClientContext: User available, fetching clients"
+  },
+  {
+    "type": "log",
+    "text": "🔍 updateUserDefaults - API response: {message: User defaults updated successfully, updated_fields: Object}"
+  },
+  {
+    "type": "log",
+    "text": "✅ User defaults updated successfully"
+  },
+  {
+    "type": "log",
+    "text": "🔄 ClientContext: User available, fetching clients"
+  }
+]

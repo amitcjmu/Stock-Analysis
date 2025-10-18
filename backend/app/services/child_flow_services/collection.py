@@ -177,16 +177,24 @@ class CollectionChildFlowService(BaseChildFlowService):
             # NOTE: This service may not exist yet - implementing stub per plan
             logger.info(f"Phase '{phase_name}' - questionnaire generation requested")
 
-            # For now, return success with placeholder
+            # For now, return success with placeholder and auto-progress to manual_collection
             # TODO: Implement actual QuestionnaireGenerationService when ready
             logger.warning(
-                "QuestionnaireGenerationService not yet implemented - returning placeholder"
+                "QuestionnaireGenerationService not yet implemented - auto-progressing to manual_collection"
             )
+
+            # Auto-transition to manual_collection to prevent flows from getting stuck
+            # Per Bug #651 fix: Stub should not leave flows in questionnaire_generation indefinitely
+            await self.state_service.transition_phase(
+                flow_id=child_flow.id,
+                new_phase=CollectionPhase.MANUAL_COLLECTION,
+            )
+
             return {
                 "status": "success",
                 "phase": phase_name,
-                "execution_type": "stub",
-                "message": "Questionnaire generation service pending implementation",
+                "execution_type": "stub_with_progression",
+                "message": "Auto-progressed to manual_collection (questionnaire service pending implementation)",
             }
 
         elif phase_name == "manual_collection":
