@@ -193,7 +193,9 @@ The orchestrators integrate seamlessly with:
 Works with existing models:
 - `CollectionFlow`: Database table
 - `CollectionFlowState`: Runtime state
-- Phase state tracking in `phase_state` JSONB field
+- Phase state tracking in master flow (per ADR-028)
+  - Note: `phase_state` field removed - use master flow's `phase_transitions` instead
+  - Workflow-specific progress stored in `metadata.workflow_progress`
 
 ### Services Integration
 

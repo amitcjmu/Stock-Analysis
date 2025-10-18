@@ -118,7 +118,16 @@ class EnhancedCollectionOrchestrator:
 
         # Initialize managers
         self.state_manager = WorkflowStateManager(context)
-        self.phase_manager = WorkflowPhaseManager()
+
+        # Per ADR-028: Initialize command service for atomic phase transitions
+        from app.services.collection_flow.state_management.commands import (
+            CollectionFlowCommandService,
+        )
+
+        self.command_service = CollectionFlowCommandService(db_session, context)
+        self.phase_manager = WorkflowPhaseManager(
+            db=db_session, context=context, command_service=self.command_service
+        )
 
         # Workflow configuration
         self.phase_timeouts = {

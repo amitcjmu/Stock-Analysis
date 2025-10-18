@@ -118,7 +118,7 @@ class CollectionFlowState:
         # Configuration
         self.collection_config = {}
         self.metadata = {}
-        self.phase_state = {}
+        # Note: phase_state removed per ADR-028 - master flow is single source of truth
 
         # Results and insights
         self.collected_platforms = []
@@ -167,7 +167,7 @@ class CollectionFlowState:
             "progress": self.progress,
             "collection_config": self.collection_config,
             "metadata": self.metadata,
-            "phase_state": self.phase_state,
+            # Note: phase_state removed per ADR-028 - use master flow instead
             "collected_platforms": self.collected_platforms,
             "collection_results": self.collection_results,
             "gap_analysis_results": self.gap_analysis_results,
