@@ -132,11 +132,12 @@ class ErrorHandlers(CollectionHandlerBase):
                     await clear_questionnaire_responses(db, collection_flow["id"])
 
             # Update collection flow state
+            # Per ADR-028: phase_state column removed, use metadata for rollback info
             update_query = """
                 UPDATE collection_flows
                 SET current_phase = :current_phase,
                     status = :status,
-                    phase_state = phase_state || :rollback_info::jsonb,
+                    metadata = metadata || :rollback_info::jsonb,
                     updated_at = :updated_at
                 WHERE master_flow_id = :master_flow_id
             """
@@ -187,10 +188,11 @@ class ErrorHandlers(CollectionHandlerBase):
             if not collection_flow:
                 raise ValueError(f"Collection flow for master {flow_id} not found")
 
-            # Update phase state with checkpoint
+            # Update metadata with checkpoint
+            # Per ADR-028: phase_state column removed, use metadata for checkpoint info
             update_query = """
                 UPDATE collection_flows
-                SET phase_state = phase_state || :checkpoint::jsonb,
+                SET metadata = metadata || :checkpoint::jsonb,
                     updated_at = :updated_at
                 WHERE master_flow_id = :master_flow_id
             """
