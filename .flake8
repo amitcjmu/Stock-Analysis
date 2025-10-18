@@ -54,6 +54,7 @@ per-file-ignores =
     backend/scripts/investigate_discovery_flow.py:C901
     backend/scripts/post_deploy_fix.py:C901
     backend/scripts/test_collection_phase_progression.py:F401,F541,E402
+    backend/scripts/backfill_collection_master_flows.py:E402
     backend/scripts/test_railway_connection.py:C901
     backend/scripts/unified_model_planning.py:C901
     backend/scripts/validate_flow_relationships.py:C901

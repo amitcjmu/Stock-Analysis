@@ -20,6 +20,27 @@ from .workflow_models import QuestionnaireType, WorkflowPhase, WorkflowProgress
 logger = logging.getLogger(__name__)
 
 
+def _set_current_phase_state(
+    state: CollectionFlowState, new_phase: CollectionPhase
+) -> None:
+    """
+    Atomically set current phase in BOTH locations to prevent divergence.
+
+    Bug #648 Fix: Ensures single source of truth by keeping state.current_phase
+    attribute and state.phase_state["current_phase"] dict field synchronized.
+
+    This is the CollectionFlowState (Pydantic/in-memory) version of the helper.
+
+    Args:
+        state: The CollectionFlowState instance to update
+        new_phase: The new CollectionPhase enum value to set
+    """
+    state.current_phase = new_phase
+    if state.phase_state is None:
+        state.phase_state = {}
+    state.phase_state["current_phase"] = new_phase.value
+
+
 class WorkflowPhaseManager:
     """Manages workflow phase transitions and advancement logic"""
 
@@ -121,7 +142,8 @@ class WorkflowPhaseManager:
 
         # Set collection status and phase
         state.status = CollectionStatus.COLLECTING_DATA
-        state.current_phase = CollectionPhase.ASSET_SELECTION
+        # Bug #648 Fix: Use atomic phase setter to prevent divergence
+        _set_current_phase_state(state, CollectionPhase.ASSET_SELECTION)
 
         # Initialize phase results if not exists
         if "basic_collection" not in state.phase_results:
@@ -139,7 +161,8 @@ class WorkflowPhaseManager:
 
         # Update collection status
         state.status = CollectionStatus.GENERATING_QUESTIONNAIRES
-        state.current_phase = CollectionPhase.QUESTIONNAIRE_GENERATION
+        # Bug #648 Fix: Use atomic phase setter to prevent divergence
+        _set_current_phase_state(state, CollectionPhase.QUESTIONNAIRE_GENERATION)
 
         # Initialize detailed collection results
         if "detailed_collection" not in state.phase_results:
@@ -157,7 +180,8 @@ class WorkflowPhaseManager:
 
         # Update status for review
         state.status = CollectionStatus.VALIDATING_DATA
-        state.current_phase = CollectionPhase.DATA_VALIDATION
+        # Bug #648 Fix: Use atomic phase setter to prevent divergence
+        _set_current_phase_state(state, CollectionPhase.DATA_VALIDATION)
 
         # Initialize review results
         if "review_phase" not in state.phase_results:
@@ -175,7 +199,8 @@ class WorkflowPhaseManager:
 
         # Update final status
         state.status = CollectionStatus.COMPLETED
-        state.current_phase = CollectionPhase.FINALIZATION
+        # Bug #648 Fix: Use atomic phase setter to prevent divergence
+        _set_current_phase_state(state, CollectionPhase.FINALIZATION)
         state.completed_at = datetime.utcnow()
         state.assessment_ready = True
 

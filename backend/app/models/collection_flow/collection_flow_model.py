@@ -109,7 +109,7 @@ class CollectionFlow(Base, TimestampMixin):
         "metadata", JSONB, nullable=False, default={}, server_default="{}"
     )
     collection_config = Column(JSONB, nullable=False, default={}, server_default="{}")
-    phase_state = Column(JSONB, nullable=False, default={}, server_default="{}")
+    # phase_state removed per ADR-028: Master flow is single source of truth for phase tracking
 
     # User interaction tracking
     pause_points = Column(
@@ -305,7 +305,7 @@ class CollectionFlow(Base, TimestampMixin):
             "confidence_score": self.confidence_score,
             "metadata": self.flow_metadata,
             "collection_config": self.collection_config,
-            "phase_state": self.phase_state,
+            # phase_state removed per ADR-028 - use master flow's phase_transitions
             "pause_points": self.pause_points,
             "user_inputs": self.user_inputs,
             "phase_results": self.phase_results,

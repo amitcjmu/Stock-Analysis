@@ -30,33 +30,62 @@ const TEST_TIMEOUT = 120000; // 2 minutes for full flow
 const AUTH_EMAIL = process.env.TEST_USER_EMAIL || 'demo@demo-corp.com';
 const AUTH_PASSWORD = process.env.TEST_USER_PASSWORD || 'Demo123!';
 
-// Helper function to authenticate
-async function login(page: Page): Promise<void> {
-  console.log('🔐 Authenticating...');
+/**
+ * Enhanced login helper that waits for full auth context initialization
+ * Bug #650 Fix: Ensures AuthContext React hooks complete before proceeding
+ */
+async function loginAndWaitForContext(page: Page): Promise<void> {
+  console.log('🔐 Logging in with demo credentials...');
 
-  // Navigate to login page
-  await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE_URL}/login`);
+  await page.waitForLoadState('networkidle');
 
   // Fill in credentials
   await page.fill('input[type="email"]', AUTH_EMAIL);
   await page.fill('input[type="password"]', AUTH_PASSWORD);
 
-  // Click sign in button
+  // Click sign in
   await page.click('button:has-text("Sign In")');
 
-  // Wait for redirect away from login page
-  await page.waitForURL(/^(?!.*login)/, { timeout: 10000 });
+  // Wait for redirect after login
+  await page.waitForTimeout(2000);
 
-  console.log('✅ Authentication successful');
+  // CRITICAL FIX (Bug #650): Wait for AuthContext to fully initialize
+  console.log('⏳ Waiting for AuthContext initialization...');
+
+  await page.waitForFunction(() => {
+    const client = localStorage.getItem('auth_client');
+    const engagement = localStorage.getItem('auth_engagement');
+    const user = localStorage.getItem('auth_user');
+
+    // Ensure all are loaded and not null strings
+    return client && engagement && user &&
+           client !== 'null' && engagement !== 'null' && user !== 'null';
+  }, { timeout: 10000 });
+
+  // Verify context is loaded
+  const authContext = await page.evaluate(() => ({
+    client: localStorage.getItem('auth_client'),
+    engagement: localStorage.getItem('auth_engagement'),
+    user: localStorage.getItem('auth_user')
+  }));
+
+  console.log('✅ Auth context loaded:', authContext);
+
+  // Additional wait for React state to sync
+  await page.waitForTimeout(1000);
+
+  const currentUrl = page.url();
+  console.log(`✅ Login complete, redirected to: ${currentUrl}`);
 }
 
 // Helper function to navigate to gap analysis page
 async function navigateToGapAnalysis(page: Page): Promise<string | null> {
   console.log('🧪 Navigating to gap analysis page...');
 
-  // Ensure we're authenticated first
+  // Ensure we're authenticated first (Bug #650 Fix: Now waits for AuthContext)
   if (page.url().includes('/login') || !page.url().includes(BASE_URL)) {
-    await login(page);
+    await loginAndWaitForContext(page);
   }
 
   // Start from collection page
@@ -116,9 +145,9 @@ async function navigateToGapAnalysis(page: Page): Promise<string | null> {
 test.describe('Two-Phase Gap Analysis', () => {
   test.setTimeout(TEST_TIMEOUT);
 
-  // Authenticate before each test
+  // Authenticate before each test (Bug #650 Fix: Now waits for AuthContext)
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await loginAndWaitForContext(page);
   });
 
   test('1. Gap Scan Flow Test', async ({ page }) => {
