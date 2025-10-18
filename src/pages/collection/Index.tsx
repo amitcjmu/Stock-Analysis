@@ -23,7 +23,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FormInput, Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield, Info } from 'lucide-react'
+import { FormInput, Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield, Info, ChevronDown, ChevronRight } from 'lucide-react'
 
 /**
  * Collection workflow index page
@@ -45,6 +45,11 @@ const CollectionIndex: React.FC = () => {
     activeFlowId: null as string | null,
     activeFlowStatus: null as string | null
   });
+
+  // New state for guided workflow
+  const [selectedMethod, setSelectedMethod] = useState<'adaptive' | 'bulk' | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showNewFlowForm, setShowNewFlowForm] = useState(false);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -112,58 +117,59 @@ const CollectionIndex: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const workflowOptions = [
-    {
-      id: 'adaptive-forms',
-      title: 'Adaptive Data Collection',
-      description: 'Dynamic forms that adapt based on application attributes and user responses',
-      icon: <FormInput className="h-6 w-6" />,
-      path: '/collection/adaptive-forms',
-      status: 'available',
-      completionRate: 0,
-      estimatedTime: '15-30 min per application'
-    },
-    {
-      id: 'bulk-upload',
-      title: 'Bulk Data Upload',
-      description: 'Upload and process multiple applications data via CSV/Excel templates',
-      icon: <Upload className="h-6 w-6" />,
-      path: '/collection/bulk-upload',
-      status: 'available',
-      completionRate: 0,
-      estimatedTime: '5-10 min for 100+ applications'
-    },
+  const advancedWorkflowOptions = [
     {
       id: 'gap-analysis',
-      title: 'Gap Analysis',
-      description: 'Identify and resolve data gaps with AI-powered suggestions and bulk actions',
-      icon: <AlertCircle className="h-6 w-6" />,
+      title: 'Gap Analysis Only',
+      description: 'Identify missing data in existing applications',
+      icon: <AlertCircle className="h-5 w-5" />,
       path: '/collection/gap-analysis',
-      status: 'available',
-      completionRate: 0,
       estimatedTime: '10-15 min'
     },
     {
       id: 'data-integration',
       title: 'Data Integration & Validation',
-      description: 'Resolve conflicts and validate data from multiple collection sources',
-      icon: <Settings className="h-6 w-6" />,
+      description: 'Import and validate application data',
+      icon: <Settings className="h-5 w-5" />,
       path: '/collection/data-integration',
-      status: 'available',
-      completionRate: 0,
       estimatedTime: '10-20 min'
     },
     {
       id: 'progress-monitoring',
-      title: 'Collection Progress Monitor',
-      description: 'Monitor collection workflows and track completion status',
-      icon: <BarChart3 className="h-6 w-6" />,
+      title: 'Progress Monitor',
+      description: 'Track ongoing collection workflows',
+      icon: <BarChart3 className="h-5 w-5" />,
       path: '/collection/progress',
-      status: 'available',
-      completionRate: 0,
       estimatedTime: 'Real-time monitoring'
     }
   ];
+
+  /**
+   * Handle resuming an active collection flow
+   */
+  const handleResumeFlow = (flowId: string) => {
+    console.log(`🔄 Resuming collection flow: ${flowId}`);
+    navigate(`/collection/progress/${flowId}`);
+  };
+
+  /**
+   * Handle starting a new collection via guided workflow
+   */
+  const handleStartCollection = async () => {
+    if (!selectedMethod) {
+      toast({
+        title: 'Selection Required',
+        description: 'Please select a collection method to continue.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const workflowId = selectedMethod === 'adaptive' ? 'adaptive-forms' : 'bulk-upload';
+    const workflowPath = selectedMethod === 'adaptive' ? '/collection/adaptive-forms' : '/collection/bulk-upload';
+
+    await startCollectionWorkflow(workflowId, workflowPath);
+  };
 
   const getStatusBadge = (status: string, completionRate: number): JSX.Element => {
     if (completionRate > 0) {
@@ -340,7 +346,7 @@ const CollectionIndex: React.FC = () => {
         <Sidebar />
       </div>
       <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-5xl">
           <div className="mb-6">
             <ContextBreadcrumbs />
           </div>
@@ -349,9 +355,9 @@ const CollectionIndex: React.FC = () => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Data Collection Workflows</h1>
+            <h1 className="text-3xl font-bold">Data Collection</h1>
             <p className="text-muted-foreground">
-              Choose the best data collection approach for your applications and infrastructure
+              Collect application data for your migration portfolio
             </p>
           </div>
           {/* Role indicator */}
@@ -368,196 +374,194 @@ const CollectionIndex: React.FC = () => {
         </div>
       </div>
 
-      {/* Active Flow Notification */}
-      {collectionMetrics.hasActiveFlow && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-medium">Active Collection Flow Detected</span>
-                <span className="ml-2 text-sm">
-                  Flow ID: {collectionMetrics.activeFlowId?.slice(0, 8)}... | Status: {collectionMetrics.activeFlowStatus}
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/collection/progress/${collectionMetrics.activeFlowId}`)}
-                className="ml-4"
-              >
-                View Progress
-              </Button>
+      {/* Active Flow Banner - shows when active flow exists */}
+      {collectionMetrics.hasActiveFlow && !showNewFlowForm && (
+        <div className="rounded-lg border-2 border-blue-500 bg-blue-50 p-6 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-900">
+                Active Collection Flow Detected
+              </h3>
+              <p className="text-sm text-blue-700">
+                Flow ID: {collectionMetrics.activeFlowId?.slice(0, 8)}... | Status: {collectionMetrics.activeFlowStatus}
+              </p>
             </div>
-          </AlertDescription>
-        </Alert>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => handleResumeFlow(collectionMetrics.activeFlowId!)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={!canCreateCollectionFlow(user)}
+            >
+              Continue Collection
+            </Button>
+            <Button
+              onClick={() => setShowNewFlowForm(true)}
+              variant="outline"
+              className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+              disabled={!canCreateCollectionFlow(user)}
+            >
+              Start New
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FormInput className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Active Forms</p>
-                <p className="text-2xl font-bold">{collectionMetrics.activeForms}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Guided Collection Form - shows when no active flow OR user clicked "Start New" */}
+      {(!collectionMetrics.hasActiveFlow || showNewFlowForm) && (
+        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+          <h2 className="mb-4 text-2xl font-bold text-gray-900">
+            Start New Data Collection
+          </h2>
+          <p className="mb-6 text-gray-600">
+            How many applications do you need to collect data for?
+          </p>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Upload className="h-4 w-4 text-green-600" />
+          <div className="space-y-4 mb-6">
+            <label
+              className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition ${
+                selectedMethod === 'adaptive'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 hover:border-blue-300'
+              } ${!canCreateCollectionFlow(user) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <input
+                type="radio"
+                name="collectionMethod"
+                value="adaptive"
+                className="mt-1"
+                checked={selectedMethod === 'adaptive'}
+                onChange={() => setSelectedMethod('adaptive')}
+                disabled={!canCreateCollectionFlow(user)}
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <FormInput className="h-5 w-5 text-gray-700" />
+                  <div className="font-semibold text-gray-900">1-50 applications → Adaptive Forms</div>
+                </div>
+                <div className="text-sm text-gray-600">
+                  Interactive guided forms with AI assistance for smaller portfolios
+                </div>
+                <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                  <Clock className="h-3 w-3" />
+                  <span>15-30 min per application</span>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Bulk Uploads</p>
-                <p className="text-2xl font-bold">{collectionMetrics.bulkUploads}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </label>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Settings className="h-4 w-4 text-orange-600" />
+            <label
+              className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition ${
+                selectedMethod === 'bulk'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 hover:border-blue-300'
+              } ${!canCreateCollectionFlow(user) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <input
+                type="radio"
+                name="collectionMethod"
+                value="bulk"
+                className="mt-1"
+                checked={selectedMethod === 'bulk'}
+                onChange={() => setSelectedMethod('bulk')}
+                disabled={!canCreateCollectionFlow(user)}
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Upload className="h-5 w-5 text-gray-700" />
+                  <div className="font-semibold text-gray-900">50+ applications → Bulk Upload</div>
+                </div>
+                <div className="text-sm text-gray-600">
+                  CSV/Excel import for large application portfolios
+                </div>
+                <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                  <Clock className="h-3 w-3" />
+                  <span>5-10 min for 100+ applications</span>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Pending Conflicts</p>
-                <p className="text-2xl font-bold">{collectionMetrics.pendingConflicts}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </label>
+          </div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <CheckCircle className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Completion Rate</p>
-                <p className="text-2xl font-bold">{collectionMetrics.completionRate}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <Button
+            onClick={handleStartCollection}
+            disabled={!selectedMethod || isCreatingFlow !== null || !canCreateCollectionFlow(user)}
+            className="w-full bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            {isCreatingFlow !== null ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Starting Collection...
+              </>
+            ) : (
+              'Start Collection'
+            )}
+          </Button>
 
-      {/* Workflow Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {workflowOptions.map((workflow) => (
-          <Card key={workflow.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
+          {!canCreateCollectionFlow(user) && (
+            <p className="mt-3 text-sm text-center text-red-600">
+              Only analysts and above can create collection flows. Your role: {getRoleName(user?.role)}
+            </p>
+          )}
+
+          {showNewFlowForm && (
+            <Button
+              onClick={() => setShowNewFlowForm(false)}
+              variant="ghost"
+              className="w-full mt-3"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Advanced Options - collapsible */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <span className="font-semibold text-gray-700">Advanced Options</span>
+          {showAdvanced ? (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronRight className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+
+        {showAdvanced && (
+          <div className="mt-4 grid gap-3">
+            {advancedWorkflowOptions.map((workflow) => (
+              <button
+                key={workflow.id}
+                onClick={() => {
+                  if (workflow.id === 'progress-monitoring') {
+                    // Progress monitor doesn't need flow creation
+                    navigate(workflow.path);
+                  } else {
+                    startCollectionWorkflow(workflow.id, workflow.path);
+                  }
+                }}
+                disabled={!canCreateCollectionFlow(user) && workflow.id !== 'progress-monitoring'}
+                className="rounded-lg border border-gray-300 bg-white p-4 text-left hover:border-blue-500 hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-gray-100 rounded-lg">
                     {workflow.icon}
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{workflow.title}</CardTitle>
-                    <div className="mt-1">
-                      {getStatusBadge(workflow.status, workflow.completionRate)}
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900">{workflow.title}</div>
+                    <div className="text-sm text-gray-600 mt-1">{workflow.description}</div>
+                    <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                      <Clock className="h-3 w-3" />
+                      <span>{workflow.estimatedTime}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">{workflow.description}</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>{workflow.estimatedTime}</span>
-                </div>
-                <Button
-                  onClick={() => startCollectionWorkflow(workflow.id, workflow.path)}
-                  variant="outline"
-                  size="sm"
-                  disabled={isCreatingFlow === workflow.id || !canCreateCollectionFlow(user)}
-                  title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
-                >
-                  {isCreatingFlow === workflow.id ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    'Start Workflow'
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Getting Started Tips */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting Started with Data Collection</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-medium mb-2">For Small to Medium Portfolios (1-50 apps)</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Start with Adaptive Data Collection for detailed, application-specific insights
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => startCollectionWorkflow('adaptive-forms', '/collection/adaptive-forms')}
-                disabled={isCreatingFlow === 'adaptive-forms' || !canCreateCollectionFlow(user) || collectionMetrics.hasActiveFlow}
-                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : (collectionMetrics.hasActiveFlow ? 'An active flow exists. Please complete or cancel it first.' : '')}
-              >
-                {isCreatingFlow === 'adaptive-forms' ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Starting...
-                  </>
-                ) : collectionMetrics.hasActiveFlow ? (
-                  'Flow Active'
-                ) : (
-                  'Start Adaptive Collection'
-                )}
-              </Button>
-            </div>
-            <div>
-              <h4 className="font-medium mb-2">For Large Portfolios (50+ apps)</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Begin with Bulk Data Upload to efficiently process large application inventories
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => startCollectionWorkflow('bulk-upload', '/collection/bulk-upload')}
-                disabled={isCreatingFlow === 'bulk-upload' || !canCreateCollectionFlow(user) || collectionMetrics.hasActiveFlow}
-                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : (collectionMetrics.hasActiveFlow ? 'An active flow exists. Please complete or cancel it first.' : '')}
-              >
-                {isCreatingFlow === 'bulk-upload' ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Starting...
-                  </>
-                ) : collectionMetrics.hasActiveFlow ? (
-                  'Flow Active'
-                ) : (
-                  'Start Bulk Upload'
-                )}
-              </Button>
-            </div>
+              </button>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
           </div>
         </div>
       </div>
