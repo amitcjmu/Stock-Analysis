@@ -24,9 +24,11 @@ const API_URL = 'http://localhost:8000';
 // Test data
 const TEST_TIMEOUT = 120000; // 2 minutes for full flow
 
-// Authentication credentials
-const AUTH_EMAIL = 'demo@demo-corp.com';
-const AUTH_PASSWORD = 'Demo123!';
+// Authentication credentials from environment variables
+// Set TEST_USER_EMAIL and TEST_USER_PASSWORD in .env.test.local (gitignored)
+// Defaults to demo credentials for local development only
+const AUTH_EMAIL = process.env.TEST_USER_EMAIL || 'demo@demo-corp.com';
+const AUTH_PASSWORD = process.env.TEST_USER_PASSWORD || 'Demo123!';
 
 // Helper function to authenticate
 async function login(page: Page): Promise<void> {

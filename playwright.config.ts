@@ -3,6 +3,12 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright configuration for E2E tests
  * Uses Chrome browser (not Chromium) for better compatibility with authentication
+ *
+ * Environment Variables:
+ * - TEST_USER_EMAIL: Email for test authentication (default: demo@demo-corp.com)
+ * - TEST_USER_PASSWORD: Password for test authentication (default: Demo123!)
+ *
+ * Set these in .env.test.local (gitignored) or CI environment
  */
 export default defineConfig({
   testDir: './tests/e2e',
