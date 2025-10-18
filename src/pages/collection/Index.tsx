@@ -26,6 +26,35 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FormInput, Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield, Info, ChevronDown, ChevronRight } from 'lucide-react'
 
 /**
+ * Guided workflow configuration
+ * Externalizes business rules (e.g., application count thresholds) from UI components
+ * Update these values to change workflow recommendations without modifying component code
+ */
+const GUIDED_WORKFLOW_CONFIG = {
+  question: "How many applications do you need to collect data for?",
+  options: [
+    {
+      id: 'adaptive' as const,
+      value: 'adaptive',
+      threshold: '1-50 applications',
+      title: 'Adaptive Forms',
+      description: 'Interactive guided forms with AI assistance for smaller portfolios',
+      icon: FormInput,
+      estimatedTime: '15-30 min per application'
+    },
+    {
+      id: 'bulk' as const,
+      value: 'bulk',
+      threshold: '50+ applications',
+      title: 'Bulk Upload',
+      description: 'CSV/Excel import for large application portfolios',
+      icon: Upload,
+      estimatedTime: '5-10 min for 100+ applications'
+    }
+  ]
+};
+
+/**
  * Collection workflow index page
  * Provides overview and entry points for all collection workflows
  */
@@ -389,9 +418,13 @@ const CollectionIndex: React.FC = () => {
           </div>
           <div className="flex gap-3">
             <Button
-              onClick={() => handleResumeFlow(collectionMetrics.activeFlowId!)}
+              onClick={() => {
+                if (collectionMetrics.activeFlowId) {
+                  handleResumeFlow(collectionMetrics.activeFlowId);
+                }
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={!canCreateCollectionFlow(user)}
+              disabled={!canCreateCollectionFlow(user) || !collectionMetrics.activeFlowId}
             >
               Continue Collection
             </Button>
@@ -414,71 +447,46 @@ const CollectionIndex: React.FC = () => {
             Start New Data Collection
           </h2>
           <p className="mb-6 text-gray-600">
-            How many applications do you need to collect data for?
+            {GUIDED_WORKFLOW_CONFIG.question}
           </p>
 
           <div className="space-y-4 mb-6">
-            <label
-              className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition ${
-                selectedMethod === 'adaptive'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
-              } ${!canCreateCollectionFlow(user) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <input
-                type="radio"
-                name="collectionMethod"
-                value="adaptive"
-                className="mt-1"
-                checked={selectedMethod === 'adaptive'}
-                onChange={() => setSelectedMethod('adaptive')}
-                disabled={!canCreateCollectionFlow(user)}
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <FormInput className="h-5 w-5 text-gray-700" />
-                  <div className="font-semibold text-gray-900">1-50 applications → Adaptive Forms</div>
-                </div>
-                <div className="text-sm text-gray-600">
-                  Interactive guided forms with AI assistance for smaller portfolios
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
-                  <Clock className="h-3 w-3" />
-                  <span>15-30 min per application</span>
-                </div>
-              </div>
-            </label>
-
-            <label
-              className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition ${
-                selectedMethod === 'bulk'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
-              } ${!canCreateCollectionFlow(user) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <input
-                type="radio"
-                name="collectionMethod"
-                value="bulk"
-                className="mt-1"
-                checked={selectedMethod === 'bulk'}
-                onChange={() => setSelectedMethod('bulk')}
-                disabled={!canCreateCollectionFlow(user)}
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <Upload className="h-5 w-5 text-gray-700" />
-                  <div className="font-semibold text-gray-900">50+ applications → Bulk Upload</div>
-                </div>
-                <div className="text-sm text-gray-600">
-                  CSV/Excel import for large application portfolios
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
-                  <Clock className="h-3 w-3" />
-                  <span>5-10 min for 100+ applications</span>
-                </div>
-              </div>
-            </label>
+            {GUIDED_WORKFLOW_CONFIG.options.map((option) => {
+              const IconComponent = option.icon;
+              return (
+                <label
+                  key={option.id}
+                  className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition ${
+                    selectedMethod === option.value
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-blue-300'
+                  } ${!canCreateCollectionFlow(user) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="collectionMethod"
+                    value={option.value}
+                    className="mt-1"
+                    checked={selectedMethod === option.value}
+                    onChange={() => setSelectedMethod(option.value)}
+                    disabled={!canCreateCollectionFlow(user)}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <IconComponent className="h-5 w-5 text-gray-700" />
+                      <div className="font-semibold text-gray-900">{option.threshold} → {option.title}</div>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {option.description}
+                    </div>
+                    <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                      <Clock className="h-3 w-3" />
+                      <span>{option.estimatedTime}</span>
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
           </div>
 
           <Button
