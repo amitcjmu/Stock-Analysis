@@ -301,6 +301,7 @@ def register_admin_routers(api_router: APIRouter):
         memory_management_router,
         routers_with_flags,
     )
+    from app.api.v1.endpoints.admin_flows import router as admin_flows_router
 
     logger.info("--- Registering Admin Routers ---")
 
@@ -321,6 +322,10 @@ def register_admin_routers(api_router: APIRouter):
         logger.info("✅ Memory Management router included")
     else:
         logger.warning("⚠️ Platform Admin routers not available")
+
+    # Admin Flow Management (Bug #651 fix - cleanup stale flows)
+    api_router.include_router(admin_flows_router, prefix="/admin", tags=[APITags.ADMIN])
+    logger.info("✅ Admin Flow Management router included")
 
     # RBAC Admin
     if routers_with_flags.get("RBAC_ADMIN", (False, None))[0]:

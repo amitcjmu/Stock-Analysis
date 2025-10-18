@@ -94,6 +94,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     percentage: number;
   } | null>(null);
   const [selectedGaps, setSelectedGaps] = useState<GapRowData[]>([]);
+  const [isContinuing, setIsContinuing] = useState(false);
 
   // Fetch existing gaps on mount, or scan if none exist
   useEffect(() => {
@@ -735,6 +736,24 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     setSelectedGaps(selectedRows);
   }, []);
 
+  const handleContinueToQuestionnaire = async () => {
+    if (!onComplete) return;
+
+    try {
+      setIsContinuing(true);
+      await onComplete();
+    } catch (error) {
+      console.error('Failed to continue to questionnaire:', error);
+      toast({
+        title: "Navigation Failed",
+        description: "Failed to proceed to questionnaire. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsContinuing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Card */}
@@ -788,7 +807,8 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
             <Button
               onClick={handleScanGaps}
               disabled={isScanning || selectedAssetIds.length === 0}
@@ -860,6 +880,36 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               <X className="w-4 h-4 mr-2" />
               Reject All AI Suggestions
             </Button>
+          </div>
+
+          {/* Continue to Questionnaire Button - P1 UX Fix for Issue #654 */}
+          {scanSummary && onComplete && (
+            <div className="pt-4 mt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  <p className="font-medium mb-1">Gap analysis complete!</p>
+                  <p>You can continue to the questionnaire phase or keep resolving gaps.</p>
+                </div>
+                <Button
+                  onClick={handleContinueToQuestionnaire}
+                  disabled={isContinuing}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size="lg"
+                >
+                  {isContinuing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Proceeding...
+                    </>
+                  ) : (
+                    <>
+                      Continue to Questionnaire →
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
           </div>
         </CardContent>
       </Card>

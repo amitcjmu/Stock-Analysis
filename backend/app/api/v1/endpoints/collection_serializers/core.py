@@ -7,9 +7,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from app.models.asset import Asset
-from app.models.collection_flow import CollectionFlow, AutomationTier
+from app.models.collection_flow import (
+    CollectionFlow,
+    AutomationTier,
+    AdaptiveQuestionnaire,
+)
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.sixr_analysis import SixRQuestionResponse as AdaptiveQuestionnaire
 from app.models.collection_flow import CollectionGapAnalysis
 from app.schemas.collection_flow import (
     CollectionFlowResponse,
