@@ -749,6 +749,8 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         description: "Failed to proceed to questionnaire. Please try again.",
         variant: "destructive",
       });
+      // Re-throw the error so parent components can handle it if needed
+      throw error;
     } finally {
       setIsContinuing(false);
     }

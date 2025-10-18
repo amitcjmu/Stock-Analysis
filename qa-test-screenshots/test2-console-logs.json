@@ -1,0 +1,58 @@
+[
+  {
+    "type": "debug",
+    "text": "[vite] connecting..."
+  },
+  {
+    "type": "debug",
+    "text": "[vite] connected."
+  },
+  {
+    "type": "info",
+    "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold"
+  },
+  {
+    "type": "log",
+    "text": "✅ FieldOptionsProvider - Using hardcoded asset fields list with 53 fields"
+  },
+  {
+    "type": "log",
+    "text": "✅ FieldOptionsProvider - Using hardcoded asset fields list with 53 fields"
+  },
+  {
+    "type": "log",
+    "text": "🔄 Syncing context data to individual localStorage keys"
+  },
+  {
+    "type": "log",
+    "text": "✅ Synced client data to localStorage"
+  },
+  {
+    "type": "log",
+    "text": "✅ Synced engagement data to localStorage"
+  },
+  {
+    "type": "log",
+    "text": "✅ Context synchronization completed successfully: {client: true, engagement: true, flow: false}"
+  },
+  {
+    "type": "debug",
+    "text": "Navigation performance: PerformanceNavigationTiming"
+  },
+  {
+    "type": "log",
+    "text": "🔄 ClientContext: User available, fetching clients"
+  },
+  {
+    "type": "debug",
+    "text": "Chunk loaded: http://localhost:8081/node_modules/.vite/deps/chunk-6ZMM2PAV.js?v=12dedce4 0.00ms"
+  },
+  {
+    "type": "debug",
+    "text": "Chunk loaded: http://localhost:8081/node_modules/.vite/deps/chunk-TFX6JGDG.js?v=12dedce4 0.00ms"
+  },
+  {
+    "type": "log",
+    "text": "🔄 ClientContext: User available, fetching clients"
+  }
+]

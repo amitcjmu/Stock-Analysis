@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db
@@ -103,28 +103,42 @@ async def cleanup_stale_flows(
             "cutoff_time": cutoff_time.isoformat(),
         }
 
-    # Actually clean up flows
-    cleaned_collection_ids = []
+    # Actually clean up flows - use bulk updates for efficiency
+    cleaned_collection_ids = [str(f.flow_id) for f in stuck_collection_flows]
     for flow in stuck_collection_flows:
         logger.info(
             f"Cleaning up stuck collection flow {flow.flow_id} "
             f"(phase: {flow.current_phase}, stale since: {flow.updated_at})"
         )
-        flow.status = "completed"
-        flow.current_phase = "completed"
-        flow.updated_at = datetime.utcnow()
-        cleaned_collection_ids.append(str(flow.flow_id))
 
-    cleaned_master_ids = []
+    if cleaned_collection_ids:
+        await db.execute(
+            update(CollectionFlow)
+            .where(CollectionFlow.flow_id.in_(cleaned_collection_ids))
+            .values(
+                status="completed",
+                current_phase="completed",
+                updated_at=datetime.utcnow(),
+            )
+        )
+
+    cleaned_master_ids = [str(f.flow_id) for f in stuck_master_flows]
     for flow in stuck_master_flows:
         logger.info(
             f"Cleaning up stuck master flow {flow.flow_id} "
             f"(phase: {flow.current_phase}, stale since: {flow.updated_at})"
         )
-        flow.flow_status = "completed"
-        flow.current_phase = "completed"
-        flow.updated_at = datetime.utcnow()
-        cleaned_master_ids.append(str(flow.flow_id))
+
+    if cleaned_master_ids:
+        await db.execute(
+            update(CrewAIFlowStateExtensions)
+            .where(CrewAIFlowStateExtensions.flow_id.in_(cleaned_master_ids))
+            .values(
+                flow_status="completed",
+                current_phase="completed",
+                updated_at=datetime.utcnow(),
+            )
+        )
 
     await db.commit()
 

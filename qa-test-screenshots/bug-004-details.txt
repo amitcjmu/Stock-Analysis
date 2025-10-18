@@ -1,0 +1,98 @@
+BUG #4: Assessment Master Flow Created Without Child Flow (Two-Table Pattern Violation)
+
+## Severity: CRITICAL
+
+## Description
+The assessment flow transition creates a master flow in `crewai_flow_state_extensions` but fails to create the corresponding child flow in `assessment_flows`. This violates the mandatory two-table pattern architecture (ADR-012) and causes the UI to fail when trying to display assessment data.
+
+## Steps to Reproduce
+1. Login with demo@demo-corp.com / Demo123!
+2. Navigate to Collection > Overview
+3. Click "View Progress" then "Start Assessment Phase"
+4. Check database for assessment flows
+
+## Expected Behavior
+- Both master flow AND child flow should be created atomically
+- `crewai_flow_state_extensions` should have master entry
+- `assessment_flows` should have child entry with matching master_flow_id
+- UI should display assessment data from child flow
+
+## Actual Behavior
+- Master flow created: flow_id=55610227-7481-45e5-87ff-dc776dd8d5f8, type=assessment ✓
+- Child flow NOT created in assessment_flows ✗
+- UI shows "No applications loaded yet" ✗
+- Frontend has no child flow data to display ✗
+
+## Database Evidence
+```sql
+-- Master Flow Exists
+SELECT flow_id, flow_type, flow_status
+FROM migration.crewai_flow_state_extensions
+WHERE flow_id='55610227-7481-45e5-87ff-dc776dd8d5f8'::uuid;
+
+Result:
+flow_id: 55610227-7481-45e5-87ff-dc776dd8d5f8
+flow_type: assessment
+flow_status: initialized
+
+-- Child Flow MISSING
+SELECT id, master_flow_id, current_phase, status, progress
+FROM migration.assessment_flows
+WHERE master_flow_id='55610227-7481-45e5-87ff-dc776dd8d5f8'::uuid;
+
+Result: (0 rows)  ← NO CHILD FLOW!
+```
+
+## Frontend Screenshot
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/.playwright-mcp/05-assessment-architecture-page.png
+
+## URL
+http://localhost:8081/assessment/55610227-7481-45e5-87ff-dc776dd8d5f8/architecture
+
+## Architectural Impact
+This violates **ADR-012: Flow Status Management Separation**:
+- Master Flow: High-level lifecycle (running, paused, completed)
+- Child Flow: Operational decisions (phases, validations, UI state)
+- **Frontend MUST use child flow status for decisions**
+
+When only master flow exists without child flow:
+- Frontend cannot query child flow data → UI breaks
+- No operational state available → phases cannot progress
+- No phase_results, agent_insights, or user_inputs stored
+- UI displays "No applications loaded" indefinitely
+
+## Potential Root Cause
+Per coding-agent-guide.md "Missing Child Records & MFO Atomicity":
+```python
+# ❌ WRONG - Creating only master flow
+master_flow = create_master_flow()
+await db.commit()
+
+# ✅ CORRECT - Atomic pattern
+async with db.begin():
+    master_flow_id = await orchestrator.create_flow(...)
+    await db.flush()  # Makes ID available for child
+
+    child_flow = AssessmentFlow(
+        master_flow_id=master_flow_id,
+        ...
+    )
+    db.add(child_flow)
+    await db.commit()  # Single commit for both
+```
+
+## Impact
+- **BLOCKER**: Assessment phase completely unusable
+- Users cannot proceed with assessment workflow
+- Data loss: No place to store assessment phase data
+- UI permanently stuck on "No applications loaded"
+- Violates enterprise architecture pattern (ADR-012)
+
+## Related Documentation
+- /docs/adr/012-flow-status-management-separation.md
+- /docs/analysis/Notes/coding-agent-guide.md: "Missing Child Records & MFO Atomicity" section
+- /CLAUDE.md: "Two-Table Pattern (REQUIRED - NOT OPTIONAL)" section
+
+## Fix Location
+- backend/app/services/master_flow_orchestrator/lifecycle_commands.py
+- backend/app/api/v1/collection/endpoints.py (transition_to_assessment endpoint)
