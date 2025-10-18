@@ -43,6 +43,7 @@ class ErrorHandlers(CollectionHandlerBase):
                 return {"success": False, "error": "Collection flow not found"}
 
             # Update collection flow with error
+            # Security: Uses parameterized query with bound parameters (:param_name) - safe from SQL injection
             update_query = """
                 UPDATE collection_flows
                 SET status = :status,
@@ -133,11 +134,12 @@ class ErrorHandlers(CollectionHandlerBase):
 
             # Update collection flow state
             # Per ADR-028: phase_state column removed, use metadata for rollback info
+            # Security: Uses parameterized query with bound parameters (:param_name) - safe from SQL injection
             update_query = """
                 UPDATE collection_flows
                 SET current_phase = :current_phase,
                     status = :status,
-                    metadata = metadata || :rollback_info::jsonb,
+                    metadata = COALESCE(metadata, '{}'::jsonb) || :rollback_info::jsonb,
                     updated_at = :updated_at
                 WHERE master_flow_id = :master_flow_id
             """
@@ -190,9 +192,10 @@ class ErrorHandlers(CollectionHandlerBase):
 
             # Update metadata with checkpoint
             # Per ADR-028: phase_state column removed, use metadata for checkpoint info
+            # Security: Uses parameterized query with bound parameters (:param_name) - safe from SQL injection
             update_query = """
                 UPDATE collection_flows
-                SET metadata = metadata || :checkpoint::jsonb,
+                SET metadata = COALESCE(metadata, '{}'::jsonb) || :checkpoint::jsonb,
                     updated_at = :updated_at
                 WHERE master_flow_id = :master_flow_id
             """
