@@ -27,7 +27,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "100"
-down_revision = "099"
+down_revision = "099_standardize_sixr_strategies"
 branch_labels = None
 depends_on = None
 

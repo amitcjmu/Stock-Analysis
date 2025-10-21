@@ -5,6 +5,7 @@ Handles questionnaire result processing and validation.
 
 import json
 import logging
+from collections import defaultdict
 from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
@@ -232,3 +233,141 @@ class QuestionnaireProcessor:
                 "questionnaires": [],
                 "sections": [],
             }
+
+    async def process_asset_batch_with_deduplication(
+        self,
+        assets: List[Dict[str, Any]],
+        question_generator_tool,
+        client_account_id: int,
+        engagement_id: int,
+        db_session,
+        business_context: Dict[str, Any] = None,
+    ) -> Dict[str, List]:
+        """
+        Process assets with deduplication.
+
+        Groups by (asset_type, gap_pattern) for 70-80% reduction in generation operations.
+        Per BULK_UPLOAD_ENRICHMENT_ARCHITECTURE_ANALYSIS.md Part 6.2.
+
+        Args:
+            assets: List of asset dicts with keys: asset_id, asset_type, missing_fields
+            question_generator_tool: QuestionGenerationTool instance
+            client_account_id: Client account ID
+            engagement_id: Engagement ID
+            db_session: Database session
+            business_context: Optional business context
+
+        Returns:
+            Dict mapping asset_id to list of questions
+        """
+        if not assets:
+            logger.warning("No assets provided for batch processing")
+            return {}
+
+        # Group by asset_type + gap_pattern
+        asset_groups = defaultdict(list)
+        for asset in assets:
+            asset_id = asset.get("asset_id")
+            asset_type = asset.get("asset_type", "application")
+            missing_fields = asset.get("missing_fields", [])
+
+            # Create gap pattern (sorted for consistency)
+            gap_pattern = (
+                "_".join(sorted(missing_fields)) if missing_fields else "no_gaps"
+            )
+            group_key = f"{asset_type}_{gap_pattern}"
+
+            asset_groups[group_key].append(
+                {
+                    "asset_id": asset_id,
+                    "asset_type": asset_type,
+                    "missing_fields": missing_fields,
+                    "asset_name": asset.get("asset_name"),
+                }
+            )
+
+        # Log deduplication stats
+        original_count = len(assets)
+        deduplicated_count = len(asset_groups)
+        deduplication_ratio = (
+            (1 - deduplicated_count / original_count) * 100 if original_count > 0 else 0
+        )
+
+        logger.info(
+            f"✅ Deduplicated {original_count} assets → {deduplicated_count} unique patterns "
+            f"({deduplication_ratio:.0f}% reduction)"
+        )
+
+        # Generate questions ONCE per group, then apply to all assets in group
+        questionnaires = {}
+
+        for group_key, group_assets in asset_groups.items():
+            # Use first asset as representative
+            representative = group_assets[0]
+
+            logger.info(
+                f"Processing group '{group_key}' with {len(group_assets)} assets "
+                f"(representative: {representative['asset_id'][:8]})"
+            )
+
+            # Generate questions once for the representative asset
+            # This will check cache and generate if needed
+            try:
+                questions = await question_generator_tool.generate_questions_for_asset(
+                    asset_id=representative["asset_id"],
+                    asset_type=representative["asset_type"],
+                    gaps=representative["missing_fields"],
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    db_session=db_session,
+                    business_context=business_context,
+                )
+
+                # Track cache performance
+                # Check if this was a cache hit (questions returned quickly from cache)
+                # Note: The tool logs cache hits/misses internally
+                if questions:
+                    # Apply questions to ALL assets in group
+                    for asset in group_assets:
+                        # Customize for each asset (only changes asset name/ID)
+                        customized_questions = (
+                            question_generator_tool._customize_questions(
+                                questions,
+                                asset["asset_id"],
+                                asset.get("asset_name"),
+                            )
+                        )
+                        questionnaires[asset["asset_id"]] = customized_questions
+
+                    logger.info(
+                        f"✅ Applied {len(questions)} questions to {len(group_assets)} assets in group '{group_key}'"
+                    )
+                else:
+                    logger.warning(f"⚠️ No questions generated for group '{group_key}'")
+                    for asset in group_assets:
+                        questionnaires[asset["asset_id"]] = []
+
+            except Exception as e:
+                logger.error(
+                    f"❌ Error processing group '{group_key}': {e}", exc_info=True
+                )
+                # Assign empty questionnaires for failed group
+                for asset in group_assets:
+                    questionnaires[asset["asset_id"]] = []
+
+        # Log summary statistics
+        total_questions = sum(len(q) for q in questionnaires.values())
+        avg_questions_per_asset = (
+            total_questions / len(questionnaires) if questionnaires else 0
+        )
+
+        logger.info(
+            f"📊 Batch processing complete: "
+            f"{len(questionnaires)} assets processed, "
+            f"{deduplicated_count} unique patterns, "
+            f"{total_questions} total questions generated "
+            f"({avg_questions_per_asset:.1f} avg per asset), "
+            f"deduplication ratio: {deduplication_ratio:.0f}%"
+        )
+
+        return questionnaires

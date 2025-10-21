@@ -286,3 +286,134 @@ class StorageMixin:
         """Retrieve data according to memory scope"""
         # Implementation depends on storage backend
         return []
+
+    async def store_questionnaire_template(
+        self,
+        client_account_id: int,
+        engagement_id: int,
+        asset_type: str,
+        gap_pattern: str,
+        questions: List[Dict],
+        metadata: Dict[str, Any],
+        scope: LearningScope = LearningScope.CLIENT,
+    ) -> str:
+        """
+        Store questionnaire template for reuse across similar assets.
+
+        Per BULK_UPLOAD_ENRICHMENT_ARCHITECTURE_ANALYSIS.md Part 6.2:
+        Enables 90% cache hit rate for similar assets with same gap patterns.
+
+        This is NOT for LLM cost reduction (questionnaires are deterministic/tool-based),
+        but for TIME and UX improvements - avoiding redundant generation operations.
+
+        Args:
+            client_account_id: Client account ID
+            engagement_id: Engagement ID
+            asset_type: Type of asset (e.g., "database", "server", "application")
+            gap_pattern: Sorted string of gap field names (e.g., "backup_strategy_replication_config")
+            questions: List of question dictionaries to cache
+            metadata: Additional metadata about template generation
+            scope: Learning scope (defaults to CLIENT for cross-engagement sharing)
+
+        Returns:
+            Pattern ID (UUID as string)
+        """
+        # Create cache key for exact matching
+        cache_key = f"{asset_type}_{gap_pattern}"
+
+        # Build pattern data for storage
+        pattern_data = {
+            "cache_key": cache_key,
+            "questions": questions,
+            "asset_type": asset_type,
+            "gap_pattern": gap_pattern,
+            "metadata": metadata,
+            "generated_at": datetime.utcnow().isoformat(),
+            "usage_count": 0,  # Track reuse frequency
+            "question_count": len(questions),
+        }
+
+        # Store using existing store_learning infrastructure
+        pattern_id = await self.store_learning(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            scope=scope,  # CLIENT scope allows reuse across engagements
+            pattern_type="questionnaire_template",
+            pattern_data=pattern_data,
+        )
+
+        logger.info(
+            f"✅ Stored questionnaire template: {cache_key} "
+            f"({len(questions)} questions) for client {client_account_id}"
+        )
+
+        return pattern_id
+
+    async def retrieve_questionnaire_template(
+        self,
+        client_account_id: int,
+        engagement_id: int,
+        asset_type: str,
+        gap_pattern: str,
+        scope: LearningScope = LearningScope.CLIENT,
+    ) -> Dict[str, Any]:
+        """
+        Retrieve cached questionnaire template using exact JSONB match.
+
+        Per Qodo Bot review: Uses exact JSONB query instead of vector similarity
+        for cache key lookups, which is more efficient and accurate.
+
+        Args:
+            client_account_id: Client account ID
+            engagement_id: Engagement ID
+            asset_type: Type of asset
+            gap_pattern: Sorted string of gap field names
+            scope: Learning scope (defaults to CLIENT)
+
+        Returns:
+            Dict with 'questions' (list) and 'usage_count' (int), or empty dict if not found
+        """
+        from sqlalchemy import select, and_
+        from app.models.learning_pattern import LearningPattern
+
+        cache_key = f"{asset_type}_{gap_pattern}"
+
+        # Use exact JSONB match for cache_key lookup (more efficient than vector search)
+        query = select(LearningPattern).where(
+            and_(
+                LearningPattern.client_account_id == client_account_id,
+                LearningPattern.engagement_id == engagement_id,
+                LearningPattern.pattern_type == "questionnaire_template",
+                LearningPattern.pattern_data["cache_key"].astext == cache_key,
+            )
+        )
+
+        result = await self.db.execute(query)
+        pattern = result.scalar_one_or_none()
+
+        if pattern:
+            pattern_data = pattern.pattern_data
+
+            # Increment usage count (for analytics)
+            usage_count = pattern_data.get("usage_count", 0) + 1
+            pattern_data["usage_count"] = usage_count
+
+            # Update the pattern with incremented usage count
+            pattern.pattern_data = pattern_data
+            await self.db.commit()
+
+            logger.info(f"✅ Cache HIT for {cache_key} (usage_count: {usage_count})")
+
+            return {
+                "questions": pattern_data.get("questions", []),
+                "usage_count": usage_count,
+                "cache_hit": True,
+                "metadata": pattern_data.get("metadata", {}),
+            }
+
+        logger.info(f"❌ Cache MISS for {cache_key} - will generate fresh")
+        return {
+            "questions": [],
+            "usage_count": 0,
+            "cache_hit": False,
+        }

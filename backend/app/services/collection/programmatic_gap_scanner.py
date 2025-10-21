@@ -372,9 +372,19 @@ class ProgrammaticGapScanner:
                 )
                 continue
 
+            # Defensive UUID conversion with error handling
+            try:
+                asset_uuid = UUID(gap["asset_id"])
+            except (ValueError, TypeError, KeyError) as uuid_error:
+                logger.warning(
+                    f"⚠️ Skipping gap with invalid asset_id: {gap.get('field_name')} - "
+                    f"asset_id={gap.get('asset_id')} - Error: {uuid_error}"
+                )
+                continue
+
             gap_record = {
                 "collection_flow_id": collection_flow_id,
-                "asset_id": UUID(gap["asset_id"]),  # NOT NULL - required
+                "asset_id": asset_uuid,  # NOT NULL - required
                 "field_name": gap["field_name"],
                 "gap_type": gap["gap_type"],
                 "gap_category": gap.get("gap_category", "unknown"),

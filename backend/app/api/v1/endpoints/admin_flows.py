@@ -13,8 +13,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db
-from app.core.request_context import RequestContext, get_request_context
+from app.api.v1.dependencies import get_db
+from app.core.context import RequestContext, get_current_context
 from app.models.collection_flow import CollectionFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
@@ -35,7 +35,7 @@ async def cleanup_stale_flows(
         description="Preview which flows would be cleaned up without making changes",
     ),
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_request_context),
+    context: RequestContext = Depends(get_current_context),
 ) -> Dict[str, Any]:
     """
     Clean up flows stuck in intermediate phases for extended periods.
