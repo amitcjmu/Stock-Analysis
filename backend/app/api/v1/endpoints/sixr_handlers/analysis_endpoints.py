@@ -17,8 +17,17 @@ logger = logging.getLogger(__name__)
 class AnalysisEndpointsHandler:
     """Handles analysis CRUD operations with graceful fallbacks."""
 
-    def __init__(self):
+    def __init__(self, crewai_service=None):
+        """
+        Initialize analysis endpoints handler.
+
+        Args:
+            crewai_service: Optional CrewAI service for AI-powered analysis.
+                           If None, engine uses fallback heuristic mode.
+                           Reference: Bug #666 - Phase 1 fix
+        """
         self.service_available = False
+        self.crewai_service = crewai_service
         self._initialize_dependencies()
 
     def _initialize_dependencies(self):
@@ -46,7 +55,10 @@ class AnalysisEndpointsHandler:
             self.BulkAnalysisResponse = BulkAnalysisResponse
             self.AnalysisStatus = AnalysisStatus
             self.SixRParameterBase = SixRParameterBase
-            self.decision_engine = SixRDecisionEngine()
+            # Bug #666 - Phase 1: Pass crewai_service to enable AI-powered analysis
+            self.decision_engine = SixRDecisionEngine(
+                crewai_service=self.crewai_service
+            )
 
             self.service_available = True
             logger.info("Analysis endpoints handler initialized successfully")

@@ -24,6 +24,14 @@ class CollectionFlowCreate(BaseModel):
         default=False,
         description="Allow multiple concurrent flows (overrides 409 conflict checking)",
     )
+    missing_attributes: Optional[Dict[str, List[str]]] = Field(
+        default=None,
+        description="Missing attributes by asset_id - triggers gap creation and questionnaire generation",
+    )
+    assessment_flow_id: Optional[str] = Field(
+        default=None,
+        description="UUID of assessment flow to link to - creates proper assessment→collection relationship",
+    )
 
 
 class CollectionFlowUpdate(BaseModel):

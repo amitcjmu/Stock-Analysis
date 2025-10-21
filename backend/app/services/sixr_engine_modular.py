@@ -419,4 +419,5 @@ class SixRDecisionEngine:
 
 # Create default engine instance (without CrewAI service for backward compatibility)
 # For CrewAI-enabled analysis, create engine with: SixRDecisionEngine(crewai_service=your_service)
-sixr_engine = SixRDecisionEngine()
+# Bug #666 - Phase 1: Explicitly pass None to indicate fallback mode
+sixr_engine = SixRDecisionEngine(crewai_service=None)

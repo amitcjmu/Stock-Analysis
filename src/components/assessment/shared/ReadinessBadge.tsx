@@ -41,6 +41,17 @@ export interface ReadinessBadgeProps {
  * - <50%: Destructive variant (red) - Not Ready
  */
 export const ReadinessBadge: React.FC<ReadinessBadgeProps> = ({ readiness_summary, className }) => {
+  // Handle undefined or null readiness_summary
+  if (!readiness_summary) {
+    return (
+      <div className={`flex items-center gap-2 ${className || ''}`}>
+        <Badge variant="secondary">
+          <span className="text-muted-foreground">No data</span>
+        </Badge>
+      </div>
+    );
+  }
+
   const total = readiness_summary.ready + readiness_summary.not_ready + readiness_summary.in_progress;
   const percentage = total > 0 ? Math.round((readiness_summary.ready / total) * 100) : 0;
 

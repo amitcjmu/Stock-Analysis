@@ -31,10 +31,19 @@ class SixRDecisionEngine:
     - Provide detailed rationale for strategy selection
     """
 
-    def __init__(self):
+    def __init__(self, crewai_service=None):
+        """
+        Initialize SixR Decision Engine placeholder.
+
+        Args:
+            crewai_service: Optional CrewAI service for AI-powered analysis.
+                           Currently unused in placeholder, but maintained for
+                           API compatibility. Reference: Bug #666 - Phase 1 fix
+        """
         logger.debug("SixRDecisionEngine placeholder initialized")
         self.name = "sixr_decision_engine"
         self.description = "Determines optimal 6R strategy for components"
+        self.crewai_service = crewai_service  # For future implementation
 
     def _run(self, *args, **kwargs):
         """Placeholder run method"""

@@ -117,6 +117,13 @@ def build_question_from_attribute(
     Returns:
         Question dictionary with proper category assignment
     """
+    # CRITICAL FIX: Use the FIRST asset_field as field_id to match gap field_name
+    # Gaps are created with database column names (e.g., "operating_system")
+    # But critical attributes use different names (e.g., "operating_system_version")
+    # The asset_fields list contains the actual database field names
+    asset_fields = attr_config.get("asset_fields", [])
+    field_id = asset_fields[0] if asset_fields else attr_name
+
     readable_name = attr_name.replace("_", " ").title()
     field_type, options = determine_field_type_and_options(attr_name)
 
@@ -124,14 +131,15 @@ def build_question_from_attribute(
     category = attr_config.get("category", "application")
 
     question = {
-        "field_id": attr_name,
+        "field_id": field_id,  # ← Use gap field_name, not critical attribute name
         "question_text": f"What is the {readable_name}?",
         "field_type": field_type,
         "required": attr_config.get("required", False),
         "category": category,  # Use category from CriticalAttributesDefinition
         "metadata": {
             "asset_ids": asset_ids,  # Track all assets needing this attribute
-            "asset_fields": attr_config.get("asset_fields", []),
+            "asset_fields": asset_fields,  # Store all mapped field names
+            "critical_attribute_name": attr_name,  # Preserve original attribute name
             "applies_to_count": len(asset_ids),
         },
         "help_text": f"Provide details about {readable_name.lower()}",

@@ -65,14 +65,16 @@ export const ApplicationGroupCard: React.FC<ApplicationGroupCardProps> = ({
                   </CardTitle>
                   <CardDescription className="mt-1 flex items-center gap-3 flex-wrap">
                     <span>{group.asset_count} assets</span>
-                    <span className="flex items-center gap-1">
-                      {group.asset_types.map((type, idx) => (
-                        <React.Fragment key={type}>
-                          <AssetTypeIcon type={type} className="text-muted-foreground" />
-                          {idx < group.asset_types.length - 1 && <span className="text-xs">,</span>}
-                        </React.Fragment>
-                      ))}
-                    </span>
+                    {group.asset_types && group.asset_types.length > 0 && (
+                      <span className="flex items-center gap-1">
+                        {group.asset_types.map((type, idx) => (
+                          <React.Fragment key={type}>
+                            <AssetTypeIcon type={type} className="text-muted-foreground" />
+                            {idx < group.asset_types.length - 1 && <span className="text-xs">,</span>}
+                          </React.Fragment>
+                        ))}
+                      </span>
+                    )}
                   </CardDescription>
                 </div>
               </div>
@@ -88,28 +90,32 @@ export const ApplicationGroupCard: React.FC<ApplicationGroupCardProps> = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground mb-3">Assets in this group:</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {group.asset_ids.map((asset_id) => (
-                  <div
-                    key={asset_id}
-                    className={cn(
-                      'flex items-center gap-2 p-2 rounded-md border bg-card transition-colors',
-                      onAssetClick && 'cursor-pointer hover:bg-accent hover:border-accent-foreground/20'
-                    )}
-                    onClick={() => onAssetClick?.(asset_id)}
-                    role={onAssetClick ? 'button' : undefined}
-                    tabIndex={onAssetClick ? 0 : undefined}
-                    onKeyDown={(e) => {
-                      if (onAssetClick && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        onAssetClick(asset_id);
-                      }
-                    }}
-                    aria-label={`Asset ${asset_id.substring(0, 8)}`}
-                  >
-                    <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm font-mono truncate">{asset_id.substring(0, 8)}...</span>
-                  </div>
-                ))}
+                {group.asset_ids && group.asset_ids.length > 0 ? (
+                  group.asset_ids.map((asset_id) => (
+                    <div
+                      key={asset_id}
+                      className={cn(
+                        'flex items-center gap-2 p-2 rounded-md border bg-card transition-colors',
+                        onAssetClick && 'cursor-pointer hover:bg-accent hover:border-accent-foreground/20'
+                      )}
+                      onClick={() => onAssetClick?.(asset_id)}
+                      role={onAssetClick ? 'button' : undefined}
+                      tabIndex={onAssetClick ? 0 : undefined}
+                      onKeyDown={(e) => {
+                        if (onAssetClick && (e.key === 'Enter' || e.key === ' ')) {
+                          e.preventDefault();
+                          onAssetClick(asset_id);
+                        }
+                      }}
+                      aria-label={`Asset ${asset_id.substring(0, 8)}`}
+                    >
+                      <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm font-mono truncate">{asset_id.substring(0, 8)}...</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No assets in this group</p>
+                )}
               </div>
             </div>
           </CardContent>

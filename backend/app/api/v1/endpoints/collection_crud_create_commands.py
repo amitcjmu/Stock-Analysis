@@ -368,6 +368,17 @@ async def create_collection_flow(
         # Per ADR-028: phase_state eliminated - phase tracking will be added to master flow
         # Phase tracking will be managed via master flow's phase_transitions after creation
 
+        # Bug Fix: Parse assessment_flow_id to UUID if provided
+        assessment_uuid = None
+        if flow_data.assessment_flow_id:
+            from uuid import UUID
+
+            assessment_uuid = (
+                UUID(flow_data.assessment_flow_id)
+                if isinstance(flow_data.assessment_flow_id, str)
+                else flow_data.assessment_flow_id
+            )
+
         collection_flow = CollectionFlow(
             flow_id=flow_id,
             flow_name=collection_utils.format_flow_display_name(),
@@ -383,12 +394,91 @@ async def create_collection_flow(
                 "use_agent_generation": True
             },  # Enable CrewAI agent generation
             current_phase=CollectionPhase.ASSET_SELECTION.value,
+            # Bug Fix: Link collection flow to assessment flow
+            assessment_flow_id=assessment_uuid,
             # phase_state removed per ADR-028 - use master flow's phase_transitions
         )
 
         db.add(collection_flow)
         await db.flush()  # Make ID available for foreign key relationships
         await db.refresh(collection_flow)
+
+        # Bug #668 Fix: Create data gaps for specific missing attributes if provided
+        if flow_data.missing_attributes:
+            from app.models.collection_data_gap import CollectionDataGap
+
+            # Map critical attribute names to their categories
+            # Based on frontend CRITICAL_ATTRIBUTES (22 attributes total)
+            ATTRIBUTE_CATEGORY_MAP = {
+                # Infrastructure (6)
+                "application_name": "infrastructure",
+                "technology_stack": "infrastructure",
+                "operating_system": "infrastructure",
+                "cpu_cores": "infrastructure",
+                "memory_gb": "infrastructure",
+                "storage_gb": "infrastructure",
+                # Application (8)
+                "business_criticality": "application",
+                "application_type": "application",
+                "architecture_pattern": "application",
+                "dependencies": "application",
+                "user_base": "application",
+                "data_sensitivity": "application",
+                "compliance_requirements": "application",
+                "sla_requirements": "application",
+                # Business (4)
+                "business_owner": "business",
+                "annual_operating_cost": "business",
+                "business_value": "business",
+                "strategic_importance": "business",
+                # Technical Debt (4)
+                "code_quality_score": "technical_debt",
+                "last_update_date": "technical_debt",
+                "support_status": "technical_debt",
+                "known_vulnerabilities": "technical_debt",
+            }
+
+            gaps_created = 0
+            for asset_id_str, missing_attrs in flow_data.missing_attributes.items():
+                try:
+                    asset_uuid = uuid.UUID(asset_id_str)
+                except ValueError:
+                    logger.warning(
+                        f"Invalid asset_id format in missing_attributes: {asset_id_str}"
+                    )
+                    continue
+
+                for attr_name in missing_attrs:
+                    # Determine category from mapping, default to "application" if not found
+                    category = ATTRIBUTE_CATEGORY_MAP.get(attr_name, "application")
+
+                    gap = CollectionDataGap(
+                        collection_flow_id=collection_flow.id,
+                        asset_id=asset_uuid,
+                        field_name=attr_name,
+                        gap_type="missing_critical_attribute",
+                        gap_category=category,
+                        impact_on_sixr="high",  # Critical attributes block assessment
+                        priority=10,  # High priority
+                        resolution_status="identified",
+                        description=f"Missing critical attribute: {attr_name}",
+                        suggested_resolution=f"Provide value for {attr_name} via questionnaire",
+                        gap_metadata={
+                            "source": "assessment_readiness",
+                            "is_critical": True,
+                            "required_for_assessment": True,
+                            "asset_id": str(
+                                asset_uuid
+                            ),  # Critical: Required for asset writeback
+                        },
+                    )
+                    db.add(gap)
+                    gaps_created += 1
+
+            logger.info(
+                f"✅ Created {gaps_created} data gaps for {len(flow_data.missing_attributes)} "
+                f"assets in collection flow {collection_flow.flow_id}"
+            )
 
         # Initialize with Master Flow Orchestrator within the same transaction
         flow_input = {

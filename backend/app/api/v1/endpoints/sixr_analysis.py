@@ -56,11 +56,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize services
-decision_engine = SixRDecisionEngine()
+# Initialize services - DEPRECATED: Module-level instantiation
+# Bug #666 - Phase 1: Endpoints should use TenantScopedAgentPool per request
+# For backward compatibility, initialize with None (fallback mode)
+decision_engine = SixRDecisionEngine(crewai_service=None)
 if TECHNICAL_DEBT_CREW_AVAILABLE:
-    logger.info(
-        "6R services initialized successfully (using CrewAI Technical Debt Crew)"
+    logger.warning(
+        "6R services initialized in FALLBACK mode - Bug #666: "
+        "Endpoints should instantiate with TenantScopedAgentPool per request"
     )
 else:
     logger.info(

@@ -22,12 +22,21 @@ class ParameterScoringTool(BaseTool):
     description: str = "Score 6R parameters against a specific migration strategy"
     args_schema: type[BaseModel] = ParameterScoringInput
 
-    def __init__(self):
+    def __init__(self, crewai_service=None):
+        """
+        Initialize parameter scoring tool.
+
+        Args:
+            crewai_service: Optional CrewAI service for AI-powered analysis.
+                           If None, engine uses fallback heuristic mode.
+                           Reference: Bug #666 - Phase 1 fix
+        """
         super().__init__()
         # Lazy import to avoid circular dependencies
         _, _, _, SixRDecisionEngine = get_sixr_imports()
         if SixRDecisionEngine:
-            self.decision_engine = SixRDecisionEngine()
+            # Bug #666 - Phase 1: Pass crewai_service to enable AI-powered analysis
+            self.decision_engine = SixRDecisionEngine(crewai_service=crewai_service)
         else:
             self.decision_engine = None
 

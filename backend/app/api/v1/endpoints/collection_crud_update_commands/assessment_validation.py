@@ -154,6 +154,9 @@ async def check_and_set_assessment_ready(
                 flow.assessment_ready = True
                 flow.updated_at = datetime.utcnow()
                 logger.info(
+                    f"🔍 BUG#668: Setting assessment_ready=True for flow {flow.flow_id} via assessment_validation"
+                )
+                logger.info(
                     f"✅ Collection flow {flow.flow_id} is now ready for assessment! "
                     f"All required attributes collected."
                 )

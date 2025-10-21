@@ -58,16 +58,10 @@ async def prepare_gap_data(
         if asset_id not in missing_critical_fields:
             missing_critical_fields[asset_id] = []
 
-        missing_critical_fields[asset_id].append(
-            {
-                "field_name": gap.field_name,
-                "gap_type": gap.gap_type,
-                "gap_category": gap.gap_category,
-                "description": gap.description,
-                "priority": gap.priority,
-                "suggested_resolution": gap.suggested_resolution,
-            }
-        )
+        # CRITICAL FIX: Pass field_name as string, not dict
+        # group_attributes_by_category expects {"asset_id": ["field_name1", "field_name2"]}
+        # NOT {"asset_id": [{"field_name": "...", ...}, ...]}
+        missing_critical_fields[asset_id].append(gap.field_name)
 
     # Load asset information
     assets_result = await db.execute(

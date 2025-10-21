@@ -33,8 +33,21 @@ export class FlowsApi extends CollectionFlowClient {
     });
   }
 
-  async ensureFlow(): Promise<CollectionFlowResponse> {
-    return await apiCall(`${this.baseUrl}/flows/ensure`, { method: "POST" });
+  async ensureFlow(missing_attributes?: Record<string, string[]>, assessment_flow_id?: string): Promise<CollectionFlowResponse> {
+    // Bug #668 Fix: Pass missing_attributes to trigger gap creation and questionnaire generation
+    // Bug Fix: Pass assessment_flow_id to link collection flow to assessment flow
+    const body: Record<string, unknown> = {};
+    if (missing_attributes) {
+      body.missing_attributes = missing_attributes;
+    }
+    if (assessment_flow_id) {
+      body.assessment_flow_id = assessment_flow_id;
+    }
+
+    return await apiCall(`${this.baseUrl}/flows/ensure`, {
+      method: "POST",
+      ...(Object.keys(body).length > 0 && { body: JSON.stringify(body) }),
+    });
   }
 
   async getFlowDetails(flowId: string): Promise<CollectionFlowResponse> {

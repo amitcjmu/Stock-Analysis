@@ -125,10 +125,14 @@ export const ApplicationGroupsWidget: React.FC<ApplicationGroupsWidgetProps> = (
           comparison = a.asset_count - b.asset_count;
           break;
         case 'readiness': {
-          const aTotal = a.readiness_summary.ready + a.readiness_summary.not_ready + a.readiness_summary.in_progress;
-          const bTotal = b.readiness_summary.ready + b.readiness_summary.not_ready + b.readiness_summary.in_progress;
-          const aPercentage = aTotal > 0 ? (a.readiness_summary.ready / aTotal) * 100 : 0;
-          const bPercentage = bTotal > 0 ? (b.readiness_summary.ready / bTotal) * 100 : 0;
+          // Defensive: Handle missing or undefined readiness_summary
+          const aSummary = a.readiness_summary || { ready: 0, not_ready: 0, in_progress: 0 };
+          const bSummary = b.readiness_summary || { ready: 0, not_ready: 0, in_progress: 0 };
+
+          const aTotal = (aSummary.ready || 0) + (aSummary.not_ready || 0) + (aSummary.in_progress || 0);
+          const bTotal = (bSummary.ready || 0) + (bSummary.not_ready || 0) + (bSummary.in_progress || 0);
+          const aPercentage = aTotal > 0 ? ((aSummary.ready || 0) / aTotal) * 100 : 0;
+          const bPercentage = bTotal > 0 ? ((bSummary.ready || 0) / bTotal) * 100 : 0;
           comparison = aPercentage - bPercentage;
           break;
         }
