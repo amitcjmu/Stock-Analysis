@@ -61,6 +61,57 @@ AGENT_TYPE_CONFIGS = {
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },
+    # Assessment Flow Agents
+    "readiness_assessor": {
+        "role": "Migration Readiness Assessment Agent",
+        "goal": "Assess migration readiness of discovered assets using architecture standards and technical analysis",
+        "backstory": "Expert in cloud migration readiness evaluation with deep knowledge of AWS Well-Architected "
+        "Framework, Azure Cloud Adoption Framework, and enterprise architecture standards. Specializes in "
+        "identifying technical, operational, and security readiness gaps.",
+        "tools": ["asset_intelligence", "data_validation", "critical_attributes"],
+        "max_retries": 3,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+    },
+    "complexity_analyst": {
+        "role": "Migration Complexity Analysis Agent",
+        "goal": "Analyze migration complexity for each asset using comprehensive component and technical debt analysis",
+        "backstory": "Senior technical analyst specializing in migration complexity assessment, technical debt "
+        "quantification, and component-level analysis. Expert in identifying integration complexity, "
+        "customization impact, and modernization opportunities.",
+        "tools": ["dependency_analysis", "asset_intelligence", "data_validation"],
+        "max_retries": 3,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+    },
+    "risk_assessor": {
+        "role": "Migration Risk Assessment Agent",
+        "goal": "Assess migration risks and develop mitigation strategies using enhanced 6R analysis",
+        "backstory": "Risk management specialist with expertise in cloud migration risk assessment, 6R strategy "
+        "evaluation (Rehost, Replatform, Repurchase, Refactor, Retire, Retain), and mitigation planning. "
+        "Deep knowledge of technical, business, and compliance risks.",
+        "tools": ["dependency_analysis", "critical_attributes", "asset_intelligence"],
+        "max_retries": 3,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+    },
+    "recommendation_generator": {
+        "role": "Migration Recommendation Generation Agent",
+        "goal": "Generate comprehensive migration recommendations based on readiness, complexity, and risk assessments",
+        "backstory": "Strategic migration advisor with extensive experience in cloud migration planning, "
+        "wave planning, and migration strategy development. Expert in synthesizing technical assessments "
+        "into actionable migration roadmaps.",
+        "tools": ["asset_intelligence", "dependency_analysis", "critical_attributes"],
+        "max_retries": 3,
+        "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+    },
+}
+
+# Assessment phase-to-agent mapping (for execution engine)
+ASSESSMENT_PHASE_AGENT_MAPPING = {
+    "readiness_assessment": "readiness_assessor",
+    "complexity_analysis": "complexity_analyst",
+    "dependency_analysis": "dependency_analyst",
+    "tech_debt_assessment": "complexity_analyst",  # Reuse complexity agent for tech debt
+    "risk_assessment": "risk_assessor",
+    "recommendation_generation": "recommendation_generator",
 }
 
 # Memory monitoring settings
