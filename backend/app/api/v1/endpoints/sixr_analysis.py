@@ -14,10 +14,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import (
-    analysis_service,
+    AnalysisService,
 )
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from app.services.persistent_agents import TenantScopedAgentPool
 from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
 from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
@@ -36,7 +37,6 @@ from app.schemas.sixr_analysis import (
     SixRRecommendation,
     SixRRecommendationResponse,
 )
-from app.services.sixr_engine_modular import SixRDecisionEngine
 
 # Conditional import for CrewAI technical debt crew
 try:
@@ -56,19 +56,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize services - DEPRECATED: Module-level instantiation
-# Bug #666 - Phase 1: Endpoints should use TenantScopedAgentPool per request
-# For backward compatibility, initialize with None (fallback mode)
-decision_engine = SixRDecisionEngine(crewai_service=None)
-if TECHNICAL_DEBT_CREW_AVAILABLE:
-    logger.warning(
-        "6R services initialized in FALLBACK mode - Bug #666: "
-        "Endpoints should instantiate with TenantScopedAgentPool per request"
-    )
-else:
-    logger.info(
-        "6R services initialized successfully (using fallback mode - CrewAI not available)"
-    )
+# Bug #666 - Phase 2 COMPLETE: All endpoints now use TenantScopedAgentPool per request
+# No module-level service instantiation - services created per-request with tenant context
+logger.info("6R Analysis router initialized - using AI-powered analysis per request")
 
 
 @router.post("/analyze", response_model=SixRAnalysisResponse)
@@ -86,8 +76,16 @@ async def create_sixr_analysis(
     2. Runs discovery analysis on application data
     3. Performs initial 6R recommendation
     4. Generates qualifying questions for refinement
+
+    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
     """
     try:
+        # Bug #666 - Phase 2: Use TenantScopedAgentPool for AI-powered analysis
+        # Pass the pool CLASS (not instance) - it manages singleton agents per tenant
+        service = AnalysisService(
+            crewai_service=TenantScopedAgentPool, require_ai=False
+        )
+
         # Create analysis record with tenant context
         analysis = SixRAnalysis(
             client_account_id=context.client_account_id,
@@ -126,9 +124,9 @@ async def create_sixr_analysis(
         db.add(parameters)
         await db.commit()
 
-        # Start background analysis
+        # Start background analysis with AI-powered service
         background_tasks.add_task(
-            analysis_service.run_initial_analysis,
+            service.run_initial_analysis,
             analysis.id,
             initial_params.dict(),
             "system",
@@ -251,6 +249,7 @@ async def update_sixr_parameters(
     request: SixRParameterUpdateRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Update 6R analysis parameters and trigger re-analysis.
@@ -259,8 +258,14 @@ async def update_sixr_parameters(
     1. Updates the parameter values
     2. Triggers background re-analysis with new parameters
     3. Returns updated analysis state
+
+    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
     """
     try:
+        # Bug #666 - Phase 2: Create AI-powered service per request
+        service = AnalysisService(
+            crewai_service=TenantScopedAgentPool, require_ai=False
+        )
         # Get analysis
         result = await db.execute(
             select(SixRAnalysis).where(SixRAnalysis.id == analysis_id)
@@ -308,9 +313,9 @@ async def update_sixr_parameters(
 
         await db.commit()
 
-        # Trigger background re-analysis
+        # Trigger background re-analysis with AI-powered service
         background_tasks.add_task(
-            analysis_service.run_parameter_update_analysis,
+            service.run_parameter_update_analysis,
             analysis.id,
             request.parameters.dict(),
             "system",
@@ -334,6 +339,7 @@ async def submit_qualifying_responses(
     request: QualifyingQuestionsRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Submit responses to qualifying questions and trigger analysis refinement.
@@ -342,8 +348,14 @@ async def submit_qualifying_responses(
     1. Stores question responses
     2. Processes responses to update parameters
     3. Triggers refined analysis
+
+    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
     """
     try:
+        # Bug #666 - Phase 2: Create AI-powered service per request
+        service = AnalysisService(
+            crewai_service=TenantScopedAgentPool, require_ai=False
+        )
         analysis = await db.get(SixRAnalysis, analysis_id)
 
         if not analysis:
@@ -370,9 +382,9 @@ async def submit_qualifying_responses(
 
         await db.commit()
 
-        # Trigger background processing
+        # Trigger background processing with AI-powered service
         background_tasks.add_task(
-            analysis_service.process_question_responses,
+            service.process_question_responses,
             analysis.id,
             [r.dict() for r in request.responses],
             "system",
@@ -396,6 +408,7 @@ async def create_analysis_iteration(
     request: IterationRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Create a new iteration of the 6R analysis based on feedback.
@@ -404,8 +417,14 @@ async def create_analysis_iteration(
     1. Creates new iteration record
     2. Applies parameter changes and feedback
     3. Triggers refined analysis
+
+    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
     """
     try:
+        # Bug #666 - Phase 2: Create AI-powered service per request
+        service = AnalysisService(
+            crewai_service=TenantScopedAgentPool, require_ai=False
+        )
         # Get analysis
         result = await db.execute(
             select(SixRAnalysis).where(SixRAnalysis.id == analysis_id)
@@ -450,9 +469,9 @@ async def create_analysis_iteration(
 
         await db.commit()
 
-        # Trigger background refinement
+        # Trigger background refinement with AI-powered service
         background_tasks.add_task(
-            analysis_service.run_iteration_analysis,
+            service.run_iteration_analysis,
             analysis_id,
             new_iteration_number,
             request.dict(),
@@ -556,7 +575,7 @@ async def list_sixr_analyses(
 
         # Get total count
         count_result = await db.execute(
-            select(func.count(SixRAnalysis.id)).select_from(query.subquery())
+            select(func.count()).select_from(query.subquery())
         )
         total_count = count_result.scalar()
 
@@ -666,8 +685,14 @@ async def create_bulk_analysis(
 
     This endpoint creates individual analyses for each application
     and processes them in batches.
+
+    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
     """
     try:
+        # Bug #666 - Phase 2: Create AI-powered service per request
+        service = AnalysisService(
+            crewai_service=TenantScopedAgentPool, require_ai=False
+        )
         individual_analyses = []
 
         # Create individual analyses
@@ -697,9 +722,9 @@ async def create_bulk_analysis(
 
         db.commit()
 
-        # Start background bulk processing
+        # Start background bulk processing with AI-powered service
         background_tasks.add_task(
-            analysis_service.run_bulk_analysis,
+            service.run_bulk_analysis,
             [a.id for a in individual_analyses],
             request.batch_size,
             "system",

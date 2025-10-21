@@ -25,16 +25,19 @@ logger = logging.getLogger(__name__)
 class AnalysisService:
     """Service class for handling 6R analysis business logic."""
 
-    def __init__(self, crewai_service=None):
+    def __init__(self, crewai_service=None, require_ai: bool = False):
         """
         Initialize the analysis service with decision engine.
 
         Args:
             crewai_service: Optional CrewAI service for AI-powered analysis.
                            If None, engine uses fallback heuristic mode.
-                           Reference: Bug #666 - Phase 1 fix
+            require_ai: If True, raises ValueError when AI is required but unavailable.
+                       Reference: Bug #666 - Phase 2 (Qodo Bot security concern)
         """
-        self.decision_engine = SixRDecisionEngine(crewai_service=crewai_service)
+        self.decision_engine = SixRDecisionEngine(
+            crewai_service=crewai_service, require_ai=require_ai
+        )
 
     async def run_initial_analysis(
         self, analysis_id: int, parameters: Dict[str, Any], user: str
@@ -611,5 +614,6 @@ class AnalysisService:
             logger.error(f"Failed to run bulk analysis: {e}")
 
 
-# Create a singleton instance
-analysis_service = AnalysisService()
+# Bug #666 - Phase 2: DEPRECATED singleton instance removed
+# All endpoints should create AnalysisService per-request with TenantScopedAgentPool
+# Example: service = AnalysisService(crewai_service=TenantScopedAgentPool)

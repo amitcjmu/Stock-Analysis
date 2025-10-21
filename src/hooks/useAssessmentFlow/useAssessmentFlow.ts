@@ -74,6 +74,17 @@ export const useAssessmentFlow = (
               ? Math.max(prev.progress ?? 0, status.progress)
               : prev.progress;
 
+          // Detect phase change to trigger data reload (Bug #664 fix)
+          const phaseChanged = prev.currentPhase !== status.current_phase;
+
+          // Schedule phase data reload if phase changed
+          if (phaseChanged && status.current_phase) {
+            // Use setTimeout to avoid blocking the setState
+            setTimeout(() => {
+              loadPhaseData(status.current_phase as AssessmentPhase);
+            }, 0);
+          }
+
           return {
             ...prev,
             status: status.status as AssessmentFlowStatus,
@@ -92,7 +103,7 @@ export const useAssessmentFlow = (
     // Poll immediately, then every 5 seconds
     pollStatus();
     pollingIntervalRef.current = setInterval(pollStatus, 5000);
-  }, [state.flowId, clientAccountId, engagementId]);
+  }, [state.flowId, clientAccountId, engagementId, loadPhaseData]);
 
   // Initialize assessment flow
   const initializeFlow = useCallback(

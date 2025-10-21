@@ -7,6 +7,6 @@ This module contains the modularized 6R analysis API implementation:
 - utils/: Utility functions for analysis processing
 """
 
-from .services.analysis_service import AnalysisService, analysis_service
+from .services.analysis_service import AnalysisService
 
-__all__ = ["AnalysisService", "analysis_service"]
+__all__ = ["AnalysisService"]
