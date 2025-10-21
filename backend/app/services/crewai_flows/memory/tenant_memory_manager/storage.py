@@ -358,7 +358,10 @@ class StorageMixin:
         scope: LearningScope = LearningScope.CLIENT,
     ) -> Dict[str, Any]:
         """
-        Retrieve cached questionnaire template.
+        Retrieve cached questionnaire template using exact JSONB match.
+
+        Per Qodo Bot review: Uses exact JSONB query instead of vector similarity
+        for cache key lookups, which is more efficient and accurate.
 
         Args:
             client_account_id: Client account ID
@@ -370,36 +373,41 @@ class StorageMixin:
         Returns:
             Dict with 'questions' (list) and 'usage_count' (int), or empty dict if not found
         """
+        from sqlalchemy import select, and_
+        from app.models.learning_pattern import LearningPattern
+
         cache_key = f"{asset_type}_{gap_pattern}"
 
-        # Retrieve using existing retrieve_similar_patterns
-        # Use cache_key as query context for exact matching
-        patterns = await self.retrieve_similar_patterns(
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
-            pattern_type="questionnaire_template",
-            query_context={"cache_key": cache_key},
-            limit=1,  # Only need best match
+        # Use exact JSONB match for cache_key lookup (more efficient than vector search)
+        query = select(LearningPattern).where(
+            and_(
+                LearningPattern.client_account_id == client_account_id,
+                LearningPattern.engagement_id == engagement_id,
+                LearningPattern.pattern_type == "questionnaire_template",
+                LearningPattern.pattern_data["cache_key"].astext == cache_key,
+            )
         )
 
-        if patterns:
-            pattern = patterns[0]
-            pattern_data = pattern.get("pattern_data", {})
+        result = await self.db.execute(query)
+        pattern = result.scalar_one_or_none()
+
+        if pattern:
+            pattern_data = pattern.pattern_data
 
             # Increment usage count (for analytics)
             usage_count = pattern_data.get("usage_count", 0) + 1
             pattern_data["usage_count"] = usage_count
 
-            logger.info(
-                f"✅ Cache HIT for {cache_key} "
-                f"(usage_count: {usage_count}, similarity: {pattern.get('similarity', 0):.2f})"
-            )
+            # Update the pattern with incremented usage count
+            pattern.pattern_data = pattern_data
+            await self.db.commit()
+
+            logger.info(f"✅ Cache HIT for {cache_key} (usage_count: {usage_count})")
 
             return {
                 "questions": pattern_data.get("questions", []),
                 "usage_count": usage_count,
                 "cache_hit": True,
-                "similarity": pattern.get("similarity", 0),
                 "metadata": pattern_data.get("metadata", {}),
             }
 
@@ -408,5 +416,4 @@ class StorageMixin:
             "questions": [],
             "usage_count": 0,
             "cache_hit": False,
-            "similarity": 0,
         }

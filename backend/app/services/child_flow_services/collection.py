@@ -239,29 +239,8 @@ class CollectionChildFlowService(BaseChildFlowService):
             return result
 
         elif phase_name == "questionnaire_generation":
-            # Generate questionnaires using QuestionnaireGenerationService
-            # NOTE: This service may not exist yet - implementing stub per plan
-            logger.info(f"Phase '{phase_name}' - questionnaire generation requested")
-
-            # For now, return success with placeholder and auto-progress to manual_collection
-            # TODO: Implement actual QuestionnaireGenerationService when ready
-            logger.warning(
-                "QuestionnaireGenerationService not yet implemented - auto-progressing to manual_collection"
-            )
-
-            # Auto-transition to manual_collection to prevent flows from getting stuck
-            # Per Bug #651 fix: Stub should not leave flows in questionnaire_generation indefinitely
-            await self.state_service.transition_phase(
-                flow_id=child_flow.id,
-                new_phase=CollectionPhase.MANUAL_COLLECTION,
-            )
-
-            return {
-                "status": "success",
-                "phase": phase_name,
-                "execution_type": "stub_with_progression",
-                "message": "Auto-progressed to manual_collection (questionnaire service pending implementation)",
-            }
+            # Generate questionnaires from persisted gaps using QuestionnaireGenerationTool
+            return await self._execute_questionnaire_generation(child_flow, phase_name)
 
         elif phase_name == "manual_collection":
             # User must manually provide responses - return awaiting input
@@ -293,4 +272,103 @@ class CollectionChildFlowService(BaseChildFlowService):
                 "phase": phase_name,
                 "execution_type": "noop",
                 "message": f"Phase '{phase_name}' not yet implemented",
+            }
+
+    async def _execute_questionnaire_generation(
+        self, child_flow, phase_name: str
+    ) -> Dict[str, Any]:
+        """
+        Execute questionnaire generation phase.
+
+        Extracted to reduce complexity of execute_phase method (Flake8 C901).
+
+        Args:
+            child_flow: Collection flow entity
+            phase_name: Phase name ("questionnaire_generation")
+
+        Returns:
+            Phase execution result dictionary
+        """
+        logger.info(f"Phase '{phase_name}' - questionnaire generation requested")
+
+        # Import required services
+        from sqlalchemy import select
+        from app.models.collection_data_gap import CollectionDataGap
+
+        try:
+            # Get persisted gaps from database
+            gaps_result = await self.db.execute(
+                select(CollectionDataGap).where(
+                    CollectionDataGap.collection_flow_id == child_flow.id,
+                    CollectionDataGap.resolution_status == "pending",
+                )
+            )
+            persisted_gaps = gaps_result.scalars().all()
+
+            if not persisted_gaps:
+                logger.info(
+                    "No pending gaps found - transitioning to manual_collection"
+                )
+                await self.state_service.transition_phase(
+                    flow_id=child_flow.id,
+                    new_phase=CollectionPhase.MANUAL_COLLECTION,
+                )
+                return {
+                    "status": "success",
+                    "phase": phase_name,
+                    "message": "No gaps to generate questionnaires for",
+                    "questionnaires_generated": 0,
+                }
+
+            logger.info(
+                f"Found {len(persisted_gaps)} pending gaps for questionnaire generation"
+            )
+
+            # Import helper functions
+            from app.services.child_flow_services.questionnaire_helpers import (
+                prepare_gap_data,
+                generate_questionnaires,
+                persist_questionnaires,
+            )
+
+            # Transform gaps and generate questionnaires using helper functions
+            data_gaps, business_context = await prepare_gap_data(
+                self.db, self.context, persisted_gaps, child_flow
+            )
+
+            generation_result = await generate_questionnaires(
+                data_gaps, business_context
+            )
+
+            if generation_result.get("status") != "success":
+                logger.error(
+                    f"Questionnaire generation failed: {generation_result.get('error')}"
+                )
+                return {
+                    "status": "failed",
+                    "phase": phase_name,
+                    "error": generation_result.get("error", "Unknown error"),
+                }
+
+            # Persist and transition using helper function
+            return await persist_questionnaires(
+                self.db,
+                self.context,
+                self.state_service,
+                generation_result,
+                persisted_gaps,
+                child_flow,
+                phase_name,
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Error in questionnaire_generation phase: {e}",
+                exc_info=True,
+            )
+            return {
+                "status": "failed",
+                "phase": phase_name,
+                "error": str(e),
+                "error_type": type(e).__name__,
             }

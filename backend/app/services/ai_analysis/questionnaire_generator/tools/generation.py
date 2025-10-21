@@ -355,29 +355,35 @@ class QuestionnaireGenerationTool(BaseTool):
             data_gaps=data_gaps, business_context=business_context or {}
         )
 
-        # Extract questions from result
+        # Extract sections and questions from result
+        # Per Qodo Bot review: Preserve section structure instead of flattening
+        questionnaire_sections = []
         questions = []
         if generation_result.get("status") == "success":
-            for section in generation_result.get("questionnaires", []):
+            questionnaire_sections = generation_result.get("questionnaires", [])
+            for section in questionnaire_sections:
                 questions.extend(section.get("questions", []))
 
-        # Store in cache for future use
-        if questions:
+        # Store in cache for future use with preserved section structure
+        if questions and questionnaire_sections:
             await memory_manager.store_questionnaire_template(
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
                 asset_type=asset_type,
                 gap_pattern=gap_pattern,
-                questions=questions,
+                questions=questions,  # Flat list for backward compatibility
                 metadata={
                     "generated_by": "QuestionGenerationTool",
                     "asset_id": asset_id,
                     "gap_count": len(gaps),
+                    "sections": questionnaire_sections,  # Preserve section structure
+                    "section_count": len(questionnaire_sections),
                 },
             )
 
             logger.info(
-                f"✅ Stored {len(questions)} questions in cache for {asset_type}_{gap_pattern}"
+                f"✅ Stored {len(questions)} questions in {len(questionnaire_sections)} sections "
+                f"for cache key {asset_type}_{gap_pattern}"
             )
 
         return questions

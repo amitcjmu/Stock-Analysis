@@ -50,6 +50,35 @@ class AssetHelpers:
         if asset_id in self._asset_name_cache:
             return self._asset_name_cache[asset_id]
 
+        # Try database lookup if session available in business_context
+        if business_context and "db_session" in business_context:
+            try:
+                from uuid import UUID
+                from sqlalchemy import select
+                from app.models.asset import Asset
+
+                db_session = business_context["db_session"]
+                asset_uuid = UUID(asset_id) if isinstance(asset_id, str) else asset_id
+
+                result = await db_session.execute(
+                    select(Asset.name).where(Asset.id == asset_uuid)
+                )
+                asset_name = result.scalar_one_or_none()
+
+                if asset_name:
+                    logger.debug(
+                        f"✅ Retrieved asset_name='{asset_name}' from database for {asset_id}"
+                    )
+                    self._asset_name_cache[asset_id] = asset_name
+                    return asset_name
+
+            except Exception as e:
+                logger.error(
+                    f"Error fetching asset name from database for {asset_id}: {e}. "
+                    "Using UUID prefix fallback",
+                    exc_info=True,
+                )
+
         # Fallback to UUID prefix (preserves existing behavior for cases where asset_names not provided)
         fallback_name = f"Asset {asset_id[:8]}"
         logger.debug(f"⚠️ Using UUID prefix for {asset_id}: {fallback_name}")
