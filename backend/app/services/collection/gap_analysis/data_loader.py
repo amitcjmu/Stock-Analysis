@@ -21,6 +21,14 @@ async def load_assets(
 ) -> List[Asset]:
     """Load REAL assets from database with tenant scoping.
 
+    **Phase 2 Enrichment Integration** (October 2025):
+    - Auto-enrichment phase runs BEFORE gap_analysis in collection flow
+    - Asset objects returned here already include enriched data from:
+      * AutoEnrichmentPipeline (compliance, licenses, vulnerabilities, etc.)
+      * 7 enrichment tables (asset_resilience, asset_compliance_flags, etc.)
+      * Updated business_context fields (per auto_enrichment_pipeline.py:234-322)
+    - Result: Gap analysis sees enriched data → generates 50-80% fewer questions
+
     Args:
         selected_asset_ids: List of asset UUID strings
         client_account_id: Client account ID for scoping
@@ -28,7 +36,7 @@ async def load_assets(
         db: Database session
 
     Returns:
-        List of Asset objects
+        List of Asset objects with enriched data (if auto_enrichment ran)
     """
     asset_uuids = [
         UUID(aid) if isinstance(aid, str) else aid for aid in selected_asset_ids

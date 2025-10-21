@@ -36,7 +36,7 @@ References:
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "101"
+revision = "101_eliminate_collection_phase_state"
 down_revision = "100"
 branch_labels = None
 depends_on = None
