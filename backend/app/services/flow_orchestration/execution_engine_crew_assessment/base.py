@@ -121,6 +121,58 @@ class ExecutionEngineAssessmentCrews(
             self._agent_pool = await self._initialize_assessment_agent_pool(master_flow)
         return self._agent_pool
 
+    async def _get_agent_for_phase(
+        self, phase_name: str, agent_pool: Any, master_flow: CrewAIFlowStateExtensions
+    ) -> Any:
+        """
+        Get the appropriate agent for the phase from pool.
+
+        Per ADR-015: Uses TenantScopedAgentPool for persistent agents.
+        Per ADR-024: CrewAI memory disabled, use TenantMemoryManager.
+
+        Args:
+            phase_name: Name of the assessment phase
+            agent_pool: TenantScopedAgentPool class
+            master_flow: Master flow state with tenant identifiers
+
+        Returns:
+            Agent instance from pool
+
+        Raises:
+            ValueError: If no agent configured for phase
+            RuntimeError: If agent retrieval fails
+        """
+        from app.services.persistent_agents.agent_pool_constants import (
+            ASSESSMENT_PHASE_AGENT_MAPPING,
+        )
+
+        # Get agent type from mapping
+        agent_type = ASSESSMENT_PHASE_AGENT_MAPPING.get(phase_name)
+        if not agent_type:
+            raise ValueError(f"No agent configured for phase: {phase_name}")
+
+        # Build context for agent retrieval
+        context = {
+            "client_account_id": str(master_flow.client_account_id),
+            "engagement_id": str(master_flow.engagement_id),
+            "flow_id": str(master_flow.flow_id),
+        }
+
+        # Get persistent agent from pool
+        try:
+            agent = await agent_pool.get_agent(
+                context=context,
+                agent_type=agent_type,
+                force_recreate=False,  # Use cached agent
+            )
+
+            logger.info(f"✅ Retrieved agent '{agent_type}' for phase '{phase_name}'")
+            return agent
+
+        except Exception as e:
+            logger.error(f"Failed to get agent for phase {phase_name}: {e}")
+            raise
+
     async def execute_assessment_phase(
         self,
         master_flow: CrewAIFlowStateExtensions,
@@ -128,7 +180,7 @@ class ExecutionEngineAssessmentCrews(
         phase_input: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
-        Execute assessment flow phase using persistent agents.
+        Execute assessment flow phase using persistent agents and persist results.
 
         Per ADR-015: Uses TenantScopedAgentPool for persistent agents.
         Per ADR-024: CrewAI memory disabled, use TenantMemoryManager.
@@ -142,7 +194,7 @@ class ExecutionEngineAssessmentCrews(
             Dictionary with execution results and metadata
         """
         logger.info(
-            f"Executing assessment phase '{phase_config.name}' with persistent agents"
+            f"🔄 Executing assessment phase '{phase_config.name}' with persistent agents"
         )
 
         try:
@@ -157,16 +209,32 @@ class ExecutionEngineAssessmentCrews(
                 mapped_phase, agent_pool, master_flow, phase_input
             )
 
-            # Add metadata about persistent agent usage
+            # Save results to database
+            from app.repositories.assessment_flow_repository.commands.flow_commands.phase_results import (
+                PhaseResultsPersistence,
+            )
+
+            persistence = PhaseResultsPersistence(
+                self.crew_utils.db,
+                master_flow.client_account_id,
+                master_flow.engagement_id,
+            )
+
+            await persistence.save_phase_results(
+                str(master_flow.flow_id), phase_config.name, result
+            )
+
+            # Add metadata about persistent agent usage and result persistence
             result["agent_pool_info"] = {
                 "agent_pool_type": "TenantScopedAgentPool" if agent_pool else "none",
                 "client_account_id": str(master_flow.client_account_id),
                 "engagement_id": str(master_flow.engagement_id),
                 "memory_strategy": "TenantMemoryManager",  # Per ADR-024
+                "results_persisted": True,
             }
 
             logger.info(
-                f"Assessment phase '{phase_config.name}' completed with persistent agents"
+                f"✅ Assessment phase '{phase_config.name}' completed with persistent agents"
             )
             return {
                 "phase": phase_config.name,
@@ -177,7 +245,7 @@ class ExecutionEngineAssessmentCrews(
             }
 
         except Exception as e:
-            logger.error(f"Assessment phase failed: {e}")
+            logger.error(f"❌ Assessment phase failed: {e}")
             import traceback
 
             logger.error(f"Traceback: {traceback.format_exc()}")

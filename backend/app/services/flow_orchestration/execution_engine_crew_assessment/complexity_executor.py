@@ -60,17 +60,63 @@ class ComplexityExecutorMixin:
                 f"Built complexity input with indicators: {complexity_indicators}"
             )
 
-            # TODO: Execute agent with crew_inputs
-            # agent = await agent_pool.get_agent('complexity_analyst')
-            # result = await agent.execute(crew_inputs)
+            # Get agent from pool
+            agent = await self._get_agent_for_phase(
+                "complexity_analysis", agent_pool, master_flow
+            )
+
+            # Create task for agent
+            from crewai import Task
+            import time
+            import json
+
+            task = Task(
+                description=f"""Analyze migration complexity for applications based on:
+- Application architecture and technology stacks
+- Component complexity indicators: {complexity_indicators}
+- Integration points and dependencies
+- Customization and technical debt levels
+
+Provide a comprehensive complexity analysis with:
+1. Overall complexity score (0-100)
+2. Component-level complexity breakdown
+3. Integration complexity assessment
+4. Modernization opportunities
+
+Return results as valid JSON with keys: complexity_score, components, integrations, modernization
+""",
+                expected_output=(
+                    "Comprehensive complexity analysis with scores, "
+                    "component breakdown, and modernization opportunities in JSON format"
+                ),
+                agent=agent,
+            )
+
+            # Execute task with inputs
+            start_time = time.time()
+
+            result = await task.execute_async(context=crew_inputs)
+
+            execution_time = time.time() - start_time
+
+            # Parse result (assuming JSON output from agent)
+            try:
+                parsed_result = (
+                    json.loads(result) if isinstance(result, str) else result
+                )
+            except json.JSONDecodeError:
+                parsed_result = {"raw_output": str(result)}
+
+            logger.info(f"✅ Complexity analysis completed in {execution_time:.2f}s")
 
             return {
                 "phase": "complexity_analysis",
                 "status": "completed",
                 "agent": "complexity_analyst",
                 "inputs_prepared": True,
+                "execution_time_seconds": execution_time,
+                "results": parsed_result,
                 "context_data_available": bool(crew_inputs.get("context_data")),
-                "message": "Complexity analysis executed with input builders",
             }
 
         except Exception as e:

@@ -62,17 +62,63 @@ class TechDebtExecutorMixin:
                 f"Built tech debt input with {vuln_count} known vulnerabilities"
             )
 
-            # TODO: Execute agent with crew_inputs
-            # agent = await agent_pool.get_agent('complexity_analyst')  # Reuse complexity agent
-            # result = await agent.execute(crew_inputs)
+            # Get agent from pool (reuses complexity_analyst per mapping)
+            agent = await self._get_agent_for_phase(
+                "tech_debt_assessment", agent_pool, master_flow
+            )
+
+            # Create task for agent
+            from crewai import Task
+            import time
+            import json
+
+            task = Task(
+                description=f"""Assess technical debt for applications based on:
+- Known vulnerabilities: {vuln_count} identified
+- Code quality metrics and outdated libraries
+- Security compliance gaps
+- Maintenance burden indicators
+
+Provide a comprehensive technical debt assessment with:
+1. Overall tech debt score (0-100)
+2. Critical security vulnerabilities
+3. Modernization requirements
+4. Remediation roadmap
+
+Return results as valid JSON with keys: tech_debt_score, vulnerabilities, modernization, remediation
+""",
+                expected_output=(
+                    "Comprehensive technical debt assessment with scores, "
+                    "vulnerabilities, and remediation roadmap in JSON format"
+                ),
+                agent=agent,
+            )
+
+            # Execute task with inputs
+            start_time = time.time()
+
+            result = await task.execute_async(context=crew_inputs)
+
+            execution_time = time.time() - start_time
+
+            # Parse result (assuming JSON output from agent)
+            try:
+                parsed_result = (
+                    json.loads(result) if isinstance(result, str) else result
+                )
+            except json.JSONDecodeError:
+                parsed_result = {"raw_output": str(result)}
+
+            logger.info(f"✅ Tech debt assessment completed in {execution_time:.2f}s")
 
             return {
                 "phase": "tech_debt_assessment",
                 "status": "completed",
                 "agent": "complexity_analyst",  # Reuse complexity agent
                 "inputs_prepared": True,
+                "execution_time_seconds": execution_time,
+                "results": parsed_result,
                 "context_data_available": bool(crew_inputs.get("context_data")),
-                "message": "Tech debt assessment executed with input builders",
             }
 
         except Exception as e:

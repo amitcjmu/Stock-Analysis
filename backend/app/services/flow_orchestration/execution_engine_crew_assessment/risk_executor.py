@@ -56,17 +56,63 @@ class RiskExecutorMixin:
             prior_phases = list(crew_inputs.get("previous_phase_results", {}).keys())
             logger.info(f"Built risk input with prior phase results: {prior_phases}")
 
-            # TODO: Execute agent with crew_inputs
-            # agent = await agent_pool.get_agent('risk_assessor')
-            # result = await agent.execute(crew_inputs)
+            # Get agent from pool
+            agent = await self._get_agent_for_phase(
+                "risk_assessment", agent_pool, master_flow
+            )
+
+            # Create task for agent
+            from crewai import Task
+            import time
+            import json
+
+            task = Task(
+                description=f"""Assess migration risks and develop mitigation strategies based on:
+- Results from prior phases: {', '.join(prior_phases)}
+- 6R strategy evaluation (Rehost, Replatform, Repurchase, Refactor, Retire, Retain)
+- Technical, business, and compliance risks
+- Environment and infrastructure constraints
+
+Provide a comprehensive risk assessment with:
+1. Overall risk score (0-100)
+2. Critical risks and impact analysis
+3. 6R strategy recommendations
+4. Mitigation strategies and contingency plans
+
+Return results as valid JSON with keys: risk_score, critical_risks, six_r_recommendations, mitigation_strategies
+""",
+                expected_output=(
+                    "Comprehensive risk assessment with scores, "
+                    "6R recommendations, and mitigation strategies in JSON format"
+                ),
+                agent=agent,
+            )
+
+            # Execute task with inputs
+            start_time = time.time()
+
+            result = await task.execute_async(context=crew_inputs)
+
+            execution_time = time.time() - start_time
+
+            # Parse result (assuming JSON output from agent)
+            try:
+                parsed_result = (
+                    json.loads(result) if isinstance(result, str) else result
+                )
+            except json.JSONDecodeError:
+                parsed_result = {"raw_output": str(result)}
+
+            logger.info(f"✅ Risk assessment completed in {execution_time:.2f}s")
 
             return {
                 "phase": "risk_assessment",
                 "status": "completed",
                 "agent": "risk_assessor",
                 "inputs_prepared": True,
+                "execution_time_seconds": execution_time,
+                "results": parsed_result,
                 "context_data_available": bool(crew_inputs.get("context_data")),
-                "message": "Risk assessment executed with input builders",
             }
 
         except Exception as e:

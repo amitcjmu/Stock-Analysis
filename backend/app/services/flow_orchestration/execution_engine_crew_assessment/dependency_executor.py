@@ -60,17 +60,63 @@ class DependencyExecutorMixin:
             )
             logger.info(f"Built dependency input with graph metadata: {graph_metadata}")
 
-            # TODO: Execute agent with crew_inputs
-            # agent = await agent_pool.get_agent('dependency_analyst')
-            # result = await agent.execute(crew_inputs)
+            # Get agent from pool
+            agent = await self._get_agent_for_phase(
+                "dependency_analysis", agent_pool, master_flow
+            )
+
+            # Create task for agent
+            from crewai import Task
+            import time
+            import json
+
+            task = Task(
+                description=f"""Analyze application and infrastructure dependencies based on:
+- Dependency graph metadata: {graph_metadata}
+- Application integration points
+- Infrastructure dependencies
+- Cross-team dependencies
+
+Provide a comprehensive dependency analysis with:
+1. Dependency complexity score (0-100)
+2. Critical dependencies and impact analysis
+3. Circular dependencies and risks
+4. Decoupling recommendations
+
+Return results as valid JSON with keys: dependency_score, critical_deps, circular_deps, recommendations
+""",
+                expected_output=(
+                    "Comprehensive dependency analysis with scores, "
+                    "critical dependencies, and decoupling recommendations in JSON format"
+                ),
+                agent=agent,
+            )
+
+            # Execute task with inputs
+            start_time = time.time()
+
+            result = await task.execute_async(context=crew_inputs)
+
+            execution_time = time.time() - start_time
+
+            # Parse result (assuming JSON output from agent)
+            try:
+                parsed_result = (
+                    json.loads(result) if isinstance(result, str) else result
+                )
+            except json.JSONDecodeError:
+                parsed_result = {"raw_output": str(result)}
+
+            logger.info(f"✅ Dependency analysis completed in {execution_time:.2f}s")
 
             return {
                 "phase": "dependency_analysis",
                 "status": "completed",
                 "agent": "dependency_analyst",
                 "inputs_prepared": True,
+                "execution_time_seconds": execution_time,
+                "results": parsed_result,
                 "context_data_available": bool(crew_inputs.get("context_data")),
-                "message": "Dependency analysis executed with input builders",
             }
 
         except Exception as e:
