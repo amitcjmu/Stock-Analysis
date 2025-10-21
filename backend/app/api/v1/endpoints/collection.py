@@ -79,6 +79,7 @@ async def create_collection_from_discovery(
 
 @router.post("/flows/ensure", response_model=CollectionFlowResponse)
 async def ensure_collection_flow(
+    request_body: Optional[Dict[str, Any]] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     context=Depends(get_request_context),
@@ -88,11 +89,21 @@ async def ensure_collection_flow(
     This enables seamless navigation from Discovery to Collection without users
     needing to manually start a flow. It reuses any non-completed flow; if none
     exist, it creates a new one and returns it immediately.
+
+    Args:
+        request_body: Optional request body with:
+            - missing_attributes: Dict[str, List[str]] - asset_id -> missing attribute names
+              If provided, creates data gaps for specific attributes (Bug #668 fix)
     """
+    missing_attributes = None
+    if request_body:
+        missing_attributes = request_body.get("missing_attributes")
+
     return await collection_crud.ensure_collection_flow(
         db=db,
         current_user=current_user,
         context=context,
+        missing_attributes=missing_attributes,
     )
 
 

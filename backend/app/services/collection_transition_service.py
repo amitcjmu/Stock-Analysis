@@ -193,6 +193,78 @@ class CollectionTransitionService:
             # Get collection flow
             collection_flow = await self._get_collection_flow(collection_flow_id)
 
+            # Bug #666 Fix - Extract asset and canonical app IDs from collection flow
+            # Use deduplication_results directly instead of resolver to avoid junction table dependency
+            asset_ids = []
+            canonical_app_ids = []
+            application_groups_dict = []
+
+            if (
+                hasattr(collection_flow, "collection_config")
+                and collection_flow.collection_config
+            ):
+                config = collection_flow.collection_config
+
+                # Extract from deduplication_results (most reliable source)
+                dedup_results = config.get("deduplication_results", [])
+                if dedup_results:
+                    for result in dedup_results:
+                        asset_id = result.get("asset_id")
+                        canonical_app_id = result.get("canonical_application_id")
+                        app_name = result.get("application_name", "Unknown")
+
+                        if asset_id:
+                            try:
+                                asset_ids.append(
+                                    UUID(asset_id)
+                                    if isinstance(asset_id, str)
+                                    else asset_id
+                                )
+                            except (ValueError, TypeError) as e:
+                                logger.warning(
+                                    f"Invalid asset ID in deduplication_results: {asset_id}: {e}"
+                                )
+
+                        if canonical_app_id:
+                            canonical_app_ids.append(str(canonical_app_id))
+
+                            # Build application_asset_group structure
+                            application_groups_dict.append(
+                                {
+                                    "canonical_application_id": str(canonical_app_id),
+                                    "canonical_application_name": app_name,
+                                    "asset_ids": [str(asset_id)] if asset_id else [],
+                                    "asset_count": 1,
+                                    "confidence_score": result.get(
+                                        "confidence_score", 1.0
+                                    ),
+                                }
+                            )
+
+                # Fallback: Try selected_application_ids if dedup_results is empty
+                if not asset_ids:
+                    config_asset_ids = config.get("asset_ids", [])
+                    config_selected_apps = config.get("selected_application_ids", [])
+                    raw_ids = (
+                        config_asset_ids if config_asset_ids else config_selected_apps
+                    )
+
+                    for aid in raw_ids:
+                        try:
+                            if isinstance(aid, str):
+                                asset_ids.append(UUID(aid))
+                            elif isinstance(aid, UUID):
+                                asset_ids.append(aid)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(
+                                f"Invalid asset ID in collection config: {aid}: {e}"
+                            )
+
+            logger.info(
+                f"✅ Extracted {len(asset_ids)} assets and "
+                f"{len(canonical_app_ids)} canonical applications from collection flow"
+            )
+
             # Bug #630 Fix - STEP 1: Create master flow first
             from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
@@ -241,6 +313,10 @@ class CollectionTransitionService:
                 status="initialized",
                 current_phase="initialization",
                 progress=0.0,
+                # Bug #666 Fix - Populate application context fields
+                selected_canonical_application_ids=canonical_app_ids,
+                selected_asset_ids=[str(aid) for aid in asset_ids],
+                application_asset_groups=application_groups_dict,
                 configuration={
                     "collection_flow_id": str(collection_flow.id),
                     "selected_application_ids": [

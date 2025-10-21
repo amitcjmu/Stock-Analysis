@@ -34,9 +34,12 @@ class ApplicationAssetGroup(BaseModel):
         default_factory=list,
         description="Distinct asset types (server, database, network_device, etc.)",
     )
-    readiness_summary: Dict[str, int] = Field(
+    readiness_summary: Dict[str, float] = Field(
         default_factory=dict,
-        description="Readiness breakdown: {ready: 2, not_ready: 1, in_progress: 0}",
+        description=(
+            "Readiness breakdown with avg_completeness_score: "
+            "{ready: 2, not_ready: 1, in_progress: 0, avg_completeness_score: 0.75}"
+        ),
     )
 
     model_config = ConfigDict(
@@ -47,7 +50,12 @@ class ApplicationAssetGroup(BaseModel):
                 "asset_ids": ["c4ed088f-6658-405b-b011-8ce50c065ddf"],
                 "asset_count": 3,
                 "asset_types": ["server", "database", "network_device"],
-                "readiness_summary": {"ready": 2, "not_ready": 1, "in_progress": 0},
+                "readiness_summary": {
+                    "ready": 2,
+                    "not_ready": 1,
+                    "in_progress": 0,
+                    "avg_completeness_score": 0.75,
+                },
             }
         }
     )

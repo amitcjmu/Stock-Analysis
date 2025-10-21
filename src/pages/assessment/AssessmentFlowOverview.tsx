@@ -355,7 +355,6 @@ const AssessmentFlowOverview = (): JSX.Element => {
                   flow_id={flowForWidgets.id}
                   client_account_id={clientAccountId}
                   engagement_id={engagementId}
-                  onCollectDataClick={handleCollectMissingData}
                 />
               </section>
             </div>

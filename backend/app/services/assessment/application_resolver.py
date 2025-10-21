@@ -159,6 +159,7 @@ class AssessmentApplicationResolver:
                     "assets": [],
                     "asset_types": set(),
                     "readiness": {"ready": 0, "not_ready": 0, "in_progress": 0},
+                    "readiness_scores": [],  # Track scores for avg calculation
                     "seen_asset_ids": set(),  # Track seen assets to prevent duplicates
                 }
 
@@ -194,18 +195,42 @@ class AssessmentApplicationResolver:
                 # Default unknown readiness to not_ready
                 app_groups[app_key]["readiness"]["not_ready"] += 1
 
+            # Track readiness score for average calculation
+            if row.assessment_readiness_score is not None:
+                try:
+                    score = float(row.assessment_readiness_score)
+                    # Validate score is in range [0, 1]
+                    if 0.0 <= score <= 1.0:
+                        app_groups[app_key]["readiness_scores"].append(score)
+                except (ValueError, TypeError):
+                    # Skip invalid scores
+                    pass
+
         # Convert to ApplicationAssetGroup objects
-        groups = [
-            ApplicationAssetGroup(
-                canonical_application_id=group_data["canonical_application_id"],
-                canonical_application_name=group_data["canonical_application_name"],
-                asset_ids=[a["asset_id"] for a in group_data["assets"]],
-                asset_count=len(group_data["assets"]),
-                asset_types=sorted(list(group_data["asset_types"])),
-                readiness_summary=group_data["readiness"],
+        groups = []
+        for group_data in app_groups.values():
+            # Calculate average completeness score for this application group
+            scores = group_data["readiness_scores"]
+            avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
+
+            # Build readiness_summary with avg_completeness_score
+            readiness_summary = {
+                "ready": group_data["readiness"]["ready"],
+                "not_ready": group_data["readiness"]["not_ready"],
+                "in_progress": group_data["readiness"]["in_progress"],
+                "avg_completeness_score": avg_score,
+            }
+
+            groups.append(
+                ApplicationAssetGroup(
+                    canonical_application_id=group_data["canonical_application_id"],
+                    canonical_application_name=group_data["canonical_application_name"],
+                    asset_ids=[a["asset_id"] for a in group_data["assets"]],
+                    asset_count=len(group_data["assets"]),
+                    asset_types=sorted(list(group_data["asset_types"])),
+                    readiness_summary=readiness_summary,
+                )
             )
-            for group_data in app_groups.values()
-        ]
 
         # Sort by application name for consistent ordering
         groups.sort(key=lambda g: g.canonical_application_name)

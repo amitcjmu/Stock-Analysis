@@ -33,8 +33,26 @@ export class FlowsApi extends CollectionFlowClient {
     });
   }
 
-  async ensureFlow(): Promise<CollectionFlowResponse> {
-    return await apiCall(`${this.baseUrl}/flows/ensure`, { method: "POST" });
+  async ensureFlow(missing_attributes?: Record<string, string[]>): Promise<CollectionFlowResponse> {
+    console.log('🔵 DEBUG: ensureFlow() called with missing_attributes:', missing_attributes);
+    console.log('🔵 DEBUG: baseUrl:', this.baseUrl);
+
+    // Bug #668 Fix: Pass missing_attributes to trigger gap creation and questionnaire generation
+    const body = missing_attributes ? { missing_attributes } : undefined;
+    console.log('🔵 DEBUG: Request body:', body);
+    console.log('🔵 DEBUG: Full URL:', `${this.baseUrl}/flows/ensure`);
+
+    try {
+      const result = await apiCall(`${this.baseUrl}/flows/ensure`, {
+        method: "POST",
+        ...(body && { body: JSON.stringify(body) }),
+      });
+      console.log('🔵 DEBUG: ensureFlow() response:', result);
+      return result;
+    } catch (error) {
+      console.error('🔵 DEBUG: ensureFlow() ERROR:', error);
+      throw error;
+    }
   }
 
   async getFlowDetails(flowId: string): Promise<CollectionFlowResponse> {

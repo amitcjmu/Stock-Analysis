@@ -18,6 +18,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle,
@@ -39,6 +40,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import { collectionFlowApi } from '@/services/api/collection-flow';
 import { SummaryCard } from './shared/SummaryCard';
 import { AssetBlockerAccordion } from './shared/AssetBlockerAccordion';
 import {
@@ -55,7 +58,6 @@ export interface ReadinessDashboardWidgetProps {
   flow_id: string;
   client_account_id: string;
   engagement_id?: string; // Optional - not required for tenant scoping
-  onCollectDataClick?: () => void;
 }
 
 // ============================================================================
@@ -66,11 +68,13 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
   flow_id,
   client_account_id,
   engagement_id,
-  onCollectDataClick,
 }) => {
   const { getAuthHeaders } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
   const [showAttributesReference, setShowAttributesReference] = useState(false);
+  const [isCollecting, setIsCollecting] = useState(false);
 
   // ============================================================================
   // Data Fetching
@@ -123,18 +127,97 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
     console.log('Export readiness report');
   };
 
+  /**
+   * Bug #668 Fix: Extract missing attributes from readiness data and pass to collection flow
+   * This ensures the collection flow creates specific data gaps and generates targeted questionnaires
+   */
+  const handleCollectMissingData = async () => {
+    console.log('🔴 DEBUG: handleCollectMissingData CALLED');
+    console.log('🔴 DEBUG: readinessData:', readinessData);
+    console.log('🔴 DEBUG: isCollecting:', isCollecting);
+
+    if (!readinessData || isCollecting) {
+      console.log('🔴 DEBUG: Early return - readinessData:', !!readinessData, 'isCollecting:', isCollecting);
+      return;
+    }
+
+    console.log('🔴 DEBUG: Setting isCollecting = true');
+    setIsCollecting(true);
+    try {
+      // Extract missing_attributes in the format: { asset_id: [attr1, attr2, ...] }
+      const missing_attributes: Record<string, string[]> = {};
+
+      console.log('🔴 DEBUG: Processing asset_details, count:', readinessData.asset_details.length);
+      for (const asset of readinessData.asset_details) {
+        // Flatten all missing attributes from all categories (same logic as blockersAssets filter)
+        const allMissing = [
+          ...(asset.missing_attributes?.infrastructure || []),
+          ...(asset.missing_attributes?.application || []),
+          ...(asset.missing_attributes?.business || []),
+          ...(asset.missing_attributes?.technical_debt || []),
+        ];
+
+        console.log(`🔴 DEBUG: Asset ${asset.asset_name} (${asset.asset_id}) has ${allMissing.length} missing attributes`);
+
+        if (allMissing.length > 0) {
+          missing_attributes[asset.asset_id] = allMissing;
+        }
+      }
+
+      console.log('🔴 DEBUG: missing_attributes:', missing_attributes);
+      console.log('🔴 DEBUG: Total assets with missing data:', Object.keys(missing_attributes).length);
+      console.log('🔴 DEBUG: About to call collectionFlowApi.ensureFlow()');
+
+      // Create or update collection flow with missing attributes
+      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes);
+
+      console.log('🔴 DEBUG: collectionFlowApi.ensureFlow() returned:', collectionFlow);
+
+      toast({
+        title: 'Collection Flow Ready',
+        description: `Created ${Object.keys(missing_attributes).length} asset-specific data collection tasks`,
+      });
+
+      console.log('🔴 DEBUG: Navigating to /collection/adaptive-forms?flowId=' + collectionFlow.id);
+      // Bug #668 Fix: Navigate to questionnaires page where users can actually fill in the data
+      navigate(`/collection/adaptive-forms?flowId=${collectionFlow.id}`);
+    } catch (error) {
+      console.error('🔴 DEBUG: ERROR in handleCollectMissingData:', error);
+      console.error('Failed to start collection:', error);
+      toast({
+        title: 'Collection Failed',
+        description: 'Failed to start data collection. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      console.log('🔴 DEBUG: Setting isCollecting = false');
+      setIsCollecting(false);
+    }
+  };
+
   // ============================================================================
   // Computed Values
   // ============================================================================
 
   const avgCompleteness = useMemo(() => {
-    if (!readinessData) return 0;
-    return Math.round(readinessData.readiness_summary.avg_completeness_score * 100);
+    if (!readinessData || !readinessData.readiness_summary) return 0;
+    const score = readinessData.readiness_summary.avg_completeness_score;
+    // Defensive: Handle undefined or null score
+    return Math.round((score ?? 0) * 100);
   }, [readinessData]);
 
   const blockersAssets = useMemo(() => {
     if (!readinessData) return [];
-    return readinessData.asset_details.filter((asset) => asset.assessment_blockers.length > 0);
+    // Filter assets that have missing critical attributes
+    return readinessData.asset_details.filter((asset) => {
+      const missing = asset.missing_attributes || {};
+      const totalMissing =
+        (missing.infrastructure?.length || 0) +
+        (missing.application?.length || 0) +
+        (missing.business?.length || 0) +
+        (missing.technical_debt?.length || 0);
+      return totalMissing > 0;
+    });
   }, [readinessData]);
 
   // ============================================================================
@@ -188,7 +271,14 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
   }
 
   const { readiness_summary } = readinessData;
-  const allReady = readiness_summary.ready === readinessData.total_assets;
+  // Defensive: Ensure readiness_summary has default values if fields are missing
+  const safeSummary = {
+    ready: readiness_summary?.ready ?? 0,
+    not_ready: readiness_summary?.not_ready ?? 0,
+    in_progress: readiness_summary?.in_progress ?? 0,
+    avg_completeness_score: readiness_summary?.avg_completeness_score ?? 0,
+  };
+  const allReady = safeSummary.ready === readinessData.total_assets;
 
   // ============================================================================
   // Main Render
@@ -200,24 +290,24 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard
           title="Ready Assets"
-          value={readiness_summary.ready}
+          value={safeSummary.ready}
           icon={<CheckCircle />}
           color="text-green-600"
-          description={`${Math.round((readiness_summary.ready / readinessData.total_assets) * 100)}% of total`}
+          description={`${Math.round((safeSummary.ready / readinessData.total_assets) * 100)}% of total`}
         />
         <SummaryCard
           title="Not Ready Assets"
-          value={readiness_summary.not_ready}
+          value={safeSummary.not_ready}
           icon={<AlertTriangle />}
           color="text-red-600"
-          description={`${Math.round((readiness_summary.not_ready / readinessData.total_assets) * 100)}% of total`}
+          description={`${Math.round((safeSummary.not_ready / readinessData.total_assets) * 100)}% of total`}
         />
         <SummaryCard
           title="In Progress Assets"
-          value={readiness_summary.in_progress}
+          value={safeSummary.in_progress}
           icon={<Clock />}
           color="text-yellow-600"
-          description={`${Math.round((readiness_summary.in_progress / readinessData.total_assets) * 100)}% of total`}
+          description={`${Math.round((safeSummary.in_progress / readinessData.total_assets) * 100)}% of total`}
         />
         <SummaryCard
           title="Avg Completeness"
@@ -250,12 +340,18 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
               <p className="text-sm text-muted-foreground">{blockersAssets.length} assets need attention</p>
             </div>
             <div className="flex gap-2">
-              {onCollectDataClick && (
-                <Button onClick={onCollectDataClick} variant="default">
+              <Button
+                onClick={handleCollectMissingData}
+                variant="default"
+                disabled={isCollecting}
+              >
+                {isCollecting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
                   <ArrowRight className="h-4 w-4 mr-2" />
-                  Collect Missing Data
-                </Button>
-              )}
+                )}
+                {isCollecting ? 'Starting Collection...' : 'Collect Missing Data'}
+              </Button>
               <Button onClick={handleExportReport} variant="outline">
                 <Download className="h-4 w-4 mr-2" />
                 Export Report
