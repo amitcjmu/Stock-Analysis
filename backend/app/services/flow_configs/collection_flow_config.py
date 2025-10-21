@@ -14,6 +14,7 @@ from app.services.flow_type_registry import (
 # Import phase configurations from modular files
 from .collection_phases import (
     get_asset_selection_phase,
+    get_auto_enrichment_phase,  # NEW: Phase 2 - Enrichment timing fix
     get_gap_analysis_phase,
     get_questionnaire_generation_phase,
     get_manual_collection_phase,
@@ -38,6 +39,9 @@ def get_collection_flow_config() -> FlowTypeConfig:
 
     # Get all phase configurations from modular files
     asset_selection_phase = get_asset_selection_phase()
+    auto_enrichment_phase = (
+        get_auto_enrichment_phase()
+    )  # NEW: Phase 2 - Run BEFORE gap analysis
     gap_analysis_phase = get_gap_analysis_phase()
     questionnaire_generation_phase = get_questionnaire_generation_phase()
     manual_collection_phase = get_manual_collection_phase()
@@ -69,9 +73,10 @@ def get_collection_flow_config() -> FlowTypeConfig:
             "Automated Data Collection and Synthesis (ADCS) flow for comprehensive "
             "data gathering across multiple platforms and tiers"
         ),
-        version="2.0.0",
+        version="2.1.0",  # Incremented for Phase 2 enrichment timing fix
         phases=[
             asset_selection_phase,
+            auto_enrichment_phase,  # NEW: Phase 2 - Enrichment BEFORE gap analysis
             gap_analysis_phase,
             questionnaire_generation_phase,
             manual_collection_phase,

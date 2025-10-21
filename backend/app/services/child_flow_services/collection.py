@@ -112,6 +112,72 @@ class CollectionChildFlowService(BaseChildFlowService):
             logger.info(f"Phase '{phase_name}' - awaiting user asset selection")
             return {"status": "awaiting_user_input", "phase": phase_name}
 
+        elif phase_name == "auto_enrichment":
+            # Execute auto-enrichment BEFORE gap analysis (Phase 2 fix)
+            # Per BULK_UPLOAD_ENRICHMENT_ARCHITECTURE_ANALYSIS.md Part 6.1
+            from app.services.enrichment.auto_enrichment_pipeline import (
+                AutoEnrichmentPipeline,
+            )
+            from app.core.config import settings
+
+            logger.info("Executing auto_enrichment via AutoEnrichmentPipeline")
+
+            # Check feature flag (respecting environment configuration)
+            if not getattr(settings, "AUTO_ENRICHMENT_ENABLED", True):
+                logger.warning(
+                    "AUTO_ENRICHMENT_ENABLED=False - skipping enrichment phase"
+                )
+                # Auto-transition to gap_analysis
+                await self.state_service.transition_phase(
+                    flow_id=child_flow.id, new_phase=CollectionPhase.GAP_ANALYSIS
+                )
+                return {
+                    "status": "skipped",
+                    "phase": phase_name,
+                    "reason": "AUTO_ENRICHMENT_ENABLED feature flag disabled",
+                }
+
+            # Get asset_ids from phase_input (selected in asset_selection phase)
+            asset_ids = (phase_input or {}).get("selected_asset_ids", [])
+            if not asset_ids:
+                logger.warning("No asset_ids provided for enrichment - skipping")
+                # Auto-transition to gap_analysis even if no assets
+                await self.state_service.transition_phase(
+                    flow_id=child_flow.id, new_phase=CollectionPhase.GAP_ANALYSIS
+                )
+                return {
+                    "status": "skipped",
+                    "phase": phase_name,
+                    "reason": "No assets selected for enrichment",
+                }
+
+            # Initialize AutoEnrichmentPipeline with tenant scoping
+            enrichment_pipeline = AutoEnrichmentPipeline(
+                db=self.db,
+                client_account_id=self.context.client_account_id,
+                engagement_id=self.context.engagement_id,
+            )
+
+            # Execute enrichment with Phase 2.3 backpressure controls
+            result = await enrichment_pipeline.trigger_auto_enrichment(asset_ids)
+
+            logger.info(
+                f"Auto-enrichment completed: {result.get('total_assets', 0)} assets, "
+                f"{result.get('elapsed_time_seconds', 0):.1f}s"
+            )
+
+            # Auto-transition to gap_analysis after enrichment completes
+            # CRITICAL: Gap analysis now sees enriched data
+            await self.state_service.transition_phase(
+                flow_id=child_flow.id, new_phase=CollectionPhase.GAP_ANALYSIS
+            )
+
+            return {
+                "status": "success",
+                "phase": phase_name,
+                "enrichment_results": result,
+            }
+
         elif phase_name == "gap_analysis":
             # Execute gap analysis using GapAnalysisService with persistent agents
             from app.services.collection.gap_analysis import GapAnalysisService
