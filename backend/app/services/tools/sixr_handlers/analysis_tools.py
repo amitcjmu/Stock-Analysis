@@ -12,8 +12,17 @@ logger = logging.getLogger(__name__)
 class AnalysisToolsHandler:
     """Handles analysis tools with graceful fallbacks."""
 
-    def __init__(self):
+    def __init__(self, crewai_service=None):
+        """
+        Initialize analysis tools handler.
+
+        Args:
+            crewai_service: Optional CrewAI service for AI-powered analysis.
+                           If None, engine uses fallback heuristic mode.
+                           Reference: Bug #666 - Phase 1 fix
+        """
         self.service_available = False
+        self.crewai_service = crewai_service
         self._initialize_dependencies()
 
     def _initialize_dependencies(self):
@@ -25,7 +34,10 @@ class AnalysisToolsHandler:
             from app.services.tech_debt_analysis_service import TechDebtAnalysisService
 
             self.field_mapper = FieldMapperService()
-            self.decision_engine = SixRDecisionEngine()
+            # Bug #666 - Phase 1: Pass crewai_service to enable AI-powered analysis
+            self.decision_engine = SixRDecisionEngine(
+                crewai_service=self.crewai_service
+            )
             self.tech_debt_analysis_service = TechDebtAnalysisService()
             self.service_available = True
             logger.info("Analysis tools handler initialized successfully")

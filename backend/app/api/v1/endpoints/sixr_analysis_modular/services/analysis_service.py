@@ -25,9 +25,16 @@ logger = logging.getLogger(__name__)
 class AnalysisService:
     """Service class for handling 6R analysis business logic."""
 
-    def __init__(self):
-        """Initialize the analysis service with decision engine."""
-        self.decision_engine = SixRDecisionEngine()
+    def __init__(self, crewai_service=None):
+        """
+        Initialize the analysis service with decision engine.
+
+        Args:
+            crewai_service: Optional CrewAI service for AI-powered analysis.
+                           If None, engine uses fallback heuristic mode.
+                           Reference: Bug #666 - Phase 1 fix
+        """
+        self.decision_engine = SixRDecisionEngine(crewai_service=crewai_service)
 
     async def run_initial_analysis(
         self, analysis_id: int, parameters: Dict[str, Any], user: str

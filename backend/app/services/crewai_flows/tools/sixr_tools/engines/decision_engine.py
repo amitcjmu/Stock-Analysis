@@ -31,12 +31,24 @@ class SixRDecisionEngine:
     - Cloud readiness and modernization potential
     """
 
-    def __init__(self):
+    def __init__(self, crewai_service=None):
+        """
+        Initialize SixR Decision Engine.
+
+        Args:
+            crewai_service: Optional CrewAI service for AI-powered analysis.
+                           If None, engine uses fallback heuristic mode.
+                           Reference: Bug #666 - Phase 1 fix
+        """
         self.name = "sixr_decision_engine"
         self.description = (
             "Analyzes components to determine optimal 6R migration strategy"
         )
-        logger.info("Initialized SixRDecisionEngine")
+        self.crewai_service = crewai_service
+        self.ai_strategy_available = crewai_service is not None
+
+        mode = "AI-POWERED" if self.ai_strategy_available else "FALLBACK"
+        logger.info(f"Initialized SixRDecisionEngine in {mode} mode")
 
     def _run(
         self,

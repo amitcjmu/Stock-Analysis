@@ -198,12 +198,13 @@ class CollectionTransitionService:
 
             orchestrator = MasterFlowOrchestrator(self.db, self.context)
 
-            master_flow_id = await orchestrator.create_flow(
+            # Bug #668 Fix: Use correct parameter names and rely on context for tenant info
+            # MasterFlowOrchestrator.create_flow() extracts client_account_id, engagement_id,
+            # and user_id from self.context automatically (see flow_creation_operations.py:172-173)
+            master_flow_id, _ = await orchestrator.create_flow(
                 flow_type="assessment",
-                client_account_id=self.context.client_account_id,
-                engagement_id=self.context.engagement_id,
-                user_id=self.context.user_id,
-                flow_config={
+                flow_name=f"Assessment for {collection_flow.flow_name or 'Collection'}",
+                configuration={
                     "source_collection_flow_id": str(collection_flow.id),
                     "transition_type": "collection_to_assessment",
                 },

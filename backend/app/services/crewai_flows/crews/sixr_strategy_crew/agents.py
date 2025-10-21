@@ -94,6 +94,8 @@ def create_sixr_strategy_agents(tools_available: bool = False) -> List[Agent]:
         - Budget constraints and timeline requirements
         - Risk tolerance and change management capacity""",
         tools=(
+            # Bug #666 - Phase 1: These are placeholder tools - will need crewai_service
+            # when real implementation is wired. For now, placeholders accept None.
             [SixRDecisionEngine(), ComponentAnalyzer(), BusinessValueCalculator()]
             if tools_available
             else []
