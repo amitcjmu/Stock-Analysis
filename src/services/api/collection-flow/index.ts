@@ -54,8 +54,8 @@ class CollectionFlowApi {
     return this.flows.createFlow(data);
   }
 
-  async ensureFlow() {
-    return this.flows.ensureFlow();
+  async ensureFlow(missing_attributes?: Record<string, string[]>) {
+    return this.flows.ensureFlow(missing_attributes);
   }
 
   async getFlowDetails(flowId: string) {

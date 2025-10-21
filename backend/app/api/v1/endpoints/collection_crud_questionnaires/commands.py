@@ -211,9 +211,9 @@ async def _background_generate(
             async with AsyncSessionLocal() as db:
                 await _update_questionnaire_status(
                     questionnaire_id,
-                    "ready",
+                    "pending",  # 🔍 BUG#668: Questionnaire needs user input, not "ready"
                     questions,
-                    db=db,  # Frontend expects "ready"
+                    db=db,
                 )
 
                 # Progress flow to manual_collection phase now that questionnaire is ready

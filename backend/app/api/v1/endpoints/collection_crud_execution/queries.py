@@ -120,7 +120,7 @@ async def _add_gaps_to_existing_flow(
                 resolution_status="identified",
                 description=f"Missing critical attribute: {attr_name}",
                 suggested_resolution=f"Provide value for {attr_name} via questionnaire",
-                metadata={
+                gap_metadata={  # Fixed: Use gap_metadata (Python attr) not metadata (DB column)
                     "source": "assessment_readiness",
                     "is_critical": True,
                     "required_for_assessment": True,
@@ -145,12 +145,13 @@ async def ensure_collection_flow(
     current_user: User,
     context: RequestContext,
     missing_attributes: dict[str, list[str]] | None = None,
+    assessment_flow_id: str | None = None,
 ) -> CollectionFlowResponse:
     """Return an active Collection flow for the engagement, or create one via MFO.
 
-    This enables seamless navigation from Discovery to Collection without users
-    needing to manually start a flow. It reuses any non-completed flow; if none
-    exist, it creates a new one and returns it immediately.
+    This enables seamless navigation from Discovery/Assessment to Collection without users
+    needing to manually start a flow. It reuses any non-completed flow linked to the same
+    assessment/discovery flow; if none exist, it creates a new one and returns it immediately.
 
     Args:
         db: Database session
@@ -158,6 +159,8 @@ async def ensure_collection_flow(
         context: Request context
         missing_attributes: Optional dict of asset_id -> list of missing attribute names
                            If provided, creates data gaps for specific attributes
+        assessment_flow_id: Optional UUID of assessment flow to link to
+                           If provided, only returns flows linked to this assessment
 
     Returns:
         CollectionFlowResponse for existing or newly created flow
@@ -169,18 +172,34 @@ async def ensure_collection_flow(
 
     try:
         # Try to find an active collection flow for this engagement
+        # Bug Fix: If assessment_flow_id provided, only match flows linked to that assessment
+        from uuid import UUID
+
+        query_conditions = [
+            CollectionFlow.client_account_id == context.client_account_id,
+            CollectionFlow.engagement_id == context.engagement_id,
+            CollectionFlow.status.notin_(
+                [
+                    CollectionFlowStatus.COMPLETED.value,
+                    CollectionFlowStatus.CANCELLED.value,
+                ]
+            ),
+        ]
+
+        # Bug Fix: Add assessment_flow_id filter if provided
+        if assessment_flow_id:
+            assessment_uuid = (
+                UUID(assessment_flow_id)
+                if isinstance(assessment_flow_id, str)
+                else assessment_flow_id
+            )
+            query_conditions.append(
+                CollectionFlow.assessment_flow_id == assessment_uuid
+            )
+
         result = await db.execute(
             select(CollectionFlow)
-            .where(
-                CollectionFlow.client_account_id == context.client_account_id,
-                CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status.notin_(
-                    [
-                        CollectionFlowStatus.COMPLETED.value,
-                        CollectionFlowStatus.CANCELLED.value,
-                    ]
-                ),
-            )
+            .where(*query_conditions)
             .order_by(CollectionFlow.created_at.desc())
             .limit(1)  # Ensure we only get one row
         )
@@ -199,9 +218,11 @@ async def ensure_collection_flow(
         )
 
         # Bug #668 Fix: Pass missing_attributes to trigger gap creation and questionnaire generation
+        # Bug Fix: Pass assessment_flow_id to link collection flow to assessment
         flow_data = CollectionFlowCreate(
             automation_tier=AutomationTier.TIER_2.value,
             missing_attributes=missing_attributes,
+            assessment_flow_id=assessment_flow_id,
         )
         return await create_collection_flow(flow_data, db, current_user, context)
 

@@ -368,6 +368,17 @@ async def create_collection_flow(
         # Per ADR-028: phase_state eliminated - phase tracking will be added to master flow
         # Phase tracking will be managed via master flow's phase_transitions after creation
 
+        # Bug Fix: Parse assessment_flow_id to UUID if provided
+        assessment_uuid = None
+        if flow_data.assessment_flow_id:
+            from uuid import UUID
+
+            assessment_uuid = (
+                UUID(flow_data.assessment_flow_id)
+                if isinstance(flow_data.assessment_flow_id, str)
+                else flow_data.assessment_flow_id
+            )
+
         collection_flow = CollectionFlow(
             flow_id=flow_id,
             flow_name=collection_utils.format_flow_display_name(),
@@ -383,6 +394,8 @@ async def create_collection_flow(
                 "use_agent_generation": True
             },  # Enable CrewAI agent generation
             current_phase=CollectionPhase.ASSET_SELECTION.value,
+            # Bug Fix: Link collection flow to assessment flow
+            assessment_flow_id=assessment_uuid,
             # phase_state removed per ADR-028 - use master flow's phase_transitions
         )
 

@@ -234,6 +234,14 @@ async def _save_questionnaire_results(
 
         db.add(questionnaire)
 
+        # Bug #668 Debug: Log questionnaire creation details
+        logger.info(
+            f"🔍 BUG#668: Created questionnaire {questionnaire.id} for flow {flow_id} - "
+            f"completion_status={questionnaire.completion_status}, "
+            f"target_gaps_count={len(questionnaire.target_gaps)}, "
+            f"question_count={len(questionnaire.questions)}"
+        )
+
         # Update flow metadata with tenant scoping
         flow_result = await db.execute(
             select(CollectionFlow).where(
@@ -261,7 +269,23 @@ async def _save_questionnaire_results(
         flow.flow_metadata["questionnaire_ready"] = True
         flow.flow_metadata["agent_questionnaire_id"] = str(questionnaire.id)
 
+        # Bug #668 Debug: Log flow state before commit
+        logger.info(
+            f"🔍 BUG#668: Flow {flow.flow_id} state before commit - "
+            f"assessment_ready={flow.assessment_ready}, "
+            f"current_phase={flow.current_phase}, "
+            f"status={flow.status}"
+        )
+
         await db.commit()
+
+        # Bug #668 Debug: Log flow state after commit
+        await db.refresh(flow)
+        await db.refresh(questionnaire)
+        logger.info(
+            f"🔍 BUG#668: After commit - flow.assessment_ready={flow.assessment_ready}, "
+            f"questionnaire.completion_status={questionnaire.completion_status}"
+        )
 
         logger.info(
             f"TenantScopedAgentPool questionnaire generated successfully for flow {flow_uuid}"

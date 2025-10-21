@@ -86,24 +86,29 @@ async def ensure_collection_flow(
 ) -> CollectionFlowResponse:
     """Return an active Collection flow for the engagement, or create one via MFO.
 
-    This enables seamless navigation from Discovery to Collection without users
-    needing to manually start a flow. It reuses any non-completed flow; if none
-    exist, it creates a new one and returns it immediately.
+    This enables seamless navigation from Discovery/Assessment to Collection without users
+    needing to manually start a flow. It reuses any non-completed flow linked to the same
+    assessment/discovery flow; if none exist, it creates a new one and returns it immediately.
 
     Args:
         request_body: Optional request body with:
             - missing_attributes: Dict[str, List[str]] - asset_id -> missing attribute names
               If provided, creates data gaps for specific attributes (Bug #668 fix)
+            - assessment_flow_id: str - UUID of assessment flow to link to
+              If provided, only returns flows linked to this assessment (Bug fix)
     """
     missing_attributes = None
+    assessment_flow_id = None
     if request_body:
         missing_attributes = request_body.get("missing_attributes")
+        assessment_flow_id = request_body.get("assessment_flow_id")
 
     return await collection_crud.ensure_collection_flow(
         db=db,
         current_user=current_user,
         context=context,
         missing_attributes=missing_attributes,
+        assessment_flow_id=assessment_flow_id,
     )
 
 

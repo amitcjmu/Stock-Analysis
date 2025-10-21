@@ -28,6 +28,10 @@ class CollectionFlowCreate(BaseModel):
         default=None,
         description="Missing attributes by asset_id - triggers gap creation and questionnaire generation",
     )
+    assessment_flow_id: Optional[str] = Field(
+        default=None,
+        description="UUID of assessment flow to link to - creates proper assessment→collection relationship",
+    )
 
 
 class CollectionFlowUpdate(BaseModel):

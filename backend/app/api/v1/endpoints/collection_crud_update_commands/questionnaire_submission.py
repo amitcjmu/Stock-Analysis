@@ -179,6 +179,10 @@ async def submit_questionnaire_response(
             questionnaire.completion_status = "completed"
             questionnaire.completed_at = datetime.utcnow()
             questionnaire.responses_collected = form_responses
+            logger.info(
+                f"🔍 BUG#668: Setting completion_status=completed "
+                f"for questionnaire {questionnaire_id} via user submission"
+            )
             logger.info(f"✅ Marked questionnaire {questionnaire_id} as completed")
 
             # Check if collection is complete and ready for assessment

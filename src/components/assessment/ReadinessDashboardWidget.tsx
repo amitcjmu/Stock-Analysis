@@ -130,24 +130,19 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
   /**
    * Bug #668 Fix: Extract missing attributes from readiness data and pass to collection flow
    * This ensures the collection flow creates specific data gaps and generates targeted questionnaires
+   *
+   * Bug Fix: Pass assessment_flow_id to ensure collection flow is linked to this assessment
    */
   const handleCollectMissingData = async () => {
-    console.log('🔴 DEBUG: handleCollectMissingData CALLED');
-    console.log('🔴 DEBUG: readinessData:', readinessData);
-    console.log('🔴 DEBUG: isCollecting:', isCollecting);
-
     if (!readinessData || isCollecting) {
-      console.log('🔴 DEBUG: Early return - readinessData:', !!readinessData, 'isCollecting:', isCollecting);
       return;
     }
 
-    console.log('🔴 DEBUG: Setting isCollecting = true');
     setIsCollecting(true);
     try {
       // Extract missing_attributes in the format: { asset_id: [attr1, attr2, ...] }
       const missing_attributes: Record<string, string[]> = {};
 
-      console.log('🔴 DEBUG: Processing asset_details, count:', readinessData.asset_details.length);
       for (const asset of readinessData.asset_details) {
         // Flatten all missing attributes from all categories (same logic as blockersAssets filter)
         const allMissing = [
@@ -157,32 +152,22 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
           ...(asset.missing_attributes?.technical_debt || []),
         ];
 
-        console.log(`🔴 DEBUG: Asset ${asset.asset_name} (${asset.asset_id}) has ${allMissing.length} missing attributes`);
-
         if (allMissing.length > 0) {
           missing_attributes[asset.asset_id] = allMissing;
         }
       }
 
-      console.log('🔴 DEBUG: missing_attributes:', missing_attributes);
-      console.log('🔴 DEBUG: Total assets with missing data:', Object.keys(missing_attributes).length);
-      console.log('🔴 DEBUG: About to call collectionFlowApi.ensureFlow()');
-
-      // Create or update collection flow with missing attributes
-      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes);
-
-      console.log('🔴 DEBUG: collectionFlowApi.ensureFlow() returned:', collectionFlow);
+      // Create or update collection flow with missing attributes AND link to assessment flow
+      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes, flow_id);
 
       toast({
         title: 'Collection Flow Ready',
         description: `Created ${Object.keys(missing_attributes).length} asset-specific data collection tasks`,
       });
 
-      console.log('🔴 DEBUG: Navigating to /collection/adaptive-forms?flowId=' + collectionFlow.id);
-      // Bug #668 Fix: Navigate to questionnaires page where users can actually fill in the data
-      navigate(`/collection/adaptive-forms?flowId=${collectionFlow.id}`);
+      // Bug Fix: Use flow_id (UUID) instead of id (database PK) for navigation
+      navigate(`/collection/adaptive-forms?flowId=${collectionFlow.flow_id || collectionFlow.id}`);
     } catch (error) {
-      console.error('🔴 DEBUG: ERROR in handleCollectMissingData:', error);
       console.error('Failed to start collection:', error);
       toast({
         title: 'Collection Failed',
@@ -190,7 +175,6 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
         variant: 'destructive',
       });
     } finally {
-      console.log('🔴 DEBUG: Setting isCollecting = false');
       setIsCollecting(false);
     }
   };

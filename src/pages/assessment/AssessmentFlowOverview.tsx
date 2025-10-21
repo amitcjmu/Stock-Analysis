@@ -65,22 +65,24 @@ const AssessmentFlowOverview = (): JSX.Element => {
     return c >= READINESS_THRESHOLD && d >= READINESS_THRESHOLD && (readiness.apps_ready_for_assessment || 0) > 0;
   }, [readiness]);
 
-  // Ensure-or-create a Collection flow on mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const ensured = await collectionFlowApi.ensureFlow();
-        if (ensured?.id) {
-          setCollectionFlowId(ensured.id);
-        }
-      } catch (e) {
-        // Non-fatal; user can still navigate manually
-        console.warn('Failed to ensure collection flow', e);
-      } finally {
-        setIsEnsuringFlow(false);
-      }
-    })();
-  }, []);
+  // Bug #668 Fix: Removed auto-ensureFlow() call that was creating flows with 0 gaps
+  // Collection flows should only be created when user explicitly clicks "Collect Missing Data"
+  // which passes the missing_attributes to create targeted gaps
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       const ensured = await collectionFlowApi.ensureFlow();
+  //       if (ensured?.id) {
+  //         setCollectionFlowId(ensured.id);
+  //       }
+  //     } catch (e) {
+  //       // Non-fatal; user can still navigate manually
+  //       console.warn('Failed to ensure collection flow', e);
+  //     } finally {
+  //       setIsEnsuringFlow(false);
+  //     }
+  //   })();
+  // }, []);
 
   // Fetch readiness for the ensured collection flow
   useEffect(() => {
