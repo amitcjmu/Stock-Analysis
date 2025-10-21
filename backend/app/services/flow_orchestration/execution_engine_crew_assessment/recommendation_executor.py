@@ -21,31 +21,18 @@ class RecommendationExecutorMixin:
         agent_pool: Any,
         master_flow: CrewAIFlowStateExtensions,
         phase_input: Dict[str, Any],
+        data_repo: Any,
+        input_builders: Any,
     ) -> Dict[str, Any]:
         """
-        Execute recommendation generation phase with data repository and input builders.
+        Execute recommendation generation phase with shared data repository and input builders.
 
         Per ADR-024: Uses TenantMemoryManager, CrewAI memory disabled.
+        Per Qodo Bot: Uses shared instances passed from base.py for performance.
         """
         logger.info("Executing recommendation generation with persistent agents")
 
         try:
-            from app.repositories.assessment_data_repository import (
-                AssessmentDataRepository,
-            )
-            from app.services.flow_orchestration.assessment_input_builders import (
-                AssessmentInputBuilders,
-            )
-
-            # Create data repository with tenant context
-            data_repo = AssessmentDataRepository(
-                self.crew_utils.db,
-                master_flow.client_account_id,
-                master_flow.engagement_id,
-            )
-
-            # Create input builders
-            input_builders = AssessmentInputBuilders(data_repo)
 
             # Build phase-specific input
             crew_inputs = await input_builders.build_recommendation_input(

@@ -97,8 +97,8 @@ class ReadinessQueriesMixin:
         try:
             query = select(Application).where(
                 and_(
-                    Application.client_account_id == str(self.client_account_id),
-                    Application.engagement_id == str(self.engagement_id),
+                    Application.client_account_id == self.client_account_id,
+                    Application.engagement_id == self.engagement_id,
                 )
             )
             result = await self.db.execute(query)
@@ -112,8 +112,8 @@ class ReadinessQueriesMixin:
         try:
             query = select(Server).where(
                 and_(
-                    Server.client_account_id == str(self.client_account_id),
-                    Server.engagement_id == str(self.engagement_id),
+                    Server.client_account_id == self.client_account_id,
+                    Server.engagement_id == self.engagement_id,
                 )
             )
             result = await self.db.execute(query)
@@ -155,18 +155,25 @@ class ReadinessQueriesMixin:
             return {}
 
     async def _get_collected_inventory(self) -> Dict[str, Any]:
-        """Get collected inventory data summary."""
+        """Get collected inventory data summary with tenant scoping."""
         try:
+            # Import CollectionFlow for tenant scoping join
+            from app.models.collection_flow.collection_flow_model import CollectionFlow
+
             query = (
                 select(
                     CollectedDataInventory.data_type,
                     func.count(CollectedDataInventory.id).label("count"),
                     func.avg(CollectedDataInventory.quality_score).label("avg_quality"),
                 )
+                .join(
+                    CollectionFlow,
+                    CollectedDataInventory.collection_flow_id == CollectionFlow.id,
+                )
                 .where(
-                    # CollectedDataInventory links to collection_flow which has tenant scoping
-                    # For now, return empty dict until we have proper FK relationship
-                    CollectedDataInventory.id.isnot(None)
+                    # Apply proper tenant scoping via CollectionFlow
+                    CollectionFlow.client_account_id == self.client_account_id,
+                    CollectionFlow.engagement_id == self.engagement_id,
                 )
                 .group_by(CollectedDataInventory.data_type)
             )
@@ -196,8 +203,8 @@ class ReadinessQueriesMixin:
         try:
             query = select(func.count(Server.id)).where(
                 and_(
-                    Server.client_account_id == str(self.client_account_id),
-                    Server.engagement_id == str(self.engagement_id),
+                    Server.client_account_id == self.client_account_id,
+                    Server.engagement_id == self.engagement_id,
                 )
             )
             result = await self.db.execute(query)

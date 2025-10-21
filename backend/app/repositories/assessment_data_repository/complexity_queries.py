@@ -62,11 +62,24 @@ class ComplexityQueriesMixin:
             return self._empty_complexity_data()
 
     async def _get_inventory_by_type(self) -> Dict[str, List[Dict[str, Any]]]:
-        """Get collected inventory grouped by data type."""
+        """Get collected inventory grouped by data type with tenant scoping."""
         try:
-            # Note: This is a simplified query. In production, add FK relationship
-            # to collection_flows and apply proper tenant scoping
-            query = select(CollectedDataInventory).limit(100)
+            # Import CollectionFlow for tenant scoping join
+            from app.models.collection_flow.collection_flow_model import CollectionFlow
+
+            # Apply tenant scoping via CollectionFlow join
+            query = (
+                select(CollectedDataInventory)
+                .join(
+                    CollectionFlow,
+                    CollectedDataInventory.collection_flow_id == CollectionFlow.id,
+                )
+                .where(
+                    CollectionFlow.client_account_id == self.client_account_id,
+                    CollectionFlow.engagement_id == self.engagement_id,
+                )
+                .limit(100)
+            )
             result = await self.db.execute(query)
             items = list(result.scalars().all())
 

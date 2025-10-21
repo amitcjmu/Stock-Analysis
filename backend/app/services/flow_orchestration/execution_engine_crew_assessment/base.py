@@ -201,12 +201,32 @@ class ExecutionEngineAssessmentCrews(
             # Initialize persistent agent pool for this tenant
             agent_pool = await self.get_agent_pool(master_flow)
 
+            # Create data repository and input builders ONCE (per Qodo Bot optimization)
+            from app.repositories.assessment_data_repository import (
+                AssessmentDataRepository,
+            )
+            from app.services.flow_orchestration.assessment_input_builders import (
+                AssessmentInputBuilders,
+            )
+
+            data_repo = AssessmentDataRepository(
+                self.crew_utils.db,
+                master_flow.client_account_id,
+                master_flow.engagement_id,
+            )
+            input_builders = AssessmentInputBuilders(data_repo)
+
             # Map phase names to execution methods
             mapped_phase = self._map_assessment_phase_name(phase_config.name)
 
-            # Execute the phase with persistent agents
+            # Execute the phase with persistent agents, passing shared instances
             result = await self._execute_assessment_mapped_phase(
-                mapped_phase, agent_pool, master_flow, phase_input
+                mapped_phase,
+                agent_pool,
+                master_flow,
+                phase_input,
+                data_repo,
+                input_builders,
             )
 
             # Save results to database
@@ -279,6 +299,8 @@ class ExecutionEngineAssessmentCrews(
         agent_pool: Any,
         master_flow: CrewAIFlowStateExtensions,
         phase_input: Dict[str, Any],
+        data_repo: Any,
+        input_builders: Any,
     ) -> Dict[str, Any]:
         """
         Execute mapped assessment phase with appropriate agents.
@@ -288,6 +310,8 @@ class ExecutionEngineAssessmentCrews(
             agent_pool: TenantScopedAgentPool class
             master_flow: Master flow state
             phase_input: Phase input data
+            data_repo: Shared AssessmentDataRepository instance
+            input_builders: Shared AssessmentInputBuilders instance
 
         Returns:
             Phase execution results
@@ -302,13 +326,17 @@ class ExecutionEngineAssessmentCrews(
         }
 
         method = phase_methods.get(mapped_phase, self._execute_generic_assessment_phase)
-        return await method(agent_pool, master_flow, phase_input)
+        return await method(
+            agent_pool, master_flow, phase_input, data_repo, input_builders
+        )
 
     async def _execute_generic_assessment_phase(
         self,
         agent_pool: Any,
         master_flow: CrewAIFlowStateExtensions,
         phase_input: Dict[str, Any],
+        data_repo: Any,
+        input_builders: Any,
     ) -> Dict[str, Any]:
         """Generic assessment phase execution for unmapped phases"""
         logger.info("Executing generic assessment phase with persistent agents")
