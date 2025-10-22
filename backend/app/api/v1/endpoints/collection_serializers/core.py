@@ -4,7 +4,6 @@ Core serialization and data transformation functions for collection flows.
 """
 
 import logging
-import math
 from typing import Any, Dict, List, Optional
 
 from app.models.asset import Asset
@@ -20,6 +19,7 @@ from app.schemas.collection_flow import (
     CollectionGapAnalysisResponse,
     AdaptiveQuestionnaireResponse,
 )
+from app.utils.json_sanitization import sanitize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -227,42 +227,6 @@ def build_gap_analysis_response(
         resolution_status=gap.resolution_status,
         created_at=gap.created_at,
     )
-
-
-def sanitize_for_json(data: Any) -> Any:
-    """Recursively sanitize data for JSON serialization.
-
-    Handles problematic values that cannot be JSON serialized:
-    - NaN (Not a Number) → null
-    - Infinity (positive/negative) → null
-    - datetime objects → ISO 8601 string format
-    - Non-serializable objects → string representation
-
-    Args:
-        data: Data structure to sanitize (dict, list, or primitive value)
-
-    Returns:
-        Sanitized data structure safe for JSON serialization
-
-    Example:
-        >>> sanitize_for_json({"score": float('nan'), "count": 42})
-        {"score": None, "count": 42}
-    """
-    if isinstance(data, dict):
-        return {k: sanitize_for_json(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [sanitize_for_json(item) for item in data]
-    elif isinstance(data, float):
-        if math.isnan(data) or math.isinf(data):
-            return None
-        return data
-    elif hasattr(data, "isoformat"):  # datetime objects
-        return data.isoformat()
-    elif isinstance(data, (str, int, bool, type(None))):
-        return data
-    else:
-        # Fallback: convert non-serializable objects to string
-        return str(data)
 
 
 def build_questionnaire_response(

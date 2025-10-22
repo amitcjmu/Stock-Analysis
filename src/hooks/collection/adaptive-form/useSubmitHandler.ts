@@ -87,6 +87,7 @@ export function useSubmitHandler({
         assetId = data.asset_id;
       }
 
+      // CRITICAL FIX (Issue #692): Add save_type to mark questionnaire as completed
       const submissionData = {
         responses: data,
         form_metadata: {
@@ -98,6 +99,7 @@ export function useSubmitHandler({
           submitted_at: new Date().toISOString(),
         },
         validation_results: state.validation,
+        save_type: "submit_complete", // Mark questionnaire as completed and trigger assessment check
       };
 
       console.log(

@@ -3,7 +3,7 @@ Pydantic schemas for Collection Flow API
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -140,6 +140,13 @@ class QuestionnaireSubmissionRequest(BaseModel):
     validation_results: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
         description="Validation results including isValid flag and field-level errors",
+    )
+    save_type: Literal["save_progress", "submit_complete"] = Field(
+        default="save_progress",
+        description=(
+            "Type of save operation: 'save_progress' keeps status as in_progress, "
+            "'submit_complete' marks as completed and triggers assessment readiness check"
+        ),
     )
 
 
