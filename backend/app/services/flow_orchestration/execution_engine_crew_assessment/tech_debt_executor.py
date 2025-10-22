@@ -78,7 +78,9 @@ Return results as valid JSON with keys: tech_debt_score, vulnerabilities, modern
                     "Comprehensive technical debt assessment with scores, "
                     "vulnerabilities, and remediation roadmap in JSON format"
                 ),
-                agent=agent,
+                agent=(
+                    agent._agent if hasattr(agent, "_agent") else agent
+                ),  # Unwrap AgentWrapper for CrewAI Task
             )
 
             # Execute task with inputs

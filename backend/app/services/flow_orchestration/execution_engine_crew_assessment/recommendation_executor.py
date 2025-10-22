@@ -78,7 +78,9 @@ Return results as valid JSON with keys: migration_strategy, wave_plan, moderniza
                     "Comprehensive migration recommendations with strategy, "
                     "wave plan, and success criteria in JSON format"
                 ),
-                agent=agent,
+                agent=(
+                    agent._agent if hasattr(agent, "_agent") else agent
+                ),  # Unwrap AgentWrapper for CrewAI Task
             )
 
             # Execute task with inputs

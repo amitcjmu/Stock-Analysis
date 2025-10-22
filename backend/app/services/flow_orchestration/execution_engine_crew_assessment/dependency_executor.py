@@ -76,7 +76,9 @@ Return results as valid JSON with keys: dependency_score, critical_deps, circula
                     "Comprehensive dependency analysis with scores, "
                     "critical dependencies, and decoupling recommendations in JSON format"
                 ),
-                agent=agent,
+                agent=(
+                    agent._agent if hasattr(agent, "_agent") else agent
+                ),  # Unwrap AgentWrapper for CrewAI Task
             )
 
             # Execute task with inputs

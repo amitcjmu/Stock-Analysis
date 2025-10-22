@@ -76,7 +76,9 @@ Return results as valid JSON with keys: complexity_score, components, integratio
                     "Comprehensive complexity analysis with scores, "
                     "component breakdown, and modernization opportunities in JSON format"
                 ),
-                agent=agent,
+                agent=(
+                    agent._agent if hasattr(agent, "_agent") else agent
+                ),  # Unwrap AgentWrapper for CrewAI Task
             )
 
             # Execute task with inputs

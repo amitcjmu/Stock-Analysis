@@ -72,7 +72,9 @@ Return results as valid JSON with keys: risk_score, critical_risks, six_r_recomm
                     "Comprehensive risk assessment with scores, "
                     "6R recommendations, and mitigation strategies in JSON format"
                 ),
-                agent=agent,
+                agent=(
+                    agent._agent if hasattr(agent, "_agent") else agent
+                ),  # Unwrap AgentWrapper for CrewAI Task
             )
 
             # Execute task with inputs
