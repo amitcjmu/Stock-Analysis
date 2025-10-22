@@ -4,6 +4,7 @@ Core serialization and data transformation functions for collection flows.
 """
 
 import logging
+import math
 from typing import Any, Dict, List, Optional
 
 from app.models.asset import Asset
@@ -228,6 +229,42 @@ def build_gap_analysis_response(
     )
 
 
+def sanitize_for_json(data: Any) -> Any:
+    """Recursively sanitize data for JSON serialization.
+
+    Handles problematic values that cannot be JSON serialized:
+    - NaN (Not a Number) → null
+    - Infinity (positive/negative) → null
+    - datetime objects → ISO 8601 string format
+    - Non-serializable objects → string representation
+
+    Args:
+        data: Data structure to sanitize (dict, list, or primitive value)
+
+    Returns:
+        Sanitized data structure safe for JSON serialization
+
+    Example:
+        >>> sanitize_for_json({"score": float('nan'), "count": 42})
+        {"score": None, "count": 42}
+    """
+    if isinstance(data, dict):
+        return {k: sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_for_json(item) for item in data]
+    elif isinstance(data, float):
+        if math.isnan(data) or math.isinf(data):
+            return None
+        return data
+    elif hasattr(data, "isoformat"):  # datetime objects
+        return data.isoformat()
+    elif isinstance(data, (str, int, bool, type(None))):
+        return data
+    else:
+        # Fallback: convert non-serializable objects to string
+        return str(data)
+
+
 def build_questionnaire_response(
     questionnaire: AdaptiveQuestionnaire,
 ) -> AdaptiveQuestionnaireResponse:
@@ -295,14 +332,17 @@ def build_questionnaire_response(
                 f"No target_gaps found in questionnaire {questionnaire.id} questions"
             )
 
-    # Build base response
+    # Build base response with sanitized questions to prevent JSON serialization errors
+    # (e.g., NaN, Infinity values from LLM responses)
     response = AdaptiveQuestionnaireResponse(
         id=str(questionnaire.id),
         collection_flow_id=str(questionnaire.collection_flow_id),
         title=questionnaire.title,
         description=questionnaire.description,
         target_gaps=target_gaps,
-        questions=questionnaire.questions,
+        questions=sanitize_for_json(
+            questionnaire.questions
+        ),  # Sanitize questions array
         validation_rules=questionnaire.validation_rules,
         completion_status=questionnaire.completion_status,
         status_line=status_line,
