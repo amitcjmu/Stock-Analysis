@@ -909,8 +909,9 @@ export const masterFlowService = {
 
       // Transform application groups to individual application records
       // NOTE: Each group represents a canonical application with multiple assets
+      // Handle case where applications field may be undefined/null during initialization
       return {
-        applications: response.applications.map(group => {
+        applications: (response.applications || []).map(group => {
           // Calculate readiness score from readiness_summary
           const totalAssets = group.asset_count;
           const readyAssets = group.readiness_summary.ready;
