@@ -73,6 +73,17 @@ const SixRReviewPage: React.FC = () => {
     selectedApplicationIds: state.selectedApplicationIds
   });
 
+  // Memoized map for efficient application name lookups
+  const appNameMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    state.selectedApplications?.forEach(a => {
+      if (a?.application_id) {
+        map.set(a.application_id, a.application_name ?? a.application_id);
+      }
+    });
+    return map;
+  }, [state.selectedApplications]);
+
   // Show asset mapping information even if no applications loaded yet
   // This helps users understand what was selected in collection phase
   if (state.selectedApplicationIds.length === 0) {
@@ -151,7 +162,7 @@ const SixRReviewPage: React.FC = () => {
           applications={state.selectedApplicationIds}
           selectedApp={selectedApp}
           onAppSelect={setSelectedApp}
-          getApplicationName={(appId) => appId} // In real implementation, get from application data
+          getApplicationName={(appId) => appNameMap.get(appId) ?? appId}
         />
 
         {selectedApp && currentAppDecision && (
@@ -182,6 +193,7 @@ const SixRReviewPage: React.FC = () => {
         <ApplicationRollupView
           decisions={state.sixrDecisions}
           selectedApplicationIds={state.selectedApplicationIds}
+          selectedApplications={state.selectedApplications ?? []}
           onApplicationSelect={setSelectedApp}
         />
 

@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
-from app.models.application import Application
+from app.models.canonical_applications import CanonicalApplication
 from app.models.assessment_flow import AssessmentFlow
 from app.models.server import Server
 
@@ -71,11 +71,11 @@ class AssessmentDataRepository(
 
     # === SERIALIZATION METHODS ===
 
-    def _serialize_application(self, app: Application) -> Dict[str, Any]:
-        """Serialize application model to dictionary."""
+    def _serialize_application(self, app: CanonicalApplication) -> Dict[str, Any]:
+        """Serialize canonical application model to dictionary."""
         return {
             "id": str(app.id),
-            "name": app.name,
+            "name": app.canonical_name,
             "business_criticality": app.business_criticality,
             "description": app.description,
             "technology_stack": app.technology_stack or {},

@@ -76,13 +76,17 @@ Return results as valid JSON with keys: dependency_score, critical_deps, circula
                     "Comprehensive dependency analysis with scores, "
                     "critical dependencies, and decoupling recommendations in JSON format"
                 ),
-                agent=agent,
+                agent=(
+                    agent._agent if hasattr(agent, "_agent") else agent
+                ),  # Unwrap AgentWrapper for CrewAI Task
             )
 
             # Execute task with inputs
             start_time = time.time()
 
-            result = await task.execute_async(context=crew_inputs)
+            # Convert context dict to JSON string (CrewAI expects string context)
+            context_str = json.dumps(crew_inputs)
+            result = await task.execute_async(context=context_str)
 
             execution_time = time.time() - start_time
 

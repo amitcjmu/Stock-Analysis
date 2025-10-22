@@ -35,35 +35,54 @@ depends_on = None
 def upgrade():
     """
     Synchronize current_phase column and phase_state.current_phase JSONB field.
-    """
-    # Step 1: Update current_phase column from phase_state where JSONB has value
-    # This handles cases where phase_state.current_phase was updated but column wasn't
-    op.execute(
-        """
-        UPDATE migration.collection_flows
-        SET current_phase = phase_state->>'current_phase'
-        WHERE phase_state IS NOT NULL
-          AND phase_state->>'current_phase' IS NOT NULL
-          AND current_phase IS DISTINCT FROM phase_state->>'current_phase'
-    """
-    )
 
-    # Step 2: Backfill phase_state.current_phase from column where JSONB is missing
-    # This handles cases where column was updated but phase_state wasn't
+    IMPORTANT: This migration is idempotent and checks for column existence.
+    The phase_state column may not exist yet (it's added/removed by migration 101).
+    """
+    # Check if phase_state column exists before attempting synchronization
     op.execute(
         """
-        UPDATE migration.collection_flows
-        SET phase_state = jsonb_set(
-            COALESCE(phase_state, '{}'::jsonb),
-            '{current_phase}',
-            to_jsonb(current_phase)
-        )
-        WHERE current_phase IS NOT NULL
-          AND (
-              phase_state IS NULL
-              OR phase_state->>'current_phase' IS NULL
-              OR phase_state->>'current_phase' != current_phase
-          )
+        DO $$
+        BEGIN
+            -- Only run synchronization if phase_state column exists
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                  AND table_name = 'collection_flows'
+                  AND column_name = 'phase_state'
+            ) THEN
+                -- Step 1: Update current_phase column from phase_state where JSONB has value
+                -- This handles cases where phase_state.current_phase was updated but column wasn't
+                UPDATE migration.collection_flows
+                SET current_phase = phase_state->>'current_phase'
+                WHERE phase_state IS NOT NULL
+                  AND phase_state->>'current_phase' IS NOT NULL
+                  AND current_phase IS DISTINCT FROM phase_state->>'current_phase';
+
+                RAISE NOTICE 'Synchronized current_phase from phase_state.current_phase';
+
+                -- Step 2: Backfill phase_state.current_phase from column where JSONB is missing
+                -- This handles cases where column was updated but phase_state wasn't
+                UPDATE migration.collection_flows
+                SET phase_state = jsonb_set(
+                    COALESCE(phase_state, '{}'::jsonb),
+                    '{current_phase}',
+                    to_jsonb(current_phase)
+                )
+                WHERE current_phase IS NOT NULL
+                  AND (
+                      phase_state IS NULL
+                      OR phase_state->>'current_phase' IS NULL
+                      OR phase_state->>'current_phase' != current_phase
+                  );
+
+                RAISE NOTICE 'Backfilled phase_state.current_phase from current_phase column';
+            ELSE
+                RAISE NOTICE 'Column phase_state does not exist, skipping synchronization';
+                RAISE NOTICE '(this is normal if migration 101 has not run yet)';
+            END IF;
+        END
+        $$;
     """
     )
 

@@ -252,8 +252,39 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
             />
           )}
 
-          {currentTab === 'progress' && state.analysisProgress && (
-            <AnalysisProgressComponent progress={state.analysisProgress} />
+          {currentTab === 'progress' && (
+            <>
+              {state.analysisProgress ? (
+                <AnalysisProgressComponent progress={state.analysisProgress} />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-12 space-y-6">
+                  <div className="animate-pulse">
+                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+
+                  <div className="text-center space-y-2">
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      Analysis in Progress
+                    </h3>
+                    <p className="text-gray-600 max-w-md">
+                      Your 6R assessment is being analyzed. This may take several minutes depending on the complexity of your applications.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => actions.refreshAnalysis?.()}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Refresh Progress
+                  </button>
+
+                  <p className="text-sm text-gray-500">
+                    Automatic updates are disabled. Click "Refresh Progress" to see the latest status.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {currentTab === 'recommendation' && state.currentRecommendation && (

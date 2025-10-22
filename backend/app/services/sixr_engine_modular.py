@@ -37,22 +37,52 @@ class SixRParameterBase(BaseModel):
 class SixRDecisionEngine:
     """Modular 6R Decision Engine with CrewAI Technical Debt Crew for AI-driven strategy analysis."""
 
-    def __init__(self, crewai_service=None):
+    def __init__(
+        self, crewai_service=None, require_ai: bool = False, _warn_fallback: bool = True
+    ):
+        """
+        Initialize 6R Decision Engine with optional AI-powered analysis.
+
+        Args:
+            crewai_service: Optional CrewAI service for AI-powered strategy analysis.
+                           If None, engine uses fallback heuristic mode.
+            require_ai: If True, raises ValueError when AI is required but unavailable.
+                       Prevents silent fallback to heuristic mode in production.
+                       Reference: Bug #666 - Phase 2 (Qodo Bot security concern)
+            _warn_fallback: If False, suppresses FALLBACK mode warning (for module-level singleton).
+                           Internal parameter to reduce log noise during imports.
+        """
         # Use PERSISTENT technical debt wrapper for AI-driven strategy analysis
         if CREWAI_TECHNICAL_DEBT_AVAILABLE and crewai_service:
             self.technical_debt_executor = execute_tech_debt_analysis
             self.crewai_service = crewai_service
             self.ai_strategy_available = True
             logger.info(
-                "6R Decision Engine initialized with PERSISTENT Technical Debt wrapper (Phase B1)"
+                "✅ 6R Decision Engine initialized in AI-POWERED mode with PERSISTENT Technical Debt wrapper (Phase B1)"
             )
         else:
             self.technical_debt_executor = None
             self.crewai_service = None
             self.ai_strategy_available = False
-            logger.debug(
-                "PERSISTENT Technical Debt wrapper not available - using fallback mode"
-            )
+
+            # Fail-fast if AI required but unavailable (Bug #666 - Phase 2)
+            if require_ai:
+                error_msg = (
+                    "AI-powered analysis required but crewai_service not provided. "
+                    "Check DEEPINFRA_API_KEY configuration or set require_ai=False for fallback mode."
+                )
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            # Only warn if fallback mode is unexpected (not for module-level singleton)
+            if _warn_fallback:
+                logger.warning(
+                    "⚠️ 6R Decision Engine initialized in FALLBACK mode - no AI analysis available"
+                )
+            else:
+                logger.debug(
+                    "6R Decision Engine initialized in FALLBACK mode (module-level singleton)"
+                )
 
         # Initialize remaining handlers (for cost, risk, recommendations)
         self.risk_assessor = RiskAssessor()
@@ -61,7 +91,14 @@ class SixRDecisionEngine:
 
         # Engine state
         self.custom_assumptions = []
-        logger.info("6R Decision Engine initialized with AI-driven strategy analysis")
+
+        # Only log AI-driven message if actually AI-powered
+        if self.ai_strategy_available:
+            logger.info(
+                "6R Decision Engine initialized with AI-driven strategy analysis"
+            )
+        else:
+            logger.debug("6R Decision Engine initialized with rule-based analysis")
 
     def is_available(self) -> bool:
         """Check if the engine is properly initialized."""
@@ -420,4 +457,5 @@ class SixRDecisionEngine:
 # Create default engine instance (without CrewAI service for backward compatibility)
 # For CrewAI-enabled analysis, create engine with: SixRDecisionEngine(crewai_service=your_service)
 # Bug #666 - Phase 1: Explicitly pass None to indicate fallback mode
-sixr_engine = SixRDecisionEngine(crewai_service=None)
+# _warn_fallback=False suppresses misleading WARNING during module import
+sixr_engine = SixRDecisionEngine(crewai_service=None, _warn_fallback=False)

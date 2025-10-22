@@ -56,6 +56,70 @@ export const useAssessmentFlow = (
     agentUpdates: [],
   });
 
+  // Load phase-specific data - DEFINED EARLY to avoid initialization errors
+  const loadPhaseData = useCallback(
+    async (phase: AssessmentPhase): Promise<void> => {
+      if (!state.flowId) return;
+
+      try {
+        switch (phase) {
+          case "asset_application_resolution": {
+            // Asset resolution data is fetched directly in the page component
+            // No additional loading needed here
+            break;
+          }
+
+          case "architecture_minimums": {
+            const archData = await assessmentFlowAPI.getArchitectureStandards(
+              state.flowId,
+            );
+            setState((prev) => ({
+              ...prev,
+              engagementStandards: archData.engagement_standards,
+              applicationOverrides: archData.application_overrides,
+            }));
+            break;
+          }
+
+          case "tech_debt_analysis": {
+            const techDebtData = await assessmentFlowAPI.getTechDebtAnalysis(
+              state.flowId,
+            );
+            const componentsData =
+              await assessmentFlowAPI.getApplicationComponents(state.flowId);
+            setState((prev) => ({
+              ...prev,
+              techDebtAnalysis: techDebtData.applications,
+              applicationComponents: componentsData.applications,
+            }));
+            break;
+          }
+
+          case "component_sixr_strategies":
+          case "app_on_page_generation": {
+            const decisionsData = await assessmentFlowAPI.getSixRDecisions(
+              state.flowId,
+            );
+            setState((prev) => ({
+              ...prev,
+              sixrDecisions: decisionsData.decisions.reduce(
+                (acc: Record<string, SixRDecision>, decision: SixRDecision) => {
+                  acc[decision.application_id] = decision;
+                  return acc;
+                },
+                {},
+              ),
+            }));
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to load ${phase} data:`, error);
+      }
+    },
+    [state.flowId],
+  );
+
   // Start HTTP/2 polling for status updates
   const startPolling = useCallback(() => {
     if (!state.flowId || !clientAccountId || pollingIntervalRef.current) return;
@@ -73,6 +137,17 @@ export const useAssessmentFlow = (
             typeof status.progress === "number"
               ? Math.max(prev.progress ?? 0, status.progress)
               : prev.progress;
+
+          // Detect phase change to trigger data reload (Bug #664 fix)
+          const phaseChanged = prev.currentPhase !== status.current_phase;
+
+          // Schedule phase data reload if phase changed
+          if (phaseChanged && status.current_phase) {
+            // Use setTimeout to avoid blocking the setState
+            setTimeout(() => {
+              loadPhaseData(status.current_phase as AssessmentPhase);
+            }, 0);
+          }
 
           return {
             ...prev,
@@ -92,7 +167,7 @@ export const useAssessmentFlow = (
     // Poll immediately, then every 5 seconds
     pollStatus();
     pollingIntervalRef.current = setInterval(pollStatus, 5000);
-  }, [state.flowId, clientAccountId, engagementId]);
+  }, [state.flowId, clientAccountId, engagementId, loadPhaseData]);
 
   // Initialize assessment flow
   const initializeFlow = useCallback(
@@ -434,69 +509,7 @@ export const useAssessmentFlow = (
     [state.pausePoints],
   );
 
-  // Load phase-specific data
-  const loadPhaseData = useCallback(
-    async (phase: AssessmentPhase): Promise<void> => {
-      if (!state.flowId) return;
-
-      try {
-        switch (phase) {
-          case "asset_application_resolution": {
-            // Asset resolution data is fetched directly in the page component
-            // No additional loading needed here
-            break;
-          }
-
-          case "architecture_minimums": {
-            const archData = await assessmentFlowAPI.getArchitectureStandards(
-              state.flowId,
-            );
-            setState((prev) => ({
-              ...prev,
-              engagementStandards: archData.engagement_standards,
-              applicationOverrides: archData.application_overrides,
-            }));
-            break;
-          }
-
-          case "tech_debt_analysis": {
-            const techDebtData = await assessmentFlowAPI.getTechDebtAnalysis(
-              state.flowId,
-            );
-            const componentsData =
-              await assessmentFlowAPI.getApplicationComponents(state.flowId);
-            setState((prev) => ({
-              ...prev,
-              techDebtAnalysis: techDebtData.applications,
-              applicationComponents: componentsData.applications,
-            }));
-            break;
-          }
-
-          case "component_sixr_strategies":
-          case "app_on_page_generation": {
-            const decisionsData = await assessmentFlowAPI.getSixRDecisions(
-              state.flowId,
-            );
-            setState((prev) => ({
-              ...prev,
-              sixrDecisions: decisionsData.decisions.reduce(
-                (acc: Record<string, SixRDecision>, decision: SixRDecision) => {
-                  acc[decision.application_id] = decision;
-                  return acc;
-                },
-                {},
-              ),
-            }));
-            break;
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to load ${phase} data:`, error);
-      }
-    },
-    [state.flowId],
-  );
+  // loadPhaseData is now defined earlier in the file (line 60) to avoid initialization errors
 
   // Load application data
   const loadApplicationData = useCallback(async (): Promise<void> => {

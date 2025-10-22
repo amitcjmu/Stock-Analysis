@@ -217,15 +217,6 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
   const consecutiveErrors = useRef<number>(0);
   const lastSuccessfulPoll = useRef<number>(0);
 
-  const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-
-    // DISABLED: No automatic polling - use manual refresh only
-    console.log('🔇 DISABLED: 6R Analysis polling disabled - use manual refresh instead');
-  }, []);
-
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
@@ -234,10 +225,57 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     }
   }, []);
 
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      return; // Already polling
+    }
+
+    const pollAnalysis = async () => {
+      if (!state.currentAnalysisId) {
+        return;
+      }
+
+      try {
+        const now = Date.now();
+        // Prevent excessive polling - minimum 4 seconds between polls
+        if (now - lastSuccessfulPoll.current < 4000) {
+          return;
+        }
+
+        await loadAnalysis(state.currentAnalysisId);
+
+        // Reset error counter on success
+        consecutiveErrors.current = 0;
+        lastSuccessfulPoll.current = now;
+      } catch (error) {
+        console.error('❌ 6R Analysis polling error:', error);
+        consecutiveErrors.current++;
+
+        // Stop polling after 5 consecutive errors to prevent infinite loops
+        if (consecutiveErrors.current >= 5) {
+          console.error('🛑 Stopping polling due to consecutive errors');
+          stopPolling();
+          setState(prev => ({
+            ...prev,
+            error: 'Analysis polling failed. Please refresh manually.'
+          }));
+        }
+        // Don't stop polling on transient errors (< 5 consecutive failures)
+      }
+    };
+
+    // Start polling every 5 seconds (Railway-compatible HTTP polling)
+    console.log('✅ Starting 6R Analysis polling (HTTP, 5s interval)');
+    pollingIntervalRef.current = setInterval(pollAnalysis, 5000) as unknown as NodeJS.Timeout;
+
+    // Run first poll immediately
+    pollAnalysis();
+  }, [state.currentAnalysisId, loadAnalysis, stopPolling]);
+
   // Start/stop polling based on analysis status with intelligent conditions
   useEffect(() => {
     if (state.currentAnalysisId && (state.analysisStatus === 'pending' || state.analysisStatus === 'in_progress')) {
-      console.log(`Starting polling for analysis ${state.currentAnalysisId} (30-second intervals)`);
+      console.log(`Starting polling for analysis ${state.currentAnalysisId} (5s intervals)`);
       startPolling();
     } else {
       console.log('Stopping polling - analysis completed or no active analysis');

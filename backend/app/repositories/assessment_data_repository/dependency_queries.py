@@ -8,7 +8,7 @@ Per ADR-024: All queries include tenant scoping.
 from typing import Any, Dict, List
 
 from app.core.logging import get_logger
-from app.models.application import Application
+from app.models.canonical_applications import CanonicalApplication
 from app.models.server import Server
 
 logger = get_logger(__name__)
@@ -65,7 +65,7 @@ class DependencyQueriesMixin:
 
     async def _build_dependency_graph(
         self,
-        applications: List[Application],
+        applications: List[CanonicalApplication],
         servers: List[Server],
         inventory_data: Dict[str, Any],
     ) -> Dict[str, Any]:

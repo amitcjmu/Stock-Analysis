@@ -7,7 +7,7 @@ Endpoints for initializing, resuming, updating, and finalizing assessment flows.
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
@@ -64,6 +64,7 @@ async def initialize_assessment_flow_via_mfo(
 async def resume_assessment_flow_via_mfo(
     flow_id: str,
     request_body: Dict[str, Any],
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
@@ -80,6 +81,8 @@ async def resume_assessment_flow_via_mfo(
         from app.repositories.assessment_flow_repository import (
             AssessmentFlowRepository,
         )
+        from app.models.assessment_flow import AssessmentPhase
+        from app.api.v1.endpoints import assessment_flow_processors
 
         # Extract user_input from request body (unwrap double-nesting)
         user_input = request_body.get("user_input", request_body)
@@ -87,6 +90,28 @@ async def resume_assessment_flow_via_mfo(
 
         repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
         result = await repo.resume_flow(flow_id, user_input)
+
+        # Get current phase to trigger agent execution
+        current_phase_str = result.get("current_phase")
+        if current_phase_str:
+            try:
+                current_phase = AssessmentPhase(current_phase_str)
+                # Trigger background task for agent execution
+                background_tasks.add_task(
+                    assessment_flow_processors.continue_assessment_flow,
+                    flow_id,
+                    client_account_id,
+                    engagement_id,
+                    current_phase,
+                    context.user_id,
+                )
+                logger.info(
+                    f"Queued background agent execution for phase {current_phase.value}"
+                )
+            except ValueError:
+                logger.warning(
+                    f"Invalid phase '{current_phase_str}' - skipping agent execution"
+                )
 
         return {
             "flow_id": flow_id,

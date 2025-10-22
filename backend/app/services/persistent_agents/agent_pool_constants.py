@@ -71,6 +71,10 @@ AGENT_TYPE_CONFIGS = {
         "tools": ["asset_intelligence", "data_validation", "critical_attributes"],
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+        "llm_config": {
+            "provider": "deepinfra",
+            "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        },
     },
     "complexity_analyst": {
         "role": "Migration Complexity Analysis Agent",
@@ -81,6 +85,10 @@ AGENT_TYPE_CONFIGS = {
         "tools": ["dependency_analysis", "asset_intelligence", "data_validation"],
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+        "llm_config": {
+            "provider": "deepinfra",
+            "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        },
     },
     "risk_assessor": {
         "role": "Migration Risk Assessment Agent",
@@ -91,6 +99,10 @@ AGENT_TYPE_CONFIGS = {
         "tools": ["dependency_analysis", "critical_attributes", "asset_intelligence"],
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+        "llm_config": {
+            "provider": "deepinfra",
+            "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        },
     },
     "recommendation_generator": {
         "role": "Migration Recommendation Generation Agent",
@@ -101,6 +113,10 @@ AGENT_TYPE_CONFIGS = {
         "tools": ["asset_intelligence", "dependency_analysis", "critical_attributes"],
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+        "llm_config": {
+            "provider": "deepinfra",
+            "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        },
     },
 }
 

@@ -267,7 +267,7 @@ export const useInventoryData = ({
 
         // FIX #326: Normalize error shape across different API clients (fetch/axios/custom)
         // Check multiple common locations for HTTP status code
-        const anyErr = error as any;
+        const anyErr = error;
         const status =
           anyErr?.response?.status ?? // Axios format
           anyErr?.status ?? // Custom/fetch format

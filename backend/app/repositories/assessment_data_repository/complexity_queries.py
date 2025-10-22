@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 from app.core.logging import get_logger
 from app.models.collected_data_inventory import CollectedDataInventory
-from app.models.application import Application
+from app.models.canonical_applications import CanonicalApplication
 from sqlalchemy import select
 
 logger = get_logger(__name__)
@@ -106,7 +106,7 @@ class ComplexityQueriesMixin:
 
     async def _calculate_complexity_indicators(
         self,
-        applications: List[Application],
+        applications: List[CanonicalApplication],
         inventory_by_type: Dict[str, List[Dict[str, Any]]],
     ) -> Dict[str, Any]:
         """Calculate complexity indicators from application and inventory data."""

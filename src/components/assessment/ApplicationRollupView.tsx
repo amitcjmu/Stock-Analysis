@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 interface ApplicationRollupViewProps {
   decisions: Record<string, SixRDecision>;
   selectedApplicationIds: string[];
+  selectedApplications?: Array<{ application_id: string; application_name: string }>;
   onApplicationSelect: (appId: string) => void;
 }
 
@@ -26,6 +27,7 @@ const SIX_R_STRATEGIES = [
 export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
   decisions,
   selectedApplicationIds,
+  selectedApplications,
   onApplicationSelect
 }) => {
   const getStrategyInfo = (strategy: string): unknown => {
@@ -48,11 +50,15 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
     return levels[strategy] || { level: 1, label: 'Unknown' };
   };
 
-  const sortedApplications = selectedApplicationIds.map(appId => ({
-    appId,
-    decision: decisions[appId],
-    hasDecision: !!decisions[appId]
-  })).sort((a, b) => {
+  const sortedApplications = selectedApplicationIds.map(appId => {
+    const app = selectedApplications?.find(a => a.application_id === appId);
+    return {
+      appId,
+      appName: app?.application_name || appId,
+      decision: decisions[appId],
+      hasDecision: !!decisions[appId]
+    };
+  }).sort((a, b) => {
     // Sort by: 1) Has decision, 2) Confidence score (low first), 3) Modernization level (high first)
     if (!a.hasDecision && b.hasDecision) return 1;
     if (a.hasDecision && !b.hasDecision) return -1;
@@ -81,10 +87,11 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {sortedApplications.map(({ appId, decision, hasDecision }) => (
+          {sortedApplications.map(({ appId, appName, decision, hasDecision }) => (
             <ApplicationRollupCard
               key={appId}
               appId={appId}
+              appName={appName}
               decision={decision}
               hasDecision={hasDecision}
               onSelect={() => onApplicationSelect(appId)}
@@ -105,6 +112,7 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
 
 interface ApplicationRollupCardProps {
   appId: string;
+  appName: string;
   decision?: SixRDecision;
   hasDecision: boolean;
   onSelect: () => void;
@@ -112,6 +120,7 @@ interface ApplicationRollupCardProps {
 
 const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
   appId,
+  appName,
   decision,
   hasDecision,
   onSelect
@@ -142,7 +151,7 @@ const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
         <div className="flex items-center space-x-3">
           <Clock className="h-5 w-5 text-gray-400" />
           <div>
-            <h3 className="font-medium text-gray-900">{appId}</h3>
+            <h3 className="font-medium text-gray-900">{appName}</h3>
             <p className="text-sm text-gray-500">Pending analysis</p>
           </div>
         </div>

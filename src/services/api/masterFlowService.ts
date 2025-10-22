@@ -882,7 +882,7 @@ export const masterFlowService = {
     }>;
   }> {
     try {
-      // Backend returns application_asset_groups structure
+      // Backend returns application_asset_groups structure (October 2025 format)
       const response = await apiClient.get<{
         flow_id: string;
         applications: Array<{
@@ -890,8 +890,9 @@ export const masterFlowService = {
           canonical_application_name: string;
           asset_ids: string[];
           asset_count: number;
-          asset_types: string[];
-          readiness_summary: {
+          confidence_score?: number;
+          asset_types?: string[];
+          readiness_summary?: {
             ready: number;
             not_ready: number;
             in_progress: number;
@@ -909,22 +910,27 @@ export const masterFlowService = {
 
       // Transform application groups to individual application records
       // NOTE: Each group represents a canonical application with multiple assets
+      // Handle case where applications field may be undefined/null during initialization
       return {
-        applications: response.applications.map(group => {
-          // Calculate readiness score from readiness_summary
-          const totalAssets = group.asset_count;
-          const readyAssets = group.readiness_summary.ready;
-          const readiness_score = totalAssets > 0 ? (readyAssets / totalAssets) * 10 : 0;
+        applications: (response.applications || []).map(group => {
+          // Calculate readiness score from readiness_summary (if available)
+          const totalAssets = group.asset_count || 1;
+          const readyAssets = group.readiness_summary?.ready || 0;
+          const notReady = group.readiness_summary?.not_ready || 0;
 
-          // Determine business criticality based on readiness
-          const notReady = group.readiness_summary.not_ready;
-          const business_criticality = notReady > totalAssets * 0.7 ? 'high' :
-                                       notReady > totalAssets * 0.4 ? 'medium' : 'low';
+          // Use confidence_score if available, otherwise calculate from readiness
+          const readiness_score = group.confidence_score
+            ? group.confidence_score * 10 // Convert 0-1 to 0-10 scale
+            : totalAssets > 0 ? (readyAssets / totalAssets) * 10 : 0;
+
+          // Determine business criticality based on readiness or default to medium
+          const business_criticality = readiness_score > 8 ? 'low' :
+                                       readiness_score > 5 ? 'medium' : 'high';
 
           return {
             application_id: group.canonical_application_id || `unmapped-${group.canonical_application_name}`,
             application_name: group.canonical_application_name,
-            application_type: group.asset_types[0] || 'application',  // Use first asset type
+            application_type: group.asset_types?.[0] || 'application',  // Use first asset type if available
             environment: 'production',  // Default - not in group data
             business_criticality,
             technology_stack: [],  // Not available in group summary

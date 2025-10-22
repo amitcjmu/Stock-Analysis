@@ -47,70 +47,73 @@ def upgrade():
     Eliminate phase_state column and consolidate to master flow.
 
     All operations are idempotent and safe to run multiple times.
-    """
-    # Step 1: Migrate phase_state.phase_history to master flow's phase_transitions
-    # Only updates master flows that don't already have phase_transitions
-    # Idempotent: Won't duplicate if master flow already has transitions
-    op.execute(
-        """
-        UPDATE migration.crewai_flow_state_extensions mf
-        SET phase_transitions = COALESCE(
-            mf.phase_transitions,
-            (
-                SELECT cf.phase_state->'phase_history'
-                FROM migration.collection_flows cf
-                WHERE cf.master_flow_id = mf.flow_id
-                  AND cf.phase_state IS NOT NULL
-                  AND cf.phase_state ? 'phase_history'
-                LIMIT 1
-            ),
-            '[]'::jsonb
-        )
-        WHERE mf.flow_type = 'collection'
-          AND (
-              mf.phase_transitions IS NULL
-              OR mf.phase_transitions = '[]'::jsonb
-          )
-          AND EXISTS (
-              SELECT 1 FROM migration.collection_flows cf
-              WHERE cf.master_flow_id = mf.flow_id
-                AND cf.phase_state IS NOT NULL
-                AND cf.phase_state ? 'phase_history'
-          );
-    """
-    )
 
-    # Step 2: Final synchronization of current_phase from phase_state
-    # Ensures current_phase matches phase_state.current_phase before dropping column
-    # Idempotent: Only updates rows where values differ
-    op.execute(
-        """
-        UPDATE migration.collection_flows
-        SET current_phase = phase_state->>'current_phase'
-        WHERE phase_state IS NOT NULL
-          AND phase_state ? 'current_phase'
-          AND current_phase IS DISTINCT FROM phase_state->>'current_phase';
+    IMPORTANT: This migration handles the case where phase_state column may not exist
+    (e.g., fresh database deployment). The column was never properly added in earlier
+    migrations, so we check for its existence before attempting to migrate data.
     """
-    )
-
-    # Step 3: Drop phase_state column
-    # Idempotent: Uses IF EXISTS, safe to run even if column already dropped
+    # Check if phase_state column exists before attempting migration
     op.execute(
         """
         DO $$
         BEGIN
+            -- Only proceed with data migration if phase_state column exists
             IF EXISTS (
                 SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'migration'
                   AND table_name = 'collection_flows'
                   AND column_name = 'phase_state'
             ) THEN
-                ALTER TABLE migration.collection_flows
-                DROP COLUMN phase_state;
+                RAISE NOTICE 'Found phase_state column, migrating data to master flow';
+
+                -- Step 1: Migrate phase_state.phase_history to master flow's phase_transitions
+                -- Only updates master flows that don't already have phase_transitions
+                -- Idempotent: Won't duplicate if master flow already has transitions
+                UPDATE migration.crewai_flow_state_extensions mf
+                SET phase_transitions = COALESCE(
+                    mf.phase_transitions,
+                    (
+                        SELECT cf.phase_state->'phase_history'
+                        FROM migration.collection_flows cf
+                        WHERE cf.master_flow_id = mf.flow_id
+                          AND cf.phase_state IS NOT NULL
+                          AND cf.phase_state ? 'phase_history'
+                        LIMIT 1
+                    ),
+                    '[]'::jsonb
+                )
+                WHERE mf.flow_type = 'collection'
+                  AND (
+                      mf.phase_transitions IS NULL
+                      OR mf.phase_transitions = '[]'::jsonb
+                  )
+                  AND EXISTS (
+                      SELECT 1 FROM migration.collection_flows cf
+                      WHERE cf.master_flow_id = mf.flow_id
+                        AND cf.phase_state IS NOT NULL
+                        AND cf.phase_state ? 'phase_history'
+                  );
+
+                RAISE NOTICE 'Migrated phase_history to master flow phase_transitions';
+
+                -- Step 2: Final synchronization of current_phase from phase_state
+                -- Ensures current_phase matches phase_state.current_phase before dropping column
+                -- Idempotent: Only updates rows where values differ
+                UPDATE migration.collection_flows
+                SET current_phase = phase_state->>'current_phase'
+                WHERE phase_state IS NOT NULL
+                  AND phase_state ? 'current_phase'
+                  AND current_phase IS DISTINCT FROM phase_state->>'current_phase';
+
+                RAISE NOTICE 'Synchronized current_phase from phase_state';
+
+                -- Step 3: Drop phase_state column
+                ALTER TABLE migration.collection_flows DROP COLUMN phase_state;
 
                 RAISE NOTICE 'Dropped phase_state column from collection_flows';
             ELSE
-                RAISE NOTICE 'Column phase_state already dropped, skipping';
+                RAISE NOTICE 'Column phase_state does not exist - normal for fresh deployments';
+                RAISE NOTICE 'Skipping data migration';
             END IF;
         END
         $$;
