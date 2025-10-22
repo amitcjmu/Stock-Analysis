@@ -26,6 +26,9 @@ const getAuthHeaders = (): AuthHeaders => {
     const token = tokenStorage.getToken();
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+    } else {
+      // CRITICAL: Log when token is missing to debug timing issues
+      console.warn('⚠️ [apiClient] getAuthHeaders: No token available from tokenStorage');
     }
 
     const user = tokenStorage.getUser();
@@ -57,7 +60,10 @@ const getAuthHeaders = (): AuthHeaders => {
       }
     }
   } catch (error) {
-    console.warn('Failed to get auth headers:', error);
+    // Make token retrieval failures visible instead of silent
+    console.error('❌ [apiClient] getAuthHeaders: Failed to retrieve auth headers:', error);
+    // Re-throw to make failures visible
+    throw error;
   }
 
   return headers;
@@ -285,11 +291,21 @@ class ApiClient {
       // API Request logged
 
       // Prepare headers
+      const authHeaders = getAuthHeaders();
       const headers: HeadersInit = {
         'X-Request-ID': requestId,
-        ...getAuthHeaders(),
+        ...authHeaders,
         ...options.headers,
       };
+
+      // Add debug logging to track authorization header
+      if (!authHeaders.Authorization) {
+        console.warn(`⚠️ [apiClient] Request [${requestId}] being sent WITHOUT Authorization header:`, {
+          method,
+          url: normalizedEndpoint,
+          hasToken: !!tokenStorage.getToken()
+        });
+      }
 
       // Only set default Content-Type for non-FormData requests
       if (!(options.body instanceof FormData) && method !== 'GET') {
