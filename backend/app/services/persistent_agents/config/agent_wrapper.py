@@ -73,10 +73,11 @@ class AgentWrapper:
             )
 
             # Create a task for the agent
-            # CRITICAL: Pass wrapper (self) not unwrapped agent to preserve context property
+            # CRITICAL FIX: Pass unwrapped agent to satisfy Pydantic validation
+            # CrewAI Task expects BaseAgent instance, not AgentWrapper
             agent_task = create_task(
                 description=task or "Execute assigned task",
-                agent=self,
+                agent=self._agent,
                 expected_output="Structured analysis and recommendations based on the given task",
             )
 
@@ -157,11 +158,12 @@ class AgentWrapper:
                 )
 
                 # Create a task for the agent to process the data
-                # CRITICAL: Pass wrapper (self) not unwrapped agent to preserve context property
-                # Fixes "Agent object has no field context" error (Issue #395)
+                # CRITICAL FIX: Pass unwrapped agent to satisfy Pydantic validation
+                # CrewAI Task expects BaseAgent instance, not AgentWrapper
+                # Context is stored in wrapper's _context property and accessed via tools
                 task = Task(
                     description=task_description,
-                    agent=self,
+                    agent=self._agent,
                     expected_output=(
                         "Structured analysis with processed data, insights, and "
                         "classifications in JSON format"
