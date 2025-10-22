@@ -80,7 +80,7 @@ export const AssetBlockerAccordion: React.FC<AssetBlockerAccordionProps> = ({ as
               </div>
 
               {categories.map(({ key, label, color }) => {
-                const missing = asset.missing_attributes[key as keyof typeof asset.missing_attributes];
+                const missing = asset.missing_attributes[key];
                 if (missing.length === 0) return null;
 
                 return (
