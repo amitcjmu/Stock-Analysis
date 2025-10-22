@@ -1,27 +1,29 @@
 """
 6R Analysis API endpoints for migration strategy analysis workflow.
 Provides REST API for 6R analysis, parameter updates, question handling, and recommendations.
+
+MODULARIZED STRUCTURE (October 2025):
+- Main router defined here with route registrations
+- Handler logic in sixr_analysis_modular/handlers/
+- Service logic in sixr_analysis_modular/services/
+- Maintains backward compatibility - all routes work the same
+
+Per CLAUDE.md modularization pattern:
+- This file < 300 lines (router definitions only)
+- Handler files < 300 lines each (endpoint logic)
+- Service files contain business logic
 """
 
 import logging
-from datetime import datetime
 from typing import Optional
 
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import (
-    AnalysisService,
-)
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.services.persistent_agents import TenantScopedAgentPool
-from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
-from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
-from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
 from app.schemas.sixr_analysis import (
     AnalysisStatus,
     BulkAnalysisRequest,
@@ -31,11 +33,20 @@ from app.schemas.sixr_analysis import (
     SixRAnalysisListResponse,
     SixRAnalysisRequest,
     SixRAnalysisResponse,
-    SixRParameterBase,
-    SixRParameters,
     SixRParameterUpdateRequest,
-    SixRRecommendation,
     SixRRecommendationResponse,
+)
+
+# Import handlers from modular structure
+from app.api.v1.endpoints.sixr_analysis_modular.handlers import (
+    create_sixr_analysis,
+    get_analysis,
+    list_sixr_analyses,
+    update_sixr_parameters,
+    submit_qualifying_responses,
+    create_analysis_iteration,
+    get_sixr_recommendation,
+    create_bulk_analysis,
 )
 
 # Conditional import for CrewAI technical debt crew
@@ -61,8 +72,13 @@ router = APIRouter()
 logger.info("6R Analysis router initialized - using AI-powered analysis per request")
 
 
+# ============================================================================
+# ANALYSIS ENDPOINTS
+# ============================================================================
+
+
 @router.post("/analyze", response_model=SixRAnalysisResponse)
-async def create_sixr_analysis(
+async def create_analysis_endpoint(
     request: SixRAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -71,180 +87,43 @@ async def create_sixr_analysis(
     """
     Create a new 6R analysis for the specified applications.
 
-    This endpoint initiates the 6R analysis workflow:
-    1. Creates analysis record
-    2. Runs discovery analysis on application data
-    3. Performs initial 6R recommendation
-    4. Generates qualifying questions for refinement
-
-    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
+    Delegates to: handlers.analysis_handlers.create_sixr_analysis
     """
-    try:
-        # Bug #666 - Phase 2: Use TenantScopedAgentPool for AI-powered analysis
-        # Pass the pool CLASS (not instance) - it manages singleton agents per tenant
-        service = AnalysisService(
-            crewai_service=TenantScopedAgentPool, require_ai=False
-        )
-
-        # Create analysis record with tenant context
-        analysis = SixRAnalysis(
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id,
-            name=request.analysis_name
-            or f"6R Analysis {datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
-            description=request.description,
-            status=AnalysisStatus.PENDING,
-            priority=request.priority,
-            application_ids=request.application_ids,
-            current_iteration=1,
-            progress_percentage=0.0,
-            created_by="system",
-        )
-
-        db.add(analysis)
-        await db.commit()
-        await db.refresh(analysis)
-
-        # Create initial parameters
-        initial_params = request.initial_parameters or SixRParameterBase()
-
-        # Handle application types if provided
-        if request.application_types and len(request.application_ids) == 1:
-            app_id = request.application_ids[0]
-            if app_id in request.application_types:
-                initial_params.application_type = request.application_types[app_id]
-
-        parameters = SixRParametersModel(
-            analysis_id=analysis.id,
-            iteration_number=1,
-            **initial_params.dict(),
-            created_by="system",
-        )
-
-        db.add(parameters)
-        await db.commit()
-
-        # Start background analysis with AI-powered service
-        background_tasks.add_task(
-            service.run_initial_analysis,
-            analysis.id,
-            initial_params.dict(),
-            "system",
-        )
-
-        # Return initial response
-        return SixRAnalysisResponse(
-            analysis_id=analysis.id,
-            status=AnalysisStatus.PENDING,
-            current_iteration=1,
-            applications=[{"id": app_id} for app_id in request.application_ids],
-            parameters=SixRParameters(
-                business_value=initial_params.business_value,
-                technical_complexity=initial_params.technical_complexity,
-                migration_urgency=initial_params.migration_urgency,
-                compliance_requirements=initial_params.compliance_requirements,
-                cost_sensitivity=initial_params.cost_sensitivity,
-                risk_tolerance=initial_params.risk_tolerance,
-                innovation_priority=initial_params.innovation_priority,
-                application_type=initial_params.application_type,
-                parameter_source="user_input",
-                confidence_level=0.8,
-                last_updated=datetime.utcnow(),
-                updated_by="system",
-            ),
-            qualifying_questions=[],
-            recommendation=None,
-            progress_percentage=5.0,
-            estimated_completion=None,
-            created_at=analysis.created_at,
-            updated_at=analysis.updated_at or analysis.created_at,
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to create 6R analysis: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create analysis: {str(e)}",
-        )
+    return await create_sixr_analysis(request, background_tasks, db, context)
 
 
 @router.get("/{analysis_id}", response_model=SixRAnalysisResponse)
-async def get_analysis(analysis_id: UUID, db: AsyncSession = Depends(get_db)):
-    """Get analysis by ID with current recommendation."""
-    # Get analysis
-    result = await db.execute(
-        select(SixRAnalysis).where(SixRAnalysis.id == analysis_id)
-    )
-    analysis = result.scalar_one_or_none()
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+async def get_analysis_endpoint(analysis_id: UUID, db: AsyncSession = Depends(get_db)):
+    """
+    Get analysis by ID with current recommendation.
 
-    # Get current parameters
-    params_result = await db.execute(
-        select(SixRParametersModel)
-        .where(SixRParametersModel.analysis_id == analysis_id)
-        .order_by(SixRParametersModel.iteration_number.desc())
-    )
-    current_params = params_result.scalar_one_or_none()
-    if not current_params:
-        raise HTTPException(status_code=404, detail="Analysis parameters not found")
+    Delegates to: handlers.analysis_handlers.get_analysis
+    """
+    return await get_analysis(analysis_id, db)
 
-    # Get latest recommendation for this analysis
-    rec_result = await db.execute(
-        select(SixRRecommendationModel)
-        .where(SixRRecommendationModel.analysis_id == analysis_id)
-        .order_by(SixRRecommendationModel.iteration_number.desc())
-        .limit(1)  # Ensure we only get one row
-    )
-    latest_recommendation = rec_result.scalar_one_or_none()
 
-    # Convert to response format
-    response_data = {
-        "analysis_id": analysis.id,
-        "status": analysis.status,
-        "current_iteration": analysis.current_iteration,
-        "applications": [{"id": app_id} for app_id in analysis.application_ids],
-        "parameters": SixRParameters(
-            business_value=current_params.business_value,
-            technical_complexity=current_params.technical_complexity,
-            migration_urgency=current_params.migration_urgency,
-            compliance_requirements=current_params.compliance_requirements,
-            cost_sensitivity=current_params.cost_sensitivity,
-            risk_tolerance=current_params.risk_tolerance,
-            innovation_priority=current_params.innovation_priority,
-            application_type=current_params.application_type,
-            parameter_source=current_params.parameter_source,
-            confidence_level=current_params.confidence_level,
-            last_updated=current_params.updated_at or current_params.created_at,
-            updated_by=current_params.updated_by,
-        ),
-        "qualifying_questions": [],
-        "recommendation": None,
-        "progress_percentage": analysis.progress_percentage,
-        "estimated_completion": analysis.estimated_completion,
-        "created_at": analysis.created_at,
-        "updated_at": analysis.updated_at or analysis.created_at,
-    }
+@router.get("/", response_model=SixRAnalysisListResponse)
+async def list_analyses_endpoint(
+    page: int = 1,
+    page_size: int = 20,
+    status_filter: Optional[AnalysisStatus] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all 6R analyses with optional filtering and pagination.
 
-    # Add current recommendation if available
-    if latest_recommendation:
-        response_data["recommendation"] = SixRRecommendation(
-            recommended_strategy=latest_recommendation.recommended_strategy,
-            confidence_score=latest_recommendation.confidence_score,
-            strategy_scores=latest_recommendation.strategy_scores or [],
-            key_factors=latest_recommendation.key_factors or [],
-            assumptions=latest_recommendation.assumptions or [],
-            next_steps=latest_recommendation.next_steps or [],
-            estimated_effort=latest_recommendation.estimated_effort,
-            estimated_timeline=latest_recommendation.estimated_timeline,
-            estimated_cost_impact=latest_recommendation.estimated_cost_impact,
-        )
+    Delegates to: handlers.analysis_handlers.list_sixr_analyses
+    """
+    return await list_sixr_analyses(page, page_size, status_filter, db)
 
-    return SixRAnalysisResponse(**response_data)
+
+# ============================================================================
+# PARAMETER ENDPOINTS
+# ============================================================================
 
 
 @router.put("/{analysis_id}/parameters", response_model=SixRAnalysisResponse)
-async def update_sixr_parameters(
+async def update_parameters_endpoint(
     analysis_id: UUID,
     request: SixRParameterUpdateRequest,
     background_tasks: BackgroundTasks,
@@ -254,87 +133,15 @@ async def update_sixr_parameters(
     """
     Update 6R analysis parameters and trigger re-analysis.
 
-    This endpoint:
-    1. Updates the parameter values
-    2. Triggers background re-analysis with new parameters
-    3. Returns updated analysis state
-
-    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
+    Delegates to: handlers.parameter_handlers.update_sixr_parameters
     """
-    try:
-        # Bug #666 - Phase 2: Create AI-powered service per request
-        service = AnalysisService(
-            crewai_service=TenantScopedAgentPool, require_ai=False
-        )
-        # Get analysis
-        result = await db.execute(
-            select(SixRAnalysis).where(SixRAnalysis.id == analysis_id)
-        )
-        analysis = result.scalar_one_or_none()
-
-        if not analysis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found"
-            )
-
-        # Get current parameters to update
-        params_result = await db.execute(
-            select(SixRParametersModel).where(
-                SixRParametersModel.analysis_id == analysis_id,
-                SixRParametersModel.iteration_number == analysis.current_iteration,
-            )
-        )
-        current_params = params_result.scalar_one_or_none()
-
-        if current_params:
-            # Update existing parameters
-            from app.core.security.cache_encryption import secure_setattr
-
-            for key, value in request.parameters.dict().items():
-                if hasattr(current_params, key):
-                    secure_setattr(current_params, key, value)
-
-            current_params.parameter_notes = request.update_reason
-            current_params.updated_by = "system"
-        else:
-            # Create new parameter record if none exists
-            current_params = SixRParametersModel(
-                analysis_id=analysis.id,
-                iteration_number=analysis.current_iteration,
-                **request.parameters.dict(),
-                parameter_notes=request.update_reason,
-                updated_by="system",
-            )
-            db.add(current_params)
-
-        # Update analysis status
-        analysis.status = AnalysisStatus.IN_PROGRESS
-        analysis.updated_by = "system"
-
-        await db.commit()
-
-        # Trigger background re-analysis with AI-powered service
-        background_tasks.add_task(
-            service.run_parameter_update_analysis,
-            analysis.id,
-            request.parameters.dict(),
-            "system",
-        )
-
-        return await get_analysis(analysis.id, db)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to update parameters for analysis {analysis_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update parameters: {str(e)}",
-        )
+    return await update_sixr_parameters(
+        analysis_id, request, background_tasks, db, context
+    )
 
 
 @router.post("/{analysis_id}/questions", response_model=SixRAnalysisResponse)
-async def submit_qualifying_responses(
+async def submit_questions_endpoint(
     analysis_id: UUID,
     request: QualifyingQuestionsRequest,
     background_tasks: BackgroundTasks,
@@ -344,66 +151,15 @@ async def submit_qualifying_responses(
     """
     Submit responses to qualifying questions and trigger analysis refinement.
 
-    This endpoint:
-    1. Stores question responses
-    2. Processes responses to update parameters
-    3. Triggers refined analysis
-
-    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
+    Delegates to: handlers.parameter_handlers.submit_qualifying_responses
     """
-    try:
-        # Bug #666 - Phase 2: Create AI-powered service per request
-        service = AnalysisService(
-            crewai_service=TenantScopedAgentPool, require_ai=False
-        )
-        analysis = await db.get(SixRAnalysis, analysis_id)
-
-        if not analysis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found"
-            )
-
-        # Store question responses
-        for response in request.responses:
-            question_response = SixRQuestionResponse(
-                analysis_id=analysis.id,
-                iteration_number=analysis.current_iteration,
-                question_id=response.question_id,
-                response_value=response.response,
-                confidence=response.confidence,
-                source=response.source,
-                created_by="system",
-            )
-            db.add(question_response)
-
-        # Update analysis status
-        analysis.status = AnalysisStatus.IN_PROGRESS
-        analysis.updated_by = "system"
-
-        await db.commit()
-
-        # Trigger background processing with AI-powered service
-        background_tasks.add_task(
-            service.process_question_responses,
-            analysis.id,
-            [r.dict() for r in request.responses],
-            "system",
-        )
-
-        return await get_analysis(analysis.id, db)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to submit responses for analysis {analysis_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to submit responses: {str(e)}",
-        )
+    return await submit_qualifying_responses(
+        analysis_id, request, background_tasks, db, context
+    )
 
 
 @router.post("/{analysis_id}/iterate", response_model=SixRAnalysisResponse)
-async def create_analysis_iteration(
+async def create_iteration_endpoint(
     analysis_id: UUID,
     request: IterationRequest,
     background_tasks: BackgroundTasks,
@@ -413,85 +169,20 @@ async def create_analysis_iteration(
     """
     Create a new iteration of the 6R analysis based on feedback.
 
-    This endpoint:
-    1. Creates new iteration record
-    2. Applies parameter changes and feedback
-    3. Triggers refined analysis
-
-    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
+    Delegates to: handlers.parameter_handlers.create_analysis_iteration
     """
-    try:
-        # Bug #666 - Phase 2: Create AI-powered service per request
-        service = AnalysisService(
-            crewai_service=TenantScopedAgentPool, require_ai=False
-        )
-        # Get analysis
-        result = await db.execute(
-            select(SixRAnalysis).where(SixRAnalysis.id == analysis_id)
-        )
-        analysis = result.scalar_one_or_none()
+    return await create_analysis_iteration(
+        analysis_id, request, background_tasks, db, context
+    )
 
-        if not analysis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found"
-            )
 
-        # Create new iteration
-        new_iteration_number = analysis.current_iteration + 1
-
-        iteration = SixRIteration(
-            analysis_id=analysis.id,
-            iteration_number=new_iteration_number,
-            iteration_reason=request.iteration_reason,
-            stakeholder_feedback=request.stakeholder_feedback,
-            parameter_changes=(
-                request.parameter_changes.dict() if request.parameter_changes else None
-            ),
-            created_by="system",
-        )
-
-        db.add(iteration)
-
-        # Update analysis
-        analysis.current_iteration = new_iteration_number
-        analysis.status = AnalysisStatus.IN_PROGRESS
-        analysis.updated_by = "system"
-
-        # Create new parameters if provided
-        if request.parameter_changes:
-            new_params = SixRParametersModel(
-                analysis_id=analysis.id,
-                iteration_number=new_iteration_number,
-                **request.parameter_changes.dict(),
-                created_by="system",
-            )
-            db.add(new_params)
-
-        await db.commit()
-
-        # Trigger background refinement with AI-powered service
-        background_tasks.add_task(
-            service.run_iteration_analysis,
-            analysis_id,
-            new_iteration_number,
-            request.dict(),
-            "system",
-        )
-
-        return await get_analysis(analysis_id, db)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to create iteration for analysis {analysis_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create iteration: {str(e)}",
-        )
+# ============================================================================
+# RECOMMENDATION ENDPOINTS
+# ============================================================================
 
 
 @router.get("/{analysis_id}/recommendation", response_model=SixRRecommendationResponse)
-async def get_sixr_recommendation(
+async def get_recommendation_endpoint(
     analysis_id: UUID,
     iteration_number: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
@@ -499,182 +190,18 @@ async def get_sixr_recommendation(
     """
     Get the 6R recommendation for a specific analysis and iteration.
 
-    If no iteration is specified, returns the latest recommendation.
+    Delegates to: handlers.recommendation_handlers.get_sixr_recommendation
     """
-    try:
-        # Get analysis
-        result = await db.execute(
-            select(SixRAnalysis).where(SixRAnalysis.id == analysis_id)
-        )
-        analysis = result.scalar_one_or_none()
-
-        if not analysis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found"
-            )
-
-        # Get recommendation for specific iteration or latest
-        if iteration_number:
-            rec_result = await db.execute(
-                select(SixRRecommendationModel).where(
-                    SixRRecommendationModel.analysis_id == analysis_id,
-                    SixRRecommendationModel.iteration_number == iteration_number,
-                )
-            )
-            recommendation = rec_result.scalar_one_or_none()
-        else:
-            # Get latest recommendation
-            rec_result = await db.execute(
-                select(SixRRecommendationModel)
-                .where(SixRRecommendationModel.analysis_id == analysis_id)
-                .order_by(SixRRecommendationModel.iteration_number.desc())
-            )
-            recommendation = rec_result.scalar_one_or_none()
-            iteration_number = analysis.current_iteration
-
-        if not recommendation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Recommendation not found"
-            )
-
-        # Build response
-        return SixRRecommendationResponse(
-            analysis_id=analysis_id,
-            iteration_number=iteration_number,
-            recommendation=recommendation,
-            comparison_with_previous=None,  # TODO: Implement comparison logic
-            confidence_evolution=[],  # TODO: Implement confidence tracking
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get recommendation for analysis {analysis_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get recommendation: {str(e)}",
-        )
+    return await get_sixr_recommendation(analysis_id, iteration_number, db)
 
 
-@router.get("/", response_model=SixRAnalysisListResponse)
-async def list_sixr_analyses(
-    page: int = 1,
-    page_size: int = 20,
-    status_filter: Optional[AnalysisStatus] = None,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    List all 6R analyses with optional filtering and pagination.
-    """
-    try:
-        # Build query
-        query = select(SixRAnalysis)
-
-        if status_filter:
-            query = query.where(SixRAnalysis.status == status_filter)
-
-        # Get total count
-        count_result = await db.execute(
-            select(func.count()).select_from(query.subquery())
-        )
-        total_count = count_result.scalar()
-
-        # Apply pagination
-        offset = (page - 1) * page_size
-        query = query.offset(offset).limit(page_size)
-
-        result = await db.execute(query)
-        analyses = result.scalars().all()
-
-        # Convert to response format
-        analysis_responses = []
-        for analysis in analyses:
-            # Get parameters for this analysis
-            params_result = await db.execute(
-                select(SixRParametersModel)
-                .where(SixRParametersModel.analysis_id == analysis.id)
-                .order_by(SixRParametersModel.iteration_number.desc())
-            )
-            current_params = params_result.scalar_one_or_none()
-
-            if current_params:
-                params = SixRParameters(
-                    business_value=current_params.business_value,
-                    technical_complexity=current_params.technical_complexity,
-                    migration_urgency=current_params.migration_urgency,
-                    compliance_requirements=current_params.compliance_requirements,
-                    cost_sensitivity=current_params.cost_sensitivity,
-                    risk_tolerance=current_params.risk_tolerance,
-                    innovation_priority=current_params.innovation_priority,
-                    application_type=current_params.application_type,
-                    parameter_source=current_params.parameter_source,
-                    confidence_level=current_params.confidence_level,
-                    last_updated=current_params.updated_at or current_params.created_at,
-                    updated_by=current_params.updated_by,
-                )
-            else:
-                params = SixRParameters()
-
-            # Get latest recommendation for this analysis
-            rec_result = await db.execute(
-                select(SixRRecommendationModel)
-                .where(SixRRecommendationModel.analysis_id == analysis.id)
-                .order_by(SixRRecommendationModel.iteration_number.desc())
-                .limit(1)  # Ensure we only get one row
-            )
-            latest_recommendation = rec_result.scalar_one_or_none()
-
-            recommendation = None
-            if latest_recommendation:
-                recommendation = SixRRecommendation(
-                    recommended_strategy=latest_recommendation.recommended_strategy,
-                    confidence_score=latest_recommendation.confidence_score,
-                    strategy_scores=latest_recommendation.strategy_scores or [],
-                    key_factors=latest_recommendation.key_factors or [],
-                    assumptions=latest_recommendation.assumptions or [],
-                    next_steps=latest_recommendation.next_steps or [],
-                    estimated_effort=latest_recommendation.estimated_effort,
-                    estimated_timeline=latest_recommendation.estimated_timeline,
-                    estimated_cost_impact=latest_recommendation.estimated_cost_impact,
-                    risk_factors=latest_recommendation.risk_factors or [],
-                    business_benefits=latest_recommendation.business_benefits or [],
-                    technical_benefits=latest_recommendation.technical_benefits or [],
-                )
-
-            analysis_responses.append(
-                SixRAnalysisResponse(
-                    analysis_id=analysis.id,
-                    status=analysis.status,
-                    current_iteration=analysis.current_iteration,
-                    applications=analysis.application_data
-                    or [{"id": app_id} for app_id in analysis.application_ids],
-                    parameters=params,
-                    qualifying_questions=[],
-                    recommendation=recommendation,  # Now includes actual recommendation data
-                    progress_percentage=analysis.progress_percentage,
-                    estimated_completion=analysis.estimated_completion,
-                    created_at=analysis.created_at,
-                    updated_at=analysis.updated_at or analysis.created_at,
-                )
-            )
-
-        return SixRAnalysisListResponse(
-            analyses=analysis_responses,
-            total_count=total_count,
-            page=page,
-            page_size=page_size,
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to list analyses: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list analyses: {str(e)}",
-        )
+# ============================================================================
+# BULK ANALYSIS ENDPOINTS
+# ============================================================================
 
 
 @router.post("/bulk", response_model=BulkAnalysisResponse)
-async def create_bulk_analysis(
+async def create_bulk_endpoint(
     request: BulkAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -683,93 +210,26 @@ async def create_bulk_analysis(
     """
     Create bulk 6R analysis for multiple applications.
 
-    This endpoint creates individual analyses for each application
-    and processes them in batches.
-
-    Bug #666 - Phase 2: Now using AI-powered analysis via TenantScopedAgentPool
+    Delegates to: handlers.bulk_handlers.create_bulk_analysis
     """
-    try:
-        # Bug #666 - Phase 2: Create AI-powered service per request
-        service = AnalysisService(
-            crewai_service=TenantScopedAgentPool, require_ai=False
-        )
-        individual_analyses = []
-
-        # Create individual analyses
-        for app_id in request.application_ids:
-            analysis_request = SixRAnalysisRequest(
-                application_ids=[app_id],
-                initial_parameters=request.default_parameters,
-                analysis_name=f"{request.analysis_name} - App {app_id}",
-                priority=request.priority,
-            )
-
-            # Create analysis with tenant context
-            analysis = SixRAnalysis(
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                name=analysis_request.analysis_name,
-                status=AnalysisStatus.PENDING,
-                priority=analysis_request.priority,
-                application_ids=[app_id],
-                current_iteration=1,
-                progress_percentage=0.0,
-                created_by="system",
-            )
-
-            db.add(analysis)
-            individual_analyses.append(analysis)
-
-        db.commit()
-
-        # Start background bulk processing with AI-powered service
-        background_tasks.add_task(
-            service.run_bulk_analysis,
-            [a.id for a in individual_analyses],
-            request.batch_size,
-            "system",
-        )
-
-        # Build response
-        analysis_responses = []
-        for analysis in individual_analyses:
-            params = request.default_parameters or SixRParameterBase()
-            analysis_responses.append(
-                SixRAnalysisResponse(
-                    analysis_id=analysis.id,
-                    status=analysis.status,
-                    current_iteration=1,
-                    applications=[{"id": analysis.application_ids[0]}],
-                    parameters=params,
-                    qualifying_questions=[],
-                    recommendation=None,
-                    progress_percentage=0.0,
-                    estimated_completion=None,
-                    created_at=analysis.created_at,
-                    updated_at=analysis.updated_at or analysis.created_at,
-                )
-            )
-
-        return BulkAnalysisResponse(
-            bulk_analysis_id=individual_analyses[
-                0
-            ].id,  # Use first analysis ID as bulk ID
-            total_applications=len(request.application_ids),
-            completed_applications=0,
-            failed_applications=0,
-            progress_percentage=0.0,
-            individual_analyses=analysis_responses,
-            estimated_completion=None,
-            status=AnalysisStatus.PENDING,
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to create bulk analysis: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create bulk analysis: {str(e)}",
-        )
+    return await create_bulk_analysis(request, background_tasks, db, context)
 
 
-# Background task functions have been moved to AnalysisService
-# See: app.api.v1.endpoints.sixr_analysis.services.analysis_service
+# ============================================================================
+# MODULARIZATION NOTES
+# ============================================================================
+# All handler logic moved to sixr_analysis_modular/handlers/
+# - analysis_handlers.py: create, get, list analyses
+# - parameter_handlers.py: update params, questions, iterations
+# - recommendation_handlers.py: get recommendations
+# - bulk_handlers.py: bulk operations
+#
+# SECURITY FIX PRESERVED: Lines 128-136 in analysis_handlers.py
+# - Tenant context (client_account_id, engagement_id) passed to background tasks
+# - Prevents cross-tenant data access (Qodo Bot security concern)
+#
+# BACKWARD COMPATIBILITY: All routes maintain same:
+# - Route paths
+# - Request/response schemas
+# - Behavior and functionality
+# ============================================================================
