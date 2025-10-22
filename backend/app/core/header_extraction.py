@@ -3,6 +3,19 @@ Header extraction utilities for multi-tenant context.
 
 Provides functions for extracting client_account_id, engagement_id, user_id, and flow_id
 from various header formats.
+
+IMPORTANT: HTTP headers are case-insensitive per RFC 7230. However, to ensure maximum
+compatibility, this module checks multiple casing variations explicitly:
+- X-Client-Account-ID (frontend convention - uppercase 'ID')
+- X-Client-Account-Id (backend recommendation - lowercase 'd')
+- x-client-account-id (all lowercase)
+- Alternative formats (X-Client-ID, client-account-id, etc.)
+
+All variations are functionally equivalent due to Starlette's case-insensitive Headers class.
+The multiple checks are defensive programming to ensure compatibility across different
+HTTP clients and proxies.
+
+For full specification, see: /docs/api/MULTI_TENANT_HEADERS.md
 """
 
 import logging

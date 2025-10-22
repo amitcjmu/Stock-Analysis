@@ -23,6 +23,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { createFallbackFormData } from "@/utils/collection/formDataTransformation";
 
@@ -166,10 +167,35 @@ export const useAdaptiveFormFlow = (
     updateFlowId,
   });
 
+  // CRITICAL FIX #677: Poll for flow phase to know when questionnaires are ready
+  // Phase progression: gap_analysis → questionnaire_generation → manual_collection
+  // Questionnaires are saved to DB BEFORE transition to manual_collection
+  const { data: flowDetails } = useQuery({
+    queryKey: ['collection-flow-phase', state.flowId],
+    queryFn: async () => {
+      if (!state.flowId) return null;
+      return await collectionFlowApi.getFlowDetails(state.flowId);
+    },
+    enabled: !!state.flowId && !state.formData && !state.questionnaires?.length,
+    refetchInterval: (data) => {
+      // Keep polling phase every 2s until we reach manual_collection
+      if (!data || data.current_phase === 'questionnaire_generation' || data.current_phase === 'gap_analysis') {
+        return 2000; // 2 seconds
+      }
+      return false; // Stop when manual_collection is reached
+    },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always fresh
+  });
+
+  const currentPhase = flowDetails?.current_phase || null;
+
   // Use the new questionnaire polling hook with completion_status support
   const questionnairePollingState = useQuestionnairePolling({
     flowId: state.flowId || '',
     enabled: !!state.flowId && !state.formData && !state.questionnaires?.length,
+    currentPhase, // CRITICAL: Pass current phase to prevent race condition
     onReady: useCallback(async (questionnaires: CollectionQuestionnaire[]) => {
       console.log('🎉 Questionnaire ready from new polling hook:', questionnaires);
       // Convert questionnaires and update state - use timeout to prevent React warning

@@ -47,7 +47,8 @@ class ProgrammaticGapScanner:
 
         Args:
             selected_asset_ids: UUIDs of assets to scan
-            collection_flow_id: Child collection flow UUID (resolved from master if needed)
+            collection_flow_id: Child collection flow UUID
+                               (resolved from master if needed)
             client_account_id: Tenant client account UUID
             engagement_id: Engagement UUID
             db: AsyncSession
@@ -177,12 +178,23 @@ class ProgrammaticGapScanner:
 
             logger.info(f"📦 Loaded {len(assets)} assets: {[a.name for a in assets]}")
 
-            # Compare against critical attributes
-            attribute_mapping = CriticalAttributesDefinition.get_attribute_mapping()
+            # Compare against critical attributes (asset-type-aware)
+            # Per ADR for issue #678: Use asset-type-specific attributes
             all_gaps = []
 
             for asset in assets:
-                asset_gaps = self._identify_gaps_for_asset(asset, attribute_mapping)
+                # Get asset-type-specific attributes
+                # (e.g., servers get infrastructure, apps get tech stack)
+                asset_type = getattr(asset, "asset_type", "other")
+                attr_def = CriticalAttributesDefinition
+                attribute_mapping = attr_def.get_attributes_by_asset_type(asset_type)
+                logger.debug(
+                    f"🔍 Asset '{asset.name}' (type: {asset_type}) - "
+                    f"Checking {len(attribute_mapping)} asset-type-specific attributes"
+                )
+                asset_gaps = self._identify_gaps_for_asset(
+                    asset, attribute_mapping, asset_type
+                )
                 all_gaps.extend(asset_gaps)
 
             logger.info(f"📊 Identified {len(all_gaps)} total gaps")
@@ -242,7 +254,8 @@ class ProgrammaticGapScanner:
             )
 
             logger.info(
-                f"✅ Gap scan complete: {gaps_persisted} gaps persisted in {execution_time_ms}ms"
+                f"✅ Gap scan complete: {gaps_persisted} gaps persisted "
+                f"in {execution_time_ms}ms"
             )
 
             return {
@@ -286,10 +299,11 @@ class ProgrammaticGapScanner:
 
     async def _clear_existing_gaps(self, collection_flow_id: UUID, db: AsyncSession):
         """
-        CRITICAL: Delete existing gaps for THIS flow only (tenant-scoped, never global).
-        Allows re-running scan without duplicates.
+        CRITICAL: Delete existing gaps for THIS flow only
+        (tenant-scoped, never global). Allows re-running scan without duplicates.
 
-        NOTE: This is called within scan_assets_for_gaps() which commits the transaction.
+        NOTE: This is called within scan_assets_for_gaps()
+        which commits the transaction.
         """
         stmt = delete(CollectionDataGap).where(
             CollectionDataGap.collection_flow_id == collection_flow_id
@@ -298,9 +312,19 @@ class ProgrammaticGapScanner:
         logger.debug(f"🧹 Cleared existing gaps for flow {collection_flow_id}")
 
     def _identify_gaps_for_asset(
-        self, asset: Any, attribute_mapping: Dict[str, Any]
+        self, asset: Any, attribute_mapping: Dict[str, Any], asset_type: str = "other"
     ) -> List[Dict[str, Any]]:
-        """Identify missing critical attributes for a single asset."""
+        """
+        Identify missing critical attributes for a single asset.
+
+        Args:
+            asset: Asset model instance
+            attribute_mapping: Asset-type-specific attribute mapping
+            asset_type: Asset type (server, application, database, etc.)
+
+        Returns:
+            List of gap dictionaries with asset-type-aware categorization
+        """
         gaps = []
 
         for attr_name, attr_config in attribute_mapping.items():

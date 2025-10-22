@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 import { Routes } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -410,6 +410,24 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/assessment/tech-debt"
         element={<LazyAssessmentTechDebtAssessment />}
+      />
+
+      {/* Assessment routes without flowId - redirect to overview (Issue #673) */}
+      <Route
+        path="/assessment/readiness"
+        element={<Navigate to="/assessment/overview" replace />}
+      />
+      <Route
+        path="/assessment/risk"
+        element={<Navigate to="/assessment/overview" replace />}
+      />
+      <Route
+        path="/assessment/complexity"
+        element={<Navigate to="/assessment/overview" replace />}
+      />
+      <Route
+        path="/assessment/recommendations"
+        element={<Navigate to="/assessment/overview" replace />}
       />
 
       {/* Plan sub-routes */}

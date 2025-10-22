@@ -117,6 +117,48 @@ async def get_adaptive_questionnaires(
             logger.info(
                 f"Returning {len(existing_questionnaires)} existing questionnaires"
             )
+
+            # ✅ DEFENSIVE FIX: Check if phase transition was missed (e.g., background task interrupted)
+            # If questionnaire exists with questions but phase is still questionnaire_generation,
+            # transition to manual_collection now
+            has_questions = any(
+                hasattr(q, "questions") and q.questions and len(q.questions) > 0
+                for q in existing_questionnaires
+            )
+
+            if has_questions and flow.current_phase == "questionnaire_generation":
+                logger.warning(
+                    f"⚠️ Flow {flow_id} has questionnaire with questions but phase "
+                    f"is still 'questionnaire_generation'. Performing defensive phase "
+                    f"transition to 'manual_collection'"
+                )
+
+                try:
+                    from sqlalchemy import update as sql_update
+
+                    await db.execute(
+                        sql_update(CollectionFlow)
+                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        .values(
+                            current_phase="manual_collection",
+                            status="paused",  # Awaiting user questionnaire input
+                            progress_percentage=50.0,  # Questionnaire generated = 50% progress
+                            updated_at=datetime.now(timezone.utc),
+                        )
+                    )
+                    await db.commit()
+
+                    logger.info(
+                        f"✅ Defensive phase transition successful: {flow_id} → manual_collection"
+                    )
+                except Exception as phase_error:
+                    # Don't fail the request if phase transition fails
+                    # Questionnaire retrieval already succeeded
+                    logger.error(
+                        f"❌ Defensive phase transition failed for {flow_id}: {phase_error}",
+                        exc_info=True,
+                    )
+
             return existing_questionnaires
 
         # CRITICAL: If no incomplete questionnaires AND assessment_ready is true, return empty array
