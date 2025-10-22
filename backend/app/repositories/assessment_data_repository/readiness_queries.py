@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy import and_, select, func
 
 from app.core.logging import get_logger
-from app.models.application import Application
+from app.models.canonical_applications import CanonicalApplication
 from app.models.assessment_flow import AssessmentFlow
 from app.models.collected_data_inventory import CollectedDataInventory
 from app.models.discovery_flow import DiscoveryFlow
@@ -92,13 +92,13 @@ class ReadinessQueriesMixin:
             logger.warning(f"Error fetching assessment flow: {e}")
             return None
 
-    async def _get_applications(self) -> List[Application]:
+    async def _get_applications(self) -> List[CanonicalApplication]:
         """Get all applications for this engagement with tenant scoping."""
         try:
-            query = select(Application).where(
+            query = select(CanonicalApplication).where(
                 and_(
-                    Application.client_account_id == self.client_account_id,
-                    Application.engagement_id == self.engagement_id,
+                    CanonicalApplication.client_account_id == self.client_account_id,
+                    CanonicalApplication.engagement_id == self.engagement_id,
                 )
             )
             result = await self.db.execute(query)

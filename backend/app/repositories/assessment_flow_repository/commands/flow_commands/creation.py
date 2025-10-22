@@ -264,6 +264,14 @@ async def create_assessment_flow(  # noqa: C901
             )
         )
 
+        # FIX: Link assessment flow back to master flow (update master_flow_id)
+        flow_record.master_flow_id = flow_record.id
+        await self.db.commit()
+        await self.db.refresh(flow_record)
+        logger.info(
+            f"Linked assessment flow {flow_record.id} to master flow via master_flow_id"
+        )
+
     except Exception as e:
         logger.error(
             f"Failed to register assessment flow {flow_record.id} with master flow: {e}"

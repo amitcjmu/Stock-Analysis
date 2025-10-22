@@ -225,6 +225,24 @@ class AgentPoolCore:
                 "max_iter": 3,  # Limit iterations
             }
 
+            # Add LLM if provided in config (either direct llm object or llm_config)
+            if "llm" in config:
+                agent_params["llm"] = config["llm"]
+            elif "llm_config" in config:
+                # Create LLM from llm_config for assessment agents
+                from crewai import LLM
+                from app.core.config import settings
+
+                llm_conf = config["llm_config"]
+                if llm_conf.get("provider") == "deepinfra":
+                    agent_params["llm"] = LLM(
+                        model=f"deepinfra/{llm_conf['model']}",
+                        api_key=settings.DEEPINFRA_API_KEY,
+                    )
+                    logger.debug(
+                        f"Created DeepInfra LLM for {agent_type}: {llm_conf['model']}"
+                    )
+
             # Add tools if available
             if tools:
                 agent_params["tools"] = tools

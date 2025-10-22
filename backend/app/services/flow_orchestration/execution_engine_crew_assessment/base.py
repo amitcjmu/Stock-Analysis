@@ -151,22 +151,26 @@ class ExecutionEngineAssessmentCrews(
         if not agent_type:
             raise ValueError(f"No agent configured for phase: {phase_name}")
 
-        # Build context for agent retrieval
-        context = {
-            "client_account_id": str(master_flow.client_account_id),
-            "engagement_id": str(master_flow.engagement_id),
-            "flow_id": str(master_flow.flow_id),
-        }
+        # Build RequestContext for agent retrieval (not dict!)
+        from app.core.context import RequestContext
+
+        context = RequestContext(
+            client_account_id=str(master_flow.client_account_id),
+            engagement_id=str(master_flow.engagement_id),
+            flow_id=str(master_flow.flow_id),
+        )
 
         # Get persistent agent from pool
         try:
             agent = await agent_pool.get_agent(
                 context=context,
                 agent_type=agent_type,
-                force_recreate=False,  # Use cached agent
+                force_recreate=False,  # Use persistent agents with memory
             )
 
-            logger.info(f"✅ Retrieved agent '{agent_type}' for phase '{phase_name}'")
+            logger.info(
+                f"✅ Retrieved persistent agent '{agent_type}' for phase '{phase_name}'"
+            )
             return agent
 
         except Exception as e:

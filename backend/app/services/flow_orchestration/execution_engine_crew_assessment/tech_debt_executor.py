@@ -84,7 +84,9 @@ Return results as valid JSON with keys: tech_debt_score, vulnerabilities, modern
             # Execute task with inputs
             start_time = time.time()
 
-            result = await task.execute_async(context=crew_inputs)
+            # Convert context dict to JSON string (CrewAI expects string context)
+            context_str = json.dumps(crew_inputs)
+            result = await task.execute_async(context=context_str)
 
             execution_time = time.time() - start_time
 

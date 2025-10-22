@@ -143,8 +143,18 @@ class AssessmentFlowRepository(ContextAwareRepository):
         return await self._flow_commands.resume_flow(flow_id, user_input)
 
     async def update_flow_status(self, flow_id: str, status: str):
-        """Update flow status"""
-        await self._flow_commands.update_flow_phase(flow_id, flow_id, status=status)
+        """Update flow status without changing current_phase"""
+        # Get current phase first to preserve it
+        flow = await self.get_flow(flow_id)
+        if flow and flow.current_phase:
+            await self._flow_commands.update_flow_phase(
+                flow_id, flow.current_phase, status=status
+            )
+        else:
+            # Fallback if flow not found - don't corrupt current_phase
+            await self._flow_commands.update_flow_phase(
+                flow_id, "initialization", status=status
+            )
 
     # === ARCHITECTURE STANDARDS MANAGEMENT ===
 

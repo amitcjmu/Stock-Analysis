@@ -8,7 +8,7 @@ Per ADR-024: All queries include tenant scoping.
 from typing import Any, Dict, List
 
 from app.core.logging import get_logger
-from app.models.application import Application
+from app.models.canonical_applications import CanonicalApplication
 
 logger = get_logger(__name__)
 
@@ -74,7 +74,7 @@ class RiskQueriesMixin:
             return self._empty_risk_data()
 
     async def _calculate_business_impact(
-        self, applications: List[Application]
+        self, applications: List[CanonicalApplication]
     ) -> Dict[str, Any]:
         """Calculate business impact indicators from application data."""
         criticality_counts = {}
