@@ -86,12 +86,16 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Load clients when user is available - don't wait for full auth context
     // The auth context depends on ClientContext, so we can't wait for it
     if (user && !authLoading) {
-      console.log('🔄 ClientContext: User available, fetching clients');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 ClientContext: User available, fetching clients');
+      }
 
       // Ensure token is available before making API calls
       const token = tokenStorage.getToken();
       if (!token) {
-        console.warn('⚠️ [ClientContext] User available but no token yet, waiting...');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ [ClientContext] User available but no token yet, waiting...');
+        }
         return;
       }
 

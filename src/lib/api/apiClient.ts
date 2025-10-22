@@ -27,8 +27,10 @@ const getAuthHeaders = (): AuthHeaders => {
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     } else {
-      // CRITICAL: Log when token is missing to debug timing issues
-      console.warn('⚠️ [apiClient] getAuthHeaders: No token available from tokenStorage');
+      // CRITICAL: Log when token is missing to debug timing issues (dev only)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ [apiClient] getAuthHeaders: No token available from tokenStorage');
+      }
     }
 
     const user = tokenStorage.getUser();
@@ -60,8 +62,10 @@ const getAuthHeaders = (): AuthHeaders => {
       }
     }
   } catch (error) {
-    // Make token retrieval failures visible instead of silent
-    console.error('❌ [apiClient] getAuthHeaders: Failed to retrieve auth headers:', error);
+    // Make token retrieval failures visible instead of silent (dev only)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [apiClient] getAuthHeaders: Failed to retrieve auth headers:', error);
+    }
     // Re-throw to make failures visible
     throw error;
   }
@@ -298,8 +302,8 @@ class ApiClient {
         ...options.headers,
       };
 
-      // Add debug logging to track authorization header
-      if (!authHeaders.Authorization) {
+      // Add debug logging to track authorization header (dev only)
+      if (!authHeaders.Authorization && process.env.NODE_ENV === 'development') {
         console.warn(`⚠️ [apiClient] Request [${requestId}] being sent WITHOUT Authorization header:`, {
           method,
           url: normalizedEndpoint,
