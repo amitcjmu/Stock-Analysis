@@ -53,3 +53,23 @@ class DiscoveryFlowResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class MasterFlowResponse(BaseModel):
+    """Master flow detail response model (Bug #676 fix)"""
+
+    flow_id: str
+    flow_type: str
+    flow_name: Optional[str] = None
+    flow_status: str
+    client_account_id: str
+    engagement_id: str
+    user_id: str
+    flow_configuration: Dict[str, Any]
+    current_phase: Optional[str] = None
+    progress_percentage: Optional[float] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    execution_metadata: Optional[Dict[str, Any]] = None
+
+    model_config = ConfigDict(from_attributes=True)

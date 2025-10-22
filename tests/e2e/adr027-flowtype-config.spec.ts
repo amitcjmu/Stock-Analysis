@@ -21,9 +21,10 @@ const BASE_URL = 'http://localhost:8081';
 const API_URL = 'http://localhost:8000';
 
 // Multi-tenant headers required by backend
+// Note: Using demo client UUIDs (legacy integer '1' is auto-converted but UUIDs are preferred)
 const TENANT_HEADERS = {
-  'X-Client-Account-ID': '1',
-  'X-Engagement-ID': '1',
+  'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
+  'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
 };
 
 // Type definitions for phase data (Per ADR-027)

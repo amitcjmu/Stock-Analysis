@@ -5,23 +5,82 @@ Basic CRUD operations for master flows and related entities
 
 import logging
 from typing import Any, Dict, List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
-from app.api.v1.master_flows_schemas import DiscoveryFlowResponse
+from app.api.v1.master_flows_schemas import DiscoveryFlowResponse, MasterFlowResponse
 from app.api.v1.master_flows_service import MasterFlowService
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
 from app.models import User
 from app.repositories.asset_repository import AssetRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.schemas.asset_schemas import AssetResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/{flow_id}", response_model=MasterFlowResponse)
+async def get_master_flow_by_id(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+    current_user: User = Depends(get_current_user),
+) -> MasterFlowResponse:
+    """
+    Get master flow by ID (Bug #676 fix).
+
+    Returns 404 if flow not found, instead of 405 Method Not Allowed.
+    """
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+
+    try:
+        # Validate UUID format
+        try:
+            UUID(flow_id)  # Validate format only
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=400, detail="Invalid flow ID format (must be UUID)"
+            )
+
+        # Get master flow repository with tenant scoping
+        flow_repo = CrewAIFlowStateExtensionsRepository(
+            db=db,
+            client_account_id=str(client_account_id),
+            engagement_id=str(engagement_id) if engagement_id else None,
+        )
+
+        # Get flow by ID (tenant-scoped query)
+        master_flow = await flow_repo.get_by_flow_id(flow_id)
+
+        if not master_flow:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Master flow {flow_id} not found",
+            )
+
+        # Return response using Pydantic model
+        return MasterFlowResponse.from_orm(master_flow)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving master flow {flow_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving master flow: {str(e)}"
+        )
 
 
 @router.get("/{master_flow_id}/assets", response_model=List[AssetResponse])
