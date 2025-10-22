@@ -1,11 +1,15 @@
-"""Unit tests for collection serializers."""
+"""Unit tests for collection serializers.
+
+Integration tests for collection serializer functions.
+Unit tests for sanitize_for_json moved to test_json_sanitization.py.
+"""
 
 import math
 from datetime import datetime, timezone
 
 import pytest
 
-from app.api.v1.endpoints.collection_serializers.core import sanitize_for_json
+from app.utils.json_sanitization import sanitize_for_json
 
 
 class TestSanitizeForJson:

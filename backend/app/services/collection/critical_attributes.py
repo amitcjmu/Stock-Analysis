@@ -147,8 +147,10 @@ class CriticalAttributesDefinition:
                 "asset_fields": [
                     "risk_tolerance",
                     "custom_attributes.change_tolerance",
+                    "resilience.rto_minutes",  # PHASE 2 Bug #679
+                    "resilience.rpo_minutes",  # PHASE 2 Bug #679
                 ],
-                "description": "Tolerance for change and downtime",
+                "description": "Tolerance for change and downtime (includes RTO/RPO)",
             },
             "compliance_requirements": {
                 "category": "business",
@@ -156,6 +158,7 @@ class CriticalAttributesDefinition:
                 "asset_fields": [
                     "compliance",
                     "custom_attributes.compliance_requirements",
+                    "compliance_flags.compliance_scopes",  # PHASE 2 Bug #679
                 ],
                 "description": "Regulatory compliance needs (HIPAA, SOC2, etc.)",
             },
@@ -181,6 +184,8 @@ class CriticalAttributesDefinition:
                 "asset_fields": [
                     "security_issues",
                     "custom_attributes.vulnerabilities",
+                    "vulnerabilities.cve_id",  # PHASE 2 Bug #679
+                    "vulnerabilities.severity",  # PHASE 2 Bug #679
                 ],
                 "description": "Known security vulnerabilities",
             },
