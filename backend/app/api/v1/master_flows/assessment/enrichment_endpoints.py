@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
+from app.utils.json_sanitization import sanitize_for_json
 from app.services.enrichment.auto_enrichment_pipeline import AutoEnrichmentPipeline
 from .uuid_utils import ensure_uuid
 from .query_helpers import get_assessment_flow, get_asset_ids
@@ -176,16 +177,19 @@ async def trigger_enrichment(
             f"{result['total_assets']} assets in {result['elapsed_time_seconds']:.2f}s"
         )
 
+        # Sanitize result data before creating Pydantic model (ADR-029)
+        sanitized_result = sanitize_for_json(result)
+
         return TriggerEnrichmentResponse(
             flow_id=flow_id,
-            total_assets=result["total_assets"],
-            enrichment_results=result["enrichment_results"],
-            elapsed_time_seconds=result["elapsed_time_seconds"],
-            batches_processed=result.get("batches_processed"),
-            avg_batch_time_seconds=result.get("avg_batch_time_seconds"),
-            assets_per_minute=result.get("assets_per_minute"),
-            readiness_recalculated=result.get("readiness_recalculated"),
-            error=result.get("error"),
+            total_assets=sanitized_result["total_assets"],
+            enrichment_results=sanitized_result["enrichment_results"],
+            elapsed_time_seconds=sanitized_result["elapsed_time_seconds"],
+            batches_processed=sanitized_result.get("batches_processed"),
+            avg_batch_time_seconds=sanitized_result.get("avg_batch_time_seconds"),
+            assets_per_minute=sanitized_result.get("assets_per_minute"),
+            readiness_recalculated=sanitized_result.get("readiness_recalculated"),
+            error=sanitized_result.get("error"),
         )
 
     except HTTPException:
@@ -266,11 +270,13 @@ async def get_enrichment_status(
             [UUID(aid) if isinstance(aid, str) else aid for aid in asset_ids]
         )
 
-        return {
-            "flow_id": flow_id,
-            "total_assets": len(asset_ids),
-            "enrichment_status": enrichment_status_obj.model_dump(),
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                "total_assets": len(asset_ids),
+                "enrichment_status": enrichment_status_obj.model_dump(),
+            }
+        )
 
     except Exception as e:
         logger.error(

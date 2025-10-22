@@ -377,8 +377,9 @@ test.describe('Assessment Flow - Comprehensive E2E Testing', () => {
     console.log('💾 Verifying database persistence...');
 
     // Query backend for assessment flows
+    // Note: Use /active endpoint which accepts flow_type query parameter
     const response = await request.get(
-      `${API_URL}/api/v1/master-flows?flow_type=assessment`,
+      `${API_URL}/api/v1/master-flows/active?flow_type=assessment`,
       { headers: TENANT_HEADERS }
     );
 
@@ -402,13 +403,14 @@ test.describe('Assessment Flow - Comprehensive E2E Testing', () => {
     console.log('🔒 Testing multi-tenant data scoping...');
 
     // Try to access assessment without tenant headers - should fail
+    // Note: Use /active endpoint which is the correct registered route
     const responseWithoutHeaders = await request.get(
-      `${API_URL}/api/v1/master-flows?flow_type=assessment`
+      `${API_URL}/api/v1/master-flows/active?flow_type=assessment`
     );
 
     // With proper headers should work
     const responseWithHeaders = await request.get(
-      `${API_URL}/api/v1/master-flows?flow_type=assessment`,
+      `${API_URL}/api/v1/master-flows/active?flow_type=assessment`,
       { headers: TENANT_HEADERS }
     );
 
@@ -449,8 +451,9 @@ test.describe('Assessment Flow - Error Scenarios', () => {
   test('Missing tenant headers should fail', async ({ request }) => {
     console.log('🔍 Testing missing tenant headers...');
 
+    // Note: Use /active endpoint which is the correct registered route
     const response = await request.get(
-      `${API_URL}/api/v1/master-flows?flow_type=assessment`
+      `${API_URL}/api/v1/master-flows/active?flow_type=assessment`
     );
 
     // Should fail without proper tenant headers

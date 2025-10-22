@@ -19,6 +19,7 @@ from app.schemas.collection_flow import (
     CollectionGapAnalysisResponse,
     AdaptiveQuestionnaireResponse,
 )
+from app.utils.json_sanitization import sanitize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -295,14 +296,17 @@ def build_questionnaire_response(
                 f"No target_gaps found in questionnaire {questionnaire.id} questions"
             )
 
-    # Build base response
+    # Build base response with sanitized questions to prevent JSON serialization errors
+    # (e.g., NaN, Infinity values from LLM responses)
     response = AdaptiveQuestionnaireResponse(
         id=str(questionnaire.id),
         collection_flow_id=str(questionnaire.collection_flow_id),
         title=questionnaire.title,
         description=questionnaire.description,
         target_gaps=target_gaps,
-        questions=questionnaire.questions,
+        questions=sanitize_for_json(
+            questionnaire.questions
+        ),  # Sanitize questions array
         validation_rules=questionnaire.validation_rules,
         completion_status=questionnaire.completion_status,
         status_line=status_line,

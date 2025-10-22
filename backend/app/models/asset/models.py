@@ -398,5 +398,30 @@ class Asset(
     # field_conflicts = relationship("AssetFieldConflict", back_populates="asset")
     # Removed - causing circular dependency
 
+    # Enrichment relationships (1:1) - PHASE 2 Bug #679
+    # Eager loading with selectinload for intelligent gap detection
+    resilience = relationship(
+        "AssetResilience",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    compliance_flags = relationship(
+        "AssetComplianceFlags",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    vulnerabilities = relationship(
+        "AssetVulnerabilities",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    licenses = relationship(
+        "AssetLicenses",
+        back_populates="asset",
+        lazy="selectin",
+    )
+
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"

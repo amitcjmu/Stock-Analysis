@@ -176,20 +176,32 @@ async def submit_questionnaire_response(
         questionnaire = questionnaire_result.scalar_one_or_none()
 
         if questionnaire:
-            questionnaire.completion_status = "completed"
-            questionnaire.completed_at = datetime.utcnow()
-            questionnaire.responses_collected = form_responses
-            logger.info(
-                f"🔍 BUG#668: Setting completion_status=completed "
-                f"for questionnaire {questionnaire_id} via user submission"
-            )
-            logger.info(f"✅ Marked questionnaire {questionnaire_id} as completed")
+            # CRITICAL FIX (Issue #692): Check save_type to determine completion status
+            # - save_progress: Keep as in_progress, skip assessment check
+            # - submit_complete: Mark as completed, trigger assessment check
+            if request_data.save_type == "submit_complete":
+                questionnaire.completion_status = "completed"
+                questionnaire.completed_at = datetime.utcnow()
+                logger.info(
+                    f"✅ FIX#692: Marking questionnaire {questionnaire_id} as completed "
+                    f"(save_type={request_data.save_type})"
+                )
 
-            # Check if collection is complete and ready for assessment
-            # Required attributes: business_criticality, environment
-            await check_and_set_assessment_ready(
-                flow, form_responses, db, context, logger
-            )
+                # Check if collection is complete and ready for assessment
+                # Required attributes: business_criticality, environment
+                await check_and_set_assessment_ready(
+                    flow, form_responses, db, context, logger
+                )
+            else:
+                # save_progress: Keep as in_progress
+                questionnaire.completion_status = "in_progress"
+                logger.info(
+                    f"💾 FIX#692: Saving progress for questionnaire {questionnaire_id} "
+                    f"(save_type={request_data.save_type}, status=in_progress)"
+                )
+
+            # Always update responses_collected for both save types
+            questionnaire.responses_collected = form_responses
         else:
             logger.warning(
                 f"⚠️ Could not find questionnaire {questionnaire_id} to mark as completed"

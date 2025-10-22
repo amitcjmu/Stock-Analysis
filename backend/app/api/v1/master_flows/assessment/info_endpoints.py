@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
+from app.utils.json_sanitization import sanitize_for_json
 from .helpers import get_missing_critical_attributes, categorize_missing_attributes
 from .uuid_utils import ensure_uuid
 from .query_helpers import get_assessment_flow, get_asset_ids, get_collection_flow_id
@@ -124,13 +125,15 @@ async def get_assessment_applications_via_master(
             if group.get("canonical_application_id") is None
         )
 
-        return {
-            "flow_id": flow_id,
-            "applications": application_groups,
-            "total_applications": len(application_groups),
-            "total_assets": len(asset_ids),
-            "unmapped_assets": unmapped_count,
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                "applications": application_groups,
+                "total_applications": len(application_groups),
+                "total_assets": len(asset_ids),
+                "unmapped_assets": unmapped_count,
+            }
+        )
 
     except Exception as e:
         logger.error(
@@ -263,11 +266,13 @@ async def get_assessment_readiness(
             else readiness
         )
 
-        return {
-            "total_assets": total_assets,  # ← Root level per frontend type
-            "readiness_summary": readiness_clean,  # ← Without total_assets
-            "asset_details": blockers,  # ← Renamed from "blockers" to match frontend
-        }
+        return sanitize_for_json(
+            {
+                "total_assets": total_assets,  # ← Root level per frontend type
+                "readiness_summary": readiness_clean,  # ← Without total_assets
+                "asset_details": blockers,  # ← Renamed from "blockers" to match frontend
+            }
+        )
 
     except Exception as e:
         logger.error(
@@ -336,10 +341,12 @@ async def get_assessment_progress(
         # Calculate progress by category
         progress_data = calculate_progress_categories(assets)
 
-        return {
-            "flow_id": flow_id,
-            **progress_data,
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                **progress_data,
+            }
+        )
 
     except Exception as e:
         logger.error(
