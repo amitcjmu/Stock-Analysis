@@ -409,10 +409,11 @@ class CriticalAttributesDefinition:
             if attr_name in mapping.get("excluded_attrs", []):
                 continue
 
-            # Include if category matches or if priority_attrs specified
-            if attr_config["category"] in mapping["categories"]:
-                filtered_attrs[attr_name] = attr_config
-            elif "priority_attrs" in mapping and attr_name in mapping["priority_attrs"]:
+            # Include if category matches OR if it's a priority attribute for the type
+            is_in_category = attr_config["category"] in mapping.get("categories", [])
+            is_priority_attr = attr_name in mapping.get("priority_attrs", [])
+
+            if is_in_category or is_priority_attr:
                 filtered_attrs[attr_name] = attr_config
 
         return filtered_attrs

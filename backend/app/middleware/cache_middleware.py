@@ -324,6 +324,7 @@ class CacheMiddleware(BaseHTTPMiddleware):
         ).startswith("application/json"):
             return original_response
 
+        response_body = None
         try:
             # Extract JSON body from response (handles all response types)
             response_body = await self._extract_json_response_body(original_response)
@@ -348,7 +349,15 @@ class CacheMiddleware(BaseHTTPMiddleware):
 
         except Exception as e:
             logger.debug(f"Failed to buffer and cache response: {e}")
-            # If anything goes wrong, return the original response
+            # If anything goes wrong, fall through to return a response
+
+        # If caching failed or body was not extracted, but we have a buffered body,
+        # create a response from it to avoid returning a consumed stream.
+        if response_body is not None:
+            logger.debug("Returning response from buffered body after cache failure.")
+            return self._create_cached_json_response(
+                response_body, original_response, cache_config
+            )
 
         return original_response
 
