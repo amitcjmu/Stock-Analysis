@@ -1,0 +1,187 @@
+wave_planning_task:
+  description: >
+    Analyze dependency graph and create optimal migration wave plan.
+
+    Your task is to:
+    1. Analyze the dependency graph to identify critical paths and independent groups
+    2. Identify applications with no dependencies that can be migrated first
+    3. Group applications into waves based on dependency chains
+    4. Optimize wave sizes to balance resource utilization
+    5. Minimize cross-wave dependencies to reduce coordination overhead
+    6. Account for business criticality in wave sequencing
+
+    Use the migration_wave_planner tool to perform dependency-based wave planning.
+
+    Input Data:
+    - Dependency Graph: {dependency_graph}
+    - Application Metadata: {applications}
+    - Business Constraints: {constraints}
+
+    Planning Criteria:
+    - Maximum applications per wave: {max_wave_size}
+    - Minimum wave size for efficiency: {min_wave_size}
+    - Business criticality thresholds: {criticality_levels}
+    - Compliance requirements: {compliance_constraints}
+
+  expected_output: >
+    Comprehensive wave plan including:
+    - Wave definitions with application assignments
+    - Wave sequencing with dependency rationale
+    - Parallel migration opportunities identified
+    - Critical path analysis across waves
+    - Cross-wave dependency matrix
+    - Risk assessment per wave
+    - Recommended wave execution order
+    - Business impact analysis per wave
+
+resource_allocation_task:
+  description: >
+    Generate AI-driven resource allocation recommendations for each migration wave.
+
+    Based on the wave plan, your task is to:
+    1. Analyze application complexity and technology stack per wave
+    2. Calculate role-based resource requirements (architects, developers, testers, etc.)
+    3. Estimate effort in person-hours per role and wave
+    4. Optimize resource leveling across parallel waves
+    5. Generate cost estimates based on hourly rates
+    6. Identify resource conflicts and bottlenecks
+    7. Provide alternative allocation scenarios
+
+    Use the resource_allocation_estimator tool for AI-driven workload analysis.
+
+    Input Data:
+    - Wave Plan: {wave_plan}
+    - Application Complexity Scores: {complexity_scores}
+    - Historical Velocity Data: {historical_data}
+    - Available Roles and Rates: {roles_and_rates}
+
+    Allocation Parameters:
+    - Role types: {required_roles}  # e.g., ["Solution Architect", "Java Developer", "QA Engineer"]
+    - Standard hourly rates: {hourly_rates}
+    - Resource availability constraints: {availability}
+    - Budget ceiling: {budget_limit}
+
+  expected_output: >
+    Comprehensive resource allocation plan including:
+    - Resource requirements per role per wave
+    - Effort estimates in person-hours and person-days
+    - Resource leveling recommendations across waves
+    - Cost breakdown by role and wave
+    - Resource conflict identification and resolution
+    - Alternative allocation scenarios (aggressive, moderate, conservative)
+    - Manual override placeholders for human adjustment
+    - Total resource capacity requirements
+
+timeline_generation_task:
+  description: >
+    Create detailed migration timeline based on wave plan and resource allocations.
+
+    Your task is to:
+    1. Calculate wave durations based on workload and resource capacity
+    2. Sequence waves based on dependencies and resource availability
+    3. Identify critical path and potential bottlenecks
+    4. Add buffer time for risk mitigation
+    5. Define key milestones and validation checkpoints
+    6. Account for resource ramp-up and ramp-down time
+    7. Generate calendar-based schedule with dates
+
+    Use the timeline_calculator tool for duration estimation and scheduling.
+
+    Input Data:
+    - Wave Plan: {wave_plan}
+    - Resource Allocations: {resource_allocations}
+    - Start Date: {project_start_date}
+    - Constraints: {timeline_constraints}
+
+    Timeline Parameters:
+    - Working days per week: {working_days}  # e.g., 5
+    - Hours per working day: {hours_per_day}  # e.g., 8
+    - Risk buffer percentage: {risk_buffer}  # e.g., 20%
+    - Milestone frequency: {milestone_frequency}  # e.g., bi-weekly
+
+  expected_output: >
+    Detailed migration timeline including:
+    - Wave start and end dates
+    - Total project duration in weeks/months
+    - Critical path identification
+    - Milestone definitions with target dates
+    - Resource allocation timeline (Gantt-style data)
+    - Buffer allocation per wave
+    - Parallel execution opportunities
+    - Risk-adjusted timeline with confidence intervals
+    - Key dependencies and sequencing rationale
+
+cost_estimation_task:
+  description: >
+    Calculate comprehensive migration cost estimates across all waves.
+
+    Your task is to:
+    1. Calculate direct labor costs from resource allocations and rates
+    2. Estimate infrastructure costs (cloud, tooling, licenses)
+    3. Add risk contingency based on complexity and criticality
+    4. Calculate total cost per wave and overall project
+    5. Provide cost breakdown by category
+    6. Identify cost optimization opportunities
+    7. Compare against industry benchmarks
+
+    Use the cost_calculator tool for multi-dimensional cost analysis.
+
+    Input Data:
+    - Resource Allocations: {resource_allocations}
+    - Hourly Rates: {hourly_rates}
+    - Infrastructure Requirements: {infrastructure}
+    - Complexity Scores: {complexity_scores}
+
+    Cost Parameters:
+    - Labor rate multiplier: {rate_multiplier}  # e.g., 1.15 for benefits/overhead
+    - Infrastructure cost models: {infra_costs}
+    - Tooling licenses: {tool_costs}
+    - Risk contingency percentage: {contingency}  # e.g., 15%
+
+  expected_output: >
+    Comprehensive cost estimate including:
+    - Labor costs by role, wave, and total project
+    - Infrastructure costs (one-time and recurring)
+    - Tooling and licensing costs
+    - Risk contingency allocation
+    - Total cost of migration (TCM)
+    - Cost breakdown by wave
+    - Cost optimization recommendations
+    - Budget variance analysis (if baseline provided)
+    - ROI indicators and payback period estimates
+
+planning_synthesis_task:
+  description: >
+    Synthesize all planning outputs into comprehensive migration plan.
+
+    Your task is to:
+    1. Integrate wave plan, resources, timeline, and costs into unified plan
+    2. Validate consistency across all planning dimensions
+    3. Identify conflicts or optimization opportunities
+    4. Generate executive summary with key metrics
+    5. Prepare plan for stakeholder review and manual adjustment
+    6. Document assumptions and constraints
+    7. Create actionable next steps
+
+    Input Sources:
+    - Wave Plan: {wave_plan}
+    - Resource Allocations: {resource_allocations}
+    - Timeline: {timeline}
+    - Cost Estimates: {cost_estimates}
+
+    Synthesis Focus:
+    - Cross-validation of all planning outputs
+    - Identification of plan weaknesses or risks
+    - Highlight areas requiring manual review
+    - Preparation for stakeholder presentation
+
+  expected_output: >
+    Comprehensive migration plan synthesis including:
+    - Executive summary with key metrics
+    - Integrated wave-resource-timeline-cost view
+    - Risk summary with mitigation strategies
+    - Critical decisions requiring stakeholder input
+    - Assumptions and constraints documentation
+    - Plan validation checklist
+    - Recommended manual overrides and adjustments
+    - Next steps for plan refinement and approval

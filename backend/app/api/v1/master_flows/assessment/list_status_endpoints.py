@@ -15,6 +15,7 @@ from sqlalchemy import select, and_, cast, String
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
 from app.models import User
+from app.utils.json_sanitization import sanitize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ async def list_assessment_flows_via_mfo(
         logger.info(
             f"Retrieved {len(result)} assessment flows for engagement {engagement_id}"
         )
-        return result
+        return sanitize_for_json(result)
 
     except Exception as e:
         logger.error(f"Failed to list assessment flows: {str(e)}")
@@ -171,28 +172,30 @@ async def get_assessment_flow_status_via_master(
             logger.error(f"Error calculating progress: {e}")
             progress_percentage = 0
 
-        return {
-            "flow_id": flow_id,
-            "status": (
-                flow_state.status.value
-                if hasattr(flow_state.status, "value")
-                else str(flow_state.status)
-            ),
-            "progress_percentage": progress_percentage,
-            "current_phase": (
-                flow_state.current_phase.value
-                if hasattr(flow_state.current_phase, "value")
-                else str(flow_state.current_phase)
-            ),
-            "next_phase": None,  # Will be calculated by frontend
-            "phase_data": flow_state.phase_results or {},
-            "selected_applications": len(flow_state.selected_application_ids or []),
-            "assessment_complete": (
-                flow_state.status == AssessmentFlowStatus.COMPLETED
-            ),
-            "created_at": flow_state.created_at.isoformat(),
-            "updated_at": flow_state.updated_at.isoformat(),
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                "status": (
+                    flow_state.status.value
+                    if hasattr(flow_state.status, "value")
+                    else str(flow_state.status)
+                ),
+                "progress_percentage": progress_percentage,
+                "current_phase": (
+                    flow_state.current_phase.value
+                    if hasattr(flow_state.current_phase, "value")
+                    else str(flow_state.current_phase)
+                ),
+                "next_phase": None,  # Will be calculated by frontend
+                "phase_data": flow_state.phase_results or {},
+                "selected_applications": len(flow_state.selected_application_ids or []),
+                "assessment_complete": (
+                    flow_state.status == AssessmentFlowStatus.COMPLETED
+                ),
+                "created_at": flow_state.created_at.isoformat(),
+                "updated_at": flow_state.updated_at.isoformat(),
+            }
+        )
 
     except Exception as e:
         raise HTTPException(

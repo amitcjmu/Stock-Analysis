@@ -109,6 +109,30 @@ async def persist_asset_inventory_completion(
             )
             if mark_flow_complete:
                 logger.info(f"✅ Marked discovery flow {flow_id} as completed")
+
+                # Also update master flow status (per ADR-012 - Issue #594)
+                from app.services.crewai_flows.flow_state_manager import (
+                    FlowStateManager,
+                )
+                from app.core.context import RequestContext
+
+                context = RequestContext(
+                    client_account_id=str(client_account_id),
+                    engagement_id=str(engagement_id),
+                    flow_id=str(flow_uuid),
+                )
+
+                state_manager = FlowStateManager(db, context)
+                await state_manager.update_master_flow_status(
+                    flow_id=str(flow_uuid),
+                    new_status="completed",
+                    metadata={
+                        "completed_phase": "asset_inventory",
+                        "completed_at": datetime.utcnow().isoformat(),
+                    },
+                )
+                logger.info(f"✅ Updated master flow {flow_id} status to completed")
+
             logger.info(
                 "✅ Successfully persisted asset_inventory completion to database"
             )

@@ -108,10 +108,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             # 🔧 CC FIX + Bug #579: Sync phase completion to discovery flow database
             # Also updates data_imports status to "completed" in same transaction
             await self._sync_phase_completion_to_database("data_import", True)
-
-            # Per ADR-027: Data import validation also completes data_validation phase
-            await self._sync_phase_completion_to_database("data_validation", True)
-            logger.info("✅ Data validation phase marked as completed")
+            logger.info("✅ Data import phase marked as completed in database")
         else:
             # Only log failure if validation actually failed
             if not reason:
@@ -465,8 +462,8 @@ class DataImportValidationExecutor(BasePhaseExecutor):
 
                     if import_id:
                         from app.models.data_import import DataImport
-                        from app.services.data_import.storage_manager.import_commands import (
-                            ImportCommandsMixin,
+                        from app.services.data_import.storage_manager import (
+                            ImportStorageManager,
                         )
                         from sqlalchemy import select
                         from uuid import UUID
@@ -478,10 +475,10 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                         data_import = result.scalar_one_or_none()
 
                         if data_import:
-                            import_commands = ImportCommandsMixin(
+                            storage_manager = ImportStorageManager(
                                 db, str(context.client_account_id)
                             )
-                            await import_commands.update_import_status(
+                            await storage_manager.update_import_status(
                                 data_import=data_import,
                                 status="completed",
                                 total_records=data_import.total_records or 0,

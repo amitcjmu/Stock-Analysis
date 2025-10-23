@@ -326,19 +326,47 @@ class FlowStatusManager:
             # Build summaries
             summaries = []
             for flow in master_flows:
+                # FIX #604: Get current_phase from child flow, not master flow
+                # Per ADR-012: Master flow handles lifecycle (running/paused/completed)
+                # while child flow handles operational details including current_phase
+                current_phase = None
+                progress_percentage = 0.0
+
+                # Try to get child flow status for accurate current_phase
+                try:
+                    child_status = await self._get_child_flow_status(
+                        str(flow.flow_id), flow.flow_type
+                    )
+                    if child_status:
+                        current_phase = child_status.get("current_phase")
+                        progress_percentage = child_status.get(
+                            "progress_percentage", 0.0
+                        )
+                        logger.debug(
+                            f"✅ Retrieved current_phase '{current_phase}' from child flow for {flow.flow_id}"
+                        )
+                except Exception as child_error:
+                    logger.warning(
+                        f"⚠️ Failed to get child flow status for {flow.flow_id}: {child_error}"
+                    )
+                    # Fallback to master flow phase_transitions if child flow not available
+                    current_phase = (
+                        flow.get_current_phase()
+                        if hasattr(flow, "get_current_phase")
+                        else None
+                    )
+                    progress_percentage = (
+                        getattr(flow, "progress_percentage", 0.0) or 0.0
+                    )
+
                 summary = {
                     "flow_id": str(flow.flow_id),
                     "flow_type": flow.flow_type,
                     "flow_status": flow.flow_status,
                     "status": flow.flow_status,  # Alias for compatibility
                     "flow_name": flow.flow_name,
-                    "current_phase": (
-                        flow.get_current_phase()
-                        if hasattr(flow, "get_current_phase")
-                        else None
-                    ),
-                    "progress_percentage": getattr(flow, "progress_percentage", 0.0)
-                    or 0.0,
+                    "current_phase": current_phase,
+                    "progress_percentage": progress_percentage,
                     "created_at": flow.created_at,
                     "updated_at": flow.updated_at,
                     "created_by": str(flow.user_id) if flow.user_id else "system",

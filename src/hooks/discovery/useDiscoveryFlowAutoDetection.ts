@@ -306,7 +306,7 @@ export const useDataCleansingFlowDetection = (): FlowAutoDetectionResult => {
 
 export const useInventoryFlowDetection = (): FlowAutoDetectionResult => {
   return useDiscoveryFlowAutoDetection({
-    currentPhase: 'inventory',
+    currentPhase: 'asset_inventory',
     preferredStatuses: ['running', 'active'],
     fallbackToAnyRunning: true
   });

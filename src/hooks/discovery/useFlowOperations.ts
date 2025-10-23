@@ -115,11 +115,27 @@ export const useIncompleteFlowDetection = (): unknown => {
         return { flows: [] };
       }
     },
-    staleTime: 30000,
-    refetchInterval: false,
+    staleTime: 0, // Always consider data stale so we check for updates
+    refetchInterval: (data) => {
+      // FIX #604: Enable polling for flow status updates
+      // Per coding-agent-guide.md: Use HTTP polling (5s active / 15s waiting)
+      if (!data || !data.flows || data.flows.length === 0) {
+        return false; // No flows, stop polling
+      }
+
+      // Check if any flow is actively processing
+      const hasActiveFlow = data.flows.some((flow: any) =>
+        flow.status === 'running' ||
+        flow.status === 'processing' ||
+        flow.status === 'initializing'
+      );
+
+      // Poll every 5 seconds if flows are active, 15 seconds for waiting states
+      return hasActiveFlow ? 5000 : 15000;
+    },
     enabled: !!client?.id && !!engagement?.id, // Only run query when we have proper context
     retry: false, // Don't retry failed requests to avoid console spam
-    refetchOnWindowFocus: false // Don't refetch when window gains focus
+    refetchOnWindowFocus: true // Refetch when window gains focus to show latest updates
   });
 };
 
