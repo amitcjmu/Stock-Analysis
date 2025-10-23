@@ -624,19 +624,16 @@ export const useAssessmentFlow = (
   useEffect(() => {
     if (state.flowId && clientAccountId) {
       loadFlowState();
-      // REMOVED: startPolling() - no longer auto-polls every 5 seconds
-      // Users can call refreshStatus() to manually check for updates
     }
 
-    // No cleanup needed since we don't have polling intervals
     return () => {
-      stopPolling(); // Still cleanup any legacy intervals
+      stopPolling(); // Cleanup any legacy polling intervals
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     state.flowId,
     clientAccountId,
-    loadFlowState,
-    stopPolling,
+    // Intentionally omitting loadFlowState to prevent infinite loop
   ]);
 
   // Expose loadApplicationData for manual refresh

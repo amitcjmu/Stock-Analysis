@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import type { GetServerSideProps } from 'next/router';
+import { useParams } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
@@ -21,15 +21,14 @@ import { Save, FileText } from 'lucide-react'
 import { AlertCircle, ArrowRight, Loader2, CheckCircle, Eye, Download } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
-interface AppOnPageProps {
-  flowId: string;
-}
+const AppOnPagePage: React.FC = () => {
+  // Bug #730 fix - Use React Router's useParams instead of Next.js props
+  const { flowId } = useParams<{ flowId: string }>();
 
-const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
   const {
     state,
     finalizeAssessment
-  } = useAssessmentFlow(flowId);
+  } = useAssessmentFlow(flowId!);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -365,8 +364,5 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
     </AssessmentFlowLayout>
   );
 };
-
-// eslint-disable-next-line react-refresh/only-export-components
-export { getServerSideProps } from './utils';
 
 export default AppOnPagePage;
