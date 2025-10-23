@@ -18,7 +18,8 @@ const SixRReviewPage: React.FC = () => {
   const {
     state,
     updateSixRDecision,
-    resumeFlow
+    resumeFlow,
+    refreshStatus
   } = useAssessmentFlow(flowId);
 
   // Guard: redirect to overview if flowId missing
