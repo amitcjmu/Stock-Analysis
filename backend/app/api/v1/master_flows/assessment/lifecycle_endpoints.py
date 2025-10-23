@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
+from app.utils.json_sanitization import sanitize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,13 @@ async def initialize_assessment_flow_via_mfo(
             created_by=context.user_id,
         )
 
-        return {
-            "flow_id": str(assessment_flow_id),
-            "status": "initialized",
-            "message": "Assessment flow created via MFO",
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": str(assessment_flow_id),
+                "status": "initialized",
+                "message": "Assessment flow created via MFO",
+            }
+        )
 
     except Exception as e:
         raise HTTPException(
@@ -113,12 +116,14 @@ async def resume_assessment_flow_via_mfo(
                     f"Invalid phase '{current_phase_str}' - skipping agent execution"
                 )
 
-        return {
-            "flow_id": flow_id,
-            "status": "resumed",
-            "current_phase": result.get("current_phase"),
-            "progress": result.get("progress_percentage"),
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                "status": "resumed",
+                "current_phase": result.get("current_phase"),
+                "progress": result.get("progress_percentage"),
+            }
+        )
 
     except Exception as e:
         logger.error(
@@ -181,12 +186,14 @@ async def update_architecture_standards_via_mfo(
         if arch_requirements:
             await repo.save_architecture_standards(engagement_id, arch_requirements)
 
-        return {
-            "flow_id": flow_id,
-            "phase": "architecture_standards",
-            "status": "updated",
-            "message": "Architecture standards updated via MFO",
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                "phase": "architecture_standards",
+                "status": "updated",
+                "message": "Architecture standards updated via MFO",
+            }
+        )
 
     except Exception as e:
         logger.error(
@@ -231,12 +238,14 @@ async def update_assessment_phase_data(
         # Handle component_analysis phase (placeholder)
         if phase == "component_analysis":
             # Placeholder for component analysis data
-            return {
-                "flow_id": flow_id,
-                "phase": phase,
-                "status": "updated",
-                "message": "Component analysis data updated",
-            }
+            return sanitize_for_json(
+                {
+                    "flow_id": flow_id,
+                    "phase": phase,
+                    "status": "updated",
+                    "message": "Component analysis data updated",
+                }
+            )
 
         # Handle tech_debt_analysis phase - FIX FOR ISSUE #641
         elif phase == "tech_debt_analysis":
@@ -310,13 +319,15 @@ async def update_assessment_phase_data(
 
             await db.commit()
 
-            return {
-                "flow_id": flow_id,
-                "phase": phase,
-                "status": "updated",
-                "components_stored": len(stored_components),
-                "message": f"Stored {len(stored_components)} components for application {app_id}",
-            }
+            return sanitize_for_json(
+                {
+                    "flow_id": flow_id,
+                    "phase": phase,
+                    "status": "updated",
+                    "components_stored": len(stored_components),
+                    "message": f"Stored {len(stored_components)} components for application {app_id}",
+                }
+            )
 
         else:
             raise HTTPException(
@@ -368,12 +379,14 @@ async def finalize_assessment_via_mfo(
         apps_to_finalize = finalization_data.get("apps_to_finalize", [])
         await repo.mark_apps_ready_for_planning(flow_id, apps_to_finalize)
 
-        return {
-            "flow_id": flow_id,
-            "status": "completed",
-            "apps_ready_for_planning": apps_to_finalize,
-            "message": "Assessment finalized via MFO",
-        }
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                "status": "completed",
+                "apps_ready_for_planning": apps_to_finalize,
+                "message": "Assessment finalized via MFO",
+            }
+        )
 
     except Exception as e:
         raise HTTPException(

@@ -43,23 +43,44 @@ async def resume_flow(self, flow_id: str, user_input: Dict[str, Any]) -> Dict[st
 
     current_phase = flow.current_phase
 
+    # ENHANCED LOGGING for bug #724 investigation
+    logger.info(
+        f"[BUG-724] resume_flow START - flow_id={flow_id}, "
+        f"current_phase='{current_phase}', "
+        f"status={flow.status}, "
+        f"progress={flow.progress}"
+    )
+
     # Normalize legacy phase names to ADR-027 canonical names
     try:
         normalized_current_phase = normalize_phase_name("assessment", current_phase)
-        logger.info(f"Normalized phase {current_phase} -> {normalized_current_phase}")
+        logger.info(
+            f"[BUG-724] Phase normalization SUCCESS: "
+            f"'{current_phase}' -> '{normalized_current_phase}'"
+        )
     except ValueError as e:
         # Phase not recognized - log warning and keep original
-        logger.warning(f"Could not normalize phase {current_phase}: {e}. Using as-is.")
+        logger.warning(
+            f"[BUG-724] Phase normalization FAILED for '{current_phase}': {e}. "
+            f"Using original phase name as-is."
+        )
         normalized_current_phase = current_phase
 
     # Per ADR-027: Use FlowTypeConfig.get_next_phase() instead of hardcoded array
     next_phase = flow_config.get_next_phase(normalized_current_phase)
 
+    logger.info(
+        f"[BUG-724] get_next_phase('{normalized_current_phase}') returned: "
+        f"'{next_phase}' (None means phase not found in config)"
+    )
+
     if not next_phase:
         # Already at final phase, stay at current
         next_phase = normalized_current_phase
-        logger.info(
-            f"Flow {flow_id} already at final phase: {normalized_current_phase}"
+        logger.warning(
+            f"[BUG-724] EDGE CASE DETECTED - get_next_phase returned None! "
+            f"Flow {flow_id} staying at current phase: {normalized_current_phase}. "
+            f"This may indicate phase is not in FlowTypeConfig.phases list."
         )
 
     # Per ADR-027: Calculate progress using FlowTypeConfig.get_phase_index()
@@ -100,7 +121,10 @@ async def resume_flow(self, flow_id: str, user_input: Dict[str, Any]) -> Dict[st
     await self.db.commit()
 
     logger.info(
-        f"Resumed flow {flow_id}: {current_phase} -> {next_phase} ({progress_percentage}%)"
+        f"[BUG-724] resume_flow COMPLETE - flow_id={flow_id}, "
+        f"transition: '{current_phase}' -> '{next_phase}', "
+        f"progress: {progress_percentage}%, "
+        f"phase_index: {next_phase_index}/{total_phases}"
     )
 
     return {
