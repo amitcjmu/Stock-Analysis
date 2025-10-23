@@ -177,7 +177,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                     <div className="h-2 bg-gray-200 rounded w-full"></div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {[1, 2, 3, 4, 5].map((i) => (
+                    {Array.from({ length: PHASE_CONFIG.length }).map((_, i) => (
                       <div key={i} className="h-8 bg-gray-200 rounded w-32"></div>
                     ))}
                   </div>

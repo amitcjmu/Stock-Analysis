@@ -497,6 +497,21 @@ class CriticalAttributesDefinition:
 
         return filtered_attrs
 
+    @staticmethod
+    def get_attribute_category_map() -> Dict[str, str]:
+        """
+        Get a simple mapping of attribute names to their categories.
+
+        This is used by frontend-facing endpoints to categorize missing attributes.
+        Centralizes the mapping to avoid duplication across collection_crud files.
+
+        Returns:
+            Dict mapping attribute name (str) to category name (str)
+            Example: {"operating_system_version": "infrastructure", ...}
+        """
+        all_attrs = CriticalAttributesDefinition.get_attribute_mapping()
+        return {name: config["category"] for name, config in all_attrs.items()}
+
 
 def validate_attribute_consistency() -> bool:
     """
@@ -506,7 +521,10 @@ def validate_attribute_consistency() -> bool:
     Should be called during application startup or in tests.
 
     Returns:
-        bool: True if consistent, False if mismatches detected
+        bool: True if consistent
+
+    Raises:
+        RuntimeError: If critical attributes mismatch or import fails
     """
     try:
         from app.services.crewai_flows.tools.critical_attributes_tool.base import (
@@ -522,12 +540,15 @@ def validate_attribute_consistency() -> bool:
         missing_in_crewai = collection_keys - crewai_keys
 
         if missing_in_collection or missing_in_crewai:
-            logger.warning(
+            error_msg = (
                 "⚠️  Critical attribute mismatch detected! "
                 f"Missing in collection: {missing_in_collection}, "
                 f"Missing in CrewAI tool: {missing_in_crewai}"
             )
-            return False
+            logger.error(error_msg)
+            raise RuntimeError(
+                "Critical attribute mismatch detected. Halting application startup."
+            )
 
         logger.info(
             f"✅ Critical attributes validated: {len(collection_keys)} attributes "
@@ -536,13 +557,14 @@ def validate_attribute_consistency() -> bool:
         return True
 
     except ImportError as e:
-        logger.error(
-            f"❌ Could not import CrewAI CriticalAttributesDefinition for validation: {e}"
-        )
-        return False
+        error_msg = f"❌ Could not import CrewAI CriticalAttributesDefinition for validation: {e}"
+        logger.error(error_msg)
+        raise RuntimeError("Failed to validate critical attribute consistency.") from e
 
 
-# Optional: Run validation at module load (useful for catching issues early)
-# Uncomment for development/testing:
-# if __name__ != "__main__":
+# This function should be called from your application's startup event handler.
+# For example, in FastAPI:
+#
+# @app.on_event("startup")
+# async def startup_event():
 #     validate_attribute_consistency()
