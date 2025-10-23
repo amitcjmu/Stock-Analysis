@@ -43,34 +43,57 @@ async def _add_gaps_to_existing_flow(
         collection_flow: Existing collection flow to add gaps to
         missing_attributes: Dict mapping asset_id to list of missing attribute names
     """
-    # Map critical attribute names to their categories (same as in create_collection_flow)
+    # Map critical attribute names to their categories
+    # NOTE: This is for frontend-provided missing_attributes (Bug #668)
+    # For programmatic gap scanning, see:
+    # app/services/collection/critical_attributes.py (22 attributes, Bug #728)
     ATTRIBUTE_CATEGORY_MAP = {
         # Infrastructure (6)
         "application_name": "infrastructure",
         "technology_stack": "infrastructure",
         "operating_system": "infrastructure",
+        "operating_system_version": "infrastructure",
         "cpu_cores": "infrastructure",
+        "cpu_memory_storage_specs": "infrastructure",
         "memory_gb": "infrastructure",
         "storage_gb": "infrastructure",
+        "network_configuration": "infrastructure",
+        "virtualization_platform": "infrastructure",
+        "performance_baseline": "infrastructure",
+        "availability_requirements": "infrastructure",
         # Application (8)
         "business_criticality": "application",
+        "business_criticality_score": "business",  # Correct category
         "application_type": "application",
         "architecture_pattern": "application",
+        "integration_dependencies": "application",
+        "data_volume_characteristics": "application",
+        "user_load_patterns": "application",
+        "business_logic_complexity": "application",
+        "configuration_complexity": "application",
+        "security_compliance_requirements": "application",
         "dependencies": "application",
         "user_base": "application",
         "data_sensitivity": "application",
-        "compliance_requirements": "application",
+        "compliance_requirements": "application",  # Legacy
+        "compliance_constraints": "business",  # New (Bug #728)
         "sla_requirements": "application",
         # Business (4)
         "business_owner": "business",
         "annual_operating_cost": "business",
         "business_value": "business",
         "strategic_importance": "business",
+        "change_tolerance": "business",
+        "stakeholder_impact": "business",
         # Technical Debt (4)
-        "code_quality_score": "technical_debt",
+        "code_quality_score": "technical_debt",  # Legacy
+        "code_quality_metrics": "technical_debt",  # New (Bug #728)
         "last_update_date": "technical_debt",
         "support_status": "technical_debt",
         "known_vulnerabilities": "technical_debt",
+        "security_vulnerabilities": "technical_debt",
+        "eol_technology_assessment": "technical_debt",  # New (Bug #728)
+        "documentation_quality": "technical_debt",
     }
 
     gaps_created = 0
