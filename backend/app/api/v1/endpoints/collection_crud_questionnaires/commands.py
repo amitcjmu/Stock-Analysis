@@ -229,6 +229,7 @@ async def _background_generate(
                 if current_flow and current_flow.current_phase in [
                     "initialized",
                     "gap_analysis",
+                    "questionnaire_generation",  # Fix: Include this phase for proper transition
                 ]:
                     await db.execute(
                         sql_update(CollectionFlow)
