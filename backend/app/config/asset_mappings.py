@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.application import Application
+from app.models.canonical_applications import CanonicalApplication
 from app.models.server import Server
 from app.models.database import Database
 from app.models.device import Device
@@ -75,7 +75,7 @@ def _safe_int_cast(value: Any, default: int = 0) -> int:
 # Asset type configurations
 ASSET_TYPE_CONFIGS: Dict[str, AssetTypeConfig] = {
     "applications": AssetTypeConfig(
-        model_class=Application,
+        model_class=CanonicalApplication,
         unique_field="application_name",
         csv_mappings=[
             FieldMapping("Application Name", "application_name", required=True),
@@ -261,7 +261,7 @@ def _prepare_asset_data(
     asset_data["updated_at"] = datetime.now(timezone.utc)
 
     # Map data fields based on asset type
-    if config.model_class == Application:
+    if config.model_class == CanonicalApplication:
         asset_data.update(
             {
                 "name": data.get("application_name", ""),
