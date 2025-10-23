@@ -111,6 +111,7 @@ export interface AssessmentFlowState {
 
   // UI state
   isLoading: boolean;
+  dataFetched: boolean; // Bug #730 fix - track if initial data has been loaded
   error: string | null;
   lastUserInteraction: Date | null;
   appsReadyForPlanning: string[];

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import type { GetServerSideProps } from 'next/router';
+import { useParams } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
@@ -21,15 +21,14 @@ import { Save, FileText } from 'lucide-react'
 import { AlertCircle, ArrowRight, Loader2, CheckCircle, Eye, Download } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
-interface AppOnPageProps {
-  flowId: string;
-}
+const AppOnPagePage: React.FC = () => {
+  // Bug #730 fix - Use React Router's useParams instead of Next.js props
+  const { flowId } = useParams<{ flowId: string }>();
 
-const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
   const {
     state,
     finalizeAssessment
-  } = useAssessmentFlow(flowId);
+  } = useAssessmentFlow(flowId!);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,6 +64,21 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
   };
 
   const assessmentComplete = Object.keys(state.sixrDecisions).length === state.selectedApplicationIds.length;
+
+  // Bug #730 fix: Show loading skeleton until data is fetched
+  if (!state.dataFetched) {
+    return (
+      <AssessmentFlowLayout flowId={flowId}>
+        <div className="p-6 space-y-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-64"></div>
+            <div className="h-4 bg-gray-200 rounded w-96"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </AssessmentFlowLayout>
+    );
+  }
 
   if (state.selectedApplicationIds.length === 0) {
     return (
@@ -350,8 +364,5 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
     </AssessmentFlowLayout>
   );
 };
-
-// eslint-disable-next-line react-refresh/only-export-components
-export { getServerSideProps } from './utils';
 
 export default AppOnPagePage;

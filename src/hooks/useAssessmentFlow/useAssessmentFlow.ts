@@ -49,7 +49,8 @@ export const useAssessmentFlow = (
     applicationComponents: {},
     techDebtAnalysis: {},
     sixrDecisions: {},
-    isLoading: false,
+    isLoading: true, // Bug #730 fix - start with loading state
+    dataFetched: false, // Bug #730 fix - track if initial data has been loaded
     error: null,
     lastUserInteraction: null,
     appsReadyForPlanning: [],
@@ -120,54 +121,64 @@ export const useAssessmentFlow = (
     [state.flowId],
   );
 
-  // Start HTTP/2 polling for status updates
-  const startPolling = useCallback(() => {
-    if (!state.flowId || !clientAccountId || pollingIntervalRef.current) return;
+  // Manual refresh function - replaces automatic polling
+  const refreshStatus = useCallback(async () => {
+    if (!state.flowId || !clientAccountId) return;
 
-    const pollStatus = async () => {
-      try {
-        const status = await assessmentFlowAPI.getStatus(
-          state.flowId,
-          clientAccountId,
-          engagementId,
-        );
+    setState((prev) => ({ ...prev, isLoading: true }));
 
-        setState((prev) => {
-          const nextProgress =
-            typeof status.progress === "number"
-              ? Math.max(prev.progress ?? 0, status.progress)
-              : prev.progress;
+    try {
+      const status = await assessmentFlowAPI.getStatus(
+        state.flowId,
+        clientAccountId,
+        engagementId,
+      );
 
-          // Detect phase change to trigger data reload (Bug #664 fix)
-          const phaseChanged = prev.currentPhase !== status.current_phase;
+      setState((prev) => {
+        const nextProgress =
+          typeof status.progress === "number"
+            ? Math.max(prev.progress ?? 0, status.progress)
+            : prev.progress;
 
-          // Schedule phase data reload if phase changed
-          if (phaseChanged && status.current_phase) {
-            // Use setTimeout to avoid blocking the setState
-            setTimeout(() => {
-              loadPhaseData(status.current_phase as AssessmentPhase);
-            }, 0);
-          }
+        // Detect phase change to trigger data reload (Bug #664 fix)
+        const phaseChanged = prev.currentPhase !== status.current_phase;
 
-          return {
-            ...prev,
-            status: status.status as AssessmentFlowStatus,
-            progress: nextProgress,
-            currentPhase: status.current_phase as AssessmentPhase,
-            applicationCount: status.application_count,
-            error: null, // Clear error on successful poll
-          };
-        });
-      } catch (error) {
-        console.error("Assessment flow polling error:", error);
-        // Don't set error state - allow retries
-      }
-    };
+        // Schedule phase data reload if phase changed
+        if (phaseChanged && status.current_phase) {
+          // Use setTimeout to avoid blocking the setState
+          setTimeout(() => {
+            loadPhaseData(status.current_phase as AssessmentPhase);
+          }, 0);
+        }
 
-    // Poll immediately, then every 5 seconds
-    pollStatus();
-    pollingIntervalRef.current = setInterval(pollStatus, 5000);
+        return {
+          ...prev,
+          status: status.status as AssessmentFlowStatus,
+          progress: nextProgress,
+          currentPhase: status.current_phase as AssessmentPhase,
+          applicationCount: status.application_count,
+          isLoading: false,
+          dataFetched: true,
+          error: null,
+        };
+      });
+    } catch (error) {
+      console.error("Assessment flow refresh error:", error);
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Failed to refresh assessment status",
+      }));
+    }
   }, [state.flowId, clientAccountId, engagementId, loadPhaseData]);
+
+  // REMOVED: Automatic polling - replaced with manual refresh
+  // Users can call refreshStatus() when needed
+  const startPolling = useCallback(() => {
+    // Deprecated: No longer auto-polls every 5 seconds
+    // Call refreshStatus() manually instead
+    console.warn("startPolling is deprecated. Use refreshStatus() for manual updates.");
+  }, []);
 
   // Initialize assessment flow
   const initializeFlow = useCallback(
@@ -198,8 +209,8 @@ export const useAssessmentFlow = (
           isLoading: false,
         }));
 
-        // Start HTTP/2 polling
-        startPolling();
+        // REMOVED: Automatic polling - use manual refreshStatus() instead
+        // startPolling();
 
         // Navigate to first phase
         if (navigate) {
@@ -596,7 +607,8 @@ export const useAssessmentFlow = (
       await loadApplicationData();
 
       // Only set isLoading=false after ALL data loading completes (Bug #640 fix)
-      setState((prev) => ({ ...prev, isLoading: false }));
+      // Bug #730 fix - also mark data as fetched
+      setState((prev) => ({ ...prev, isLoading: false, dataFetched: true }));
     } catch (error) {
       setState((prev) => ({
         ...prev,
@@ -607,22 +619,21 @@ export const useAssessmentFlow = (
     }
   }, [state.flowId, clientAccountId, engagementId, loadPhaseData, loadApplicationData]);
 
-  // Load flow state on mount or flowId change
+  // Load flow state once on mount or flowId change
+  // No automatic polling - users must manually refresh
   useEffect(() => {
     if (state.flowId && clientAccountId) {
       loadFlowState();
-      startPolling();
     }
 
     return () => {
-      stopPolling();
+      stopPolling(); // Cleanup any legacy polling intervals
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     state.flowId,
     clientAccountId,
-    loadFlowState,
-    startPolling,
-    stopPolling,
+    // Intentionally omitting loadFlowState to prevent infinite loop
   ]);
 
   // Expose loadApplicationData for manual refresh
@@ -663,7 +674,8 @@ export const useAssessmentFlow = (
     updateApplicationComponents,
     updateTechDebtAnalysis,
     updateSixRDecision,
-    startPolling,
+    refreshStatus, // NEW: Manual refresh function
+    startPolling, // DEPRECATED: kept for backward compatibility but does nothing
     stopPolling,
     getPhaseProgress,
     canNavigateToPhase,

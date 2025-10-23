@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import {
   CheckCircle2,
   Circle,
@@ -85,7 +85,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
   flowId,
 }) => {
   const navigate = useNavigate();
-  const { state, navigateToPhase } = useAssessmentFlow(flowId);
+  const { state, navigateToPhase, refreshStatus } = useAssessmentFlow(flowId);
 
   const getPhaseStatus = (phaseId: AssessmentPhase): JSX.Element => {
     if (state.error) return "error";
@@ -159,73 +159,116 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
           {/* Assessment Flow Progress Header */}
           <div className="mb-6">
             <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Assessment Flow Progress
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {state.applicationCount || state.selectedApplicationIds?.length || 0} applications •{" "}
-                    {state.currentPhase?.replace("_", " ") || "Unknown phase"}
-                  </p>
+              {/* Bug #730 fix - Show loading skeleton while initial data is fetching */}
+              {!state.dataFetched ? (
+                <div className="animate-pulse">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="h-6 bg-gray-200 rounded w-64 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-48"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="h-4 bg-gray-200 rounded w-32"></div>
+                      <div className="h-4 bg-gray-200 rounded w-12"></div>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded w-full"></div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {Array.from({ length: PHASE_CONFIG.length }).map((_, i) => (
+                      <div key={i} className="h-8 bg-gray-200 rounded w-32"></div>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900">
+                        Assessment Flow Progress
+                      </h2>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {state.applicationCount || state.selectedApplicationIds?.length || 0} applications •{" "}
+                        {state.currentPhase?.replace("_", " ") || "Unknown phase"}
+                      </p>
+                    </div>
 
-                <Badge
-                  variant={
-                    state.status === "completed"
-                      ? "default"
-                      : state.status === "error"
-                        ? "destructive"
-                        : state.status === "processing"
-                          ? "default"
-                          : "secondary"
-                  }
-                >
-                  {state.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
-                </Badge>
-              </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={refreshStatus}
+                        variant="outline"
+                        size="sm"
+                        disabled={state.isLoading}
+                      >
+                        {state.isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                        <span className="ml-2">Refresh</span>
+                      </Button>
 
-              {/* Overall Progress */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">
-                    Overall Progress
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {state.progress || 0}%
-                  </span>
-                </div>
-                <Progress value={state.progress || 0} className="h-2" />
-              </div>
+                      <Badge
+                        variant={
+                          state.status === "completed"
+                            ? "default"
+                            : state.status === "error"
+                              ? "destructive"
+                              : state.status === "processing"
+                                ? "default"
+                                : "secondary"
+                        }
+                      >
+                        {state.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
+                      </Badge>
+                    </div>
+                  </div>
 
-              {/* Phase Navigation */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {PHASE_CONFIG.map((phase) => {
-                  const status = getPhaseStatus(phase.id);
-                  const isCurrentPhase = state.currentPhase === phase.id;
-                  const canNavigate = canNavigateToPhase(phase.id);
+                  {/* Overall Progress */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">
+                        Overall Progress
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {state.progress || 0}%
+                      </span>
+                    </div>
+                    <Progress value={state.progress || 0} className="h-2" />
+                  </div>
 
-                  return (
-                    <Button
-                      key={phase.id}
-                      variant={isCurrentPhase ? "default" : "outline"}
-                      size="sm"
-                      onClick={() =>
-                        handlePhaseNavigation(phase.id, phase.route)
-                      }
-                      disabled={!canNavigate}
-                      className={cn(
-                        "flex items-center space-x-2",
-                        status === "completed" &&
-                          "border-green-300 text-green-700",
-                      )}
-                    >
-                      {getPhaseIcon(phase.id, status)}
-                      <span>{phase.title}</span>
-                    </Button>
-                  );
-                })}
-              </div>
+                  {/* Phase Navigation */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {PHASE_CONFIG.map((phase) => {
+                      const status = getPhaseStatus(phase.id);
+                      const isCurrentPhase = state.currentPhase === phase.id;
+                      const canNavigate = canNavigateToPhase(phase.id);
+
+                      return (
+                        <Button
+                          key={phase.id}
+                          variant={isCurrentPhase ? "default" : "outline"}
+                          size="sm"
+                          onClick={() =>
+                            handlePhaseNavigation(phase.id, phase.route)
+                          }
+                          disabled={!canNavigate}
+                          className={cn(
+                            "flex items-center space-x-2",
+                            status === "completed" &&
+                              "border-green-300 text-green-700",
+                          )}
+                        >
+                          {getPhaseIcon(phase.id, status)}
+                          <span>{phase.title}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
