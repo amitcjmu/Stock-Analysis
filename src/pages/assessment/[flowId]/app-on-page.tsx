@@ -28,7 +28,7 @@ const AppOnPagePage: React.FC = () => {
   const {
     state,
     finalizeAssessment
-  } = useAssessmentFlow(flowId!);
+  } = useAssessmentFlow(flowId);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);

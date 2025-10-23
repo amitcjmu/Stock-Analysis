@@ -47,23 +47,40 @@ class JWTService:
     def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
         """Verify and decode a JWT token."""
         try:
+            # Bug #684 debugging: Log token verification attempt
+            token_preview = token[:20] if token else "None"
+            logger.info(
+                f"🔑 [JWT] Verifying token (length: {len(token) if token else 0}, "
+                f"starts with: {token_preview}...)"
+            )
+
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+
+            # Bug #684 debugging: Log successful decode
+            logger.info(
+                f"🔑 [JWT] Token decoded successfully, payload keys: {list(payload.keys())}"
+            )
 
             # Verify token type
             if payload.get("type") != "access":
-                logger.warning("Invalid token type")
+                logger.warning(
+                    f"⚠️ [JWT] Invalid token type: {payload.get('type')} (expected 'access')"
+                )
                 return None
 
+            logger.info(
+                f"✅ [JWT] Token verification successful for user: {payload.get('sub')}"
+            )
             return payload
 
-        except jwt.ExpiredSignatureError:
-            logger.warning("Token has expired")
+        except jwt.ExpiredSignatureError as e:
+            logger.warning(f"⚠️ [JWT] Token has expired: {e}")
             return None
-        except jwt.InvalidTokenError:
-            logger.warning("Invalid token")
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"⚠️ [JWT] Invalid token: {e}")
             return None
         except Exception as e:
-            logger.error(f"Token verification error: {e}")
+            logger.error(f"❌ [JWT] Token verification error: {e}", exc_info=True)
             return None
 
     def get_token_metadata(self, token: str) -> Optional[Dict[str, Any]]:
