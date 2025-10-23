@@ -71,22 +71,37 @@ async def build_agent_context(
     )
 
 
-async def mark_generation_failed(db: AsyncSession, flow_id: int) -> None:
+async def mark_generation_failed(
+    db: AsyncSession, flow_id: int, context: RequestContext
+) -> None:
     """
-    Mark questionnaire generation as failed.
+    Mark questionnaire generation as failed with tenant verification.
 
     Args:
         db: Database session
         flow_id: Internal flow ID
+        context: Request context for multi-tenant scoping
+
+    Raises:
+        ValueError: If flow not found or access denied
     """
+    # SECURITY: Verify tenant ownership before updating metadata
     flow_result = await db.execute(
-        select(CollectionFlow).where(CollectionFlow.id == flow_id)
+        select(CollectionFlow).where(
+            CollectionFlow.id == flow_id,
+            CollectionFlow.client_account_id == context.client_account_id,
+            CollectionFlow.engagement_id == context.engagement_id,
+        )
     )
     flow = flow_result.scalar_one_or_none()
 
-    if flow:
-        if not flow.flow_metadata:
-            flow.flow_metadata = {}
-        flow.flow_metadata["questionnaire_generating"] = False
-        flow.flow_metadata["generation_failed"] = True
-        await db.commit()
+    if not flow:
+        raise ValueError(
+            f"Flow {flow_id} not found or access denied for client {context.client_account_id}"
+        )
+
+    if not flow.flow_metadata:
+        flow.flow_metadata = {}
+    flow.flow_metadata["questionnaire_generating"] = False
+    flow.flow_metadata["generation_failed"] = True
+    await db.commit()
