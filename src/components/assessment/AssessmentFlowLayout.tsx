@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import {
   CheckCircle2,
   Circle,
@@ -85,7 +85,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
   flowId,
 }) => {
   const navigate = useNavigate();
-  const { state, navigateToPhase } = useAssessmentFlow(flowId);
+  const { state, navigateToPhase, refreshStatus } = useAssessmentFlow(flowId);
 
   const getPhaseStatus = (phaseId: AssessmentPhase): JSX.Element => {
     if (state.error) return "error";
@@ -195,19 +195,35 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                       </p>
                     </div>
 
-                    <Badge
-                      variant={
-                        state.status === "completed"
-                          ? "default"
-                          : state.status === "error"
-                            ? "destructive"
-                            : state.status === "processing"
-                              ? "default"
-                              : "secondary"
-                      }
-                    >
-                      {state.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={refreshStatus}
+                        variant="outline"
+                        size="sm"
+                        disabled={state.isLoading}
+                      >
+                        {state.isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                        <span className="ml-2">Refresh</span>
+                      </Button>
+
+                      <Badge
+                        variant={
+                          state.status === "completed"
+                            ? "default"
+                            : state.status === "error"
+                              ? "destructive"
+                              : state.status === "processing"
+                                ? "default"
+                                : "secondary"
+                        }
+                      >
+                        {state.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
+                      </Badge>
+                    </div>
                   </div>
 
                   {/* Overall Progress */}
