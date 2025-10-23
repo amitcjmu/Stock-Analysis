@@ -188,7 +188,7 @@ async def get_assessment_flow_status_via_master(
                 ),
                 "next_phase": None,  # Will be calculated by frontend
                 "phase_data": flow_state.phase_results or {},
-                "selected_applications": len(flow_state.selected_application_ids or []),
+                "application_count": len(flow_state.application_asset_groups or []),
                 "assessment_complete": (
                     flow_state.status == AssessmentFlowStatus.COMPLETED
                 ),
