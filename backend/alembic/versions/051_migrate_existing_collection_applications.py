@@ -265,8 +265,8 @@ def _update_tenant_fields(conn):
         """
         UPDATE migration.collection_flow_applications
         SET
-            client_account_id = COALESCE(client_account_id, cf.client_account_id),
-            engagement_id = COALESCE(engagement_id, cf.engagement_id)
+            client_account_id = COALESCE(collection_flow_applications.client_account_id, cf.client_account_id),
+            engagement_id = COALESCE(collection_flow_applications.engagement_id, cf.engagement_id)
         FROM migration.collection_flows cf
         WHERE collection_flow_applications.collection_flow_id = cf.id
         AND (collection_flow_applications.client_account_id IS NULL
