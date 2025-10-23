@@ -47,24 +47,78 @@ class BaseDataValidationTool(BaseTool):
         super().__init__()
         self._context_info = context_info
 
-    async def _arun(self, raw_data: List[Dict[str, Any]]) -> str:
-        """Async implementation to validate data"""
+    def _extract_raw_data(self, kwargs: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract raw_data list from various input formats"""
+        # Check if 'raw_data' key exists (expected format)
+        if "raw_data" in kwargs:
+            raw_data = kwargs["raw_data"]
+
+            # Check if it's wrapped in another dict (e.g., {"applications": [...]})
+            if isinstance(raw_data, dict):
+                # Try common wrapper keys
+                for key in ["applications", "data", "records", "items"]:
+                    if key in raw_data and isinstance(raw_data[key], list):
+                        return raw_data[key]
+                # If no known wrapper key, try to find any list value
+                for value in raw_data.values():
+                    if isinstance(value, list):
+                        return value
+
+            # Ensure we have a list
+            if isinstance(raw_data, list):
+                return raw_data
+            return [raw_data] if raw_data else []
+
+        # Try first positional argument if raw_data not found
+        elif len(kwargs) == 1:
+            raw_data = next(iter(kwargs.values()))
+
+            # Same unwrapping logic for positional arg
+            if isinstance(raw_data, dict):
+                for key in ["applications", "data", "records", "items"]:
+                    if key in raw_data and isinstance(raw_data[key], list):
+                        return raw_data[key]
+
+            if isinstance(raw_data, list):
+                return raw_data
+            return [raw_data] if raw_data else []
+
+        # Fallback - empty list
+        return []
+
+    async def _arun(self, **kwargs) -> str:
+        """Async implementation to validate data with flexible parameter handling"""
+        raw_data = self._extract_raw_data(kwargs)
         result = await DataValidationToolImpl.validate_data(
             raw_data, self._context_info
         )
         return json.dumps(result)
 
-    def _run(self, raw_data: List[Dict[str, Any]]) -> str:
-        """Sync wrapper for async implementation"""
+    def _run(self, **kwargs) -> str:
+        """Sync wrapper for async implementation with flexible parameter handling"""
+        raw_data = self._extract_raw_data(kwargs)
         try:
             loop = asyncio.get_running_loop()
+
             # Already in an event loop, create task
-            future = asyncio.ensure_future(self._arun(raw_data))
+            async def validate():
+                return await DataValidationToolImpl.validate_data(
+                    raw_data, self._context_info
+                )
+
+            future = asyncio.ensure_future(validate())
             # This will block but won't create a new loop
-            return loop.run_until_complete(future)
+            result = loop.run_until_complete(future)
+            return json.dumps(result)
         except RuntimeError:
             # No event loop running, safe to use asyncio.run
-            return asyncio.run(self._arun(raw_data))
+            async def validate():
+                return await DataValidationToolImpl.validate_data(
+                    raw_data, self._context_info
+                )
+
+            result = asyncio.run(validate())
+            return json.dumps(result)
 
 
 class BaseDataStructureAnalyzerTool(BaseTool):
@@ -85,24 +139,78 @@ class BaseDataStructureAnalyzerTool(BaseTool):
         super().__init__()
         self._context_info = context_info
 
-    async def _arun(self, raw_data: List[Dict[str, Any]]) -> str:
-        """Async implementation to analyze structure"""
+    def _extract_raw_data(self, kwargs: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract raw_data list from various input formats"""
+        # Check if 'raw_data' key exists (expected format)
+        if "raw_data" in kwargs:
+            raw_data = kwargs["raw_data"]
+
+            # Check if it's wrapped in another dict (e.g., {"applications": [...]})
+            if isinstance(raw_data, dict):
+                # Try common wrapper keys
+                for key in ["applications", "data", "records", "items"]:
+                    if key in raw_data and isinstance(raw_data[key], list):
+                        return raw_data[key]
+                # If no known wrapper key, try to find any list value
+                for value in raw_data.values():
+                    if isinstance(value, list):
+                        return value
+
+            # Ensure we have a list
+            if isinstance(raw_data, list):
+                return raw_data
+            return [raw_data] if raw_data else []
+
+        # Try first positional argument if raw_data not found
+        elif len(kwargs) == 1:
+            raw_data = next(iter(kwargs.values()))
+
+            # Same unwrapping logic for positional arg
+            if isinstance(raw_data, dict):
+                for key in ["applications", "data", "records", "items"]:
+                    if key in raw_data and isinstance(raw_data[key], list):
+                        return raw_data[key]
+
+            if isinstance(raw_data, list):
+                return raw_data
+            return [raw_data] if raw_data else []
+
+        # Fallback - empty list
+        return []
+
+    async def _arun(self, **kwargs) -> str:
+        """Async implementation to analyze structure with flexible parameter handling"""
+        raw_data = self._extract_raw_data(kwargs)
         result = await DataStructureAnalyzerImpl.analyze_structure(
             raw_data, self._context_info
         )
         return json.dumps(result)
 
-    def _run(self, raw_data: List[Dict[str, Any]]) -> str:
-        """Sync wrapper for async implementation"""
+    def _run(self, **kwargs) -> str:
+        """Sync wrapper for async implementation with flexible parameter handling"""
+        raw_data = self._extract_raw_data(kwargs)
         try:
             loop = asyncio.get_running_loop()
+
             # Already in an event loop, create task
-            future = asyncio.ensure_future(self._arun(raw_data))
+            async def analyze():
+                return await DataStructureAnalyzerImpl.analyze_structure(
+                    raw_data, self._context_info
+                )
+
+            future = asyncio.ensure_future(analyze())
             # This will block but won't create a new loop
-            return loop.run_until_complete(future)
+            result = loop.run_until_complete(future)
+            return json.dumps(result)
         except RuntimeError:
             # No event loop running, safe to use asyncio.run
-            return asyncio.run(self._arun(raw_data))
+            async def analyze():
+                return await DataStructureAnalyzerImpl.analyze_structure(
+                    raw_data, self._context_info
+                )
+
+            result = asyncio.run(analyze())
+            return json.dumps(result)
 
 
 class BaseFieldSuggestionTool(BaseTool):
@@ -170,8 +278,50 @@ class BaseDataQualityAssessmentTool(BaseTool):
         super().__init__()
         self._context_info = context_info
 
-    def _run(self, raw_data: List[Dict[str, Any]]) -> str:
-        """Assess data quality"""
+    def _run(self, **kwargs) -> str:
+        """Assess data quality with flexible parameter handling"""
+        # Handle multiple parameter formats for maximum compatibility
+        # The agent might pass data wrapped in various ways
+
+        # Check if 'raw_data' key exists (expected format)
+        if "raw_data" in kwargs:
+            raw_data = kwargs["raw_data"]
+
+            # Check if it's wrapped in another dict (e.g., {"applications": [...]})
+            if isinstance(raw_data, dict):
+                # Try common wrapper keys
+                for key in ["applications", "data", "records", "items"]:
+                    if key in raw_data and isinstance(raw_data[key], list):
+                        raw_data = raw_data[key]
+                        break
+                else:
+                    # If no known wrapper key, try to find any list value
+                    for value in raw_data.values():
+                        if isinstance(value, list):
+                            raw_data = value
+                            break
+
+            # Ensure we have a list
+            if not isinstance(raw_data, list):
+                raw_data = [raw_data] if raw_data else []
+
+        # Try first positional argument if raw_data not found
+        elif len(kwargs) == 1:
+            raw_data = next(iter(kwargs.values()))
+
+            # Same unwrapping logic for positional arg
+            if isinstance(raw_data, dict):
+                for key in ["applications", "data", "records", "items"]:
+                    if key in raw_data and isinstance(raw_data[key], list):
+                        raw_data = raw_data[key]
+                        break
+
+            if not isinstance(raw_data, list):
+                raw_data = [raw_data] if raw_data else []
+        else:
+            # Fallback - empty list
+            raw_data = []
+
         result = DataQualityImpl.assess_quality(raw_data)
         return json.dumps(result)
 
