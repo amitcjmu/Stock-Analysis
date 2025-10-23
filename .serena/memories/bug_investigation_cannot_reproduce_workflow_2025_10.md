@@ -59,15 +59,15 @@ logger.info(
 
 ```sql
 -- Check for suspicious flow states
-SELECT 
+SELECT
   id, current_phase, status, progress, created_at,
-  CASE 
+  CASE
     WHEN current_phase = 'recommendation_generation' AND progress = 100 THEN 'SUSPICIOUS'
     WHEN current_phase = 'initialization' AND status != 'initialized' THEN 'SUSPICIOUS'
     ELSE 'NORMAL'
   END as health_check
-FROM migration.assessment_flows 
-ORDER BY created_at DESC 
+FROM migration.assessment_flows
+ORDER BY created_at DESC
 LIMIT 10;
 ```
 
@@ -93,7 +93,7 @@ await browser_navigate({ url: "http://localhost:8081/assessment/6a8586fa/archite
 await browser_snapshot()
 
 // Click Continue button
-await browser_click({ 
+await browser_click({
   element: "Continue to Next Phase button",
   ref: "[data-testid='continue-button']"
 })
@@ -110,8 +110,8 @@ docker logs migration_backend 2>&1 | grep "BUG-724" | tail -20
 ```bash
 # Check flow state in database after manual test
 docker exec migration_postgres psql -U postgres -d migration_db -c \
-  "SELECT id, current_phase, status, progress 
-   FROM migration.assessment_flows 
+  "SELECT id, current_phase, status, progress
+   FROM migration.assessment_flows
    WHERE id = '6a8586fa-f99f-43b9-a946-d1b4df5b203f';"
 
 # Result: complexity_analysis | in_progress | 33% ✅
@@ -164,8 +164,8 @@ Enhanced logs showed proper behavior:
 
 # Close with summary
 /opt/homebrew/bin/gh issue close 724 --comment "
-Closing as invalid - comprehensive testing confirmed the phase transition 
-system is working correctly. Enhanced [BUG-724] logging retained for 
+Closing as invalid - comprehensive testing confirmed the phase transition
+system is working correctly. Enhanced [BUG-724] logging retained for
 future monitoring.
 "
 ```

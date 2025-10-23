@@ -49,7 +49,8 @@ export const useAssessmentFlow = (
     applicationComponents: {},
     techDebtAnalysis: {},
     sixrDecisions: {},
-    isLoading: false,
+    isLoading: true, // Bug #730 fix - start with loading state
+    dataFetched: false, // Bug #730 fix - track if initial data has been loaded
     error: null,
     lastUserInteraction: null,
     appsReadyForPlanning: [],
@@ -155,6 +156,8 @@ export const useAssessmentFlow = (
             progress: nextProgress,
             currentPhase: status.current_phase as AssessmentPhase,
             applicationCount: status.application_count,
+            isLoading: false, // Bug #730 fix - data has been fetched
+            dataFetched: true, // Bug #730 fix - mark data as fetched
             error: null, // Clear error on successful poll
           };
         });
@@ -596,7 +599,8 @@ export const useAssessmentFlow = (
       await loadApplicationData();
 
       // Only set isLoading=false after ALL data loading completes (Bug #640 fix)
-      setState((prev) => ({ ...prev, isLoading: false }));
+      // Bug #730 fix - also mark data as fetched
+      setState((prev) => ({ ...prev, isLoading: false, dataFetched: true }));
     } catch (error) {
       setState((prev) => ({
         ...prev,
