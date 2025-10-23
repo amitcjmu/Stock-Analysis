@@ -183,7 +183,7 @@ class CollectionTransitionService:
                 thresholds_used=await self._get_tenant_thresholds(),
             )
 
-    async def create_assessment_flow(self, collection_flow_id: UUID):
+    async def create_assessment_flow(self, collection_flow_id: UUID):  # noqa: C901
         """
         Bug #630 Fix: Create assessment with proper two-table pattern (ADR-012).
         Creates both master flow AND child flow atomically in a single transaction.
@@ -346,10 +346,19 @@ class CollectionTransitionService:
                 f"✅ Created assessment child flow: {assessment_flow.id} linked to master {master_flow_id}"
             )
 
-            # Update collection flow linkage
+            # Update collection flow linkage and mark as completed
             if hasattr(collection_flow, "assessment_flow_id"):
                 collection_flow.assessment_flow_id = assessment_flow.id
                 collection_flow.assessment_transition_date = datetime.utcnow()
+
+            # Mark collection flow as completed now that assessment has been created
+            collection_flow.status = "completed"
+            collection_flow.completed_at = datetime.utcnow()
+            collection_flow.progress_percentage = 100.0
+
+            logger.info(
+                f"✅ Marked collection flow {collection_flow.flow_id} as completed"
+            )
 
             # Store bidirectional references in collection metadata
             current_metadata = getattr(collection_flow, "flow_metadata", {}) or {}
