@@ -48,6 +48,7 @@ async def get_collection_status(
         result = await db.execute(
             select(CollectionFlow)
             .where(
+                CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
                 CollectionFlow.status.notin_(
                     [
