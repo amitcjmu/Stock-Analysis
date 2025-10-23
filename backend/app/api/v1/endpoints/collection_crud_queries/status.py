@@ -113,7 +113,29 @@ async def get_collection_flow(
             )
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
-        return collection_serializers.serialize_collection_flow(collection_flow)
+        # Query actual application count from collection_flow_applications table
+        from sqlalchemy import func
+        from app.models.canonical_applications.collection_flow_app import (
+            CollectionFlowApplication,
+        )
+
+        app_count_result = await db.execute(
+            select(func.count(CollectionFlowApplication.id)).where(
+                CollectionFlowApplication.collection_flow_id == collection_flow.flow_id
+            )
+        )
+        app_count = app_count_result.scalar() or 0
+
+        # Build collection_metrics with actual data
+        collection_metrics = {
+            "platforms_detected": app_count,
+            "data_collected": app_count,  # Assume all apps have data collected
+            "gaps_resolved": 0,  # Default since resolution tracking isn't implemented
+        }
+
+        return collection_serializers.serialize_collection_flow(
+            collection_flow, collection_metrics=collection_metrics
+        )
 
     except HTTPException:
         raise
