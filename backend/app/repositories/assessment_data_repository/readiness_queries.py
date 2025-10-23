@@ -119,7 +119,9 @@ class ReadinessQueriesMixin:
             result = await self.db.execute(query)
             return list(result.scalars().all())
         except Exception as e:
-            logger.warning(f"Error fetching servers: {e}")
+            # Rollback transaction if table doesn't exist or other error occurs
+            await self.db.rollback()
+            logger.warning(f"Error fetching servers (table may not exist yet): {e}")
             return []
 
     async def _get_discovery_data(self) -> Dict[str, Any]:
@@ -195,6 +197,8 @@ class ReadinessQueriesMixin:
                 "total_items": sum(row.count for row in rows),
             }
         except Exception as e:
+            # Rollback transaction to prevent "transaction aborted" errors
+            await self.db.rollback()
             logger.warning(f"Error fetching collected inventory: {e}")
             return {"by_type": [], "total_items": 0}
 
@@ -210,5 +214,9 @@ class ReadinessQueriesMixin:
             result = await self.db.execute(query)
             return result.scalar() or 0
         except Exception as e:
-            logger.warning(f"Error counting infrastructure: {e}")
+            # Rollback transaction if table doesn't exist or other error occurs
+            await self.db.rollback()
+            logger.warning(
+                f"Error counting infrastructure (table may not exist yet): {e}"
+            )
             return 0
