@@ -141,29 +141,38 @@ async def create_assessment_flow(  # noqa: C901
         # Feature-flagged handling based on environment configuration
         if settings.UNMAPPED_ASSET_HANDLING == "strict":
             # Always reject unmapped assets
+            unmapped_list = ", ".join(unmapped_names[:5])
+            more = "..." if len(unmapped_names) > 5 else ""
             raise ValueError(
-                f"Assessment initialization blocked: {unmapped_count} unmapped assets detected. "
-                f"Unmapped assets: {', '.join(unmapped_names[:5])}{'...' if len(unmapped_names) > 5 else ''}. "
-                f"Strict mode requires all assets mapped to canonical applications. "
-                f"Use Asset Resolution workflow in collection flow."
+                f"Assessment initialization blocked: {unmapped_count} "
+                f"unmapped assets detected. "
+                f"Unmapped assets: {unmapped_list}{more}. "
+                f"Strict mode requires all assets mapped to canonical "
+                f"applications. Use Asset Resolution workflow in "
+                f"collection flow."
             )
         elif settings.UNMAPPED_ASSET_HANDLING == "block":
             # Reject if exceeds threshold
-            if unmapped_percentage > settings.UNMAPPED_ASSET_THRESHOLD:
+            threshold = settings.UNMAPPED_ASSET_THRESHOLD
+            if unmapped_percentage > threshold:
                 # Format unmapped asset list with ellipsis if needed
                 unmapped_list = ", ".join(unmapped_names[:5])
                 more_indicator = "..." if len(unmapped_names) > 5 else ""
 
                 raise ValueError(
-                    f"Assessment initialization blocked: {unmapped_percentage:.1%} unmapped assets "
-                    f"exceeds threshold of {settings.UNMAPPED_ASSET_THRESHOLD:.1%}. "
-                    f"Unmapped assets ({unmapped_count}): {unmapped_list}{more_indicator}. "
-                    f"Please complete canonical application mapping to proceed."
+                    f"Assessment initialization blocked: "
+                    f"{unmapped_percentage:.1%} unmapped assets "
+                    f"exceeds threshold of {threshold:.1%}. "
+                    f"Unmapped assets ({unmapped_count}): "
+                    f"{unmapped_list}{more_indicator}. "
+                    f"Please complete canonical application mapping to "
+                    f"proceed."
                 )
             else:
                 logger.warning(
-                    f"Assessment flow has {unmapped_count} unmapped assets ({unmapped_percentage:.1%}) "
-                    f"but within threshold ({settings.UNMAPPED_ASSET_THRESHOLD:.1%}). Proceeding with banner."
+                    f"Assessment flow has {unmapped_count} unmapped assets "
+                    f"({unmapped_percentage:.1%}) but within threshold "
+                    f"({threshold:.1%}). Proceeding with banner."
                 )
         else:  # "banner" mode (default)
             logger.warning(
@@ -188,9 +197,57 @@ async def create_assessment_flow(  # noqa: C901
     # Convert string IDs to proper format for JSONB storage
     app_ids_jsonb = [str(app_id) for app_id in selected_application_ids]
 
+    # Bug #630 Fix - ADR-012 Two-Table Pattern: Create master FIRST,
+    # then child flow
+    # STEP 1: Create master flow using MasterFlowOrchestrator
+    from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+    from app.core.context import RequestContext
+
+    # Build request context for orchestrator
+    context = RequestContext(
+        client_account_id=str(self.client_account_id),
+        engagement_id=str(engagement_id),
+        user_id=created_by or "system",
+    )
+
+    orchestrator = MasterFlowOrchestrator(self.db, context)
+
+    # Create master flow within a transaction (don't commit yet)
+    master_flow_id, _ = await orchestrator.create_flow(
+        flow_type="assessment",
+        flow_name=f"Assessment Flow - {len(selected_application_ids)} Applications",
+        configuration={
+            "selected_applications": selected_application_ids,
+            "assessment_type": "sixr_analysis",
+            "created_by": created_by,
+            "engagement_id": str(engagement_id),
+            "collection_flow_id": collection_flow_id,
+        },
+        initial_state={
+            "phase": AssessmentPhase.INITIALIZATION.value,
+            "applications_count": len(selected_application_ids),
+        },
+        atomic=True,  # Don't commit yet, we're in a transaction
+    )
+
+    # Flush to get master_flow_id in DB for FK availability (but don't commit)
+    await self.db.flush()
+
+    logger.info(
+        f"✅ Created assessment master flow: {master_flow_id}"
+        + (
+            f" (linked to collection flow {collection_flow_id})"
+            if collection_flow_id
+            else ""
+        )
+    )
+
+    # STEP 2: Create child flow with correct master_flow_id FK reference
     flow_record = AssessmentFlow(
         client_account_id=self.client_account_id,
         engagement_id=engagement_id,
+        master_flow_id=UUID(master_flow_id),  # Correct FK to master flow
+        flow_id=UUID(master_flow_id),  # Match master flow ID for consistency
         flow_name=f"Assessment Flow - {len(selected_application_ids)} Applications",
         configuration={
             "selected_application_ids": selected_application_ids,
@@ -212,72 +269,19 @@ async def create_assessment_flow(  # noqa: C901
     )
 
     self.db.add(flow_record)
+
+    # STEP 3: Single atomic commit for both master and child flows (ADR-012 requirement)
     await self.db.commit()
     await self.db.refresh(flow_record)
 
     # Log creation with metadata
     logger.info(
-        f"Created assessment flow {flow_record.id} with "
+        f"✅ Created assessment child flow {flow_record.id} with "
         f"{len(application_groups)} application groups, "
         f"{len(asset_ids)} assets, "
-        f"readiness: {readiness_summary.get('ready', 0)}/{len(asset_ids)} ready"
+        f"readiness: {readiness_summary.get('ready', 0)}/{len(asset_ids)} ready, "
+        f"linked to master flow {master_flow_id}"
     )
-
-    # Register with master flow system
-    from app.repositories.crewai_flow_state_extensions_repository import (
-        CrewAIFlowStateExtensionsRepository,
-    )
-
-    try:
-        extensions_repo = CrewAIFlowStateExtensionsRepository(
-            self.db,
-            str(self.client_account_id),
-            str(engagement_id),
-            user_id=created_by,
-        )
-
-        await extensions_repo.create_master_flow(
-            flow_id=str(flow_record.id),
-            flow_type="assessment",  # Using 'assessment' for consistency
-            user_id=created_by or "system",
-            flow_name=f"Assessment Flow - {len(selected_application_ids)} Applications",
-            flow_configuration={
-                "selected_applications": selected_application_ids,
-                "assessment_type": "sixr_analysis",
-                "created_by": created_by,
-                "engagement_id": str(engagement_id),
-                "collection_flow_id": collection_flow_id,  # Store in config too
-            },
-            initial_state={
-                "phase": AssessmentPhase.INITIALIZATION.value,
-                "applications_count": len(selected_application_ids),
-            },
-            collection_flow_id=collection_flow_id,  # NEW: Link to collection flow
-        )
-
-        logger.info(
-            f"Registered assessment flow {flow_record.id} with master flow system"
-            + (
-                f" (linked to collection flow {collection_flow_id})"
-                if collection_flow_id
-                else ""
-            )
-        )
-
-        # FIX: Link assessment flow back to master flow (update master_flow_id)
-        flow_record.master_flow_id = flow_record.id
-        await self.db.commit()
-        await self.db.refresh(flow_record)
-        logger.info(
-            f"Linked assessment flow {flow_record.id} to master flow via master_flow_id"
-        )
-
-    except Exception as e:
-        logger.error(
-            f"Failed to register assessment flow {flow_record.id} with master flow: {e}"
-        )
-        # Don't fail the entire creation if master flow registration fails
-        # The flow still exists and can function, just without master coordination
 
     # Step 7: Feature-flagged auto-enrichment (Phase 3.1 - October 2025)
     if settings.AUTO_ENRICHMENT_ENABLED and asset_ids and background_tasks:
@@ -302,10 +306,12 @@ async def create_assessment_flow(  # noqa: C901
         )
     elif settings.AUTO_ENRICHMENT_ENABLED and asset_ids and not background_tasks:
         logger.warning(
-            f"Auto-enrichment enabled but no BackgroundTasks provided for flow {flow_record.id}"
+            f"Auto-enrichment enabled but no BackgroundTasks provided "
+            f"for flow {flow_record.id}"
         )
 
     logger.info(
-        f"Created assessment flow {flow_record.id} for engagement {engagement_id}"
+        f"✅ Created assessment flow {master_flow_id} for engagement {engagement_id} "
+        f"(master flow and child flow linked atomically per ADR-012)"
     )
-    return str(flow_record.id)
+    return str(master_flow_id)
