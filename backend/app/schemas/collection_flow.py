@@ -73,6 +73,10 @@ class CollectionFlowResponse(BaseModel):
     gaps_identified: Optional[int] = None
     collection_metrics: Optional[Dict[str, Any]] = None
     discovery_flow_id: Optional[str] = None
+    applications: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="List of applications with asset_id and application_name for UUID-based lookups",
+    )
 
     # Assessment transition tracking (Phase 4)
     assessment_ready: Optional[bool] = None
