@@ -87,12 +87,16 @@ export function useSubmitHandler({
         assetId = data.asset_id;
       }
 
+      // Use extracted asset_id from formData if available (from question metadata)
+      // This takes precedence over the prop applicationId to ensure correct backend linkage
+      const finalApplicationId = state.formData?.applicationId || applicationId;
+
       // CRITICAL FIX (Issue #692): Add save_type to mark questionnaire as completed
       const submissionData = {
         responses: data,
         form_metadata: {
           form_id: state.formData?.formId,
-          application_id: applicationId,
+          application_id: finalApplicationId,
           ...(assetId ? { asset_id: assetId } : {}), // Only include when a single ID is present
           completion_percentage: completionPercentage,
           confidence_score: state.validation?.overallConfidenceScore,

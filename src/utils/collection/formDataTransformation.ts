@@ -407,11 +407,25 @@ export const convertQuestionnairesToFormData = (
       return undefined;
     };
 
+    // Extract asset_id from question metadata for proper backend linkage
+    // This ensures questionnaire responses get linked to the correct asset in the database
+    const extractAssetId = (): string | null => {
+      for (const question of questions) {
+        const assetId = question.metadata?.asset_id || question.metadata?.asset_ids?.[0];
+        if (assetId) {
+          console.log('✅ Extracted asset_id from question metadata:', assetId);
+          return assetId;
+        }
+      }
+      return null;
+    };
+
     const applicationName = extractAssetName();
+    const extractedAssetId = extractAssetId();
 
     return {
       formId: questionnaireId,
-      applicationId: applicationId || 'app-new',
+      applicationId: extractedAssetId || applicationId || 'app-new',
       applicationName, // CRITICAL FIX: Actual asset name extracted from questions
       sections,
       totalFields,
