@@ -242,9 +242,15 @@ export function useQuestionnaireHandlers({
       const questionnaires = await collectionFlowApi.getFlowQuestionnaires(state.flowId);
 
       if (questionnaires.length > 0) {
+        // Fetch flow details to get applications array for UUID-based lookup
+        const flowDetails = await collectionFlowApi.getFlowDetails(state.flowId);
+        const applications = flowDetails?.applications || [];
+        console.log(`📋 Fetched ${applications.length} applications for UUID lookup in questionnaireHandlers`);
+
         const adaptiveFormData = convertQuestionnairesToFormData(
           questionnaires[0],
           applicationId,
+          applications,
         );
 
         if (validateFormDataStructure(adaptiveFormData)) {

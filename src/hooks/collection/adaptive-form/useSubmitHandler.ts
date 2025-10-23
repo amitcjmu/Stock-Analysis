@@ -273,9 +273,14 @@ export function useSubmitHandler({
                 `📝 Loading next questionnaire: ${nextQuestionnaire.id}`,
               );
 
-              // Convert the questionnaire to form data format
+              // Fetch flow details to get applications array for UUID-based lookup
+              const flowDetails = await collectionFlowApi.getFlowDetails(actualFlowId);
+              const applications = flowDetails?.applications || [];
+              console.log(`📋 Fetched ${applications.length} applications for UUID lookup`);
+
+              // Convert the questionnaire to form data format with applications array
               const nextFormData =
-                convertQuestionnaireToFormData(nextQuestionnaire);
+                convertQuestionnaireToFormData(nextQuestionnaire, null, applications);
 
               // CRITICAL FIX: Fetch saved responses from API instead of extracting from questionnaire object
               // Responses are stored in collection_questionnaire_responses table, not in the questionnaire
