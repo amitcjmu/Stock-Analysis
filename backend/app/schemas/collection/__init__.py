@@ -27,6 +27,11 @@ from .dynamic_questions_schemas import (
     DynamicQuestionsResponse,
     QuestionDetail,
 )
+from .gap_analysis_schemas import (
+    GapAnalysisResponse,
+    GapDetail,
+    ProgressMetrics,
+)
 
 __all__ = [
     # Bulk Answer
@@ -51,4 +56,8 @@ __all__ = [
     "ImportTaskResponse",
     "ImportTaskStatusRequest",
     "ImportTaskDetailResponse",
+    # Gap Analysis
+    "GapAnalysisResponse",
+    "GapDetail",
+    "ProgressMetrics",
 ]
