@@ -26,7 +26,9 @@ class DynamicQuestionsRequest(BaseModel):
 
     child_flow_id: UUID = Field(..., description="Collection child flow UUID")
     asset_id: UUID = Field(..., description="Asset UUID")
-    asset_type: str = Field(..., description="Application, Server, Database, etc.")
+    asset_type: Optional[str] = Field(
+        None, description="Application, Server, Database, etc."
+    )
     include_answered: bool = Field(
         default=False, description="Include already-answered questions"
     )
@@ -38,24 +40,44 @@ class DynamicQuestionsRequest(BaseModel):
 class DynamicQuestionsResponse(BaseModel):
     """Response with filtered questions."""
 
+    asset_type: Optional[str] = Field(None, description="Asset type")
     questions: List[QuestionDetail]
-    agent_status: str = Field(..., description="not_requested, completed, fallback")
-    fallback_used: bool
     total_questions: int = Field(..., description="Count of returned questions")
+    agent_status: str = Field(..., description="not_requested, completed, fallback")
+    fallback_used: Optional[bool] = Field(
+        False, description="Whether fallback was used"
+    )
+    include_answered: Optional[bool] = Field(
+        None, description="Echo of request parameter"
+    )
 
 
 class DependencyChangeRequest(BaseModel):
     """Request to handle a dependency change."""
 
-    changed_asset_id: UUID
-    changed_field: str
-    old_value: Any
-    new_value: Any
+    child_flow_id: UUID = Field(..., description="Collection child flow UUID")
+    asset_id: UUID = Field(..., description="Asset UUID that changed")
+    changed_field: str = Field(..., description="Field that changed")
+    new_value: Any = Field(..., description="New value of the field")
+    old_value: Optional[Any] = Field(None, description="Previous value (optional)")
+
+    # Alias for backward compatibility
+    @property
+    def changed_asset_id(self) -> UUID:
+        """Alias for asset_id."""
+        return self.asset_id
 
 
 class DependencyChangeResponse(BaseModel):
     """Response from dependency change handling."""
 
-    reopened_question_ids: List[str]
-    reason: str
-    affected_assets: List[UUID] = Field(default_factory=list)
+    changed_field: str = Field(..., description="Field that changed")
+    old_value: Optional[Any] = Field(None, description="Previous value")
+    new_value: Any = Field(..., description="New value")
+    reopened_question_ids: List[str] = Field(
+        default_factory=list, description="Questions reopened due to change"
+    )
+    reason: Optional[str] = Field(None, description="Reason for reopening")
+    affected_assets: List[UUID] = Field(
+        default_factory=list, description="Other assets affected"
+    )
