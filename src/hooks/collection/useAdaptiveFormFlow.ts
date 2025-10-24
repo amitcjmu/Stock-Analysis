@@ -66,6 +66,9 @@ import type { CollectionFormData } from "@/components/collection/types";
 // Import auth context
 import { useAuth } from "@/contexts/AuthContext";
 
+// Import applications hook for UUID-to-name resolution
+import { useApplications } from "@/hooks/useApplications";
+
 /**
  * Main adaptive form flow hook - now composed from modular hooks
  * CRITICAL: 100% backward compatible with original implementation
@@ -83,6 +86,9 @@ export const useAdaptiveFormFlow = (
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { setCurrentFlow, user } = useAuth();
+
+  // Get applications list for UUID-to-name resolution in form data
+  const { applications } = useApplications();
 
   // CRITICAL FIX: Single source of truth for flow ID
   // Get flow ID from URL params or options - this is our primary source
@@ -204,6 +210,7 @@ export const useAdaptiveFormFlow = (
           const adaptiveFormData = convertQuestionnairesToFormData(
             questionnaires[0],
             applicationId,
+            applications // FIX: Pass applications for UUID-to-name lookup
           );
 
           if (validateFormDataStructure(adaptiveFormData)) {
@@ -251,7 +258,7 @@ export const useAdaptiveFormFlow = (
           console.error('Failed to convert questionnaire:', error);
         }
       }
-    }, [applicationId, toast, state.flowId, setState]),
+    }, [applicationId, applications, toast, state.flowId, setState]),
     onFallback: useCallback(async (questionnaires: CollectionQuestionnaire[]) => {
       console.log('⚠️ Using fallback questionnaire from new polling hook:', questionnaires);
 
@@ -261,6 +268,7 @@ export const useAdaptiveFormFlow = (
           const adaptiveFormData = convertQuestionnairesToFormData(
             questionnaires[0],
             applicationId,
+            applications // FIX: Pass applications for UUID-to-name lookup
           );
 
           // CRITICAL FIX: Fetch saved responses from database for fallback questionnaire too
@@ -323,7 +331,7 @@ export const useAdaptiveFormFlow = (
           variant: "default",
         });
       }
-    }, [applicationId, toast, state.flowId, setState]),
+    }, [applicationId, applications, toast, state.flowId, setState]),
     onFailed: useCallback((errorMessage: string) => {
       console.error('❌ Questionnaire generation failed:', errorMessage);
       // Enhanced error handling with retry capabilities
@@ -442,6 +450,7 @@ export const useAdaptiveFormFlow = (
         const adaptiveFormData = convertQuestionnairesToFormData(
           questionnaires[0],
           applicationId,
+          applications // FIX: Pass applications for UUID-to-name lookup
         );
 
         if (validateFormDataStructure(adaptiveFormData)) {
@@ -481,7 +490,7 @@ export const useAdaptiveFormFlow = (
         variant: "destructive",
       });
     }
-  }, [state.flowId, applicationId, toast, setState]);
+  }, [state.flowId, applicationId, applications, toast, setState]);
 
   // Track if we've attempted initialization for this flowId
   const [hasAttemptedInit, setHasAttemptedInit] = useState<string | null>(null);

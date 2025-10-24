@@ -265,6 +265,18 @@ class CollectionTransitionService:
                 f"{len(canonical_app_ids)} canonical applications from collection flow"
             )
 
+            # Bug #763 Fix - Enrich canonical_applications with data from assets
+            enrichment_stats = await self._enrich_canonical_applications(
+                canonical_app_ids=canonical_app_ids,
+                dedup_results=dedup_results,
+                collection_flow=collection_flow,
+            )
+
+            logger.info(
+                f"✅ Enriched {enrichment_stats['enriched']} of {enrichment_stats['total']} "
+                f"canonical applications with asset data"
+            )
+
             # Bug #630 Fix - STEP 1: Create master flow first
             from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
@@ -446,3 +458,183 @@ class CollectionTransitionService:
             "data_quality": 0.65,
             "confidence_score": 0.6,
         }
+
+    def _build_canonical_to_assets_mapping(
+        self, dedup_results: list
+    ) -> Dict[str, list]:
+        """
+        Build mapping from canonical application IDs to their source asset IDs.
+
+        Args:
+            dedup_results: Deduplication results with canonical_app -> asset mappings
+
+        Returns:
+            Dict mapping canonical_app_id (str) -> list of asset UUIDs
+        """
+        canonical_to_assets = {}
+        for result in dedup_results:
+            can_id = result.get("canonical_application_id")
+            asset_id = result.get("asset_id")
+            if can_id and asset_id:
+                if can_id not in canonical_to_assets:
+                    canonical_to_assets[can_id] = []
+                # Convert asset_id to UUID for query
+                try:
+                    asset_uuid = (
+                        UUID(asset_id) if isinstance(asset_id, str) else asset_id
+                    )
+                    canonical_to_assets[can_id].append(asset_uuid)
+                except (ValueError, TypeError) as e:
+                    logger.warning(
+                        f"Invalid asset_id in dedup_results: {asset_id}: {e}"
+                    )
+
+        logger.info(
+            f"Built mapping for {len(canonical_to_assets)} canonical applications "
+            f"to their source assets"
+        )
+        return canonical_to_assets
+
+    async def _get_source_asset_for_enrichment(
+        self, asset_ids: list
+    ) -> Any:  # Returns Asset or None
+        """
+        Query first available asset for enrichment data with tenant scoping.
+
+        Args:
+            asset_ids: List of asset UUIDs to query
+
+        Returns:
+            Asset model instance or None if not found
+        """
+        from app.models.asset import Asset
+
+        asset_query = select(Asset).where(
+            Asset.id.in_(asset_ids),
+            Asset.client_account_id == self.context.client_account_id,
+            Asset.engagement_id == self.context.engagement_id,
+        )
+        asset_query = asset_query.limit(1)
+
+        asset_result = await self.db.execute(asset_query)
+        return asset_result.scalar_one_or_none()
+
+    def _apply_enrichment_data(
+        self, canonical_app: Any, asset: Any
+    ) -> bool:  # canonical_app: CanonicalApplication, asset: Asset
+        """
+        Copy enrichment data from asset to canonical application (defensive - don't overwrite).
+
+        Args:
+            canonical_app: CanonicalApplication instance to enrich
+            asset: Source Asset with enrichment data
+
+        Returns:
+            True if any field was enriched, False otherwise
+        """
+        enriched = False
+
+        if asset.criticality and not canonical_app.business_criticality:
+            canonical_app.business_criticality = asset.criticality
+            enriched = True
+
+        if asset.description and not canonical_app.description:
+            canonical_app.description = asset.description
+            enriched = True
+
+        if asset.technology_stack and not canonical_app.technology_stack:
+            # Convert string to JSONB if needed
+            if isinstance(asset.technology_stack, str):
+                canonical_app.technology_stack = {"stack": asset.technology_stack}
+            else:
+                canonical_app.technology_stack = asset.technology_stack
+            enriched = True
+
+        return enriched
+
+    async def _enrich_canonical_applications(
+        self,
+        canonical_app_ids: list,
+        dedup_results: list,
+        collection_flow: CollectionFlow,
+    ) -> Dict[str, int]:
+        """
+        Enrich canonical_applications with data from assets.
+
+        Bug #763 Fix: Maps canonical applications to their source assets and copies
+        enrichment data to prevent assessment agent from spinning due to missing data.
+
+        Enrichment fields:
+        - business_criticality: Copied from assets.criticality
+        - description: Copied from assets.description
+        - technology_stack: Copied from assets.technology_stack (converted to JSONB)
+
+        Args:
+            canonical_app_ids: List of canonical application IDs to enrich
+            dedup_results: Deduplication results mapping canonical apps to assets
+            collection_flow: Source collection flow (for tenant scoping)
+
+        Returns:
+            Dict with enrichment statistics: {'enriched': int, 'total': int}
+        """
+        from app.models.canonical_applications import CanonicalApplication
+
+        enriched_count = 0
+
+        # Build mapping: canonical_app_id -> asset_ids
+        canonical_to_assets = self._build_canonical_to_assets_mapping(dedup_results)
+
+        # Enrich each canonical application
+        for can_id_str in canonical_app_ids:
+            try:
+                can_id = UUID(can_id_str) if isinstance(can_id_str, str) else can_id_str
+
+                # Get canonical application with tenant scoping
+                canonical_app = await self.db.get(CanonicalApplication, can_id)
+                if not canonical_app:
+                    logger.warning(
+                        f"Canonical application {can_id} not found - skipping enrichment"
+                    )
+                    continue
+
+                # Get associated assets
+                asset_ids = canonical_to_assets.get(can_id_str, [])
+                if not asset_ids:
+                    logger.debug(
+                        f"No assets found for canonical application {can_id} - skipping enrichment"
+                    )
+                    continue
+
+                # Get source asset for enrichment
+                asset = await self._get_source_asset_for_enrichment(asset_ids)
+                if not asset:
+                    logger.warning(
+                        f"No accessible assets found for canonical app {can_id} - "
+                        f"tenant scoping may have filtered them"
+                    )
+                    continue
+
+                # Apply enrichment data
+                if self._apply_enrichment_data(canonical_app, asset):
+                    enriched_count += 1
+                    logger.debug(
+                        f"Enriched canonical application {canonical_app.canonical_name} "
+                        f"from asset {asset.name}"
+                    )
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to enrich canonical application {can_id_str}: {e}",
+                    exc_info=True,
+                )
+                # Continue with other applications even if one fails
+                continue
+
+        # Flush changes within transaction (don't commit - parent method handles commit)
+        await self.db.flush()
+
+        logger.info(
+            f"✅ Enrichment complete: {enriched_count}/{len(canonical_app_ids)} applications enriched"
+        )
+
+        return {"enriched": enriched_count, "total": len(canonical_app_ids)}
