@@ -76,6 +76,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   }, []);
   const { toast } = useToast();
   const [gaps, setGaps] = useState<GapRowData[]>([]);
+  const [isLoadingGaps, setIsLoadingGaps] = useState(true); // Bug #757 Fix: Track initial load state
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -100,6 +101,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   useEffect(() => {
     const loadGaps = async () => {
       try {
+        setIsLoadingGaps(true); // Bug #757 Fix: Set loading state
         // First try to fetch existing gaps from database
         const existingGaps = await collectionFlowApi.getGaps(flowId);
 
@@ -116,6 +118,8 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         if (selectedAssetIds.length > 0) {
           handleScanGaps();
         }
+      } finally {
+        setIsLoadingGaps(false); // Bug #757 Fix: Clear loading state
       }
     };
 
@@ -961,8 +965,8 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         </CardContent>
       </Card>
 
-      {/* Completion Section */}
-      {gaps.length === 0 && !isScanning && (
+      {/* Completion Section - Bug #757 Fix: Only show after loading completes */}
+      {gaps.length === 0 && !isScanning && !isLoadingGaps && (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">

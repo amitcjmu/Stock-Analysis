@@ -215,10 +215,11 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     // CRITICAL FIX #326: Validate URL flow_id exists in flowList before trusting it
     // Backend now returns 404 when flow_id doesn't exist - frontend must validate first
     if (urlFlowId) {
-      // Wait for flowList to load before validating
-      if (!flowList) {
-        console.log(`⏳ Waiting for flowList to validate URL flow ID: ${urlFlowId}`);
-        return null; // Return null while loading - will trigger "No Active Flow" state
+      // BUG #761 FIX: Use optimistic UI while loading - trust URL flow ID until proven invalid
+      // Only reject after flow list has loaded AND flow is not found
+      if (!flowList || flowList.length === 0) {
+        console.log(`⏳ Optimistically using URL flow ID while list loads: ${urlFlowId}`);
+        return urlFlowId; // Optimistic: trust URL until list loads
       }
 
       // Check if URL flow_id exists in user's flow list
