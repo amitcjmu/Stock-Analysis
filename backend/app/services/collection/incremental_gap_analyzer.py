@@ -16,12 +16,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.collection_flow import AdaptiveQuestionnaire
 from app.repositories.context_aware_repository import ContextAwareRepository
+from app.schemas.collection import (
+    GapAnalysisResponse,
+    GapDetail,
+    ProgressMetrics,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class GapAnalysisResults:
-    """Results from incremental gap analysis."""
+    """Results from bulk incremental gap analysis (multiple assets)."""
 
     def __init__(
         self,
@@ -83,6 +88,101 @@ class IncrementalGapAnalyzer:
         # Context-aware repositories
         self.questionnaire_repo = ContextAwareRepository(
             db, AdaptiveQuestionnaire, context
+        )
+
+    async def analyze_gaps(
+        self,
+        child_flow_id: UUID,
+        asset_id: UUID,
+        mode: str = "fast",
+        critical_only: bool = False,
+    ) -> GapAnalysisResponse:
+        """
+        Analyze gaps for a single asset.
+
+        Args:
+            child_flow_id: Collection child flow UUID
+            asset_id: Asset UUID to analyze
+            mode: "fast" or "thorough" analysis
+            critical_only: If True, only return critical gaps
+
+        Returns:
+            Gap analysis response with progress metrics
+        """
+        # Get questionnaire for this asset
+        questionnaires = await self.questionnaire_repo.get_by_filters(
+            child_flow_id=child_flow_id,
+            asset_id=asset_id,
+        )
+
+        if not questionnaires:
+            # No questionnaire - all questions are gaps
+            return GapAnalysisResponse(
+                asset_id=str(asset_id),
+                child_flow_id=str(child_flow_id),
+                analysis_mode=mode,
+                total_gaps=0,
+                critical_gaps=0,
+                gaps=[],
+                progress_metrics=ProgressMetrics(
+                    total_questions=0,
+                    answered_questions=0,
+                    unanswered_questions=0,
+                    total_weight=0,
+                    answered_weight=0,
+                    completion_percent=0,
+                ),
+            )
+
+        questionnaire = questionnaires[0]
+
+        # Identify gaps
+        gaps = await self._identify_gaps(questionnaire)
+
+        # Filter critical-only if requested
+        if critical_only:
+            gaps = [g for g in gaps if g.get("is_critical", False)]
+
+        # Convert to GapDetail objects
+        gap_details = [
+            GapDetail(
+                question_id=g["question_id"],
+                question_text=g.get("question_text", ""),
+                section=g.get("section", "Unknown"),
+                weight=g.get("weight", 40),
+                is_critical=g.get("is_critical", False),
+                depends_on=g.get("depends_on") if mode == "thorough" else None,
+            )
+            for g in gaps
+        ]
+
+        # Calculate progress metrics
+        total_questions = len(questionnaire.closed_questions or []) + len(gaps)
+        answered_questions = len(questionnaire.closed_questions or [])
+        unanswered_questions = len(gaps)
+
+        # Weight-based calculation (default weight = 40)
+        answered_weight = answered_questions * 40
+        total_weight = total_questions * 40
+        completion_percent = (
+            int((answered_weight / total_weight) * 100) if total_weight > 0 else 0
+        )
+
+        return GapAnalysisResponse(
+            asset_id=str(asset_id),
+            child_flow_id=str(child_flow_id),
+            analysis_mode=mode,
+            total_gaps=len(gap_details),
+            critical_gaps=sum(1 for g in gap_details if g.is_critical),
+            gaps=gap_details,
+            progress_metrics=ProgressMetrics(
+                total_questions=total_questions,
+                answered_questions=answered_questions,
+                unanswered_questions=unanswered_questions,
+                total_weight=total_weight,
+                answered_weight=answered_weight,
+                completion_percent=completion_percent,
+            ),
         )
 
     async def recalculate_incremental(

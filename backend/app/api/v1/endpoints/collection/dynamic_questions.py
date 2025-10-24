@@ -16,7 +16,6 @@ from app.schemas.collection import (
     DependencyChangeResponse,
     DynamicQuestionsRequest,
     DynamicQuestionsResponse,
-    QuestionDetail,
 )
 from app.services.collection.dynamic_question_engine import DynamicQuestionEngine
 
@@ -40,6 +39,7 @@ async def get_filtered_questions(
     try:
         service = DynamicQuestionEngine(db=db, context=context)
 
+        # Service now returns Pydantic model directly
         result = await service.get_filtered_questions(
             child_flow_id=request.child_flow_id,
             asset_id=request.asset_id,
@@ -48,15 +48,7 @@ async def get_filtered_questions(
             refresh_agent_analysis=request.refresh_agent_analysis,
         )
 
-        # Convert to Pydantic models
-        questions = [QuestionDetail(**q) for q in result.questions]
-
-        return DynamicQuestionsResponse(
-            questions=questions,
-            agent_status=result.agent_status,
-            fallback_used=result.fallback_used,
-            total_questions=len(questions),
-        )
+        return result
 
     except Exception as e:
         logger.error(f"❌ Failed to get filtered questions: {e}", exc_info=True)
@@ -78,18 +70,15 @@ async def handle_dependency_change(
     try:
         service = DynamicQuestionEngine(db=db, context=context)
 
-        reopened_ids = await service.handle_dependency_change(
+        # Service now returns Pydantic model directly
+        result = await service.handle_dependency_change(
             changed_asset_id=request.changed_asset_id,
             changed_field=request.changed_field,
             old_value=request.old_value,
             new_value=request.new_value,
         )
 
-        return DependencyChangeResponse(
-            reopened_question_ids=reopened_ids,
-            reason=f"{request.changed_field} changed from {request.old_value} to {request.new_value}",
-            affected_assets=[request.changed_asset_id],
-        )
+        return result
 
     except Exception as e:
         logger.error(f"❌ Failed to handle dependency change: {e}", exc_info=True)

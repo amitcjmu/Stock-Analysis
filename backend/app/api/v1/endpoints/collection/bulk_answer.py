@@ -39,18 +39,14 @@ async def preview_bulk_answers(
     try:
         service = CollectionBulkAnswerService(db=db, context=context)
 
+        # Service now returns Pydantic model directly
         preview = await service.preview_bulk_answers(
             child_flow_id=request.child_flow_id,
             asset_ids=request.asset_ids,
             question_ids=request.question_ids,
         )
 
-        return BulkAnswerPreviewResponse(
-            total_assets=preview.total_assets,
-            total_questions=preview.total_questions,
-            potential_conflicts=preview.potential_conflicts,
-            conflicts=preview.conflicts,
-        )
+        return preview
 
     except Exception as e:
         logger.error(f"❌ Bulk answer preview failed: {e}", exc_info=True)
@@ -75,6 +71,7 @@ async def submit_bulk_answers(
         # Convert Pydantic models to dicts for service
         answers = [answer.model_dump() for answer in request.answers]
 
+        # Service now returns Pydantic model directly
         result = await service.submit_bulk_answers(
             child_flow_id=request.child_flow_id,
             asset_ids=request.asset_ids,
@@ -82,13 +79,7 @@ async def submit_bulk_answers(
             conflict_resolution_strategy=request.conflict_resolution_strategy,
         )
 
-        return BulkAnswerSubmitResponse(
-            success=result.success,
-            assets_updated=result.assets_updated,
-            questions_answered=result.questions_answered,
-            updated_questionnaire_ids=result.updated_questionnaire_ids,
-            failed_chunks=result.failed_chunks,
-        )
+        return result
 
     except Exception as e:
         logger.error(f"❌ Bulk answer submission failed: {e}", exc_info=True)

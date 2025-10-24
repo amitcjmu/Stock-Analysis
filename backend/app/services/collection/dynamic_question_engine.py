@@ -19,33 +19,17 @@ from app.models.collection_flow import (
     CollectionAnswerHistory,
 )
 from app.repositories.context_aware_repository import ContextAwareRepository
+from app.schemas.collection import (
+    DynamicQuestionsResponse,
+    DependencyChangeResponse,
+    QuestionDetail,
+)
 from app.services.multi_model_service import multi_model_service, TaskComplexity
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
 
 logger = logging.getLogger(__name__)
-
-
-class FilteredQuestions:
-    """Result from question filtering operation."""
-
-    def __init__(
-        self,
-        questions: List[Dict[str, Any]],
-        agent_status: str,
-        fallback_used: bool,
-    ):
-        self.questions = questions
-        self.agent_status = agent_status
-        self.fallback_used = fallback_used
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "questions": self.questions,
-            "agent_status": self.agent_status,
-            "fallback_used": self.fallback_used,
-        }
 
 
 class DynamicQuestionEngine:
@@ -101,7 +85,7 @@ class DynamicQuestionEngine:
         asset_type: str,
         include_answered: bool = False,
         refresh_agent_analysis: bool = False,
-    ) -> FilteredQuestions:
+    ) -> DynamicQuestionsResponse:
         """
         Return questions applicable to this asset type.
 
@@ -161,10 +145,14 @@ class DynamicQuestionEngine:
                     if q["question_id"] not in questionnaire.closed_questions
                 ]
 
-        return FilteredQuestions(
-            questions=questions,
+        # Convert questions to Pydantic models
+        question_details = [QuestionDetail(**q) for q in questions]
+
+        return DynamicQuestionsResponse(
+            questions=question_details,
             agent_status=agent_status,
             fallback_used=fallback_used,
+            total_questions=len(question_details),
         )
 
     async def handle_dependency_change(
@@ -173,7 +161,7 @@ class DynamicQuestionEngine:
         changed_field: str,
         old_value: Any,
         new_value: Any,
-    ) -> List[str]:
+    ) -> DependencyChangeResponse:
         """
         Detect which questions should reopen due to dependency change.
 
@@ -184,8 +172,10 @@ class DynamicQuestionEngine:
             new_value: New value
 
         Returns:
-            List of question IDs to reopen
+            Response with reopened question IDs and reason
         """
+        reason = f"{changed_field} changed from '{old_value}' to '{new_value}'"
+
         # Check if this is a critical field
         if changed_field in self.CRITICAL_FIELDS:
             # Fallback: Always reopen dependent questions
@@ -193,8 +183,13 @@ class DynamicQuestionEngine:
                 f"🔄 Critical field '{changed_field}' changed on asset {changed_asset_id} "
                 f"from '{old_value}' to '{new_value}' - reopening dependent questions"
             )
-            return await self._reopen_dependent_questions_fallback(
+            reopened_ids = await self._reopen_dependent_questions_fallback(
                 changed_asset_id, changed_field
+            )
+            return DependencyChangeResponse(
+                reopened_question_ids=reopened_ids,
+                reason=f"Critical field change: {reason}",
+                affected_assets=[changed_asset_id],
             )
 
         # Otherwise, use agent analysis
@@ -233,13 +228,22 @@ class DynamicQuestionEngine:
             logger.info(
                 f"✅ Agent analysis identified {len(affected_question_ids)} questions to reopen"
             )
-            return affected_question_ids
+            return DependencyChangeResponse(
+                reopened_question_ids=affected_question_ids,
+                reason=f"Agent-analyzed dependency change: {reason}",
+                affected_assets=[changed_asset_id],
+            )
 
         except Exception as e:
             logger.error(f"❌ Agent dependency analysis failed: {e}")
             # Fallback to critical field logic
-            return await self._reopen_dependent_questions_fallback(
+            reopened_ids = await self._reopen_dependent_questions_fallback(
                 changed_asset_id, changed_field
+            )
+            return DependencyChangeResponse(
+                reopened_question_ids=reopened_ids,
+                reason=f"Fallback after agent error: {reason}",
+                affected_assets=[changed_asset_id],
             )
 
     async def _get_db_questions(self, asset_type: str) -> List[Dict[str, Any]]:

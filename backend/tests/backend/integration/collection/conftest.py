@@ -2,16 +2,23 @@
 Shared fixtures for Collection Flow integration tests.
 """
 
+import os
+from typing import AsyncIterator
+
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 
 
-@pytest.fixture
-async def async_client() -> AsyncClient:
-    """Create async HTTP client for API testing."""
-    from app.main import app
+@pytest_asyncio.fixture
+async def async_client() -> AsyncIterator[AsyncClient]:
+    """Create async HTTP client for API testing.
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    Uses the running Docker backend service for integration testing.
+    """
+    base_url = os.getenv("DOCKER_API_BASE", "http://localhost:8000")
+
+    async with AsyncClient(base_url=base_url, timeout=30.0) as client:
         yield client
 
 

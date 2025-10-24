@@ -43,8 +43,18 @@ def mock_db_session():
 
 @pytest.fixture
 def service(mock_db_session, mock_context):
-    """Create CollectionBulkAnswerService instance."""
-    return CollectionBulkAnswerService(db=mock_db_session, context=mock_context)
+    """Create CollectionBulkAnswerService instance with mocked repositories."""
+    service = CollectionBulkAnswerService(db=mock_db_session, context=mock_context)
+
+    # Mock the repository methods
+    service.questionnaire_repo = AsyncMock()
+    service.questionnaire_repo.get_by_filters = AsyncMock(return_value=[])
+    service.questionnaire_repo.create_no_commit = AsyncMock()
+
+    service.answer_history_repo = AsyncMock()
+    service.answer_history_repo.create_no_commit = AsyncMock()
+
+    return service
 
 
 class TestPreviewBulkAnswers:
@@ -83,16 +93,17 @@ class TestPreviewBulkAnswers:
         # Arrange
         child_flow_id = uuid4()
         asset_ids = [uuid4() for _ in range(5)]
-        question_ids = [uuid4() for _ in range(2)]
+        question_ids = [str(uuid4()) for _ in range(2)]
 
-        # Mock existing answers with different values
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = [
-            (question_ids[0], asset_ids[0], "Value A"),
-            (question_ids[0], asset_ids[1], "Value B"),
-            (question_ids[0], asset_ids[2], "Value A"),
+        # Mock questionnaires with conflicting answers
+        mock_questionnaires = [
+            MagicMock(asset_id=asset_ids[0], answers={question_ids[0]: "Value A"}),
+            MagicMock(asset_id=asset_ids[1], answers={question_ids[0]: "Value B"}),
+            MagicMock(asset_id=asset_ids[2], answers={question_ids[0]: "Value A"}),
         ]
-        mock_db_session.execute.return_value = mock_result
+        service.questionnaire_repo.get_by_filters = AsyncMock(
+            return_value=mock_questionnaires
+        )
 
         # Act
         result = await service.preview_bulk_answers(

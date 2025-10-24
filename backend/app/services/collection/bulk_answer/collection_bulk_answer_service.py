@@ -7,7 +7,7 @@ Per Issue #774 and design doc Section 6.1.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,61 +18,14 @@ from app.models.collection_flow import (
     CollectionAnswerHistory,
 )
 from app.repositories.context_aware_repository import ContextAwareRepository
+from app.schemas.collection import (
+    BulkAnswerPreviewResponse,
+    BulkAnswerSubmitResponse,
+    ChunkError,
+    ConflictDetail,
+)
 
 logger = logging.getLogger(__name__)
-
-
-class BulkAnswerPreview:
-    """Preview data for bulk answer operation."""
-
-    def __init__(
-        self,
-        total_assets: int,
-        total_questions: int,
-        potential_conflicts: int,
-        conflicts: List[Dict[str, Any]],
-    ):
-        self.total_assets = total_assets
-        self.total_questions = total_questions
-        self.potential_conflicts = potential_conflicts
-        self.conflicts = conflicts
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "total_assets": self.total_assets,
-            "total_questions": self.total_questions,
-            "potential_conflicts": self.potential_conflicts,
-            "conflicts": self.conflicts,
-        }
-
-
-class BulkAnswerResult:
-    """Result data for bulk answer operation."""
-
-    def __init__(
-        self,
-        success: bool,
-        assets_updated: int,
-        questions_answered: int,
-        updated_questionnaire_ids: List[UUID],
-        failed_chunks: Optional[List[Dict[str, Any]]] = None,
-    ):
-        self.success = success
-        self.assets_updated = assets_updated
-        self.questions_answered = questions_answered
-        self.updated_questionnaire_ids = updated_questionnaire_ids
-        self.failed_chunks = failed_chunks or []
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "success": self.success,
-            "assets_updated": self.assets_updated,
-            "questions_answered": self.questions_answered,
-            "updated_questionnaire_ids": [
-                str(qid) for qid in self.updated_questionnaire_ids
-            ],
-            "failed_chunks": self.failed_chunks,
-        }
 
 
 class CollectionBulkAnswerService:
@@ -117,7 +70,7 @@ class CollectionBulkAnswerService:
         child_flow_id: UUID,
         asset_ids: List[UUID],
         question_ids: List[str],
-    ) -> BulkAnswerPreview:
+    ) -> BulkAnswerPreviewResponse:
         """
         Analyze existing answers and identify conflicts.
 
@@ -142,14 +95,14 @@ class CollectionBulkAnswerService:
 
             if len(answer_groups) > 1:
                 conflicts.append(
-                    {
-                        "question_id": question_id,
-                        "existing_answers": answer_groups,
-                        "conflict_count": len(answer_groups),
-                    }
+                    ConflictDetail(
+                        question_id=question_id,
+                        existing_answers=answer_groups,
+                        conflict_count=len(answer_groups),
+                    )
                 )
 
-        return BulkAnswerPreview(
+        return BulkAnswerPreviewResponse(
             total_assets=len(asset_ids),
             total_questions=len(question_ids),
             potential_conflicts=len(conflicts),
@@ -162,7 +115,7 @@ class CollectionBulkAnswerService:
         asset_ids: List[UUID],
         answers: List[Dict[str, Any]],
         conflict_resolution_strategy: str = "overwrite",
-    ) -> BulkAnswerResult:
+    ) -> BulkAnswerSubmitResponse:
         """
         Apply bulk answers to multiple assets with conflict resolution.
 
@@ -246,16 +199,16 @@ class CollectionBulkAnswerService:
             except Exception as e:
                 # Record failed chunk with structured error
                 failed_chunks.append(
-                    {
-                        "chunk_index": chunk_idx,
-                        "asset_ids": [str(aid) for aid in asset_chunk],
-                        "error": str(e),
-                        "error_code": "CHUNK_PROCESSING_FAILED",
-                    }
+                    ChunkError(
+                        chunk_index=chunk_idx,
+                        asset_ids=[str(aid) for aid in asset_chunk],
+                        error=str(e),
+                        error_code="CHUNK_PROCESSING_FAILED",
+                    )
                 )
                 logger.error(f"❌ Chunk {chunk_idx} failed: {e}", exc_info=True)
 
-        return BulkAnswerResult(
+        return BulkAnswerSubmitResponse(
             success=len(failed_chunks) == 0,
             assets_updated=len(updated_questionnaires),
             questions_answered=len(answers),
