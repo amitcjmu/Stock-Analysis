@@ -73,7 +73,7 @@ class DiscoveryFlowRepository(UUIDMixin, ContextAwareRepository):
         super().__init__(
             db=db,
             model_class=DiscoveryFlow,
-            client_account_id=str(parsed_client_id),
+            context_or_client_id=str(parsed_client_id),
             engagement_id=str(parsed_engagement_id),
         )
 
