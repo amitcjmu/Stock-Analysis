@@ -14,7 +14,9 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(150)  # File analysis with potential agent calls
+@pytest.mark.timeout(
+    330
+)  # CSV analysis with multiple agent field mapping calls can take 3-5 minutes
 async def test_analyze_csv_file(
     async_client: AsyncClient,
     auth_headers: dict,

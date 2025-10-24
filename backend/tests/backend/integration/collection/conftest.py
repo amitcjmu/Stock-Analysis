@@ -15,11 +15,12 @@ async def async_client() -> AsyncIterator[AsyncClient]:
     """Create async HTTP client for API testing.
 
     Uses the running Docker backend service for integration testing.
-    Timeout set to 180s to accommodate agent LLM calls and file analysis operations.
+    Timeout set to 300s to accommodate agent LLM calls and file analysis operations.
+    Some CSV analysis tests with multiple agent field mapping calls can take 3-5 minutes.
     """
     base_url = os.getenv("DOCKER_API_BASE", "http://localhost:8000")
 
-    async with AsyncClient(base_url=base_url, timeout=180.0) as client:
+    async with AsyncClient(base_url=base_url, timeout=300.0) as client:
         yield client
 
 
