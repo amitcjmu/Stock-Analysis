@@ -58,6 +58,12 @@ export const useDashboardData = () => {
   return useQuery({
     queryKey: ['dashboard-data', user?.id, client?.id, engagement?.id],
     queryFn: async (): Promise<DashboardData> => {
+      // Qodo Suggestion #3: Add defensive null checks for auth context
+      if (!client?.id || !engagement?.id) {
+        console.warn('⚠️ Missing client or engagement context for dashboard data');
+        throw new Error('Missing required authentication context');
+      }
+
       // Fetch discovery flows and latest import in parallel but through React Query
       const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
         // Get active Discovery flows - Updated to unified-discovery as part of API migration
@@ -77,7 +83,8 @@ export const useDashboardData = () => {
       let allFlows: FlowSummary[] = [];
       if (discoveryFlowsResponse.status === 'fulfilled') {
         const flowsData = discoveryFlowsResponse.value;
-        if (Array.isArray(flowsData)) {
+        // Qodo Suggestion #4: Explicit validation that flowsData is an array before mapping
+        if (flowsData && Array.isArray(flowsData)) {
           allFlows = flowsData.map((flow: FlowSummary & Record<string, unknown>) => ({
             flow_id: flow.flow_id,
             status: flow.status,
@@ -88,6 +95,8 @@ export const useDashboardData = () => {
             completion_percentage: flow.completion_percentage || 0,
             error_count: flow.error_count || 0
           }));
+        } else {
+          console.warn('⚠️ Discovery flows response is not an array:', flowsData);
         }
       }
 

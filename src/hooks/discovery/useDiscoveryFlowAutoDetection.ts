@@ -15,6 +15,7 @@ interface DiscoveryFlow {
   data_import_completed?: boolean;
   field_mapping_completed?: boolean;
   data_cleansing_completed?: boolean;
+  asset_inventory_completed?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -147,6 +148,30 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 
       if (fieldMappingCompleteFlow) {
         const flowId = fieldMappingCompleteFlow.flow_id || fieldMappingCompleteFlow.id;
+        return flowId;
+      }
+    }
+
+    // Priority 1.7: For inventory (asset_inventory), check flows that completed data_cleansing
+    if (currentPhase === 'inventory' || currentPhase === 'asset_inventory') {
+      const dataCleansingCompleteFlow = flowList.find((flow: DiscoveryFlow) => {
+        // Check if data_cleansing is completed
+        const dataCleansingCompleted = flow.phases?.data_cleansing === true ||
+                                      flow.data_cleansing_completed === true ||
+                                      flow.current_phase === 'data_cleansing';
+
+        // Check if flow is in a suitable status
+        const isPreferredStatus = preferredStatuses.includes(flow.status);
+
+        // Check if asset_inventory is not yet completed
+        const inventoryNotCompleted = flow.phases?.asset_inventory !== true &&
+                                     flow.asset_inventory_completed !== true;
+
+        return dataCleansingCompleted && isPreferredStatus && inventoryNotCompleted;
+      });
+
+      if (dataCleansingCompleteFlow) {
+        const flowId = dataCleansingCompleteFlow.flow_id || dataCleansingCompleteFlow.id;
         return flowId;
       }
     }
@@ -308,7 +333,7 @@ export const useDataCleansingFlowDetection = (): FlowAutoDetectionResult => {
 export const useInventoryFlowDetection = (): FlowAutoDetectionResult => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'asset_inventory',
-    preferredStatuses: ['running', 'active'],
+    preferredStatuses: ['running', 'active', 'initialized', 'in_progress', 'processing'],
     fallbackToAnyRunning: true
   });
 };
