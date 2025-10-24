@@ -9,6 +9,9 @@ import CollectionPageLayout from "@/components/collection/layout/CollectionPageL
 import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormContainer";
 import { ApplicationSelectionUI } from "@/components/collection/ApplicationSelectionUI";
 import { QuestionnaireReloadButton } from "@/components/collection/QuestionnaireReloadButton";
+// Import PR#790 Adaptive Questionnaire components
+import { BulkImportWizard } from "@/components/collection/BulkImportWizard";
+import { MultiAssetAnswerModal } from "@/components/collection/MultiAssetAnswerModal";
 
 // Import custom hooks
 import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
@@ -75,6 +78,10 @@ const AdaptiveForms: React.FC = () => {
 
   // State for manage flows modal
   const [showManageFlowsModal, setShowManageFlowsModal] = useState(false);
+
+  // PR#790: State for bulk operations modals
+  const [showBulkImportWizard, setShowBulkImportWizard] = useState(false);
+  const [showBulkAnswerModal, setShowBulkAnswerModal] = useState(false);
 
   // DISABLED: Questionnaire generation modal no longer needed (questionnaires generated faster from data gaps)
   const handleQuestionnaireGeneration = React.useCallback(() => {
@@ -644,6 +651,26 @@ const AdaptiveForms: React.FC = () => {
         />
       )}
 
+      {/* PR#790: Bulk Operations Action Bar */}
+      {activeFlowId && (
+        <div className="mb-6 flex gap-3" data-testid="bulk-operations-bar">
+          <button
+            onClick={() => setShowBulkAnswerModal(true)}
+            data-testid="bulk-answer-button"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          >
+            Bulk Answer
+          </button>
+          <button
+            onClick={() => setShowBulkImportWizard(true)}
+            data-testid="bulk-import-button"
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+          >
+            Bulk Import
+          </button>
+        </div>
+      )}
+
       {/* MODULARIZED: Use QuestionnaireDisplay component */}
       <QuestionnaireDisplay
         formData={formData}
@@ -716,6 +743,58 @@ const AdaptiveForms: React.FC = () => {
         onBatchDelete={(flowIds: string[]) => flowIds.forEach(handleDeleteFlow)}
         onViewDetails={handleViewFlowDetails}
       />
+
+      {/* PR#790: Bulk Operations Modals */}
+      {activeFlowId && client?.id && engagement?.id && formData && (
+        <>
+          <BulkImportWizard
+            flow_id={activeFlowId}
+            import_type="application"
+            is_open={showBulkImportWizard}
+            on_close={() => setShowBulkImportWizard(false)}
+            on_success={(rows_imported) => {
+              toast({
+                title: "Import Successful",
+                description: `Successfully imported ${rows_imported} rows`
+              });
+              setShowBulkImportWizard(false);
+              // Refresh the form data
+              queryClient.invalidateQueries({ queryKey: ['collection-flow'] });
+            }}
+          />
+
+          <MultiAssetAnswerModal
+            flow_id={activeFlowId}
+            questions={
+              formData?.sections
+                ? formData.sections.flatMap(section =>
+                    section.fields.map(field => ({
+                      question_id: field.id,
+                      question_text: field.label,
+                      question_type: field.fieldType === 'select' ? 'dropdown' :
+                                    field.fieldType === 'multiselect' ? 'multi_select' : 'text',
+                      answer_options: field.options,
+                      section: section.title,
+                      weight: field.metadata?.weight || 1,
+                      is_required: field.validation?.required || false,
+                      display_order: field.metadata?.display_order
+                    }))
+                  )
+                : []
+            }
+            is_open={showBulkAnswerModal}
+            on_close={() => setShowBulkAnswerModal(false)}
+            on_success={(updated_count) => {
+              toast({
+                title: "Bulk Answer Successful",
+                description: `Successfully updated ${updated_count} assets`
+              });
+              setShowBulkAnswerModal(false);
+              queryClient.invalidateQueries({ queryKey: ['collection-flow'] });
+            }}
+          />
+        </>
+      )}
     </CollectionPageLayout>
   );
 };

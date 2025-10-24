@@ -3,8 +3,8 @@ Gap Detection Logic - Identifies missing critical attributes.
 
 Handles asset-type-specific attribute checking and questionnaire response validation.
 
-PHASE 2 (Bug #679): Checks enriched asset data from Applications, Servers, Databases tables
-before generating gaps.
+PHASE 2 (Bug #679): Checks enriched asset data from unified assets table and canonical_applications
+before generating gaps. Queries assets table with asset_type filters (server, database, application).
 """
 
 import logging
@@ -14,12 +14,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.asset import Asset
 from app.models.canonical_applications import CanonicalApplication
 from app.models.collection_questionnaire_response import (
     CollectionQuestionnaireResponse,
 )
-from app.models.database import Database
-from app.models.server import Server
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +71,9 @@ async def get_enriched_asset_data(
     db: AsyncSession,
 ) -> Optional[Dict[str, Any]]:
     """
-    Query enriched asset data from specialized tables (Applications, Servers, Databases).
+    Query enriched asset data from unified assets table and canonical_applications.
 
-    PHASE 2 (Bug #679): Check if asset has already been enriched in specialized tables.
+    PHASE 2 (Bug #679): Check if asset has already been enriched in asset tables.
     These tables contain additional data populated from:
     - Prior collection workflows
     - CMDB discovery
@@ -92,37 +91,44 @@ async def get_enriched_asset_data(
     Examples:
         For application asset:
         {
-            'technology_stack': {'languages': ['Python', 'JavaScript']},
+            'technology_stack': 'Python, JavaScript',
             'business_criticality': 'High',
             'description': 'Customer portal application'
         }
     """
     asset_type_lower = asset_type.lower() if asset_type else ""
 
-    # Map asset type to corresponding enrichment table
+    # For applications, check CanonicalApplication table for deduplication data
     if asset_type_lower == "application":
+        # First try CanonicalApplication for enriched metadata
         stmt = select(CanonicalApplication).where(CanonicalApplication.id == asset_id)
         result = await db.execute(stmt)
-        enriched = result.scalar_one_or_none()
+        canonical_app = result.scalar_one_or_none()
 
-        if enriched:
+        if canonical_app:
             logger.debug(
-                f"✓ Found enriched application data for asset {asset_id}: "
-                f"tech_stack={enriched.technology_stack}, "
-                f"criticality={enriched.business_criticality}"
+                f"✓ Found canonical application data for asset {asset_id}: "
+                f"tech_stack={canonical_app.technology_stack}, "
+                f"criticality={canonical_app.business_criticality}"
             )
             return {
-                "technology_stack": enriched.technology_stack,
-                "business_criticality": enriched.business_criticality,
-                "description": enriched.description,
+                "technology_stack": canonical_app.technology_stack,
+                "business_criticality": canonical_app.business_criticality,
+                "description": canonical_app.description,
             }
 
-    elif asset_type_lower == "server":
-        stmt = select(Server).where(Server.id == asset_id)
-        result = await db.execute(stmt)
-        enriched = result.scalar_one_or_none()
+    # For all asset types (including applications if not in CanonicalApplication),
+    # query unified assets table with asset_type filter
+    stmt = select(Asset).where(
+        Asset.id == asset_id,
+        Asset.asset_type.ilike(asset_type_lower),
+    )
+    result = await db.execute(stmt)
+    enriched = result.scalar_one_or_none()
 
-        if enriched:
+    if enriched:
+        # Extract asset-type-specific enriched fields
+        if asset_type_lower == "server":
             logger.debug(
                 f"✓ Found enriched server data for asset {asset_id}: "
                 f"os={enriched.operating_system}, cpu={enriched.cpu_cores}, "
@@ -137,23 +143,40 @@ async def get_enriched_asset_data(
                 "hostname": enriched.hostname,
                 "ip_address": enriched.ip_address,
             }
-
-    elif asset_type_lower == "database":
-        stmt = select(Database).where(Database.id == asset_id)
-        result = await db.execute(stmt)
-        enriched = result.scalar_one_or_none()
-
-        if enriched:
+        elif asset_type_lower == "database":
             logger.debug(
                 f"✓ Found enriched database data for asset {asset_id}: "
-                f"type={enriched.database_type}, version={enriched.version}, "
-                f"size={enriched.size_gb}GB"
+                f"tech_stack={enriched.technology_stack}, version={enriched.os_version}, "
+                f"size={enriched.storage_gb}GB"
             )
             return {
-                "database_type": enriched.database_type,
-                "version": enriched.version,
-                "size_gb": enriched.size_gb,
-                "business_criticality": enriched.criticality,  # Map to consistent field name
+                "database_type": enriched.technology_stack,  # Database type stored in technology_stack
+                "version": enriched.os_version,  # Database version stored in os_version
+                "size_gb": enriched.storage_gb,
+                "business_criticality": enriched.business_criticality
+                or enriched.criticality,
+            }
+        elif asset_type_lower == "application":
+            logger.debug(
+                f"✓ Found enriched application data for asset {asset_id}: "
+                f"tech_stack={enriched.technology_stack}, "
+                f"criticality={enriched.business_criticality}"
+            )
+            return {
+                "technology_stack": enriched.technology_stack,
+                "business_criticality": enriched.business_criticality,
+                "description": enriched.description,
+            }
+        else:
+            # Generic enriched data for other asset types
+            logger.debug(
+                f"✓ Found enriched data for asset {asset_id} (type: {asset_type_lower})"
+            )
+            return {
+                "description": enriched.description,
+                "environment": enriched.environment,
+                "business_owner": enriched.business_owner,
+                "technical_owner": enriched.technical_owner,
             }
 
     logger.debug(
@@ -173,11 +196,11 @@ async def identify_gaps_for_asset(  # noqa: C901
     Identify missing critical attributes for a single asset.
 
     PHASE 1 (Bug #679): Checks questionnaire responses to avoid re-asking questions.
-    PHASE 2 (Bug #679): Checks enriched asset data from specialized tables
-                        (Applications, Servers, Databases) before generating gaps.
+    PHASE 2 (Bug #679): Checks enriched asset data from unified assets table
+                        (queried by asset_type filter) before generating gaps.
 
     Note: Complexity is high (C901) due to comprehensive gap detection logic
-    that checks multiple data sources (enriched tables, Asset fields,
+    that checks multiple data sources (unified assets table, Asset fields,
     questionnaire responses). This is intentional and necessary for Bug #679 fix.
 
     Args:
@@ -192,7 +215,7 @@ async def identify_gaps_for_asset(  # noqa: C901
     """
     gaps = []
 
-    # PHASE 2 (Bug #679): Get enriched asset data from specialized tables
+    # PHASE 2 (Bug #679): Get enriched asset data from unified assets table
     enriched_data = await get_enriched_asset_data(asset.id, asset_type, db)
 
     for attr_name, attr_config in attribute_mapping.items():
