@@ -138,63 +138,52 @@ class CollectionBulkAnswerService:
         failed_chunks = []
 
         # Process in chunks
+        # NOTE: Transaction managed by FastAPI dependency - DO NOT start nested transaction
         for chunk_idx, asset_chunk in enumerate(
             self._chunks(asset_ids, self.CHUNK_SIZE)
         ):
             try:
-                async with self.db.begin():  # Atomic transaction per chunk
-                    chunk_results = []
+                chunk_results = []
 
-                    for asset_id in asset_chunk:
-                        # Get or create questionnaire for this asset
-                        questionnaire = await self._get_or_create_questionnaire(
-                            child_flow_id, asset_id
+                for asset_id in asset_chunk:
+                    # Get or create questionnaire for this asset
+                    questionnaire = await self._get_or_create_questionnaire(
+                        child_flow_id, asset_id
+                    )
+
+                    for answer in answers:
+                        # Apply conflict resolution strategy
+                        should_apply = await self._should_apply_answer(
+                            questionnaire,
+                            answer,
+                            conflict_resolution_strategy,
                         )
 
-                        for answer in answers:
-                            # Apply conflict resolution strategy
-                            should_apply = await self._should_apply_answer(
-                                questionnaire,
-                                answer,
-                                conflict_resolution_strategy,
+                        if should_apply:
+                            # Update responses_collected JSONB (actual model attribute)
+                            if questionnaire.responses_collected is None:
+                                questionnaire.responses_collected = {}
+                            questionnaire.responses_collected[answer["question_id"]] = (
+                                answer["answer_value"]
                             )
 
-                            if should_apply:
-                                # Update answers JSONB
-                                if questionnaire.answers is None:
-                                    questionnaire.answers = {}
-                                questionnaire.answers[answer["question_id"]] = answer[
-                                    "answer_value"
-                                ]
+                            # Record history
+                            await self._record_answer_history(
+                                questionnaire.id,
+                                asset_id,
+                                answer,
+                                source="bulk_answer_modal",
+                            )
 
-                                # Add to closed_questions
-                                if questionnaire.closed_questions is None:
-                                    questionnaire.closed_questions = []
-                                if (
-                                    answer["question_id"]
-                                    not in questionnaire.closed_questions
-                                ):
-                                    questionnaire.closed_questions.append(
-                                        answer["question_id"]
-                                    )
+                    # Update timestamp
+                    questionnaire.last_bulk_update_at = datetime.utcnow()
 
-                                # Record history
-                                await self._record_answer_history(
-                                    questionnaire.id,
-                                    asset_id,
-                                    answer,
-                                    source="bulk_answer_modal",
-                                )
+                    chunk_results.append(questionnaire.id)
 
-                        # Update timestamp
-                        questionnaire.last_bulk_update_at = datetime.utcnow()
-
-                        chunk_results.append(questionnaire.id)
-
-                    updated_questionnaires.extend(chunk_results)
-                    logger.info(
-                        f"✅ Chunk {chunk_idx}: Updated {len(chunk_results)} questionnaires"
-                    )
+                updated_questionnaires.extend(chunk_results)
+                logger.info(
+                    f"✅ Chunk {chunk_idx}: Updated {len(chunk_results)} questionnaires"
+                )
 
             except Exception as e:
                 # Record failed chunk with structured error
@@ -210,8 +199,10 @@ class CollectionBulkAnswerService:
 
         return BulkAnswerSubmitResponse(
             success=len(failed_chunks) == 0,
+            total_assets=len(asset_ids),
             assets_updated=len(updated_questionnaires),
             questions_answered=len(answers),
+            conflict_strategy=conflict_resolution_strategy,
             updated_questionnaire_ids=updated_questionnaires,
             failed_chunks=failed_chunks,
         )
@@ -230,11 +221,12 @@ class CollectionBulkAnswerService:
 
         existing_answers = []
         for q in questionnaires:
-            if q.answers and question_id in q.answers:
+            # Use responses_collected (JSONB dict) instead of answers
+            if q.responses_collected and question_id in q.responses_collected:
                 existing_answers.append(
                     {
                         "asset_id": q.asset_id,
-                        "answer_value": q.answers[question_id],
+                        "answer_value": q.responses_collected[question_id],
                     }
                 )
 
@@ -271,13 +263,13 @@ class CollectionBulkAnswerService:
         if questionnaires:
             return questionnaires[0]
 
-        # Create new questionnaire
+        # Create new questionnaire with minimal required fields
+        # Other fields will be populated by the questionnaire generation service
         return await self.questionnaire_repo.create_no_commit(
             child_flow_id=child_flow_id,
             asset_id=asset_id,
-            answers={},
-            closed_questions=[],
-            reopened_questions=[],
+            responses_collected={},
+            questions=[],
         )
 
     async def _should_apply_answer(
@@ -290,7 +282,10 @@ class CollectionBulkAnswerService:
         question_id = answer["question_id"]
 
         # If question not yet answered, always apply
-        if not questionnaire.answers or question_id not in questionnaire.answers:
+        if (
+            not questionnaire.responses_collected
+            or question_id not in questionnaire.responses_collected
+        ):
             return True
 
         # Apply strategy
@@ -322,7 +317,7 @@ class CollectionBulkAnswerService:
             answer_source=source,
             changed_by=self.context.user_id,
             changed_at=datetime.utcnow(),
-            metadata={
+            additional_metadata={  # Correct column name
                 "bulk_operation": True,
                 "answer_count": 1,
             },

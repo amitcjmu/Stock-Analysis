@@ -2,6 +2,7 @@
 Pydantic schemas for Collection Bulk Answer operations.
 """
 
+from enum import Enum
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -42,16 +43,35 @@ class BulkAnswerPreviewResponse(BaseModel):
     conflicts: List[ConflictDetail]
 
 
+class ConflictResolutionStrategy(str, Enum):
+    """Valid conflict resolution strategies."""
+
+    OVERWRITE = "overwrite"
+    SKIP = "skip"
+    MERGE = "merge"
+
+
 class BulkAnswerSubmitRequest(BaseModel):
     """Request to submit bulk answers."""
 
     child_flow_id: UUID = Field(..., description="Collection child flow UUID")
     asset_ids: List[UUID] = Field(..., description="List of asset UUIDs to update")
     answers: List[AnswerInput] = Field(..., description="Answers to apply")
-    conflict_resolution_strategy: str = Field(
-        default="overwrite",
+    conflict_resolution_strategy: ConflictResolutionStrategy = Field(
+        default=ConflictResolutionStrategy.OVERWRITE,
         description="How to handle conflicts: overwrite, skip, merge",
     )
+    # Alias for backward compatibility with tests
+    conflict_strategy: Optional[ConflictResolutionStrategy] = Field(
+        None,
+        description="Alias for conflict_resolution_strategy",
+    )
+
+    def __init__(self, **data):
+        # If conflict_strategy is provided but not conflict_resolution_strategy, use it
+        if "conflict_strategy" in data and "conflict_resolution_strategy" not in data:
+            data["conflict_resolution_strategy"] = data["conflict_strategy"]
+        super().__init__(**data)
 
 
 class ChunkError(BaseModel):
@@ -67,7 +87,22 @@ class BulkAnswerSubmitResponse(BaseModel):
     """Response from bulk answer submission."""
 
     success: bool
-    assets_updated: int
+    total_assets: int = Field(..., description="Total number of assets in request")
+    assets_updated: int = Field(
+        ..., description="Number of assets successfully updated"
+    )
+    successful_assets: Optional[int] = Field(
+        None, description="Alias for assets_updated (backward compatibility)"
+    )
     questions_answered: int
+    conflict_strategy: Optional[str] = Field(
+        None, description="Conflict resolution strategy used"
+    )
     updated_questionnaire_ids: List[UUID]
     failed_chunks: Optional[List[ChunkError]] = Field(default_factory=list)
+
+    def __init__(self, **data):
+        # Auto-populate successful_assets from assets_updated if not provided
+        if "successful_assets" not in data and "assets_updated" in data:
+            data["successful_assets"] = data["assets_updated"]
+        super().__init__(**data)

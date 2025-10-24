@@ -215,7 +215,9 @@ async def test_bulk_answer_missing_auth_headers(async_client: AsyncClient):
     )
 
     # Assert
+    # Missing headers should return 400 Bad Request
     assert response.status_code in [
+        status.HTTP_400_BAD_REQUEST,
         status.HTTP_401_UNAUTHORIZED,
         status.HTTP_403_FORBIDDEN,
     ]

@@ -10,6 +10,7 @@ from .bulk_answer_schemas import (
     BulkAnswerSubmitResponse,
     ChunkError,
     ConflictDetail,
+    ConflictResolutionStrategy,
 )
 from .bulk_import_schemas import (
     ConfirmedMapping,
@@ -42,6 +43,7 @@ __all__ = [
     "BulkAnswerSubmitResponse",
     "ChunkError",
     "ConflictDetail",
+    "ConflictResolutionStrategy",
     # Dynamic Questions
     "QuestionDetail",
     "DynamicQuestionsRequest",
