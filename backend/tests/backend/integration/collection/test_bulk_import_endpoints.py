@@ -14,6 +14,7 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(150)  # File analysis with potential agent calls
 async def test_analyze_csv_file(
     async_client: AsyncClient,
     auth_headers: dict,
@@ -47,6 +48,7 @@ async def test_analyze_csv_file(
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(150)  # File analysis with potential agent calls
 async def test_analyze_json_file(
     async_client: AsyncClient,
     auth_headers: dict,
@@ -105,6 +107,7 @@ async def test_analyze_file_invalid_format(
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(150)  # Background task with potential agent calls
 async def test_execute_import_task(
     async_client: AsyncClient,
     auth_headers: dict,
@@ -114,7 +117,7 @@ async def test_execute_import_task(
     payload = {
         "child_flow_id": str(uuid4()),
         "import_batch_id": str(uuid4()),
-        "field_mappings": {
+        "confirmed_mappings": {
             "app_name": "app_01_name",
             "version": "app_02_version",
         },
@@ -136,12 +139,13 @@ async def test_execute_import_task(
         status.HTTP_202_ACCEPTED,
     ]
     result = response.json()
-    assert "task_id" in result
+    assert "id" in result
     assert "status" in result
     assert result["status"] in ["pending", "running"]
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(150)  # Background task with potential agent calls
 async def test_execute_import_with_thorough_mode(
     async_client: AsyncClient,
     auth_headers: dict,
@@ -151,7 +155,7 @@ async def test_execute_import_with_thorough_mode(
     payload = {
         "child_flow_id": str(uuid4()),
         "import_batch_id": str(uuid4()),
-        "field_mappings": {
+        "confirmed_mappings": {
             "server_name": "server_01_name",
         },
         "import_type": "server",

@@ -102,6 +102,7 @@ async def test_get_filtered_questions_with_agent_pruning(
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(150)  # Agent LLM calls can take 20-30s each
 async def test_detect_dependency_change_os_change(
     async_client: AsyncClient,
     auth_headers: dict,
@@ -133,6 +134,7 @@ async def test_detect_dependency_change_os_change(
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(150)  # Agent LLM calls can take 20-30s each
 async def test_detect_dependency_change_no_dependencies(
     async_client: AsyncClient,
     auth_headers: dict,
