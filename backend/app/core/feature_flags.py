@@ -25,6 +25,14 @@ FEATURE_FLAGS: Dict[str, bool] = {
     "collection.gaps.skip_tier3_no_gaps": False,  # Allow TIER_3 to skip when no gaps
     "collection.gaps.conflict_detection": True,  # Enable conflict detection features
     "collection.gaps.advanced_analytics": False,  # Future analytics features
+    # Collection Flow Adaptive Questionnaire features (Issue #768)
+    "collection.adaptive.bulk_answer": True,  # Enable multi-asset bulk answer operations
+    "collection.adaptive.dynamic_questions": True,  # Enable dynamic question filtering
+    "collection.adaptive.bulk_import": True,  # Enable CSV/JSON bulk import
+    "collection.adaptive.gap_analysis": True,  # Enable incremental gap analysis
+    "collection.adaptive.agent_pruning": True,  # Enable AI agent-based question pruning
+    "collection.adaptive.field_mapping": True,  # Enable intelligent field mapping suggestions
+    "collection.adaptive.conflict_resolution": True,  # Enable conflict detection and resolution
     # Other feature flags can be added here
     "experimental.ai_recommendations": False,
     "beta.enhanced_reporting": False,
