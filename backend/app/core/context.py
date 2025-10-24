@@ -120,8 +120,8 @@ def extract_context_from_request(request: Request) -> RequestContext:
 
     flow_id = extract_flow_id(headers)
 
-    # Log extracted values (with ID masking)
-    logger.info(
+    # Log extracted values (with ID masking) - use DEBUG to reduce log noise
+    logger.debug(
         safe_log_format(
             "🔍 Extracted - Client: {client_account_id}, "
             "Engagement: {engagement_id}, User: {user_id}, Flow: {flow_id}",
@@ -138,7 +138,7 @@ def extract_context_from_request(request: Request) -> RequestContext:
         user_id=user_id,
         flow_id=flow_id,
     )
-    logger.info(safe_log_format("🔍 Final context: {context}", context=context))
+    logger.debug(safe_log_format("🔍 Final context: {context}", context=context))
     return context
 
 
