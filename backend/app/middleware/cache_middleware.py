@@ -420,8 +420,8 @@ class CacheInstrumentationMiddleware(BaseHTTPMiddleware):
             )
             span.set_attribute("cache.response_time_ms", elapsed_ms)
 
-            # Log performance metrics
-            if elapsed_ms > 100:  # Log slow requests
+            # Log performance metrics - only log genuinely slow requests (>500ms)
+            if elapsed_ms > 500:  # Increased threshold to reduce noise
                 logger.warning(
                     f"Slow cache operation: {request.method} {request.url.path} "
                     f"took {elapsed_ms:.2f}ms"
