@@ -15,8 +15,7 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_bulk_answer_preview_success(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test successful bulk answer preview with no conflicts."""
     # Arrange
@@ -34,10 +33,7 @@ async def test_bulk_answer_preview_success(
     response = await async_client.post(
         "/api/v1/collection/bulk-answer-preview",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -52,8 +48,7 @@ async def test_bulk_answer_preview_success(
 @pytest.mark.asyncio
 async def test_bulk_answer_preview_with_conflicts(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test bulk answer preview detecting conflicts."""
     # Arrange
@@ -71,10 +66,7 @@ async def test_bulk_answer_preview_with_conflicts(
     response = await async_client.post(
         "/api/v1/collection/bulk-answer-preview",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -87,8 +79,7 @@ async def test_bulk_answer_preview_with_conflicts(
 @pytest.mark.asyncio
 async def test_bulk_answer_preview_invalid_payload(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test bulk answer preview with invalid payload."""
     # Arrange - missing required field
@@ -102,10 +93,7 @@ async def test_bulk_answer_preview_invalid_payload(
     response = await async_client.post(
         "/api/v1/collection/bulk-answer-preview",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -115,8 +103,7 @@ async def test_bulk_answer_preview_invalid_payload(
 @pytest.mark.asyncio
 async def test_bulk_answer_submit_success(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test successful bulk answer submission."""
     # Arrange
@@ -137,10 +124,7 @@ async def test_bulk_answer_submit_success(
     response = await async_client.post(
         "/api/v1/collection/bulk-answer",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -157,8 +141,7 @@ async def test_bulk_answer_submit_success(
 @pytest.mark.asyncio
 async def test_bulk_answer_submit_with_conflicts_skip(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test bulk answer submission with skip conflict strategy."""
     # Arrange
@@ -178,10 +161,7 @@ async def test_bulk_answer_submit_with_conflicts_skip(
     response = await async_client.post(
         "/api/v1/collection/bulk-answer",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -196,8 +176,7 @@ async def test_bulk_answer_submit_with_conflicts_skip(
 @pytest.mark.asyncio
 async def test_bulk_answer_submit_invalid_strategy(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test bulk answer submission with invalid conflict strategy."""
     # Arrange
@@ -212,10 +191,7 @@ async def test_bulk_answer_submit_invalid_strategy(
     response = await async_client.post(
         "/api/v1/collection/bulk-answer",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert

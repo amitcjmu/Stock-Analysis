@@ -14,8 +14,7 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_gap_analysis_fast_mode(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test gap analysis in fast mode."""
     # Arrange
@@ -30,10 +29,7 @@ async def test_gap_analysis_fast_mode(
     response = await async_client.post(
         "/api/v1/collection/gap-analysis",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -52,8 +48,7 @@ async def test_gap_analysis_fast_mode(
 @pytest.mark.asyncio
 async def test_gap_analysis_thorough_mode(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test gap analysis in thorough mode with dependency traversal."""
     # Arrange
@@ -68,10 +63,7 @@ async def test_gap_analysis_thorough_mode(
     response = await async_client.post(
         "/api/v1/collection/gap-analysis",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -89,8 +81,7 @@ async def test_gap_analysis_thorough_mode(
 @pytest.mark.asyncio
 async def test_gap_analysis_critical_only(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test gap analysis filtering for critical gaps only."""
     # Arrange
@@ -105,10 +96,7 @@ async def test_gap_analysis_critical_only(
     response = await async_client.post(
         "/api/v1/collection/gap-analysis",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -122,8 +110,7 @@ async def test_gap_analysis_critical_only(
 @pytest.mark.asyncio
 async def test_gap_analysis_progress_metrics(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test gap analysis includes proper progress metrics."""
     # Arrange
@@ -137,10 +124,7 @@ async def test_gap_analysis_progress_metrics(
     response = await async_client.post(
         "/api/v1/collection/gap-analysis",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -160,8 +144,7 @@ async def test_gap_analysis_progress_metrics(
 @pytest.mark.asyncio
 async def test_gap_analysis_invalid_mode(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test gap analysis with invalid analysis mode."""
     # Arrange
@@ -175,10 +158,7 @@ async def test_gap_analysis_invalid_mode(
     response = await async_client.post(
         "/api/v1/collection/gap-analysis",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -188,8 +168,7 @@ async def test_gap_analysis_invalid_mode(
 @pytest.mark.asyncio
 async def test_gap_analysis_missing_required_fields(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test gap analysis with missing required fields."""
     # Arrange - missing asset_id
@@ -202,10 +181,7 @@ async def test_gap_analysis_missing_required_fields(
     response = await async_client.post(
         "/api/v1/collection/gap-analysis",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -215,8 +191,7 @@ async def test_gap_analysis_missing_required_fields(
 @pytest.mark.asyncio
 async def test_gap_analysis_nonexistent_asset(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test gap analysis for non-existent asset."""
     # Arrange
@@ -230,10 +205,7 @@ async def test_gap_analysis_nonexistent_asset(
     response = await async_client.post(
         "/api/v1/collection/gap-analysis",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert

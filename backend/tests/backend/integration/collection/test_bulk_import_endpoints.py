@@ -16,8 +16,7 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_analyze_csv_file(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test analyzing a CSV file for import."""
     # Arrange
@@ -33,10 +32,7 @@ async def test_analyze_csv_file(
         "/api/v1/collection/bulk-import/analyze",
         files=files,
         data=data,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -53,8 +49,7 @@ async def test_analyze_csv_file(
 @pytest.mark.asyncio
 async def test_analyze_json_file(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test analyzing a JSON file for import."""
     # Arrange
@@ -70,10 +65,7 @@ async def test_analyze_json_file(
         "/api/v1/collection/bulk-import/analyze",
         files=files,
         data=data,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -86,8 +78,7 @@ async def test_analyze_json_file(
 @pytest.mark.asyncio
 async def test_analyze_file_invalid_format(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test analyzing file with invalid format."""
     # Arrange
@@ -103,10 +94,7 @@ async def test_analyze_file_invalid_format(
         "/api/v1/collection/bulk-import/analyze",
         files=files,
         data=data,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -119,8 +107,7 @@ async def test_analyze_file_invalid_format(
 @pytest.mark.asyncio
 async def test_execute_import_task(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test executing import task in background."""
     # Arrange
@@ -140,10 +127,7 @@ async def test_execute_import_task(
     response = await async_client.post(
         "/api/v1/collection/bulk-import/execute",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -160,8 +144,7 @@ async def test_execute_import_task(
 @pytest.mark.asyncio
 async def test_execute_import_with_thorough_mode(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test executing import with thorough gap recalculation."""
     # Arrange
@@ -180,10 +163,7 @@ async def test_execute_import_with_thorough_mode(
     response = await async_client.post(
         "/api/v1/collection/bulk-import/execute",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -196,8 +176,7 @@ async def test_execute_import_with_thorough_mode(
 @pytest.mark.asyncio
 async def test_get_import_task_status_pending(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test getting status of pending import task."""
     # Arrange
@@ -206,10 +185,7 @@ async def test_get_import_task_status_pending(
     # Act
     response = await async_client.get(
         f"/api/v1/collection/bulk-import/status/{task_id}",
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -229,8 +205,7 @@ async def test_get_import_task_status_pending(
 @pytest.mark.asyncio
 async def test_execute_import_missing_mappings(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test executing import without field mappings."""
     # Arrange
@@ -245,10 +220,7 @@ async def test_execute_import_missing_mappings(
     response = await async_client.post(
         "/api/v1/collection/bulk-import/execute",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -258,8 +230,7 @@ async def test_execute_import_missing_mappings(
 @pytest.mark.asyncio
 async def test_get_task_status_invalid_uuid(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test getting task status with invalid UUID."""
     # Arrange
@@ -268,10 +239,7 @@ async def test_get_task_status_invalid_uuid(
     # Act
     response = await async_client.get(
         f"/api/v1/collection/bulk-import/status/{invalid_task_id}",
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert

@@ -156,10 +156,13 @@ class IncrementalGapAnalyzer:
             for g in gaps
         ]
 
-        # Calculate progress metrics
-        total_questions = len(questionnaire.closed_questions or []) + len(gaps)
-        answered_questions = len(questionnaire.closed_questions or [])
-        unanswered_questions = len(gaps)
+        # Calculate progress metrics based on actual questionnaire data
+        # responses_collected is a dict where keys are question_ids
+        total_questions = questionnaire.question_count or len(
+            questionnaire.questions or []
+        )
+        answered_questions = len(questionnaire.responses_collected or {})
+        unanswered_questions = total_questions - answered_questions
 
         # Weight-based calculation (default weight = 40)
         answered_weight = answered_questions * 40
@@ -233,7 +236,8 @@ class IncrementalGapAnalyzer:
             current_gap_ids = set(g["question_id"] for g in current_gaps)
 
             # Get previous gap state
-            previous_gap_ids = set(questionnaire.reopened_questions or [])
+            # TODO: Implement gap tracking - for now, assume no previous gaps
+            previous_gap_ids = set()
 
             # Calculate changes
             newly_closed = previous_gap_ids - current_gap_ids
@@ -330,7 +334,8 @@ class IncrementalGapAnalyzer:
 
             current_gaps = await self._identify_gaps(questionnaire)
             current_gap_ids = set(g["question_id"] for g in current_gaps)
-            previous_gap_ids = set(questionnaire.reopened_questions or [])
+            # TODO: Implement gap tracking - for now, assume no previous gaps
+            previous_gap_ids = set()
 
             newly_closed = previous_gap_ids - current_gap_ids
             newly_opened = current_gap_ids - previous_gap_ids
@@ -373,15 +378,31 @@ class IncrementalGapAnalyzer:
 
         A gap exists when:
         - Question is required
-        - Question is not in closed_questions
-        - Question does not have an answer in answers JSONB
+        - Question is in questionnaire.questions list
+        - Question does not have an answer in questionnaire.responses_collected
         """
         gaps = []
 
-        # Get all required questions for this asset type
-        # In real implementation, would query CollectionQuestionRules
-        # For now, return empty list as placeholder
-        # TODO: Implement actual gap identification logic
+        # Get all questions from questionnaire
+        questions = questionnaire.questions or []
+        responses = questionnaire.responses_collected or {}
+
+        # Identify unanswered questions
+        for question in questions:
+            if isinstance(question, dict):
+                question_id = question.get("id") or question.get("question_id")
+                if question_id and question_id not in responses:
+                    # This question has no answer - it's a gap
+                    gaps.append(
+                        {
+                            "question_id": question_id,
+                            "question_text": question.get("text", ""),
+                            "section": question.get("section", "Unknown"),
+                            "weight": question.get("weight", 40),
+                            "is_critical": question.get("is_critical", False),
+                            "depends_on": question.get("depends_on", []),
+                        }
+                    )
 
         return gaps
 

@@ -38,3 +38,15 @@ def test_engagement_id() -> str:
 def test_user_id() -> str:
     """Standard test user ID."""
     return "test-user-123"
+
+
+@pytest.fixture
+def auth_headers(
+    test_client_account_id: str, test_engagement_id: str, test_user_id: str
+) -> dict:
+    """Standard authentication headers for collection endpoints."""
+    return {
+        "X-Client-Account-ID": test_client_account_id,
+        "X-Engagement-ID": test_engagement_id,
+        "X-User-ID": test_user_id,
+    }

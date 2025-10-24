@@ -15,8 +15,7 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_get_filtered_questions_unanswered_only(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test getting only unanswered questions for an asset."""
     # Arrange
@@ -34,10 +33,7 @@ async def test_get_filtered_questions_unanswered_only(
     response = await async_client.post(
         "/api/v1/collection/questions/filtered",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -53,8 +49,7 @@ async def test_get_filtered_questions_unanswered_only(
 @pytest.mark.asyncio
 async def test_get_filtered_questions_include_answered(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test getting all questions including answered ones."""
     # Arrange
@@ -69,10 +64,7 @@ async def test_get_filtered_questions_include_answered(
     response = await async_client.post(
         "/api/v1/collection/questions/filtered",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -84,8 +76,7 @@ async def test_get_filtered_questions_include_answered(
 @pytest.mark.asyncio
 async def test_get_filtered_questions_with_agent_pruning(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test getting filtered questions with agent-based pruning."""
     # Arrange
@@ -100,10 +91,7 @@ async def test_get_filtered_questions_with_agent_pruning(
     response = await async_client.post(
         "/api/v1/collection/questions/filtered",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -116,8 +104,7 @@ async def test_get_filtered_questions_with_agent_pruning(
 @pytest.mark.asyncio
 async def test_detect_dependency_change_os_change(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test detecting dependency changes when OS changes."""
     # Arrange
@@ -132,10 +119,7 @@ async def test_detect_dependency_change_os_change(
     response = await async_client.post(
         "/api/v1/collection/dependency-change",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -151,8 +135,7 @@ async def test_detect_dependency_change_os_change(
 @pytest.mark.asyncio
 async def test_detect_dependency_change_no_dependencies(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test dependency detection when field has no dependencies."""
     # Arrange
@@ -167,10 +150,7 @@ async def test_detect_dependency_change_no_dependencies(
     response = await async_client.post(
         "/api/v1/collection/dependency-change",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -183,8 +163,7 @@ async def test_detect_dependency_change_no_dependencies(
 @pytest.mark.asyncio
 async def test_filtered_questions_invalid_asset_id(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test filtered questions with invalid asset ID format."""
     # Arrange
@@ -198,10 +177,7 @@ async def test_filtered_questions_invalid_asset_id(
     response = await async_client.post(
         "/api/v1/collection/questions/filtered",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
@@ -211,8 +187,7 @@ async def test_filtered_questions_invalid_asset_id(
 @pytest.mark.asyncio
 async def test_dependency_change_missing_required_field(
     async_client: AsyncClient,
-    test_client_account_id: str,
-    test_engagement_id: str,
+    auth_headers: dict,
 ):
     """Test dependency change with missing required field."""
     # Arrange - missing new_value
@@ -226,10 +201,7 @@ async def test_dependency_change_missing_required_field(
     response = await async_client.post(
         "/api/v1/collection/dependency-change",
         json=payload,
-        headers={
-            "X-Client-Account-ID": test_client_account_id,
-            "X-Engagement-ID": test_engagement_id,
-        },
+        headers=auth_headers,
     )
 
     # Assert
