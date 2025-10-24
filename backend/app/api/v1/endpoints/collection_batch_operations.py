@@ -33,6 +33,7 @@ async def cleanup_flows(
 
         # Build query for expired flows
         conditions = [
+            CollectionFlow.client_account_id == context.client_account_id,
             CollectionFlow.engagement_id == context.engagement_id,
             CollectionFlow.updated_at < cutoff_time,
         ]
@@ -103,6 +104,7 @@ async def batch_delete_flows(
         result = await db.execute(
             select(CollectionFlow)
             .where(CollectionFlow.flow_id.in_(flow_ids))
+            .where(CollectionFlow.client_account_id == context.client_account_id)
             .where(CollectionFlow.engagement_id == context.engagement_id)
             .options(selectinload(CollectionFlow.questionnaire_responses))
         )

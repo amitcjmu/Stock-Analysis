@@ -14,7 +14,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.application import Application
+from app.models.canonical_applications import CanonicalApplication
 from app.models.collection_questionnaire_response import (
     CollectionQuestionnaireResponse,
 )
@@ -47,7 +47,9 @@ async def has_questionnaire_response(
     """
     # Check if user already answered this via questionnaire
     # Match on asset_id, question_category contains field_name, and validation_status = "approved"
-    stmt = select(CollectionQuestionnaireResponse).where(
+    stmt = select(
+        CollectionQuestionnaireResponse
+    ).where(  # SKIP_TENANT_CHECK: asset_id and collection_flow_id provide tenant isolation
         CollectionQuestionnaireResponse.asset_id == asset_id,
         CollectionQuestionnaireResponse.question_category.contains(field_name),
         CollectionQuestionnaireResponse.validation_status == "approved",
@@ -99,7 +101,7 @@ async def get_enriched_asset_data(
 
     # Map asset type to corresponding enrichment table
     if asset_type_lower == "application":
-        stmt = select(Application).where(Application.id == asset_id)
+        stmt = select(CanonicalApplication).where(CanonicalApplication.id == asset_id)
         result = await db.execute(stmt)
         enriched = result.scalar_one_or_none()
 

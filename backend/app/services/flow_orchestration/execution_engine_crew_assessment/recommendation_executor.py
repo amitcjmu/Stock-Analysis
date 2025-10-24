@@ -88,7 +88,13 @@ Return results as valid JSON with keys: migration_strategy, wave_plan, moderniza
 
             # Convert context dict to JSON string (CrewAI expects string context)
             context_str = json.dumps(crew_inputs)
-            result = await task.execute_async(context=context_str)
+
+            # CRITICAL FIX: task.execute_async() returns concurrent.futures.Future (threading)
+            # Must use asyncio.wrap_future() to convert to awaitable asyncio.Future
+            import asyncio
+
+            future = task.execute_async(context=context_str)
+            result = await asyncio.wrap_future(future)
 
             execution_time = time.time() - start_time
 

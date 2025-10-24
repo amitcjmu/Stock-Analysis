@@ -87,12 +87,16 @@ export function useSubmitHandler({
         assetId = data.asset_id;
       }
 
+      // Use extracted asset_id from formData if available (from question metadata)
+      // This takes precedence over the prop applicationId to ensure correct backend linkage
+      const finalApplicationId = state.formData?.applicationId || applicationId;
+
       // CRITICAL FIX (Issue #692): Add save_type to mark questionnaire as completed
       const submissionData = {
         responses: data,
         form_metadata: {
           form_id: state.formData?.formId,
-          application_id: applicationId,
+          application_id: finalApplicationId,
           ...(assetId ? { asset_id: assetId } : {}), // Only include when a single ID is present
           completion_percentage: completionPercentage,
           confidence_score: state.validation?.overallConfidenceScore,
@@ -269,9 +273,14 @@ export function useSubmitHandler({
                 `📝 Loading next questionnaire: ${nextQuestionnaire.id}`,
               );
 
-              // Convert the questionnaire to form data format
+              // Fetch flow details to get applications array for UUID-based lookup
+              const flowDetails = await collectionFlowApi.getFlowDetails(actualFlowId);
+              const applications = flowDetails?.applications || [];
+              console.log(`📋 Fetched ${applications.length} applications for UUID lookup`);
+
+              // Convert the questionnaire to form data format with applications array
               const nextFormData =
-                convertQuestionnaireToFormData(nextQuestionnaire);
+                convertQuestionnaireToFormData(nextQuestionnaire, null, applications);
 
               // CRITICAL FIX: Fetch saved responses from API instead of extracting from questionnaire object
               // Responses are stored in collection_questionnaire_responses table, not in the questionnaire

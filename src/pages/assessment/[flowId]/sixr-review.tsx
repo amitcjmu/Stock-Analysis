@@ -18,7 +18,8 @@ const SixRReviewPage: React.FC = () => {
   const {
     state,
     updateSixRDecision,
-    resumeFlow
+    resumeFlow,
+    refreshStatus
   } = useAssessmentFlow(flowId);
 
   // Guard: redirect to overview if flowId missing
@@ -152,7 +153,22 @@ const SixRReviewPage: React.FC = () => {
         </div>
 
         {/* Status Alert */}
-        <SixRStatusAlert status={state.status} error={state.error} />
+        <SixRStatusAlert
+          status={state.status}
+          error={state.error}
+          onRefresh={async () => {
+            console.log('🔄 Manual refresh requested - checking agent completion status...');
+            await refreshStatus();
+            // After refresh, check if phase changed (agent completed)
+            // If phase changed from component_sixr_strategies, navigate to next phase
+            if (state.currentPhase !== 'component_sixr_strategies') {
+              console.log('✅ Phase changed to:', state.currentPhase, '- navigating to app-on-page');
+              window.location.href = `/assessment/${flowId}/app-on-page`;
+            } else {
+              console.log('⏳ Agent still processing, phase unchanged:', state.currentPhase);
+            }
+          }}
+        />
 
         {/* Overall Statistics */}
         <SixROverallStats statistics={overallStats} />

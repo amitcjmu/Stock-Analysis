@@ -190,6 +190,16 @@ repos:
         stages: [pre-commit]
         description: "Block imports from archive/, direct Crew() usage, and crew_class (ADR-015, ADR-024, ADR-025)"
 
+      # Tenant Filter Security Check - Enforce multi-tenant query scoping
+      - id: check-tenant-filters
+        name: Check for missing multi-tenant filters in database queries
+        entry: /opt/homebrew/bin/python3.12 backend/scripts/check_tenant_filters.py
+        language: system
+        files: ^backend/app/.*\.py$
+        pass_filenames: true
+        stages: [pre-commit]
+        description: "Ensure all database queries include client_account_id and engagement_id filters"
+
 # Exclude patterns
 exclude: |
   (?x)^(

@@ -60,14 +60,33 @@ class PhaseResultsPersistence:
             RuntimeError: If save operation fails
         """
         try:
-            # Get current phase_results with tenant scoping
-            stmt = select(AssessmentFlow.phase_results).where(
-                AssessmentFlow.id == UUID(flow_id),
-                AssessmentFlow.client_account_id == self.client_account_id,
-                AssessmentFlow.engagement_id == self.engagement_id,
-            )
-            result = await self.db.execute(stmt)
-            current_phase_results = result.scalar_one_or_none()
+            # Ensure transaction is in clean state before attempting query
+            # Previous queries (e.g., missing servers table) may have aborted transaction
+            try:
+                # Get current phase_results with tenant scoping
+                stmt = select(AssessmentFlow.phase_results).where(
+                    AssessmentFlow.id == UUID(flow_id),
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                    AssessmentFlow.engagement_id == self.engagement_id,
+                )
+                result = await self.db.execute(stmt)
+                current_phase_results = result.scalar_one_or_none()
+            except Exception as e:
+                # If transaction is aborted, rollback and retry
+                logger.warning(
+                    f"Transaction aborted during phase results fetch (likely from "
+                    f"missing table query), rolling back and retrying: {e}"
+                )
+                await self.db.rollback()
+
+                # Retry with clean transaction
+                stmt = select(AssessmentFlow.phase_results).where(
+                    AssessmentFlow.id == UUID(flow_id),
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                    AssessmentFlow.engagement_id == self.engagement_id,
+                )
+                result = await self.db.execute(stmt)
+                current_phase_results = result.scalar_one_or_none()
 
             if current_phase_results is None:
                 # Flow not found or has null phase_results - create initial state

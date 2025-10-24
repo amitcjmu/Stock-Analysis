@@ -39,6 +39,7 @@ async def _validate_collection_flow_for_import(
     flow_result = await db.execute(
         select(CollectionFlow).where(
             CollectionFlow.flow_id == uuid.UUID(flow_id),
+            CollectionFlow.client_account_id == context.client_account_id,
             CollectionFlow.engagement_id == context.engagement_id,
         )
     )

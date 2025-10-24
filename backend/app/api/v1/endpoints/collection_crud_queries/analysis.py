@@ -142,6 +142,7 @@ async def get_collection_readiness(
             select(CollectionFlow).where(
                 CollectionFlow.flow_id
                 == UUID(flow_id),  # Query by flow_id (business ID)
+                CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )

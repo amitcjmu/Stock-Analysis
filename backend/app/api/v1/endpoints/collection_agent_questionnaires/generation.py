@@ -97,7 +97,7 @@ async def generate_questionnaire_with_agent(
         logger.error(f"Agent questionnaire generation failed: {e}")
         try:
             async with AsyncSession(get_db()) as db:
-                await mark_generation_failed(db, flow_id)
+                await mark_generation_failed(db, flow_id, context)
         except Exception:
             pass
 
@@ -293,4 +293,4 @@ async def _save_questionnaire_results(
 
     else:
         logger.warning(f"Agent returned no questionnaire for flow {flow_uuid}")
-        await mark_generation_failed(db, flow_id)
+        await mark_generation_failed(db, flow_id, context)

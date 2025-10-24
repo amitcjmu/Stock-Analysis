@@ -48,6 +48,7 @@ async def get_collection_status(
         result = await db.execute(
             select(CollectionFlow)
             .where(
+                CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
                 CollectionFlow.status.notin_(
                     [
@@ -113,7 +114,7 @@ async def get_collection_flow(
             )
             raise HTTPException(status_code=404, detail="Collection flow not found")
 
-        # Query actual application count from collection_flow_applications table
+        # Query actual application count and list from collection_flow_applications table
         from sqlalchemy import func
         from app.models.canonical_applications.collection_flow_app import (
             CollectionFlowApplication,
@@ -126,6 +127,23 @@ async def get_collection_flow(
         )
         app_count = app_count_result.scalar() or 0
 
+        # Query full application details for UUID-based frontend lookups (Issue #762)
+        apps_result = await db.execute(
+            select(CollectionFlowApplication).where(
+                CollectionFlowApplication.collection_flow_id == collection_flow.flow_id
+            )
+        )
+        applications = apps_result.scalars().all()
+
+        # Build applications list with asset_id and application_name
+        applications_data = [
+            {
+                "asset_id": str(app.asset_id) if app.asset_id else None,
+                "application_name": app.application_name,
+            }
+            for app in applications
+        ]
+
         # Build collection_metrics with actual data
         collection_metrics = {
             "platforms_detected": app_count,
@@ -134,7 +152,9 @@ async def get_collection_flow(
         }
 
         return collection_serializers.serialize_collection_flow(
-            collection_flow, collection_metrics=collection_metrics
+            collection_flow,
+            collection_metrics=collection_metrics,
+            applications=applications_data,
         )
 
     except HTTPException:
