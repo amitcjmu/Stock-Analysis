@@ -216,6 +216,12 @@ def generate_data_quality_question(
         "gap_type": "data_quality",
         "asset_specific": True,
         "asset_id": asset_context.get("asset_id"),
+        "metadata": {
+            "asset_id": asset_context.get("asset_id"),
+            "asset_name": asset_name,
+            "quality_issue": quality_issue,
+            "gap_category": "data_quality_verification",
+        },
     }
 
 
@@ -266,6 +272,8 @@ def generate_dependency_question(
         "asset_specific": True,
         "asset_id": asset_context.get("asset_id"),
         "metadata": {
+            "asset_id": asset_context.get("asset_id"),
+            "asset_name": asset_name,
             "dependency_type": "complexity_assessment",
             "analysis_required": True,
         },
@@ -318,6 +326,11 @@ def generate_generic_technical_question(
         "gap_type": "technical_detail",
         "asset_specific": True,
         "asset_id": asset_context.get("asset_id"),
+        "metadata": {
+            "asset_id": asset_context.get("asset_id"),
+            "asset_name": asset_name,
+            "modernization_readiness": "assessment_required",
+        },
     }
 
 
@@ -360,6 +373,11 @@ def generate_generic_question(
         "gap_type": gap_type,
         "asset_specific": True,
         "asset_id": asset_context.get("asset_id"),
+        "metadata": {
+            "asset_id": asset_context.get("asset_id"),
+            "asset_name": asset_name,
+            "gap_category": gap_type,
+        },
     }
 
 
@@ -397,4 +415,9 @@ def generate_fallback_question(
         "asset_specific": True,
         "asset_id": asset_context.get("asset_id"),
         "help_text": f"Assess overall information completeness for migration planning (fallback for {gap_type})",
+        "metadata": {
+            "asset_id": asset_context.get("asset_id"),
+            "asset_name": asset_name,
+            "fallback_for_gap_type": gap_type,
+        },
     }
