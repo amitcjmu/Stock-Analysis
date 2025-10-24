@@ -102,6 +102,10 @@ def register_conditional_routers(api_router: APIRouter):
         COLLECTION_AVAILABLE,
         collection_router,
         collection_post_completion_router,
+        COLLECTION_BULK_OPS_AVAILABLE,
+        bulk_answer_router,
+        dynamic_questions_router,
+        bulk_import_router,
         COLLECTION_GAPS_AVAILABLE,
         collection_gaps_vendor_products_router,
         collection_gaps_maintenance_windows_router,
@@ -187,6 +191,31 @@ def register_conditional_routers(api_router: APIRouter):
         logger.info("✅ Collection Post-Completion router included at /collection")
     else:
         logger.warning("⚠️ Collection Flow API router not available")
+
+    # Collection Bulk Operations API - Adaptive Questionnaire Enhancements
+    if COLLECTION_BULK_OPS_AVAILABLE:
+        api_router.include_router(
+            bulk_answer_router,
+            prefix="/collection",
+            tags=[APITags.COLLECTION_BULK_OPERATIONS],
+        )
+        logger.info("✅ Collection Bulk Answer router included at /collection")
+
+        api_router.include_router(
+            dynamic_questions_router,
+            prefix="/collection",
+            tags=[APITags.COLLECTION_QUESTIONS],
+        )
+        logger.info("✅ Collection Dynamic Questions router included at /collection")
+
+        api_router.include_router(
+            bulk_import_router,
+            prefix="/collection",
+            tags=[APITags.COLLECTION_IMPORT],
+        )
+        logger.info("✅ Collection Bulk Import router included at /collection")
+    else:
+        logger.warning("⚠️ Collection Bulk Operations routers not available")
 
     # Flow Processing API
     if FLOW_PROCESSING_AVAILABLE:

@@ -157,6 +157,24 @@ except ImportError:
     collection_router = None
     collection_post_completion_router = None
 
+# Collection Bulk Operations endpoints (Adaptive Questionnaire Enhancements)
+bulk_answer_router: Optional[APIRouter]
+dynamic_questions_router: Optional[APIRouter]
+bulk_import_router: Optional[APIRouter]
+try:
+    from app.api.v1.endpoints.collection.bulk_answer import router as bulk_answer_router
+    from app.api.v1.endpoints.collection.dynamic_questions import (
+        router as dynamic_questions_router,
+    )
+    from app.api.v1.endpoints.collection.bulk_import import router as bulk_import_router
+
+    COLLECTION_BULK_OPS_AVAILABLE = True
+except ImportError:
+    COLLECTION_BULK_OPS_AVAILABLE = False
+    bulk_answer_router = None
+    dynamic_questions_router = None
+    bulk_import_router = None
+
 # Collection Gaps endpoints
 collection_gaps_vendor_products_router: Optional[APIRouter]
 collection_gaps_maintenance_windows_router: Optional[APIRouter]
@@ -455,6 +473,11 @@ __all__ = [
     "plan_router",
     "COLLECTION_AVAILABLE",
     "collection_router",
+    "collection_post_completion_router",
+    "COLLECTION_BULK_OPS_AVAILABLE",
+    "bulk_answer_router",
+    "dynamic_questions_router",
+    "bulk_import_router",
     "COLLECTION_GAPS_AVAILABLE",
     "collection_gaps_vendor_products_router",
     "collection_gaps_maintenance_windows_router",
