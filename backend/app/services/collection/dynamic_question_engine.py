@@ -82,7 +82,7 @@ class DynamicQuestionEngine:
         self,
         child_flow_id: UUID,
         asset_id: UUID,
-        asset_type: str,
+        asset_type: Optional[str] = None,
         include_answered: bool = False,
         refresh_agent_analysis: bool = False,
     ) -> DynamicQuestionsResponse:
@@ -92,13 +92,27 @@ class DynamicQuestionEngine:
         Args:
             child_flow_id: Collection child flow UUID
             asset_id: Asset UUID
-            asset_type: Asset type (Application, Server, Database, etc.)
+            asset_type: Asset type (Application, Server, Database, etc.) - if None, returns empty
             include_answered: If False, filter out already-answered questions
             refresh_agent_analysis: If True, use agent pruning
 
         Returns:
             Filtered questions with agent status
         """
+        # If no asset_type provided, return empty questions list
+        if not asset_type:
+            logger.warning(
+                f"No asset_type provided for asset {asset_id}, returning empty questions"
+            )
+            return DynamicQuestionsResponse(
+                asset_type=asset_type,
+                questions=[],
+                total_questions=0,
+                agent_status="not_requested",
+                fallback_used=False,
+                include_answered=include_answered,
+            )
+
         # Step 1: Get base questions from DB rules
         base_questions = await self._get_db_questions(asset_type)
 
@@ -138,21 +152,25 @@ class DynamicQuestionEngine:
         # Step 4: Filter out answered questions (if requested)
         if not include_answered:
             questionnaire = await self._get_questionnaire(child_flow_id, asset_id)
-            if questionnaire and questionnaire.closed_questions:
+            if questionnaire and questionnaire.responses_collected:
+                # Filter out questions that have responses in responses_collected dict
+                answered_question_ids = set(questionnaire.responses_collected.keys())
                 questions = [
                     q
                     for q in questions
-                    if q["question_id"] not in questionnaire.closed_questions
+                    if q["question_id"] not in answered_question_ids
                 ]
 
         # Convert questions to Pydantic models
         question_details = [QuestionDetail(**q) for q in questions]
 
         return DynamicQuestionsResponse(
+            asset_type=asset_type,
             questions=question_details,
+            total_questions=len(question_details),
             agent_status=agent_status,
             fallback_used=fallback_used,
-            total_questions=len(question_details),
+            include_answered=include_answered,
         )
 
     async def handle_dependency_change(
@@ -187,15 +205,22 @@ class DynamicQuestionEngine:
                 changed_asset_id, changed_field
             )
             return DependencyChangeResponse(
+                changed_field=changed_field,
+                old_value=old_value,
+                new_value=new_value,
                 reopened_question_ids=reopened_ids,
                 reason=f"Critical field change: {reason}",
                 affected_assets=[changed_asset_id],
             )
 
-        # Otherwise, use agent analysis
+        # Otherwise, use agent analysis with timeout
         try:
-            agent = await TenantScopedAgentPool.get_agent(
-                self.context, "dependency_analyzer", service_registry=None
+            # Use asyncio.wait_for with 5 second timeout for agent lookup
+            agent = await asyncio.wait_for(
+                TenantScopedAgentPool.get_agent(
+                    self.context, "dependency_analyzer", service_registry=None
+                ),
+                timeout=5.0,
             )
 
             task_description = f"""
@@ -210,9 +235,11 @@ class DynamicQuestionEngine:
             Return a list of question IDs that are affected by this dependency change.
             """
 
-            # Execute agent analysis
+            # Execute agent analysis with timeout
             if hasattr(agent, "execute_async"):
-                result = await agent.execute_async(inputs={"task": task_description})
+                result = await asyncio.wait_for(
+                    agent.execute_async(inputs={"task": task_description}), timeout=10.0
+                )
             else:
                 result = agent.execute(task=task_description)
 
@@ -229,20 +256,28 @@ class DynamicQuestionEngine:
                 f"✅ Agent analysis identified {len(affected_question_ids)} questions to reopen"
             )
             return DependencyChangeResponse(
+                changed_field=changed_field,
+                old_value=old_value,
+                new_value=new_value,
                 reopened_question_ids=affected_question_ids,
                 reason=f"Agent-analyzed dependency change: {reason}",
                 affected_assets=[changed_asset_id],
             )
 
-        except Exception as e:
-            logger.error(f"❌ Agent dependency analysis failed: {e}")
-            # Fallback to critical field logic
+        except (Exception, asyncio.TimeoutError) as e:
+            logger.warning(
+                f"⚠️  Agent dependency analysis unavailable or timed out: {e}"
+            )
+            # Graceful degradation: Use fallback logic for ALL fields
             reopened_ids = await self._reopen_dependent_questions_fallback(
                 changed_asset_id, changed_field
             )
             return DependencyChangeResponse(
+                changed_field=changed_field,
+                old_value=old_value,
+                new_value=new_value,
                 reopened_question_ids=reopened_ids,
-                reason=f"Fallback after agent error: {reason}",
+                reason=f"Fallback (no agent available): {reason}",
                 affected_assets=[changed_asset_id],
             )
 
@@ -396,24 +431,22 @@ class DynamicQuestionEngine:
         questionnaire = questionnaires[0]
 
         for question_id in question_ids:
-            # Remove from closed_questions
+            # Remove from responses_collected (since answer is no longer valid)
             if (
-                questionnaire.closed_questions
-                and question_id in questionnaire.closed_questions
+                questionnaire.responses_collected
+                and question_id in questionnaire.responses_collected
             ):
-                questionnaire.closed_questions.remove(question_id)
-
-            # Add to reopened_questions
-            if questionnaire.reopened_questions is None:
-                questionnaire.reopened_questions = []
-            if question_id not in questionnaire.reopened_questions:
-                questionnaire.reopened_questions.append(question_id)
+                # Save previous value for history
+                previous_value = questionnaire.responses_collected.pop(question_id)
+            else:
+                previous_value = None
 
             # Record in history
             await self.answer_history_repo.create_no_commit(
                 questionnaire_id=questionnaire.id,
                 asset_id=asset_id,
                 question_id=question_id,
+                previous_value=str(previous_value) if previous_value else None,
                 reopened_reason=reason,
                 reopened_by="agent_dependency_change",
                 answer_value=None,  # Re-emergence, not a new answer
