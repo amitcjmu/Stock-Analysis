@@ -100,7 +100,9 @@ const CollectionIndex: React.FC = () => {
         const authToken = localStorage.getItem('auth_token');
         const clientId = localStorage.getItem('auth_client_id');
         const engagementStr = localStorage.getItem('auth_engagement');
+        const userStr = localStorage.getItem('auth_user');
         let engagementId = '';
+        let userId = '';
 
         if (engagementStr) {
           try {
@@ -111,12 +113,22 @@ const CollectionIndex: React.FC = () => {
           }
         }
 
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            userId = user.id;
+          } catch (e) {
+            console.error('Failed to parse user data:', e);
+          }
+        }
+
         const response = await fetch('/api/v1/collection/status', {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
             'X-Client-Account-ID': clientId || '',
-            'X-Engagement-ID': engagementId || ''
+            'X-Engagement-ID': engagementId || '',
+            'X-User-ID': userId || ''
           }
         });
 
