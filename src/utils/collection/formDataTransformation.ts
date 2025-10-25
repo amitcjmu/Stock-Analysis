@@ -232,7 +232,7 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
     if (!categoryMap.has(category)) {
       categoryMap.set(category, []);
     }
-    categoryMap.get(category)!.push(question);
+    categoryMap.get(category).push(question);
   }
 
   console.log(`📊 Grouped ${questions.length} questions into ${categoryMap.size} categories:`,
@@ -348,8 +348,11 @@ export const convertQuestionnairesToFormData = (
           if (assetId) {
             const app = applications.find(a => a.asset_id === assetId);
             if (app) {
-              console.log('✅ Found asset name via UUID lookup:', app.application_name, 'for asset_id:', assetId);
-              return app.application_name;
+              // CRITICAL FIX (Bug #768): Use app.name instead of app.application_name
+              // The Asset model has 'name' field, not 'application_name' field
+              const assetName = app.name || app.application_name || app.asset_name;
+              console.log('✅ Found asset name via UUID lookup:', assetName, 'for asset_id:', assetId);
+              return assetName;
             }
           }
         }
