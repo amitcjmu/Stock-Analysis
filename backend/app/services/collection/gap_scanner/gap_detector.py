@@ -30,7 +30,10 @@ async def has_questionnaire_response(
     db: AsyncSession,
 ) -> bool:
     """
-    Check if approved questionnaire response exists for this field.
+    Check if questionnaire response exists for this field from ANY flow in the engagement.
+
+    CRITICAL FIX (Issue #797): Cross-flow data lookup to prevent duplicate gaps.
+    Previously only checked current flow, now checks ALL flows in same engagement.
 
     Prevents re-asking questions users already answered in previous flows.
     This is PHASE 1 of intelligent gap detection (Bug #679).
@@ -38,31 +41,91 @@ async def has_questionnaire_response(
     Args:
         asset_id: Asset being analyzed
         field_name: Attribute name (e.g., 'compliance_requirements')
-        collection_flow_id: Current collection flow
+        collection_flow_id: Current collection flow (for engagement lookup)
         db: Database session
 
     Returns:
-        True if approved response exists, False otherwise
+        True if response exists from ANY flow in engagement, False otherwise
     """
-    # Check if user already answered this via questionnaire
-    # Match on asset_id, question_category contains field_name, and validation_status = "approved"
-    stmt = select(
-        CollectionQuestionnaireResponse
-    ).where(  # SKIP_TENANT_CHECK: asset_id and collection_flow_id provide tenant isolation
-        CollectionQuestionnaireResponse.asset_id == asset_id,
-        CollectionQuestionnaireResponse.question_category.contains(field_name),
-        CollectionQuestionnaireResponse.validation_status == "approved",
+    from app.models.collection_flow import CollectionFlow
+
+    # STEP 1: Get engagement_id from current flow (for multi-tenant scoping)
+    flow_stmt = select(CollectionFlow).where(CollectionFlow.id == collection_flow_id)
+    flow_result = await db.execute(flow_stmt)
+    current_flow = flow_result.scalar_one_or_none()
+
+    if not current_flow:
+        logger.warning(
+            f"Could not find flow {collection_flow_id} for engagement lookup"
+        )
+        return False
+
+    # STEP 2: Get ALL responses for this asset in the engagement (for flexible matching)
+    stmt = (
+        select(CollectionQuestionnaireResponse)
+        .join(
+            CollectionFlow,
+            CollectionQuestionnaireResponse.collection_flow_id == CollectionFlow.id,
+        )
+        .where(
+            CollectionQuestionnaireResponse.asset_id == asset_id,
+            CollectionFlow.client_account_id == current_flow.client_account_id,
+            CollectionFlow.engagement_id == current_flow.engagement_id,
+            CollectionQuestionnaireResponse.validation_status == "validated",
+        )
     )
     result = await db.execute(stmt)
-    response = result.scalar_one_or_none()
+    responses = list(result.scalars().all())
 
-    if response:
-        logger.debug(
-            f"✓ Found approved questionnaire response for asset {asset_id}, "
-            f"field '{field_name}' in response ID {response.id}"
-        )
+    # STEP 3: Flexible field name matching
+    # Try multiple matching strategies for field names with different formats
+    for response in responses:
+        question_id = response.question_id or ""
 
-    return response is not None
+        # Strategy 1: Exact match
+        if field_name == question_id:
+            logger.info(
+                f"✓ CROSS-FLOW DATA FOUND (exact): Asset {asset_id}, field '{field_name}' "
+                f"matched question_id '{question_id}' in flow {response.collection_flow_id}"
+            )
+            return True
+
+        # Strategy 2: Strip custom_attributes prefix and compare
+        normalized_question_id = question_id.replace("custom_attributes.", "")
+        if field_name == normalized_question_id:
+            logger.info(
+                f"✓ CROSS-FLOW DATA FOUND (normalized): Asset {asset_id}, field '{field_name}' "
+                f"matched normalized '{normalized_question_id}' in flow {response.collection_flow_id}"
+            )
+            return True
+
+        # Strategy 3: Check if normalized question_id is a meaningful substring of field_name
+        # e.g., "eol_assessment" should match "eol_technology_assessment"
+        if (
+            normalized_question_id
+            and normalized_question_id in field_name
+            and len(normalized_question_id) >= 3
+        ):
+            logger.info(
+                f"✓ CROSS-FLOW DATA FOUND (substring): Asset {asset_id}, field '{field_name}' "
+                f"contains '{normalized_question_id}' in flow {response.collection_flow_id}"
+            )
+            return True
+
+        # Strategy 4: Check field name mappings for alternate names
+        # e.g., "complexity" → "business_logic_complexity"
+        # "vulnerabilities" → "security_vulnerabilities"
+        if (
+            field_name.endswith(normalized_question_id)
+            and len(normalized_question_id) >= 5
+        ):
+            logger.info(
+                f"✓ CROSS-FLOW DATA FOUND (suffix): Asset {asset_id}, field '{field_name}' "
+                f"ends with '{normalized_question_id}' in flow {response.collection_flow_id}"
+            )
+            return True
+
+    return False
 
 
 async def get_enriched_asset_data(

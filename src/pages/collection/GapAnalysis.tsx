@@ -57,7 +57,23 @@ const GapAnalysis: React.FC = () => {
         setFlowDetails(flow);
       } catch (err: unknown) {
         console.error('Failed to load flow details:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load flow details';
+
+        // Bug #799 Fix: Enhanced error handling based on error type
+        let errorMessage = 'Failed to load flow details';
+
+        if (err instanceof Error) {
+          const msg = err.message.toLowerCase();
+          if (msg.includes('404') || msg.includes('not found')) {
+            errorMessage = `Collection flow not found (ID: ${flowId}). The flow may have been deleted or the URL is invalid.`;
+          } else if (msg.includes('403') || msg.includes('unauthorized') || msg.includes('forbidden')) {
+            errorMessage = 'You do not have permission to access this collection flow.';
+          } else if (msg.includes('500') || msg.includes('server error')) {
+            errorMessage = 'Server error while loading flow. Please try again or contact support.';
+          } else {
+            errorMessage = err.message;
+          }
+        }
+
         setError(errorMessage);
       } finally {
         setIsLoading(false);

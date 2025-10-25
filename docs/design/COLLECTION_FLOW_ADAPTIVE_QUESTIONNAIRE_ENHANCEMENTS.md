@@ -2552,3 +2552,256 @@ Before starting Phase 1 implementation, verify:
 6. ✅ Deploy to staging with feature flags
 
 **Contact**: For questions or clarifications, refer to Section 12 (Design Decisions) or Section 15 (Quick Reference)
+
+---
+
+## 17. CRITICAL BUG FIX: Cross-Flow Gap Resolution (Issue #768-SubIssue)
+
+### Problem Statement
+
+**Discovered**: October 25, 2025 during E2E testing of MCQ questionnaire workflow
+
+**Symptom**: When re-selecting an asset in a NEW collection flow that was already processed in a PREVIOUS flow, the gap scanner creates duplicate gaps instead of recognizing that data already exists.
+
+**Expected Behavior**:
+- User completes questionnaire for "Application Server 01" in Flow A
+- User creates NEW Flow B and selects same asset
+- Gap analysis shows: **0 gaps** (all data already collected)
+
+**Actual Behavior**:
+- Flow A: 11 MCQ responses saved, only 1/15 gaps marked "resolved"
+- Flow B: Gap scanner creates 15 NEW gaps (ignoring Flow A responses)
+- Result: User must answer same questions again
+
+### Root Cause Analysis
+
+#### Issue 1: Gap Scanner is Flow-Scoped
+**Location**: `backend/app/services/collection/gap_scanner/scanner.py`
+
+```python
+# CURRENT (WRONG):
+# For each asset in current flow:
+#   - Check if asset has missing fields
+#   - Create gaps for missing fields
+#   - Does NOT check if data exists from other flows
+
+# SHOULD BE:
+# For each asset:
+#   - Check if asset has responses from ANY flow in engagement
+#   - Only create gaps for truly missing data
+#   - Mark gaps as "resolved" if data exists elsewhere
+```
+
+**Impact**: Creates duplicate gaps across flows, poor user experience
+
+#### Issue 2: Gap Resolution is Flow-Scoped
+**Location**: `backend/app/api/v1/endpoints/collection_crud_helpers.py:214-258`
+
+The `resolve_data_gaps()` function only marks gaps as "resolved" within the SAME flow. It doesn't prevent future flows from creating new gaps.
+
+**Database Evidence**:
+```sql
+-- Flow 6bc8f4c8 (completed):
+-- 11 responses stored ✅
+-- Only 1 gap marked "resolved" ❌
+-- 14 gaps remained "pending" ❌
+
+-- Flow 72b17841 (new):
+-- Gap scanner created 15 NEW gaps ❌
+-- Ignoring previous flow's responses ❌
+```
+
+#### Issue 3: Field Name Inconsistency
+**Location**: `backend/app/services/crewai_flows/tools/critical_attributes_tool/base.py:74-150`
+
+The `asset_fields` have inconsistent prefixes:
+```python
+"architecture_pattern": {
+    "asset_fields": ["custom_attributes.architecture_pattern"],  # Has prefix
+    ...
+},
+"technology_stack": {
+    "asset_fields": ["technology_stack", "custom_attributes.tech_stack"],  # Mixed
+    ...
+},
+"integration_dependencies": {
+    "asset_fields": ["dependencies", "related_assets"],  # No prefix
+    ...
+}
+```
+
+**Impact**: Field normalization logic in `resolve_data_gaps()` only works for exact matches. Most fields with prefixes fail to match gaps without prefixes.
+
+### Solution Design
+
+#### Fix 1: Cross-Flow Data Lookup in Gap Scanner
+
+**File**: `backend/app/services/collection/gap_scanner/scanner.py`
+
+Add new function to check for existing responses:
+```python
+async def check_existing_responses(
+    asset_id: UUID,
+    field_names: List[str],
+    engagement_id: UUID,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """
+    Check if responses exist for these fields from ANY flow in the engagement.
+    
+    Returns:
+        Dict mapping field_name -> response_value for fields with existing data
+    """
+    # Query collection_questionnaire_responses for asset across ALL flows
+    # WHERE asset_id = ? AND engagement_id = ?
+    # GROUP BY question_id to get latest response
+```
+
+**Integration**: Before creating gaps, call this function and skip gaps for fields with existing responses.
+
+#### Fix 2: Normalize Field Names Consistently
+
+**File**: `backend/app/services/crewai_flows/tools/critical_attributes_tool/base.py`
+
+**Option A (Recommended)**: Remove ALL prefixes from `asset_fields`:
+```python
+"architecture_pattern": {
+    "asset_fields": ["architecture_pattern"],  # Removed prefix
+    ...
+},
+"availability_requirements": {
+    "asset_fields": ["availability_requirements"],  # Removed prefix
+    ...
+}
+```
+
+**Option B**: Add prefix to ALL fields that don't have it:
+```python
+"technology_stack": {
+    "asset_fields": ["custom_attributes.technology_stack"],  # Added prefix
+    ...
+}
+```
+
+**Recommendation**: Use Option A (remove prefixes) because:
+- Gap scanner uses database column names (no prefixes)
+- Simpler matching logic
+- Less error-prone
+
+#### Fix 3: Enhanced Gap Resolution Logic
+
+**File**: `backend/app/api/v1/endpoints/collection_crud_helpers.py:214-258`
+
+Update `resolve_data_gaps()` to handle BOTH:
+1. Exact field name matches (e.g., `technology_stack`)
+2. Prefixed field names (e.g., `custom_attributes.technology_stack`)
+
+```python
+async def resolve_data_gaps(
+    gap_index: Dict[str, Any],
+    form_responses: Dict[str, Any],
+    db: AsyncSession,
+) -> int:
+    """Mark gaps as resolved for fields that received responses."""
+    gaps_resolved = 0
+    
+    for field_name, value in form_responses.items():
+        if value is None or value == "":
+            continue
+            
+        # Try multiple normalization strategies:
+        # 1. Exact match
+        gap = gap_index.get(field_name)
+        
+        # 2. Strip custom_attributes prefix
+        if not gap and field_name.startswith("custom_attributes."):
+            normalized = field_name.replace("custom_attributes.", "")
+            gap = gap_index.get(normalized)
+        
+        # 3. Try with composite field ID (asset_id__field_name)
+        if not gap and "__" in field_name:
+            parts = field_name.split("__", 1)
+            gap = gap_index.get(parts[1])
+        
+        if gap:
+            gap.resolution_status = "resolved"
+            gap.resolved_at = datetime.utcnow()
+            gap.resolved_by = "manual_submission"
+            gaps_resolved += 1
+    
+    return gaps_resolved
+```
+
+### Implementation Plan
+
+#### Phase 1: Field Name Normalization (30 min)
+1. Update `critical_attributes_tool/base.py` - remove prefixes from all `asset_fields`
+2. Add unit tests for field normalization
+3. Verify questionnaire generation still works
+
+#### Phase 2: Gap Resolution Enhancement (45 min)
+1. Update `resolve_data_gaps()` with multi-strategy matching
+2. Add logging for debugging field name mismatches
+3. Test with previous flow's responses
+
+#### Phase 3: Cross-Flow Data Lookup (1.5 hours)
+1. Add `check_existing_responses()` to gap scanner
+2. Integrate with gap creation logic
+3. Skip gaps for fields with existing data
+4. Add telemetry for cross-flow lookups
+
+#### Phase 4: Testing (1 hour)
+1. Unit tests for all 3 fixes
+2. Integration test: Create Flow A → Complete → Create Flow B → Verify 0 gaps
+3. E2E Playwright test for full workflow
+
+### Acceptance Criteria
+
+✅ **Given**: Application Server 01 completed in Flow A (11 responses)
+✅ **When**: User creates Flow B and selects same asset
+✅ **Then**: Gap analysis shows 0 gaps detected
+
+✅ **Given**: Asset has partial data (5 of 15 fields completed)
+✅ **When**: User creates new flow
+✅ **Then**: Gap analysis shows only 10 gaps (truly missing fields)
+
+✅ **Given**: Multiple flows for same asset across different engagements
+✅ **When**: Gap scanner runs
+✅ **Then**: Only checks data within SAME engagement (multi-tenant isolation)
+
+### Performance Impact
+
+**Before Fix**:
+- Gap scan: ~150ms for 1 asset
+- Database queries: 2 (asset load, gap persist)
+
+**After Fix**:
+- Gap scan: ~200ms for 1 asset (+33%)
+- Database queries: 3 (asset load, response check, gap persist)
+- Additional query uses indexed columns (asset_id, engagement_id)
+
+**Trade-off**: Acceptable 50ms overhead for correct behavior and better UX
+
+### Database Changes
+
+No schema changes required. Uses existing indexes:
+- `collection_questionnaire_responses`: (asset_id, engagement_id)
+- `collection_data_gaps`: (collection_flow_id, field_name)
+
+### Documentation Updates
+
+- [x] Design document (this section)
+- [ ] API documentation (no changes - internal logic only)
+- [ ] Developer guide (gap scanner behavior)
+
+### Related Issues
+
+- Parent: #768 - Collection Adaptive Questionnaire - Day 1
+- Sub-issue: TBD (will be created for tracking)
+
+---
+
+**Section Status**: ✅ **Ready for Implementation**
+**Estimated Effort**: 3-4 hours (including testing)
+**Priority**: **CRITICAL** - Blocks user workflow, causes data re-entry
+

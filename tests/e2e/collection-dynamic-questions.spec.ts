@@ -12,8 +12,26 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Dynamic Question Filtering Workflow', () => {
   test.beforeEach(async ({ page }) => {
+    // Login first
+    await page.goto('http://localhost:8081/login', { waitUntil: 'load' });
+    await page.waitForTimeout(1000);
+
+    await page.fill('input[type="email"]', 'demo@demo-corp.com');
+    await page.fill('input[type="password"]', 'Demo123!');
+    await page.click('button[type="submit"]');
+
+    // Wait for login to process
+    await page.waitForTimeout(3000);
+
+    // Verify login was successful
+    const currentUrl = page.url();
+    if (currentUrl.includes('/login')) {
+      throw new Error(`Login failed - still on login page: ${currentUrl}`);
+    }
+
     await page.goto('/collection');
-    await expect(page).toHaveTitle(/Collection Flow/);
+    // Verify we're on the collection page
+    await expect(page).toHaveURL(/.*\/collection/);
   });
 
   test('should filter questions by asset type', async ({ page }) => {

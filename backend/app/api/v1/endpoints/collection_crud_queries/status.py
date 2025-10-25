@@ -82,7 +82,7 @@ async def get_collection_flow(
     """Get collection flow by ID with authorization.
 
     Args:
-        flow_id: Collection flow ID
+        flow_id: Collection flow ID (can be either flow_id or id column)
         db: Database session
         current_user: Current authenticated user
         context: Request context
@@ -94,10 +94,12 @@ async def get_collection_flow(
         HTTPException: If flow not found or unauthorized
     """
     try:
+        # Bug #799 Fix: Check both flow_id and id columns for flexible lookup
+        flow_uuid = UUID(flow_id)
         result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.flow_id
-                == UUID(flow_id),  # Query by flow_id (business identifier)
+                (CollectionFlow.flow_id == flow_uuid)
+                | (CollectionFlow.id == flow_uuid),
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )
@@ -112,7 +114,14 @@ async def get_collection_flow(
                     engagement_id=context.engagement_id,
                 )
             )
-            raise HTTPException(status_code=404, detail="Collection flow not found")
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": "Collection flow not found",
+                    "flow_id": flow_id,
+                    "message": "The requested collection flow does not exist or has been deleted",
+                },
+            )
 
         # Query actual application count and list from collection_flow_applications table
         from sqlalchemy import func
