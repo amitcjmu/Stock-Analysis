@@ -74,6 +74,59 @@ async def get_incomplete_flows(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def get_actively_incomplete_flows(
+    db: AsyncSession,
+    current_user: User,
+    context: RequestContext,
+    limit: int = 50,
+) -> List[CollectionFlowResponse]:
+    """Get actively incomplete collection flows (INITIALIZED, RUNNING only).
+
+    This endpoint excludes PAUSED flows per ADR-012 design where PAUSED is a valid
+    waiting-for-input state and should not block new operations. Only flows that are
+    actively processing (INITIALIZED, RUNNING) should block new collection processes.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+        context: Request context
+        limit: Maximum number of flows to return
+
+    Returns:
+        List of actively incomplete collection flows (excludes PAUSED, FAILED, CANCELLED)
+    """
+    try:
+        result = await db.execute(
+            select(CollectionFlow)
+            .where(
+                CollectionFlow.client_account_id == context.client_account_id,
+                CollectionFlow.engagement_id == context.engagement_id,
+                CollectionFlow.status.in_(
+                    [
+                        # Only include actively processing flows
+                        # Exclude PAUSED (waiting for user input per ADR-012)
+                        # Exclude FAILED (not actively processing)
+                        CollectionFlowStatus.INITIALIZED.value,
+                        CollectionFlowStatus.RUNNING.value,
+                    ]
+                ),
+            )
+            .order_by(CollectionFlow.created_at.desc())
+            .limit(limit)
+        )
+        flows = result.scalars().all()
+
+        return [
+            collection_serializers.serialize_collection_flow(flow) for flow in flows
+        ]
+
+    except Exception as e:
+        logger.error(
+            safe_log_format("Error getting actively incomplete flows: {e}", e=e)
+        )
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def get_all_flows(
     db: AsyncSession,
     current_user: User,

@@ -1,3 +1,48 @@
+## [2025-10-25] - Fix: PAUSED Flows Should Not Block Bulk Operations
+
+### 🐛 Bug Fix - ADR-012 Alignment
+Per ADR-012 design, PAUSED flows are waiting for user input (asset_selection phase) and should not block new collection operations. This fix introduces a separate "actively incomplete" endpoint that only returns INITIALIZED and RUNNING flows for blocking checks.
+
+### 🚀 Primary Changes
+
+#### Backend Changes
+- **New Endpoint**: `GET /api/v1/collection/actively-incomplete`
+  - Returns only INITIALIZED and RUNNING flows (excludes PAUSED, FAILED, CANCELLED)
+  - Properly scoped by client_account_id and engagement_id
+- **Files Modified**:
+  - `backend/app/api/v1/endpoints/collection_crud_queries/lists.py` - Added `get_actively_incomplete_flows()`
+  - `backend/app/api/v1/endpoints/collection_flows.py` - Registered new route
+  - `backend/app/api/v1/endpoints/collection_crud_queries/__init__.py` - Exported new function
+  - `backend/app/api/v1/endpoints/collection_crud.py` - Added to facade
+
+#### Frontend Changes
+- **New Hook**: `useActivelyIncompleteCollectionFlows`
+  - Fetches only actively processing flows for blocking logic
+  - Maintains same polling and error handling patterns as `useIncompleteCollectionFlows`
+- **Updated Blocking Checks**:
+  - `src/hooks/collection/useCollectionFlowManagement.ts` - Added new hook
+  - `src/pages/collection/adaptive-forms/hooks/useBlockingFlowCheck.ts` - Uses new hook
+  - `src/pages/collection/adaptive-forms/index.tsx` - Uses new hook
+  - `src/hooks/collection/useAdaptiveFormFlow.ts` - Uses new hook
+- **API Client**:
+  - `src/services/api/collection-flow/flows.ts` - Added `getActivelyIncompleteFlows()`
+  - `src/services/api/collection-flow/index.ts` - Exposed new method
+
+### 📊 Business Impact
+- **Enables bulk operations on PAUSED flows**: Users can now perform bulk answer/import operations even when flow is PAUSED at asset_selection phase
+- **Aligns with ADR-012 design**: PAUSED is a valid waiting-for-input state, not a blocking state
+- **Preserves existing management UI**: `/incomplete` endpoint still includes PAUSED flows for flow management pages
+
+### 🎯 Technical Details
+- **Root Cause**: Original `/incomplete` endpoint included PAUSED flows, causing blocking banner to appear during bulk operations
+- **Solution**: Separate endpoint for blocking checks (`/actively-incomplete`) vs management UI (`/incomplete`)
+- **No Breaking Changes**: Existing `/incomplete` endpoint behavior unchanged; management pages still see PAUSED flows
+
+### 🔧 Testing
+- Containers restarted successfully
+- Bulk operations workflow no longer blocked by PAUSED flows
+- E2E test `collection-bulk-answer.spec.ts` expected to pass
+
 ## [0.0.0-docs-collection-gaps] - 2025-09-21
 
 ### 📚 Documentation - Collection Gaps Phase 1 (7-Layer Design)

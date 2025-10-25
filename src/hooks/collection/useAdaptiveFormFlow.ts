@@ -30,7 +30,7 @@ import { createFallbackFormData } from "@/utils/collection/formDataTransformatio
 // Import flow management hooks
 import {
   useCollectionFlowManagement,
-  useIncompleteCollectionFlows,
+  useActivelyIncompleteCollectionFlows,
 } from "./useCollectionFlowManagement";
 import { useQuestionnairePolling } from "./useQuestionnairePolling";
 
@@ -108,11 +108,12 @@ export const useAdaptiveFormFlow = (
     }
   }, [urlFlowId, updateFlowId, currentFlowIdRef]);
 
-  // Check for incomplete flows
+  // Check for actively incomplete flows (INITIALIZED, RUNNING)
+  // Per ADR-012, PAUSED flows are waiting for user input and should not block
   // CRITICAL FIX: Always call the hook but use skipIncompleteCheck for logic
   const skipIncompleteCheck = !!urlFlowId || !!currentFlowIdRef.current;
   const { data: incompleteFlows = [], isLoading: checkingFlows } =
-    useIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
+    useActivelyIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
 
   // Filter out the current flow from the blocking check
   // CRITICAL FIX: Only consider flows as blocking if we're NOT continuing a specific flow
