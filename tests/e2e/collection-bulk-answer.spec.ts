@@ -34,10 +34,13 @@ test.describe('Multi-Asset Bulk Answer Workflow', () => {
     // Verify we're on the adaptive forms page
     await expect(page).toHaveURL(/.*\/collection\/adaptive-forms/);
 
+    // Wait for page to fully load before checking for blocking flows
+    await page.waitForTimeout(3000);
+
     // Check for existing flows and delete them to avoid blocking
     console.log('🧹 Checking for existing flows...');
     const manageFlowsButton = page.locator('button:has-text("Manage Flows")');
-    const isBlocked = await manageFlowsButton.isVisible({ timeout: 5000 }).catch(() => false);
+    const isBlocked = await manageFlowsButton.isVisible({ timeout: 10000 }).catch(() => false);
 
     if (isBlocked) {
       console.log('⚠️  Found existing flows, deleting...');
