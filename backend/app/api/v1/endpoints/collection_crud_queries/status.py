@@ -95,12 +95,20 @@ async def get_collection_flow(
     """
     try:
         # Bug #799 Fix: Check both flow_id and id columns for flexible lookup
+        # Also exclude cancelled/failed/completed flows (treat as deleted)
         flow_uuid = UUID(flow_id)
         result = await db.execute(
             select(CollectionFlow).where(
                 (CollectionFlow.flow_id == flow_uuid)
                 | (CollectionFlow.id == flow_uuid),
                 CollectionFlow.engagement_id == context.engagement_id,
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.CANCELLED.value,
+                        CollectionFlowStatus.FAILED.value,
+                        CollectionFlowStatus.COMPLETED.value,
+                    ]
+                ),
             )
         )
         collection_flow = result.scalar_one_or_none()
