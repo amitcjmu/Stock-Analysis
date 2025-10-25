@@ -212,6 +212,7 @@ const AdaptiveForms: React.FC = () => {
     handleSave,
     handleSubmit,
     initializeFlow,
+    retryPolling, // Manual status check function from polling hook
   } = useAdaptiveFormFlow({
     applicationId,
     flowId,
@@ -592,6 +593,7 @@ const AdaptiveForms: React.FC = () => {
         onRetry={() => protectedInitializeFlow()}
         onRefresh={() => window.location.reload()}
         onInitialize={() => protectedInitializeFlow()}
+        onCheckStatus={retryPolling} // Manual status check for pending questionnaires
       />
     );
   }
