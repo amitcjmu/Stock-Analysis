@@ -288,6 +288,7 @@ export const AssetPickerTable: React.FC<AssetPickerTableProps> = ({
                       checked={selected_asset_ids.includes(asset.id)}
                       onChange={() => handle_asset_toggle(asset.id)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      data-testid={`asset-checkbox-${asset.id}`}
                     />
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">

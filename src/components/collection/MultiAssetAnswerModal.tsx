@@ -227,7 +227,10 @@ export const MultiAssetAnswerModal: React.FC<MultiAssetAnswerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+        data-testid="multi-asset-answer-modal"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -280,7 +283,7 @@ export const MultiAssetAnswerModal: React.FC<MultiAssetAnswerModalProps> = ({
 
           {/* Step 2: Answer Questions */}
           {current_step === "answer_questions" && (
-            <div>
+            <div data-testid="bulk-answer-form">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Step 2: Answer Questions
               </h3>
@@ -304,6 +307,7 @@ export const MultiAssetAnswerModal: React.FC<MultiAssetAnswerModalProps> = ({
                           handle_answer_change(question.question_id, e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        data-testid={`question-${question.question_id}`}
                       >
                         <option value="">-- Select answer --</option>
                         {question.answer_options?.map((option) => (
@@ -364,13 +368,13 @@ export const MultiAssetAnswerModal: React.FC<MultiAssetAnswerModalProps> = ({
                 Step 4: Review & Confirm
               </h3>
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg" data-testid="preview-summary">
                   <h4 className="font-medium text-blue-900 mb-2">Summary</h4>
                   <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• {selected_asset_ids.length} assets will be updated</li>
+                    <li data-testid="selected-count">• {selected_asset_ids.length} assets will be updated</li>
                     <li>• {total_questions} questions will be answered</li>
-                    {preview_mutation.data?.potential_conflicts ? (
-                      <li>• {preview_mutation.data.potential_conflicts} conflicts resolved</li>
+                    {preview_mutation.data?.potential_conflicts && preview_mutation.data.potential_conflicts > 0 ? (
+                      <li data-testid="conflict-count">• {preview_mutation.data.potential_conflicts} conflicts resolved</li>
                     ) : null}
                   </ul>
                 </div>
@@ -413,6 +417,7 @@ export const MultiAssetAnswerModal: React.FC<MultiAssetAnswerModalProps> = ({
               onClick={handle_submit}
               disabled={submit_mutation.isPending}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="submit-bulk-answers-button"
             >
               {submit_mutation.isPending ? "Submitting..." : "Submit"}
             </button>
@@ -421,6 +426,7 @@ export const MultiAssetAnswerModal: React.FC<MultiAssetAnswerModalProps> = ({
               onClick={handle_next_step}
               disabled={preview_mutation.isPending}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid={current_step === "select_assets" ? "continue-to-answers-button" : "preview-answers-button"}
             >
               {preview_mutation.isPending ? "Loading..." : "Next"}
             </button>

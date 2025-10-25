@@ -620,7 +620,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
               completionPercentage={sectionProgress?.completion || 0}
               validationStatus={sectionProgress?.validationStatus || 'pending'}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="question-list">
                 {visibleFields.map((field, fieldIndex) => {
                   // Calculate question number across all sections
                   let questionNumber = 0;

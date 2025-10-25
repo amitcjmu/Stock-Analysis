@@ -70,6 +70,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             value={value || ''}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={field.placeholder}
+            data-testid={`answer-input-${field.id}`}
           />
         );
 
@@ -81,6 +82,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             value={value || ''}
             onChange={(e) => handleChange(e.target.value ? Number(e.target.value) : undefined)}
             placeholder={field.placeholder}
+            data-testid={`answer-input-${field.id}`}
           />
         );
 
@@ -96,6 +98,7 @@ export const FormField: React.FC<FormFieldProps> = ({
                 placeholder={field.placeholder || 'Enter minutes'}
                 min="0"
                 step="1"
+                data-testid={`answer-input-${field.id}`}
               />
               {field.description?.includes('minutes') && (
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
@@ -118,6 +121,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             type="date"
             value={value || ''}
             onChange={(e) => handleChange(e.target.value)}
+            data-testid={`answer-input-${field.id}`}
           />
         );
 
@@ -130,6 +134,7 @@ export const FormField: React.FC<FormFieldProps> = ({
               value={value || ''}
               onChange={(e) => handleChange(e.target.value)}
               placeholder={field.placeholder || 'Select date'}
+              data-testid={`answer-input-${field.id}`}
             />
             {field.helpText && (
               <p className="text-xs text-muted-foreground">
@@ -147,6 +152,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             onChange={(e) => handleChange(e.target.value)}
             placeholder={field.placeholder}
             rows={4}
+            data-testid={`answer-input-${field.id}`}
           />
         );
 
@@ -157,7 +163,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             onValueChange={handleChange}
             disabled={disabled}
           >
-            <SelectTrigger className={commonProps.className}>
+            <SelectTrigger className={commonProps.className} data-testid={`answer-input-${field.id}`}>
               <SelectValue placeholder={field.placeholder || 'Select an option'} />
             </SelectTrigger>
             <SelectContent>
@@ -258,6 +264,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             onValueChange={handleChange}
             disabled={disabled}
             className="space-y-2"
+            data-testid={`answer-input-${field.id}`}
           >
             {field.options?.map((option) => (
               <div key={option.value} className="flex items-center space-x-2">
@@ -284,6 +291,7 @@ export const FormField: React.FC<FormFieldProps> = ({
               checked={Boolean(value)}
               onCheckedChange={handleChange}
               disabled={disabled}
+              data-testid={`answer-input-${field.id}`}
             />
             <Label
               htmlFor={field.id}
@@ -301,6 +309,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             type="file"
             onChange={(e) => handleChange(e.target.files?.[0])}
             accept=".csv,.xlsx,.json"
+            data-testid={`answer-input-${field.id}`}
           />
         );
 
@@ -338,6 +347,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             value={value || ''}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={field.placeholder}
+            data-testid={`answer-input-${field.id}`}
           />
         );
     }
@@ -395,7 +405,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   const hasBusinessImpact = field.businessImpactScore >= 0.05;
 
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('space-y-2', className)} data-testid={`question-item-${field.id}`}>
       {/* Field Label */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -405,6 +415,7 @@ export const FormField: React.FC<FormFieldProps> = ({
               'text-sm font-medium',
               isRequired && 'after:content-["*"] after:ml-0.5 after:text-red-500'
             )}
+            data-testid={`question-${field.id}-text`}
           >
             {(questionNumber !== undefined && questionNumber !== null && questionNumber >= 0) && (
               <span className="text-muted-foreground mr-2">
@@ -419,6 +430,14 @@ export const FormField: React.FC<FormFieldProps> = ({
               High Impact
             </Badge>
           )}
+
+          <Badge
+            variant="outline"
+            className="text-xs"
+            data-testid={`question-${field.id}-status`}
+          >
+            {value !== undefined && value !== null && value !== '' ? 'answered' : 'unanswered'}
+          </Badge>
 
           {field.helpText && (
             <TooltipProvider>

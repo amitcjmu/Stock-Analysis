@@ -184,7 +184,10 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+        data-testid="import-wizard-modal"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -281,6 +284,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
                       }
                       className="hidden"
                       id="file-upload"
+                      data-testid="file-upload-input"
                     />
                     <label
                       htmlFor="file-upload"
@@ -299,10 +303,21 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
 
           {/* Step 2: Field Mapping */}
           {current_step === "mapping" && analysis_result && (
-            <div>
+            <div data-testid="analysis-complete">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Step 2: Field Mapping
               </h3>
+
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="text-sm text-blue-700 space-y-1">
+                  <div data-testid="detected-rows">
+                    • {analysis_result.total_rows} rows detected
+                  </div>
+                  <div data-testid="detected-columns">
+                    • {analysis_result.suggested_mappings.length} columns detected
+                  </div>
+                </div>
+              </div>
 
               {analysis_result.validation_warnings.length > 0 && (
                 <div className="p-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -315,7 +330,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
                 </div>
               )}
 
-              <div className="space-y-3">
+              <div className="space-y-3" data-testid="field-mapping-table">
                 {analysis_result.suggested_mappings.map((suggestion) => (
                   <div
                     key={suggestion.csv_column}
@@ -330,6 +345,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
                           className={`px-2 py-1 text-xs font-medium rounded ${get_confidence_color(
                             suggestion.confidence
                           )}`}
+                          data-testid={`confidence-indicator-${suggestion.csv_column}`}
                         >
                           {Math.round(suggestion.confidence * 100)}% confidence
                         </span>
@@ -345,6 +361,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
                         }))
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      data-testid={`mapping-select-${suggestion.csv_column}`}
                     >
                       <option value="">-- Skip this column --</option>
                       {suggestion.suggestions.map((s) => (
@@ -382,7 +399,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
 
           {/* Step 3: Configuration */}
           {current_step === "config" && analysis_result && (
-            <div>
+            <div data-testid="import-configuration">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Step 3: Configuration
               </h3>
@@ -398,6 +415,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
                       checked={overwrite_existing}
                       onChange={(e) => set_overwrite_existing(e.target.checked)}
                       className="mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      data-testid="overwrite-existing-checkbox"
                     />
                     <span className="text-sm text-gray-700">
                       Overwrite existing data (unchecked = fill gaps only)
@@ -409,7 +427,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
                   <h4 className="font-medium text-gray-900 mb-3">
                     Gap Analysis Mode
                   </h4>
-                  <div className="space-y-2">
+                  <div className="space-y-2" data-testid="gap-recalc-mode">
                     <label className="flex items-center">
                       <input
                         type="radio"
@@ -466,14 +484,14 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
               <div className="space-y-4">
                 <div className="p-4 border border-gray-200 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900" data-testid="current-stage">
                       {task_status.current_stage}
                     </span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-gray-600" data-testid="progress-percent">
                       {task_status.progress_percent}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-gray-200 rounded-full h-3" data-testid="import-progress-bar">
                     <div
                       className="bg-blue-600 h-3 rounded-full transition-all duration-300"
                       style={{ width: `${task_status.progress_percent}%` }}
@@ -498,7 +516,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
               </h3>
 
               {task_status.status === "completed" ? (
-                <div className="space-y-4">
+                <div className="space-y-4" data-testid="import-complete">
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <h4 className="font-medium text-green-900 mb-2">
                       ✓ Import Completed Successfully
@@ -507,10 +525,10 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
                       <li>• {task_status.rows_processed} rows imported</li>
                       {task_status.result_data && (
                         <>
-                          <li>
+                          <li data-testid="assets-created">
                             • {task_status.result_data.assets_created || 0} assets created
                           </li>
-                          <li>
+                          <li data-testid="questions-answered">
                             • {task_status.result_data.assets_updated || 0} assets updated
                           </li>
                         </>
@@ -566,6 +584,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
               onClick={handle_analyze}
               disabled={!selected_file || analyze_mutation.isPending}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="analyze-file-button"
             >
               {analyze_mutation.isPending ? "Analyzing..." : "Analyze File"}
             </button>
@@ -573,6 +592,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
             <button
               onClick={() => set_current_step("config")}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              data-testid="continue-to-config-button"
             >
               Next
             </button>
@@ -581,6 +601,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
               onClick={handle_execute}
               disabled={execute_mutation.isPending}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="start-import-button"
             >
               {execute_mutation.isPending ? "Starting..." : "Start Import"}
             </button>
@@ -588,6 +609,7 @@ export const BulkImportWizard: React.FC<BulkImportWizardProps> = ({
             <button
               onClick={on_close}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              data-testid="close-wizard-button"
             >
               Close
             </button>
