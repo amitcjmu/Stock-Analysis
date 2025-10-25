@@ -12,9 +12,36 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Multi-Asset Bulk Answer Workflow', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to collection flow
-    await page.goto('/collection');
-    await expect(page).toHaveTitle(/Collection Flow/);
+    // Login first
+    await page.goto('http://localhost:8081/login', { waitUntil: 'load' });
+    await page.waitForTimeout(1000);
+
+    await page.fill('input[type="email"]', 'demo@demo-corp.com');
+    await page.fill('input[type="password"]', 'Demo123!');
+    await page.click('button[type="submit"]');
+
+    // Wait for login to process
+    await page.waitForTimeout(3000);
+
+    // Verify login was successful
+    const currentUrl = page.url();
+    if (currentUrl.includes('/login')) {
+      throw new Error(`Login failed - still on login page: ${currentUrl}`);
+    }
+
+    // Navigate to adaptive forms page (where bulk answer button exists)
+    await page.goto('/collection/adaptive-forms');
+    // Verify we're on the adaptive forms page
+    await expect(page).toHaveURL(/.*\/collection\/adaptive-forms/);
+
+    // Wait for flow to auto-initialize (page creates flow automatically if none exists)
+    // This may take a few seconds while the flow is created in the backend
+    console.log('⏳ Waiting for flow to auto-initialize...');
+    await page.waitForTimeout(5000); // Give time for flow creation
+
+    // Wait for the bulk operations bar to appear (indicates flow is active)
+    await page.waitForSelector('[data-testid="bulk-operations-bar"]', { timeout: 30000 });
+    console.log('✅ Flow initialized, bulk operations bar visible');
   });
 
   test('should complete bulk answer for multiple assets without conflicts', async ({ page }) => {
