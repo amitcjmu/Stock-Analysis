@@ -34,6 +34,40 @@ test.describe('Multi-Asset Bulk Answer Workflow', () => {
     // Verify we're on the adaptive forms page
     await expect(page).toHaveURL(/.*\/collection\/adaptive-forms/);
 
+    // Check for existing flows and delete them to avoid blocking
+    console.log('🧹 Checking for existing flows...');
+    const manageFlowsButton = page.locator('button:has-text("Manage Flows")');
+    const isBlocked = await manageFlowsButton.isVisible({ timeout: 5000 }).catch(() => false);
+
+    if (isBlocked) {
+      console.log('⚠️  Found existing flows, deleting...');
+      await manageFlowsButton.click();
+      await page.waitForTimeout(1000);
+
+      // Delete all flows (click all Delete buttons)
+      const deleteButtons = page.locator('button:has-text("Delete")');
+      const count = await deleteButtons.count();
+      console.log(`📋 Found ${count} flows to delete`);
+
+      for (let i = 0; i < count; i++) {
+        // Always click the first delete button (index shifts after deletion)
+        await deleteButtons.first().click();
+        await page.waitForTimeout(500);
+
+        // Confirm deletion if modal appears
+        const confirmButton = page.locator('button:has-text("Confirm"), button:has-text("Delete"), button:has-text("Yes")').last();
+        const hasConfirm = await confirmButton.isVisible({ timeout: 2000 }).catch(() => false);
+        if (hasConfirm) {
+          await confirmButton.click();
+          await page.waitForTimeout(1000);
+        }
+      }
+
+      console.log('✅ All flows deleted, reloading page...');
+      await page.reload();
+      await page.waitForTimeout(2000);
+    }
+
     // Wait for flow to auto-initialize (page creates flow automatically if none exists)
     // This may take a few seconds while the flow is created in the backend
     console.log('⏳ Waiting for flow to auto-initialize...');
