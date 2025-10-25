@@ -94,7 +94,7 @@ class CriticalAttributesDefinition:
                 "category": "infrastructure",
             },
             "virtualization_platform": {
-                "asset_fields": ["custom_attributes.virtualization_platform"],
+                "asset_fields": ["virtualization_platform"],
                 "patterns": ["hypervisor", "vmware", "hyper-v", "kvm", "virtual"],
                 "required": False,
                 "category": "infrastructure",
@@ -111,14 +111,14 @@ class CriticalAttributesDefinition:
                 "category": "infrastructure",
             },
             "availability_requirements": {
-                "asset_fields": ["custom_attributes.availability_requirements"],
+                "asset_fields": ["availability_requirements"],
                 "patterns": ["availability", "sla", "uptime", "rto", "rpo"],
                 "required": True,
                 "category": "infrastructure",
             },
             # Application Attributes
             "technology_stack": {
-                "asset_fields": ["technology_stack", "custom_attributes.tech_stack"],
+                "asset_fields": ["technology_stack"],
                 "patterns": [
                     "stack",
                     "framework",
@@ -130,7 +130,7 @@ class CriticalAttributesDefinition:
                 "category": "application",
             },
             "architecture_pattern": {
-                "asset_fields": ["custom_attributes.architecture_pattern"],
+                "asset_fields": ["architecture_pattern"],
                 "patterns": [
                     "architecture",
                     "pattern",
@@ -148,31 +148,31 @@ class CriticalAttributesDefinition:
                 "category": "application",
             },
             "data_volume_characteristics": {
-                "asset_fields": ["custom_attributes.data_volume"],
+                "asset_fields": ["data_volume_characteristics"],
                 "patterns": ["data_volume", "database_size", "storage_usage", "data"],
                 "required": False,
                 "category": "application",
             },
             "user_load_patterns": {
-                "asset_fields": ["custom_attributes.user_load"],
+                "asset_fields": ["user_load_patterns"],
                 "patterns": ["users", "load", "concurrent", "traffic", "requests"],
                 "required": False,
                 "category": "application",
             },
             "business_logic_complexity": {
-                "asset_fields": ["custom_attributes.complexity"],
+                "asset_fields": ["business_logic_complexity"],
                 "patterns": ["complexity", "business_logic", "rules", "workflow"],
                 "required": True,
                 "category": "application",
             },
             "configuration_complexity": {
-                "asset_fields": ["custom_attributes.config_complexity"],
+                "asset_fields": ["configuration_complexity"],
                 "patterns": ["configuration", "settings", "parameters", "env"],
                 "required": False,
                 "category": "application",
             },
             "security_compliance_requirements": {
-                "asset_fields": ["custom_attributes.compliance"],
+                "asset_fields": ["security_compliance_requirements"],
                 "patterns": ["compliance", "security", "pci", "hipaa", "gdpr", "sox"],
                 "required": True,
                 "category": "application",
@@ -185,7 +185,7 @@ class CriticalAttributesDefinition:
                 "category": "business",
             },
             "change_tolerance": {
-                "asset_fields": ["custom_attributes.change_tolerance"],
+                "asset_fields": ["change_tolerance"],
                 "patterns": [
                     "change_window",
                     "maintenance",
@@ -196,7 +196,7 @@ class CriticalAttributesDefinition:
                 "category": "business",
             },
             "compliance_constraints": {
-                "asset_fields": ["custom_attributes.compliance_constraints"],
+                "asset_fields": ["compliance_constraints"],
                 "patterns": ["regulatory", "compliance", "constraint", "requirement"],
                 "required": True,
                 "category": "business",
@@ -209,25 +209,25 @@ class CriticalAttributesDefinition:
             },
             # Technical Debt Attributes
             "code_quality_metrics": {
-                "asset_fields": ["custom_attributes.code_quality"],
+                "asset_fields": ["code_quality_metrics"],
                 "patterns": ["code_quality", "technical_debt", "code_coverage"],
                 "required": False,
                 "category": "technical_debt",
             },
             "security_vulnerabilities": {
-                "asset_fields": ["custom_attributes.vulnerabilities"],
+                "asset_fields": ["security_vulnerabilities"],
                 "patterns": ["vulnerability", "cve", "security_issue", "patch"],
                 "required": True,
                 "category": "technical_debt",
             },
             "eol_technology_assessment": {
-                "asset_fields": ["custom_attributes.eol_assessment"],
+                "asset_fields": ["eol_technology_assessment"],
                 "patterns": ["eol", "end_of_life", "deprecated", "obsolete", "legacy"],
                 "required": True,
                 "category": "technical_debt",
             },
             "documentation_quality": {
-                "asset_fields": ["custom_attributes.documentation_quality"],
+                "asset_fields": ["documentation_quality"],
                 "patterns": ["documentation", "docs", "readme", "wiki", "runbook"],
                 "required": False,
                 "category": "technical_debt",

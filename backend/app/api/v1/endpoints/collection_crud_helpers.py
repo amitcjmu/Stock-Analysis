@@ -232,8 +232,36 @@ async def resolve_data_gaps(
             )
             continue
 
-        # Check if we have a gap for this field
+        # ENHANCED NORMALIZATION: Try multiple field name formats
+        # Format 1: Exact match (e.g., "technology_stack")
+        # Format 2: Strip custom_attributes prefix
+        # (e.g., "custom_attributes.architecture_pattern" -> "architecture_pattern")
+        # Format 3: Extract from composite ID (e.g., "55f62e1b__data_quality_55f62e1b" -> "data_quality_55f62e1b")
+
+        gap = None
+
+        # Strategy 1: Try exact match first
         gap = gap_index.get(field_name)
+
+        # Strategy 2: Try with custom_attributes prefix removed
+        if not gap and field_name.startswith("custom_attributes."):
+            normalized_field = field_name.replace("custom_attributes.", "")
+            gap = gap_index.get(normalized_field)
+            if gap:
+                logger.debug(
+                    f"Normalized field name: {field_name} -> {normalized_field}"
+                )
+
+        # Strategy 3: Try extracting from composite field ID (asset_id__field_name)
+        if not gap and "__" in field_name:
+            parts = field_name.split("__", 1)
+            if len(parts) == 2:
+                extracted_field = parts[1]
+                gap = gap_index.get(extracted_field)
+                if gap:
+                    logger.debug(
+                        f"Extracted field from composite ID: {field_name} -> {extracted_field}"
+                    )
         if gap:
             # Mark gap as resolved
             gap.resolution_status = "resolved"

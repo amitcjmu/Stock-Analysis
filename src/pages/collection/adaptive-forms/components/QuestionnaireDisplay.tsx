@@ -105,12 +105,13 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
 
     // Check if this is a critical field that might trigger dependencies
     // For now, trigger on any field change - backend will determine if dependencies exist
-    if (selectedAssetId && formValues && formValues[fieldId] !== value) {
+    if (selectedAssetId && childFlowId && formValues && formValues[fieldId] !== value) {
       dependencyMutation.mutate({
-        changed_asset_id: selectedAssetId,
+        child_flow_id: childFlowId,
+        asset_id: selectedAssetId,
         changed_field: fieldId,
-        old_value: formValues[fieldId],
-        new_value: value
+        new_value: value,
+        old_value: formValues[fieldId]
       }, {
         onSuccess: (data) => {
           if (data.reopened_question_ids.length > 0) {
@@ -135,7 +136,7 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
         }
       });
     }
-  }, [selectedAssetId, formValues, onFieldChange, dependencyMutation, formData]);
+  }, [selectedAssetId, childFlowId, formValues, onFieldChange, dependencyMutation, formData]);
 
   // Filter form data to show only selected asset's questions
   const filteredFormData = React.useMemo(() => {

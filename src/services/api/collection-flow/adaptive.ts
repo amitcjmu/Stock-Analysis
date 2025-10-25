@@ -37,10 +37,11 @@ export interface DynamicQuestionsResponse {
 }
 
 export interface DependencyChangeRequest {
-  changed_asset_id: string;
+  child_flow_id: string;
+  asset_id: string;
   changed_field: string;
-  old_value: unknown;
   new_value: unknown;
+  old_value?: unknown;
 }
 
 export interface DependencyChangeResponse {

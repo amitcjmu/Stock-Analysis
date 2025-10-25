@@ -205,40 +205,15 @@ class QuestionnaireGenerationTool(BaseTool):
                         }
                     )
 
-            # Section 5: Technical Details (for assets with gaps)
-            assets_with_gaps = data_gaps.get("assets_with_gaps", [])
-            if assets_with_gaps:
-                technical_questions = []
-                for asset_id in assets_with_gaps[:3]:  # Limit to first 3 assets
-                    # CRITICAL FIX: Use actual asset name instead of UUID prefix
-                    asset_name = await self._asset_helpers.get_asset_name(
-                        asset_id, business_context
-                    )
-                    # CRITICAL FIX: Lookup actual asset type instead of hardcoding "application"
-                    asset_type = await self._asset_helpers.get_asset_type(
-                        asset_id, business_context
-                    )
-                    asset_context = {
-                        "asset_id": asset_id,
-                        "asset_name": asset_name,
-                        "asset_type": asset_type,  # Per Phase 1 fix - routes to correct question generator
-                    }
-                    question = self._delegation.generate_technical_detail_question(
-                        {}, asset_context
-                    )
-                    technical_questions.append(question)
-
-                if technical_questions:
-                    sections.append(
-                        {
-                            "section_id": "technical_details",
-                            "section_title": "Technical Details",
-                            "section_description": "Additional technical information needed for migration planning",
-                            "questions": technical_questions,
-                        }
-                    )
+            # REMOVED: Section 5 - Technical Details (legacy fallback)
+            # This section generated free-form text questions that cannot be processed by 6R engine.
+            # All critical technical information is now captured via structured MCQ questions
+            # in the critical attributes framework (architecture, tech stack, dependencies, etc.)
 
             # Return structured response
+            # Extract assets_with_gaps from data_gaps for metadata
+            assets_with_gaps = data_gaps.get("assets_with_gaps", [])
+
             result = {
                 "status": "success",
                 "questionnaires": sections,  # Note: using 'questionnaires' key as expected by parser

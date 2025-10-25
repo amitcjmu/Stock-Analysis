@@ -124,7 +124,9 @@ def build_question_from_attribute(
     field_id = asset_fields[0] if asset_fields else attr_name
 
     readable_name = attr_name.replace("_", " ").title()
-    field_type, options = determine_field_type_and_options(attr_name)
+    # CRITICAL FIX: Use field_id (database field name) instead of attr_name (critical attribute name)
+    # This ensures FIELD_OPTIONS lookup uses correct key (e.g., "cpu_cores" not "cpu_memory_storage_specs")
+    field_type, options = determine_field_type_and_options(field_id)
 
     # Get category from attribute config (NOT hardcoded)
     category = attr_config.get("category", "application")
