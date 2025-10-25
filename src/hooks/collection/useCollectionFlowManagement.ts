@@ -175,6 +175,79 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
   return queryResult;
 };
 
+// Hook for detecting actively incomplete collection flows (INITIALIZED, RUNNING only)
+// Per ADR-012, PAUSED flows are waiting for user input and should not block new operations
+export const useActivelyIncompleteCollectionFlows = (enabled: boolean = true) => {
+  const queryResult = useQuery({
+    queryKey: ['collection-flows', 'actively-incomplete'],
+    queryFn: async () => {
+      console.log('🚀 Fetching actively incomplete collection flows...');
+      try {
+        const result = await collectionFlowApi.getActivelyIncompleteFlows();
+        console.log('✅ Actively incomplete flows fetched:', result);
+        return result;
+      } catch (error: unknown) {
+        console.error('❌ Failed to fetch actively incomplete flows:', error);
+
+        // If it's an auth error, don't throw it back to React Query
+        // This prevents retries and lets the auth context handle the redirect
+        if (error?.status === 401 || error?.isAuthError) {
+          console.warn('🔐 Authentication error in actively incomplete flows query - stopping retries');
+          // Return empty array to prevent UI errors
+          return [];
+        }
+
+        throw error;
+      }
+    },
+    enabled,
+    refetchInterval: (data, query) => {
+      // STOP INFINITE LOOPS: Disable aggressive polling
+      // Don't refetch if there was any error
+      if (query?.state?.error) {
+        console.log('🛑 Error detected, stopping all polling:', query.state.error);
+        return false;
+      }
+
+      // Stop polling if all flows are in terminal states
+      if (data && Array.isArray(data)) {
+        const hasActiveFlows = data.some(flow => {
+          const status = flow.status?.toLowerCase();
+          return status !== 'completed' && status !== 'failed' && status !== 'cancelled';
+        });
+
+        if (!hasActiveFlows) {
+          console.log('✅ All actively incomplete flows are in terminal states, stopping polling');
+          return false;
+        }
+      }
+
+      // Reduce polling frequency to prevent spam
+      return 60000; // Refetch every 60 seconds
+    },
+    staleTime: 10000, // Consider data stale after 10 seconds
+    retry: (failureCount, error: unknown) => {
+      // STOP INFINITE LOOPS: No retries for critical errors
+      // Don't retry on authentication errors
+      if (error?.status === 401 || error?.isAuthError) {
+        return false;
+      }
+      // Don't retry on 409 conflicts - these need user intervention
+      if (error?.status === 409) {
+        return false;
+      }
+      // Don't retry on 500 server errors - these need backend fixes
+      if (error?.status === 500) {
+        return false;
+      }
+      // Only retry on network errors (no status code) and 1 attempt max
+      return !error?.status && failureCount < 1;
+    }
+  });
+
+  return queryResult;
+};
+
 export const useCollectionFlowManagement = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();

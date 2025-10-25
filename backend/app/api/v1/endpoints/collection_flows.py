@@ -265,6 +265,24 @@ async def get_incomplete_flows(
     )
 
 
+@router.get("/actively-incomplete", response_model=List[CollectionFlowResponse])
+async def get_actively_incomplete_flows(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    context=Depends(get_request_context),
+) -> List[CollectionFlowResponse]:
+    """Get actively incomplete collection flows (INITIALIZED, RUNNING only).
+
+    Per ADR-012, PAUSED flows are waiting for user input and should not block new
+    operations. This endpoint only returns flows that are actively processing.
+    """
+    return await collection_crud.get_actively_incomplete_flows(
+        db=db,
+        current_user=current_user,
+        context=context,
+    )
+
+
 @router.post("/flows/{flow_id}/applications", response_model=Dict[str, Any])
 async def update_collection_flow_applications(
     flow_id: str,

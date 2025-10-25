@@ -23,6 +23,7 @@ from .analysis import (
 # List operations
 from .lists import (
     get_incomplete_flows,
+    get_actively_incomplete_flows,
     get_all_flows,
 )
 
@@ -43,5 +44,6 @@ __all__ = [
     "_get_readiness_recommendations",
     # From lists
     "get_incomplete_flows",
+    "get_actively_incomplete_flows",
     "get_all_flows",
 ]

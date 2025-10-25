@@ -82,6 +82,10 @@ export class FlowsApi extends CollectionFlowClient {
     return await apiCall(`${this.baseUrl}/incomplete`, { method: "GET" });
   }
 
+  async getActivelyIncompleteFlows(): Promise<CollectionFlowResponse[]> {
+    return await apiCall(`${this.baseUrl}/actively-incomplete`, { method: "GET" });
+  }
+
   async getFlow(flowId: string): Promise<CollectionFlowResponse> {
     try {
       return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: "GET" });

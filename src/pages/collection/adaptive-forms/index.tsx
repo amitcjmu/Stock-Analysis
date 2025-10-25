@@ -16,7 +16,7 @@ import { MultiAssetAnswerModal } from "@/components/collection/MultiAssetAnswerM
 // Import custom hooks
 import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
 import {
-  useIncompleteCollectionFlows,
+  useActivelyIncompleteCollectionFlows,
   useCollectionFlowManagement,
 } from "@/hooks/collection/useCollectionFlowManagement";
 import { useFlowDeletion } from "@/hooks/useFlowDeletion";
@@ -103,14 +103,15 @@ const AdaptiveForms: React.FC = () => {
     setIsFallbackQuestionnaire(true);
   }, []);
 
-  // Check for incomplete flows that would block new collection processes
+  // Check for actively incomplete flows (INITIALIZED, RUNNING) that would block new operations
+  // Per ADR-012, PAUSED flows are waiting for user input and should not block
   // Skip checking if we're continuing a specific flow (flowId provided)
   const skipIncompleteCheck = !!flowId;
   const {
     data: incompleteFlows = [],
     isLoading: checkingFlows,
     refetch: refetchFlows,
-  } = useIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
+  } = useActivelyIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
 
   // Use collection flow management hook for flow operations
   const { deleteFlow, isDeleting } = useCollectionFlowManagement();

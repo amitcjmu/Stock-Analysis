@@ -77,6 +77,10 @@ class CollectionFlowApi {
     return this.flows.getIncompleteFlows();
   }
 
+  async getActivelyIncompleteFlows() {
+    return this.flows.getActivelyIncompleteFlows();
+  }
+
   async getFlow(flowId: string) {
     return this.flows.getFlow(flowId);
   }
