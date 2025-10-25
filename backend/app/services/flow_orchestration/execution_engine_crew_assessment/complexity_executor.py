@@ -96,13 +96,28 @@ Return results as valid JSON with keys: complexity_score, components, integratio
 
             execution_time = time.time() - start_time
 
+            # Extract string result from TaskOutput object (CrewAI returns TaskOutput, not string)
+            from crewai import TaskOutput
+            from app.utils.json_sanitization import sanitize_for_json
+
+            if isinstance(result, TaskOutput):
+                # TaskOutput has .raw attribute containing the actual string result
+                result_str = result.raw if hasattr(result, "raw") else str(result)
+            else:
+                result_str = str(result) if not isinstance(result, str) else result
+
             # Parse result (assuming JSON output from agent)
             try:
                 parsed_result = (
-                    json.loads(result) if isinstance(result, str) else result
+                    json.loads(result_str)
+                    if isinstance(result_str, str)
+                    else result_str
                 )
             except json.JSONDecodeError:
-                parsed_result = {"raw_output": str(result)}
+                parsed_result = {"raw_output": result_str}
+
+            # Per ADR-029: Sanitize LLM output to remove NaN/Infinity before JSON serialization
+            parsed_result = sanitize_for_json(parsed_result)
 
             logger.info(f"✅ Complexity analysis completed in {execution_time:.2f}s")
 

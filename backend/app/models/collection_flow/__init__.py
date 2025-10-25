@@ -11,6 +11,11 @@ from .models import (
     CollectionFlow,
     CollectionGapAnalysis,
     AdaptiveQuestionnaire,
+    # New models for Adaptive Questionnaire Enhancements
+    CollectionQuestionRules,
+    CollectionAnswerHistory,
+    AssetCustomAttributes,
+    CollectionBackgroundTasks,
 )
 
 # Import enums and schemas
@@ -35,6 +40,11 @@ __all__ = [
     "CollectionFlow",
     "CollectionGapAnalysis",
     "AdaptiveQuestionnaire",
+    # New models for Adaptive Questionnaire Enhancements
+    "CollectionQuestionRules",
+    "CollectionAnswerHistory",
+    "AssetCustomAttributes",
+    "CollectionBackgroundTasks",
     # Enums
     "AutomationTier",
     "CollectionFlowStatus",

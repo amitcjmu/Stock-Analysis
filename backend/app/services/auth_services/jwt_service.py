@@ -38,7 +38,6 @@ class JWTService:
 
         try:
             token = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
-            logger.info(f"Created access token for user: {data.get('sub', 'unknown')}")
             return token
         except Exception as e:
             logger.error(f"Failed to create access token: {e}")
@@ -47,37 +46,22 @@ class JWTService:
     def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
         """Verify and decode a JWT token."""
         try:
-            # Bug #684 debugging: Log token verification attempt
-            token_preview = token[:20] if token else "None"
-            logger.info(
-                f"🔑 [JWT] Verifying token (length: {len(token) if token else 0}, "
-                f"starts with: {token_preview}...)"
-            )
-
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
-
-            # Bug #684 debugging: Log successful decode
-            logger.info(
-                f"🔑 [JWT] Token decoded successfully, payload keys: {list(payload.keys())}"
-            )
 
             # Verify token type
             if payload.get("type") != "access":
-                logger.warning(
-                    f"⚠️ [JWT] Invalid token type: {payload.get('type')} (expected 'access')"
+                logger.error(
+                    f"❌ [JWT] Invalid token type: {payload.get('type')} (expected 'access')"
                 )
                 return None
 
-            logger.info(
-                f"✅ [JWT] Token verification successful for user: {payload.get('sub')}"
-            )
             return payload
 
-        except jwt.ExpiredSignatureError as e:
-            logger.warning(f"⚠️ [JWT] Token has expired: {e}")
+        except jwt.ExpiredSignatureError:
+            # Normal occurrence - don't log expired tokens
             return None
-        except jwt.InvalidTokenError as e:
-            logger.warning(f"⚠️ [JWT] Invalid token: {e}")
+        except jwt.InvalidTokenError:
+            # Normal occurrence - don't log invalid tokens
             return None
         except Exception as e:
             logger.error(f"❌ [JWT] Token verification error: {e}", exc_info=True)

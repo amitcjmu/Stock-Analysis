@@ -111,11 +111,20 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                 {section.title}
               </CardTitle>
 
-              {section.requiredFieldsCount > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {section.requiredFieldsCount} required
-                </Badge>
-              )}
+              {/* CRITICAL FIX (Bug #768): Calculate required count from visible filtered fields
+                  not from section.requiredFieldsCount which is total across all assets.
+                  For multi-asset questionnaires, section.fields is filtered to show only
+                  the selected asset's questions, so we must count from that filtered array. */}
+              {(() => {
+                const visibleRequiredCount = section.fields.filter(field =>
+                  field.validation?.required !== false
+                ).length;
+                return visibleRequiredCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {visibleRequiredCount} required
+                  </Badge>
+                );
+              })()}
             </div>
 
             {section.description && (

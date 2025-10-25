@@ -66,6 +66,9 @@ class APITags:
     UNIFIED_DISCOVERY = "Unified Discovery"
     COLLECTION_FLOW = "Collection Flow"
     COLLECTION_GAP_ANALYSIS = "Collection Gap Analysis"
+    COLLECTION_BULK_OPERATIONS = "Collection Bulk Operations"
+    COLLECTION_QUESTIONS = "Collection Questions"
+    COLLECTION_IMPORT = "Collection Import"
     DEPENDENCY_ANALYSIS = "Dependency Analysis"
     AGENT_INSIGHTS = "Agent Insights"
 

@@ -257,7 +257,11 @@ async def get_db() -> AsyncSession:
             await session.close()
         raise
     except Exception as e:
-        logger.error(f"Database session error: {e}")
+        # Don't log auth failures (401, 403) as errors - they're expected when tokens expire
+        from fastapi import HTTPException
+
+        if not (isinstance(e, HTTPException) and e.status_code in [401, 403]):
+            logger.error(f"Database session error: {e}")
         response_time = (datetime.utcnow() - start_time).total_seconds()
         connection_health.record_connection_attempt(False, response_time)
         if session:

@@ -29,6 +29,7 @@ async def _get_flow_by_id(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> CollectionFlow:
     """Get and validate collection flow by ID."""
+    logger.debug(f"🔍 _get_flow_by_id called with flow_id={flow_id}")
     flow_result = await db.execute(
         select(CollectionFlow).where(
             CollectionFlow.flow_id == UUID(flow_id),
@@ -40,6 +41,9 @@ async def _get_flow_by_id(
     if not flow:
         logger.warning(f"Collection flow not found: {flow_id}")
         raise HTTPException(status_code=404, detail="Collection flow not found")
+    logger.debug(
+        f"✅ Found flow: flow_id={flow.flow_id}, id={flow.id}, phase={flow.current_phase}"
+    )
     return flow
 
 
@@ -51,6 +55,11 @@ async def _get_existing_questionnaires_tenant_scoped(
     CRITICAL: Only returns questionnaires that are NOT completed.
     Completed questionnaires should not be returned to prevent submission loops.
     """
+    logger.debug(f"🔍 Querying questionnaires with collection_flow_id={flow.id}")
+    logger.debug(
+        f"   client_account_id={context.client_account_id}, engagement_id={context.engagement_id}"
+    )
+
     questionnaires_result = await db.execute(
         select(AdaptiveQuestionnaire)
         .where(
@@ -67,15 +76,22 @@ async def _get_existing_questionnaires_tenant_scoped(
 
     if questionnaires:
         logger.info(
-            f"Found {len(questionnaires)} incomplete questionnaires in database"
+            f"✅ Found {len(questionnaires)} incomplete questionnaires in database"
         )
-        return [
+        for q in questionnaires:
+            logger.debug(
+                f"   - Questionnaire {q.id}: {len(q.questions)} questions, status={q.completion_status}"
+            )
+
+        serialized = [
             collection_serializers.build_questionnaire_response(q)
             for q in questionnaires
         ]
+        logger.debug(f"📦 Serialized {len(serialized)} questionnaire responses")
+        return serialized
 
     logger.info(
-        "No incomplete questionnaires found - collection may be ready for assessment"
+        "❌ No incomplete questionnaires found - collection may be ready for assessment"
     )
     return []
 
@@ -115,8 +131,12 @@ async def get_adaptive_questionnaires(
 
         if existing_questionnaires:
             logger.info(
-                f"Returning {len(existing_questionnaires)} existing questionnaires"
+                f"✅ Returning {len(existing_questionnaires)} existing questionnaires to frontend"
             )
+            for q in existing_questionnaires:
+                logger.debug(
+                    f"   - Questionnaire {q.id}: {len(q.questions) if q.questions else 0} questions"
+                )
 
             # ✅ DEFENSIVE FIX: Check if phase transition was missed (e.g., background task interrupted)
             # If questionnaire exists with questions but phase is still questionnaire_generation,

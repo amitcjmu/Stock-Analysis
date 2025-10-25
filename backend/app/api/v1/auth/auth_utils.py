@@ -41,46 +41,26 @@ async def get_current_user(
     )
 
     try:
-        # Bug #684 debugging: Log token reception
-        logger.info(
-            f"🔐 [AUTH] Received token for validation (length: {len(token) if token else 0})"
-        )
-
         # Use JWT service for token validation
         try:
             jwt_service = JWTService()
-            logger.info("🔐 [AUTH] JWT service initialized, verifying token...")
             payload = jwt_service.verify_token(token)
-
-            if payload:
-                logger.info(
-                    f"🔐 [AUTH] Token verified successfully, payload keys: {list(payload.keys())}"
-                )
-            else:
-                logger.warning(
-                    "⚠️ [AUTH] Token verification returned None (invalid/expired token)"
-                )
 
         except Exception as jwt_error:
             logger.error(f"❌ [AUTH] JWT service error: {jwt_error}")
             raise credentials_exception
 
         if payload is None:
-            logger.warning("⚠️ [AUTH] Payload is None, raising credentials_exception")
             raise credentials_exception
 
         user_id_str = payload.get("sub")
         if user_id_str is None:
-            logger.warning("⚠️ [AUTH] No 'sub' claim in token payload")
             raise credentials_exception
-
-        logger.info(f"🔐 [AUTH] Extracted user_id from token: {user_id_str}")
 
         try:
             user_id = UUID(user_id_str)
 
             # Find user by ID with eager loading of associations
-            logger.info(f"🔐 [AUTH] Querying database for user_id: {user_id}")
             result = await db.execute(
                 select(User)
                 .where(User.id == user_id)
@@ -89,12 +69,7 @@ async def get_current_user(
             user = result.scalar_one_or_none()
 
             if user is None:
-                logger.warning(f"⚠️ [AUTH] User not found in database: {user_id}")
                 raise credentials_exception
-
-            logger.info(
-                f"✅ [AUTH] User found: {user.email}, is_active: {user.is_active}"
-            )
 
             # Check if user is active
             if not user.is_active:
@@ -104,7 +79,6 @@ async def get_current_user(
                     detail="User account is inactive",
                 )
 
-            logger.info(f"✅ [AUTH] Authentication successful for user: {user.email}")
             return user
 
         except ValueError as ve:

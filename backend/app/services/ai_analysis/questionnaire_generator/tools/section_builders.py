@@ -10,17 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 def create_basic_info_section() -> dict:
-    """Create basic information section."""
-    basic_questions = [
-        {
-            "field_id": "collection_date",
-            "question_text": "When was this information collected?",
-            "field_type": "date",
-            "required": False,
-            "category": "metadata",
-            "help_text": "Date when this data collection occurred",
-        }
-    ]
+    """Create basic information section.
+
+    IMPORTANT: collection_date is now handled internally by the system
+    and should not be requested from users. This function returns an
+    empty section that will be filtered out during processing.
+    """
+    # Metadata like collection_date should be set server-side, not requested from users
+    # Returning empty section which will be filtered out if no questions
+    basic_questions = []
+
     return {
         "section_id": "basic_information",
         "section_title": "Basic Information",

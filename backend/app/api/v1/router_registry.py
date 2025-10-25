@@ -100,8 +100,9 @@ def register_conditional_routers(api_router: APIRouter):
         # ASSESSMENT_FLOW_AVAILABLE,  # Currently disabled
         # assessment_flow_router,     # Currently disabled
         COLLECTION_AVAILABLE,
-        collection_router,
+        collection_flows_router,
         collection_post_completion_router,
+        collection_bulk_ops_router,
         COLLECTION_GAPS_AVAILABLE,
         collection_gaps_vendor_products_router,
         collection_gaps_maintenance_windows_router,
@@ -177,7 +178,8 @@ def register_conditional_routers(api_router: APIRouter):
 
     # Collection Flow API - Registered AFTER gap analysis router to avoid shadowing
     if COLLECTION_AVAILABLE:
-        api_router.include_router(collection_router, prefix="/collection")
+        # Legacy Collection Flow API (from collection_flows.py)
+        api_router.include_router(collection_flows_router, prefix="/collection")
         logger.info("✅ Collection Flow API router included at /collection")
 
         # Collection Post-Completion API - Asset resolution after collection
@@ -185,8 +187,26 @@ def register_conditional_routers(api_router: APIRouter):
             collection_post_completion_router, prefix="/collection"
         )
         logger.info("✅ Collection Post-Completion router included at /collection")
+
+        # Collection Bulk Operations API - Adaptive Questionnaire Enhancements
+        # Aggregated router from collection/__init__.py includes:
+        # - bulk_answer (bulk-answer-preview, bulk-answer)
+        # - dynamic_questions (questions/filtered, dependency-change)
+        # - bulk_import (bulk-import/analyze, bulk-import/execute, bulk-import/status)
+        # - gap_analysis (gap-analysis)
+        api_router.include_router(
+            collection_bulk_ops_router,
+            prefix="/collection",
+            tags=[APITags.COLLECTION_BULK_OPERATIONS],
+        )
+        logger.info(
+            "✅ Collection Bulk Operations router included at /collection "
+            "(bulk-answer, questions/filtered, bulk-import, gap-analysis)"
+        )
     else:
-        logger.warning("⚠️ Collection Flow API router not available")
+        logger.warning(
+            "⚠️ Collection Flow API and Bulk Operations routers not available"
+        )
 
     # Flow Processing API
     if FLOW_PROCESSING_AVAILABLE:

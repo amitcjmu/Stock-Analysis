@@ -143,19 +143,29 @@ except ImportError:
     plan_router = None
 
 # Collection Flow endpoints
-collection_router: Optional[APIRouter]
+collection_flows_router: Optional[APIRouter]
 collection_post_completion_router: Optional[APIRouter]
+collection_bulk_ops_router: Optional[APIRouter]
 try:
-    from app.api.v1.endpoints.collection import router as collection_router
+    from app.api.v1.endpoints.collection_flows import router as collection_flows_router
     from app.api.v1.endpoints.collection_post_completion import (
         router as collection_post_completion_router,
     )
+    from app.api.v1.endpoints.collection import router as collection_bulk_ops_router
 
     COLLECTION_AVAILABLE = True
 except ImportError:
     COLLECTION_AVAILABLE = False
-    collection_router = None
+    collection_flows_router = None
     collection_post_completion_router = None
+    collection_bulk_ops_router = None
+
+# Collection Bulk Operations endpoints (Adaptive Questionnaire Enhancements)
+# NOTE: These are now included in collection_bulk_ops_router via collection/__init__.py
+# Individual routers no longer imported separately to avoid duplicate registration
+COLLECTION_BULK_OPS_AVAILABLE = (
+    COLLECTION_AVAILABLE  # Same availability as main collection router
+)
 
 # Collection Gaps endpoints
 collection_gaps_vendor_products_router: Optional[APIRouter]
@@ -454,7 +464,10 @@ __all__ = [
     "PLAN_AVAILABLE",
     "plan_router",
     "COLLECTION_AVAILABLE",
-    "collection_router",
+    "collection_flows_router",
+    "collection_post_completion_router",
+    "collection_bulk_ops_router",
+    "COLLECTION_BULK_OPS_AVAILABLE",
     "COLLECTION_GAPS_AVAILABLE",
     "collection_gaps_vendor_products_router",
     "collection_gaps_maintenance_windows_router",

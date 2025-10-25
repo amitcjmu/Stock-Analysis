@@ -270,20 +270,9 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
     def _log_security_events(self, request: Request, response: Response):
         """Log security-related events."""
 
-        # Log authentication failures
-        if response.status_code == 401:
-            logger.info(
-                "Authentication failure",
-                extra={
-                    "client_ip": request.client.host if request.client else "unknown",
-                    "path": request.url.path,
-                    "method": request.method,
-                    "user_agent": request.headers.get("user-agent", ""),
-                },
-            )
-
-        # Log authorization failures
-        elif response.status_code == 403:
+        # Don't log authentication failures (401) - too noisy when tokens expire
+        # Log authorization failures (403) as they indicate permission issues
+        if response.status_code == 403:
             logger.info(
                 "Authorization failure",
                 extra={

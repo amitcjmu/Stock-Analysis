@@ -146,11 +146,11 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">Overall Progress</span>
-            <span className={cn('font-semibold', getProgressColor(safeOverallCompletion))}>
+            <span className={cn('font-semibold', getProgressColor(safeOverallCompletion))} data-testid="completion-percent">
               {safePercentage(safeOverallCompletion)}%
             </span>
           </div>
-          <Progress value={safePercentage(safeOverallCompletion)} className="h-2" />
+          <Progress value={safePercentage(safeOverallCompletion)} className="h-2" data-testid="progress-bar" />
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{safeCompletedSections}/{safeTotalSections} sections</span>
             <span>

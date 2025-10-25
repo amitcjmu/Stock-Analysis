@@ -41,39 +41,29 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
 
         # Extract basic request info
-        client_ip = request.client.host if request.client else "unknown"
-        user_agent = request.headers.get("user-agent", "unknown")
         method = request.method
         url = str(request.url)
-
-        # Log request start
-        logger.info(
-            f"🔄 {method} {url} | IP: {client_ip} | Agent: {user_agent[:50]}..."
-        )
 
         try:
             # Process request
             response = await call_next(request)
 
-            # Log response
+            # Log response - only log server errors and client errors (excluding auth failures)
             process_time = time.time() - start_time
             status_code = response.status_code
 
-            # Use different log levels based on status
+            # Only log errors and warnings (reduce noise from normal operations)
             if status_code >= 500:
-                log_level = logging.ERROR
-                emoji = "❌"
-            elif status_code >= 400:
-                log_level = logging.WARNING
-                emoji = "⚠️"
-            else:
-                log_level = logging.INFO
-                emoji = "✅"
-
-            logger.log(
-                log_level,
-                f"{emoji} {method} {url} | Status: {status_code} | Time: {process_time:.3f}s",
-            )
+                # Server errors - always log
+                logger.error(
+                    f"❌ {method} {url} | Status: {status_code} | Time: {process_time:.3f}s"
+                )
+            elif status_code >= 400 and status_code not in [401, 403]:
+                # Client errors (except auth failures which are expected) - log as warning
+                logger.warning(
+                    f"⚠️ {method} {url} | Status: {status_code} | Time: {process_time:.3f}s"
+                )
+            # Don't log successful requests (200-399) or auth failures (401, 403) - too noisy
 
             return response
 

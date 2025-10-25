@@ -33,8 +33,15 @@ def add_middlewares(app, settings):  # noqa: C901
         SecurityHeadersMiddleware,
     )
     from app.middleware.tenant_context import TenantContextMiddleware
+    from app.middleware.request_context_enforcement import (
+        RequestContextEnforcementMiddleware,
+    )
 
     app.add_middleware(TenantContextMiddleware)
+    app.add_middleware(RequestContextEnforcementMiddleware)
+    logger.info(
+        "✅ RequestContext enforcement middleware added for collection endpoints"
+    )
     app.add_middleware(
         ContextMiddleware,
         require_client=True,

@@ -49,14 +49,14 @@ export const useDiscoveryFlowList = (): UseQueryResult<DiscoveryFlow[], Error> =
           next_phase: flow.currentPhase || '', // Use current phase as next phase fallback
           created_at: flow.startTime || new Date().toISOString(),
           updated_at: flow.startTime || new Date().toISOString(),
-          // Use reasonable defaults for phase completion flags since MFO doesn't provide these
-          phases: {},
-          data_import_completed: flow.progress > 10,
-          field_mapping_completed: flow.progress > 25,
-          data_cleansing_completed: flow.progress > 50,
-          asset_inventory_completed: flow.progress > 70,
-          dependency_analysis_completed: flow.progress > 85,
-          tech_debt_assessment_completed: flow.progress >= 100,
+          // Preserve detailed phase info if provided by service/backend, fallback to progress-based estimation
+          phases: flow.phases ?? {},
+          data_import_completed: flow.data_import_completed ?? (flow.progress > 10),
+          field_mapping_completed: flow.field_mapping_completed ?? (flow.progress > 25),
+          data_cleansing_completed: flow.data_cleansing_completed ?? (flow.progress > 50),
+          asset_inventory_completed: flow.asset_inventory_completed ?? (flow.progress > 70),
+          dependency_analysis_completed: flow.dependency_analysis_completed ?? (flow.progress > 85),
+          tech_debt_assessment_completed: flow.tech_debt_assessment_completed ?? (flow.progress >= 100),
         }));
 
         console.log('✅ Transformed discovery flows:', transformedFlows);

@@ -63,7 +63,7 @@ class BaseRepo(ContextAwareRepository):
         super().__init__(
             db=db,
             model_class=CrewAIFlowStateExtensions,
-            client_account_id=str(parsed_client),
+            context_or_client_id=str(parsed_client),
             engagement_id=str(parsed_engagement),
         )
 
