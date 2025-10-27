@@ -77,7 +77,15 @@ class LLMUsageCallback(CustomLogger):
                 total_tokens = 0
 
             # Calculate response time
-            response_time_ms = int((end_time - start_time) * 1000)
+            # Fix (Issue #801): Handle both datetime and float timestamps
+            from datetime import datetime, timedelta
+
+            if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            elif isinstance(end_time - start_time, timedelta):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            else:
+                response_time_ms = int((end_time - start_time) * 1000)
 
             # Extract feature context from kwargs
             feature_context = kwargs.get("metadata", {}).get(

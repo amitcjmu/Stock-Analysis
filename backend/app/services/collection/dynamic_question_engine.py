@@ -344,8 +344,13 @@ class DynamicQuestionEngine:
             complexity=TaskComplexity.AGENTIC,  # Complex analysis requires Llama 4
         )
 
+        # Extract content from response dict (Issue #801: multi_model_service returns dict, not string)
+        response_text = (
+            response.get("content", "") if isinstance(response, dict) else str(response)
+        )
+
         # Parse response to get question IDs
-        relevant_ids = self._parse_question_ids(response)
+        relevant_ids = self._parse_question_ids(response_text)
 
         # Filter questions by relevant IDs
         return [q for q in questions if q["question_id"] in relevant_ids]
