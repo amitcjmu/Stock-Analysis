@@ -159,8 +159,10 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
     })).filter((section: any) => section.fields.length > 0);
 
     // Apply client-side filters (answered status, section)
+    // FIX: Update applicationName to match selected asset
     let finalFormData = {
       ...formData,
+      applicationName: selectedGroup.asset_name || selectedGroup.asset_id, // Update asset name when selection changes
       sections: filteredSections
     };
 
