@@ -220,11 +220,18 @@ async def run_initial_analysis(
 
                     if asset_ids:
                         # Fetch assets from database with multi-tenant scoping
-                        assets_result = await asset_repo.get_assets_by_ids(
-                            asset_ids=asset_ids,
-                            client_account_id=client_account_id,
-                            engagement_id=engagement_id,
-                        )
+                        # Use direct query since get_assets_by_ids doesn't exist
+                        asset_query = select(Asset).where(Asset.id.in_(asset_ids))
+                        if client_account_id is not None:
+                            asset_query = asset_query.where(
+                                Asset.client_account_id == client_account_id
+                            )
+                        if engagement_id is not None:
+                            asset_query = asset_query.where(
+                                Asset.engagement_id == engagement_id
+                            )
+                        asset_result = await db.execute(asset_query)
+                        assets_result = list(asset_result.scalars().all())
 
                         # Format asset inventory for AI analysis
                         if assets_result:
@@ -248,12 +255,18 @@ async def run_initial_analysis(
                             )
 
                         # Fetch dependencies for AI analysis
-                        dependencies_result = (
-                            await dep_repo.get_dependencies_for_assets(
-                                asset_ids=asset_ids,
-                                client_account_id=client_account_id,
-                            )
+                        # Use direct query since get_dependencies_for_assets doesn't exist
+                        from app.models.asset import AssetDependency
+
+                        dep_query = select(AssetDependency).where(
+                            AssetDependency.asset_id.in_(asset_ids)
                         )
+                        if client_account_id is not None:
+                            dep_query = dep_query.where(
+                                AssetDependency.client_account_id == client_account_id
+                            )
+                        dep_result = await db.execute(dep_query)
+                        dependencies_result = list(dep_result.scalars().all())
 
                         # Format dependencies for AI analysis
                         if dependencies_result:
