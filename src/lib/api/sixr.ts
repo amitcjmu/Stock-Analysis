@@ -336,8 +336,17 @@ export class SixRApiClient {
 
       // Bug #814: Backend serves GET /6r/ with pagination, not /6r/history
       const endpoint = `/6r/${queryParams.toString() ? `?${queryParams}` : ''}`;
-      const response = await apiClient.get<AnalysisHistoryItem[]>(endpoint);
-      return response;
+
+      // Bug #814 fix: Backend returns {analyses: [...]} object, not array directly
+      const response = await apiClient.get<{analyses: AnalysisHistoryItem[]} | AnalysisHistoryItem[]>(endpoint);
+
+      // Handle both response formats (wrapped object or direct array)
+      if (Array.isArray(response)) {
+        return response;
+      }
+
+      // Extract analyses array from wrapped response
+      return (response as {analyses: AnalysisHistoryItem[]}).analyses || [];
     } catch (error) {
       this.handleError('Failed to get analysis history', error);
       throw error;
