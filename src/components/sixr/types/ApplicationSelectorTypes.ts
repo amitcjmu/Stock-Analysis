@@ -3,8 +3,9 @@
  * Extracted from ApplicationSelector.tsx for modularization
  */
 
+// Bug #813 fix: Changed id from number to string (UUID) for backend compatibility
 export interface Application {
-  id: number;
+  id: string; // UUID from assets table
   name: string;
   description?: string;
   technology_stack: string[];
@@ -22,21 +23,23 @@ export interface Application {
   confidence_score?: number;
 }
 
+// Bug #813 fix: Changed applications from number[] to string[] (UUIDs)
 export interface AnalysisQueue {
   id: string;
   name: string;
-  applications: number[];
+  applications: string[]; // UUID strings
   status: 'pending' | 'in_progress' | 'completed' | 'paused';
   created_at: Date;
   priority: number;
   estimated_duration?: number;
 }
 
+// Bug #813 fix: Changed all number[] to string[] (UUIDs)
 export interface ApplicationSelectorProps {
   applications: Application[];
-  selectedApplications: number[];
-  onSelectionChange: (selectedIds: number[]) => void;
-  onStartAnalysis: (applicationIds: number[], queueName?: string) => void;
+  selectedApplications: string[]; // UUID strings
+  onSelectionChange: (selectedIds: string[]) => void;
+  onStartAnalysis: (applicationIds: string[], queueName?: string) => void;
   analysisQueues?: AnalysisQueue[];
   onQueueAction?: (queueId: string, action: 'start' | 'pause' | 'cancel') => void;
   maxSelections?: number;
@@ -58,10 +61,11 @@ export interface FilteredApplicationsResult {
   technologies: string[];
 }
 
+// Bug #813 fix: Changed selectedApplications and appId from number to string (UUID)
 export interface ApplicationTableProps {
   applications: Application[];
-  selectedApplications: number[];
-  onSelectApplication: (appId: number) => void;
+  selectedApplications: string[]; // UUID strings
+  onSelectApplication: (appId: string) => void;
   onSelectAll: () => void;
 }
 

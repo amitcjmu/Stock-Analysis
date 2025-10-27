@@ -241,15 +241,19 @@ class SixRIteration(BaseModel):
 class SixRAnalysisRequest(BaseModel):
     """Request schema for starting 6R analysis."""
 
-    application_ids: List[int] = Field(..., description="Application IDs to analyze")
+    # Bug #813 fix: Changed from List[int] to List[str] to accept UUID strings from frontend
+    application_ids: List[str] = Field(
+        ..., description="Application IDs to analyze (UUID strings)"
+    )
     initial_parameters: Optional[SixRParameterBase] = Field(
         None, description="Initial parameter values"
     )
     analysis_name: Optional[str] = Field(None, description="Analysis name")
     description: Optional[str] = Field(None, description="Analysis description")
     priority: int = Field(default=3, ge=1, le=5, description="Analysis priority")
-    application_types: Optional[Dict[int, ApplicationType]] = Field(
-        None, description="Application type mapping for each app ID"
+    # Bug #813 fix: Changed Dict keys from int to str to accept UUID strings
+    application_types: Optional[Dict[str, ApplicationType]] = Field(
+        None, description="Application type mapping for each app ID (UUID keys)"
     )
 
 

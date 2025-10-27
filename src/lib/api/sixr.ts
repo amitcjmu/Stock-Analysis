@@ -71,8 +71,9 @@ export interface SixRAnalysisResponse {
   updated_at: string;
 }
 
+// Bug #813 fix: Changed application_ids from number[] to string[] (UUIDs)
 export interface CreateAnalysisRequest {
-  application_ids: number[];
+  application_ids: string[]; // UUID strings from assets table
   parameters?: Partial<SixRParameters>;
   queue_name?: string;
 }
@@ -100,10 +101,11 @@ export interface IterateAnalysisRequest {
   iteration_notes?: string;
 }
 
+// Bug #813 fix: Changed application_ids from number[] to string[] (UUIDs)
 export interface BulkAnalysisRequest {
   name: string;
   description?: string;
-  application_ids: number[];
+  application_ids: string[]; // UUID strings from assets table
   priority: 'low' | 'medium' | 'high' | 'urgent';
   parameters?: {
     parallel_limit: number;
@@ -113,9 +115,10 @@ export interface BulkAnalysisRequest {
   };
 }
 
+// Bug #813 fix: Changed application_id from number to string (UUID)
 export interface AnalysisFilters {
   status?: string;
-  application_id?: number;
+  application_id?: string; // UUID string
   created_after?: string;
   created_before?: string;
   limit?: number;

@@ -76,11 +76,10 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
     toast.error('Analysis error: ' + (analysisError.message || 'Unknown error'));
   }
 
-  // Handlers
-  const handleSelectApplications = useCallback((selectedIds: string[] | number[]) => {
-    // Convert to strings for consistency
-    const stringIds = selectedIds.map(id => String(id));
-    setSelectedApplicationIds(stringIds);
+  // Handlers - Bug #813 fix: Already using string[] (UUIDs), no conversion needed
+  const handleSelectApplications = useCallback((selectedIds: string[]) => {
+    // Already UUID strings from ApplicationSelector
+    setSelectedApplicationIds(selectedIds);
   }, []);
 
   const handleTabChange = useCallback(
@@ -96,12 +95,12 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
     [state.analysisHistory.length, state.isLoading, actions]
   );
 
-  // Start analysis handler
-  const handleStartAnalysis = useCallback(async (appIds: number[], queueName?: string) => {
+  // Start analysis handler - Bug #813 fix: Changed appIds from number[] to string[] (UUIDs)
+  const handleStartAnalysis = useCallback(async (appIds: string[], queueName?: string) => {
     try {
       console.log('Starting analysis for:', appIds, 'with queue name:', queueName);
 
-      // Create analysis using the SixR API
+      // Create analysis using the SixR API - appIds are now UUID strings
       const analysisId = await actions.createAnalysis({
         application_ids: appIds,
         parameters: state.parameters,
@@ -238,7 +237,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
           {currentTab === 'selection' && (
             <ApplicationSelector
               applications={applications}
-              selectedApplications={selectedApplicationIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))}
+              selectedApplications={selectedApplicationIds}
               onSelectionChange={handleSelectApplications}
               onStartAnalysis={handleStartAnalysis}
             />

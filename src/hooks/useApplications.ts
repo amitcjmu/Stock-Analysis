@@ -78,7 +78,8 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
     };
 
     // Also fetch current 6R analyses to determine status for each application
-    const analysisStatusMap: Record<number, {
+    // Bug #813 fix: Use string keys (UUIDs) instead of number keys
+    const analysisStatusMap: Record<string, {
       status: 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
       recommended_strategy?: string,
       confidence_score?: number
@@ -117,13 +118,15 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
     }
 
     // Transform the response to match our Application interface
-    return data.applications.map((app: BackendApplicationData, index: number) => {
-      const appId = index + 1;
+    return data.applications.map((app: BackendApplicationData) => {
+      // Bug #813 fix: Use UUID string IDs from assets table (NOT sequential integers)
+      // Backend needs original asset UUIDs to match against assets.id column
+      const appId = app.asset_id || app.id; // UUID string
       const analysisInfo = analysisStatusMap[appId] || { status: 'not_analyzed' };
 
       return {
-        // Convert string IDs to integers for 6R backend compatibility
-        id: appId, // Use sequential integers starting from 1
+        // Bug #813 fix: Keep UUID strings for backend compatibility with assets table
+        id: appId, // UUID string from assets table
         name: app.name,
         description: app.description || `${app.original_asset_type || 'Application'} - ${app.techStack || 'Unknown Technology'}`,
         department: app.department || 'Unknown',
@@ -136,7 +139,7 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
         sixr_ready: app.sixr_ready,
         migration_complexity: app.migration_complexity,
         original_asset_type: app.original_asset_type,
-        asset_id: app.asset_id || app.id, // Keep original string ID as reference
+        asset_id: appId, // Same as id - UUID string
         analysis_status: analysisInfo.status, // Use actual analysis status from 6R API
         user_count: undefined,
         data_volume: undefined,
