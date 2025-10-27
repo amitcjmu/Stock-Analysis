@@ -107,9 +107,10 @@ export const FLOW_PHASE_ROUTES: Record<
     questionnaire_generation: (flowId: string) =>
       flowId ? `/collection/questionnaire-generation/${flowId}` : "/collection",
 
-    // Manual collection phase - Users interact with questionnaires
+    // Manual collection phase - Users interact with questionnaires (adaptive forms)
+    // FIX BUG#801: Route to existing adaptive-forms page, not non-existent manual-collection page
     manual_collection: (flowId: string) =>
-      flowId ? `/collection/manual-collection/${flowId}` : "/collection",
+      flowId ? `/collection/adaptive-forms?flowId=${flowId}` : "/collection",
 
     // Synthesis phase - Final data compilation and validation
     synthesis: (flowId: string) =>
