@@ -153,11 +153,12 @@ export class AdaptiveApi extends CollectionFlowClient {
   async getFilteredQuestions(
     request: DynamicQuestionsRequest
   ): Promise<DynamicQuestionsResponse> {
+    // apiCall() returns already-parsed JSON, no need to call .json() again
     const response = await apiCall("/api/v1/collection/questions/filtered", {
       method: "POST",
       body: JSON.stringify(request),
     });
-    return response.json();
+    return response;
   }
 
   /**
@@ -166,11 +167,12 @@ export class AdaptiveApi extends CollectionFlowClient {
   async handleDependencyChange(
     request: DependencyChangeRequest
   ): Promise<DependencyChangeResponse> {
+    // apiCall() returns already-parsed JSON, no need to call .json() again
     const response = await apiCall("/api/v1/collection/dependency-change", {
       method: "POST",
       body: JSON.stringify(request),
     });
-    return response.json();
+    return response;
   }
 
   // ========================================
@@ -183,11 +185,12 @@ export class AdaptiveApi extends CollectionFlowClient {
   async previewBulkAnswers(
     request: BulkAnswerPreviewRequest
   ): Promise<BulkAnswerPreviewResponse> {
+    // apiCall() returns already-parsed JSON, no need to call .json() again
     const response = await apiCall("/api/v1/collection/bulk-answer-preview", {
       method: "POST",
       body: JSON.stringify(request),
     });
-    return response.json();
+    return response;
   }
 
   /**
@@ -196,11 +199,12 @@ export class AdaptiveApi extends CollectionFlowClient {
   async submitBulkAnswers(
     request: BulkAnswerSubmitRequest
   ): Promise<BulkAnswerSubmitResponse> {
+    // apiCall() returns already-parsed JSON, no need to call .json() again
     const response = await apiCall("/api/v1/collection/bulk-answer", {
       method: "POST",
       body: JSON.stringify(request),
     });
-    return response.json();
+    return response;
   }
 
   // ========================================
@@ -218,13 +222,14 @@ export class AdaptiveApi extends CollectionFlowClient {
     formData.append("file", file);
     formData.append("import_type", import_type);
 
+    // apiCall() returns already-parsed JSON, no need to call .json() again
     const response = await apiCall("/api/v1/collection/bulk-import/analyze", {
       method: "POST",
       body: formData,
       // Don't set Content-Type header - browser will set it with boundary for multipart/form-data
       headers: {},
     });
-    return response.json();
+    return response;
   }
 
   /**
@@ -233,23 +238,25 @@ export class AdaptiveApi extends CollectionFlowClient {
   async executeImport(
     request: ImportExecutionRequest
   ): Promise<ImportTaskResponse> {
+    // apiCall() returns already-parsed JSON, no need to call .json() again
     const response = await apiCall("/api/v1/collection/bulk-import/execute", {
       method: "POST",
       body: JSON.stringify(request),
     });
-    return response.json();
+    return response;
   }
 
   /**
    * Get import task status for polling
    */
   async getImportTaskStatus(task_id: string): Promise<ImportTaskDetailResponse> {
+    // apiCall() returns already-parsed JSON, no need to call .json() again
     const response = await apiCall(
       `/api/v1/collection/bulk-import/status/${task_id}`,
       {
         method: "GET",
       }
     );
-    return response.json();
+    return response;
   }
 }
