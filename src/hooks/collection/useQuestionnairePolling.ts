@@ -109,11 +109,25 @@ export const useQuestionnairePolling = ({
 
         // Handle different completion statuses
         switch (status) {
-          case 'ready':
-            setIsPolling(false);
-            setError(null);
-            callbacksRef.current.onReady?.(questionnaires);
+          case 'ready': {
+            // CRITICAL FIX: Verify questions array is populated before transitioning to ready
+            // Backend may set status='ready' slightly before questions are committed
+            const hasQuestions = firstQuestionnaire.questions && firstQuestionnaire.questions.length > 0;
+
+            if (hasQuestions) {
+              console.log(`✅ Questionnaire ready with ${firstQuestionnaire.questions.length} questions`);
+              setIsPolling(false);
+              setError(null);
+              callbacksRef.current.onReady?.(questionnaires);
+            } else {
+              // Status is 'ready' but questions not yet populated - continue polling
+              console.log('⏳ Status is ready but questions not yet available, continuing to poll...');
+              setIsPolling(true);
+              setCompletionStatus('pending'); // Keep in pending state
+              setStatusLine('Finalizing questionnaire...');
+            }
             break;
+          }
 
           case 'fallback':
             setIsPolling(false);
