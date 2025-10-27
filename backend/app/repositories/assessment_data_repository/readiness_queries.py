@@ -121,7 +121,10 @@ class ReadinessQueriesMixin:
         except Exception as e:
             # Rollback transaction if table doesn't exist or other error occurs
             await self.db.rollback()
-            logger.warning(f"Error fetching servers (table may not exist yet): {e}")
+            # INFO level since servers table is optional/not yet implemented
+            logger.info(
+                f"Servers table not available (expected if not using infrastructure tracking): {type(e).__name__}"
+            )
             return []
 
     async def _get_discovery_data(self) -> Dict[str, Any]:
