@@ -107,7 +107,7 @@ async def list_assessment_flows_via_mfo(
 
 
 @router.get("/{flow_id}/assessment-status")
-async def get_assessment_flow_status_via_master(
+async def get_assessment_flow_status_via_master(  # noqa: C901 - Pre-existing complexity, refactor in separate PR
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
@@ -133,6 +133,10 @@ async def get_assessment_flow_status_via_master(
         # Calculate progress percentage using FlowTypeConfig (ADR-027)
         from app.services.flow_type_registry_helpers import get_flow_config
 
+        # Initialize variables before try block to ensure they're in scope
+        progress_percentage = 0
+        phase_failed = False
+
         try:
             config = get_flow_config("assessment")
             phase_names = [phase.name for phase in config.phases]
@@ -153,33 +157,78 @@ async def get_assessment_flow_status_via_master(
                 # Phase not recognized, use original
                 normalized_phase = current_phase_str
 
-            progress_percentage = 0
-            if flow_state.status == AssessmentFlowStatus.COMPLETED:
-                progress_percentage = 100
-            elif normalized_phase in phase_names:
-                current_index = phase_names.index(normalized_phase)
-                progress_percentage = int(
-                    ((current_index + 1) / len(phase_names)) * 100
-                )
+            # Calculate progress based on phase_results, checking for failures (Fix for issue #810)
+            completed_phases = 0
+
+            if flow_state.phase_results:
+                # Check each phase in order for actual completion vs failure
+                for phase_name in phase_names:
+                    if phase_name not in flow_state.phase_results:
+                        # Haven't reached this phase yet
+                        break
+
+                    phase_data = flow_state.phase_results.get(phase_name, {})
+                    phase_status = phase_data.get("status", "").lower()
+
+                    if phase_status == "failed":
+                        # Phase failed - progress stops here, don't count this phase
+                        phase_failed = True
+                        error_msg = phase_data.get("error", "Unknown error")
+                        logger.warning(
+                            f"Phase '{phase_name}' failed for flow {flow_id}: "
+                            f"{error_msg}"
+                        )
+                        break
+                    elif phase_status in ["completed", "success", "done"]:
+                        # Phase successfully completed
+                        completed_phases += 1
+                    else:
+                        # Phase not yet complete (in_progress, pending, etc.)
+                        break
+
+                # Calculate progress based on completed phases
+                if len(phase_names) > 0:
+                    progress_percentage = int(
+                        (completed_phases / len(phase_names)) * 100
+                    )
             else:
-                # Phase not in config, default to 0
-                logger.warning(
-                    f"Phase '{current_phase_str}' (normalized: '{normalized_phase}') not found in assessment config"
-                )
-                progress_percentage = 0
+                # Fallback to current_phase index if no phase_results
+                if flow_state.status == AssessmentFlowStatus.COMPLETED:
+                    progress_percentage = 100
+                elif normalized_phase in phase_names:
+                    current_index = phase_names.index(normalized_phase)
+                    progress_percentage = int(
+                        ((current_index + 1) / len(phase_names)) * 100
+                    )
+                else:
+                    # Phase not in config, default to 0
+                    logger.warning(
+                        f"Phase '{current_phase_str}' (normalized: '{normalized_phase}') not found in assessment config"
+                    )
+                    progress_percentage = 0
 
         except Exception as e:
             logger.error(f"Error calculating progress: {e}")
             progress_percentage = 0
 
+        # Determine status - mark as failed if any phase failed (Fix for issue #810)
+        status_value = (
+            flow_state.status.value
+            if hasattr(flow_state.status, "value")
+            else str(flow_state.status)
+        )
+
+        # Override status to 'failed' if we detected a phase failure
+        if phase_failed:
+            status_value = "failed"
+            logger.info(
+                f"Flow {flow_id} status overridden to 'failed' due to phase failure"
+            )
+
         return sanitize_for_json(
             {
                 "flow_id": flow_id,
-                "status": (
-                    flow_state.status.value
-                    if hasattr(flow_state.status, "value")
-                    else str(flow_state.status)
-                ),
+                "status": status_value,
                 "progress_percentage": progress_percentage,
                 "current_phase": (
                     flow_state.current_phase.value

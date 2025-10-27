@@ -27,7 +27,7 @@ export interface QuestionnairePollingState {
 export interface QuestionnairePollingOptions {
   flowId: string;
   enabled?: boolean;
-  currentPhase?: string | null; // CRITICAL: Wait for manual_collection phase before polling
+  currentPhase?: string | null; // Deprecated (Issue #806): No longer used, kept for backward compatibility
   onReady?: (_questionnaires: AdaptiveQuestionnaireResponse[]) => void;
   onFallback?: (_questionnaires: AdaptiveQuestionnaireResponse[]) => void;
   onFailed?: (_errorMessage: string) => void;
@@ -213,11 +213,11 @@ export const useQuestionnairePolling = ({
   }, [flowId]);;
 
   // Use React Query for data fetching with conditional polling
-  // CRITICAL FIX: Poll during BOTH questionnaire_generation and manual_collection phases
-  // Phase progression: gap_analysis → questionnaire_generation → manual_collection
-  // Questionnaires are generated DURING questionnaire_generation phase, not after
-  const shouldEnablePolling = enabled && !!flowId &&
-    (!currentPhase || ['questionnaire_generation', 'manual_collection'].includes(currentPhase));
+  // CRITICAL FIX (Issue #806): Removed phase dependency to prevent race condition
+  // The completion_status field in the API response is sufficient to determine readiness.
+  // Phase checking adds unnecessary complexity and creates stale prop issues when
+  // the phase query terminates before updating the currentPhase prop.
+  const shouldEnablePolling = enabled && !!flowId;
 
   const {
     data: questionnaires = [],
@@ -273,15 +273,9 @@ export const useQuestionnairePolling = ({
   });
 
   // Start polling when enabled and we have a flow ID
-  // CRITICAL FIX: Poll during questionnaire_generation and manual_collection phases
+  // Simplified polling logic (Issue #806): No phase checks, rely on completion_status
   useEffect(() => {
-    // Don't start polling if we're in a phase before questionnaire_generation
     if (!shouldEnablePolling) {
-      if (currentPhase && !['questionnaire_generation', 'manual_collection'].includes(currentPhase)) {
-        console.log(`⏳ Waiting for questionnaire phase (current: ${currentPhase})`);
-        setStatusLine(`Preparing for questionnaire (phase: ${currentPhase})...`);
-        setCompletionStatus('pending');
-      }
       return;
     }
 
@@ -299,7 +293,7 @@ export const useQuestionnairePolling = ({
         }
       } else if (!isPolling && pollStartTimeRef.current === null) {
         // Start polling if not already polling
-        console.log('🔄 Starting questionnaire polling for flow:', flowId, `(phase: ${currentPhase || 'unknown'})`);
+        console.log('🔄 Starting questionnaire polling for flow:', flowId);
         pollStartTimeRef.current = Date.now();
         setIsPolling(true);
         setError(null);
@@ -307,7 +301,7 @@ export const useQuestionnairePolling = ({
         setStatusLine('Checking questionnaire status...');
       }
     }
-  }, [enabled, flowId, questionnaires.length, isPolling, shouldEnablePolling, currentPhase]);
+  }, [enabled, flowId, questionnaires.length, isPolling, shouldEnablePolling]);
 
   // Reset polling state when flowId changes
   useEffect(() => {

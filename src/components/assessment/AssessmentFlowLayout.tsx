@@ -87,7 +87,8 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
   const navigate = useNavigate();
   const { state, navigateToPhase, refreshStatus } = useAssessmentFlow(flowId);
 
-  const getPhaseStatus = (phaseId: AssessmentPhase): JSX.Element => {
+  // Returns status string for phase state logic (not JSX)
+  const getPhaseStatus = (phaseId: AssessmentPhase): string => {
     if (state.error) return "error";
     if (state.currentPhase === phaseId) {
       return state.status === "processing" ? "processing" : "active";
@@ -105,11 +106,13 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
     return "disabled";
   };
 
-  const isPhaseComplete = (phaseId: AssessmentPhase): unknown => {
+  // Returns boolean indicating phase completion status
+  const isPhaseComplete = (phaseId: AssessmentPhase): boolean => {
     return getPhaseStatus(phaseId) === "completed";
   };
 
-  const canNavigateToPhase = (phaseId: AssessmentPhase): unknown => {
+  // Returns boolean indicating whether navigation to phase is allowed
+  const canNavigateToPhase = (phaseId: AssessmentPhase): boolean => {
     const status = getPhaseStatus(phaseId);
     return (
       status === "completed" || status === "active" || status === "processing"
