@@ -32,7 +32,7 @@ interface AssetResolutionBannerProps {
  * Per docs/planning/dependency-to-assessment/README.md lines 184-234
  */
 export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ flowId }) => {
-  const { client, engagement } = useAuth();
+  const { client, engagement, user } = useAuth();
   const queryClient = useQueryClient();
   const [showManager, setShowManager] = useState(false);
   const [selectedApplications, setSelectedApplications] = useState<CanonicalApplicationSelection[]>([]);
@@ -41,13 +41,14 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
   const { data: unmappedAssets, isLoading, refetch } = useQuery({
     queryKey: ['unmapped-assets', flowId, client?.id, engagement?.id],
     queryFn: async (): Promise<UnmappedAsset[]> => {
-      if (!client?.id || !engagement?.id) {
-        console.warn('AssetResolutionBanner: Missing client/engagement context');
+      if (!client?.id || !engagement?.id || !user?.id) {
+        console.warn('AssetResolutionBanner: Missing client/engagement/user context');
         return [];
       }
 
       try {
         // Bug #628 Fix: Use ApiClient with multi-tenant headers instead of raw fetch()
+        // Bug #801 Fix: Add X-User-ID header required by RequestContextEnforcementMiddleware
         // This ensures proper authentication and multi-tenant security headers are included
         const data = await apiClient.get<UnmappedAsset[]>(
           `/collection/assessment/${flowId}/unmapped-assets`,
@@ -55,6 +56,7 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
             headers: {
               'X-Client-Account-Id': client.id.toString(),
               'X-Engagement-Id': engagement.id.toString(),
+              'X-User-ID': user.id.toString(),
             }
           }
         );
@@ -71,7 +73,7 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
         return [];
       }
     },
-    enabled: !!flowId && !!client?.id && !!engagement?.id,
+    enabled: !!flowId && !!client?.id && !!engagement?.id && !!user?.id,
     staleTime: 30000, // 30s cache
     // Bug #730 fix - Remove automatic polling, use manual refresh instead
     refetchInterval: false,
