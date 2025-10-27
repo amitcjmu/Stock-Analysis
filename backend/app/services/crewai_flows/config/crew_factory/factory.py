@@ -263,10 +263,10 @@ class CrewMemoryManager:
         Check if memory is globally enabled.
 
         Returns:
-            True if memory should be enabled by default
+            False by default (per ADR-024: Use TenantMemoryManager instead)
         """
-        # Memory is enabled by default unless explicitly disabled
-        return os.getenv("CREWAI_DISABLE_MEMORY", "false").lower() != "true"
+        # ADR-024: Memory is DISABLED by default, only enable if explicitly requested
+        return os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() == "true"
 
     @staticmethod
     def get_memory_config(
