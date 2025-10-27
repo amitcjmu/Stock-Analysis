@@ -129,12 +129,23 @@ class SixRDecisionEngine:
             )
 
             # AI-driven strategy analysis using Technical Debt Crew
-            if self.ai_strategy_available and asset_inventory and dependencies:
+            # Bug #813 fix: Make dependencies optional since database may have 0 dependencies
+            if self.ai_strategy_available and asset_inventory:
+                logger.info(
+                    "Using AI agents for 6R analysis with asset inventory "
+                    f"(assets: {asset_inventory.get('total_count', 0)}, "
+                    f"dependencies: {dependencies.get('total_count', 0) if dependencies else 0})"
+                )
                 strategy_result = await self._analyze_with_technical_debt_crew(
                     param_dict, application_type, asset_inventory, dependencies
                 )
             else:
                 # Fallback to basic analysis
+                logger.warning(
+                    "Using fallback heuristic strategy - AI agents not available "
+                    f"(ai_available: {self.ai_strategy_available}, "
+                    f"asset_inventory: {bool(asset_inventory)})"
+                )
                 strategy_result = await self._fallback_strategy_analysis(
                     param_dict, application_type
                 )

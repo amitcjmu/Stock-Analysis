@@ -6,6 +6,7 @@ Handles all background processing for 6R analysis operations.
 import asyncio
 import logging
 from typing import Any, Dict, List
+from uuid import UUID
 
 from sqlalchemy import select
 
@@ -112,6 +113,137 @@ class BackgroundTasksHandler:
                     analysis.progress_percentage = 30.0
                     await db.commit()
 
+                    # Fetch real asset inventory from database (Bug #813 fix)
+                    logger.info(
+                        f"Fetching asset inventory for analysis {analysis_id} "
+                        f"with {len(analysis.application_ids)} application IDs"
+                    )
+                    asset_inventory = None
+                    dependencies = None
+
+                    try:
+                        from app.repositories.asset_repository import AssetRepository
+                        from app.repositories.dependency_repository import (
+                            DependencyRepository,
+                        )
+
+                        asset_repo = AssetRepository(
+                            db,
+                            client_account_id=(
+                                str(analysis.client_account_id)
+                                if analysis.client_account_id
+                                else None
+                            ),
+                            engagement_id=(
+                                str(analysis.engagement_id)
+                                if analysis.engagement_id
+                                else None
+                            ),
+                        )
+
+                        # Convert application IDs to UUIDs and fetch assets
+                        asset_ids = []
+                        for app_id in analysis.application_ids:
+                            try:
+                                asset_ids.append(
+                                    UUID(app_id) if isinstance(app_id, str) else app_id
+                                )
+                            except (ValueError, TypeError) as e:
+                                logger.warning(
+                                    f"Invalid UUID format for app_id {app_id}: {e}"
+                                )
+
+                        if asset_ids:
+                            # Get assets by IDs
+                            assets_result = await asset_repo.get_by_filters(
+                                id=asset_ids
+                            )
+
+                            if assets_result:
+                                # Format asset inventory for AI analysis
+                                asset_inventory = {
+                                    "assets": [
+                                        {
+                                            "id": str(asset.id),
+                                            "name": asset.name or asset.asset_name,
+                                            "asset_type": asset.asset_type,
+                                            "attributes": asset.attributes or {},
+                                            "technology_stack": asset.technology_stack
+                                            or [],
+                                            "business_criticality": (
+                                                asset.business_criticality
+                                            ),
+                                        }
+                                        for asset in assets_result
+                                    ],
+                                    "total_count": len(assets_result),
+                                }
+                                logger.info(
+                                    f"Retrieved {len(assets_result)} assets "
+                                    "for AI analysis"
+                                )
+
+                        # Fetch dependencies
+                        dep_repo = DependencyRepository(
+                            db,
+                            client_account_id=(
+                                str(analysis.client_account_id)
+                                if analysis.client_account_id
+                                else None
+                            ),
+                            engagement_id=(
+                                str(analysis.engagement_id)
+                                if analysis.engagement_id
+                                else None
+                            ),
+                        )
+
+                        # Get all dependencies (app-to-server and app-to-app)
+                        app_server_deps = await dep_repo.get_app_server_dependencies()
+                        app_app_deps = await dep_repo.get_app_app_dependencies()
+
+                        all_deps = app_server_deps + app_app_deps
+
+                        if all_deps:
+                            # Format dependencies for AI analysis
+                            dependencies = {
+                                "relationships": [
+                                    {
+                                        "source_id": dep.get("application_id")
+                                        or dep.get("source_app_id"),
+                                        "target_id": (
+                                            dep.get("server_info", {}).get("id")
+                                            if "server_info" in dep
+                                            else dep.get("target_app_info", {}).get(
+                                                "id"
+                                            )
+                                        ),
+                                        "type": dep.get("dependency_type"),
+                                        "criticality": "medium",  # Default criticality
+                                    }
+                                    for dep in all_deps
+                                ],
+                                "total_count": len(all_deps),
+                            }
+                            logger.info(
+                                f"Retrieved {len(all_deps)} dependencies for AI analysis"
+                            )
+                        else:
+                            logger.info(
+                                "No dependencies found for the selected applications"
+                            )
+
+                    except ImportError as e:
+                        logger.warning(
+                            f"Repository imports not available: {e}. "
+                            "Proceeding without asset inventory."
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching asset inventory or dependencies: {e}. "
+                            "Proceeding with fallback analysis."
+                        )
+
                     # Get current parameters
                     params_result = await db.execute(
                         select(self.SixRParametersModel)
@@ -143,10 +275,30 @@ class BackgroundTasksHandler:
                     try:
                         if hasattr(self.decision_engine, "analyze_parameters"):
                             param_obj = self.SixRParameterBase(**param_dict)
+
+                            # Log AI agent invocation (Bug #813 fix)
+                            if asset_inventory:
+                                logger.info(
+                                    f"Invoking AI agents for analysis {analysis_id} with "
+                                    f"{asset_inventory['total_count']} assets and "
+                                    f"{dependencies['total_count'] if dependencies else 0} dependencies"
+                                )
+                            else:
+                                logger.warning(
+                                    f"Analysis {analysis_id} proceeding with fallback strategy "
+                                    "(no asset inventory available)"
+                                )
+
                             recommendation_data = (
                                 self.decision_engine.analyze_parameters(
                                     param_obj,
-                                    application_data[0] if application_data else None,
+                                    (
+                                        application_data[0]["technology_stack"]
+                                        if application_data
+                                        else None
+                                    ),
+                                    asset_inventory=asset_inventory,
+                                    dependencies=dependencies,
                                 )
                             )
                         else:

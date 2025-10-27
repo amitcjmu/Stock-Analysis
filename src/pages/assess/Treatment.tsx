@@ -83,10 +83,18 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
     setSelectedApplicationIds(stringIds);
   }, []);
 
-  const handleTabChange = useCallback((tab: string) => {
-    setCurrentTab(tab);
-    setManualNavigation(true);
-  }, []);
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      setCurrentTab(tab);
+      setManualNavigation(true);
+
+      // Bug #814: Load history when user clicks History tab
+      if (tab === 'history' && state.analysisHistory.length === 0 && !state.isLoading) {
+        actions.loadAnalysisHistory();
+      }
+    },
+    [state.analysisHistory.length, state.isLoading, actions]
+  );
 
   // Start analysis handler
   const handleStartAnalysis = useCallback(async (appIds: number[], queueName?: string) => {

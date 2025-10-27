@@ -331,7 +331,8 @@ export class SixRApiClient {
         });
       }
 
-      const endpoint = `/6r/history${queryParams.toString() ? `?${queryParams}` : ''}`;
+      // Bug #814: Backend serves GET /6r/ with pagination, not /6r/history
+      const endpoint = `/6r/${queryParams.toString() ? `?${queryParams}` : ''}`;
       const response = await apiClient.get<AnalysisHistoryItem[]>(endpoint);
       return response;
     } catch (error) {
