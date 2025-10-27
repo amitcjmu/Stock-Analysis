@@ -5,6 +5,7 @@
  */
 
 import type { CollectionFormData } from '@/components/collection/types';
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 
 /**
  * Inject asset_id into form values for multi-asset forms
@@ -31,20 +32,20 @@ export const createDirectSaveHandler = (
   selectedAssetId: string | null
 ): (() => Promise<void>) => {
   return async () => {
-    console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
+    debugLog('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
 
     // For multi-asset forms, temporarily add asset_id to formValues
     if (assetGroupsLength > 1 && selectedAssetId && handleFieldChange) {
-      console.log(`💾 Saving progress for asset: ${selectedAssetId}`);
+      debugLog(`💾 Saving progress for asset: ${selectedAssetId}`);
       // Inject asset_id into form values so backend knows which asset this is for
       handleFieldChange('asset_id', selectedAssetId);
     }
 
     if (typeof handleSave === 'function') {
-      console.log('🟢 Calling handleSave from direct handler');
+      debugLog('🟢 Calling handleSave from direct handler');
       await handleSave();
     } else {
-      console.error('❌ handleSave is not available in AdaptiveForms');
+      debugError('❌ handleSave is not available in AdaptiveForms');
     }
   };
 };
@@ -59,23 +60,23 @@ export const createDirectSubmitHandler = (
   selectedAssetId: string | null
 ): (() => Promise<void>) => {
   return async () => {
-    console.log('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
+    debugLog('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
 
     let submissionValues = formValues;
     // For multi-asset forms, create a submission payload with the correct asset_id
     if (assetGroupsLength > 1 && selectedAssetId) {
-      console.log(`✅ Submitting form for asset: ${selectedAssetId}`);
+      debugLog(`✅ Submitting form for asset: ${selectedAssetId}`);
       submissionValues = injectAssetId(formValues, selectedAssetId);
     } else {
-      console.log('🟢 Not a multi-asset form, proceeding with regular submit');
+      debugLog('🟢 Not a multi-asset form, proceeding with regular submit');
     }
 
     if (typeof handleSubmit === 'function') {
-      console.log('🟢 Calling handleSubmit from direct handler with submissionValues');
+      debugLog('🟢 Calling handleSubmit from direct handler with submissionValues');
       await handleSubmit(submissionValues);
-      console.log('🟢 handleSubmit completed');
+      debugLog('🟢 handleSubmit completed');
     } else {
-      console.error('❌ handleSubmit is not available in AdaptiveForms');
+      debugError('❌ handleSubmit is not available in AdaptiveForms');
     }
   };
 };

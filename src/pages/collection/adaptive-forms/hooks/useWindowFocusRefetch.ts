@@ -7,6 +7,7 @@
  */
 
 import { useEffect } from "react";
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 
 interface UseWindowFocusRefetchProps {
   activeFlowId: string | null;
@@ -30,7 +31,7 @@ export const useWindowFocusRefetch = ({
 
     const handleWindowFocus = async () => {
       if (activeFlowId && !isLoadingFlow) {
-        console.log(
+        debugLog(
           "🔄 Window focused - refetching collection flow data to check for application updates"
         );
         await refetchCollectionFlow();

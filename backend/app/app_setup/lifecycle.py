@@ -144,23 +144,35 @@ def get_lifespan():  # noqa: C901
         except Exception as e:  # pragma: no cover
             logging.getLogger(__name__).warning("Feature flags logging warning: %s", e)
 
-        # CRITICAL: Ensure OPENAI_API_KEY is set from DEEPINFRA_API_KEY at startup
-        # This prevents "Error importing native provider: OPENAI_API_KEY is required" errors
+        # CrewAI OpenAI Compatibility Shim (gated by feature flag)
+        # Some CrewAI versions fall back to OPENAI_API_KEY env var even when using DeepInfra
+        # This shim sets OPENAI_API_KEY from DEEPINFRA_API_KEY ONLY when:
+        # 1. CREWAI_OPENAI_COMPAT_SHIM=true (explicit opt-in)
+        # 2. No existing OPENAI_API_KEY (doesn't shadow explicit OpenAI config)
+        # Per GPT5 review: Prevents conflating providers and shadowing explicit configs
         try:
-            deepinfra_key = os.getenv("DEEPINFRA_API_KEY")
-            if deepinfra_key:
-                os.environ["OPENAI_API_KEY"] = deepinfra_key
-                os.environ["OPENAI_API_BASE"] = "https://api.deepinfra.com/v1/openai"
-                logging.getLogger(__name__).info(
-                    "✅ Set OPENAI_API_KEY from DEEPINFRA_API_KEY at startup"
-                )
-            else:
-                logging.getLogger(__name__).warning(
-                    "⚠️ DEEPINFRA_API_KEY not set - LLM operations may fail"
-                )
+            enable_shim = (
+                os.getenv("CREWAI_OPENAI_COMPAT_SHIM", "false").lower() == "true"
+            )
+            if enable_shim:
+                deepinfra_key = os.getenv("DEEPINFRA_API_KEY")
+                existing_openai_key = os.getenv("OPENAI_API_KEY")
+
+                if deepinfra_key and not existing_openai_key:
+                    os.environ["OPENAI_API_KEY"] = deepinfra_key
+                    os.environ["OPENAI_API_BASE"] = (
+                        "https://api.deepinfra.com/v1/openai"
+                    )
+                    logging.getLogger(__name__).info(
+                        "✅ CrewAI compat shim: Set OPENAI_API_KEY from DEEPINFRA_API_KEY"
+                    )
+                elif existing_openai_key:
+                    logging.getLogger(__name__).info(
+                        "ℹ️ CrewAI compat shim: Preserving existing OPENAI_API_KEY"
+                    )
         except Exception as e:
             logging.getLogger(__name__).warning(
-                f"⚠️ Failed to set OPENAI_API_KEY at startup: {e}"
+                f"⚠️ CrewAI OpenAI compat shim setup failed: {e}"
             )
 
         # Setup LiteLLM tracking for automatic LLM usage logging

@@ -78,18 +78,26 @@ class AgentConfigManager:
                 f"Use TenantMemoryManager for pattern storage/retrieval."
             )
 
-            # CRITICAL FIX: Ensure OPENAI_API_KEY is set BEFORE creating agent
-            # This prevents "Error importing native provider: OPENAI_API_KEY is required"
-            # when CrewAI falls back to environment variables
+            # CrewAI OpenAI Compatibility Shim (scoped to agent creation)
+            # Only sets OPENAI_API_KEY if feature flag enabled AND no existing key
+            # Per GPT5 review: Prevents conflating providers in agent context
             import os
 
-            deepinfra_key = os.getenv("DEEPINFRA_API_KEY")
-            if deepinfra_key and not os.getenv("OPENAI_API_KEY"):
-                os.environ["OPENAI_API_KEY"] = deepinfra_key
-                os.environ["OPENAI_API_BASE"] = "https://api.deepinfra.com/v1/openai"
-                logger.info(
-                    "✅ Set OPENAI_API_KEY from DEEPINFRA_API_KEY for agent creation"
-                )
+            enable_shim = (
+                os.getenv("CREWAI_OPENAI_COMPAT_SHIM", "false").lower() == "true"
+            )
+            if enable_shim:
+                deepinfra_key = os.getenv("DEEPINFRA_API_KEY")
+                existing_openai_key = os.getenv("OPENAI_API_KEY")
+
+                if deepinfra_key and not existing_openai_key:
+                    os.environ["OPENAI_API_KEY"] = deepinfra_key
+                    os.environ["OPENAI_API_BASE"] = (
+                        "https://api.deepinfra.com/v1/openai"
+                    )
+                    logger.info(
+                        "✅ CrewAI compat shim: Set OPENAI_API_KEY for agent creation"
+                    )
 
             # Get LLM for the agent
             llm = get_crewai_llm() if LLM_CONFIG_AVAILABLE else None
