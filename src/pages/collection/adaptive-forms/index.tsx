@@ -283,23 +283,14 @@ const AdaptiveForms: React.FC = () => {
 
     // Extract applications array for asset name lookup
     // Issue #801: Pass applications to properly resolve asset names (not UUIDs)
-    console.log('🔍 DEBUG currentCollectionFlow:', currentCollectionFlow);
-    console.log('🔍 DEBUG currentCollectionFlow.applications:', currentCollectionFlow?.applications);
+    // NOTE: Backend may return empty applications array, but groupQuestionsByAsset
+    // will fall back to extracting asset_name from question metadata
+    const applications = currentCollectionFlow?.applications?.map(app => ({
+      id: app.asset_id,
+      name: app.application_name || app.name || app.asset_name
+    })) || [];
 
-    const applications = currentCollectionFlow?.applications?.map(app => {
-      console.log('🔍 DEBUG mapping app:', app);
-      return {
-        id: app.asset_id,
-        name: app.application_name || app.name || app.asset_name
-      };
-    }) || [];
-
-    console.log('🔍 DEBUG mapped applications:', applications);
-
-    const result = groupQuestionsByAsset(allQuestions, applications, formValues);
-    console.log('🔍 DEBUG assetGroups result:', result);
-
-    return result;
+    return groupQuestionsByAsset(allQuestions, applications, formValues);
   }, [formData, formValues, currentCollectionFlow]);
 
   // Auto-select first asset when groups change (only on initial load)
