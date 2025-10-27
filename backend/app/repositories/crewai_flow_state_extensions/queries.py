@@ -30,7 +30,25 @@ class MasterFlowQueries:
             )
         )
         result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+        flow = result.scalar_one_or_none()
+
+        # BUGFIX: Eagerly access all scalar attributes to prevent MissingGreenlet errors
+        # when object is accessed outside session context or after session expires
+        if flow:
+            # Touch all scalar attributes to ensure they're loaded into instance state
+            # This prevents lazy loading when the object is passed across async boundaries
+            _ = (
+                flow.id,
+                flow.flow_id,
+                flow.client_account_id,
+                flow.engagement_id,
+                flow.user_id,
+                flow.flow_type,
+                flow.flow_name,
+                flow.flow_status,
+            )
+
+        return flow
 
     async def get_by_flow_id_global(
         self, flow_id: str
