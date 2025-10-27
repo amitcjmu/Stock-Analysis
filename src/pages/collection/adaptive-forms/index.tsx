@@ -581,7 +581,9 @@ const AdaptiveForms: React.FC = () => {
   // IMPORTANT: We should wait until both formData AND the initial loading is complete
   // This prevents showing empty forms that get populated later
   // If we have a flowId, always show loading/initialization state (never block)
-  if ((!formData || isLoading) && (!hasBlockingFlows || flowId)) {
+  // CRITICAL FIX: Also show loading state when completionStatus is 'pending' (questionnaire being generated)
+  const isPendingGeneration = completionStatus === 'pending';
+  if (((!formData || isLoading) && (!hasBlockingFlows || flowId)) || isPendingGeneration) {
     return (
       <LoadingStateDisplay
         completionStatus={completionStatus}

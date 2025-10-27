@@ -213,10 +213,11 @@ export const useQuestionnairePolling = ({
   }, [flowId]);;
 
   // Use React Query for data fetching with conditional polling
-  // CRITICAL FIX: Only poll when phase is 'manual_collection' (questionnaires are ready)
+  // CRITICAL FIX: Poll during BOTH questionnaire_generation and manual_collection phases
   // Phase progression: gap_analysis → questionnaire_generation → manual_collection
-  // Questionnaires are saved to DB BEFORE transition to manual_collection
-  const shouldEnablePolling = enabled && !!flowId && (!currentPhase || currentPhase === 'manual_collection');
+  // Questionnaires are generated DURING questionnaire_generation phase, not after
+  const shouldEnablePolling = enabled && !!flowId &&
+    (!currentPhase || ['questionnaire_generation', 'manual_collection'].includes(currentPhase));
 
   const {
     data: questionnaires = [],
@@ -272,13 +273,13 @@ export const useQuestionnairePolling = ({
   });
 
   // Start polling when enabled and we have a flow ID
-  // CRITICAL FIX: Wait for manual_collection phase before starting to poll
+  // CRITICAL FIX: Poll during questionnaire_generation and manual_collection phases
   useEffect(() => {
-    // Don't start polling if we haven't reached manual_collection phase yet
+    // Don't start polling if we're in a phase before questionnaire_generation
     if (!shouldEnablePolling) {
-      if (currentPhase && currentPhase !== 'manual_collection') {
-        console.log(`⏳ Waiting for manual_collection phase (current: ${currentPhase})`);
-        setStatusLine(`Generating questionnaire (phase: ${currentPhase})...`);
+      if (currentPhase && !['questionnaire_generation', 'manual_collection'].includes(currentPhase)) {
+        console.log(`⏳ Waiting for questionnaire phase (current: ${currentPhase})`);
+        setStatusLine(`Preparing for questionnaire (phase: ${currentPhase})...`);
         setCompletionStatus('pending');
       }
       return;
@@ -298,7 +299,7 @@ export const useQuestionnairePolling = ({
         }
       } else if (!isPolling && pollStartTimeRef.current === null) {
         // Start polling if not already polling
-        console.log('🔄 Starting questionnaire polling for flow:', flowId, '(phase: manual_collection)');
+        console.log('🔄 Starting questionnaire polling for flow:', flowId, `(phase: ${currentPhase || 'unknown'})`);
         pollStartTimeRef.current = Date.now();
         setIsPolling(true);
         setError(null);
