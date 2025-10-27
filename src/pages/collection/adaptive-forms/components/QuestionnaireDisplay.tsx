@@ -159,8 +159,10 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
     })).filter((section: any) => section.fields.length > 0);
 
     // Apply client-side filters (answered status, section)
+    // FIX: Update applicationName to match selected asset
     let finalFormData = {
       ...formData,
+      applicationName: selectedGroup.asset_name || selectedGroup.asset_id, // Update asset name when selection changes
       sections: filteredSections
     };
 
@@ -275,7 +277,7 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
                     value={group.asset_id}
                     data-testid={`asset-row-${group.asset_id}`}
                   >
-                    {group.asset_name} - {group.completion_percentage || 0}% Complete
+                    {group.asset_name} | ID: {group.asset_id.substring(0, 8)} | {group.completion_percentage || 0}% Complete
                   </option>
                 ))}
               </select>

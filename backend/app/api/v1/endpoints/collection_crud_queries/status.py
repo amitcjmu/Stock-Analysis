@@ -137,17 +137,20 @@ async def get_collection_flow(
             CollectionFlowApplication,
         )
 
+        # CRITICAL FIX (Issue #801): Use collection_flow.id (PRIMARY KEY), not flow_id
         app_count_result = await db.execute(
             select(func.count(CollectionFlowApplication.id)).where(
-                CollectionFlowApplication.collection_flow_id == collection_flow.flow_id
+                CollectionFlowApplication.collection_flow_id == collection_flow.id
             )
         )
         app_count = app_count_result.scalar() or 0
 
         # Query full application details for UUID-based frontend lookups (Issue #762)
+        # CRITICAL FIX (Issue #801): Use collection_flow.id (PRIMARY KEY), not flow_id (BUSINESS KEY)
+        # CollectionFlowApplication records are created with collection_flow.id in deduplication.py:222
         apps_result = await db.execute(
             select(CollectionFlowApplication).where(
-                CollectionFlowApplication.collection_flow_id == collection_flow.flow_id
+                CollectionFlowApplication.collection_flow_id == collection_flow.id
             )
         )
         applications = apps_result.scalars().all()

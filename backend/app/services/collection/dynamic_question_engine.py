@@ -327,15 +327,30 @@ class DynamicQuestionEngine:
         )
 
         prompt = f"""
-        Analyze which questions are truly relevant for {asset_type} asset {asset_id}.
+        You are helping with a migration assessment questionnaire for a {asset_type} asset.
+        Your task is to identify questions that should be REMOVED because they are:
+        1. Truly inapplicable to {asset_type} assets (e.g., database-specific questions for web applications)
+        2. Redundant duplicates that ask the exact same thing
+        3. Edge cases that are rarely needed and add no migration value
+
+        CRITICAL: DO NOT remove questions about:
+        - Application details (name, description, owner, business unit)
+        - Technology stack and versions
+        - Infrastructure and hosting details
+        - Business criticality and usage metrics
+        - Dependencies and integrations
+        - Security and compliance requirements
 
         Current question list:
         {question_list}
 
-        Return only the question IDs that are absolutely necessary for this asset type.
-        Filter out redundant or inapplicable questions.
+        IMPORTANT: Be conservative - when in doubt, KEEP the question.
+        Only remove questions that are clearly inapplicable or redundant.
 
-        Return format: Comma-separated question IDs
+        Return ONLY the question IDs that should be KEPT (not removed).
+        Expected: You should keep 80-90% of questions unless they are truly inapplicable.
+
+        Return format: Comma-separated question IDs to KEEP
         """
 
         response = await multi_model_service.generate_response(
@@ -344,8 +359,29 @@ class DynamicQuestionEngine:
             complexity=TaskComplexity.AGENTIC,  # Complex analysis requires Llama 4
         )
 
+        # Extract content from response dict (Issue #801: multi_model_service returns dict, not string)
+        response_text = (
+            response.get("content", "") if isinstance(response, dict) else str(response)
+        )
+
         # Parse response to get question IDs
-        relevant_ids = self._parse_question_ids(response)
+        relevant_ids = self._parse_question_ids(response_text)
+
+        # Safeguard: If AI removed more than 50% of questions, something went wrong
+        # Issue #801: AI pruning was too aggressive, removing ALL application details
+        retention_rate = len(relevant_ids) / len(questions) if questions else 0
+        if retention_rate < 0.5:
+            logger.warning(
+                f"⚠️  AI pruning removed {100 - retention_rate * 100:.1f}% of questions "
+                f"({len(questions) - len(relevant_ids)} out of {len(questions)}). "
+                f"This is too aggressive - keeping all questions instead."
+            )
+            return questions  # Fallback: Keep all questions
+
+        logger.info(
+            f"✅ AI pruning kept {len(relevant_ids)}/{len(questions)} questions "
+            f"({retention_rate * 100:.1f}% retention rate)"
+        )
 
         # Filter questions by relevant IDs
         return [q for q in questions if q["question_id"] in relevant_ids]

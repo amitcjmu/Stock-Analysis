@@ -144,6 +144,25 @@ def get_lifespan():  # noqa: C901
         except Exception as e:  # pragma: no cover
             logging.getLogger(__name__).warning("Feature flags logging warning: %s", e)
 
+        # CRITICAL: Ensure OPENAI_API_KEY is set from DEEPINFRA_API_KEY at startup
+        # This prevents "Error importing native provider: OPENAI_API_KEY is required" errors
+        try:
+            deepinfra_key = os.getenv("DEEPINFRA_API_KEY")
+            if deepinfra_key:
+                os.environ["OPENAI_API_KEY"] = deepinfra_key
+                os.environ["OPENAI_API_BASE"] = "https://api.deepinfra.com/v1/openai"
+                logging.getLogger(__name__).info(
+                    "✅ Set OPENAI_API_KEY from DEEPINFRA_API_KEY at startup"
+                )
+            else:
+                logging.getLogger(__name__).warning(
+                    "⚠️ DEEPINFRA_API_KEY not set - LLM operations may fail"
+                )
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                f"⚠️ Failed to set OPENAI_API_KEY at startup: {e}"
+            )
+
         # Setup LiteLLM tracking for automatic LLM usage logging
         try:
             logging.getLogger(__name__).info("🔄 Setting up LiteLLM tracking...")

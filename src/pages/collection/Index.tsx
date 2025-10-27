@@ -187,10 +187,40 @@ const CollectionIndex: React.FC = () => {
 
   /**
    * Handle resuming an active collection flow
+   * FIX BUG#801: Navigate directly to current phase instead of progress monitor
    */
-  const handleResumeFlow = (flowId: string) => {
+  const handleResumeFlow = async (flowId: string) => {
     console.log(`🔄 Resuming collection flow: ${flowId}`);
-    navigate(`/collection/progress/${flowId}`);
+
+    try {
+      // Get flow details to determine current phase
+      const flowDetails = await collectionFlowApi.getFlow(flowId);
+      const currentPhase = flowDetails.current_phase || 'asset_selection';
+
+      console.log(`📍 Current phase: ${currentPhase}`);
+
+      // Navigate directly to current phase
+      const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+
+      if (phaseRoute) {
+        const targetRoute = phaseRoute(flowId);
+        console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+        navigate(targetRoute);
+      } else {
+        // Fallback to progress monitor if phase not found
+        console.warn(`⚠️ No route found for phase: ${currentPhase}, showing progress monitor`);
+        navigate(`/collection/progress/${flowId}`);
+      }
+    } catch (error) {
+      console.error('Error resuming flow:', error);
+      toast({
+        title: 'Resume Failed',
+        description: 'Failed to resume collection flow. Showing progress monitor instead.',
+        variant: 'destructive'
+      });
+      // Fallback to progress monitor on error
+      navigate(`/collection/progress/${flowId}`);
+    }
   };
 
   /**

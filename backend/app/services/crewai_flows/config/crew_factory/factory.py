@@ -45,7 +45,7 @@ class CrewFactory:
 
     def __init__(
         self,
-        enable_memory: bool = True,
+        enable_memory: bool = False,  # ADR-024: Memory disabled, use TenantMemoryManager
         default_timeout: Optional[int] = None,
         verbose: bool = False,
     ):
@@ -53,7 +53,7 @@ class CrewFactory:
         Initialize the factory with global settings.
 
         Args:
-            enable_memory: Enable memory for all agents/crews by default
+            enable_memory: Enable memory for all agents/crews by default (DISABLED per ADR-024)
             default_timeout: Default timeout for crew execution
             verbose: Enable verbose logging by default
         """
@@ -263,10 +263,10 @@ class CrewMemoryManager:
         Check if memory is globally enabled.
 
         Returns:
-            True if memory should be enabled by default
+            False by default (per ADR-024: Use TenantMemoryManager instead)
         """
-        # Memory is enabled by default unless explicitly disabled
-        return os.getenv("CREWAI_DISABLE_MEMORY", "false").lower() != "true"
+        # ADR-024: Memory is DISABLED by default, only enable if explicitly requested
+        return os.getenv("CREWAI_ENABLE_MEMORY", "false").lower() == "true"
 
     @staticmethod
     def get_memory_config(

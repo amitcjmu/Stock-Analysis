@@ -15,7 +15,7 @@ from app.models.canonical_applications import CanonicalApplication
 from app.models.assessment_flow import AssessmentFlow
 from app.models.collected_data_inventory import CollectedDataInventory
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.server import Server
+from app.models.asset import Asset
 
 logger = get_logger(__name__)
 
@@ -107,21 +107,28 @@ class ReadinessQueriesMixin:
             logger.warning(f"Error fetching applications: {e}")
             return []
 
-    async def _get_servers(self) -> List[Server]:
-        """Get all servers for this engagement with tenant scoping."""
+    async def _get_servers(self) -> List[Asset]:
+        """Get all server assets for this engagement with tenant scoping.
+
+        Queries the assets table for asset_type IN ('server', 'Server').
+        This provides infrastructure data for dependency analysis in assessment flow.
+        """
         try:
-            query = select(Server).where(
+            query = select(Asset).where(
                 and_(
-                    Server.client_account_id == self.client_account_id,
-                    Server.engagement_id == self.engagement_id,
+                    Asset.client_account_id == self.client_account_id,
+                    Asset.engagement_id == self.engagement_id,
+                    Asset.asset_type.in_(
+                        ["server", "Server"]
+                    ),  # Case variations in data
                 )
             )
             result = await self.db.execute(query)
             return list(result.scalars().all())
         except Exception as e:
-            # Rollback transaction if table doesn't exist or other error occurs
+            # Rollback transaction on error
             await self.db.rollback()
-            logger.warning(f"Error fetching servers (table may not exist yet): {e}")
+            logger.warning(f"Error fetching server assets: {type(e).__name__}: {e}")
             return []
 
     async def _get_discovery_data(self) -> Dict[str, Any]:
@@ -203,20 +210,22 @@ class ReadinessQueriesMixin:
             return {"by_type": [], "total_items": 0}
 
     async def _get_infrastructure_count(self) -> int:
-        """Get count of infrastructure items."""
+        """Get count of server infrastructure assets.
+
+        Counts assets with asset_type IN ('server', 'Server') for this engagement.
+        """
         try:
-            query = select(func.count(Server.id)).where(
+            query = select(func.count(Asset.id)).where(
                 and_(
-                    Server.client_account_id == self.client_account_id,
-                    Server.engagement_id == self.engagement_id,
+                    Asset.client_account_id == self.client_account_id,
+                    Asset.engagement_id == self.engagement_id,
+                    Asset.asset_type.in_(["server", "Server"]),
                 )
             )
             result = await self.db.execute(query)
             return result.scalar() or 0
         except Exception as e:
-            # Rollback transaction if table doesn't exist or other error occurs
+            # Rollback transaction on error
             await self.db.rollback()
-            logger.warning(
-                f"Error counting infrastructure (table may not exist yet): {e}"
-            )
+            logger.warning(f"Error counting server assets: {type(e).__name__}: {e}")
             return 0

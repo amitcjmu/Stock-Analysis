@@ -60,22 +60,43 @@ export const AssetPickerTable: React.FC<AssetPickerTableProps> = ({
     return () => clearTimeout(timer);
   }, [search_query]);
 
-  // TODO: Replace with actual API endpoint when available
-  // For now, using flow questionnaires as a placeholder
+  // Fetch flow details to get questionnaire data
   const { data: flow_data, isLoading } = useQuery({
     queryKey: ["collection-assets", flow_id],
     queryFn: () => collectionFlowApi.getFlowDetails(flow_id),
     enabled: !!flow_id,
   });
 
-  // Extract and process assets from flow data
+  // Extract and process assets from flow data using groupQuestionsByAsset
   const all_assets: Asset[] = React.useMemo(() => {
-    // TODO: Replace with actual asset data from API
-    // This is a placeholder implementation
-    if (!flow_data) return [];
+    if (!flow_data?.formData?.sections) return [];
 
-    // Mock asset data for development
-    return [];
+    // Import the utility function
+    const { groupQuestionsByAsset } = require("@/utils/questionnaireUtils");
+
+    // Extract all questions from sections
+    const allQuestions = flow_data.formData.sections.flatMap((section: any) =>
+      section.fields.map((field: any) => ({
+        field_id: field.id,
+        question_text: field.label,
+        field_type: field.fieldType,
+        required: field.validation?.required,
+        options: field.options,
+        metadata: field.metadata,
+        ...field
+      }))
+    );
+
+    // Group by asset to get unique assets
+    const assetGroups = groupQuestionsByAsset(allQuestions);
+
+    // Convert to Asset[] format
+    return assetGroups.map((group: any) => ({
+      id: group.asset_id,
+      name: group.asset_name || group.asset_id.substring(0, 8),
+      type: "application" as const, // Default type, could extract from metadata
+      progress_percent: group.completion_percentage || 0,
+    }));
   }, [flow_data]);
 
   // Apply search, filter, and sorting

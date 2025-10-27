@@ -212,6 +212,7 @@ const AdaptiveForms: React.FC = () => {
     handleSave,
     handleSubmit,
     initializeFlow,
+    retryPolling, // Manual status check function from polling hook
   } = useAdaptiveFormFlow({
     applicationId,
     flowId,
@@ -233,6 +234,34 @@ const AdaptiveForms: React.FC = () => {
   //   }
   // }, [completionStatus, activeFlowId]);
 
+  // CRITICAL FIX: Fetch collection flow data BEFORE using it in assetGroups memo
+  // Issue #801: currentCollectionFlow must be defined before being referenced
+  const { data: currentCollectionFlow, isLoading: isLoadingFlow, refetch: refetchCollectionFlow } = useQuery({
+    queryKey: ["collection-flow", activeFlowId],
+    queryFn: async () => {
+      if (!activeFlowId) return null;
+      try {
+        console.log(
+          "🔍 Fetching collection flow details for application check:",
+          activeFlowId,
+        );
+        return await apiCall(`/collection/flows/${activeFlowId}`);
+      } catch (error) {
+        console.error("Failed to fetch collection flow:", error);
+        return null;
+      }
+    },
+    enabled: !!activeFlowId,
+    // Set cache time to 5 minutes to prevent excessive re-fetching
+    staleTime: 5 * 60 * 1000,
+    // Cache data for 10 minutes
+    gcTime: 10 * 60 * 1000,
+    // Disable automatic refetching to prevent loops
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
+
   // Group questions by asset and auto-select first asset
   // Pass formValues to calculate real-time completion percentage
   // CRITICAL: Must be defined BEFORE navigation handlers that use it
@@ -252,8 +281,17 @@ const AdaptiveForms: React.FC = () => {
       }))
     );
 
-    return groupQuestionsByAsset(allQuestions, undefined, formValues);
-  }, [formData, formValues]);
+    // Extract applications array for asset name lookup
+    // Issue #801: Pass applications to properly resolve asset names (not UUIDs)
+    // NOTE: Backend may return empty applications array, but groupQuestionsByAsset
+    // will fall back to extracting asset_name from question metadata
+    const applications = currentCollectionFlow?.applications?.map(app => ({
+      id: app.asset_id,
+      name: app.application_name || app.name || app.asset_name
+    })) || [];
+
+    return groupQuestionsByAsset(allQuestions, applications, formValues);
+  }, [formData, formValues, currentCollectionFlow]);
 
   // Auto-select first asset when groups change (only on initial load)
   React.useEffect(() => {
@@ -301,33 +339,8 @@ const AdaptiveForms: React.FC = () => {
       },
     });
 
-  // Check if the current Collection flow has application selection
-  // Now that formData is available from useAdaptiveFormFlow
-  const { data: currentCollectionFlow, isLoading: isLoadingFlow, refetch: refetchCollectionFlow } = useQuery({
-    queryKey: ["collection-flow", activeFlowId],
-    queryFn: async () => {
-      if (!activeFlowId) return null;
-      try {
-        console.log(
-          "🔍 Fetching collection flow details for application check:",
-          activeFlowId,
-        );
-        return await apiCall(`/collection/flows/${activeFlowId}`);
-      } catch (error) {
-        console.error("Failed to fetch collection flow:", error);
-        return null;
-      }
-    },
-    enabled: !!activeFlowId,
-    // Set cache time to 5 minutes to prevent excessive re-fetching
-    staleTime: 5 * 60 * 1000,
-    // Cache data for 10 minutes
-    gcTime: 10 * 60 * 1000,
-    // Disable automatic refetching to prevent loops
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-  });
+  // REMOVED: Duplicate currentCollectionFlow query moved earlier (before assetGroups memo)
+  // Issue #801: Prevent "Cannot access 'currentCollectionFlow' before initialization" error
 
   // CC: Debugging - Log handleSave function only when it changes
   React.useEffect(() => {
@@ -580,7 +593,9 @@ const AdaptiveForms: React.FC = () => {
   // IMPORTANT: We should wait until both formData AND the initial loading is complete
   // This prevents showing empty forms that get populated later
   // If we have a flowId, always show loading/initialization state (never block)
-  if ((!formData || isLoading) && (!hasBlockingFlows || flowId)) {
+  // CRITICAL FIX: Also show loading state when completionStatus is 'pending' (questionnaire being generated)
+  const isPendingGeneration = completionStatus === 'pending';
+  if (((!formData || isLoading) && (!hasBlockingFlows || flowId)) || isPendingGeneration) {
     return (
       <LoadingStateDisplay
         completionStatus={completionStatus}
@@ -592,6 +607,7 @@ const AdaptiveForms: React.FC = () => {
         onRetry={() => protectedInitializeFlow()}
         onRefresh={() => window.location.reload()}
         onInitialize={() => protectedInitializeFlow()}
+        onCheckStatus={retryPolling} // Manual status check for pending questionnaires
       />
     );
   }
