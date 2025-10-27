@@ -6,6 +6,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import type { AssetGroup } from "../types";
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 
 interface UseFlowNavigationProps {
   activeFlowId: string | null;
@@ -44,7 +45,7 @@ export const useFlowNavigation = ({ activeFlowId }: UseFlowNavigationProps): Use
 
   const handleContinueFlow = (flowId: string): void => {
     if (!flowId) {
-      console.error("Cannot continue flow: flowId is missing");
+      debugError("Cannot continue flow: flowId is missing");
       return;
     }
     // Navigate to adaptive forms page with flowId to resume the flow

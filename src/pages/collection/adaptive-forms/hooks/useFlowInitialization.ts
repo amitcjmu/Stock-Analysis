@@ -4,6 +4,7 @@
  */
 
 import { useRef, useCallback, useEffect } from 'react';
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 
 interface UseFlowInitializationProps {
   initializeFlow: () => Promise<void>;
@@ -35,24 +36,24 @@ export const useFlowInitialization = ({
 
     // Prevent duplicate initializations for the same flow
     if (isInitializingRef.current) {
-      console.log('⚠️ Initialization already in progress, skipping duplicate call');
+      debugLog('⚠️ Initialization already in progress, skipping duplicate call');
       return;
     }
 
     if (initializationAttempts.current.has(currentFlowKey)) {
-      console.log('⚠️ Already attempted initialization for flow:', currentFlowKey);
+      debugLog('⚠️ Already attempted initialization for flow:', currentFlowKey);
       return;
     }
 
-    console.log('🔐 Protected initialization starting for flow:', currentFlowKey);
+    debugLog('🔐 Protected initialization starting for flow:', currentFlowKey);
     isInitializingRef.current = true;
     initializationAttempts.current.add(currentFlowKey);
 
     try {
       await initializeFlow();
-      console.log('✅ Protected initialization completed for flow:', currentFlowKey);
+      debugLog('✅ Protected initialization completed for flow:', currentFlowKey);
     } catch (error) {
-      console.error('❌ Protected initialization failed for flow:', currentFlowKey, error);
+      debugError('❌ Protected initialization failed for flow:', currentFlowKey, error);
       // Remove from attempts on error to allow retry
       initializationAttempts.current.delete(currentFlowKey);
       throw error;

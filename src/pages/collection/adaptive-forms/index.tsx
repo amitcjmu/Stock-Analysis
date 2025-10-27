@@ -37,6 +37,7 @@ import {
   useWindowFocusRefetch,
 } from "./hooks";
 import {
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
   QuestionnaireDisplay,
   AssetNavigationButtons,
   FlowControlPanel,
@@ -86,7 +87,7 @@ const AdaptiveForms: React.FC = () => {
   // DISABLED: Questionnaire generation modal no longer needed (questionnaires generated faster from data gaps)
   const handleQuestionnaireGeneration = React.useCallback(() => {
     // No-op: Modal disabled to avoid unnecessary 30-second delay
-    console.log('📝 Questionnaire generation started (modal disabled)');
+    debugLog('📝 Questionnaire generation started (modal disabled)');
   }, []);
 
   // Handle questionnaire ready from modal
@@ -143,7 +144,7 @@ const AdaptiveForms: React.FC = () => {
       });
     },
     (error) => {
-      console.error('Flow deletion failed:', error);
+      debugError('Flow deletion failed:', error);
 
       // On error, unhide all flows that were being deleted
       deletionState.candidates.forEach((flowId) => {
@@ -184,7 +185,7 @@ const AdaptiveForms: React.FC = () => {
   const shouldAutoInitialize = !checkingFlows && (!hasBlockingFlows || hasJustDeleted || !!flowId);
 
   // Debug logging
-  console.log('🔍 AdaptiveForms initialization state:', {
+  debugLog('🔍 AdaptiveForms initialization state:', {
     flowId,
     checkingFlows,
     hasBlockingFlows,
@@ -241,13 +242,13 @@ const AdaptiveForms: React.FC = () => {
     queryFn: async () => {
       if (!activeFlowId) return null;
       try {
-        console.log(
+        debugLog(
           "🔍 Fetching collection flow details for application check:",
           activeFlowId,
         );
         return await apiCall(`/collection/flows/${activeFlowId}`);
       } catch (error) {
-        console.error("Failed to fetch collection flow:", error);
+        debugError("Failed to fetch collection flow:", error);
         return null;
       }
     },
@@ -320,17 +321,17 @@ const AdaptiveForms: React.FC = () => {
       flowId: activeFlowId,
       enabled: !!activeFlowId && isLoading && !formData, // Only poll if we're loading and don't have data
       onQuestionnaireReady: (state) => {
-        console.log(
+        debugLog(
           "🎉 HTTP Polling: Questionnaire ready notification",
         );
         // DO NOT trigger re-initialization here - the hook handles it internally
       },
       onStatusUpdate: (state) => {
-        console.log("📊 HTTP Polling: Workflow status update:", state);
+        debugLog("📊 HTTP Polling: Workflow status update:", state);
         // DO NOT trigger re-initialization here - the hook handles it internally
       },
       onError: (error) => {
-        console.error("❌ HTTP Polling: Collection workflow error:", error);
+        debugError("❌ HTTP Polling: Collection workflow error:", error);
         toast({
           title: "Workflow Error",
           description: `Collection workflow encountered an error: ${error}`,
@@ -344,18 +345,18 @@ const AdaptiveForms: React.FC = () => {
 
   // CC: Debugging - Log handleSave function only when it changes
   React.useEffect(() => {
-    console.log('🔍 AdaptiveForms handleSave initialized:', typeof handleSave === 'function');
+    debugLog('🔍 AdaptiveForms handleSave initialized:', typeof handleSave === 'function');
   }, [handleSave]); // Only log when handleSave changes
 
   // CC: Create a direct save handler to bypass potential prop passing issues
   // CRITICAL: Inject selected asset_id before saving for multi-asset forms
   const directSaveHandler = React.useCallback(async () => {
-    console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
+    debugLog('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
 
     let valuesToSave = formValues;
     // For multi-asset forms, create a payload with the correct asset_id
     if (assetGroups.length > 1 && selectedAssetId) {
-      console.log(`💾 Saving progress for asset: ${selectedAssetId}`);
+      debugLog(`💾 Saving progress for asset: ${selectedAssetId}`);
       valuesToSave = {
         ...formValues,
         asset_id: selectedAssetId,
@@ -363,35 +364,35 @@ const AdaptiveForms: React.FC = () => {
     }
 
     if (typeof handleSave === 'function') {
-      console.log('🟢 Calling handleSave from direct handler with valuesToSave');
+      debugLog('🟢 Calling handleSave from direct handler with valuesToSave');
       await handleSave(valuesToSave);
     } else {
-      console.error('❌ handleSave is not available in AdaptiveForms');
+      debugError('❌ handleSave is not available in AdaptiveForms');
     }
   }, [handleSave, assetGroups.length, selectedAssetId, formValues]);
 
   // CC: Wrap handleSubmit to inject asset_id for multi-asset forms
   const directSubmitHandler = React.useCallback(async () => {
-    console.log('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
+    debugLog('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
 
     let submissionValues = formValues;
     // For multi-asset forms, create a submission payload with the correct asset_id
     if (assetGroups.length > 1 && selectedAssetId) {
-      console.log(`✅ Submitting form for asset: ${selectedAssetId}`);
+      debugLog(`✅ Submitting form for asset: ${selectedAssetId}`);
       submissionValues = {
         ...formValues,
         asset_id: selectedAssetId,
       };
     } else {
-      console.log('🟢 Not a multi-asset form, proceeding with regular submit');
+      debugLog('🟢 Not a multi-asset form, proceeding with regular submit');
     }
 
     if (typeof handleSubmit === 'function') {
-      console.log('🟢 Calling handleSubmit from direct handler with submissionValues');
+      debugLog('🟢 Calling handleSubmit from direct handler with submissionValues');
       await handleSubmit(submissionValues);
-      console.log('🟢 handleSubmit completed');
+      debugLog('🟢 handleSubmit completed');
     } else {
-      console.error('❌ handleSubmit is not available in AdaptiveForms');
+      debugError('❌ handleSubmit is not available in AdaptiveForms');
     }
   }, [handleSubmit, assetGroups, selectedAssetId, formValues]);
 
@@ -401,24 +402,24 @@ const AdaptiveForms: React.FC = () => {
 
     // Prevent duplicate initializations for the same flow
     if (isInitializingRef.current) {
-      console.log('⚠️ Initialization already in progress, skipping duplicate call');
+      debugLog('⚠️ Initialization already in progress, skipping duplicate call');
       return;
     }
 
     if (initializationAttempts.current.has(currentFlowKey)) {
-      console.log('⚠️ Already attempted initialization for flow:', currentFlowKey);
+      debugLog('⚠️ Already attempted initialization for flow:', currentFlowKey);
       return;
     }
 
-    console.log('🔐 Protected initialization starting for flow:', currentFlowKey);
+    debugLog('🔐 Protected initialization starting for flow:', currentFlowKey);
     isInitializingRef.current = true;
     initializationAttempts.current.add(currentFlowKey);
 
     try {
       await initializeFlow();
-      console.log('✅ Protected initialization completed for flow:', currentFlowKey);
+      debugLog('✅ Protected initialization completed for flow:', currentFlowKey);
     } catch (error) {
-      console.error('❌ Protected initialization failed for flow:', currentFlowKey, error);
+      debugError('❌ Protected initialization failed for flow:', currentFlowKey, error);
       // Remove from attempts on error to allow retry
       initializationAttempts.current.delete(currentFlowKey);
       throw error;
@@ -444,7 +445,7 @@ const AdaptiveForms: React.FC = () => {
     if (isLoadingFlow || !currentCollectionFlow || !activeFlowId) return;
 
     // Log the flow state but don't redirect - asset-agnostic collection
-    console.log(
+    debugLog(
       "📊 Asset-agnostic collection flow initialized",
       {
         flowId: activeFlowId,
@@ -481,7 +482,7 @@ const AdaptiveForms: React.FC = () => {
   // This handles navigation back from application selection page
   useEffect(() => {
     if (activeFlowId && activeFlowId === flowId) {
-      console.log(
+      debugLog(
         "🔄 Flow ID matched - refetching collection flow data for latest application status",
         { activeFlowId, flowId },
       );
@@ -490,7 +491,7 @@ const AdaptiveForms: React.FC = () => {
   }, [activeFlowId, flowId, refetchCollectionFlow]);
 
   // Debug hook state
-  console.log('🎯 useAdaptiveFormFlow state:', {
+  debugLog('🎯 useAdaptiveFormFlow state:', {
     hasFormData: !!formData,
     isLoading,
     error: error?.message,
