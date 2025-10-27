@@ -141,6 +141,7 @@ test-results/**
 # Data artifacts (keep structure, ignore contents)
 backend/data/**
 !backend/data/.gitkeep
+!backend/data/README.md
 backend/.adcs/
 
 .playwright-mcp/*
