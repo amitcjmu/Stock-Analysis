@@ -277,7 +277,7 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
                     value={group.asset_id}
                     data-testid={`asset-row-${group.asset_id}`}
                   >
-                    {group.asset_name} - {group.completion_percentage || 0}% Complete
+                    {group.asset_name} | ID: {group.asset_id.substring(0, 8)} | {group.completion_percentage || 0}% Complete
                   </option>
                 ))}
               </select>
