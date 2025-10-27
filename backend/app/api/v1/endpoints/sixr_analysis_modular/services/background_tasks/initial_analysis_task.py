@@ -201,9 +201,10 @@ async def run_initial_analysis(
                 dependencies = None
 
                 try:
-                    # Initialize repositories with database session
-                    asset_repo = AssetRepository(db)
-                    dep_repo = DependencyRepository(db)
+                    # Initialize repositories with database session and tenant context
+                    # CRITICAL: client_account_id required for multi-tenant security
+                    asset_repo = AssetRepository(db, client_account_id)
+                    dep_repo = DependencyRepository(db, client_account_id)
 
                     # Convert application IDs to UUIDs for repository queries
                     asset_ids = []
