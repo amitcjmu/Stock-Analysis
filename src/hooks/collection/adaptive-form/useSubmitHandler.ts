@@ -264,6 +264,7 @@ export function useSubmitHandler({
             const nextQuestionnaire =
               updatedQuestionnaires.find(
                 (q) =>
+                  q.completion_status === "ready" ||  // FIX BUG#801: Include ready status after backend fix
                   q.completion_status === "pending" ||
                   q.completion_status === "in_progress",
               ) || updatedQuestionnaires[0];
