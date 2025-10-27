@@ -211,7 +211,7 @@ async def _background_generate(
             async with AsyncSessionLocal() as db:
                 await _update_questionnaire_status(
                     questionnaire_id,
-                    "pending",  # 🔍 BUG#668: Questionnaire needs user input, not "ready"
+                    "ready",  # FIX BUG#801: Set to "ready" when questions are generated for frontend display
                     questions,
                     db=db,
                 )
