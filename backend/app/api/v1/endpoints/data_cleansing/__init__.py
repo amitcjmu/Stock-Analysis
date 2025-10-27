@@ -18,6 +18,20 @@ from .base import (
     DataCleansingStats,
 )
 
+# Import operations module to register its endpoints
+from . import operations
+
+# Import triggers module to register its endpoints
+from . import triggers
+
+# Import exports module to register its endpoints
+from . import exports
+
+# Include the operations router in the main router
+router.include_router(operations.router)
+router.include_router(triggers.router)
+router.include_router(exports.router)
+
 from .operations import (
     get_data_cleansing_analysis,
     get_data_cleansing_stats,

@@ -31272,9 +31272,9 @@
     },
     "page": "flow_a292ebdb-943c-45dd-bcd5-57f4ff301924",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "a292ebdb-943c-45dd-bcd5-57f4ff301924",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T19:41:53.398240",
     "user_feedback": null,
     "is_validated": false
@@ -31294,9 +31294,9 @@
     },
     "page": "flow_a292ebdb-943c-45dd-bcd5-57f4ff301924",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "a292ebdb-943c-45dd-bcd5-57f4ff301924",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T19:41:53.595406",
     "user_feedback": null,
     "is_validated": false
@@ -31317,9 +31317,9 @@
     },
     "page": "flow_a292ebdb-943c-45dd-bcd5-57f4ff301924",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "a292ebdb-943c-45dd-bcd5-57f4ff301924",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T19:41:53.682631",
     "user_feedback": null,
     "is_validated": false
@@ -31779,9 +31779,9 @@
     },
     "page": "flow_a292ebdb-943c-45dd-bcd5-57f4ff301924",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "a292ebdb-943c-45dd-bcd5-57f4ff301924",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T19:41:53.719161",
     "user_feedback": null,
     "is_validated": false
@@ -31901,9 +31901,9 @@
     },
     "page": "flow_a292ebdb-943c-45dd-bcd5-57f4ff301924",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "a292ebdb-943c-45dd-bcd5-57f4ff301924",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T19:41:53.856098",
     "user_feedback": null,
     "is_validated": false
@@ -31924,9 +31924,9 @@
     },
     "page": "flow_1f5c85fc-4088-4950-b486-802ab75ab6b6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "1f5c85fc-4088-4950-b486-802ab75ab6b6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T20:31:58.560587",
     "user_feedback": null,
     "is_validated": false
@@ -31946,9 +31946,9 @@
     },
     "page": "flow_1f5c85fc-4088-4950-b486-802ab75ab6b6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "1f5c85fc-4088-4950-b486-802ab75ab6b6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T20:31:58.803210",
     "user_feedback": null,
     "is_validated": false
@@ -31969,9 +31969,9 @@
     },
     "page": "flow_1f5c85fc-4088-4950-b486-802ab75ab6b6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "1f5c85fc-4088-4950-b486-802ab75ab6b6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T20:31:58.892537",
     "user_feedback": null,
     "is_validated": false
@@ -32386,9 +32386,9 @@
     },
     "page": "flow_1f5c85fc-4088-4950-b486-802ab75ab6b6",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "1f5c85fc-4088-4950-b486-802ab75ab6b6",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-10-16T20:31:58.928717",
     "user_feedback": null,
     "is_validated": false
@@ -32508,10 +32508,3627 @@
     },
     "page": "flow_1f5c85fc-4088-4950-b486-802ab75ab6b6",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-16T20:31:59.058715",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "ef923a6f-6c78-465d-918a-cbed43f1f145": {
+    "id": "ef923a6f-6c78-465d-918a-cbed43f1f145",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 50f64554-9122-4a78-a41b-6b35364aacee",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "50f64554-9122-4a78-a41b-6b35364aacee"
+    },
+    "page": "flow_50f64554-9122-4a78-a41b-6b35364aacee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:30:11.518566",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "d09165ea-b628-4f8c-8e57-7636e850f156": {
+    "id": "d09165ea-b628-4f8c-8e57-7636e850f156",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_50f64554-9122-4a78-a41b-6b35364aacee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:30:11.589631",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "7976f657-366a-464a-822b-f901a735d7e6": {
+    "id": "7976f657-366a-464a-822b-f901a735d7e6",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_50f64554-9122-4a78-a41b-6b35364aacee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:30:11.666669",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "52177032-9bc5-4fe8-8ddc-62238a2f819a": {
+    "id": "52177032-9bc5-4fe8-8ddc-62238a2f819a",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "50f64554-9122-4a78-a41b-6b35364aacee",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-10-24T09:30:11.612169",
+      "total_records": 10,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 10,
+        "field_count": 10,
+        "sample_fields": [
+          "os",
+          "owner",
+          "location",
+          "cpu_cores",
+          "memory_gb",
+          "asset_name",
+          "asset_type",
+          "storage_gb",
+          "environment",
+          "business_criticality"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 10,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "os": {
+            "type": "str",
+            "valid": true
+          },
+          "owner": {
+            "type": "str",
+            "valid": true
+          },
+          "location": {
+            "type": "str",
+            "valid": true
+          },
+          "cpu_cores": {
+            "type": "str",
+            "valid": true
+          },
+          "memory_gb": {
+            "type": "str",
+            "valid": true
+          },
+          "asset_name": {
+            "type": "str",
+            "valid": true
+          },
+          "asset_type": {
+            "type": "str",
+            "valid": true
+          },
+          "storage_gb": {
+            "type": "str",
+            "valid": true
+          },
+          "environment": {
+            "type": "str",
+            "valid": true
+          },
+          "business_criticality": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "os": "Windows Server 2019",
+          "owner": "IT Operations",
+          "location": "US-East",
+          "cpu_cores": "8",
+          "memory_gb": "32",
+          "asset_name": "APP-WEB-001",
+          "asset_type": "Application Server",
+          "storage_gb": "500",
+          "environment": "Production",
+          "business_criticality": "High"
+        },
+        {
+          "os": "Red Hat Linux 8",
+          "owner": "IT Operations",
+          "location": "US-East",
+          "cpu_cores": "16",
+          "memory_gb": "64",
+          "asset_name": "APP-WEB-002",
+          "asset_type": "Application Server",
+          "storage_gb": "1000",
+          "environment": "Production",
+          "business_criticality": "Critical"
+        },
+        {
+          "os": "Windows Server 2019",
+          "owner": "Database Team",
+          "location": "US-East",
+          "cpu_cores": "32",
+          "memory_gb": "128",
+          "asset_name": "DB-SQL-001",
+          "asset_type": "Database Server",
+          "storage_gb": "2000",
+          "environment": "Production",
+          "business_criticality": "Critical"
+        },
+        {
+          "os": "Red Hat Linux 8",
+          "owner": "Database Team",
+          "location": "US-West",
+          "cpu_cores": "24",
+          "memory_gb": "96",
+          "asset_name": "DB-SQL-002",
+          "asset_type": "Database Server",
+          "storage_gb": "1500",
+          "environment": "DR",
+          "business_criticality": "High"
+        },
+        {
+          "os": "Ubuntu 20.04",
+          "owner": "Development Team",
+          "location": "EU-West",
+          "cpu_cores": "12",
+          "memory_gb": "48",
+          "asset_name": "SRV-APP-001",
+          "asset_type": "Application Server",
+          "storage_gb": "750",
+          "environment": "Development",
+          "business_criticality": "Medium"
+        },
+        {
+          "os": "Windows Server 2016",
+          "owner": "QA Team",
+          "location": "EU-West",
+          "cpu_cores": "8",
+          "memory_gb": "32",
+          "asset_name": "SRV-APP-002",
+          "asset_type": "Application Server",
+          "storage_gb": "500",
+          "environment": "Test",
+          "business_criticality": "Low"
+        },
+        {
+          "os": "Ubuntu 22.04",
+          "owner": "Network Team",
+          "location": "US-East",
+          "cpu_cores": "4",
+          "memory_gb": "16",
+          "asset_name": "LB-PROD-001",
+          "asset_type": "Load Balancer",
+          "storage_gb": "100",
+          "environment": "Production",
+          "business_criticality": "High"
+        },
+        {
+          "os": "Amazon Linux 2",
+          "owner": "Web Team",
+          "location": "US-East",
+          "cpu_cores": "4",
+          "memory_gb": "8",
+          "asset_name": "WEB-FRONT-001",
+          "asset_type": "Web Server",
+          "storage_gb": "50",
+          "environment": "Production",
+          "business_criticality": "Medium"
+        },
+        {
+          "os": "Amazon Linux 2",
+          "owner": "Web Team",
+          "location": "US-East",
+          "cpu_cores": "4",
+          "memory_gb": "8",
+          "asset_name": "WEB-FRONT-002",
+          "asset_type": "Web Server",
+          "storage_gb": "50",
+          "environment": "Production",
+          "business_criticality": "Medium"
+        },
+        {
+          "os": "Red Hat Linux 8",
+          "owner": "Infrastructure Team",
+          "location": "US-East",
+          "cpu_cores": "8",
+          "memory_gb": "64",
+          "asset_name": "CACHE-001",
+          "asset_type": "Cache Server",
+          "storage_gb": "200",
+          "environment": "Production",
+          "business_criticality": "High"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "server_inventory",
+        "confidence": 0.4857142857142857,
+        "recommended_agent": "Server_Classification_Expert",
+        "analysis_details": {
+          "field_count": 10,
+          "record_count": 10,
+          "type_scores": {
+            "server_inventory": 0.4857142857142857,
+            "application_inventory": 0.2,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.3333333333333333,
+            "cmdb_export": 0.4727272727272727
+          },
+          "field_analysis": {
+            "total_fields": 10,
+            "sample_fields": [
+              "os",
+              "owner",
+              "location",
+              "cpu_cores",
+              "memory_gb",
+              "asset_name",
+              "asset_type",
+              "storage_gb",
+              "environment",
+              "business_criticality"
+            ]
+          },
+          "detection_confidence": 0.4857142857142857,
+          "alternative_types": [
+            {
+              "type": "server_inventory",
+              "score": 0.4857142857142857
+            },
+            {
+              "type": "cmdb_export",
+              "score": 0.4727272727272727
+            },
+            {
+              "type": "asset_management",
+              "score": 0.3333333333333333
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20251024_093011",
+        "timestamp": "2025-10-24T09:30:11.612982",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 10,
+          "quality_score": "87.5%",
+          "file_type": "server_inventory",
+          "confidence": "49%",
+          "recommended_agent": "Server_Classification_Expert"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 10 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 10,
+              "field_count": 10,
+              "sample_fields": [
+                "os",
+                "owner",
+                "location",
+                "cpu_cores",
+                "memory_gb",
+                "asset_name",
+                "asset_type",
+                "storage_gb",
+                "environment",
+                "business_criticality"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 10,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "os": {
+                  "type": "str",
+                  "valid": true
+                },
+                "owner": {
+                  "type": "str",
+                  "valid": true
+                },
+                "location": {
+                  "type": "str",
+                  "valid": true
+                },
+                "cpu_cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "memory_gb": {
+                  "type": "str",
+                  "valid": true
+                },
+                "asset_name": {
+                  "type": "str",
+                  "valid": true
+                },
+                "asset_type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "storage_gb": {
+                  "type": "str",
+                  "valid": true
+                },
+                "environment": {
+                  "type": "str",
+                  "valid": true
+                },
+                "business_criticality": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "MEDIUM",
+            "category": "Data Quality",
+            "title": "Review Data Type Classification",
+            "description": "Low confidence in automatic data type detection",
+            "action": "Manual review recommended to optimize processing workflow"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_50f64554-9122-4a78-a41b-6b35364aacee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:30:11.686854",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "316df72a-d995-4cd4-82d2-9725c5609d3d": {
+    "id": "316df72a-d995-4cd4-82d2-9725c5609d3d",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 50f64554-9122-4a78-a41b-6b35364aacee",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "50f64554-9122-4a78-a41b-6b35364aacee",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "os",
+            "target_field": "operating_system",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "owner",
+            "target_field": "business_owner",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "location",
+            "target_field": "location",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "cpu_cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "memory_gb",
+            "target_field": "memory_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "asset_name",
+            "target_field": "asset_name",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "asset_type",
+            "target_field": "asset_type",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "storage_gb",
+            "target_field": "storage_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "environment",
+            "target_field": "environment",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "business_criticality",
+            "target_field": "business_criticality",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 10,
+        "execution_method": "basic_field_extraction",
+        "timestamp": "2025-10-24T09:30:11.707837"
+      }
+    },
+    "page": "flow_50f64554-9122-4a78-a41b-6b35364aacee",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:30:11.745352",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "d284ebb8-4525-4d86-9c0a-c3bcb5c60b6c": {
+    "id": "d284ebb8-4525-4d86-9c0a-c3bcb5c60b6c",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "ba5b062b-b058-4601-9d09-fb599ea7b3c5"
+    },
+    "page": "flow_ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:45:54.737567",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "548475b5-5558-40fe-a69c-69da2e1c6be9": {
+    "id": "548475b5-5558-40fe-a69c-69da2e1c6be9",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:45:54.813709",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "ae185bd5-27cf-4d24-8ad4-e7e744d32278": {
+    "id": "ae185bd5-27cf-4d24-8ad4-e7e744d32278",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:45:54.886957",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "f7db7974-0205-4418-9964-28a48cd48601": {
+    "id": "f7db7974-0205-4418-9964-28a48cd48601",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-10-24T09:45:54.836765",
+      "total_records": 6,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 6,
+        "field_count": 8,
+        "sample_fields": [
+          "OS",
+          "Name",
+          "CI_Type",
+          "CPU_Cores",
+          "Memory_GB",
+          "IP_Address",
+          "Environment",
+          "Business_Owner"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 6,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "OS": {
+            "type": "str",
+            "valid": true
+          },
+          "Name": {
+            "type": "str",
+            "valid": true
+          },
+          "CI_Type": {
+            "type": "str",
+            "valid": true
+          },
+          "CPU_Cores": {
+            "type": "str",
+            "valid": true
+          },
+          "Memory_GB": {
+            "type": "str",
+            "valid": true
+          },
+          "IP_Address": {
+            "type": "str",
+            "valid": true
+          },
+          "Environment": {
+            "type": "str",
+            "valid": true
+          },
+          "Business_Owner": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "OS": "Linux",
+          "Name": "WebServer01",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.10",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "WebServer02",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.11",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "",
+          "Name": "PaymentApp",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        },
+        {
+          "OS": "",
+          "Name": "UserPortal",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "HR Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "DatabaseServer",
+          "CI_Type": "Server",
+          "CPU_Cores": "8",
+          "Memory_GB": "16",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "MySQL",
+          "Name": "PaymentDB",
+          "CI_Type": "Database",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "cmdb_export",
+        "confidence": 0.5636363636363637,
+        "recommended_agent": "CMDB_Data_Analyst_Agent",
+        "analysis_details": {
+          "field_count": 8,
+          "record_count": 6,
+          "type_scores": {
+            "server_inventory": 0.4857142857142857,
+            "application_inventory": 0.2,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.08333333333333333,
+            "cmdb_export": 0.5636363636363637
+          },
+          "field_analysis": {
+            "total_fields": 8,
+            "sample_fields": [
+              "OS",
+              "Name",
+              "CI_Type",
+              "CPU_Cores",
+              "Memory_GB",
+              "IP_Address",
+              "Environment",
+              "Business_Owner"
+            ]
+          },
+          "detection_confidence": 0.5636363636363637,
+          "alternative_types": [
+            {
+              "type": "cmdb_export",
+              "score": 0.5636363636363637
+            },
+            {
+              "type": "server_inventory",
+              "score": 0.4857142857142857
+            },
+            {
+              "type": "application_inventory",
+              "score": 0.2
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20251024_094554",
+        "timestamp": "2025-10-24T09:45:54.837443",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 6,
+          "quality_score": "87.5%",
+          "file_type": "cmdb_export",
+          "confidence": "56%",
+          "recommended_agent": "CMDB_Data_Analyst_Agent"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 6 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 6,
+              "field_count": 8,
+              "sample_fields": [
+                "OS",
+                "Name",
+                "CI_Type",
+                "CPU_Cores",
+                "Memory_GB",
+                "IP_Address",
+                "Environment",
+                "Business_Owner"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 6,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "OS": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Name": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CI_Type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CPU_Cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Memory_GB": {
+                  "type": "str",
+                  "valid": true
+                },
+                "IP_Address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Environment": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Business_Owner": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "LOW",
+            "category": "Next Steps",
+            "title": "Proceed with Standard Processing",
+            "description": "No critical issues detected",
+            "action": "Continue with normal data processing workflow"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:45:54.908157",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "39563154-d246-4469-9c80-1435dcf2ab97": {
+    "id": "39563154-d246-4469-9c80-1435dcf2ab97",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "OS",
+            "target_field": "operating_system",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Name",
+            "target_field": "name",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CI_Type",
+            "target_field": "UNMAPPED",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CPU_Cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Memory_GB",
+            "target_field": "memory_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "IP_Address",
+            "target_field": "ip_address",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Environment",
+            "target_field": "environment",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Business_Owner",
+            "target_field": "business_owner",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 8,
+        "execution_method": "basic_field_extraction",
+        "timestamp": "2025-10-24T09:45:54.930430"
+      }
+    },
+    "page": "flow_ba5b062b-b058-4601-9d09-fb599ea7b3c5",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:45:54.967672",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5c6573c7-5b88-48db-8a0f-55ed0ec87e1f": {
+    "id": "5c6573c7-5b88-48db-8a0f-55ed0ec87e1f",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "c0083c41-8e00-4f5d-80e4-a197dcbfbf25"
+    },
+    "page": "flow_c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:10.094162",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "654002b1-ac98-4dc4-941b-864ba9a4a729": {
+    "id": "654002b1-ac98-4dc4-941b-864ba9a4a729",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:10.168367",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3eb8f53c-625a-43c4-bd5e-c141aa2d0480": {
+    "id": "3eb8f53c-625a-43c4-bd5e-c141aa2d0480",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:10.241642",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5b006782-4d77-4725-987c-1409edaccc7a": {
+    "id": "5b006782-4d77-4725-987c-1409edaccc7a",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-10-24T09:52:10.190897",
+      "total_records": 5,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 5,
+        "field_count": 6,
+        "sample_fields": [
+          "Hostname",
+          "RAM (GB)",
+          "CPU Cores",
+          "IP Address",
+          "Environment",
+          "Operating System"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 5,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "Hostname": {
+            "type": "str",
+            "valid": true
+          },
+          "RAM (GB)": {
+            "type": "str",
+            "valid": true
+          },
+          "CPU Cores": {
+            "type": "str",
+            "valid": true
+          },
+          "IP Address": {
+            "type": "str",
+            "valid": true
+          },
+          "Environment": {
+            "type": "str",
+            "valid": true
+          },
+          "Operating System": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "Hostname": "srv-web-01",
+          "RAM (GB)": "16",
+          "CPU Cores": "4",
+          "IP Address": "192.168.1.10",
+          "Environment": "Production",
+          "Operating System": "Windows Server 2019"
+        },
+        {
+          "Hostname": "srv-db-01",
+          "RAM (GB)": "32",
+          "CPU Cores": "8",
+          "IP Address": "192.168.1.11",
+          "Environment": "Production",
+          "Operating System": "Red Hat Enterprise Linux 8"
+        },
+        {
+          "Hostname": "srv-app-01",
+          "RAM (GB)": "8",
+          "CPU Cores": "4",
+          "IP Address": "192.168.1.12",
+          "Environment": "Development",
+          "Operating System": "Ubuntu Server 20.04"
+        },
+        {
+          "Hostname": "srv-backup-01",
+          "RAM (GB)": "8",
+          "CPU Cores": "2",
+          "IP Address": "192.168.1.13",
+          "Environment": "Production",
+          "Operating System": "Windows Server 2016"
+        },
+        {
+          "Hostname": "srv-test-01",
+          "RAM (GB)": "4",
+          "CPU Cores": "2",
+          "IP Address": "192.168.1.14",
+          "Environment": "Testing",
+          "Operating System": "CentOS 7"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "server_inventory",
+        "confidence": 0.7,
+        "recommended_agent": "Server_Classification_Expert",
+        "analysis_details": {
+          "field_count": 6,
+          "record_count": 5,
+          "type_scores": {
+            "server_inventory": 0.7,
+            "application_inventory": 0.2,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.0,
+            "cmdb_export": 0.38181818181818183
+          },
+          "field_analysis": {
+            "total_fields": 6,
+            "sample_fields": [
+              "Hostname",
+              "RAM (GB)",
+              "CPU Cores",
+              "IP Address",
+              "Environment",
+              "Operating System"
+            ]
+          },
+          "detection_confidence": 0.7,
+          "alternative_types": [
+            {
+              "type": "server_inventory",
+              "score": 0.7
+            },
+            {
+              "type": "cmdb_export",
+              "score": 0.38181818181818183
+            },
+            {
+              "type": "application_inventory",
+              "score": 0.2
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20251024_095210",
+        "timestamp": "2025-10-24T09:52:10.191477",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 5,
+          "quality_score": "87.5%",
+          "file_type": "server_inventory",
+          "confidence": "70%",
+          "recommended_agent": "Server_Classification_Expert"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 5 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 5,
+              "field_count": 6,
+              "sample_fields": [
+                "Hostname",
+                "RAM (GB)",
+                "CPU Cores",
+                "IP Address",
+                "Environment",
+                "Operating System"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 5,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "Hostname": {
+                  "type": "str",
+                  "valid": true
+                },
+                "RAM (GB)": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CPU Cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "IP Address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Environment": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Operating System": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "LOW",
+            "category": "Next Steps",
+            "title": "Proceed with Standard Processing",
+            "description": "No critical issues detected",
+            "action": "Continue with normal data processing workflow"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:10.263080",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "7797cf70-7383-4b0f-8b69-dde0277e5cfd": {
+    "id": "7797cf70-7383-4b0f-8b69-dde0277e5cfd",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "Hostname",
+            "target_field": "hostname",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "RAM (GB)",
+            "target_field": "memory_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CPU Cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "IP Address",
+            "target_field": "ip_address",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Environment",
+            "target_field": "environment",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Operating System",
+            "target_field": "operating_system",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 6,
+        "execution_method": "basic_field_extraction",
+        "timestamp": "2025-10-24T09:52:10.285318"
+      }
+    },
+    "page": "flow_c0083c41-8e00-4f5d-80e4-a197dcbfbf25",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:10.322066",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "666d7bfe-a6b3-48c6-b6b9-f2d59a3a2221": {
+    "id": "666d7bfe-a6b3-48c6-b6b9-f2d59a3a2221",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "adcb7d36-87a1-4b29-bb4a-ad06be3abf14"
+    },
+    "page": "flow_adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:57.132025",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "23e8044e-3c40-4363-9cf4-146c1656f091": {
+    "id": "23e8044e-3c40-4363-9cf4-146c1656f091",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:57.208090",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "7cf8edbe-e372-4be3-8d8c-fdc363580376": {
+    "id": "7cf8edbe-e372-4be3-8d8c-fdc363580376",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:57.288055",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "53661c68-f9e6-4492-9b18-ac09b246cad5": {
+    "id": "53661c68-f9e6-4492-9b18-ac09b246cad5",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-10-24T09:52:57.235751",
+      "total_records": 6,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 6,
+        "field_count": 8,
+        "sample_fields": [
+          "OS",
+          "Name",
+          "CI_Type",
+          "CPU_Cores",
+          "Memory_GB",
+          "IP_Address",
+          "Environment",
+          "Business_Owner"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 6,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "OS": {
+            "type": "str",
+            "valid": true
+          },
+          "Name": {
+            "type": "str",
+            "valid": true
+          },
+          "CI_Type": {
+            "type": "str",
+            "valid": true
+          },
+          "CPU_Cores": {
+            "type": "str",
+            "valid": true
+          },
+          "Memory_GB": {
+            "type": "str",
+            "valid": true
+          },
+          "IP_Address": {
+            "type": "str",
+            "valid": true
+          },
+          "Environment": {
+            "type": "str",
+            "valid": true
+          },
+          "Business_Owner": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "OS": "Linux",
+          "Name": "WebServer01",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.10",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "WebServer02",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.11",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "",
+          "Name": "PaymentApp",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        },
+        {
+          "OS": "",
+          "Name": "UserPortal",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "HR Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "DatabaseServer",
+          "CI_Type": "Server",
+          "CPU_Cores": "8",
+          "Memory_GB": "16",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "MySQL",
+          "Name": "PaymentDB",
+          "CI_Type": "Database",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "cmdb_export",
+        "confidence": 0.5636363636363637,
+        "recommended_agent": "CMDB_Data_Analyst_Agent",
+        "analysis_details": {
+          "field_count": 8,
+          "record_count": 6,
+          "type_scores": {
+            "server_inventory": 0.4857142857142857,
+            "application_inventory": 0.2,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.08333333333333333,
+            "cmdb_export": 0.5636363636363637
+          },
+          "field_analysis": {
+            "total_fields": 8,
+            "sample_fields": [
+              "OS",
+              "Name",
+              "CI_Type",
+              "CPU_Cores",
+              "Memory_GB",
+              "IP_Address",
+              "Environment",
+              "Business_Owner"
+            ]
+          },
+          "detection_confidence": 0.5636363636363637,
+          "alternative_types": [
+            {
+              "type": "cmdb_export",
+              "score": 0.5636363636363637
+            },
+            {
+              "type": "server_inventory",
+              "score": 0.4857142857142857
+            },
+            {
+              "type": "application_inventory",
+              "score": 0.2
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20251024_095257",
+        "timestamp": "2025-10-24T09:52:57.236063",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 6,
+          "quality_score": "87.5%",
+          "file_type": "cmdb_export",
+          "confidence": "56%",
+          "recommended_agent": "CMDB_Data_Analyst_Agent"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 6 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 6,
+              "field_count": 8,
+              "sample_fields": [
+                "OS",
+                "Name",
+                "CI_Type",
+                "CPU_Cores",
+                "Memory_GB",
+                "IP_Address",
+                "Environment",
+                "Business_Owner"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 6,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "OS": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Name": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CI_Type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CPU_Cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Memory_GB": {
+                  "type": "str",
+                  "valid": true
+                },
+                "IP_Address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Environment": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Business_Owner": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "LOW",
+            "category": "Next Steps",
+            "title": "Proceed with Standard Processing",
+            "description": "No critical issues detected",
+            "action": "Continue with normal data processing workflow"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:57.309295",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "b6389136-12d0-41f6-8a0f-23595365f5d1": {
+    "id": "b6389136-12d0-41f6-8a0f-23595365f5d1",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "OS",
+            "target_field": "operating_system",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Name",
+            "target_field": "name",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CI_Type",
+            "target_field": "UNMAPPED",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CPU_Cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Memory_GB",
+            "target_field": "memory_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "IP_Address",
+            "target_field": "ip_address",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Environment",
+            "target_field": "environment",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Business_Owner",
+            "target_field": "business_owner",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 8,
+        "execution_method": "basic_field_extraction",
+        "timestamp": "2025-10-24T09:52:57.331444"
+      }
+    },
+    "page": "flow_adcb7d36-87a1-4b29-bb4a-ad06be3abf14",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T09:52:57.369508",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "994bb97f-37d6-456a-b058-65962f89a4ed": {
+    "id": "994bb97f-37d6-456a-b058-65962f89a4ed",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 372608aa-ca2f-48e8-b879-262f95f124b6",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "372608aa-ca2f-48e8-b879-262f95f124b6"
+    },
+    "page": "flow_372608aa-ca2f-48e8-b879-262f95f124b6",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T10:36:39.982744",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "9c5edfcf-80bc-49de-8379-35330f11c0e8": {
+    "id": "9c5edfcf-80bc-49de-8379-35330f11c0e8",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_372608aa-ca2f-48e8-b879-262f95f124b6",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T10:36:40.076733",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "7588b3b6-be89-4945-b9e2-c69e0b0cb768": {
+    "id": "7588b3b6-be89-4945-b9e2-c69e0b0cb768",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_372608aa-ca2f-48e8-b879-262f95f124b6",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T10:36:40.155301",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "a03573dd-004f-4958-afef-7e4ba8748dd0": {
+    "id": "a03573dd-004f-4958-afef-7e4ba8748dd0",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "372608aa-ca2f-48e8-b879-262f95f124b6",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-10-24T10:36:40.100238",
+      "total_records": 6,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 6,
+        "field_count": 8,
+        "sample_fields": [
+          "OS",
+          "Name",
+          "CI_Type",
+          "CPU_Cores",
+          "Memory_GB",
+          "IP_Address",
+          "Environment",
+          "Business_Owner"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 6,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "OS": {
+            "type": "str",
+            "valid": true
+          },
+          "Name": {
+            "type": "str",
+            "valid": true
+          },
+          "CI_Type": {
+            "type": "str",
+            "valid": true
+          },
+          "CPU_Cores": {
+            "type": "str",
+            "valid": true
+          },
+          "Memory_GB": {
+            "type": "str",
+            "valid": true
+          },
+          "IP_Address": {
+            "type": "str",
+            "valid": true
+          },
+          "Environment": {
+            "type": "str",
+            "valid": true
+          },
+          "Business_Owner": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "OS": "Linux",
+          "Name": "WebServer01",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.10",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "WebServer02",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.11",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "",
+          "Name": "PaymentApp",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        },
+        {
+          "OS": "",
+          "Name": "UserPortal",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "HR Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "DatabaseServer",
+          "CI_Type": "Server",
+          "CPU_Cores": "8",
+          "Memory_GB": "16",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "MySQL",
+          "Name": "PaymentDB",
+          "CI_Type": "Database",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "cmdb_export",
+        "confidence": 0.5636363636363637,
+        "recommended_agent": "CMDB_Data_Analyst_Agent",
+        "analysis_details": {
+          "field_count": 8,
+          "record_count": 6,
+          "type_scores": {
+            "server_inventory": 0.4857142857142857,
+            "application_inventory": 0.2,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.08333333333333333,
+            "cmdb_export": 0.5636363636363637
+          },
+          "field_analysis": {
+            "total_fields": 8,
+            "sample_fields": [
+              "OS",
+              "Name",
+              "CI_Type",
+              "CPU_Cores",
+              "Memory_GB",
+              "IP_Address",
+              "Environment",
+              "Business_Owner"
+            ]
+          },
+          "detection_confidence": 0.5636363636363637,
+          "alternative_types": [
+            {
+              "type": "cmdb_export",
+              "score": 0.5636363636363637
+            },
+            {
+              "type": "server_inventory",
+              "score": 0.4857142857142857
+            },
+            {
+              "type": "application_inventory",
+              "score": 0.2
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20251024_103640",
+        "timestamp": "2025-10-24T10:36:40.101146",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 6,
+          "quality_score": "87.5%",
+          "file_type": "cmdb_export",
+          "confidence": "56%",
+          "recommended_agent": "CMDB_Data_Analyst_Agent"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 6 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 6,
+              "field_count": 8,
+              "sample_fields": [
+                "OS",
+                "Name",
+                "CI_Type",
+                "CPU_Cores",
+                "Memory_GB",
+                "IP_Address",
+                "Environment",
+                "Business_Owner"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 6,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "OS": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Name": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CI_Type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CPU_Cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Memory_GB": {
+                  "type": "str",
+                  "valid": true
+                },
+                "IP_Address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Environment": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Business_Owner": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "LOW",
+            "category": "Next Steps",
+            "title": "Proceed with Standard Processing",
+            "description": "No critical issues detected",
+            "action": "Continue with normal data processing workflow"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_372608aa-ca2f-48e8-b879-262f95f124b6",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T10:36:40.177346",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "ce57eb91-f9e4-437a-a207-a383902e0af5": {
+    "id": "ce57eb91-f9e4-437a-a207-a383902e0af5",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 372608aa-ca2f-48e8-b879-262f95f124b6",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "372608aa-ca2f-48e8-b879-262f95f124b6",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "OS",
+            "target_field": "operating_system",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Name",
+            "target_field": "name",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CI_Type",
+            "target_field": "UNMAPPED",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CPU_Cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Memory_GB",
+            "target_field": "memory_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "IP_Address",
+            "target_field": "ip_address",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Environment",
+            "target_field": "environment",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Business_Owner",
+            "target_field": "business_owner",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 8,
+        "execution_method": "basic_field_extraction",
+        "timestamp": "2025-10-24T10:36:40.200684"
+      }
+    },
+    "page": "flow_372608aa-ca2f-48e8-b879-262f95f124b6",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T10:36:40.234132",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "744608cb-be38-4b3a-bb1a-842814c452d7": {
+    "id": "744608cb-be38-4b3a-bb1a-842814c452d7",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "7dab9d11-e2c7-4d7e-a44e-7da27714311d"
+    },
+    "page": "flow_7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T11:37:57.840658",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e338fb69-37c6-4d2e-ba78-ea36c26053cd": {
+    "id": "e338fb69-37c6-4d2e-ba78-ea36c26053cd",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T11:37:57.914952",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5c049c4c-60cf-408f-910b-60e0fa4e5a4f": {
+    "id": "5c049c4c-60cf-408f-910b-60e0fa4e5a4f",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T11:37:57.990730",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "044ce50b-60ea-409e-b0d6-8cc63b529186": {
+    "id": "044ce50b-60ea-409e-b0d6-8cc63b529186",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-10-24T11:37:57.938614",
+      "total_records": 6,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 6,
+        "field_count": 8,
+        "sample_fields": [
+          "OS",
+          "Name",
+          "CI_Type",
+          "CPU_Cores",
+          "Memory_GB",
+          "IP_Address",
+          "Environment",
+          "Business_Owner"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 6,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "OS": {
+            "type": "str",
+            "valid": true
+          },
+          "Name": {
+            "type": "str",
+            "valid": true
+          },
+          "CI_Type": {
+            "type": "str",
+            "valid": true
+          },
+          "CPU_Cores": {
+            "type": "str",
+            "valid": true
+          },
+          "Memory_GB": {
+            "type": "str",
+            "valid": true
+          },
+          "IP_Address": {
+            "type": "str",
+            "valid": true
+          },
+          "Environment": {
+            "type": "str",
+            "valid": true
+          },
+          "Business_Owner": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "OS": "Linux",
+          "Name": "WebServer01",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.10",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "WebServer02",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.11",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "",
+          "Name": "PaymentApp",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        },
+        {
+          "OS": "",
+          "Name": "UserPortal",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "HR Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "DatabaseServer",
+          "CI_Type": "Server",
+          "CPU_Cores": "8",
+          "Memory_GB": "16",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "MySQL",
+          "Name": "PaymentDB",
+          "CI_Type": "Database",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "cmdb_export",
+        "confidence": 0.5636363636363637,
+        "recommended_agent": "CMDB_Data_Analyst_Agent",
+        "analysis_details": {
+          "field_count": 8,
+          "record_count": 6,
+          "type_scores": {
+            "server_inventory": 0.4857142857142857,
+            "application_inventory": 0.2,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.08333333333333333,
+            "cmdb_export": 0.5636363636363637
+          },
+          "field_analysis": {
+            "total_fields": 8,
+            "sample_fields": [
+              "OS",
+              "Name",
+              "CI_Type",
+              "CPU_Cores",
+              "Memory_GB",
+              "IP_Address",
+              "Environment",
+              "Business_Owner"
+            ]
+          },
+          "detection_confidence": 0.5636363636363637,
+          "alternative_types": [
+            {
+              "type": "cmdb_export",
+              "score": 0.5636363636363637
+            },
+            {
+              "type": "server_inventory",
+              "score": 0.4857142857142857
+            },
+            {
+              "type": "application_inventory",
+              "score": 0.2
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20251024_113757",
+        "timestamp": "2025-10-24T11:37:57.939337",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 6,
+          "quality_score": "87.5%",
+          "file_type": "cmdb_export",
+          "confidence": "56%",
+          "recommended_agent": "CMDB_Data_Analyst_Agent"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 6 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 6,
+              "field_count": 8,
+              "sample_fields": [
+                "OS",
+                "Name",
+                "CI_Type",
+                "CPU_Cores",
+                "Memory_GB",
+                "IP_Address",
+                "Environment",
+                "Business_Owner"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 6,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "OS": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Name": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CI_Type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CPU_Cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Memory_GB": {
+                  "type": "str",
+                  "valid": true
+                },
+                "IP_Address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Environment": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Business_Owner": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "LOW",
+            "category": "Next Steps",
+            "title": "Proceed with Standard Processing",
+            "description": "No critical issues detected",
+            "action": "Continue with normal data processing workflow"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T11:37:58.012342",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "7f9f29f2-b330-43e1-a547-b9a741bb55ab": {
+    "id": "7f9f29f2-b330-43e1-a547-b9a741bb55ab",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "OS",
+            "target_field": "operating_system",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Name",
+            "target_field": "name",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CI_Type",
+            "target_field": "UNMAPPED",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CPU_Cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Memory_GB",
+            "target_field": "memory_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "IP_Address",
+            "target_field": "ip_address",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Environment",
+            "target_field": "environment",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Business_Owner",
+            "target_field": "business_owner",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 8,
+        "execution_method": "basic_field_extraction",
+        "timestamp": "2025-10-24T11:37:58.034877"
+      }
+    },
+    "page": "flow_7dab9d11-e2c7-4d7e-a44e-7da27714311d",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-10-24T11:37:58.072579",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "12ca1ddc-d036-405a-b068-53530ed636ef": {
+    "id": "12ca1ddc-d036-405a-b068-53530ed636ef",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "flow_start",
+    "title": "Discovery Flow Started",
+    "description": "Initializing discovery flow with ID 5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "initialization",
+      "progress": 0,
+      "status": "processing",
+      "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9"
+    },
+    "page": "flow_5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "actionable": true,
     "client_account_id": "11111111-1111-1111-1111-111111111111",
     "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "flow_id": "1f5c85fc-4088-4950-b486-802ab75ab6b6",
-    "created_at": "2025-10-16T20:31:59.058715",
+    "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "created_at": "2025-10-27T11:23:24.324106",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "76728b39-b68a-4dd1-84ff-3492c54ab01e": {
+    "id": "76728b39-b68a-4dd1-84ff-3492c54ab01e",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Data Import",
+    "description": "Beginning execution of data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "starting",
+      "progress": 16.67
+    },
+    "page": "flow_5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "created_at": "2025-10-27T11:23:24.410156",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "a9bfa998-577a-46fb-abda-e6437d659d94": {
+    "id": "a9bfa998-577a-46fb-abda-e6437d659d94",
+    "agent_id": "data_import_executor",
+    "agent_name": "Data Import Phase",
+    "insight_type": "phase_complete",
+    "title": "Completed Data Import",
+    "description": "Successfully completed data import phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "status": "completed",
+      "progress": 100.0,
+      "results_summary": "Phase completed successfully"
+    },
+    "page": "flow_5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "created_at": "2025-10-27T11:23:24.482995",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "f04ebf6a-7aba-42ec-8986-64d22c9424a2": {
+    "id": "f04ebf6a-7aba-42ec-8986-64d22c9424a2",
+    "agent_id": "unified_discovery_data_validation",
+    "agent_name": "Discovery Data Validation Agent",
+    "insight_type": "phase_completion",
+    "title": "Data Validation Completed",
+    "description": "Data validation phase has been completed successfully",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_validation",
+      "progress": 20,
+      "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+      "is_valid": true,
+      "validation_passed": true,
+      "timestamp": "2025-10-27T11:23:24.432396",
+      "total_records": 6,
+      "validation_summary": {
+        "structure_valid": true,
+        "pii_detected": false,
+        "security_threats": false,
+        "type_validation_score": 1.0,
+        "source_valid": false,
+        "overall_quality_score": 0.875
+      },
+      "structure_validation": {
+        "is_valid": true,
+        "record_count": 6,
+        "field_count": 8,
+        "sample_fields": [
+          "OS",
+          "Name",
+          "CI_Type",
+          "CPU_Cores",
+          "Memory_GB",
+          "IP_Address",
+          "Environment",
+          "Business_Owner"
+        ],
+        "structure_analysis": {
+          "valid_format": true,
+          "has_fields": true,
+          "consistent_structure": true
+        }
+      },
+      "pii_detection": {
+        "pii_detected": false,
+        "pii_types": [],
+        "confidence": 0.1,
+        "recommendation": "No immediate PII concerns"
+      },
+      "security_scan": {
+        "malicious_content_detected": false,
+        "detected_patterns": [],
+        "scanned_records": 6,
+        "recommendation": "Content appears safe"
+      },
+      "data_type_validation": {
+        "quality_score": 1.0,
+        "type_analysis": {
+          "OS": {
+            "type": "str",
+            "valid": true
+          },
+          "Name": {
+            "type": "str",
+            "valid": true
+          },
+          "CI_Type": {
+            "type": "str",
+            "valid": true
+          },
+          "CPU_Cores": {
+            "type": "str",
+            "valid": true
+          },
+          "Memory_GB": {
+            "type": "str",
+            "valid": true
+          },
+          "IP_Address": {
+            "type": "str",
+            "valid": true
+          },
+          "Environment": {
+            "type": "str",
+            "valid": true
+          },
+          "Business_Owner": {
+            "type": "str",
+            "valid": true
+          }
+        }
+      },
+      "source_validation": {
+        "is_valid": false,
+        "has_source_info": false,
+        "source_info": {},
+        "validation_notes": [
+          "No source information provided"
+        ]
+      },
+      "validated_data": [
+        {
+          "OS": "Linux",
+          "Name": "WebServer01",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.10",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "WebServer02",
+          "CI_Type": "Server",
+          "CPU_Cores": "4",
+          "Memory_GB": "8",
+          "IP_Address": "192.168.1.11",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "",
+          "Name": "PaymentApp",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        },
+        {
+          "OS": "",
+          "Name": "UserPortal",
+          "CI_Type": "Application",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "",
+          "Environment": "Production",
+          "Business_Owner": "HR Team"
+        },
+        {
+          "OS": "Linux",
+          "Name": "DatabaseServer",
+          "CI_Type": "Server",
+          "CPU_Cores": "8",
+          "Memory_GB": "16",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "IT Team"
+        },
+        {
+          "OS": "MySQL",
+          "Name": "PaymentDB",
+          "CI_Type": "Database",
+          "CPU_Cores": "",
+          "Memory_GB": "",
+          "IP_Address": "192.168.1.20",
+          "Environment": "Production",
+          "Business_Owner": "Finance Team"
+        }
+      ],
+      "validator": "DataImportValidationExecutor",
+      "validation_version": "1.0",
+      "engagement_id": "22222222-2222-2222-2222-222222222222",
+      "client_account_id": "11111111-1111-1111-1111-111111111111",
+      "file_analysis": {
+        "detected_type": "cmdb_export",
+        "confidence": 0.5636363636363637,
+        "recommended_agent": "CMDB_Data_Analyst_Agent",
+        "analysis_details": {
+          "field_count": 8,
+          "record_count": 6,
+          "type_scores": {
+            "server_inventory": 0.4857142857142857,
+            "application_inventory": 0.2,
+            "network_inventory": 0.0,
+            "security_inventory": 0.0,
+            "monitoring_data": 0.0,
+            "asset_management": 0.08333333333333333,
+            "cmdb_export": 0.5636363636363637
+          },
+          "field_analysis": {
+            "total_fields": 8,
+            "sample_fields": [
+              "OS",
+              "Name",
+              "CI_Type",
+              "CPU_Cores",
+              "Memory_GB",
+              "IP_Address",
+              "Environment",
+              "Business_Owner"
+            ]
+          },
+          "detection_confidence": 0.5636363636363637,
+          "alternative_types": [
+            {
+              "type": "cmdb_export",
+              "score": 0.5636363636363637
+            },
+            {
+              "type": "server_inventory",
+              "score": 0.4857142857142857
+            },
+            {
+              "type": "application_inventory",
+              "score": 0.2
+            }
+          ]
+        }
+      },
+      "user_report": {
+        "report_id": "validation_20251027_112324",
+        "timestamp": "2025-10-27T11:23:24.433196",
+        "summary": {
+          "status": "PASSED",
+          "message": "\u2705 Validation Passed",
+          "total_records": 6,
+          "quality_score": "87.5%",
+          "file_type": "cmdb_export",
+          "confidence": "56%",
+          "recommended_agent": "CMDB_Data_Analyst_Agent"
+        },
+        "findings": [
+          {
+            "category": "Data Structure",
+            "status": "PASSED",
+            "message": "Valid data structure with 6 records",
+            "details": {
+              "is_valid": true,
+              "record_count": 6,
+              "field_count": 8,
+              "sample_fields": [
+                "OS",
+                "Name",
+                "CI_Type",
+                "CPU_Cores",
+                "Memory_GB",
+                "IP_Address",
+                "Environment",
+                "Business_Owner"
+              ],
+              "structure_analysis": {
+                "valid_format": true,
+                "has_fields": true,
+                "consistent_structure": true
+              }
+            }
+          },
+          {
+            "category": "Privacy (PII)",
+            "status": "PASSED",
+            "message": "No PII detected in sample data",
+            "details": {
+              "pii_detected": false,
+              "pii_types": [],
+              "confidence": 0.1,
+              "recommendation": "No immediate PII concerns"
+            }
+          },
+          {
+            "category": "Security",
+            "status": "PASSED",
+            "message": "No security threats detected",
+            "details": {
+              "malicious_content_detected": false,
+              "detected_patterns": [],
+              "scanned_records": 6,
+              "recommendation": "Content appears safe"
+            }
+          },
+          {
+            "category": "Data Types",
+            "status": "PASSED",
+            "message": "Data type quality: 100.0%",
+            "details": {
+              "quality_score": 1.0,
+              "type_analysis": {
+                "OS": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Name": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CI_Type": {
+                  "type": "str",
+                  "valid": true
+                },
+                "CPU_Cores": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Memory_GB": {
+                  "type": "str",
+                  "valid": true
+                },
+                "IP_Address": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Environment": {
+                  "type": "str",
+                  "valid": true
+                },
+                "Business_Owner": {
+                  "type": "str",
+                  "valid": true
+                }
+              }
+            }
+          },
+          {
+            "category": "Data Source",
+            "status": "WARNING",
+            "message": "Limited source information available",
+            "details": {
+              "is_valid": false,
+              "has_source_info": false,
+              "source_info": {},
+              "validation_notes": [
+                "No source information provided"
+              ]
+            }
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "LOW",
+            "category": "Next Steps",
+            "title": "Proceed with Standard Processing",
+            "description": "No critical issues detected",
+            "action": "Continue with normal data processing workflow"
+          }
+        ],
+        "metadata": {
+          "validation_version": "1.0",
+          "total_checks": 5,
+          "passed_checks": 4,
+          "failed_checks": 0,
+          "warning_checks": 1
+        }
+      }
+    },
+    "page": "flow_5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "created_at": "2025-10-27T11:23:24.504878",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "da61f04b-3de6-4ca8-86c5-0e0bdf075a5d": {
+    "id": "da61f04b-3de6-4ca8-86c5-0e0bdf075a5d",
+    "agent_id": "unified_discovery_flow",
+    "agent_name": "Discovery Flow Orchestrator",
+    "insight_type": "approval_required",
+    "title": "Field Mapping Approval Required",
+    "description": "Field mapping suggestions are ready for review in flow 5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "confidence": "medium",
+    "supporting_data": {
+      "phase": "field_mapping_approval",
+      "status": "awaiting_approval",
+      "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+      "approval_data": {
+        "field_mappings": [
+          {
+            "source_field": "OS",
+            "target_field": "operating_system",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Name",
+            "target_field": "name",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CI_Type",
+            "target_field": "UNMAPPED",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "CPU_Cores",
+            "target_field": "cpu_cores",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Memory_GB",
+            "target_field": "memory_gb",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "IP_Address",
+            "target_field": "ip_address",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Environment",
+            "target_field": "environment",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          },
+          {
+            "source_field": "Business_Owner",
+            "target_field": "business_owner",
+            "confidence": 0.5,
+            "mapping_type": "basic_extraction",
+            "status": "suggested"
+          }
+        ],
+        "suggestions": [],
+        "status": "success",
+        "total_mappings": 8,
+        "execution_method": "basic_field_extraction",
+        "timestamp": "2025-10-27T11:23:24.528027"
+      }
+    },
+    "page": "flow_5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "5cc4acc7-b228-46e1-b0a1-1f777a631fa9",
+    "created_at": "2025-10-27T11:23:24.557842",
     "user_feedback": null,
     "is_validated": false
   }
