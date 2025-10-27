@@ -18,6 +18,7 @@ from app.models.collection_flow import (
     CollectionQuestionRules,
     CollectionAnswerHistory,
 )
+from app.models.field_dependency_rule import FieldDependencyRule
 from app.repositories.context_aware_repository import ContextAwareRepository
 from app.schemas.collection import (
     DynamicQuestionsResponse,
@@ -76,6 +77,9 @@ class DynamicQuestionEngine:
         )
         self.answer_history_repo = ContextAwareRepository(
             db, CollectionAnswerHistory, context
+        )
+        self.dependency_rules_repo = ContextAwareRepository(
+            db, FieldDependencyRule, context
         )
 
     async def get_filtered_questions(
@@ -418,28 +422,42 @@ class DynamicQuestionEngine:
         self, changed_asset_id: UUID, changed_field: str
     ) -> List[str]:
         """
-        Fallback logic for reopening questions when agent analysis fails.
+        Data-driven logic for reopening questions when agent analysis fails.
 
-        Uses hardcoded rules based on critical fields.
+        Per GPT5 review: Loads rules from database (tenant-scoped) with in-memory fallback.
+        Priority: engagement-level > client-level > global defaults.
         """
-        # Define field-to-question dependencies
-        dependencies = {
-            "os_version": ["tech_stack", "supported_versions", "patch_status"],
-            "ip_address": ["network_zone", "firewall_rules", "dns_records"],
-            "decommission_status": [
-                "migration_priority",
-                "dependency_count",
-                "cutover_date",
-            ],
-            "hosting_platform": [
-                "cloud_region",
-                "instance_type",
-                "auto_scaling",
-            ],
-            "database_type": ["db_version", "connection_string", "replication_mode"],
-        }
+        # Try loading rules from database (engagement-level, then client-level, then global)
+        affected_questions = await self._load_dependency_rules_from_db(changed_field)
 
-        affected_questions = dependencies.get(changed_field, [])
+        # If no database rules found, use in-memory bootstrap defaults
+        if not affected_questions:
+            # Bootstrap defaults (same as migration 107 seed data)
+            fallback_dependencies = {
+                "os_version": ["tech_stack", "supported_versions", "patch_status"],
+                "ip_address": ["network_zone", "firewall_rules", "dns_records"],
+                "decommission_status": [
+                    "migration_priority",
+                    "dependency_count",
+                    "cutover_date",
+                ],
+                "hosting_platform": [
+                    "cloud_region",
+                    "instance_type",
+                    "auto_scaling",
+                ],
+                "database_type": [
+                    "db_version",
+                    "connection_string",
+                    "replication_mode",
+                ],
+            }
+            affected_questions = fallback_dependencies.get(changed_field, [])
+            if affected_questions:
+                logger.info(
+                    f"Using bootstrap fallback rules for field '{changed_field}' "
+                    f"(no DB rules found)"
+                )
 
         # Reopen these questions
         if affected_questions:
@@ -450,6 +468,90 @@ class DynamicQuestionEngine:
             )
 
         return affected_questions
+
+    async def _load_dependency_rules_from_db(self, source_field: str) -> List[str]:
+        """
+        Load field dependency rules from database with tenant scoping.
+
+        Priority: engagement-specific > client-specific > global defaults.
+
+        Args:
+            source_field: The field that changed
+
+        Returns:
+            List of question IDs to reopen
+        """
+        from sqlalchemy import select, and_, or_
+        from uuid import UUID as StdUUID
+
+        try:
+            # Query with priority: engagement > client > global
+            # Global uses UUID all zeros
+            global_uuid = StdUUID("00000000-0000-0000-0000-000000000000")
+
+            query = (
+                select(FieldDependencyRule)
+                .where(
+                    and_(
+                        FieldDependencyRule.source_field == source_field,
+                        FieldDependencyRule.is_active.is_(True),
+                        or_(
+                            # Engagement-level (highest priority)
+                            and_(
+                                FieldDependencyRule.client_account_id
+                                == self.context.client_account_id,
+                                FieldDependencyRule.engagement_id
+                                == self.context.engagement_id,
+                            ),
+                            # Client-level
+                            and_(
+                                FieldDependencyRule.client_account_id
+                                == self.context.client_account_id,
+                                FieldDependencyRule.engagement_id.is_(None),
+                            ),
+                            # Global fallback
+                            and_(
+                                FieldDependencyRule.client_account_id == global_uuid,
+                                FieldDependencyRule.engagement_id.is_(None),
+                            ),
+                        ),
+                    )
+                )
+                .order_by(
+                    # Priority order: engagement-level first, then client, then global
+                    FieldDependencyRule.engagement_id.is_(None),  # False sorts first
+                    FieldDependencyRule.client_account_id.desc(),  # Real UUIDs before global
+                )
+                .limit(1)  # Take highest priority rule only
+            )
+
+            result = await self.db.execute(query)
+            rule = result.scalar_one_or_none()
+
+            if rule:
+                scope = (
+                    "engagement"
+                    if rule.engagement_id
+                    else (
+                        "client"
+                        if str(rule.client_account_id) != str(global_uuid)
+                        else "global"
+                    )
+                )
+                logger.info(
+                    f"✅ Loaded {scope}-level dependency rules for field '{source_field}' "
+                    f"(rule_id={rule.id}, confidence={rule.confidence_score})"
+                )
+                return rule.get_affected_questions()
+
+            return []
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to load dependency rules from database for field '{source_field}': {e}. "
+                f"Will use bootstrap fallback."
+            )
+            return []
 
     async def _batch_reopen_questions(
         self,
