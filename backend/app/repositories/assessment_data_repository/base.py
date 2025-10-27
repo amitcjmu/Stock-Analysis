@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger
 from app.models.canonical_applications import CanonicalApplication
 from app.models.assessment_flow import AssessmentFlow
-from app.models.server import Server
+from app.models.asset import Asset
 
 from .readiness_queries import ReadinessQueriesMixin
 from .complexity_queries import ComplexityQueriesMixin
@@ -81,17 +81,27 @@ class AssessmentDataRepository(
             "technology_stack": app.technology_stack or {},
         }
 
-    def _serialize_server(self, srv: Server) -> Dict[str, Any]:
-        """Serialize server model to dictionary."""
+    def _serialize_server(self, srv: Asset) -> Dict[str, Any]:
+        """Serialize server asset to dictionary.
+
+        Args:
+            srv: Asset model with asset_type='server'
+
+        Returns:
+            Dictionary with server infrastructure details
+        """
         return {
             "id": str(srv.id),
-            "name": srv.name,
+            "name": srv.name or srv.asset_name,
             "hostname": srv.hostname,
             "ip_address": srv.ip_address,
             "operating_system": srv.operating_system,
+            "os_version": srv.os_version,
             "cpu_cores": srv.cpu_cores,
             "memory_gb": srv.memory_gb,
+            "storage_gb": srv.storage_gb,
             "environment": srv.environment,
+            "asset_type": srv.asset_type,
         }
 
     # === HELPER METHODS ===
