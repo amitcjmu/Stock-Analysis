@@ -337,20 +337,94 @@ export class SixRApiClient {
       // Bug #814: Backend serves GET /6r/ with pagination, not /6r/history
       const endpoint = `/6r/${queryParams.toString() ? `?${queryParams}` : ''}`;
 
-      // Bug #814 fix: Backend returns {analyses: [...]} object, not array directly
-      const response = await apiClient.get<{analyses: AnalysisHistoryItem[]} | AnalysisHistoryItem[]>(endpoint);
+      // Bug #814 fix: Backend returns SixRAnalysisListResponse with nested structure
+      const response = await apiClient.get<{
+        analyses: Array<{
+          analysis_id: string;
+          status: string;
+          current_iteration: number;
+          applications: Array<{
+            id: string;
+            name?: string;
+            department?: string;
+            [key: string]: any;
+          }>;
+          parameters: {
+            business_value: number;
+            technical_complexity: number;
+            migration_urgency: number;
+            compliance_requirements: number;
+            cost_sensitivity: number;
+            risk_tolerance: number;
+            innovation_priority: number;
+          };
+          recommendation?: {
+            recommended_strategy: string;
+            confidence_score: number;
+            estimated_effort?: string;
+            estimated_timeline?: string;
+            estimated_cost_impact?: string;
+          };
+          progress_percentage: number;
+          created_at: string;
+          updated_at: string;
+        }>;
+        total_count: number;
+        page: number;
+        page_size: number;
+      }>(endpoint);
 
-      // Handle both response formats (wrapped object or direct array)
-      if (Array.isArray(response)) {
-        return response;
-      }
+      // Transform backend response to frontend AnalysisHistoryItem format
+      const analyses = response.analyses || [];
+      return analyses.map((analysis) => {
+        // Extract first application for display (frontend expects single app)
+        const firstApp = analysis.applications?.[0] || {};
 
-      // Extract analyses array from wrapped response
-      return (response as {analyses: AnalysisHistoryItem[]}).analyses || [];
+        return {
+          id: analysis.analysis_id as any, // Frontend expects number, backend sends string UUID
+          application_name: firstApp.name || 'Unknown Application',
+          application_id: firstApp.id as any, // Frontend expects number
+          department: firstApp.department || 'Unknown',
+          business_unit: undefined, // Not provided by backend
+          analysis_date: new Date(analysis.created_at),
+          analyst: 'System', // Backend doesn't track analyst
+          status: this.mapBackendStatus(analysis.status),
+          recommended_strategy: analysis.recommendation?.recommended_strategy || 'Not yet determined',
+          confidence_score: analysis.recommendation?.confidence_score || 0,
+          iteration_count: analysis.current_iteration || 1,
+          estimated_effort: analysis.recommendation?.estimated_effort || 'Unknown',
+          estimated_timeline: analysis.recommendation?.estimated_timeline || 'Unknown',
+          estimated_cost_impact: analysis.recommendation?.estimated_cost_impact || 'Unknown',
+          parameters: {
+            business_value: analysis.parameters.business_value,
+            technical_complexity: analysis.parameters.technical_complexity,
+            migration_urgency: analysis.parameters.migration_urgency,
+            compliance_requirements: analysis.parameters.compliance_requirements,
+            cost_sensitivity: analysis.parameters.cost_sensitivity,
+            risk_tolerance: analysis.parameters.risk_tolerance,
+            innovation_priority: analysis.parameters.innovation_priority,
+          },
+        };
+      });
     } catch (error) {
       this.handleError('Failed to get analysis history', error);
       throw error;
     }
+  }
+
+  /**
+   * Map backend status to frontend status format
+   * Bug #814: Backend uses different status values than frontend expects
+   */
+  private mapBackendStatus(backendStatus: string): 'completed' | 'in_progress' | 'failed' | 'archived' {
+    const statusMap: Record<string, 'completed' | 'in_progress' | 'failed' | 'archived'> = {
+      'completed': 'completed',
+      'in_progress': 'in_progress',
+      'pending': 'in_progress', // Map pending to in_progress
+      'failed': 'failed',
+      'archived': 'archived',
+    };
+    return statusMap[backendStatus.toLowerCase()] || 'in_progress';
   }
 
   async deleteAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
