@@ -103,8 +103,15 @@ async def create_sixr_analysis(
             db=db,
         )
 
-        # If Tier 1 gaps exist, return blocked status (frontend shows modal)
+        # If Tier 1 gaps exist, persist blocked status to database and return blocked response
         if tier1_gaps_by_asset:
+            # Persist blocked status to database (PR #816 - database persistence fix)
+            analysis.status = AnalysisStatus.REQUIRES_INPUT
+            analysis.tier1_gaps_by_asset = tier1_gaps_by_asset
+            analysis.retry_after_inline = True
+            await db.commit()
+            await db.refresh(analysis)
+
             # Use helper to build blocked response (reduces file length)
             return build_blocked_response(
                 analysis_id=analysis.id,

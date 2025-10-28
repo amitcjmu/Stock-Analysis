@@ -348,7 +348,7 @@ class SixRAnalysisResponse(BaseModel):
     tier1_gaps_by_asset: Optional[Dict[str, List[Dict[str, Any]]]] = Field(
         None,
         description=(
-            "Tier 1 (blocking) gaps by asset UUID. Present when status='requires_inline_questions'. "
+            "Tier 1 (blocking) gaps by asset UUID. Present when status='requires_input'. "
             "Format: {'asset-uuid': [{'field_name': 'criticality', 'display_name': 'Business Criticality', ...}]}"
         ),
     )

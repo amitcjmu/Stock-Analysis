@@ -115,7 +115,7 @@ class AssessmentGapDetector:
             ...     engagement_id=engagement_uuid
             ... )
             >>> if gaps:
-            ...     return {"status": "requires_inline_questions", ...}
+            ...     return {"status": "requires_input", ...}
         """
         tier1_gaps_by_asset: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -259,10 +259,10 @@ def build_blocked_response(
         logger_instance: Optional logger for logging blocked status
 
     Returns:
-        SixRAnalysisResponse with status='requires_inline_questions'
+        SixRAnalysisResponse with status='requires_input' (blocked by Tier 1 gaps)
     """
     # Import here to avoid circular dependency
-    from app.schemas.sixr_analysis import SixRAnalysisResponse
+    from app.schemas.sixr_analysis import SixRAnalysisResponse, AnalysisStatus
     from datetime import datetime
 
     if logger_instance:
@@ -273,7 +273,7 @@ def build_blocked_response(
 
     return SixRAnalysisResponse(
         analysis_id=analysis_id,
-        status="requires_inline_questions",  # Triggers frontend modal
+        status=AnalysisStatus.REQUIRES_INPUT,  # Triggers frontend modal for inline answers
         current_iteration=1,
         applications=applications,
         parameters=parameters,

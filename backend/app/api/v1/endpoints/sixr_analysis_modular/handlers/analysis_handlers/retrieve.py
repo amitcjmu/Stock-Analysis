@@ -78,6 +78,9 @@ async def get_analysis(analysis_id: UUID, db: AsyncSession = Depends(get_db)):
         "estimated_completion": analysis.estimated_completion,
         "created_at": analysis.created_at,
         "updated_at": analysis.updated_at or analysis.created_at,
+        # Two-Tier Inline Gap-Filling fields (PR #816 - database persistence fix)
+        "tier1_gaps_by_asset": analysis.tier1_gaps_by_asset,
+        "retry_after_inline": analysis.retry_after_inline,
     }
 
     # Add current recommendation if available
