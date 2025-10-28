@@ -119,19 +119,39 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
         return;
       }
 
-      // Switch client first and wait for completion
-      if (stagedClient && stagedClient.id !== auth.client?.id) {
-        console.log('🔄 Switching client first:', stagedClient.id);
+      // IMPORTANT: If both client and engagement are being changed,
+      // we need to switch them together to avoid race conditions.
+      // switchClient internally tries to auto-select first engagement,
+      // which conflicts with our specific engagement selection.
+
+      const clientChanged = stagedClient && stagedClient.id !== auth.client?.id;
+      const engagementChanged = stagedEngagement && stagedEngagement.id !== auth.engagement?.id;
+
+      if (clientChanged && engagementChanged) {
+        // Both are changing - switch client WITHOUT auto-engagement, then switch engagement
+        console.log('🔄 Switching both client and engagement');
+
+        // First, set client (this will trigger switchClient logic)
+        await auth.switchClient(stagedClient.id, stagedClient);
+
+        // Wait for client switch to complete and settle
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Now explicitly switch to the desired engagement
+        // This overrides any auto-selected engagement from switchClient
+        console.log('🔄 Now switching to selected engagement:', stagedEngagement.id);
+        await auth.switchEngagement(stagedEngagement.id, stagedEngagement);
+        console.log('✅ Both switches completed');
+
+      } else if (clientChanged) {
+        // Only client is changing - let switchClient handle engagement auto-selection
+        console.log('🔄 Switching client only:', stagedClient.id);
         await auth.switchClient(stagedClient.id, stagedClient);
         console.log('✅ Client switch completed');
 
-        // Small delay to ensure context state is updated
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      // Then switch engagement with the updated client context
-      if (stagedEngagement && stagedEngagement.id !== auth.engagement?.id) {
-        console.log('🔄 Switching engagement:', stagedEngagement.id);
+      } else if (engagementChanged) {
+        // Only engagement is changing
+        console.log('🔄 Switching engagement only:', stagedEngagement.id);
         await auth.switchEngagement(stagedEngagement.id, stagedEngagement);
         console.log('✅ Engagement switch completed');
       }
