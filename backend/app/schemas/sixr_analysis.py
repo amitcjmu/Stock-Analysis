@@ -288,6 +288,38 @@ class IterationRequest(BaseModel):
     iteration_reason: str = Field(..., description="Reason for new iteration")
 
 
+class InlineAnswersRequest(BaseModel):
+    """Request schema for submitting inline answers to Tier 1 gaps."""
+
+    asset_id: UUID = Field(..., description="Asset UUID to update")
+    answers: Dict[str, Any] = Field(
+        ...,
+        description=(
+            "Field answers dictionary. "
+            "Keys: field_name (e.g., 'criticality'), "
+            "Values: field_value (e.g., 'high')"
+        ),
+    )
+
+
+# Response Schemas
+class InlineAnswersResponse(BaseModel):
+    """Response schema for inline answers submission."""
+
+    success: bool = Field(..., description="Whether submission succeeded")
+    analysis_id: UUID = Field(..., description="Analysis UUID")
+    asset_id: UUID = Field(..., description="Asset UUID that was updated")
+    fields_updated: List[str] = Field(
+        ..., description="List of field names that were updated"
+    )
+    can_proceed: bool = Field(
+        ..., description="Whether analysis can now proceed (no blocking gaps)"
+    )
+    remaining_tier1_gaps: int = Field(
+        ..., description="Number of Tier 1 gaps remaining (should be 0)"
+    )
+
+
 # Response Schemas
 class SixRAnalysisResponse(BaseModel):
     """Response schema for 6R analysis."""
@@ -311,6 +343,19 @@ class SixRAnalysisResponse(BaseModel):
     )
     created_at: datetime = Field(..., description="Analysis creation time")
     updated_at: datetime = Field(..., description="Last update time")
+
+    # Server-side gate fields (October 2025 - Two-Tier Inline Gap-Filling Design)
+    tier1_gaps_by_asset: Optional[Dict[str, List[Dict[str, Any]]]] = Field(
+        None,
+        description=(
+            "Tier 1 (blocking) gaps by asset UUID. Present when status='requires_inline_questions'. "
+            "Format: {'asset-uuid': [{'field_name': 'criticality', 'display_name': 'Business Criticality', ...}]}"
+        ),
+    )
+    retry_after_inline: Optional[bool] = Field(
+        None,
+        description="If True, analysis is blocked and will resume after inline answers submitted",
+    )
 
 
 class SixRAnalysisListResponse(BaseModel):

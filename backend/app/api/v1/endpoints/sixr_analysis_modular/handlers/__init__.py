@@ -17,6 +17,7 @@ from .parameter_handlers import (
     update_sixr_parameters,
     submit_qualifying_responses,
     create_analysis_iteration,
+    submit_inline_answers,
 )
 from .recommendation_handlers import get_sixr_recommendation
 from .bulk_handlers import create_bulk_analysis
@@ -30,6 +31,7 @@ __all__ = [
     "update_sixr_parameters",
     "submit_qualifying_responses",
     "create_analysis_iteration",
+    "submit_inline_answers",
     # Recommendation handlers
     "get_sixr_recommendation",
     # Bulk handlers

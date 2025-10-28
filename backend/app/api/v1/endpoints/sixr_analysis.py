@@ -28,6 +28,8 @@ from app.schemas.sixr_analysis import (
     AnalysisStatus,
     BulkAnalysisRequest,
     BulkAnalysisResponse,
+    InlineAnswersRequest,
+    InlineAnswersResponse,
     IterationRequest,
     QualifyingQuestionsRequest,
     SixRAnalysisListResponse,
@@ -44,6 +46,7 @@ from app.api.v1.endpoints.sixr_analysis_modular.handlers import (
     list_sixr_analyses,
     update_sixr_parameters,
     submit_qualifying_responses,
+    submit_inline_answers,
     create_analysis_iteration,
     get_sixr_recommendation,
     create_bulk_analysis,
@@ -108,13 +111,14 @@ async def list_analyses_endpoint(
     page_size: int = 20,
     status_filter: Optional[AnalysisStatus] = None,
     db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     List all 6R analyses with optional filtering and pagination.
 
     Delegates to: handlers.analysis_handlers.list_sixr_analyses
     """
-    return await list_sixr_analyses(page, page_size, status_filter, db)
+    return await list_sixr_analyses(page, page_size, status_filter, db, context)
 
 
 # ============================================================================
@@ -154,6 +158,28 @@ async def submit_questions_endpoint(
     Delegates to: handlers.parameter_handlers.submit_qualifying_responses
     """
     return await submit_qualifying_responses(
+        analysis_id, request, background_tasks, db, context
+    )
+
+
+@router.post("/{analysis_id}/inline-answers", response_model=InlineAnswersResponse)
+async def submit_inline_answers_endpoint(
+    analysis_id: UUID,
+    request: InlineAnswersRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Submit inline answers for Tier 1 gaps and resume analysis.
+
+    Per Two-Tier Inline Gap-Filling Design (October 2025), this endpoint:
+    1. Updates asset fields with user-provided values
+    2. Resumes AI agent execution with complete data
+
+    Delegates to: handlers.parameter_handlers.submit_inline_answers
+    """
+    return await submit_inline_answers(
         analysis_id, request, background_tasks, db, context
     )
 
