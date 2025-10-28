@@ -42,6 +42,7 @@ class DataQualityIssue(BaseModel):
     affected_records: int
     recommendation: str
     auto_fixable: bool = False
+    status: Optional[str] = None  # 'pending', 'resolved', 'ignored'
 
 
 class DataCleansingRecommendation(BaseModel):

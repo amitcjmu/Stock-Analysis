@@ -5,7 +5,7 @@ Trigger functionality for data cleansing analysis execution.
 
 import logging
 
-from fastapi import Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,9 +16,12 @@ from app.models.client_account import User
 from app.models.data_import.mapping import ImportFieldMapping
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
-from .base import router, TriggerDataCleansingRequest, DataCleansingAnalysis
+from .base import TriggerDataCleansingRequest, DataCleansingAnalysis
 from .validation import _validate_and_get_flow, _get_data_import_for_flow
 from .analysis import _perform_data_cleansing_analysis
+
+# Create triggers router
+router = APIRouter()
 
 logger = logging.getLogger(__name__)
 

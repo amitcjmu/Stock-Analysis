@@ -4,14 +4,14 @@ import { CheckCircle } from 'lucide-react';
 
 interface QualityIssue {
   id: string;
-  field: string;
+  field_name: string;
   issue_type: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: 'high' | 'medium' | 'low' | 'critical';
   description: string;
   affected_records: number;
   recommendation: string;
-  agent_source: string;
-  status: 'pending' | 'resolved' | 'ignored';
+  auto_fixable: boolean;
+  status?: 'pending' | 'resolved' | 'ignored';
 }
 
 interface QualityIssuesPanelProps {
@@ -25,8 +25,10 @@ const QualityIssuesPanel: React.FC<QualityIssuesPanelProps> = ({
   onResolveIssue,
   isLoading = false
 }) => {
-  const getSeverityBadgeClass = (severity: 'high' | 'medium' | 'low'): unknown => {
+  const getSeverityBadgeClass = (severity: 'high' | 'medium' | 'low' | 'critical'): string => {
     switch (severity) {
+      case 'critical':
+        return 'bg-red-200 text-red-900';
       case 'high':
         return 'bg-red-100 text-red-800';
       case 'medium':
@@ -96,18 +98,17 @@ const QualityIssuesPanel: React.FC<QualityIssuesPanelProps> = ({
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityBadgeClass(issue.severity)}`}>
                         {issue.severity.toUpperCase()}
                       </span>
-                      <span className="text-sm font-medium text-gray-900">{issue.field}</span>
+                      <span className="text-sm font-medium text-gray-900">{issue.field_name}</span>
                       <span className="text-xs text-gray-500">({issue.affected_records} records)</span>
                     </div>
                     <p className="text-sm text-gray-700 mb-2">{issue.description}</p>
                     <p className="text-xs text-gray-500 italic">{issue.recommendation}</p>
-                    <p className="text-xs text-blue-600 mt-1">Source: {issue.agent_source}</p>
                   </div>
                   <div className="flex space-x-2 ml-4">
                     <Button
                       size="sm"
                       onClick={() => onResolveIssue(issue.id, 'resolve')}
-                      disabled={issue.status !== 'pending'}
+                      disabled={issue.status === 'resolved'}
                       className={issue.status === 'resolved' ? 'bg-green-600' : ''}
                     >
                       {issue.status === 'resolved' ? 'Resolved' : 'Resolve'}
@@ -116,7 +117,7 @@ const QualityIssuesPanel: React.FC<QualityIssuesPanelProps> = ({
                       size="sm"
                       variant="outline"
                       onClick={() => onResolveIssue(issue.id, 'ignore')}
-                      disabled={issue.status !== 'pending'}
+                      disabled={issue.status === 'ignored'}
                     >
                       {issue.status === 'ignored' ? 'Ignored' : 'Ignore'}
                     </Button>

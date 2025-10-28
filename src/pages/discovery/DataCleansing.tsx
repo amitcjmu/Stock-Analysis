@@ -123,8 +123,17 @@ const DataCleansing: React.FC = () => {
     (totalRecords > 0 ? Math.round((cleanedRecords / totalRecords) * 100) : 0);
 
   // Extract quality issues and recommendations from analysis
-  const qualityIssues = dataCleansingAnalysis?.quality_issues || [];
+  const allQualityIssues = dataCleansingAnalysis?.quality_issues || [];
   const agentRecommendations = dataCleansingAnalysis?.recommendations || [];
+  
+  // Filter out resolved/ignored issues for counting (only show pending issues)
+  const qualityIssues = allQualityIssues.filter(issue => 
+    !issue.status || issue.status === 'pending'
+  );
+  
+  // Count resolved and ignored issues separately
+  const resolvedIssues = allQualityIssues.filter(issue => issue.status === 'resolved');
+  const ignoredIssues = allQualityIssues.filter(issue => issue.status === 'ignored');
 
   const cleansingProgress = {
     total_records: totalRecords,
@@ -132,8 +141,10 @@ const DataCleansing: React.FC = () => {
     completion_percentage: completionPercentage,
     cleaned_records: cleanedRecords,
     records_with_issues: recordsWithIssues,
-    issues_resolved: qualityIssues.filter((issue) => issue.auto_fixable).length,
-    issues_found: qualityIssues.length,
+    issues_resolved: resolvedIssues.length, // Count actually resolved issues
+    issues_ignored: ignoredIssues.length, // Count ignored issues
+    issues_found: qualityIssues.length, // Only pending issues
+    issues_total: allQualityIssues.length, // Total issues including resolved/ignored
     crew_completion_status: dataCleansingAnalysis?.processing_status || 'unknown',
     fields_analyzed: fieldsAnalyzed,
     data_types_identified: fieldsAnalyzed,
@@ -145,7 +156,10 @@ const DataCleansing: React.FC = () => {
   SecureLogger.debug('DataCleansing data availability check', {
     hasFlow: !!flow,
     hasDataCleansingResults: !!dataCleansingStats || !!dataCleansingAnalysis,
-    qualityIssuesCount: qualityIssues.length,
+    qualityIssuesCount: qualityIssues.length, // Only pending issues
+    resolvedIssuesCount: resolvedIssues.length,
+    ignoredIssuesCount: ignoredIssues.length,
+    totalIssuesCount: allQualityIssues.length,
     recommendationsCount: agentRecommendations.length,
     totalRecords,
     cleanedRecords,
@@ -216,7 +230,7 @@ const DataCleansing: React.FC = () => {
       SecureLogger.info('Resolving quality issue', { issueId, action, status, flowId: effectiveFlowId });
 
       // Call backend PATCH endpoint with request body (NOT query params)
-      await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}`, {
+      const response = await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -233,8 +247,7 @@ const DataCleansing: React.FC = () => {
       await Promise.all([refetchAnalysis(), refresh()]);
 
     } catch (error) {
-      SecureLogger.error('Failed to resolve quality issue', { error, issueId });
-      // Show user-friendly error message
+      SecureLogger.error('Failed to resolve quality issue', { error, issueId, action, status, flowId: effectiveFlowId });
       alert(`Failed to ${action === 'resolve' ? 'resolve' : 'ignore'} quality issue. Please try again.`);
     }
   };
