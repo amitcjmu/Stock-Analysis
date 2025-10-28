@@ -116,6 +116,10 @@ export interface AssessmentFlowState {
   lastUserInteraction: Date | null;
   appsReadyForPlanning: string[];
 
+  // Phase failure tracking (Fix for issue #818)
+  hasFailedPhases?: boolean;
+  failedPhases?: string[];
+
   // Real-time updates
   agentUpdates: Array<{
     timestamp: Date;

@@ -211,24 +211,36 @@ async def get_assessment_flow_status_via_master(  # noqa: C901 - Pre-existing co
             logger.error(f"Error calculating progress: {e}")
             progress_percentage = 0
 
-        # Determine status - mark as failed if any phase failed (Fix for issue #810)
+        # Determine status - keep original flow status (Fix for issue #818)
         status_value = (
             flow_state.status.value
             if hasattr(flow_state.status, "value")
             else str(flow_state.status)
         )
 
-        # Override status to 'failed' if we detected a phase failure
+        # Instead of overriding status, provide phase failure information separately
+        failed_phases_list = []
         if phase_failed:
-            status_value = "failed"
+            # Collect list of failed phases for transparency
+            failed_phases_list = [
+                phase_name
+                for phase_name in phase_names
+                if flow_state.phase_results.get(phase_name, {})
+                .get("status", "")
+                .lower()
+                == "failed"
+            ]
             logger.info(
-                f"Flow {flow_id} status overridden to 'failed' due to phase failure"
+                f"Flow {flow_id} has phase failures "
+                f"({', '.join(failed_phases_list)}) but status remains '{status_value}'"
             )
 
         return sanitize_for_json(
             {
                 "flow_id": flow_id,
                 "status": status_value,
+                "has_failed_phases": phase_failed,
+                "failed_phases": failed_phases_list,
                 "progress_percentage": progress_percentage,
                 "current_phase": (
                     flow_state.current_phase.value

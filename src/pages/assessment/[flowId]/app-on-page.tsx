@@ -348,8 +348,8 @@ const AppOnPagePage: React.FC = () => {
         )}
       </div>
 
-      {/* Print Styles */}
-      <style jsx global>{`
+      {/* Print Styles - Fixed Issue #819: Removed jsx/global attributes (Next.js-specific, not compatible with Vite) */}
+      <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
           .print\\:block { display: block !important; }

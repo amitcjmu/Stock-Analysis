@@ -247,6 +247,8 @@ export const assessmentFlowAPI = {
     progress: number;
     current_phase: string;
     application_count: number;
+    has_failed_phases?: boolean;
+    failed_phases?: string[];
   }> {
     return masterFlowService.getAssessmentStatus(
       flowId,
