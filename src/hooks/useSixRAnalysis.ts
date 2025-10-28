@@ -302,7 +302,7 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
   }, [refreshAnalysis]);
 
   // Simple actions without complex dependencies
-  const createAnalysis = useCallback(async (request: CreateAnalysisRequest): Promise<number | null> => {
+  const createAnalysis = useCallback(async (request: CreateAnalysisRequest): Promise<import('../lib/api/sixr').SixRAnalysisResponse | null> => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -318,8 +318,12 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
         isLoading: false
       }));
 
-      toast.success('Analysis created successfully');
-      return analysisId;
+      // Don't show success toast if blocked by Tier 1 gaps (PR #816)
+      if (analysis.status !== 'requires_input') {
+        toast.success('Analysis created successfully');
+      }
+
+      return analysis; // Return full response for gap checking
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create analysis';
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));

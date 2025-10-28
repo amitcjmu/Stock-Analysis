@@ -57,6 +57,16 @@ const getWsBaseUrl = (): string => {
 const WS_BASE_URL = getWsBaseUrl();
 
 // Request/Response Types
+
+// Two-Tier Inline Gap-Filling (PR #816)
+export interface Tier1GapDetail {
+  field_name: string;
+  display_name: string;
+  reason: string;
+  tier: number;
+  priority: number;
+}
+
 export interface SixRAnalysisResponse {
   analysis_id: number;
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'requires_input';
@@ -69,6 +79,10 @@ export interface SixRAnalysisResponse {
   estimated_completion?: string;
   created_at: string;
   updated_at: string;
+
+  // Two-Tier Inline Gap-Filling fields (PR #816)
+  tier1_gaps_by_asset?: Record<string, Tier1GapDetail[]>;
+  retry_after_inline?: boolean;
 }
 
 // Bug #813 fix: Changed application_ids from number[] to string[] (UUIDs)
@@ -99,6 +113,21 @@ export interface IterateAnalysisRequest {
   parameters?: Partial<SixRParameters>;
   additional_responses?: QuestionResponse[];
   iteration_notes?: string;
+}
+
+// Two-Tier Inline Gap-Filling (PR #816)
+export interface InlineAnswersRequest {
+  asset_id: string; // UUID of asset to update
+  answers: Record<string, string>; // field_name -> field_value
+}
+
+export interface InlineAnswersResponse {
+  success: boolean;
+  analysis_id: string;
+  asset_id: string;
+  fields_updated: string[];
+  can_proceed: boolean;
+  remaining_tier1_gaps: number;
 }
 
 // Bug #813 fix: Changed application_ids from number[] to string[] (UUIDs)
@@ -292,6 +321,23 @@ export class SixRApiClient {
       return response;
     } catch (error) {
       this.handleError('Failed to iterate analysis', error);
+      throw error;
+    }
+  }
+
+  // Two-Tier Inline Gap-Filling (PR #816)
+  async submitInlineAnswers(
+    analysisId: string,
+    request: InlineAnswersRequest
+  ): Promise<InlineAnswersResponse> {
+    try {
+      const response = await apiClient.post<InlineAnswersResponse>(
+        `/sixr-analyses/${analysisId}/inline-answers`,
+        request
+      );
+      return response;
+    } catch (error) {
+      this.handleError('Failed to submit inline answers', error);
       throw error;
     }
   }
