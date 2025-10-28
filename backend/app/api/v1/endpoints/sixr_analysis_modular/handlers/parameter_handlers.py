@@ -18,10 +18,13 @@ from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import
 )
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from app.models.asset.models import Asset
 from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
 from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
 from app.schemas.sixr_analysis import (
     AnalysisStatus,
+    InlineAnswersRequest,
+    InlineAnswersResponse,
     IterationRequest,
     QualifyingQuestionsRequest,
     SixRParameterUpdateRequest,
@@ -272,4 +275,133 @@ async def create_analysis_iteration(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create iteration: {str(e)}",
+        )
+
+
+async def submit_inline_answers(
+    analysis_id: UUID,
+    request: InlineAnswersRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+):
+    """
+    Submit inline answers for Tier 1 gaps and resume analysis.
+
+    Per Two-Tier Inline Gap-Filling Design (October 2025), this endpoint:
+    1. Updates asset fields with user-provided values
+    2. Marks analysis as ready to proceed
+    3. Triggers background analysis task (AI agents start)
+    4. Returns updated analysis state
+
+    Args:
+        analysis_id: Analysis UUID
+        request: Inline answers with asset_id and field values
+        background_tasks: FastAPI background tasks
+        db: Database session
+        context: Request context with tenant scoping
+
+    Returns:
+        InlineAnswersResponse with success status and remaining gaps
+    """
+    try:
+        # Verify analysis exists and belongs to tenant
+        analysis_result = await db.execute(
+            select(SixRAnalysis).where(
+                SixRAnalysis.id == analysis_id,
+                SixRAnalysis.client_account_id == context.client_account_id,
+                SixRAnalysis.engagement_id == context.engagement_id,
+            )
+        )
+        analysis = analysis_result.scalar_one_or_none()
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+
+        # Verify asset exists and belongs to tenant
+        asset_result = await db.execute(
+            select(Asset).where(
+                Asset.id == request.asset_id,
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id,
+            )
+        )
+        asset = asset_result.scalar_one_or_none()
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset not found")
+
+        # Update asset fields with provided answers
+        fields_updated = []
+        for field_name, field_value in request.answers.items():
+            # Map frontend field names to Asset model fields
+            field_mapping = {
+                "criticality": "criticality",
+                "business_criticality": "business_criticality",
+                "application_type": "asset_type",  # Maps to asset_type field
+                "migration_priority": "migration_priority",
+            }
+
+            asset_field = field_mapping.get(field_name)
+            if asset_field and hasattr(asset, asset_field):
+                setattr(asset, asset_field, field_value)
+                fields_updated.append(field_name)
+                logger.info(
+                    f"Updated asset {asset.name} field '{field_name}' = '{field_value}'"
+                )
+
+        await db.commit()
+        await db.refresh(asset)
+
+        logger.info(
+            f"Inline answers submitted for analysis {analysis_id}: "
+            f"Updated {len(fields_updated)} fields on asset {asset.name}"
+        )
+
+        # Update analysis status to indicate it can proceed
+        analysis.status = AnalysisStatus.PENDING  # Ready to start
+        await db.commit()
+
+        # Trigger background analysis task (RESUME - same as create)
+        service = AnalysisService(
+            crewai_service=TenantScopedAgentPool, require_ai=False
+        )
+
+        # Get current parameters
+        params_result = await db.execute(
+            select(SixRParametersModel)
+            .where(SixRParametersModel.analysis_id == analysis_id)
+            .order_by(SixRParametersModel.iteration_number.desc())
+        )
+        current_params = params_result.scalar_one_or_none()
+
+        if current_params:
+            # Start AI agents with updated asset data
+            background_tasks.add_task(
+                service.run_initial_analysis,
+                analysis.id,
+                current_params.__dict__,
+                "system",
+                context.client_account_id,
+                context.engagement_id,
+            )
+            logger.info(
+                f"Analysis {analysis_id} RESUMED: AI agents starting with filled data"
+            )
+
+        # Return success response
+        return InlineAnswersResponse(
+            success=True,
+            analysis_id=analysis_id,
+            asset_id=request.asset_id,
+            fields_updated=fields_updated,
+            can_proceed=True,  # Analysis can now proceed
+            remaining_tier1_gaps=0,  # Assume no gaps after submission
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to submit inline answers for analysis {analysis_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to submit inline answers: {str(e)}",
         )

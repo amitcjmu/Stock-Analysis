@@ -5,16 +5,17 @@
 
 import type { Application } from '../types/ApplicationSelectorTypes';
 
+// Bug #813 fix: Changed all number to string (UUID)
 interface UseApplicationSelectionResult {
   handleSelectAll: (filteredApplications: Application[]) => void;
-  handleSelectApplication: (appId: number) => void;
+  handleSelectApplication: (appId: string) => void;
   handleStartAnalysis: (queueName?: string) => void;
 }
 
 interface UseApplicationSelectionProps {
-  selectedApplications: number[];
-  onSelectionChange: (selectedIds: number[]) => void;
-  onStartAnalysis: (applicationIds: number[], queueName?: string) => void;
+  selectedApplications: string[]; // UUID strings
+  onSelectionChange: (selectedIds: string[]) => void;
+  onStartAnalysis: (applicationIds: string[], queueName?: string) => void;
   maxSelections: number;
 }
 
@@ -31,7 +32,8 @@ export const useApplicationSelection = ({
     onSelectionChange(newSelection.slice(0, maxSelections));
   };
 
-  const handleSelectApplication = (appId: number): void => {
+  // Bug #813 fix: Changed appId from number to string (UUID)
+  const handleSelectApplication = (appId: string): void => {
     const newSelection = selectedApplications.includes(appId)
       ? selectedApplications.filter(id => id !== appId)
       : [...selectedApplications, appId].slice(0, maxSelections);

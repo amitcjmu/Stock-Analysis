@@ -22,9 +22,13 @@ import { Analysis } from '@/types/assessment'
 // Components
 import { AnalysisProgress as AnalysisProgressComponent } from '@/components/assessment'
 import { ParameterSliders, QualifyingQuestions, RecommendationDisplay, AnalysisHistory } from '@/components/assessment'
-import { ApplicationSelector } from '@/components/sixr';
+import { ApplicationSelector, Tier1GapFillingModal } from '@/components/sixr';
 import Sidebar from '@/components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+
+// Two-Tier Inline Gap-Filling (PR #816)
+import type { SixRAnalysisResponse } from '@/lib/api/sixr';
+import { sixrApi } from '@/lib/api/sixr';
 
 // Main component
 export const Treatment: React.FC = () => {
@@ -33,6 +37,10 @@ export const Treatment: React.FC = () => {
   const [selectedApplicationIds, setSelectedApplicationIds] = useState<string[]>([]);
   const [manualNavigation, setManualNavigation] = useState<boolean>(false);
   const [showApplicationType, setShowApplicationType] = useState<'all' | 'selected'>('all');
+
+  // Two-Tier Inline Gap-Filling modal state (PR #816)
+  const [showGapModal, setShowGapModal] = useState(false);
+  const [blockedAnalysis, setBlockedAnalysis] = useState<SixRAnalysisResponse | null>(null);
 
   // Hooks
   const navigate = useNavigate();
@@ -76,34 +84,51 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
     toast.error('Analysis error: ' + (analysisError.message || 'Unknown error'));
   }
 
-  // Handlers
-  const handleSelectApplications = useCallback((selectedIds: string[] | number[]) => {
-    // Convert to strings for consistency
-    const stringIds = selectedIds.map(id => String(id));
-    setSelectedApplicationIds(stringIds);
+  // Handlers - Bug #813 fix: Already using string[] (UUIDs), no conversion needed
+  const handleSelectApplications = useCallback((selectedIds: string[]) => {
+    // Already UUID strings from ApplicationSelector
+    setSelectedApplicationIds(selectedIds);
   }, []);
 
-  const handleTabChange = useCallback((tab: string) => {
-    setCurrentTab(tab);
-    setManualNavigation(true);
-  }, []);
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      setCurrentTab(tab);
+      setManualNavigation(true);
 
-  // Start analysis handler
-  const handleStartAnalysis = useCallback(async (appIds: number[], queueName?: string) => {
+      // Bug #814: Load history when user clicks History tab
+      if (tab === 'history' && state.analysisHistory.length === 0 && !state.isLoading) {
+        actions.loadAnalysisHistory();
+      }
+    },
+    [state.analysisHistory.length, state.isLoading, actions]
+  );
+
+  // Start analysis handler - Bug #813 fix: Changed appIds from number[] to string[] (UUIDs)
+  // PR #816: Extended to handle blocked status and show Tier 1 gap-filling modal
+  const handleStartAnalysis = useCallback(async (appIds: string[], queueName?: string) => {
     try {
       console.log('Starting analysis for:', appIds, 'with queue name:', queueName);
 
-      // Create analysis using the SixR API
-      const analysisId = await actions.createAnalysis({
+      // Create analysis using the SixR API - returns full response object (PR #816)
+      const analysis = await actions.createAnalysis({
         application_ids: appIds,
         parameters: state.parameters,
         queue_name: queueName || `Analysis ${Date.now()}`
       });
 
-      if (analysisId) {
-        toast.success(`Analysis started for ${appIds.length} applications`);
-        // Switch to progress tab to show the analysis progress
-        setCurrentTab('progress');
+      if (analysis) {
+        // Check if analysis is blocked by Tier 1 gaps (PR #816)
+        if (analysis.status === 'requires_input' && analysis.tier1_gaps_by_asset) {
+          console.log('Analysis blocked by Tier 1 gaps:', analysis.tier1_gaps_by_asset);
+          setBlockedAnalysis(analysis);
+          setShowGapModal(true);
+          // Toast is skipped by createAnalysis when status is requires_input
+        } else {
+          // Normal flow - analysis started successfully
+          toast.success(`Analysis started for ${appIds.length} applications`);
+          // Switch to progress tab to show the analysis progress
+          setCurrentTab('progress');
+        }
       } else {
         toast.error('Failed to start analysis');
       }
@@ -112,6 +137,36 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
       toast.error('Failed to start analysis: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }, [actions, state.parameters]);
+
+  // PR #816: Handle submission of inline gap answers
+  const handleSubmitGapAnswers = useCallback(async (assetId: string, answers: Record<string, string>) => {
+    if (!blockedAnalysis) return;
+
+    try {
+      const result = await sixrApi.submitInlineAnswers(blockedAnalysis.analysis_id.toString(), {
+        asset_id: assetId,
+        answers
+      });
+
+      console.log('Inline answers submitted:', result);
+
+      // If all gaps filled and analysis can proceed
+      if (result.can_proceed && result.remaining_tier1_gaps === 0) {
+        toast.success('All required information collected. Starting analysis...');
+        setShowGapModal(false);
+        setBlockedAnalysis(null);
+        // Switch to progress tab
+        setCurrentTab('progress');
+      } else {
+        // More gaps remain
+        toast.info(`${result.remaining_tier1_gaps} asset(s) still need information`);
+      }
+    } catch (error) {
+      console.error('Failed to submit gap answers:', error);
+      toast.error('Failed to submit answers: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      throw error; // Re-throw so modal can handle it
+    }
+  }, [blockedAnalysis]);
 
   const handleUpdateParameters = useCallback((params: SixRParameters) => {
     updateParameters(params);
@@ -230,7 +285,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
           {currentTab === 'selection' && (
             <ApplicationSelector
               applications={applications}
-              selectedApplications={selectedApplicationIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))}
+              selectedApplications={selectedApplicationIds}
               onSelectionChange={handleSelectApplications}
               onStartAnalysis={handleStartAnalysis}
             />
@@ -310,6 +365,20 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
             </div>
           </div>
         </main>
+
+        {/* Two-Tier Inline Gap-Filling Modal (PR #816) */}
+        {showGapModal && blockedAnalysis?.tier1_gaps_by_asset && (
+          <Tier1GapFillingModal
+            isOpen={showGapModal}
+            onClose={() => {
+              setShowGapModal(false);
+              setBlockedAnalysis(null);
+            }}
+            analysisId={blockedAnalysis.analysis_id.toString()}
+            tier1_gaps_by_asset={blockedAnalysis.tier1_gaps_by_asset}
+            onSubmit={handleSubmitGapAnswers}
+          />
+        )}
       </div>
     </div>
   );

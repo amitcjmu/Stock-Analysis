@@ -193,13 +193,135 @@ async def run_initial_analysis(
                 }
                 param_obj = SixRParameterBase(**param_dict)
 
+                # Fetch real asset inventory and dependencies for AI analysis
+                # Bug #813 fix: AI agents require asset_inventory and dependencies parameters
+                asset_inventory = None
+                dependencies = None
+
+                try:
+                    # Convert application IDs to UUIDs for direct database queries
+                    # NOTE: Using direct SQLAlchemy queries instead of repository methods
+                    # CRITICAL: client_account_id required for multi-tenant security
+                    asset_ids = []
+                    for app_id in analysis.application_ids:
+                        try:
+                            asset_ids.append(
+                                UUID(app_id) if isinstance(app_id, str) else app_id
+                            )
+                        except (ValueError, TypeError):
+                            logger.debug(
+                                f"Skipping invalid UUID for asset retrieval: {app_id}"
+                            )
+
+                    if asset_ids:
+                        # Fetch assets from database with multi-tenant scoping
+                        # Use direct query since get_assets_by_ids doesn't exist
+                        asset_query = select(Asset).where(
+                            Asset.id.in_(asset_ids)
+                        )  # SKIP_TENANT_CHECK
+                        if client_account_id is not None:
+                            asset_query = asset_query.where(
+                                Asset.client_account_id == client_account_id
+                            )
+                        if engagement_id is not None:
+                            asset_query = asset_query.where(
+                                Asset.engagement_id == engagement_id
+                            )
+                        asset_result = await db.execute(asset_query)
+                        assets_result = list(asset_result.scalars().all())
+
+                        # Format asset inventory for AI analysis
+                        if assets_result:
+                            asset_inventory = {
+                                "assets": [
+                                    {
+                                        "id": str(asset.id),
+                                        "name": asset.name,
+                                        "asset_type": asset.asset_type,
+                                        "attributes": asset.custom_attributes or {},
+                                        "technology_stack": asset.technology_stack
+                                        or [],
+                                        "complexity_score": asset.complexity_score or 5,
+                                        "business_criticality": asset.criticality
+                                        or "medium",
+                                    }
+                                    for asset in assets_result
+                                ],
+                                "total_count": len(assets_result),
+                            }
+                            logger.info(
+                                f"Retrieved {len(assets_result)} assets for AI analysis"
+                            )
+
+                        # Fetch dependencies for AI analysis
+                        # Use direct query since get_dependencies_for_assets doesn't exist
+                        from app.models.asset import AssetDependency
+
+                        dep_query = select(AssetDependency).where(  # SKIP_TENANT_CHECK
+                            AssetDependency.asset_id.in_(asset_ids)
+                        )
+                        if client_account_id is not None:
+                            dep_query = dep_query.where(
+                                AssetDependency.client_account_id == client_account_id
+                            )
+                        dep_result = await db.execute(dep_query)
+                        dependencies_result = list(dep_result.scalars().all())
+
+                        # Format dependencies for AI analysis
+                        if dependencies_result:
+                            dependencies = {
+                                "relationships": [
+                                    {
+                                        "source_id": str(dep.asset_id),
+                                        "target_id": str(dep.depends_on_asset_id),
+                                        "type": dep.dependency_type,
+                                        "criticality": dep.criticality,
+                                    }
+                                    for dep in dependencies_result
+                                ],
+                                "total_count": len(dependencies_result),
+                            }
+                            logger.info(
+                                f"Retrieved {len(dependencies_result)} dependencies for AI analysis"
+                            )
+                        else:
+                            logger.info(
+                                "No dependencies found (AI will proceed with asset inventory only)"
+                            )
+
+                except ImportError:
+                    logger.warning(
+                        "AssetRepository or DependencyRepository not available, using fallback"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to retrieve asset inventory/dependencies: {e}"
+                    )
+
                 # Run decision engine analysis
                 analysis.progress_percentage = 50.0
                 await db.commit()
 
-                # Calculate recommendation using decision engine
+                # Calculate recommendation using decision engine with AI parameters
+                # Bug #813 fix: Pass asset_inventory and dependencies to enable AI agents
+                if asset_inventory:
+                    logger.info(
+                        f"Using AI agents for 6R analysis with {asset_inventory['total_count']} assets"
+                    )
+                else:
+                    logger.warning(
+                        "No asset inventory available - analysis will use fallback heuristics"
+                    )
+
                 recommendation_data = await decision_engine.analyze_parameters(
-                    param_obj, application_data[0] if application_data else None
+                    param_obj,
+                    (
+                        application_data[0]["technology_stack"]
+                        if application_data
+                        else None
+                    ),
+                    asset_inventory=asset_inventory,
+                    dependencies=dependencies,
                 )
 
                 analysis.progress_percentage = 80.0

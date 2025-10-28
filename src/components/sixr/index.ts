@@ -7,3 +7,6 @@ export { default as ApplicationSelector, type Application, type AnalysisQueue } 
 export { default as AnalysisHistory, type AnalysisHistoryItem } from './AnalysisHistory';
 export { default as BulkAnalysis, type BulkAnalysisJob, type BulkAnalysisResult, type BulkAnalysisSummary } from './BulkAnalysis';
 export { default as ErrorBoundary, type ErrorInfo } from './ErrorBoundary';
+
+// Two-Tier Inline Gap-Filling (PR #816)
+export { Tier1GapFillingModal } from './Tier1GapFillingModal';

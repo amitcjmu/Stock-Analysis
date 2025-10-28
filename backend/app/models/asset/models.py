@@ -347,6 +347,10 @@ class Asset(
         Float,
         comment="A confidence score (0.0-1.0) indicating reliability of asset data.",
     )
+    complexity_score = Column(
+        Float,
+        comment="Technical complexity score (1-10) for migration planning.",
+    )
 
     # Cost information
     current_monthly_cost = Column(
