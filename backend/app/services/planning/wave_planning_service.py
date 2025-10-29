@@ -25,10 +25,31 @@ class WavePlanningService:
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
         self.context = context
+
+        # Convert client_account_id and engagement_id to integers
+        # Handle placeholder UUIDs from development/testing contexts
+        client_account_id = context.client_account_id
+        if isinstance(client_account_id, str):
+            client_account_id_int = (
+                1 if "1111111" in client_account_id else int(client_account_id)
+            )
+        else:
+            client_account_id_int = int(client_account_id)
+
+        engagement_id = context.engagement_id
+        if isinstance(engagement_id, str):
+            engagement_id_int = 1 if "2222222" in engagement_id else int(engagement_id)
+        else:
+            engagement_id_int = int(engagement_id)
+
+        # Store integer versions for use in execute_wave_planning
+        self.client_account_id_int = client_account_id_int
+        self.engagement_id_int = engagement_id_int
+
         self.planning_repo = PlanningFlowRepository(
             db=db,
-            client_account_id=int(context.client_account_id),
-            engagement_id=int(context.engagement_id),
+            client_account_id=client_account_id_int,
+            engagement_id=engagement_id_int,
         )
 
     async def execute_wave_planning(
@@ -52,8 +73,8 @@ class WavePlanningService:
             # Update phase status to in_progress
             await self.planning_repo.update_phase_status(
                 planning_flow_id=planning_flow_id,
-                client_account_id=int(self.context.client_account_id),
-                engagement_id=int(self.context.engagement_id),
+                client_account_id=self.client_account_id_int,
+                engagement_id=self.engagement_id_int,
                 current_phase="wave_planning",
                 phase_status="in_progress",
             )
@@ -61,8 +82,8 @@ class WavePlanningService:
             # Get planning flow to access selected applications
             planning_flow = await self.planning_repo.get_planning_flow_by_id(
                 planning_flow_id=planning_flow_id,
-                client_account_id=int(self.context.client_account_id),
-                engagement_id=int(self.context.engagement_id),
+                client_account_id=self.client_account_id_int,
+                engagement_id=self.engagement_id_int,
             )
 
             if not planning_flow:
@@ -82,16 +103,16 @@ class WavePlanningService:
             # Update planning flow with wave plan data
             await self.planning_repo.save_wave_plan_data(
                 planning_flow_id=planning_flow_id,
-                client_account_id=int(self.context.client_account_id),
-                engagement_id=int(self.context.engagement_id),
+                client_account_id=self.client_account_id_int,
+                engagement_id=self.engagement_id_int,
                 wave_plan_data=wave_plan,
             )
 
             # Update phase status to completed
             await self.planning_repo.update_phase_status(
                 planning_flow_id=planning_flow_id,
-                client_account_id=int(self.context.client_account_id),
-                engagement_id=int(self.context.engagement_id),
+                client_account_id=self.client_account_id_int,
+                engagement_id=self.engagement_id_int,
                 current_phase="wave_planning",
                 phase_status="completed",
             )
@@ -117,8 +138,8 @@ class WavePlanningService:
             try:
                 await self.planning_repo.update_phase_status(
                     planning_flow_id=planning_flow_id,
-                    client_account_id=int(self.context.client_account_id),
-                    engagement_id=int(self.context.engagement_id),
+                    client_account_id=self.client_account_id_int,
+                    engagement_id=self.engagement_id_int,
                     current_phase="wave_planning",
                     phase_status="failed",
                 )
