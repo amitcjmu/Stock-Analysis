@@ -100,6 +100,28 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const pageSize = 10;
 
+  // Initialize wizard state when modal opens with pre-selected applications
+  React.useEffect(() => {
+    if (open && hasPreSelectedApps && preSelectedApplicationIds.length > 0) {
+      // Set currentStep to 2 to skip application selection
+      setCurrentStep(2);
+      // Initialize selectedIds for consistency (though not used when skipping Step 1)
+      setSelectedIds(new Set(preSelectedApplicationIds));
+      // Ensure formData has the pre-selected apps
+      setFormData({
+        selected_application_ids: preSelectedApplicationIds,
+        selected_applications: preSelectedApplications,
+        max_apps_per_wave: 50,
+        wave_duration_limit_days: 90,
+        contingency_percentage: 20,
+      });
+    } else if (open && !hasPreSelectedApps) {
+      // Reset to Step 1 when opening without pre-selected apps
+      setCurrentStep(1);
+      setSelectedIds(new Set());
+    }
+  }, [open, hasPreSelectedApps, preSelectedApplicationIds, preSelectedApplications]);
+
   // Fetch applications with pagination and search (HTTP polling per CLAUDE.md - NO WebSockets)
   const {
     data: applicationsData,
