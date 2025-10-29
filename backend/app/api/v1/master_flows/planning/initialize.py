@@ -107,24 +107,23 @@ async def initialize_planning_flow(
             engagement_id=str(engagement_id),
         )
 
-        # Create planning flow (atomic transaction)
-        async with db.begin():
-            # TODO: Create master flow in crewai_flow_state_extensions
-            # This will be done when MFO integration is added
+        # Create planning flow (transaction managed by get_db dependency)
+        # TODO: Create master flow in crewai_flow_state_extensions
+        # This will be done when MFO integration is added
 
-            # Create child planning flow
-            planning_flow = await repo.create_planning_flow(
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                master_flow_id=master_flow_id,
-                planning_flow_id=planning_flow_id,
-                current_phase="initialization",
-                phase_status="initialized",
-                planning_config=request.planning_config or {},
-                selected_applications=selected_app_uuids,
-            )
+        # Create child planning flow
+        planning_flow = await repo.create_planning_flow(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            master_flow_id=master_flow_id,
+            planning_flow_id=planning_flow_id,
+            current_phase="initialization",
+            phase_status="initialized",
+            planning_config=request.planning_config or {},
+            selected_applications=selected_app_uuids,
+        )
 
-            await db.flush()
+        await db.commit()
 
         logger.info(
             f"Initialized planning flow: {planning_flow_id} "
