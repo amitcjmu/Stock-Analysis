@@ -108,6 +108,13 @@ class PlanningFlowRepository(ContextAwareRepository[PlanningFlow]):
             SQLAlchemyError: On database errors
         """
         try:
+            # Convert UUID objects to strings for JSONB serialization
+            if "selected_applications" in kwargs and kwargs["selected_applications"]:
+                kwargs["selected_applications"] = [
+                    str(app_id) if isinstance(app_id, uuid.UUID) else app_id
+                    for app_id in kwargs["selected_applications"]
+                ]
+
             flow_data = {
                 "client_account_id": client_account_id,
                 "engagement_id": engagement_id,
