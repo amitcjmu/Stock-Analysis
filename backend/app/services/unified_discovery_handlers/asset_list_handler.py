@@ -16,7 +16,6 @@ from typing import Any, Dict, Optional
 
 from sqlalchemy import and_, select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import defer
 
 from app.core.context import RequestContext
 from app.core.security.secure_logging import mask_id, safe_log_format
@@ -47,39 +46,10 @@ class AssetListHandler:
             page = max(1, page)
             offset = (page - 1) * page_size
 
-            # Defer CMDB fields that don't exist in database yet (per CMDBFieldsMixin)
-            # Only query fields that actually exist in the assets table
-            base_query = (
-                select(Asset)
-                .options(
-                    defer(Asset.business_unit),
-                    defer(Asset.vendor),
-                    defer(Asset.application_type),
-                    defer(Asset.lifecycle),
-                    defer(Asset.hosting_model),
-                    defer(Asset.server_role),
-                    defer(Asset.security_zone),
-                    defer(Asset.database_type),
-                    defer(Asset.database_version),
-                    defer(Asset.database_size_gb),
-                    defer(Asset.cpu_utilization_percent_max),
-                    defer(Asset.memory_utilization_percent_max),
-                    defer(Asset.storage_free_gb),
-                    defer(Asset.pii_flag),
-                    defer(Asset.application_data_classification),
-                    defer(Asset.has_saas_replacement),
-                    defer(Asset.risk_level),
-                    defer(Asset.tshirt_size),
-                    defer(Asset.proposed_treatmentplan_rationale),
-                    defer(Asset.annual_cost_estimate),
-                    defer(Asset.backup_policy),
-                    defer(Asset.asset_tags),
-                )
-                .where(
-                    and_(
-                        Asset.client_account_id == self.context.client_account_id,
-                        Asset.engagement_id == self.context.engagement_id,
-                    )
+            base_query = select(Asset).where(
+                and_(
+                    Asset.client_account_id == self.context.client_account_id,
+                    Asset.engagement_id == self.context.engagement_id,
                 )
             )
 
@@ -198,38 +168,10 @@ class AssetListHandler:
     async def get_asset_summary(self) -> Dict[str, Any]:
         """Get asset summary statistics with tenant isolation."""
         try:
-            # Defer CMDB fields that don't exist in database yet
-            base_query = (
-                select(Asset)
-                .options(
-                    defer(Asset.business_unit),
-                    defer(Asset.vendor),
-                    defer(Asset.application_type),
-                    defer(Asset.lifecycle),
-                    defer(Asset.hosting_model),
-                    defer(Asset.server_role),
-                    defer(Asset.security_zone),
-                    defer(Asset.database_type),
-                    defer(Asset.database_version),
-                    defer(Asset.database_size_gb),
-                    defer(Asset.cpu_utilization_percent_max),
-                    defer(Asset.memory_utilization_percent_max),
-                    defer(Asset.storage_free_gb),
-                    defer(Asset.pii_flag),
-                    defer(Asset.application_data_classification),
-                    defer(Asset.has_saas_replacement),
-                    defer(Asset.risk_level),
-                    defer(Asset.tshirt_size),
-                    defer(Asset.proposed_treatmentplan_rationale),
-                    defer(Asset.annual_cost_estimate),
-                    defer(Asset.backup_policy),
-                    defer(Asset.asset_tags),
-                )
-                .where(
-                    and_(
-                        Asset.client_account_id == self.context.client_account_id,
-                        Asset.engagement_id == self.context.engagement_id,
-                    )
+            base_query = select(Asset).where(
+                and_(
+                    Asset.client_account_id == self.context.client_account_id,
+                    Asset.engagement_id == self.context.engagement_id,
                 )
             )
 

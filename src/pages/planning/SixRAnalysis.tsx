@@ -33,63 +33,34 @@ const SixRAnalysis: React.FC = () => {
   const [filterDept, setFilterDept] = useState('All');
   const [filterCriticality, setFilterCriticality] = useState('All');
 
-  // Fetch applications from discovery/inventory
+  // Fetch applications from /api/v1/applications endpoint
   const { data: applications = [], isLoading, error, refetch } = useQuery<Application[]>({
     queryKey: ['sixr-applications', filterDept, filterCriticality],
     queryFn: async (): Promise<Application[]> => {
       const headers = getAuthHeaders();
 
       try {
-        // Try to fetch from discovery/applications endpoint first
-        const response = await apiCall('discovery/applications', { headers });
+        // Use the standard /api/v1/applications endpoint
+        const response = await apiCall('/api/v1/applications?page=1&page_size=100', { headers });
         const apps = response.applications || [];
 
         // Transform the data to match our Application interface
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
         return apps.map((app: any) => ({
-          id: app.id || app.application_id,
-          name: app.name || app.application_name || 'Unknown',
-          techStack: app.tech_stack || app.technology_stack || 'Unknown',
+          id: app.id,
+          name: app.application_name || app.asset_name || 'Unknown',
+          techStack: app.tech_stack || 'Unknown',
           criticality: app.criticality || 'Medium',
-          department: app.department || app.business_unit || 'IT',
-          sixRTreatment: app.migration_recommendation || app.six_r_strategy || determineSixRStrategy(app),
-          complexity: app.complexity || determineComplexity(app),
-          cloudReadiness: app.cloud_readiness_score || calculateCloudReadiness(app),
-          dependencies: app.dependency_count || 0
+          department: app.department || 'IT', // Removed business_unit - doesn't exist in DB
+          sixRTreatment: app.six_r_strategy || determineSixRStrategy(app),
+          complexity: determineComplexity(app),
+          cloudReadiness: app.complexity_score ? app.complexity_score * 100 : calculateCloudReadiness(app),
+          dependencies: app.dependencies || 0
         }));
-      } catch (primaryError) {
-        console.log('Primary endpoint failed, trying fallback...');
-
-        // Fallback to unified-discovery/assets endpoint
-        try {
-          const assetsResponse = await apiCall('unified-discovery/assets', {
-            headers,
-            params: {
-              asset_type: 'application',
-              limit: 100
-            }
-          });
-
-          const assets = assetsResponse.assets || assetsResponse.data || [];
-
-          // Transform assets to applications
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
-          return assets.map((asset: any) => ({
-            id: asset.id || asset.asset_id,
-            name: asset.name || asset.asset_name || 'Unknown',
-            techStack: asset.attributes?.tech_stack || 'Unknown',
-            criticality: asset.attributes?.criticality || 'Medium',
-            department: asset.attributes?.department || 'IT',
-            sixRTreatment: asset.attributes?.six_r_strategy || determineSixRStrategy(asset),
-            complexity: asset.attributes?.complexity || determineComplexity(asset),
-            cloudReadiness: asset.attributes?.cloud_readiness || calculateCloudReadiness(asset),
-            dependencies: asset.relationships?.length || 0
-          }));
-        } catch (fallbackError) {
-          console.error('Both endpoints failed:', fallbackError);
-          // Return empty array instead of throwing to show empty state
-          return [];
-        }
+      } catch (error) {
+        console.error('Failed to fetch applications:', error);
+        // Return empty array instead of throwing to show empty state
+        return [];
       }
     },
     staleTime: 5 * 60 * 1000,
