@@ -18,12 +18,10 @@ import type { SixRParameters, Application} from '@/types/assessment';
 import type { SixRRecommendation, QuestionResponse, AnalysisProgress as AnalysisProgressType, AnalysisQueueItem } from '@/types/assessment'
 import type { Analysis } from '@/types/assessment'
 
-// Components
-import { AnalysisProgress as AnalysisProgressComponent } from '@/components/assessment'
-import { ParameterSliders, QualifyingQuestions, RecommendationDisplay, AnalysisHistory } from '@/components/assessment'
+// Components (restored from git history for backward compatibility)
+import { ParameterSliders, AnalysisHistory } from '@/components/assessment'
 // Note: Phase 5 - ApplicationSelector and Tier1GapFillingModal removed (from deleted sixr components)
-// TODO Phase 6: Replace with Assessment Flow equivalents
-// import { ApplicationSelector, Tier1GapFillingModal } from '@/components/sixr';
+// TODO: Replace ParameterSliders and AnalysisHistory with Assessment Flow equivalents
 import Sidebar from '@/components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
