@@ -100,9 +100,7 @@ async def get_confidence_metrics(
 
 
 @router.get("/available-target-fields")
-async def get_available_target_fields(
-    service: SuggestionService = Depends(get_suggestion_service),
-):
+async def get_available_target_fields():
     """
     DEPRECATED: Get list of all available target fields for mapping.
 
@@ -110,21 +108,23 @@ async def get_available_target_fields(
     list of asset fields to eliminate unnecessary API calls on every app start.
     The hardcoded list in FieldOptionsContext.tsx contains all asset model fields.
 
-    This endpoint is kept for backward compatibility but should not be used.
+    Returns HTTP 410 Gone to indicate permanent removal.
+    Use /api/v1/data-import/available-target-fields instead.
     """
-    try:
-        fields = await service._get_available_target_fields()
-        return {
-            "fields": fields,
-            "total_count": len(fields),
-            "categories": list(
-                set(field.get("category", "unknown") for field in fields)
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "Endpoint permanently removed",
+            "deprecated_since": "2025-07-12",
+            "reason": "Frontend uses hardcoded asset fields list",
+            "alternative": (
+                "Use /api/v1/data-import/available-target-fields "
+                "for dynamic schema-based fields"
             ),
-            "deprecated": True,
-            "message": "This endpoint is deprecated. Frontend uses hardcoded asset fields list.",
-        }
-    except Exception as e:
-        logger.error(safe_log_format("Error getting available target fields: {e}", e=e))
-        raise HTTPException(
-            status_code=500, detail="Failed to get available target fields"
-        )
+            "message": (
+                "This endpoint is deprecated and no longer functional. "
+                "The _get_available_target_fields() method was removed "
+                "during ADR-015 refactoring."
+            ),
+        },
+    )
