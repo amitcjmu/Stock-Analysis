@@ -85,6 +85,24 @@ async def initialize_planning_flow(
         raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
+        # Convert client_account_id and engagement_id to integers
+        # RequestContext may return UUID strings or integers depending on auth
+        try:
+            if isinstance(client_account_id, str):
+                # For development placeholder UUID, use 1
+                client_account_id_int = (
+                    1 if "1111111" in client_account_id else int(client_account_id)
+                )
+            else:
+                client_account_id_int = int(client_account_id)
+
+            engagement_id_int = int(engagement_id)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid client_account_id or engagement_id format: {str(e)}",
+            )
+
         # Generate UUIDs for master and child flows
         master_flow_id = uuid4()
         planning_flow_id = uuid4()
@@ -103,8 +121,8 @@ async def initialize_planning_flow(
         # Initialize repository with tenant scoping
         repo = PlanningFlowRepository(
             db=db,
-            client_account_id=str(client_account_id),
-            engagement_id=str(engagement_id),
+            client_account_id=str(client_account_id_int),
+            engagement_id=str(engagement_id_int),
         )
 
         # Create planning flow (transaction managed by get_db dependency)
@@ -113,8 +131,8 @@ async def initialize_planning_flow(
 
         # Create child planning flow
         planning_flow = await repo.create_planning_flow(
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
+            client_account_id=client_account_id_int,
+            engagement_id=engagement_id_int,
             master_flow_id=master_flow_id,
             planning_flow_id=planning_flow_id,
             current_phase="initialization",
@@ -127,8 +145,8 @@ async def initialize_planning_flow(
 
         logger.info(
             f"Initialized planning flow: {planning_flow_id} "
-            f"(master: {master_flow_id}, client: {client_account_id}, "
-            f"engagement: {engagement_id})"
+            f"(master: {master_flow_id}, client: {client_account_id_int}, "
+            f"engagement: {engagement_id_int})"
         )
 
         return sanitize_for_json(
