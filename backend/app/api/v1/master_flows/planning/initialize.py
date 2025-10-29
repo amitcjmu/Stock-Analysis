@@ -20,6 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
 from app.repositories.planning_flow_repository import PlanningFlowRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.utils.json_sanitization import sanitize_for_json
 
 logger = logging.getLogger(__name__)
@@ -118,19 +121,31 @@ async def initialize_planning_flow(
                 detail=f"Invalid application UUID format: {str(e)}",
             )
 
-        # Initialize repository with tenant scoping
-        repo = PlanningFlowRepository(
+        # Initialize repositories with tenant scoping
+        master_flow_repo = CrewAIFlowStateExtensionsRepository(
+            db=db,
+            client_account_id=str(client_account_id_int),
+            engagement_id=str(engagement_id_int),
+        )
+
+        planning_repo = PlanningFlowRepository(
             db=db,
             client_account_id=client_account_id_int,
             engagement_id=engagement_id_int,
         )
 
-        # Create planning flow (transaction managed by get_db dependency)
-        # TODO: Create master flow in crewai_flow_state_extensions
-        # This will be done when MFO integration is added
+        # Create master flow in crewai_flow_state_extensions (MFO pattern)
+        await master_flow_repo.create_master_flow(
+            flow_id=str(master_flow_id),
+            flow_type="planning",
+            flow_name=f"Planning Flow {engagement_id_int}",
+            flow_configuration=request.planning_config or {},
+            initial_state={"phase": "wave_planning", "status": "pending"},
+            auto_commit=False,  # Will commit after child flow creation
+        )
 
         # Create child planning flow
-        planning_flow = await repo.create_planning_flow(
+        planning_flow = await planning_repo.create_planning_flow(
             client_account_id=client_account_id_int,
             engagement_id=engagement_id_int,
             master_flow_id=master_flow_id,
