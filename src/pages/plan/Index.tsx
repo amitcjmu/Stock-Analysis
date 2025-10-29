@@ -1,13 +1,21 @@
 
 import type React from 'react';
+import { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Calendar, Users, Target, TrendingUp } from 'lucide-react'
-import { Brain, ArrowRight } from 'lucide-react'
+import { Brain, ArrowRight, Rocket } from 'lucide-react'
 import { Link } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { PlanningInitializationWizard } from '@/components/plan/PlanningInitializationWizard';
 
 const PlanIndex = (): JSX.Element => {
+  // State for planning initialization wizard
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+
+  // Get engagement_id from context (default to 1 for now)
+  // TODO: Replace with actual engagement context when available
+  const engagement_id = 1;
   const summaryCards = [
     { title: 'Waves Planned', value: '3', subtitle: 'Migration Waves', icon: Calendar, color: 'bg-blue-500' },
     { title: 'Resource Utilization', value: '75%', subtitle: 'Team Capacity', icon: Users, color: 'bg-green-500' },
@@ -45,9 +53,12 @@ const PlanIndex = (): JSX.Element => {
                     AI-powered migration planning and resource optimization
                   </p>
                 </div>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                  <Brain className="h-5 w-5" />
-                  <span>AI Analysis</span>
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  onClick={() => setIsWizardOpen(true)}
+                >
+                  <Rocket className="h-5 w-5" />
+                  <span>Start Planning</span>
                 </button>
               </div>
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -138,6 +149,13 @@ const PlanIndex = (): JSX.Element => {
           </main>
         </div>
       </div>
+
+      {/* Planning Initialization Wizard */}
+      <PlanningInitializationWizard
+        open={isWizardOpen}
+        onOpenChange={setIsWizardOpen}
+        engagement_id={engagement_id}
+      />
     </SidebarProvider>
   );
 };
