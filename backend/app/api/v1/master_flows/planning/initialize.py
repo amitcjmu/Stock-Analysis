@@ -119,11 +119,10 @@ async def initialize_planning_flow(
             )
 
         # Initialize repository with tenant scoping
-        # Note: Repository constructor doesn't use these for queries, only for context
         repo = PlanningFlowRepository(
             db=db,
-            client_account_id=None,
-            engagement_id=None,
+            client_account_id=client_account_id_int,
+            engagement_id=engagement_id_int,
         )
 
         # Create planning flow (transaction managed by get_db dependency)
