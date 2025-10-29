@@ -157,6 +157,8 @@ export const useAssessmentFlow = (
           progress: nextProgress,
           currentPhase: status.current_phase as AssessmentPhase,
           applicationCount: status.application_count,
+          hasFailedPhases: status.has_failed_phases,
+          failedPhases: status.failed_phases,
           isLoading: false,
           dataFetched: true,
           error: null,
@@ -593,6 +595,8 @@ export const useAssessmentFlow = (
         progress: flowStatus.progress,
         currentPhase: flowStatus.current_phase as AssessmentPhase,
         applicationCount: flowStatus.application_count,
+        hasFailedPhases: flowStatus.has_failed_phases,
+        failedPhases: flowStatus.failed_phases,
         // Note: Backend doesn't return these fields, keep previous values
         // nextPhase: populated by phase logic
         // pausePoints: populated by phase completion

@@ -257,6 +257,12 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         console.log(`✅ Using validated URL flow ID: ${urlFlowId}`);
         return urlFlowId;
       } else {
+        // CC FIX (Bug #835): Allow completed flows for inventory/asset_inventory context
+        // Users should be able to view inventory even for completed discovery flows
+        if (currentPhase === 'asset_inventory' || currentPhase === 'inventory') {
+          console.log(`⚠️ URL flow ID ${urlFlowId} not in active list, but allowing for inventory view (may be completed flow)`);
+          return urlFlowId;
+        }
         console.warn(`❌ URL flow ID ${urlFlowId} not found in user's flow list - invalid flow`);
         return null; // Return null for invalid flow_id - will trigger error state
       }

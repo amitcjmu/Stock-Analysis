@@ -28,6 +28,8 @@ class AssetDependency(Base):
     """
     An association table defining a directed dependency between two assets.
     For example, an application asset might depend on a database asset.
+
+    SECURITY: Multi-tenant isolation via client_account_id and engagement_id (Migration 110)
     """
 
     __tablename__ = "asset_dependencies"
@@ -37,6 +39,23 @@ class AssetDependency(Base):
         default=uuid.uuid4,
         comment="Unique identifier for the dependency relationship.",
     )
+
+    # Multi-tenant isolation (added in migration 110)
+    client_account_id = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="FK to client account for multi-tenant isolation.",
+    )
+    engagement_id = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="FK to engagement for multi-tenant isolation.",
+    )
+
     asset_id = Column(
         PostgresUUID(as_uuid=True),
         ForeignKey("assets.id", ondelete="CASCADE"),
@@ -54,6 +73,11 @@ class AssetDependency(Base):
         nullable=False,
         comment="The type of dependency (e.g., 'database', 'application', 'storage').",
     )
+    criticality = Column(
+        String(20),
+        default="medium",
+        comment="Criticality of this dependency (e.g., 'low', 'medium', 'high').",
+    )
     description = Column(Text, comment="A description of the dependency relationship.")
     # is_mock removed - use multi-tenant isolation instead
     created_at = Column(
@@ -64,6 +88,8 @@ class AssetDependency(Base):
 
     asset = relationship("Asset", foreign_keys=[asset_id])
     depends_on = relationship("Asset", foreign_keys=[depends_on_asset_id])
+    client_account = relationship("ClientAccount")
+    engagement = relationship("Engagement")
 
 
 class WorkflowProgress(Base):

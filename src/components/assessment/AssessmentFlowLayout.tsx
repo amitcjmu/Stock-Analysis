@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ChevronRight, RefreshCw } from "lucide-react";
 import {
   CheckCircle2,
@@ -217,9 +218,9 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                         variant={
                           state.status === "completed"
                             ? "default"
-                            : state.status === "error"
+                            : state.status === "error" || state.status === "failed"
                               ? "destructive"
-                              : state.status === "processing"
+                              : state.status === "processing" || state.status === "in_progress"
                                 ? "default"
                                 : "secondary"
                         }
@@ -228,6 +229,22 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                       </Badge>
                     </div>
                   </div>
+
+                  {/* Phase Failure Warning (Issue #818 fix) */}
+                  {state.hasFailedPhases && state.status !== "failed" && (
+                    <Alert variant="default" className="mt-3 border-yellow-200 bg-yellow-50">
+                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      <AlertTitle className="text-yellow-800">Phase Issues Detected</AlertTitle>
+                      <AlertDescription className="text-yellow-700">
+                        Some phases encountered errors but the assessment is continuing.
+                        {state.failedPhases && state.failedPhases.length > 0 && (
+                          <span className="block mt-1 text-sm">
+                            Failed phases: {state.failedPhases.map(p => p.replace("_", " ")).join(", ")}
+                          </span>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   {/* Overall Progress */}
                   <div className="space-y-2">

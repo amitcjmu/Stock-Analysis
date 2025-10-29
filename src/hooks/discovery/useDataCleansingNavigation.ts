@@ -10,10 +10,13 @@ export const useDataCleansingNavigation = (flowState: unknown, cleansingProgress
   };
 
   const handleContinueToInventory = (): void => {
-    navigate('/discovery/inventory', {
+    const flowId = flowState?.flow_id || `flow-${Date.now()}`;
+    // CC FIX (Bug #835): Include flow_id in URL path to prevent validation errors
+    // when navigating from Data Cleansing to Inventory for completed flows
+    navigate(`/discovery/inventory/${flowId}`, {
       replace: true,
       state: {
-        flow_id: flowState?.flow_id || `flow-${Date.now()}`,
+        flow_id: flowId,
         from_phase: 'data_cleansing',
         cleansing_progress: cleansingProgress,
         client_account_id: client?.id,
