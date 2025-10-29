@@ -18,77 +18,119 @@ router = APIRouter()
 async def get_roadmap(
     db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
 ) -> Dict[str, Any]:
-    """Get migration roadmap data with phases and timelines."""
-    current_date = datetime.now()
+    """
+    Get migration roadmap with timeline (UPDATED - no longer stub).
 
-    roadmap_data = {
-        "waves": [
+    Retrieves real timeline data from project_timelines and timeline_phases tables.
+    Returns empty state if no timeline exists (no error).
+    """
+    from app.repositories.planning_flow_repository import PlanningFlowRepository
+
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
+    # Initialize repository with tenant scoping
+    repository = PlanningFlowRepository(
+        db=db,
+        client_account_id=str(client_account_id) if client_account_id else None,
+        engagement_id=str(engagement_id) if engagement_id else None,
+    )
+
+    # Get all planning flows (timelines are associated with planning flows)
+    from app.models.planning import ProjectTimeline
+    from sqlalchemy import select, and_
+
+    planning_flows = await repository.get_all()
+
+    if not planning_flows:
+        # Return empty state (no error - planning not started yet)
+        return {
+            "phases": [],
+            "timelines": [],
+            "milestones": [],
+            "roadmap_status": "not_started",
+        }
+
+    # Get timelines for engagement (directly query with tenant scoping)
+    stmt = (
+        select(ProjectTimeline)
+        .where(
+            and_(
+                ProjectTimeline.client_account_id == client_account_id,
+                ProjectTimeline.engagement_id == engagement_id,
+            )
+        )
+        .order_by(ProjectTimeline.created_at.desc())
+    )
+
+    result = await db.execute(stmt)
+    timelines = result.scalars().all()
+
+    if not timelines:
+        # Return empty state (no timeline created yet)
+        return {
+            "phases": [],
+            "timelines": [],
+            "milestones": [],
+            "roadmap_status": "planning_without_timeline",
+        }
+
+    latest_timeline = timelines[0]
+
+    # Get phases for this timeline
+    phases = await repository.get_phases_by_timeline(
+        timeline_id=latest_timeline.id,
+        client_account_id=client_account_id,
+        engagement_id=engagement_id,
+    )
+
+    # Get milestones for this timeline
+    milestones = await repository.get_milestones_by_timeline(
+        timeline_id=latest_timeline.id,
+        client_account_id=client_account_id,
+        engagement_id=engagement_id,
+    )
+
+    return {
+        "timeline_id": str(latest_timeline.id),
+        "timeline_name": latest_timeline.timeline_name,
+        "overall_start_date": (
+            latest_timeline.overall_start_date.isoformat()
+            if latest_timeline.overall_start_date
+            else None
+        ),
+        "overall_end_date": (
+            latest_timeline.overall_end_date.isoformat()
+            if latest_timeline.overall_end_date
+            else None
+        ),
+        "phases": [
             {
-                "wave": "Wave 1",
-                "phases": [
-                    {
-                        "name": "Planning",
-                        "start": current_date.strftime("%Y-%m-%d"),
-                        "end": (current_date + timedelta(days=30)).strftime("%Y-%m-%d"),
-                        "status": "in-progress",
-                    },
-                    {
-                        "name": "Migration",
-                        "start": (current_date + timedelta(days=30)).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "end": (current_date + timedelta(days=60)).strftime("%Y-%m-%d"),
-                        "status": "planned",
-                    },
-                    {
-                        "name": "Testing",
-                        "start": (current_date + timedelta(days=60)).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "end": (current_date + timedelta(days=75)).strftime("%Y-%m-%d"),
-                        "status": "planned",
-                    },
-                ],
-            },
-            {
-                "wave": "Wave 2",
-                "phases": [
-                    {
-                        "name": "Planning",
-                        "start": (current_date + timedelta(days=45)).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "end": (current_date + timedelta(days=75)).strftime("%Y-%m-%d"),
-                        "status": "planned",
-                    },
-                    {
-                        "name": "Migration",
-                        "start": (current_date + timedelta(days=75)).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "end": (current_date + timedelta(days=105)).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "status": "planned",
-                    },
-                    {
-                        "name": "Testing",
-                        "start": (current_date + timedelta(days=105)).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "end": (current_date + timedelta(days=120)).strftime(
-                            "%Y-%m-%d"
-                        ),
-                        "status": "planned",
-                    },
-                ],
-            },
+                "id": str(p.id),
+                "phase_name": p.phase_name,
+                "planned_start_date": (
+                    p.planned_start_date.isoformat() if p.planned_start_date else None
+                ),
+                "planned_end_date": (
+                    p.planned_end_date.isoformat() if p.planned_end_date else None
+                ),
+                "status": p.status,
+                "wave_number": p.wave_number,
+            }
+            for p in phases
         ],
-        "totalApps": 83,
-        "plannedApps": 45,
+        "milestones": [
+            {
+                "id": str(m.id),
+                "milestone_name": m.milestone_name,
+                "target_date": m.target_date.isoformat() if m.target_date else None,
+                "status": m.status,
+                "description": m.description,
+            }
+            for m in milestones
+        ],
+        "roadmap_status": "active",
     }
-
-    return roadmap_data
 
 
 @router.put("/roadmap")

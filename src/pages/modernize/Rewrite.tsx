@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Code2, Loader2, AlertTriangle, RefreshCw, Calendar, Users, Activity, AlertCircle } from 'lucide-react';
 import { useRewrite } from '@/hooks/useRewrite';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';;
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 const Rewrite = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState('projects');
@@ -68,6 +69,9 @@ const Rewrite = (): JSX.Element => {
       <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">

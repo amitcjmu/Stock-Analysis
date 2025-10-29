@@ -203,14 +203,18 @@ class MFOSyncAgent:
     async def _verify_discovery_db_state(self, flow_id: str) -> bool:
         """Verify discovery flow database state completion"""
         try:
-            from sqlalchemy import func, select
+            from sqlalchemy import and_, func, select
 
             from app.models.asset import Asset
             from app.models.discovery_flow import DiscoveryFlow
 
             # Check if discovery flow exists and has completed phases
             discovery_query = select(DiscoveryFlow).where(
-                DiscoveryFlow.flow_id == flow_id
+                and_(
+                    DiscoveryFlow.flow_id == flow_id,
+                    DiscoveryFlow.client_account_id == self.context.client_account_id,
+                    DiscoveryFlow.engagement_id == self.context.engagement_id,
+                )
             )
             discovery_result = await self.db.execute(discovery_query)
             discovery_flow = discovery_result.scalar_one_or_none()

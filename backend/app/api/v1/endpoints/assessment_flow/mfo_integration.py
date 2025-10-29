@@ -194,9 +194,13 @@ async def get_assessment_status_via_mfo(
 
         # Add tenant scoping filters if provided
         if client_account_id is not None:
-            query = query.where(CrewAIFlowStateExtensions.client_account_id == client_account_id)
+            query = query.where(
+                CrewAIFlowStateExtensions.client_account_id == client_account_id
+            )
         if engagement_id is not None:
-            query = query.where(CrewAIFlowStateExtensions.engagement_id == engagement_id)
+            query = query.where(
+                CrewAIFlowStateExtensions.engagement_id == engagement_id
+            )
 
         result = await db.execute(query)
         row = result.first()
@@ -358,9 +362,7 @@ async def pause_assessment_flow(
         flow_id=flow_id,
         updates={
             "status": AssessmentFlowStatus.PAUSED.value,
-            "runtime_state": {
-                "paused_at": datetime.utcnow().isoformat()
-            },
+            "runtime_state": {"paused_at": datetime.utcnow().isoformat()},
         },
         db=db,
     )
@@ -384,9 +386,7 @@ async def resume_assessment_flow(
         flow_id=flow_id,
         updates={
             "status": AssessmentFlowStatus.IN_PROGRESS.value,
-            "runtime_state": {
-                "resumed_at": datetime.utcnow().isoformat()
-            },
+            "runtime_state": {"resumed_at": datetime.utcnow().isoformat()},
         },
         db=db,
     )
@@ -411,9 +411,7 @@ async def complete_assessment_flow(
         updates={
             "status": AssessmentFlowStatus.COMPLETED.value,
             "progress": 100,
-            "runtime_state": {
-                "completed_at": datetime.utcnow().isoformat()
-            },
+            "runtime_state": {"completed_at": datetime.utcnow().isoformat()},
         },
         db=db,
     )

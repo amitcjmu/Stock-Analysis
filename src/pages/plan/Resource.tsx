@@ -1,13 +1,15 @@
 import type React from 'react';
 import { Users, Loader2, AlertTriangle, UserPlus, BarChart, Calendar, Briefcase } from 'lucide-react';
 import { useResource } from '@/hooks/useResource';
-import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 const Resource = (): JSX.Element => {
   const { data, isLoading, isError, error } = useResource();
@@ -65,6 +67,9 @@ const Resource = (): JSX.Element => {
         <Sidebar />
         <div className="flex-1 ml-64">
         <main className="p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">

@@ -56,7 +56,11 @@ async def get_critical_attributes_status(
             else:
                 # Try to find import by master_flow_id
                 flow_import_query = select(DataImport).where(
-                    DataImport.master_flow_id == flow_id
+                    and_(
+                        DataImport.master_flow_id == flow_id,
+                        DataImport.client_account_id == context.client_account_id,
+                        DataImport.engagement_id == context.engagement_id,
+                    )
                 )
                 flow_result = await db.execute(flow_import_query)
                 latest_import = flow_result.scalar_one_or_none()
@@ -70,8 +74,13 @@ async def get_critical_attributes_status(
                     from app.models.discovery_flow import DiscoveryFlow
 
                     discovery_query = select(DiscoveryFlow).where(
-                        (DiscoveryFlow.flow_id == flow_id)
-                        | (DiscoveryFlow.master_flow_id == flow_id)
+                        and_(
+                            (DiscoveryFlow.flow_id == flow_id)
+                            | (DiscoveryFlow.master_flow_id == flow_id),
+                            DiscoveryFlow.client_account_id
+                            == context.client_account_id,
+                            DiscoveryFlow.engagement_id == context.engagement_id,
+                        )
                     )
                     discovery_result = await db.execute(discovery_query)
                     discovery_flow = discovery_result.scalar_one_or_none()

@@ -284,6 +284,15 @@ class CrewAIFlowStateExtensions(
         cascade="all, delete-orphan",
     )
 
+    # Planning flow relationship (added in migration 112)
+    planning_flows = relationship(
+        "PlanningFlow",
+        foreign_keys="PlanningFlow.master_flow_id",
+        primaryjoin="CrewAIFlowStateExtensions.flow_id == PlanningFlow.master_flow_id",
+        back_populates="master_flow",
+        cascade="all, delete-orphan",
+    )
+
     # Parent-child flow relationships (hierarchical flows)
     parent_flow = relationship(
         "CrewAIFlowStateExtensions",

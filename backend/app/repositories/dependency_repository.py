@@ -38,6 +38,7 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
         ServerAsset = aliased(Asset)
 
         query = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(
                 AssetDependency,
                 AppAsset.name.label("app_name"),
@@ -107,7 +108,9 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
         SourceAppAsset = aliased(Asset)
         TargetAppAsset = aliased(Asset)
 
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(
                 AssetDependency,
                 SourceAppAsset.name.label("source_app_name"),
@@ -177,6 +180,7 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
     async def get_available_applications(self) -> List[Dict[str, Any]]:
         """Get list of all applications."""
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(
             Asset.id, Asset.name, Asset.application_name, Asset.description
         ).where(Asset.asset_type == AssetType.APPLICATION)
@@ -201,6 +205,7 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
     async def get_available_servers(self) -> List[Dict[str, Any]]:
         """Get list of all servers."""
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(Asset.id, Asset.name, Asset.hostname, Asset.description).where(
             Asset.asset_type == AssetType.SERVER
         )
@@ -233,11 +238,13 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
         """Create a new application-to-server dependency."""
         # Validate that app_id is an application and server_id is a server
         app = await self.db.execute(
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(Asset).where(
                 and_(Asset.id == app_id, Asset.asset_type == AssetType.APPLICATION)
             )
         )
         server = await self.db.execute(
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(Asset).where(
                 and_(Asset.id == server_id, Asset.asset_type == AssetType.SERVER)
             )
@@ -245,8 +252,10 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
         if not app.scalar() or not server.scalar():
             raise ValueError("Invalid application or server ID")
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
 
         # Check if dependency already exists with context filtering
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         existing_query = select(AssetDependency).where(
             and_(
                 AssetDependency.asset_id == app_id,
@@ -308,6 +317,7 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
         """Create a new application-to-application dependency."""
         # Validate that both IDs are applications
         apps = await self.db.execute(
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(Asset).where(
                 and_(
                     Asset.id.in_([source_app_id, target_app_id]),
@@ -321,6 +331,7 @@ class DependencyRepository(ContextAwareRepository[AssetDependency]):
 
         # Check if dependency already exists
         existing = await self.db.execute(
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(AssetDependency).where(
                 and_(
                     AssetDependency.asset_id == source_app_id,

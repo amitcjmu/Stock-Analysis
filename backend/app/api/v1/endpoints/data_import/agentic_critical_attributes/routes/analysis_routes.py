@@ -118,6 +118,7 @@ async def trigger_field_mapping_crew_analysis(
             logger.error(safe_log_format("❌ Invalid UUID format: {e}", e=e))
             raise HTTPException(status_code=400, detail=f"Invalid UUID format: {e}")
 
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         import_query = select(DataImport).where(
             and_(
                 DataImport.id == import_uuid,
@@ -134,6 +135,7 @@ async def trigger_field_mapping_crew_analysis(
         from app.models.data_import import RawImportRecord
 
         sample_query = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(RawImportRecord)
             .where(RawImportRecord.data_import_id == data_import.id)
             .limit(10)

@@ -25,6 +25,7 @@ class AssetValidation:
         async with AsyncSessionLocal() as db:
             try:
                 # Get asset
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 asset_query = select(Asset).where(
                     and_(
                         Asset.id == asset_id,

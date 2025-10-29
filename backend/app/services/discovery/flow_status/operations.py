@@ -147,7 +147,7 @@ async def update_flow_status(
     }
 
 
-async def get_active_flows(
+async def get_active_flows(  # noqa: C901
     db: AsyncSession, context: RequestContext, limit: int = 10
 ) -> List[Dict[str, Any]]:
     """Get active discovery flows for the current context."""

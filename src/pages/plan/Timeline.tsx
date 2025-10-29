@@ -2,12 +2,14 @@ import React from 'react';
 import { Flag } from 'lucide-react'
 import { Calendar, Loader2, AlertTriangle, Clock, AlertCircle, ChevronRight } from 'lucide-react'
 import { useTimeline } from '@/hooks/useTimeline';
-import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 const Timeline = (): JSX.Element => {
   const { data, isLoading, isError, error } = useTimeline();
@@ -72,6 +74,9 @@ const Timeline = (): JSX.Element => {
         <Sidebar />
         <div className="flex-1 ml-64">
         <main className="p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">

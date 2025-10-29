@@ -497,6 +497,14 @@ def register_special_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ Canonical Applications router not available")
 
+    # Applications (for Planning Flow wizard)
+    if routers_with_flags.get("APPLICATIONS", (False, None))[0]:
+        applications_router = routers_with_flags["APPLICATIONS"][1]
+        api_router.include_router(applications_router)
+        logger.info("✅ Applications router included at /api/v1/applications")
+    else:
+        logger.warning("⚠️ Applications router not available")
+
 
 def register_all_routers(api_router: APIRouter):
     """Register all routers in organized groups."""

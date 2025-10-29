@@ -2,12 +2,13 @@ import React, { useState } from 'react'
 import { Clock } from 'lucide-react'
 import { Activity, Sparkles, TrendingUp, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react'
 import { useModernizationProgress } from '@/hooks/useModernizationProgress';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';;
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 const ModernizationProgress = (): JSX.Element => {
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter'>('month');
@@ -68,6 +69,9 @@ const ModernizationProgress = (): JSX.Element => {
       <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">

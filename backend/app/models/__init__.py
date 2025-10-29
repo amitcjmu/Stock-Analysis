@@ -44,6 +44,17 @@ from app.models.governance import (
 # Assessment Models
 from app.models.assessment import Assessment, WavePlan
 
+# Planning Flow Models (New - Migration 112-114)
+from app.models.planning import (
+    PlanningFlow,
+    ProjectTimeline,
+    ResourceAllocation,
+    ResourcePool,
+    ResourceSkill,
+    TimelineMilestone,
+    TimelinePhase,
+)
+
 # Assessment Flow Models (New)
 from app.models.assessment_flow import (
     ApplicationArchitectureOverride,
@@ -180,6 +191,14 @@ __all__ = [
     # Assessment Models
     "Assessment",
     "WavePlan",
+    # Planning Flow Models
+    "PlanningFlow",
+    "ProjectTimeline",
+    "TimelinePhase",
+    "TimelineMilestone",
+    "ResourcePool",
+    "ResourceAllocation",
+    "ResourceSkill",
     # Assessment Flow Models (SQLAlchemy)
     "AssessmentFlow",
     "EngagementArchitectureStandard",

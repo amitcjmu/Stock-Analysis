@@ -1,71 +1,296 @@
-
 # Data Flow Analysis Report: Resource Page
 
-This document provides a complete, end-to-end data flow analysis for the `Resource` page of the AI Modernize Migration Platform.
-
-**Analysis Date:** 2024-07-29
-
-**Assumptions:**
-*   The analysis is based on the `Resource.tsx` page and its associated hook, `useResource`.
-*   The feature is likely under development, as the hook contains fallback logic for a 404 response.
-*   The platform operates entirely within a Docker environment.
-*   All API calls require authentication and multi-tenant context headers.
+**Analysis Date:** 2025-10-29
+**Previous Version:** 2024-07-29 (Placeholder Analysis)
+**Status:** Backend Fully Implemented, Frontend Placeholder
 
 ---
 
-## 1. Frontend: Components and API Calls
+## Overview
 
-The Resource page is designed to provide a comprehensive view of team allocation, skill sets, and resource utilization for the migration project.
-
-### Key Components & Hooks
-*   **Page Component:** `src/pages/plan/Resource.tsx`
-*   **Core Logic Hook:** `useResource`: Fetches the resource data.
-
-### API Call Summary
-
-| # | Method | Endpoint                 | Trigger                  | Description                   |
-|---|--------|--------------------------|--------------------------|-------------------------------|
-| 1 | `GET`  | `/api/v1/plan/resources` | `useResource` hook on load. | Fetches the resource data.    |
+The Resource page manages resource allocation and skill gap analysis for migration waves. It displays role-based resource assignments, calculates utilization, identifies skill gaps, and supports AI-driven suggestions with manual override.
 
 ---
 
-## 2. Backend, CrewAI, ORM, and Database Trace
+## Backend Implementation (Migration 114)
 
-The backend for resource planning would involve an agent that analyzes the project timeline and required skills to generate a resource plan.
+### Database Tables
 
-### API Endpoint: `GET /api/v1/plan/resources`
+#### `resource_pools`
 
-*   **FastAPI Route:** Located in `backend/app/api/v1/endpoints/plan.py`.
-*   **CrewAI Interaction:**
-    *   **Initial Generation:** If no resource plan exists, this call would trigger a `ResourceAllocationAgent`. This agent would analyze the `project_timeline` to understand the skills and effort required for each phase. It would then match these requirements against the available resources (teams and their skills) to generate an optimal allocation plan and identify any resource gaps.
-    *   **Read Operation:** If a plan has been generated, this is a simple read.
-*   **ORM Layer:**
-    *   **Repository:** `ResourcePlanRepository`.
-    *   **Operation:** Fetches the `ResourcePlan` for the current engagement.
-*   **Database:**
-    *   **Table:** `resource_plans`.
-    *   **Query:** `SELECT * FROM resource_plans WHERE engagement_id = ?;`
+Role-based resource capacity tracking with auto-calculated utilization.
+
+**Key Fields:**
+
+- `pool_name` (VARCHAR): Pool identifier
+- `role_name` (VARCHAR): Role name (e.g., "Cloud Architect")
+- `total_capacity_hours` (NUMERIC): Total available hours
+- `available_capacity_hours` (NUMERIC): Current available hours
+- `allocated_capacity_hours` (NUMERIC): Currently allocated hours
+- `hourly_rate` (NUMERIC): Cost per hour
+- `utilization_percentage` (NUMERIC): Auto-calculated (trigger)
+- `skills` (JSONB): Array of skills
+
+**Trigger:** Auto-calculates utilization percentage on INSERT/UPDATE
+
+#### `resource_allocations`
+
+Resource assignments to migration waves with AI suggestions.
+
+**Key Fields:**
+
+- `planning_flow_id` (UUID): FK to planning_flows
+- `wave_id` (UUID): FK to migration_waves
+- `resource_pool_id` (UUID): FK to resource_pools
+- `allocated_hours` (NUMERIC): Allocated hours
+- `allocation_start_date` (TIMESTAMP): Start date
+- `allocation_end_date` (TIMESTAMP): End date
+- `is_ai_suggested` (BOOLEAN): AI-generated recommendation
+- `ai_confidence_score` (NUMERIC): Confidence (0-100)
+- `manual_override` (BOOLEAN): User modified AI suggestion
+- `status` (VARCHAR): Allocation status
+
+#### `resource_skills`
+
+Skill requirements and gap analysis per wave.
+
+**Key Fields:**
+
+- `wave_id` (UUID): FK to migration_waves
+- `skill_name` (VARCHAR): Required skill
+- `required_hours` (NUMERIC): Hours required
+- `available_hours` (NUMERIC): Hours available
+- `has_gap` (BOOLEAN): Skill gap exists
+- `gap_severity` (VARCHAR): Severity (`none`, `low`, `medium`, `high`, `critical`)
+- `mitigation_plan` (TEXT): Plan to address gap
+- `training_required` (BOOLEAN): Training needed
+- `external_hire_needed` (BOOLEAN): External hire needed
 
 ---
 
-## 3. End-to-End Flow Sequence: Viewing the Resource Plan
+## Service Layer
 
-1.  **User Navigates:** The user opens the Resource page.
-2.  **Frontend Hook:** The `useResource` hook is triggered.
-3.  **API Call:** A `GET` request is made to `/api/v1/plan/resources`.
-4.  **Backend Logic:** The backend fetches the resource plan, potentially generating it with the `ResourceAllocationAgent` if it doesn't exist.
-5.  **DB Execution:** PostgreSQL returns the resource plan data.
-6.  **Backend Response:** FastAPI serializes the data into JSON and returns it.
-7.  **UI Render:** The component renders the team allocation table and utilization metrics.
+### Method: `execute_resource_allocation_phase()`
+
+**Location:** `backend/app/services/planning_service.py` (lines 302-447)
+
+**Agent:** `ResourceAllocationSpecialist` (via `PlanningCrew`)
+
+**Process:**
+
+1. Validates wave plan completed
+2. Prepares resource pools (roles, hourly rates)
+3. Invokes resource allocation agent
+4. Agent suggests resource allocations per wave
+5. Calculates skill gaps (non-blocking warnings)
+6. Saves to `resource_allocation_data` JSONB + relational tables
+7. Transitions to timeline generation phase
+
+**AI Features:**
+
+- Suggests optimal resource allocations based on wave complexity
+- Provides confidence scores (0-100)
+- Identifies skill gaps with severity levels
+- Supports manual override without blocking progression
 
 ---
 
-## 4. Troubleshooting Breakpoints
+## Repository Layer
 
-| Breakpoint                | Diagnostic Check                                                                                      | Platform-Specific Fix                                                                                      |
-|---------------------------|-------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| **Page Shows No Data**    | Check the network tab for a 404 on `/api/v1/plan/resources`. The feature may not be implemented yet.      | Implement the `/api/v1/plan/resources` endpoint on the backend and connect it to the `ResourcePlanRepository`. |
-| **Resource Plan is Empty**| If the API returns an empty object, it means no `project_timeline` has been created for this engagement. | Go back to the "Timeline" page and ensure a timeline has been generated and saved first.                    |
-| **Utilization is Incorrect** | The `ResourceAllocationAgent`'s logic for calculating utilization may be flawed.                      | Debug the agent's algorithm for assigning tasks and calculating team member allocation percentages.           |
+### Resource Methods
 
+**Location:** `backend/app/repositories/planning_flow_repository.py`
 
+| Method                             | Lines      | Purpose                                |
+|------------------------------------|------------|----------------------------------------|
+| **Resource Pools**                 |            |                                        |
+| `create_resource_pool()`           | 835-889    | Create resource pool                   |
+| `list_resource_pools()`            | 891-928    | List all pools (tenant-scoped)         |
+| `get_resource_pool_by_id()`        | 930-968    | Get pool by ID                         |
+| `update_resource_pool()`           | 970-1020   | Update pool                            |
+| **Resource Allocations**           |            |                                        |
+| `create_resource_allocation()`     | 1026-1083  | Allocate resource to wave              |
+| `list_allocations_by_wave()`       | 1085-1122  | Get allocations for wave               |
+| `list_allocations_by_planning_flow()` | 1124-1163 | Get allocations for planning flow   |
+| `update_allocation()`              | 1165-1224  | Update allocation                      |
+| **Resource Skills**                |            |                                        |
+| `create_resource_skill()`          | 1230-1275  | Create skill requirement               |
+| `list_skills_by_wave()`            | 1277-1312  | Get skills for wave                    |
+| `list_skill_gaps_by_wave()`        | 1314-1351  | Get skill gaps for wave                |
+
+---
+
+## Frontend Integration TODO
+
+### Current Status
+
+**File:** `src/pages/plan/Resource.tsx`
+
+**Status:** Placeholder UI (no API integration)
+
+### Implementation Steps
+
+#### 1. Create Resource Data Hook
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/apiClient';
+
+function useResourceAllocation(planning_flow_id: string) {
+  return useQuery({
+    queryKey: ['resource-allocation', planning_flow_id],
+    queryFn: async () => {
+      const status = await planningFlowApi.getPlanningStatus(planning_flow_id);
+      return status.resource_allocation_data;
+    },
+    refetchInterval: 10000 // Poll every 10 seconds
+  });
+}
+```
+
+#### 2. Display Resource Pools
+
+**Component:** Resource pool cards showing:
+
+- Role name
+- Total capacity vs allocated capacity
+- Utilization percentage (color-coded)
+- Hourly rate
+- Available skills
+
+#### 3. Display Wave Allocations
+
+**Component:** Allocation table per wave:
+
+- Wave number and name
+- Allocated resources (role, hours, cost)
+- AI confidence score (if AI-suggested)
+- Manual override indicator
+- Status (planned, confirmed, in_progress)
+
+#### 4. Display Skill Gaps
+
+**Component:** Skill gap warnings panel:
+
+- Skill name
+- Required hours vs available hours
+- Gap severity (color-coded badge)
+- Mitigation plan
+- Training/external hire indicators
+
+#### 5. Manual Override Feature
+
+**Action:** Allow users to:
+
+- Modify AI-suggested allocations
+- Add/remove resources from waves
+- Update allocation hours
+- Mark allocations as "manual override"
+
+---
+
+## API Integration
+
+### Expected Endpoints (TODO)
+
+| Method | Endpoint                                         | Purpose                          |
+|--------|--------------------------------------------------|----------------------------------|
+| GET    | `/api/v1/master-flows/planning/resources/{id}`  | Get resource allocation data     |
+| PUT    | `/api/v1/master-flows/planning/resources/{id}`  | Update resource allocations      |
+| POST   | `/api/v1/master-flows/planning/execute-phase`   | Trigger resource allocation agent|
+
+### Data Structure
+
+```typescript
+interface ResourceAllocationData {
+  allocations: Array<{
+    wave_id: string;
+    wave_number: number;
+    resources: Array<{
+      role_name: string;
+      allocated_hours: number;
+      hourly_rate: number;
+      estimated_cost: number;
+      is_ai_suggested: boolean;
+      ai_confidence_score: number;
+      manual_override: boolean;
+    }>;
+  }>;
+  skill_gaps: Array<{
+    skill_name: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    impact: string;
+    required_hours: number;
+    available_hours: number;
+    training_required: boolean;
+    external_hire_needed: boolean;
+  }>;
+  total_cost_estimate: number;
+}
+```
+
+---
+
+## Troubleshooting
+
+| Issue                        | Check                                        | Fix                                               |
+|------------------------------|----------------------------------------------|---------------------------------------------------|
+| **No resource pools**        | `resource_pools` table empty                 | Create resource pools via admin interface         |
+| **Utilization incorrect**    | Check trigger calculation                    | Query: `SELECT * FROM migration.resource_pools;`  |
+| **AI confidence missing**    | Agent execution log empty                    | Verify agent populates `ai_confidence_score`      |
+| **Skill gaps not showing**   | `resource_skills` table empty                | Check agent skill gap analysis logic              |
+| **Manual override fails**    | Check `manual_override` boolean update       | Verify PUT endpoint updates field correctly       |
+
+---
+
+## Implementation Priority
+
+**High Priority:**
+
+1. Integrate resource allocation display with backend data
+2. Show AI confidence scores for transparency
+3. Display skill gaps with severity indicators
+
+**Medium Priority:**
+
+4. Enable manual override functionality
+5. Add resource pool management interface
+6. Implement allocation editing
+
+**Low Priority:**
+
+7. Add resource utilization charts
+8. Enable allocation drag-and-drop
+9. Export resource plan to Excel
+
+---
+
+## Related Files
+
+- **Backend Service:** `backend/app/services/planning_service.py:302-447`
+- **Backend Repository:** `backend/app/repositories/planning_flow_repository.py:835-1351`
+- **Frontend Page:** `src/pages/plan/Resource.tsx` (placeholder)
+- **Migration:** `114_create_resource_planning_tables.py`
+
+---
+
+## Summary
+
+The Resource page backend is **FULLY IMPLEMENTED** with comprehensive database schema (migration 114) and service layer logic. Frontend is **PLACEHOLDER** awaiting integration.
+
+**Key Features:**
+
+- Role-based resource pools (NOT individual contributors per #690)
+- Auto-calculated utilization percentage
+- AI-driven allocation suggestions with confidence scores
+- Skill gap analysis (non-blocking warnings)
+- Manual override capability
+- Multi-tenant scoping throughout
+
+**Next Steps:**
+
+1. Create frontend data hooks
+2. Build resource display components
+3. Integrate with planning status endpoint
+4. Add manual override UI
+5. Test with agent-generated data

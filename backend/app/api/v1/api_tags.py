@@ -74,6 +74,9 @@ class APITags:
     DEPENDENCY_ANALYSIS = "Dependency Analysis"
     AGENT_INSIGHTS = "Agent Insights"
 
+    # Planning
+    PLANNING_FLOW = "Planning Flow"
+
     # System
     SYSTEM_HEALTH = "System Health"
     EMERGENCY_CONTROL = "Emergency Control"

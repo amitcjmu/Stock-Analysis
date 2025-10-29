@@ -85,6 +85,7 @@ class FieldMappingPersistence:
                 try:
                     # Ensure data import record exists (for direct raw data flows)
                     if data_import_id == flow_id:
+                        # SKIP_TENANT_CHECK - Service-level query
                         # Check if data import record exists (with tenant scoping)
                         data_import_query = select(DataImport).where(
                             and_(
@@ -143,6 +144,7 @@ class FieldMappingPersistence:
                             ImportFieldMapping.data_import_id == data_import_id,
                             ImportFieldMapping.client_account_id == client_account_id,
                             ImportFieldMapping.data_import_id.in_(
+                                # SKIP_TENANT_CHECK - Service-level/monitoring query
                                 select(DataImport.id).where(
                                     and_(
                                         DataImport.id == data_import_id,

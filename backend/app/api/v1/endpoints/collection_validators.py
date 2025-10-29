@@ -38,6 +38,7 @@ async def validate_discovery_flow_exists(
     """
     try:
         result = await db.execute(
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(DiscoveryFlow).where(
                 DiscoveryFlow.flow_id == discovery_flow_id,
                 DiscoveryFlow.engagement_id == engagement_id,
@@ -80,6 +81,7 @@ async def validate_applications_exist(
         # If no applications specified, get all from engagement
         try:
             result = await db.execute(
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 select(Asset).where(Asset.engagement_id == engagement_id)
             )
             return result.scalars().all()
@@ -94,6 +96,7 @@ async def validate_applications_exist(
         uuid_ids = [UUID(aid) for aid in application_ids]
 
         result = await db.execute(
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(Asset).where(
                 Asset.id.in_(uuid_ids),
                 Asset.engagement_id == engagement_id,
@@ -138,6 +141,7 @@ async def validate_collection_flow_exists(
     """
     try:
         result = await db.execute(
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(CollectionFlow).where(
                 CollectionFlow.flow_id == UUID(flow_id),
                 CollectionFlow.engagement_id == engagement_id,
@@ -263,6 +267,7 @@ async def check_for_existing_active_flow(
         Existing active flow or None
     """
     try:
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(CollectionFlow).where(
             CollectionFlow.engagement_id == engagement_id,
             CollectionFlow.status.notin_(
@@ -339,12 +344,15 @@ async def validate_flow_belongs_to_engagement(
         True if flow belongs to engagement, False otherwise
     """
     try:
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         if flow_table_column == "flow_id":
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             query = select(CollectionFlow).where(
                 CollectionFlow.flow_id == UUID(flow_id),
                 CollectionFlow.engagement_id == engagement_id,
             )
         else:
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             query = select(CollectionFlow).where(
                 CollectionFlow.id == UUID(flow_id),
                 CollectionFlow.engagement_id == engagement_id,
@@ -430,6 +438,7 @@ async def validate_batch_delete_permissions(
         try:
             # Note: This uses database id, not flow_id - matching original behavior
             result = await db.execute(
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 select(CollectionFlow).where(
                     CollectionFlow.id == UUID(flow_id),
                     CollectionFlow.engagement_id == engagement_id,

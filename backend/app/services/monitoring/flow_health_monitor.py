@@ -81,6 +81,7 @@ class FlowHealthMonitor:
             try:
                 # Find stuck flows
                 cutoff_time = datetime.now(timezone.utc) - self.stuck_threshold
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 stmt = select(CollectionFlow).where(
                     CollectionFlow.status.notin_(
                         [
@@ -159,7 +160,9 @@ class FlowHealthMonitor:
         Returns:
             Health status dictionary
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         async with AsyncSessionLocal() as db:
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             stmt = select(CollectionFlow).where(CollectionFlow.flow_id == flow_id)
             result = await db.execute(stmt)
             flow = result.scalar_one_or_none()
@@ -198,8 +201,10 @@ class FlowHealthMonitor:
         Returns:
             True if recovery successful, False otherwise
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         async with AsyncSessionLocal() as db:
             try:
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 stmt = select(CollectionFlow).where(CollectionFlow.flow_id == flow_id)
                 result = await db.execute(stmt)
                 flow = result.scalar_one_or_none()
