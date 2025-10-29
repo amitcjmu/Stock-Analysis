@@ -76,18 +76,42 @@ async def get_planning_status(
                 status_code=400, detail="Invalid planning flow UUID format"
             )
 
+        # Convert client_account_id and engagement_id to integers
+        # RequestContext may return UUID strings or integers depending on auth
+        try:
+            if isinstance(client_account_id, str):
+                # For development placeholder UUID, use 1
+                client_account_id_int = (
+                    1 if "1111111" in client_account_id else int(client_account_id)
+                )
+            else:
+                client_account_id_int = int(client_account_id)
+
+            if isinstance(engagement_id, str):
+                # For development placeholder UUID, use 1
+                engagement_id_int = (
+                    1 if "2222222" in engagement_id else int(engagement_id)
+                )
+            else:
+                engagement_id_int = int(engagement_id)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid client_account_id or engagement_id format: {str(e)}",
+            )
+
         # Initialize repository
         repo = PlanningFlowRepository(
             db=db,
-            client_account_id=str(client_account_id),
-            engagement_id=str(engagement_id),
+            client_account_id=client_account_id_int,
+            engagement_id=engagement_id_int,
         )
 
         # Get planning flow (with tenant scoping verification)
         planning_flow = await repo.get_planning_flow_by_id(
             planning_flow_id=planning_flow_uuid,
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
+            client_account_id=client_account_id_int,
+            engagement_id=engagement_id_int,
         )
 
         if not planning_flow:
@@ -98,7 +122,7 @@ async def get_planning_status(
 
         logger.debug(
             f"Retrieved planning flow status: {planning_flow_id} "
-            f"(client: {client_account_id}, engagement: {engagement_id})"
+            f"(client: {client_account_id_int}, engagement: {engagement_id_int})"
         )
 
         # Return complete planning flow state
