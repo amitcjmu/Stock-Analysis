@@ -20,7 +20,7 @@ from app.api.v1.endpoints import (
     context_router,
     data_import_router,
     monitoring_router,
-    sixr_router,
+    # sixr_router removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
 )
 
 # Asset conflicts router
@@ -439,7 +439,7 @@ __all__ = [
     "data_import_router",
     "execute_router",
     "monitoring_router",
-    "sixr_router",
+    # "sixr_router",  # Removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
     "context_establishment_router",
     "flow_sync_debug_router",
     # Conditional routers with availability flags

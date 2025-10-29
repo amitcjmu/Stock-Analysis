@@ -73,7 +73,6 @@ import {
   LazyAssessmentComplexity,
   LazyAssessmentDependency,
   LazyAssessmentTechDebt,
-  LazyAssessmentSixRReview,
   LazyAssessmentDependencyAnalysis,
   LazyAssessmentTechDebtAssessment,
   LazyPlanIndex,
@@ -390,10 +389,8 @@ const AuthenticatedApp = (): JSX.Element => {
         path="/assessment/:flowId/tech-debt"
         element={<LazyAssessmentTechDebt />}
       />
-      <Route
-        path="/assessment/:flowId/sixr-review"
-        element={<LazyAssessmentSixRReview />}
-      />
+      {/* Note: /assessment/:flowId/sixr-review route removed as part of Phase 5 */}
+      {/* 6R Review is now handled by Assessment Flow pages */}
       <Route
         path="/assessment/:flowId/app-on-page"
         element={<LazyAssessmentAppOnPage />}

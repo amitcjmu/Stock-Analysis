@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def register_core_routers(api_router: APIRouter):
     """Register core routers that are always available."""
     from app.api.v1.router_imports import (
-        sixr_router,
+        # sixr_router removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
         analysis_router,
         agents_router,
         agent_learning_router,
@@ -38,7 +38,8 @@ def register_core_routers(api_router: APIRouter):
     logger.info("--- Registering Core Routers ---")
 
     # Core Discovery and Analysis
-    api_router.include_router(sixr_router, prefix="/6r")
+    # /6r/* endpoints removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
+    # All 6R analysis functionality now available at /assessment-flow/* endpoints
     api_router.include_router(analysis_router, prefix="/analysis")
     logger.info("✅ Core analysis routers registered")
 
@@ -134,15 +135,23 @@ def register_conditional_routers(api_router: APIRouter):
         )
         # DO NOT register the legacy discovery router - it violates MFO-first architecture
 
-    # Assessment Flow API - DISABLED: Must use MFO endpoints (/api/v1/master-flows/*)
-    # Direct assessment-flow endpoints violate MFO architecture principles
-    # All assessment operations should go through Master Flow Orchestrator
-    # if ASSESSMENT_FLOW_AVAILABLE:
-    #     api_router.include_router(assessment_flow_router, prefix="/assessment-flow")
-    #     logger.info("✅ Assessment Flow API router included at /assessment-flow")
-    # else:
-    #     logger.warning("⚠️ Assessment Flow API router not available")
-    logger.info("ℹ️ Assessment Flow endpoints accessed via MFO at /master-flows/*")
+    # Assessment Flow API - ENABLED: Phase 2 of Assessment Flow MFO Migration (Issue #838)
+    # Re-enabled with MFO integration layer per ADR-006 two-table pattern
+    # Endpoints now route through MFO integration layer in assessment_flow/mfo_integration.py
+    try:
+        from app.api.v1.router_imports import (
+            ASSESSMENT_FLOW_AVAILABLE,
+            assessment_flow_router,
+        )
+
+        if ASSESSMENT_FLOW_AVAILABLE:
+            api_router.include_router(assessment_flow_router, prefix="/assessment-flow")
+            logger.info("✅ Assessment Flow API router included at /assessment-flow")
+        else:
+            logger.warning("⚠️ Assessment Flow API router not available")
+    except ImportError as e:
+        logger.error(f"❌ Failed to import Assessment Flow router: {e}")
+        logger.info("ℹ️ Assessment Flow endpoints accessed via MFO at /master-flows/*")
 
     # Collection Gaps API - MUST be registered BEFORE collection_router for correct routing
     # The gap analysis router has more specific routes (/collection/flows/{id}/gaps, /scan-gaps, etc.)

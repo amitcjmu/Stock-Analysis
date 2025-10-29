@@ -126,41 +126,14 @@ export const LazyQualityIssuesSummary = createLazyComponent(
   LoadingPriority.NORMAL
 );
 
-// 6R Analysis Components (NORMAL priority)
-export const LazyParameterSliders = createLazyComponent(
-  () => import('@/components/sixr/ParameterSliders'),
-  'Parameter Sliders',
-  'skeleton',
-  LoadingPriority.NORMAL
-);
-
-export const LazyQualifyingQuestions = createLazyComponent(
-  () => import('@/components/sixr/QualifyingQuestions'),
-  'Qualifying Questions',
-  'skeleton',
-  LoadingPriority.NORMAL
-);
-
-export const LazyAnalysisProgress = createLazyComponent(
-  () => import('@/components/sixr/AnalysisProgress'),
-  'Analysis Progress',
-  'minimal',
-  LoadingPriority.NORMAL
-);
-
-export const LazyApplicationSelector = createLazyComponent(
-  () => import('@/components/sixr/ApplicationSelector'),
-  'Application Selector',
-  'skeleton',
-  LoadingPriority.NORMAL
-);
-
-export const LazySixRErrorBoundary = createLazyComponent(
-  () => import('@/components/sixr/ErrorBoundary'),
-  '6R Error Boundary',
-  'minimal',
-  LoadingPriority.NORMAL
-);
+// Note: 6R Analysis Components removed as part of Assessment Flow Migration Phase 5
+// These components have been deleted:
+// - LazyParameterSliders
+// - LazyQualifyingQuestions
+// - LazyAnalysisProgress
+// - LazyApplicationSelector
+// - LazySixRErrorBoundary
+// Use Assessment Flow components instead
 
 // Admin Components (LOW priority)
 export const LazyUserStats = createLazyComponent(

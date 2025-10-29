@@ -60,7 +60,9 @@ from app.models.platform_credentials import (
 )
 from app.models.rbac import AccessLevel, ClientAccess, UserRole
 from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
-from app.models.sixr_analysis import SixRAnalysis
+
+# REMOVED: SixR Analysis model deleted in Phase 4 (Issue #840)
+# from app.models.sixr_analysis import SixRAnalysis
 from app.models.tags import AssetTag, Tag
 from app.models.user_active_flows import UserActiveFlow
 

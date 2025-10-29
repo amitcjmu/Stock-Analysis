@@ -116,7 +116,9 @@ async def get_data_cleansing_analysis(
             if flow_db_id:
                 # Look for data imports with this master_flow_id
                 import_query = (
-                    select(DataImport)
+                    select(
+                        DataImport
+                    )  # SKIP_TENANT_CHECK - master_flow_id FK enforces isolation
                     .where(DataImport.master_flow_id == flow_db_id)
                     .order_by(DataImport.created_at.desc())
                     .limit(1)
@@ -172,8 +174,10 @@ async def get_data_cleansing_analysis(
         )
 
         logger.info(f"Data cleansing analysis completed for flow {flow_id}")
-        logger.info(f"Analysis result: {len(analysis_result.quality_issues)} quality issues returned")
-        
+        logger.info(
+            f"Analysis result: {len(analysis_result.quality_issues)} quality issues returned"
+        )
+
         return analysis_result
 
     except HTTPException:
@@ -331,7 +335,7 @@ async def resolve_quality_issue(
 
         # Verify flow exists and user has access
         flow = await _validate_and_get_flow(flow_id, flow_repo)
-        
+
         logger.info(f"Flow {flow_id} found: {flow.flow_name} (status: {flow.status})")
 
         # Prepare resolution data with audit trail
@@ -355,27 +359,32 @@ async def resolve_quality_issue(
             data_cleansing_results["resolutions"] = {}
 
         data_cleansing_results["resolutions"][issue_id] = resolution_data
-        
+
         logger.info(f"Stored resolution for issue {issue_id}: {resolution_data}")
-        logger.info(f"Total resolutions stored: {len(data_cleansing_results['resolutions'])}")
+        logger.info(
+            f"Total resolutions stored: {len(data_cleansing_results['resolutions'])}"
+        )
 
         # Update flow with new data_cleansing_results
         existing_data["data_cleansing_results"] = data_cleansing_results
         flow.crewai_state_data = existing_data
-        
+
         # Ensure SQLAlchemy detects the JSONB field change
         from sqlalchemy.orm.attributes import flag_modified
+
         flag_modified(flow, "crewai_state_data")
-        
+
         # Ensure the flow object is properly tracked by the session
         db.add(flow)
-        
-        logger.info(f"Updating flow {flow_id} with resolution data for issue {issue_id}")
+
+        logger.info(
+            f"Updating flow {flow_id} with resolution data for issue {issue_id}"
+        )
 
         # Commit changes to database
         await db.commit()
         await db.refresh(flow)
-        
+
         logger.info(f"Database commit successful for flow {flow_id}")
 
         logger.info(
@@ -398,6 +407,7 @@ async def resolve_quality_issue(
             f"❌ Failed to resolve quality issue {issue_id} for flow {flow_id}: {str(e)}"
         )
         import traceback
+
         logger.error(f"❌ Full traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

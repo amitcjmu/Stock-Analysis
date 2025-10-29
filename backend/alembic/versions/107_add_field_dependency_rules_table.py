@@ -60,9 +60,12 @@ def upgrade() -> None:
                 );
 
                 -- Indexes for efficient lookups
-                CREATE INDEX idx_field_dep_rules_client_engagement ON migration.field_dependency_rules(client_account_id, engagement_id);
-                CREATE INDEX idx_field_dep_rules_source_field ON migration.field_dependency_rules(source_field);
-                CREATE INDEX idx_field_dep_rules_active ON migration.field_dependency_rules(is_active) WHERE is_active = true;
+                CREATE INDEX idx_field_dep_rules_client_engagement
+                ON migration.field_dependency_rules(client_account_id, engagement_id);
+                CREATE INDEX idx_field_dep_rules_source_field
+                ON migration.field_dependency_rules(source_field);
+                CREATE INDEX idx_field_dep_rules_active
+                ON migration.field_dependency_rules(is_active) WHERE is_active = true;
 
                 RAISE NOTICE 'Created migration.field_dependency_rules table';
             ELSE
@@ -72,7 +75,9 @@ def upgrade() -> None:
             -- Seed with default rules from DynamicQuestionEngine (bootstrap)
             -- These serve as global fallbacks when no tenant-specific rules exist
             INSERT INTO migration.field_dependency_rules
-                (client_account_id, engagement_id, source_field, affected_questions, rule_type, confidence_score, learned_by, created_by)
+                (client_account_id, engagement_id, source_field,
+                 affected_questions, rule_type, confidence_score,
+                 learned_by, created_by)
             VALUES
                 -- Global defaults (UUID all zeros for global scope)
                 ('00000000-0000-0000-0000-000000000000'::uuid, NULL, 'os_version',

@@ -146,8 +146,8 @@ from app.models.rbac import AccessLevel, ClientAccess, UserRole
 # Security Audit Models
 from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
 
-# SixR Analysis Models
-from app.models.sixr_analysis import SixRAnalysis
+# SixR Analysis Models REMOVED - Replaced by Assessment Flow (Phase 4, Issue #840)
+# from app.models.sixr_analysis import SixRAnalysis
 
 # Tags Models
 from app.models.tags import AssetTag, Tag
@@ -236,8 +236,8 @@ __all__ = [
     # LLM Usage Models
     "LLMUsageLog",
     "LLMUsageSummary",
-    # SixR Analysis Models
-    "SixRAnalysis",
+    # SixR Analysis Models REMOVED - Replaced by Assessment Flow (Phase 4, Issue #840)
+    # "SixRAnalysis",
     # Collection Flow Models
     "CollectionFlow",
     "AutomationTier",

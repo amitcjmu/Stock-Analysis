@@ -277,10 +277,8 @@ export const LazyAssessmentTechDebt = createLazyRoute(
   "Assessment Tech Debt",
 );
 
-export const LazyAssessmentSixRReview = createLazyRoute(
-  () => import("@/pages/assessment/[flowId]/sixr-review"),
-  "Assessment 6R Review",
-);
+// Note: LazyAssessmentSixRReview removed as part of Assessment Flow Migration Phase 5
+// 6R Review is now handled by Assessment Flow pages
 
 export const LazyAssessmentAppOnPage = createLazyRoute(
   () => import("@/pages/assessment/[flowId]/app-on-page"),
