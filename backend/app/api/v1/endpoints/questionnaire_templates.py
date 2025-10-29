@@ -53,9 +53,8 @@ def get_bootstrap_questionnaire_template(
             completeness = 0.5  # Default 50%
             if hasattr(asset, "business_criticality") and asset.business_criticality:
                 completeness += 0.1
-            if hasattr(asset, "business_owner") and asset.business_owner:
-                completeness += 0.1
-            if hasattr(asset, "technical_owner") and asset.technical_owner:
+            # business_owner and technical_owner moved to asset_contacts (Migration 113)
+            if hasattr(asset, "contacts") and asset.contacts:
                 completeness += 0.1
             if hasattr(asset, "dependencies") and asset.dependencies:
                 completeness += 0.1

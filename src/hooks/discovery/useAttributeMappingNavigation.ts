@@ -50,17 +50,19 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
   }, [client?.id, engagement?.id]);
 
   // Get the resolved flow ID for useUnifiedDiscoveryFlow
-  const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowState?.flow_id);
+  // flowState is already the full flow object, extract its ID
+  const extractedFlowId = (flowState as any)?.flow_id || (flowState as any)?.flowId || (flowState as any)?.id;
+  const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(extractedFlowId);
   const { toast } = useToast();
 
   const handleContinueToDataCleansing = useCallback(async () => {
     try {
       // CC FIX: Check multiple possible property names for flow_id
-      // flowState might have: flow_id, flowId, id
+      // flowState is the full flow object passed from parent
       const rawFlowId =
-        flowState?.flow_id ||
-        flowState?.flowId ||
-        flowState?.id ||
+        (flowState as any)?.flow_id ||
+        (flowState as any)?.flowId ||
+        (flowState as any)?.id ||
         flow?.flow_id ||
         flow?.flowId ||
         flow?.id;

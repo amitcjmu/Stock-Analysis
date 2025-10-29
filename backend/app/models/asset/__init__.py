@@ -18,6 +18,12 @@ from .enums import (
     CriticalityLevel,
     DiscoveryMethod,
     AssessmentReadiness,
+    ApplicationType,
+    Lifecycle,
+    HostingModel,
+    ServerRole,
+    RiskLevel,
+    TShirtSize,
 )
 from .models import Asset
 from .relationships import (
@@ -26,6 +32,7 @@ from .relationships import (
     CMDBSixRAnalysis,
     MigrationWave,
 )
+from .specialized import AssetEOLAssessment, AssetContact
 from .base import (
     SQLALCHEMY_AVAILABLE,
     SMALL_STRING_LENGTH,
@@ -58,12 +65,20 @@ __all__ = [
     "CriticalityLevel",
     "DiscoveryMethod",
     "AssessmentReadiness",
+    "ApplicationType",
+    "Lifecycle",
+    "HostingModel",
+    "ServerRole",
+    "RiskLevel",
+    "TShirtSize",
     # Model classes
     "Asset",
     "AssetDependency",
     "WorkflowProgress",
     "CMDBSixRAnalysis",
     "MigrationWave",
+    "AssetEOLAssessment",
+    "AssetContact",
     # Mixins
     "AssetPropertiesMixin",
     "AssetBusinessLogicMixin",

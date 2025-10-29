@@ -104,9 +104,8 @@ async def get_available_target_fields():
     """
     DEPRECATED: Get list of all available target fields for mapping.
 
-    This endpoint is deprecated as of 2025-07-12. Frontend now uses a hardcoded
-    list of asset fields to eliminate unnecessary API calls on every app start.
-    The hardcoded list in FieldOptionsContext.tsx contains all asset model fields.
+    This endpoint is deprecated as of 2025-07-12. Frontend now uses dynamic
+    field fetching from the database schema to eliminate stale hardcoded lists.
 
     Returns HTTP 410 Gone to indicate permanent removal.
     Use /api/v1/data-import/available-target-fields instead.
@@ -116,7 +115,7 @@ async def get_available_target_fields():
         detail={
             "error": "Endpoint permanently removed",
             "deprecated_since": "2025-07-12",
-            "reason": "Frontend uses hardcoded asset fields list",
+            "reason": "Frontend now fetches fields dynamically from database schema",
             "alternative": (
                 "Use /api/v1/data-import/available-target-fields "
                 "for dynamic schema-based fields"

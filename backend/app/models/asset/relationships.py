@@ -79,6 +79,28 @@ class AssetDependency(Base):
         comment="Criticality of this dependency (e.g., 'low', 'medium', 'high').",
     )
     description = Column(Text, comment="A description of the dependency relationship.")
+
+    # Network Discovery Fields (Issue #833)
+    port = Column(Integer, nullable=True, comment="Network port for connection")
+    protocol_name = Column(
+        String(SMALL_STRING_LENGTH),
+        nullable=True,
+        comment="Protocol name (TCP, UDP, HTTP, etc.)",
+    )
+    conn_count = Column(
+        Integer, nullable=True, comment="Number of connections observed"
+    )
+    bytes_total = Column(Integer, nullable=True, comment="Total bytes transferred")
+    first_seen = Column(
+        DateTime(timezone=True), nullable=True, comment="First detection timestamp"
+    )
+    last_seen = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        comment="Last detection timestamp",
+    )
+
     # is_mock removed - use multi-tenant isolation instead
     created_at = Column(
         DateTime(timezone=True),

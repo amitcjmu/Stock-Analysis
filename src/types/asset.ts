@@ -24,9 +24,36 @@ export interface Asset {
 
   // Business information
   business_owner?: string;
+  technical_owner?: string;
   department?: string;
   business_criticality?: string;
   location?: string;
+  business_unit?: string;
+  vendor?: string;
+
+  // CMDB Enhancement Fields (Issue #833)
+  application_type?: string;
+  lifecycle?: string;
+  hosting_model?: string;
+  server_role?: string;
+  security_zone?: string;
+  database_type?: string;
+  database_version?: string;
+  database_size_gb?: number;
+  cpu_utilization_percent_max?: number;
+  memory_utilization_percent_max?: number;
+  storage_free_gb?: number;
+  storage_used_gb?: number;
+  tech_debt_flags?: string;
+  pii_flag?: boolean;
+  application_data_classification?: string;
+  has_saas_replacement?: boolean;
+  risk_level?: string;
+  tshirt_size?: string;
+  proposed_treatmentplan_rationale?: string;
+  annual_cost_estimate?: number;
+  backup_policy?: string;
+  asset_tags?: string[];
 
   // Migration information
   six_r_strategy?: string;
