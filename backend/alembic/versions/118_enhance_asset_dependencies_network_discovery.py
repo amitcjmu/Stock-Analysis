@@ -3,16 +3,16 @@
 Adds network flow metadata columns for network discovery integration.
 Supports Issue #833 hybrid architecture approach.
 
-Revision ID: 112_enhance_asset_dependencies_network_discovery
-Revises: 111_create_cmdb_specialized_tables
+Revision ID: 118_enhance_asset_dependencies_network_discovery
+Revises: 117_create_cmdb_specialized_tables
 Create Date: 2025-10-28 15:00:00.000000
 """
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "114_enhance_asset_dependencies_network_discovery"
-down_revision = "113_create_cmdb_specialized_tables"
+revision = "118_enhance_asset_dependencies_network_discovery"
+down_revision = "117_create_cmdb_specialized_tables"
 branch_labels = None
 depends_on = None
 

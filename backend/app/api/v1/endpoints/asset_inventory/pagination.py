@@ -234,6 +234,7 @@ async def _get_assets_from_db(
 ):
     """Fetch assets from database with pagination."""
     from sqlalchemy import func, select
+    from sqlalchemy.orm import selectinload
     from app.models.asset import Asset
 
     # Build base query with context filtering
@@ -244,6 +245,7 @@ async def _get_assets_from_db(
             Asset.client_account_id == context.client_account_id,
             Asset.engagement_id == context.engagement_id,
         )
+        .options(selectinload(Asset.eol_assessments), selectinload(Asset.contacts))
         .order_by(Asset.created_at.desc())
     )
 

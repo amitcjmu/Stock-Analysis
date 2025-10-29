@@ -1,7 +1,7 @@
 """Add storage_used_gb and tech_debt_flags fields
 
-Revision ID: 117_add_storage_used_and_tech_debt_fields
-Revises: 116_restore_owner_columns_for_backward_compat
+Revision ID: 119_add_storage_used_and_tech_debt_fields
+Revises: 118_enhance_asset_dependencies_network_discovery
 Create Date: 2025-10-29
 
 """
@@ -10,8 +10,8 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision = "117_add_storage_used_and_tech_debt_fields"
-down_revision = "116_restore_owner_columns_for_backward_compat"
+revision = "119_add_storage_used_and_tech_debt_fields"
+down_revision = "118_enhance_asset_dependencies_network_discovery"
 branch_labels = None
 depends_on = None
 

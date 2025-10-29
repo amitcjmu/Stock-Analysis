@@ -3,16 +3,16 @@
 Creates asset_eol_assessments and asset_contacts tables for normalized data.
 Supports Issue #833 hybrid architecture approach.
 
-Revision ID: 111_create_cmdb_specialized_tables
-Revises: 110_add_cmdb_explicit_fields
+Revision ID: 117_create_cmdb_specialized_tables
+Revises: 116_add_cmdb_explicit_fields
 Create Date: 2025-10-28 14:30:00.000000
 """
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "113_create_cmdb_specialized_tables"
-down_revision = "112_add_cmdb_explicit_fields"
+revision = "117_create_cmdb_specialized_tables"
+down_revision = "116_add_cmdb_explicit_fields"
 branch_labels = None
 depends_on = None
 

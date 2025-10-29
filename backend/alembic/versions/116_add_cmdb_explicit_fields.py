@@ -3,15 +3,15 @@
 Adds 24 high-value explicit columns for enhanced CMDB support.
 Supports Issue #833 hybrid architecture approach.
 
-Revision ID: 110_add_cmdb_explicit_fields
-Revises: 109_add_sixr_blocked_status_fields
+Revision ID: 116_add_cmdb_explicit_fields
+Revises: 111_remove_sixr_analysis_tables
 Create Date: 2025-10-28 14:00:00.000000
 """
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "112_add_cmdb_explicit_fields"
+revision = "116_add_cmdb_explicit_fields"
 down_revision = "111_remove_sixr_analysis_tables"
 branch_labels = None
 depends_on = None
