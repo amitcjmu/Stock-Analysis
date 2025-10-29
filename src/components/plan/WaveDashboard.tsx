@@ -125,7 +125,7 @@ export default function WaveDashboard({
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Applications:</span>
               <span className="font-semibold text-gray-900">
-                {wave.applications.length}
+                {wave.application_count}
               </span>
             </div>
 

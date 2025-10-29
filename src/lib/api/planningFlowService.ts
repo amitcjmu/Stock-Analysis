@@ -101,8 +101,8 @@ export interface Wave {
   wave_number: number;
   /** Human-readable wave name */
   wave_name: string;
-  /** Array of application UUID strings */
-  applications: string[];
+  /** Number of applications in this wave */
+  application_count: number;
   /** Optional start date (ISO format) */
   start_date?: string;
   /** Optional end date (ISO format) */
