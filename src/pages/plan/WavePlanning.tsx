@@ -19,6 +19,7 @@ import WaveModal from '@/components/plan/WaveModal';
 import Sidebar from '@/components/Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 export default function WavePlanningPage(): JSX.Element {
   const [searchParams] = useSearchParams();
@@ -238,6 +239,9 @@ export default function WavePlanningPage(): JSX.Element {
       <div className="min-h-screen bg-gray-50 flex">
         <Sidebar />
         <div className="flex-1 ml-64 p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">Wave Planning</h1>

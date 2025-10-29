@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 const Target = (): JSX.Element => {
   const { data, isLoading, isError, error } = useTarget();
@@ -72,6 +73,9 @@ const Target = (): JSX.Element => {
         <Sidebar />
         <div className="flex-1 ml-64">
           <main className="p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">

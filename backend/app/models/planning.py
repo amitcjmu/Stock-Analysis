@@ -58,8 +58,10 @@ class PlanningFlow(Base):
     )
 
     # Multi-Tenant Scoping (MANDATORY per ADR-012)
-    client_account_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    engagement_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Master Flow Reference
     master_flow_id: Mapped[uuid.UUID] = mapped_column(
@@ -170,8 +172,10 @@ class ProjectTimeline(Base):
     )
 
     # Multi-Tenant Scoping
-    client_account_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    engagement_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Planning Flow Reference
     planning_flow_id: Mapped[uuid.UUID] = mapped_column(
@@ -259,8 +263,10 @@ class TimelinePhase(Base):
     )
 
     # Multi-Tenant Scoping
-    client_account_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    engagement_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Timeline Reference
     timeline_id: Mapped[uuid.UUID] = mapped_column(
@@ -357,8 +363,10 @@ class TimelineMilestone(Base):
     )
 
     # Multi-Tenant Scoping
-    client_account_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    engagement_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Timeline Reference
     timeline_id: Mapped[uuid.UUID] = mapped_column(
@@ -454,8 +462,10 @@ class ResourcePool(Base):
     )
 
     # Multi-Tenant Scoping
-    client_account_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    engagement_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Resource Pool Identity
     pool_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -538,8 +548,10 @@ class ResourceAllocation(Base):
     )
 
     # Multi-Tenant Scoping
-    client_account_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    engagement_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Planning Flow Reference
     planning_flow_id: Mapped[uuid.UUID] = mapped_column(
@@ -621,8 +633,10 @@ class ResourceSkill(Base):
     )
 
     # Multi-Tenant Scoping
-    client_account_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    engagement_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Wave Reference (FK to migration_waves)
     wave_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

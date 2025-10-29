@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 const ModernizationProgress = (): JSX.Element => {
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter'>('month');
@@ -68,6 +69,9 @@ const ModernizationProgress = (): JSX.Element => {
       <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">
