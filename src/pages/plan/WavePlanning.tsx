@@ -16,6 +16,8 @@ import { planningFlowApi } from '@/lib/api/planningFlowService';
 import type { Wave } from '@/lib/api/planningFlowService';
 import WaveDashboard from '@/components/plan/WaveDashboard';
 import WaveModal from '@/components/plan/WaveModal';
+import { Sidebar } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 
 export default function WavePlanningPage(): JSX.Element {
@@ -192,76 +194,91 @@ export default function WavePlanningPage(): JSX.Element {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Loading wave planning data...</p>
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-gray-600">Loading wave planning data...</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-red-800 mb-2">
-            Error Loading Planning Data
-          </h2>
-          <p className="text-red-700">{error}</p>
-          <button
-            onClick={loadPlanningData}
-            className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Retry
-          </button>
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 p-8">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-red-800 mb-2">
+                Error Loading Planning Data
+              </h2>
+              <p className="text-red-700">{error}</p>
+              <button
+                onClick={loadPlanningData}
+                className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Wave Planning</h1>
-        <p className="text-gray-600 mt-2">
-          Organize applications into migration waves for phased execution
-        </p>
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-8">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Wave Planning</h1>
+            <p className="text-gray-600 mt-2">
+              Organize applications into migration waves for phased execution
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="mb-6 flex gap-3">
+            <button
+              onClick={handleCreateWave}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              + Create Wave
+            </button>
+            <button
+              onClick={loadPlanningData}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {/* Wave Dashboard */}
+          <WaveDashboard
+            waves={waves}
+            onEditWave={handleEditWave}
+            onDeleteWave={handleDeleteWave}
+          />
+
+          {/* Wave Modal */}
+          {isModalOpen && (
+            <WaveModal
+              wave={selectedWave}
+              onSave={handleSaveWave}
+              onClose={() => setIsModalOpen(false)}
+            />
+          )}
+        </div>
       </div>
-
-      {/* Actions */}
-      <div className="mb-6 flex gap-3">
-        <button
-          onClick={handleCreateWave}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          + Create Wave
-        </button>
-        <button
-          onClick={loadPlanningData}
-          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-        >
-          Refresh
-        </button>
-      </div>
-
-      {/* Wave Dashboard */}
-      <WaveDashboard
-        waves={waves}
-        onEditWave={handleEditWave}
-        onDeleteWave={handleDeleteWave}
-      />
-
-      {/* Wave Modal */}
-      {isModalOpen && (
-        <WaveModal
-          wave={selectedWave}
-          onSave={handleSaveWave}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )}
-    </div>
+    </SidebarProvider>
   );
 }
