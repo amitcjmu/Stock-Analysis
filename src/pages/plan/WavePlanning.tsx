@@ -16,7 +16,7 @@ import { planningFlowApi } from '@/lib/api/planningFlowService';
 import type { Wave } from '@/lib/api/planningFlowService';
 import WaveDashboard from '@/components/plan/WaveDashboard';
 import WaveModal from '@/components/plan/WaveModal';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 

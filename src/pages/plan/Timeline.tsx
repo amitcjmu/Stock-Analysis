@@ -2,7 +2,8 @@ import React from 'react';
 import { Flag } from 'lucide-react'
 import { Calendar, Loader2, AlertTriangle, Clock, AlertCircle, ChevronRight } from 'lucide-react'
 import { useTimeline } from '@/hooks/useTimeline';
-import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

@@ -1,7 +1,8 @@
 import type React from 'react';
 import { Cloud, Loader2, AlertTriangle, Plus, DollarSign, Shield, Server } from 'lucide-react';
 import { useTarget } from '@/hooks/useTarget';
-import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
