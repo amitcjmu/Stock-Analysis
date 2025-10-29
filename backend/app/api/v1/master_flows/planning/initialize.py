@@ -135,8 +135,8 @@ async def initialize_planning_flow(
             engagement_id=engagement_id_int,
             master_flow_id=master_flow_id,
             planning_flow_id=planning_flow_id,
-            current_phase="initialization",
-            phase_status="initialized",
+            current_phase="wave_planning",  # First valid phase per CHECK constraint
+            phase_status="pending",  # Initial status per CHECK constraint
             planning_config=request.planning_config or {},
             selected_applications=selected_app_uuids,
         )
