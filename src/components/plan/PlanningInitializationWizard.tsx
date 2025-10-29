@@ -9,7 +9,7 @@
  * 2. Step 2: Configure planning settings
  * 3. Step 3: Review and initialize
  *
- * On success, redirects to /plan/wave-planning with planning_flow_id and engagement_id
+ * On success, redirects to /plan/waveplanning with planning_flow_id and engagement_id
  *
  * CC Generated Component
  */
@@ -293,7 +293,7 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
 
       // Redirect to wave planning page with planning_flow_id and engagement_id
       navigate(
-        `/plan/wave-planning?planning_flow_id=${response.planning_flow_id}&engagement_id=${engagement_id}`
+        `/plan/waveplanning?planning_flow_id=${response.planning_flow_id}&engagement_id=${engagement_id}`
       );
     } catch (error) {
       console.error('Failed to initialize planning flow:', error);
