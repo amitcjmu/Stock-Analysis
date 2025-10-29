@@ -13,6 +13,7 @@ Master flow status is only for cross-flow coordination.
 """
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
@@ -114,13 +115,12 @@ async def create_assessment_via_mfo(
                     "auto_progression_enabled": True,
                 },
                 runtime_state={
-                    "initialized_at": str(db.get_bind().execute(select(1)).scalar()),
+                    "initialized_at": datetime.utcnow().isoformat(),
                 },
             )
             db.add(child_flow)
 
-            # Step 3: Commit atomic transaction (both tables updated together)
-            await db.commit()
+            # Step 3: Transaction commits automatically on context exit
 
         logger.info(
             safe_log_format(
@@ -156,6 +156,8 @@ async def create_assessment_via_mfo(
 async def get_assessment_status_via_mfo(
     flow_id: UUID,
     db: AsyncSession,
+    client_account_id: Optional[UUID] = None,
+    engagement_id: Optional[UUID] = None,
 ) -> Dict[str, Any]:
     """
     Get assessment status from both master and child tables.
@@ -169,16 +171,18 @@ async def get_assessment_status_via_mfo(
     Args:
         flow_id: Assessment flow UUID
         db: Database session
+        client_account_id: Optional client account ID for tenant scoping
+        engagement_id: Optional engagement ID for tenant scoping
 
     Returns:
         Dict with unified state from both tables
 
     Raises:
-        ValueError: If flow not found
+        ValueError: If flow not found or tenant mismatch
     """
     try:
         # Query both master and child flows
-        # Per two-table pattern: Join on flow_id
+        # Per two-table pattern: Join on flow_id with tenant scoping
         query = (
             select(CrewAIFlowStateExtensions, AssessmentFlow)
             .join(
@@ -187,6 +191,12 @@ async def get_assessment_status_via_mfo(
             )
             .where(CrewAIFlowStateExtensions.flow_id == flow_id)
         )
+
+        # Add tenant scoping filters if provided
+        if client_account_id is not None:
+            query = query.where(CrewAIFlowStateExtensions.client_account_id == client_account_id)
+        if engagement_id is not None:
+            query = query.where(CrewAIFlowStateExtensions.engagement_id == engagement_id)
 
         result = await db.execute(query)
         row = result.first()
@@ -296,7 +306,7 @@ async def update_assessment_via_mfo(
             # Per ADR-012: Synchronize terminal states
             if child_flow.status == AssessmentFlowStatus.COMPLETED.value:
                 master_flow.flow_status = "completed"
-                child_flow.completed_at = db.get_bind().execute(select(1)).scalar()
+                child_flow.completed_at = datetime.utcnow()
             elif child_flow.status == AssessmentFlowStatus.FAILED.value:
                 master_flow.flow_status = "failed"
             elif child_flow.status == AssessmentFlowStatus.PAUSED.value:
@@ -304,8 +314,7 @@ async def update_assessment_via_mfo(
             elif child_flow.status == AssessmentFlowStatus.IN_PROGRESS.value:
                 master_flow.flow_status = "running"
 
-            # Commit atomic transaction
-            await db.commit()
+            # Transaction commits automatically on context exit
 
         logger.info(
             safe_log_format(
@@ -350,7 +359,7 @@ async def pause_assessment_flow(
         updates={
             "status": AssessmentFlowStatus.PAUSED.value,
             "runtime_state": {
-                "paused_at": str(db.get_bind().execute(select(1)).scalar())
+                "paused_at": datetime.utcnow().isoformat()
             },
         },
         db=db,
@@ -376,7 +385,7 @@ async def resume_assessment_flow(
         updates={
             "status": AssessmentFlowStatus.IN_PROGRESS.value,
             "runtime_state": {
-                "resumed_at": str(db.get_bind().execute(select(1)).scalar())
+                "resumed_at": datetime.utcnow().isoformat()
             },
         },
         db=db,
@@ -403,7 +412,7 @@ async def complete_assessment_flow(
             "status": AssessmentFlowStatus.COMPLETED.value,
             "progress": 100,
             "runtime_state": {
-                "completed_at": str(db.get_bind().execute(select(1)).scalar())
+                "completed_at": datetime.utcnow().isoformat()
             },
         },
         db=db,
@@ -454,7 +463,7 @@ async def delete_assessment_flow(
             if child_flow:
                 await db.delete(child_flow)
 
-            await db.commit()
+            # Transaction commits automatically on context exit
 
         logger.info(
             safe_log_format(

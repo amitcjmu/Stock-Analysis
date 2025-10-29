@@ -9,6 +9,7 @@ Uses MFO integration per ADR-006 (Master Flow Orchestrator pattern).
 """
 
 import logging
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -167,6 +168,7 @@ async def accept_sixr_recommendation(
         query = select(Asset).where(
             Asset.id == UUID(app_id),
             Asset.client_account_id == UUID(context.client_account_id),
+            Asset.engagement_id == UUID(context.engagement_id),
         )
         result = await db.execute(query)
         asset = result.scalar_one_or_none()
@@ -224,7 +226,7 @@ async def accept_sixr_recommendation(
             "reasoning": request.reasoning,
             "confidence_level": request.confidence_level,
             "accepted_by": context.user_id,
-            "accepted_at": str(db.get_bind()),
+            "accepted_at": datetime.utcnow().isoformat(),
             "flow_id": flow_id,
         }
 
