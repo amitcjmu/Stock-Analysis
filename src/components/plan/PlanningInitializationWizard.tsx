@@ -5,7 +5,7 @@
  * All field names use snake_case per CLAUDE.md field naming convention.
  *
  * Flow:
- * 1. Step 1: Select applications (manual UUID entry for MVP)
+ * 1. Step 1: Select applications from paginated table
  * 2. Step 2: Configure planning settings
  * 3. Step 3: Review and initialize
  *
@@ -16,6 +16,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -27,9 +28,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { planningFlowApi } from '@/lib/api/planningFlowService';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { applicationsApi, type Application } from '@/lib/api/applicationsService';
+import { Loader2, CheckCircle, AlertCircle, Search } from 'lucide-react';
 
 // =============================================================================
 // Types
@@ -39,10 +50,14 @@ interface PlanningInitializationWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   engagement_id: number;
+  // NEW: Pre-selected applications from Treatment page
+  preSelectedApplicationIds?: string[];
+  preSelectedApplications?: Application[];
 }
 
 interface WizardFormData {
   selected_application_ids: string[];
+  selected_applications: Application[]; // Store full application objects for Step 3 display
   max_apps_per_wave: number;
   wave_duration_limit_days: number;
   contingency_percentage: number;
@@ -56,24 +71,51 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   open,
   onOpenChange,
   engagement_id,
+  preSelectedApplicationIds = [],
+  preSelectedApplications = [],
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Wizard state
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  // Determine if we should skip Step 1 (applications pre-selected from Treatment page)
+  const hasPreSelectedApps = preSelectedApplicationIds.length > 0;
+
+  // Wizard state - Start at Step 2 if apps are pre-selected, otherwise Step 1
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(hasPreSelectedApps ? 2 : 1);
   const [isLoading, setIsLoading] = useState(false);
 
   // Form data using snake_case per CLAUDE.md
+  // Initialize with pre-selected apps if provided
   const [formData, setFormData] = useState<WizardFormData>({
-    selected_application_ids: [],
+    selected_application_ids: hasPreSelectedApps ? preSelectedApplicationIds : [],
+    selected_applications: hasPreSelectedApps ? preSelectedApplications : [],
     max_apps_per_wave: 50,
     wave_duration_limit_days: 90,
     contingency_percentage: 20,
   });
 
-  // Application UUIDs input (comma-separated)
-  const [applicationIdsInput, setApplicationIdsInput] = useState('');
+  // Application selection state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const pageSize = 10;
+
+  // Fetch applications with pagination and search (HTTP polling per CLAUDE.md - NO WebSockets)
+  const {
+    data: applicationsData,
+    isLoading: isLoadingApplications,
+    error: applicationsError,
+  } = useQuery({
+    queryKey: ['applications', currentPage, searchTerm],
+    queryFn: () =>
+      applicationsApi.getApplications({
+        page: currentPage,
+        page_size: pageSize,
+        search: searchTerm || undefined,
+      }),
+    enabled: open && currentStep === 1, // Only fetch when dialog is open and on Step 1
+    staleTime: 30000, // Cache for 30 seconds
+  });
 
   // =============================================================================
   // Handlers
@@ -84,14 +126,21 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
    */
   const handleClose = () => {
     if (!isLoading) {
-      setCurrentStep(1);
+      // Reset to initial step based on whether apps are pre-selected
+      setCurrentStep(hasPreSelectedApps ? 2 : 1);
+
+      // Reset form data, maintaining pre-selected apps if provided
       setFormData({
-        selected_application_ids: [],
+        selected_application_ids: hasPreSelectedApps ? preSelectedApplicationIds : [],
+        selected_applications: hasPreSelectedApps ? preSelectedApplications : [],
         max_apps_per_wave: 50,
         wave_duration_limit_days: 90,
         contingency_percentage: 20,
       });
-      setApplicationIdsInput('');
+
+      setSearchTerm('');
+      setCurrentPage(1);
+      setSelectedIds(new Set(hasPreSelectedApps ? preSelectedApplicationIds : []));
       onOpenChange(false);
     }
   };
@@ -102,14 +151,25 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   const handleNext = () => {
     if (currentStep === 1) {
       // Validate applications selected
-      if (formData.selected_application_ids.length === 0) {
+      if (selectedIds.size === 0) {
         toast({
           title: 'Validation Error',
-          description: 'Please enter at least one application UUID',
+          description: 'Please select at least one application',
           variant: 'destructive',
         });
         return;
       }
+
+      // Update form data with selected applications
+      const selectedApps = applicationsData?.applications.filter((app) =>
+        selectedIds.has(app.id)
+      ) || [];
+
+      setFormData((prev) => ({
+        ...prev,
+        selected_application_ids: Array.from(selectedIds),
+        selected_applications: selectedApps,
+      }));
     }
 
     if (currentStep < 3) {
@@ -121,27 +181,64 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
    * Navigate to previous step
    */
   const handleBack = () => {
-    if (currentStep > 1) {
+    // If apps are pre-selected, don't go back to Step 1 (app selection)
+    const minStep = hasPreSelectedApps ? 2 : 1;
+
+    if (currentStep > minStep) {
       setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
     }
   };
 
   /**
-   * Parse comma-separated UUIDs and update form data
+   * Handle individual checkbox toggle
    */
-  const handleApplicationIdsChange = (value: string) => {
-    setApplicationIdsInput(value);
+  const handleToggleSelection = (appId: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(appId)) {
+        newSet.delete(appId);
+      } else {
+        newSet.add(appId);
+      }
+      return newSet;
+    });
+  };
 
-    // Parse comma-separated UUIDs and trim whitespace
-    const uuids = value
-      .split(',')
-      .map((uuid) => uuid.trim())
-      .filter((uuid) => uuid.length > 0);
+  /**
+   * Handle select all / deselect all on current page
+   */
+  const handleToggleAll = () => {
+    if (!applicationsData?.applications) return;
 
-    setFormData((prev) => ({
-      ...prev,
-      selected_application_ids: uuids,
-    }));
+    const currentPageIds = applicationsData.applications.map((app) => app.id);
+    const allSelected = currentPageIds.every((id) => selectedIds.has(id));
+
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (allSelected) {
+        // Deselect all on current page
+        currentPageIds.forEach((id) => newSet.delete(id));
+      } else {
+        // Select all on current page
+        currentPageIds.forEach((id) => newSet.add(id));
+      }
+      return newSet;
+    });
+  };
+
+  /**
+   * Handle search input change with debouncing
+   */
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+
+  /**
+   * Handle page navigation
+   */
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
   };
 
   /**
@@ -162,10 +259,10 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
         },
       });
 
-      // Show success toast
+      // Show success toast with application count
       toast({
         title: 'Planning Flow Initialized',
-        description: `Successfully created planning flow ${response.planning_flow_id}`,
+        description: `Successfully created planning flow for ${formData.selected_application_ids.length} application${formData.selected_application_ids.length !== 1 ? 's' : ''}`,
         variant: 'default',
       });
 
@@ -196,29 +293,151 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   /**
    * Step 1: Application Selection
    */
-  const renderStep1 = () => (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="application_ids">Application UUIDs</Label>
-        <p className="text-sm text-gray-500 mb-2">
-          Enter application UUIDs separated by commas (e.g., uuid1, uuid2, uuid3)
-        </p>
-        <Input
-          id="application_ids"
-          placeholder="uuid1, uuid2, uuid3"
-          value={applicationIdsInput}
-          onChange={(e) => handleApplicationIdsChange(e.target.value)}
-          className="font-mono text-sm"
-        />
-        {formData.selected_application_ids.length > 0 && (
-          <p className="text-sm text-green-600 mt-2 flex items-center">
+  const renderStep1 = () => {
+    const applications = applicationsData?.applications || [];
+    const totalPages = applicationsData?.total_pages || 0;
+    const currentPageIds = applications.map((app) => app.id);
+    const allCurrentPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.has(id));
+
+    return (
+      <div className="space-y-4">
+        {/* Search Box */}
+        <div className="flex items-center space-x-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search applications..."
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggleAll}
+            disabled={isLoadingApplications || applications.length === 0}
+          >
+            {allCurrentPageSelected ? 'Deselect All' : 'Select All'}
+          </Button>
+        </div>
+
+        {/* Selection Count */}
+        {selectedIds.size > 0 && (
+          <p className="text-sm text-green-600 flex items-center">
             <CheckCircle className="h-4 w-4 mr-1" />
-            {formData.selected_application_ids.length} application(s) selected
+            {selectedIds.size} application(s) selected
           </p>
         )}
+
+        {/* Loading State */}
+        {isLoadingApplications && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          </div>
+        )}
+
+        {/* Error State */}
+        {applicationsError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-800">
+              Failed to load applications. Please try again.
+            </p>
+          </div>
+        )}
+
+        {/* Applications Table */}
+        {!isLoadingApplications && !applicationsError && (
+          <>
+            {applications.length === 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  No applications found. {searchTerm && 'Try adjusting your search criteria.'}
+                </p>
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">Select</TableHead>
+                      <TableHead>Application Name</TableHead>
+                      <TableHead>6R Strategy</TableHead>
+                      <TableHead>Tech Stack</TableHead>
+                      <TableHead className="text-right">Complexity</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {applications.map((app) => (
+                      <TableRow key={app.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(app.id)}
+                            onCheckedChange={() => handleToggleSelection(app.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {app.application_name || app.asset_name || 'Unnamed'}
+                        </TableCell>
+                        <TableCell>
+                          {app.six_r_strategy ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {app.six_r_strategy}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Not assessed</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {app.tech_stack || <span className="text-gray-400">N/A</span>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {app.complexity_score !== null ? (
+                            <span className="text-sm font-medium">
+                              {app.complexity_score.toFixed(1)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">N/A</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   /**
    * Step 2: Planning Configuration
@@ -290,15 +509,41 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
    */
   const renderStep3 = () => (
     <div className="space-y-4">
+      {/* Selected Applications List */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-3">Review Planning Configuration</h3>
+        <h3 className="font-semibold text-blue-900 mb-3">
+          Selected Applications ({formData.selected_applications.length})
+        </h3>
+
+        <div className="max-h-48 overflow-y-auto space-y-2">
+          {formData.selected_applications.map((app) => (
+            <div
+              key={app.id}
+              className="bg-white rounded px-3 py-2 text-sm flex justify-between items-center"
+            >
+              <div>
+                <p className="font-medium text-gray-900">
+                  {app.application_name || app.asset_name || 'Unnamed'}
+                </p>
+                {app.six_r_strategy && (
+                  <p className="text-xs text-gray-500">Strategy: {app.six_r_strategy}</p>
+                )}
+              </div>
+              {app.complexity_score !== null && (
+                <span className="text-xs text-gray-600">
+                  Complexity: {app.complexity_score.toFixed(1)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Configuration Summary */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="font-semibold text-blue-900 mb-3">Planning Configuration</h3>
 
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Applications:</span>
-            <span className="font-medium">{formData.selected_application_ids.length}</span>
-          </div>
-
           <div className="flex justify-between">
             <span className="text-gray-600">Max Apps per Wave:</span>
             <span className="font-medium">{formData.max_apps_per_wave}</span>
@@ -316,13 +561,15 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
         </div>
       </div>
 
+      {/* Ready to Initialize Notice */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex items-start space-x-2">
           <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
           <div className="text-sm text-yellow-800">
             <p className="font-medium mb-1">Ready to Initialize</p>
             <p>
-              This will create a new planning flow and begin AI-powered wave planning analysis.
+              This will create a new planning flow and begin AI-powered wave planning analysis
+              for {formData.selected_applications.length} application(s).
               You can modify wave assignments later.
             </p>
           </div>
@@ -335,13 +582,23 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   // Render
   // =============================================================================
 
+  // Calculate display step (for UI) - If pre-selected, we're on "Step 1 of 2" (skipping app selection)
+  const displayStep = hasPreSelectedApps ? currentStep - 1 : currentStep;
+  const totalSteps = hasPreSelectedApps ? 2 : 3;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl" hideCloseButton={isLoading}>
         <DialogHeader>
           <DialogTitle>Initialize Planning Flow</DialogTitle>
           <DialogDescription>
-            Step {currentStep} of 3: {
+            {hasPreSelectedApps && (
+              <span className="text-green-600 font-medium">
+                {preSelectedApplicationIds.length} application{preSelectedApplicationIds.length !== 1 ? 's' : ''} pre-selected
+                {' • '}
+              </span>
+            )}
+            Step {displayStep} of {totalSteps}: {
               currentStep === 1 ? 'Select Applications' :
               currentStep === 2 ? 'Configure Planning' :
               'Review and Initialize'
@@ -351,32 +608,50 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
 
         {/* Step Content */}
         <div className="py-4">
-          {currentStep === 1 && renderStep1()}
+          {currentStep === 1 && !hasPreSelectedApps && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
         </div>
 
         {/* Step Progress Indicator */}
         <div className="flex justify-center space-x-2 mb-4">
-          {[1, 2, 3].map((step) => (
-            <div
-              key={step}
-              className={`h-2 w-12 rounded-full transition-colors ${
-                step === currentStep
-                  ? 'bg-blue-600'
-                  : step < currentStep
-                  ? 'bg-green-500'
-                  : 'bg-gray-300'
-              }`}
-            />
-          ))}
+          {hasPreSelectedApps ? (
+            // 2-step indicator when apps are pre-selected
+            [2, 3].map((step) => (
+              <div
+                key={step}
+                className={`h-2 w-12 rounded-full transition-colors ${
+                  step === currentStep
+                    ? 'bg-blue-600'
+                    : step < currentStep
+                    ? 'bg-green-500'
+                    : 'bg-gray-300'
+                }`}
+              />
+            ))
+          ) : (
+            // 3-step indicator when selecting apps in wizard
+            [1, 2, 3].map((step) => (
+              <div
+                key={step}
+                className={`h-2 w-12 rounded-full transition-colors ${
+                  step === currentStep
+                    ? 'bg-blue-600'
+                    : step < currentStep
+                    ? 'bg-green-500'
+                    : 'bg-gray-300'
+                }`}
+              />
+            ))
+          )}
         </div>
 
         {/* Footer Actions */}
         <DialogFooter>
           <div className="flex justify-between w-full">
             <div>
-              {currentStep > 1 && (
+              {/* Show Back button only if we can go back (not on first step) */}
+              {currentStep > (hasPreSelectedApps ? 2 : 1) && (
                 <Button
                   variant="outline"
                   onClick={handleBack}

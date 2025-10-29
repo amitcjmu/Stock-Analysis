@@ -412,6 +412,14 @@ try:
 except ImportError:
     routers_with_flags["CANONICAL_APPLICATIONS"] = (False, None)
 
+# Applications (for Planning Flow wizard)
+try:
+    from app.api.v1.endpoints.applications import router as applications_router
+
+    routers_with_flags["APPLICATIONS"] = (True, applications_router)
+except ImportError:
+    routers_with_flags["APPLICATIONS"] = (False, None)
+
 # RBAC Admin router
 try:
     from app.api.v1.admin.rbac import router as rbac_admin_router
