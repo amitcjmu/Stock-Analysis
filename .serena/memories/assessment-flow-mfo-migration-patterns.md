@@ -1,12 +1,12 @@
 # Assessment Flow MFO Migration - Reusable Patterns
 
-**Session Date**: January 2025  
-**Context**: 7-phase migration replacing deprecated 6R Analysis with MFO-integrated Assessment Flow  
+**Session Date**: January 2025
+**Context**: 7-phase migration replacing deprecated 6R Analysis with MFO-integrated Assessment Flow
 **Impact**: 220 files changed, ~25K lines removed, 8 GitHub issues resolved
 
 ## Pattern 1: Post-Deletion Import Cleanup Checklist
 
-**Problem**: After deleting `sixr_tools` module in Phase 4, backend failed to start with ImportError in 3 files  
+**Problem**: After deleting `sixr_tools` module in Phase 4, backend failed to start with ImportError in 3 files
 **Root Cause**: Leftover import statements in `__init__.py`, `crew.py`, and `alembic/env.py`
 
 **Solution - Mandatory Checklist After ANY Module Deletion**:
@@ -34,7 +34,7 @@ docker exec -it migration_backend python -m app.main
 
 ## Pattern 2: MFO Two-Table Integration Template
 
-**Problem**: Need to integrate new flow type with Master Flow Orchestrator (ADR-006)  
+**Problem**: Need to integrate new flow type with Master Flow Orchestrator (ADR-006)
 **Solution**: Atomic two-table pattern with master + child flows
 
 **Code Template** (from `mfo_integration.py:76-123`):
@@ -53,7 +53,7 @@ async def create_your_flow_via_mfo(
 ) -> dict:
     """Create flow through MFO using two-table pattern."""
     flow_id = uuid4()
-    
+
     try:
         async with db.begin():  # Atomic transaction
             # Step 1: Create master flow (lifecycle management)
@@ -69,7 +69,7 @@ async def create_your_flow_via_mfo(
             )
             db.add(master_flow)
             await db.flush()  # Make flow_id available for FK
-            
+
             # Step 2: Create child flow (operational state)
             child_flow = YourFlow(
                 flow_id=flow_id,  # Same UUID, not FK
@@ -83,16 +83,16 @@ async def create_your_flow_via_mfo(
                 runtime_state={}
             )
             db.add(child_flow)
-            
+
             # Step 3: Commit atomic transaction
             await db.commit()
-        
+
         return {
             "flow_id": str(flow_id),
             "status": child_flow.status,  # Use child for UI
             "current_phase": child_flow.current_phase
         }
-    
+
     except Exception as e:
         logger.error(f"Failed to create flow: {e}")
         raise
@@ -111,7 +111,7 @@ async def create_your_flow_via_mfo(
 
 ## Pattern 3: Git History Preservation with `git mv`
 
-**Problem**: Need to rename module/directory while preserving git blame and commit history  
+**Problem**: Need to rename module/directory while preserving git blame and commit history
 **Anti-Pattern**: Copy + delete loses history
 
 **Correct Pattern**:
@@ -144,7 +144,7 @@ grep -r "old_module" backend/
 
 ## Pattern 4: Multi-Agent Parallel Execution Strategy
 
-**Problem**: Need to coordinate multiple CC agents for large migrations  
+**Problem**: Need to coordinate multiple CC agents for large migrations
 **Solution**: Partition work by non-overlapping file scopes
 
 **Successful Parallel Execution** (from Phase 1):
@@ -183,7 +183,7 @@ After completion, provide summary of files modified.
 
 ## Pattern 5: Database Migration Best Practices
 
-**Problem**: Need to drop deprecated tables while preserving data  
+**Problem**: Need to drop deprecated tables while preserving data
 **Solution**: Archive-then-drop pattern with no downgrade
 
 **Template** (from `111_remove_sixr_analysis_tables.py`):
@@ -201,11 +201,11 @@ def upgrade():
     op.execute("""
         CREATE TABLE IF NOT EXISTS migration.sixr_analyses_archive AS
         SELECT * FROM migration.sixr_analyses;
-        
+
         CREATE TABLE IF NOT EXISTS migration.sixr_iterations_archive AS
         SELECT * FROM migration.sixr_iterations;
     """)
-    
+
     # Step 2: Drop tables in dependency order
     op.execute("DROP TABLE IF EXISTS migration.sixr_iterations CASCADE;")
     op.execute("DROP TABLE IF EXISTS migration.sixr_recommendations CASCADE;")
@@ -231,7 +231,7 @@ def downgrade():
 
 ## Pattern 6: Backend-Frontend API Synchronization
 
-**Problem**: Backend endpoint changes cause 404s in frontend  
+**Problem**: Backend endpoint changes cause 404s in frontend
 **Solution**: Update both in same commit with verification checklist
 
 **Checklist**:

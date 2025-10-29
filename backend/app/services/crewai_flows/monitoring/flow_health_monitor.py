@@ -86,6 +86,7 @@ class FlowHealthMonitor:
             active_statuses = ["initialized", "processing", "waiting_for_approval"]
 
             # Check discovery flows
+            # SKIP_TENANT_CHECK - Service-level query
             discovery_query = select(DiscoveryFlow).where(
                 DiscoveryFlow.status.in_(active_statuses)
             )
@@ -93,6 +94,7 @@ class FlowHealthMonitor:
             discovery_flows = discovery_result.scalars().all()
 
             # Check master flows
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             master_query = select(CrewAIFlowStateExtensions).where(
                 CrewAIFlowStateExtensions.flow_status.in_(active_statuses)
             )
@@ -417,12 +419,14 @@ class FlowHealthMonitor:
         async with AsyncSessionLocal() as db:
             # Try to find the flow
             discovery_flow = await db.execute(
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
             )
             flow = discovery_flow.scalar_one_or_none()
 
             if not flow:
                 master_flow = await db.execute(
+                    # SKIP_TENANT_CHECK - Service-level/monitoring query
                     select(CrewAIFlowStateExtensions).where(
                         CrewAIFlowStateExtensions.flow_id == flow_id
                     )

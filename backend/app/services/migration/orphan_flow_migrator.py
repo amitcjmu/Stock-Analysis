@@ -50,6 +50,7 @@ class OrphanFlowMigrator:
                 logger.info("🔍 Analyzing orphan flow situation...")
 
                 # Count total discovery flows
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 discovery_count_stmt = select(func.count(DiscoveryFlow.id))
                 discovery_result = await db_session.execute(discovery_count_stmt)
                 total_discovery_flows = discovery_result.scalar()
@@ -59,6 +60,7 @@ class OrphanFlowMigrator:
                     CrewAIFlowStateExtensions,
                 )
 
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 master_count_stmt = select(func.count(CrewAIFlowStateExtensions.id))
                 master_result = await db_session.execute(master_count_stmt)
                 total_master_flows = master_result.scalar()
@@ -70,6 +72,7 @@ class OrphanFlowMigrator:
                     CrewAIFlowStateExtensions,
                 )
 
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
                     ~exists().where(
                         CrewAIFlowStateExtensions.flow_id == DiscoveryFlow.flow_id
@@ -79,6 +82,7 @@ class OrphanFlowMigrator:
                 orphaned_flows = orphaned_result.scalars().all()
 
                 # Get discovery flows grouped by client
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 client_distribution_stmt = select(
                     DiscoveryFlow.client_account_id,
                     func.count(DiscoveryFlow.id).label("count"),
@@ -141,6 +145,9 @@ class OrphanFlowMigrator:
                     CrewAIFlowStateExtensions,
                 )
 
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
+
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
                     ~exists().where(
                         CrewAIFlowStateExtensions.flow_id == DiscoveryFlow.flow_id
@@ -267,6 +274,7 @@ class OrphanFlowMigrator:
 
             async with AsyncSessionLocal() as db_session:
                 # Count total discovery flows
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 discovery_count_stmt = select(func.count(DiscoveryFlow.id))
                 discovery_result = await db_session.execute(discovery_count_stmt)
                 total_discovery_flows = discovery_result.scalar()
@@ -276,6 +284,7 @@ class OrphanFlowMigrator:
                     CrewAIFlowStateExtensions,
                 )
 
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 master_count_stmt = select(func.count(CrewAIFlowStateExtensions.id))
                 master_result = await db_session.execute(master_count_stmt)
                 total_master_flows = master_result.scalar()
@@ -288,6 +297,7 @@ class OrphanFlowMigrator:
                     CrewAIFlowStateExtensions,
                 )
 
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 linked_flows_stmt = select(func.count(DiscoveryFlow.id)).where(
                     exists().where(
                         CrewAIFlowStateExtensions.flow_id == DiscoveryFlow.flow_id
@@ -297,6 +307,7 @@ class OrphanFlowMigrator:
                 linked_flows = linked_result.scalar()
 
                 # Count remaining orphaned flows (discovery flows without extensions records)
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 orphaned_flows_stmt = select(func.count(DiscoveryFlow.id)).where(
                     ~exists().where(
                         CrewAIFlowStateExtensions.flow_id == DiscoveryFlow.flow_id

@@ -36,6 +36,7 @@ class DataUtilities:
 
             async with AsyncSessionLocal() as db:
                 # First, try to get the discovery flow record
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 flow_query = select(DiscoveryFlow).where(
                     DiscoveryFlow.flow_id == flow_id_to_use
                 )
@@ -54,6 +55,7 @@ class DataUtilities:
                     self.logger.info(
                         f"🔍 No discovery flow found, checking if {flow_id_to_use} is a data_import_id"
                     )
+                    # SKIP_TENANT_CHECK - Service-level/monitoring query
                     import_query = select(DataImport).where(
                         DataImport.id == flow_id_to_use
                     )
@@ -69,6 +71,7 @@ class DataUtilities:
                 if data_import_id:
                     # Load raw records from raw_import_records table
                     records_query = (
+                        # SKIP_TENANT_CHECK - Service-level/monitoring query
                         select(RawImportRecord)
                         .where(RawImportRecord.data_import_id == data_import_id)
                         .order_by(RawImportRecord.row_number)

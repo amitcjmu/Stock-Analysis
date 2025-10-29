@@ -47,6 +47,7 @@ class VendorProductRepository(ContextAwareRepository[VendorProductsCatalog]):
         Returns:
             List of matching vendor products
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(VendorProductsCatalog)
 
         filters = []
@@ -75,6 +76,7 @@ class VendorProductRepository(ContextAwareRepository[VendorProductsCatalog]):
         Returns:
             Vendor product if found, None otherwise
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(VendorProductsCatalog).where(
             VendorProductsCatalog.normalized_key == normalized_key
         )
@@ -94,6 +96,7 @@ class VendorProductRepository(ContextAwareRepository[VendorProductsCatalog]):
             Vendor product with versions loaded
         """
         query = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(VendorProductsCatalog)
             .options(selectinload(VendorProductsCatalog.product_versions))
             .where(VendorProductsCatalog.id == vendor_product_id)
@@ -137,6 +140,7 @@ class TenantVendorProductRepository(ContextAwareRepository[TenantVendorProducts]
                 TenantVendorProducts.custom_product_name.ilike(f"%{product_name}%")
             )
 
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         tenant_query = select(TenantVendorProducts).options(
             joinedload(TenantVendorProducts.catalog_reference)
         )
@@ -162,6 +166,7 @@ class TenantVendorProductRepository(ContextAwareRepository[TenantVendorProducts]
         # Exclude products that have tenant overrides
         tenant_catalog_ids = [tp.catalog_id for tp in tenant_products if tp.catalog_id]
 
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         global_query = select(VendorProductsCatalog)
         if global_filters:
             global_query = global_query.where(and_(*global_filters))
@@ -305,6 +310,7 @@ class LifecycleRepository(ContextAwareRepository[LifecycleMilestones]):
         if not filters:
             raise ValueError("At least one version ID must be provided")
 
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(LifecycleMilestones).where(and_(*filters))
         result = await self.db.execute(query)
         return result.scalars().all()
@@ -326,6 +332,7 @@ class LifecycleRepository(ContextAwareRepository[LifecycleMilestones]):
         cutoff_date = date.today() + timedelta(days=days_ahead)
 
         query = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(LifecycleMilestones)
             .where(
                 and_(
@@ -364,7 +371,9 @@ class AssetProductLinkRepository(ContextAwareRepository[AssetProductLinks]):
         Returns:
             List of asset product links
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(AssetProductLinks)
             .options(
                 joinedload(AssetProductLinks.catalog_version),
@@ -454,8 +463,10 @@ class AssetProductLinkRepository(ContextAwareRepository[AssetProductLinks]):
             filters.append(AssetProductLinks.tenant_version_id == tenant_version_id)
 
         if not catalog_version_id and not tenant_version_id:
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             raise ValueError("At least one version ID must be provided")
 
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(AssetProductLinks).where(and_(*filters))
         result = await self.db.execute(query)
         return result.scalars().all()

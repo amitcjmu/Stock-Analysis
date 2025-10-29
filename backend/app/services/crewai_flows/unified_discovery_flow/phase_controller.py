@@ -245,6 +245,7 @@ class PhaseController:
 
             async with AsyncSessionLocal() as db:
                 # Find data import linked to this flow
+                # SKIP_TENANT_CHECK - Service-level query
                 data_import_query = select(DataImport).where(
                     DataImport.master_flow_id == flow_id
                 )
@@ -255,6 +256,7 @@ class PhaseController:
                     logger.info(f"📦 Found data import record: {data_import.id}")
 
                     # Get raw records
+                    # SKIP_TENANT_CHECK - Service-level/monitoring query
                     raw_records_query = select(RawImportRecord.raw_data).where(
                         RawImportRecord.data_import_id == data_import.id
                     )

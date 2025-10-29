@@ -76,6 +76,7 @@ class FlowQueries:
                 and_(
                     DiscoveryFlow.flow_id == flow_uuid,
                     DiscoveryFlow.client_account_id == self.client_account_id,
+                    DiscoveryFlow.engagement_id == self.engagement_id,
                 )
             )
             result = await self.db.execute(tenant_check)

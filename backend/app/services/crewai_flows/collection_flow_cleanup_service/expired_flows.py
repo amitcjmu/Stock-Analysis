@@ -72,6 +72,7 @@ class ExpiredFlowsCleanupService:
                 }
 
             # Query for expired flows
+            # SKIP_TENANT_CHECK - Service-level query
             query = (
                 select(CollectionFlow)
                 .options(

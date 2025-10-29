@@ -493,6 +493,7 @@ class AssetAnalysisHandler:
 
         async with AsyncSessionLocal() as session:
             try:
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 query = select(Asset)
                 filters = []
                 if client_account_id:

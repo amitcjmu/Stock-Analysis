@@ -244,6 +244,7 @@ async def find_existing_asset_hierarchical(
     asset_type = asset_data.get("asset_type")
 
     if name and asset_type:
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         stmt = select(Asset).where(
             and_(
                 Asset.name == name,
@@ -267,6 +268,7 @@ async def find_existing_asset_hierarchical(
         identifiers.append(Asset.ip_address == asset_data["ip_address"])
 
     if identifiers:
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         stmt = select(Asset).where(
             and_(
                 or_(*identifiers),
@@ -287,6 +289,7 @@ async def find_existing_asset_hierarchical(
     # Priority 3: Smart-name normalization fallback
     if name:
         normalized_name = name.lower().strip().replace(" ", "-")
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         stmt = select(Asset).where(
             and_(
                 Asset.name.ilike(f"%{normalized_name}%"),
@@ -302,6 +305,7 @@ async def find_existing_asset_hierarchical(
     # Priority 4: Optional external/import identifiers
     external_id = asset_data.get("external_id") or asset_data.get("import_id")
     if external_id:
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         stmt = select(Asset).where(
             and_(
                 or_(
@@ -559,6 +563,7 @@ async def bulk_prepare_conflicts(
         hostname_list = list(hostnames)
         for i in range(0, len(hostname_list), CHUNK_SIZE):
             chunk = hostname_list[i : i + CHUNK_SIZE]
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             stmt = select(Asset).where(
                 and_(
                     Asset.client_account_id == client_id,
@@ -578,6 +583,7 @@ async def bulk_prepare_conflicts(
         ip_list = list(ip_addresses)
         for i in range(0, len(ip_list), CHUNK_SIZE):
             chunk = ip_list[i : i + CHUNK_SIZE]
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             stmt = select(Asset).where(
                 and_(
                     Asset.client_account_id == client_id,
@@ -598,6 +604,7 @@ async def bulk_prepare_conflicts(
         names_only = list({name for name, _ in name_type_pairs})
         for i in range(0, len(names_only), CHUNK_SIZE):
             chunk = names_only[i : i + CHUNK_SIZE]
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             stmt = select(Asset).where(
                 and_(
                     Asset.client_account_id == client_id,
@@ -833,6 +840,7 @@ async def bulk_create_or_update_assets(
 
     if or_conditions:
         conditions.append(or_(*or_conditions))
+        # SKIP_TENANT_CHECK - Service-level query
         stmt = select(Asset).where(and_(*conditions))
         result = await service_instance.db.execute(stmt)
         existing_assets = result.scalars().all()

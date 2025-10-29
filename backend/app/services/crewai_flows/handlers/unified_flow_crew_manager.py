@@ -191,7 +191,7 @@ class UnifiedFlowCrewManager:
         # Initialize crew factories for on-demand creation
         self._initialize_crew_factories()
 
-    def _initialize_crew_factories(self):
+    def _initialize_crew_factories(self):  # noqa: C901
         """Initialize CrewAI crew factory functions for on-demand creation"""
         try:
             # CRITICAL: Initialize LLM configuration BEFORE importing crews

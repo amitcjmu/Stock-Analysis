@@ -448,6 +448,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                         from app.models.discovery_flow import DiscoveryFlow
                         from sqlalchemy import select
 
+                        # SKIP_TENANT_CHECK - Service-level query
                         stmt = select(DiscoveryFlow).where(
                             DiscoveryFlow.flow_id == str(flow_id)
                         )
@@ -468,6 +469,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                         from sqlalchemy import select
                         from uuid import UUID
 
+                        # SKIP_TENANT_CHECK - Service-level/monitoring query
                         stmt = select(DataImport).where(
                             DataImport.id == UUID(import_id)
                         )

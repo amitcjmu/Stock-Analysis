@@ -227,7 +227,7 @@ export const LazyTreatment = createLazyRoute(
 );
 
 export const LazyWavePlanning = createLazyRoute(
-  () => import("@/pages/assess/WavePlanning"),
+  () => import("@/pages/plan/WavePlanning"),
   "Wave Planning",
 );
 
