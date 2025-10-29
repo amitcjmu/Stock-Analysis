@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Code2, Loader2, AlertTriangle, RefreshCw, Calendar, Users, Activity, AlertCircle } from 'lucide-react';
 import { useRewrite } from '@/hooks/useRewrite';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';;
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

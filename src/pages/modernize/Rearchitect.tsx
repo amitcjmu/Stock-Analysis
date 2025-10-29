@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Target } from 'lucide-react'
 import { Layers, Sparkles, Settings, CheckCircle, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { useRearchitect } from '@/hooks/useRearchitect';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';;
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

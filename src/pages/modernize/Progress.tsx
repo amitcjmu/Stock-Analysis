@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Clock } from 'lucide-react'
 import { Activity, Sparkles, TrendingUp, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react'
 import { useModernizationProgress } from '@/hooks/useModernizationProgress';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';;
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

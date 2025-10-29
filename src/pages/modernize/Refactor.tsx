@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Clock, CheckCircle, Filter } from 'lucide-react'
 import { Code, Sparkles, Play, AlertTriangle, Loader2 } from 'lucide-react'
 import { useRefactor } from '@/hooks/useRefactor';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';;
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
