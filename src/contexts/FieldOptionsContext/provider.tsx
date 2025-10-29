@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { FieldOptionsContext } from './context';
-import { ASSET_TARGET_FIELDS } from './constants';
 import type { TargetField } from './types';
 import { useAuth } from '../AuthContext';
 
@@ -16,7 +15,7 @@ interface FieldOptionsProviderProps {
 
 export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ children }) => {
   const { client, engagement } = useAuth();
-  const [availableFields, setAvailableFields] = useState<TargetField[]>(ASSET_TARGET_FIELDS);
+  const [availableFields, setAvailableFields] = useState<TargetField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -40,19 +39,15 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
       const data = await response.json();
 
       if (data.fields && Array.isArray(data.fields)) {
-        console.log('✅ FieldOptionsProvider - Loaded', data.fields.length, 'fields from database schema');
-        console.log('   Categories:', Object.keys(data.categories || {}).length);
-        console.log('   Source:', data.source);
         setAvailableFields(data.fields);
         setLastUpdated(new Date());
       } else {
-        throw new Error('Invalid response format from backend');
+        throw new Error('Invalid response format');
       }
     } catch (err) {
-      console.error('❌ Failed to fetch fields from backend, using fallback:', err);
+      console.error('Failed to fetch available fields:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
-      // Fallback to hardcoded fields
-      setAvailableFields(ASSET_TARGET_FIELDS);
+      setAvailableFields([]);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +58,6 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
   }, [client?.id, engagement?.id]);
 
   const refetchFields = async () =>  {
-    console.log('🔄 FieldOptionsProvider - Refetching fields from backend...');
     await fetchFields();
   };
 

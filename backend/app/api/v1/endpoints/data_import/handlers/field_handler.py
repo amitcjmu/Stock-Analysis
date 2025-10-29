@@ -19,19 +19,28 @@ router = APIRouter()
 # Internal system fields that should be excluded from field mapping
 INTERNAL_SYSTEM_FIELDS = {
     "id",
+    "asset_id",  # Internal UUID primary key
     "created_at",
     "updated_at",
     "imported_by",
     "flow_id",
+    "discovery_flow_id",
+    "assessment_flow_id",
+    "planning_flow_id",
+    "execution_flow_id",
+    "master_flow_id",
+    "migration_id",
     "client_account_id",
     "engagement_id",
     "data_import_id",
     "raw_data",
+    "raw_import_records_id",
     "mapping_status",
     "validation_status",
     "import_session_id",
     "created_by",
     "updated_by",
+    "imported_at",
     "deleted_at",
     "version",
     "audit_log",
@@ -43,6 +52,14 @@ INTERNAL_SYSTEM_FIELDS = {
     "tenant_id",
     "metadata_version",
     "schema_version",
+    "source_phase",
+    "current_phase",
+    "phase_context",
+    "discovered_at",
+    "discovery_completed_at",
+    "discovery_status",
+    "source_filename",
+    "field_mappings_used",
 }
 
 # Field type mappings from PostgreSQL to frontend-friendly types
@@ -222,6 +239,29 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
             fields.append(field_info)
 
         logger.info(f"Retrieved {len(fields)} fields from assets table schema")
+
+        # Add fields from related tables for complete CMDB mapping support
+        # asset_resilience: RTO/RPO fields
+        fields.extend([
+            {
+                "name": "rto_minutes",
+                "type": "integer",
+                "required": False,
+                "description": "Recovery Time Objective in minutes (Asset Resilience)",
+                "category": "resilience",
+                "nullable": True,
+            },
+            {
+                "name": "rpo_minutes",
+                "type": "integer",
+                "required": False,
+                "description": "Recovery Point Objective in minutes (Asset Resilience)",
+                "category": "resilience",
+                "nullable": True,
+            },
+        ])
+
+        logger.info(f"Total fields including related tables: {len(fields)}")
         return fields
 
     except Exception as e:
@@ -320,15 +360,9 @@ def generate_field_description(field_name: str, field_type: str) -> str:
 
 
 # Keep the original standard fields as fallback
+# NOTE: This list is only used if database schema query fails
 STANDARD_TARGET_FIELDS = [
     # Identification fields
-    {
-        "name": "asset_id",
-        "type": "string",
-        "required": True,
-        "description": "Unique asset identifier",
-        "category": "identification",
-    },
     {
         "name": "name",
         "type": "string",
