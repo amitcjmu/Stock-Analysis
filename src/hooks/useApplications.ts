@@ -1,8 +1,32 @@
 import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiCall, API_CONFIG } from '@/config/api'
-import { SixRApiClient } from '@/lib/api/sixr';
-import type { Application } from '@/components/sixr';
+
+// Note: Phase 5 - SixRApiClient and Application type removed (from deleted sixr components)
+// Application type is now defined locally below
+
+/**
+ * Application interface (previously imported from @/components/sixr)
+ */
+export interface Application {
+  id: string;
+  name: string;
+  description?: string;
+  department?: string;
+  business_unit?: string;
+  criticality?: 'low' | 'medium' | 'high' | 'critical';
+  complexity_score?: number;
+  technology_stack?: string[];
+  application_type?: string;
+  environment?: string;
+  sixr_ready?: boolean;
+  migration_complexity?: string;
+  sixr_status?: 'not_analyzed' | 'in_progress' | 'completed' | 'failed';
+  recommended_strategy?: string;
+  confidence_score?: number;
+  compliance_requirements?: string[];
+  dependencies?: string[];
+}
 
 /**
  * Interface for raw application data from backend API
@@ -77,52 +101,14 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
       applications: applicationAssets
     };
 
-    // Also fetch current 6R analyses to determine status for each application
-    // Bug #813 fix: Use string keys (UUIDs) instead of number keys
-    const analysisStatusMap: Record<string, {
-      status: 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
-      recommended_strategy?: string,
-      confidence_score?: number
-    }> = {};
-
-    try {
-      const sixrClient = new SixRApiClient();
-      const analysesResponse = await sixrClient.listAnalyses();
-
-      // Fix #633: Backend returns object {analyses: [], total_count, page, page_size}
-      // Extract the analyses array from the response
-      const analyses = Array.isArray(analysesResponse)
-        ? analysesResponse
-        : (analysesResponse as any)?.analyses || [];
-
-      // Fix P2: Validate analyses is an array before calling forEach
-      if (Array.isArray(analyses)) {
-        // Create a map of application ID to analysis status
-        analyses.forEach(analysis => {
-          if (analysis.applications && Array.isArray(analysis.applications)) {
-            analysis.applications.forEach(app => {
-              analysisStatusMap[app.id] = {
-                status: analysis.status as 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
-                recommended_strategy: analysis.recommendation?.recommended_strategy,
-                confidence_score: analysis.recommendation?.confidence_score
-              };
-            });
-          }
-        });
-      } else {
-        console.warn('6R analyses response is not an array:', typeof analyses);
-      }
-    } catch (error) {
-      console.warn('Could not fetch 6R analysis status, using default status:', error);
-      // Gracefully continue with default 'not_analyzed' status
-    }
+    // Note: Phase 5 - 6R analysis status code removed (deprecated SixRApiClient)
+    // 6R analysis status should now be fetched from Assessment Flow API if needed
 
     // Transform the response to match our Application interface
     return data.applications.map((app: BackendApplicationData) => {
       // Bug #813 fix: Use UUID string IDs from assets table (NOT sequential integers)
       // Backend needs original asset UUIDs to match against assets.id column
       const appId = app.asset_id || app.id; // UUID string
-      const analysisInfo = analysisStatusMap[appId] || { status: 'not_analyzed' };
 
       return {
         // Bug #813 fix: Keep UUID strings for backend compatibility with assets table
@@ -138,16 +124,13 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
         environment: app.environment || 'Unknown',
         sixr_ready: app.sixr_ready,
         migration_complexity: app.migration_complexity,
-        original_asset_type: app.original_asset_type,
-        asset_id: appId, // Same as id - UUID string
-        analysis_status: analysisInfo.status, // Use actual analysis status from 6R API
-        user_count: undefined,
-        data_volume: undefined,
         compliance_requirements: app.compliance_requirements || [],
         dependencies: app.dependencies || [],
-        last_updated: undefined,
-        recommended_strategy: analysisInfo.recommended_strategy,
-        confidence_score: analysisInfo.confidence_score
+        // Note: Phase 5 - analysis_status, recommended_strategy, confidence_score removed
+        // These should be fetched from Assessment Flow API if needed
+        sixr_status: 'not_analyzed' as const,
+        recommended_strategy: undefined,
+        confidence_score: undefined
       };
     });
   } catch (error) {

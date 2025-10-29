@@ -1,11 +1,13 @@
 """
 Assessment flow management endpoints.
 Handles initialization, status, resume, and navigation operations.
+Uses MFO integration layer per ADR-006 (Master Flow Orchestrator pattern).
 """
 
 import logging
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +27,14 @@ from app.schemas.assessment_flow import (
     AssessmentFlowResponse,
     AssessmentFlowStatusResponse,
     ResumeFlowRequest,
+)
+
+# Import MFO integration functions (per ADR-006)
+from .mfo_integration import (
+    create_assessment_via_mfo,
+    get_assessment_status_via_mfo,
+    resume_assessment_flow as resume_via_mfo,
+    update_assessment_via_mfo,
 )
 
 # Import integration services
@@ -78,15 +88,22 @@ async def initialize_assessment_flow(
                 db, request.selected_application_ids, client_account_id
             )
 
-        # Create assessment flow repository
-        repository = AssessmentFlowRepository(db, client_account_id)
+        # Convert string UUIDs to UUID objects for MFO
+        application_ids_uuid = [
+            UUID(app_id) for app_id in request.selected_application_ids
+        ]
 
-        # Initialize flow
-        flow_id = await repository.create_assessment_flow(
-            engagement_id=engagement_id,
-            selected_application_ids=request.selected_application_ids,
-            created_by=current_user.email,
+        # Create assessment flow via MFO (ADR-006: Two-table pattern)
+        result = await create_assessment_via_mfo(
+            client_account_id=UUID(client_account_id),
+            engagement_id=UUID(engagement_id),
+            application_ids=application_ids_uuid,
+            user_id=current_user.id,
+            flow_name=request.flow_name if hasattr(request, "flow_name") else None,
+            db=db,
         )
+
+        flow_id = result["flow_id"]
 
         # Start flow execution in background
         if ASSESSMENT_FLOW_SERVICE_AVAILABLE:
@@ -99,12 +116,12 @@ async def initialize_assessment_flow(
             )
 
         return AssessmentFlowResponse(
-            flow_id=flow_id,  # This is now the master_flow_id from MFO
-            status=AssessmentFlowStatus.INITIALIZED,
-            current_phase=AssessmentPhase.ARCHITECTURE_MINIMUMS,
+            flow_id=flow_id,  # Master flow_id from MFO
+            status=result["status"],
+            current_phase=result["current_phase"],
             next_phase=AssessmentPhase.ARCHITECTURE_MINIMUMS,
-            selected_applications=len(request.selected_application_ids),
-            message="Assessment flow initialized through Master Flow Orchestrator",
+            selected_applications=result["selected_applications"],
+            message=result["message"],
         )
 
     except ValueError as e:
@@ -133,33 +150,44 @@ async def get_assessment_flow_status(
     client_account_id: str = Depends(verify_client_access),
 ):
     """
-    Get current status and progress of assessment flow.
+    Get current status and progress of assessment flow via MFO.
 
     - **flow_id**: Assessment flow identifier
     - Returns detailed status including phase data and progress
+    - Uses MFO integration (ADR-006) for unified state view
     """
     try:
+        # Get unified status via MFO (queries both master and child tables)
+        mfo_state = await get_assessment_status_via_mfo(UUID(flow_id), db)
+
+        # For backward compatibility, also get child flow data for phase_data
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
 
-        if not flow_state:
-            raise HTTPException(status_code=404, detail="Assessment flow not found")
-
         # Calculate progress based on completed phases
-        progress_percentage = _calculate_progress_percentage(flow_state)
+        progress_percentage = mfo_state.get("progress", 0)
 
         return AssessmentFlowStatusResponse(
             flow_id=flow_id,
-            status=flow_state.status,
-            current_phase=flow_state.current_phase,
+            status=mfo_state["status"],
+            current_phase=mfo_state["current_phase"],
             progress_percentage=progress_percentage,
-            phase_data=flow_state.phase_data or {},
-            created_at=flow_state.created_at,
-            updated_at=flow_state.updated_at,
-            selected_applications=len(flow_state.selected_application_ids or []),
-            assessment_complete=(flow_state.status == AssessmentFlowStatus.COMPLETED),
+            phase_data=flow_state.phase_data if flow_state else {},
+            created_at=mfo_state["created_at"],
+            updated_at=mfo_state["updated_at"],
+            selected_applications=mfo_state["selected_applications"],
+            assessment_complete=(
+                mfo_state["status"] == AssessmentFlowStatus.COMPLETED.value
+            ),
         )
 
+    except ValueError:
+        logger.warning(
+            safe_log_format(
+                "Assessment flow not found: flow_id={flow_id}", flow_id=flow_id
+            )
+        )
+        raise HTTPException(status_code=404, detail="Assessment flow not found")
     except HTTPException:
         raise
     except Exception as e:
@@ -172,7 +200,7 @@ async def get_assessment_flow_status(
 
 
 @router.post("/{flow_id}/resume", response_model=AssessmentFlowResponse)
-async def resume_assessment_flow(
+async def resume_assessment_flow_endpoint(
     flow_id: str,
     request: ResumeFlowRequest,
     background_tasks: BackgroundTasks,
@@ -181,30 +209,34 @@ async def resume_assessment_flow(
     client_account_id: str = Depends(verify_client_access),
 ):
     """
-    Resume paused assessment flow from specific phase.
+    Resume paused assessment flow from specific phase via MFO.
 
     - **flow_id**: Assessment flow identifier
     - **phase**: Phase to resume from (optional, continues from current if not specified)
     - Restarts flow processing
+    - Uses MFO integration (ADR-006) for atomic state updates
     """
     try:
-        repository = AssessmentFlowRepository(db, client_account_id)
-        flow_state = await repository.get_assessment_flow_state(flow_id)
+        # Get current flow state to validate
+        mfo_state = await get_assessment_status_via_mfo(UUID(flow_id), db)
 
-        if not flow_state:
-            raise HTTPException(status_code=404, detail="Assessment flow not found")
-
-        if flow_state.status == AssessmentFlowStatus.COMPLETED:
+        if mfo_state["status"] == AssessmentFlowStatus.COMPLETED.value:
             raise HTTPException(
                 status_code=400, detail="Assessment flow already completed"
             )
 
-        # Update flow to resume from specified phase or current phase
-        resume_phase = request.phase or flow_state.current_phase
+        # Resume via MFO (updates both master and child tables atomically)
+        result = await resume_via_mfo(UUID(flow_id), db)
 
-        await repository.update_flow_status(
-            flow_id, AssessmentFlowStatus.IN_PROGRESS, current_phase=resume_phase
-        )
+        # If specific phase requested, update phase
+        if request.phase:
+            result = await update_assessment_via_mfo(
+                flow_id=UUID(flow_id),
+                updates={"current_phase": request.phase.value},
+                db=db,
+            )
+
+        resume_phase = result["current_phase"]
 
         # Start flow processing in background
         if ASSESSMENT_FLOW_SERVICE_AVAILABLE:
@@ -218,13 +250,20 @@ async def resume_assessment_flow(
 
         return AssessmentFlowResponse(
             flow_id=flow_id,
-            status=AssessmentFlowStatus.IN_PROGRESS,
+            status=result["status"],
             current_phase=resume_phase,
-            next_phase=_get_next_phase(resume_phase),
-            selected_applications=len(flow_state.selected_application_ids or []),
-            message=f"Assessment flow resumed from {resume_phase.value}",
+            next_phase=_get_next_phase(AssessmentPhase(resume_phase)),
+            selected_applications=result["selected_applications"],
+            message=f"Assessment flow resumed from {resume_phase}",
         )
 
+    except ValueError:
+        logger.warning(
+            safe_log_format(
+                "Assessment flow not found: flow_id={flow_id}", flow_id=flow_id
+            )
+        )
+        raise HTTPException(status_code=404, detail="Assessment flow not found")
     except HTTPException:
         raise
     except Exception as e:

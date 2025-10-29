@@ -33,6 +33,8 @@ FEATURE_FLAGS: Dict[str, bool] = {
     "collection.adaptive.agent_pruning": True,  # Enable AI agent-based question pruning
     "collection.adaptive.field_mapping": True,  # Enable intelligent field mapping suggestions
     "collection.adaptive.conflict_resolution": True,  # Enable conflict detection and resolution
+    # Assessment Flow Migration (Issue #837)
+    "sixr_analysis.deprecated": True,  # Deprecate legacy 6R Analysis - use Assessment Flow instead
     # Other feature flags can be added here
     "experimental.ai_recommendations": False,
     "beta.enhanced_reporting": False,
@@ -180,6 +182,55 @@ def disable_feature(feature_name: str) -> bool:
             return True
 
     return False
+
+
+def deprecated_endpoint(replacement_path: str, migration_guide: str = ""):
+    """
+    Decorator to mark an endpoint as deprecated.
+
+    Returns HTTP 410 Gone with migration information to guide users
+    to the new endpoint. This follows REST best practices for permanent
+    endpoint removal.
+
+    Args:
+        replacement_path: The new endpoint path to use instead
+        migration_guide: Optional URL to migration documentation
+
+    Returns:
+        Decorator function that returns 410 Gone
+
+    Raises:
+        HTTPException: 410 Gone with migration details
+    """
+
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            migration_msg = (
+                f"This endpoint has been deprecated and is no longer available. "
+                f"Please use {replacement_path} instead."
+            )
+            if migration_guide:
+                migration_msg += f" See migration guide: {migration_guide}"
+
+            logger.warning(
+                f"Deprecated endpoint accessed: {func.__name__} - "
+                f"User should migrate to {replacement_path}"
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail={
+                    "error": "endpoint_deprecated",
+                    "message": migration_msg,
+                    "replacement_path": replacement_path,
+                    "migration_guide": migration_guide if migration_guide else None,
+                },
+            )
+
+        return wrapper
+
+    return decorator
 
 
 def log_feature_flags() -> None:

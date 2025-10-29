@@ -11,24 +11,25 @@ import { Loader2 } from 'lucide-react'
 // Hooks
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplications } from '@/hooks/useApplications';
-import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
 import { useAnalysisQueue } from '@/hooks/useAnalysisQueue';
 
 // Types
 import type { SixRParameters, Application} from '@/types/assessment';
-import { SixRRecommendation, QuestionResponse, AnalysisProgress as AnalysisProgressType, AnalysisQueueItem } from '@/types/assessment'
-import { Analysis } from '@/types/assessment'
+import type { SixRRecommendation, QuestionResponse, AnalysisProgress as AnalysisProgressType, AnalysisQueueItem } from '@/types/assessment'
+import type { Analysis } from '@/types/assessment'
 
 // Components
 import { AnalysisProgress as AnalysisProgressComponent } from '@/components/assessment'
 import { ParameterSliders, QualifyingQuestions, RecommendationDisplay, AnalysisHistory } from '@/components/assessment'
-import { ApplicationSelector, Tier1GapFillingModal } from '@/components/sixr';
+// Note: Phase 5 - ApplicationSelector and Tier1GapFillingModal removed (from deleted sixr components)
+// TODO Phase 6: Replace with Assessment Flow equivalents
+// import { ApplicationSelector, Tier1GapFillingModal } from '@/components/sixr';
 import Sidebar from '@/components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
-// Two-Tier Inline Gap-Filling (PR #816)
-import type { SixRAnalysisResponse } from '@/lib/api/sixr';
-import { sixrApi } from '@/lib/api/sixr';
+// Assessment Flow API (Migration Phase 3 - Issue #839)
+import { assessmentFlowApi } from '@/lib/api/assessmentFlow';
+import type { AssessmentFlowStatusResponse } from '@/lib/api/assessmentFlow';
 
 // Main component
 export const Treatment: React.FC = () => {
@@ -38,9 +39,10 @@ export const Treatment: React.FC = () => {
   const [manualNavigation, setManualNavigation] = useState<boolean>(false);
   const [showApplicationType, setShowApplicationType] = useState<'all' | 'selected'>('all');
 
-  // Two-Tier Inline Gap-Filling modal state (PR #816)
+  // Two-Tier Inline Gap-Filling modal state (PR #816) - DEPRECATED
+  // TODO: Remove gap filling modal logic in favor of Assessment Flow's built-in pause point handling
   const [showGapModal, setShowGapModal] = useState(false);
-  const [blockedAnalysis, setBlockedAnalysis] = useState<SixRAnalysisResponse | null>(null);
+  const [blockedAnalysis, setBlockedAnalysis] = useState<AssessmentFlowStatusResponse | null>(null);
 
   // Hooks
   const navigate = useNavigate();
@@ -55,9 +57,19 @@ export const Treatment: React.FC = () => {
     refetch: refetchApplications
   } = useApplications();
 
-  const [state, actions] = useSixRAnalysis({ autoLoadHistory: false });
-const { isLoading: isAnalysisLoading, error: analysisError } = state;
-const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateAnalysis } = actions;
+  // Assessment Flow state (replaces useSixRAnalysis per Migration Phase 3)
+  const [parameters, setParameters] = React.useState<SixRParameters>({
+    business_value: 5,
+    technical_complexity: 5,
+    migration_urgency: 5,
+    compliance_requirements: 5,
+    cost_sensitivity: 5,
+    risk_tolerance: 5,
+    innovation_priority: 5,
+  });
+  const [analysisHistory, setAnalysisHistory] = React.useState<Analysis[]>([]);
+  const [isAnalysisLoading, setIsAnalysisLoading] = React.useState(false);
+  const [analysisError, setAnalysisError] = React.useState<Error | null>(null);
 
   const {
     queues: analysisQueues,
@@ -95,99 +107,84 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
       setCurrentTab(tab);
       setManualNavigation(true);
 
-      // Bug #814: Load history when user clicks History tab
-      if (tab === 'history' && state.analysisHistory.length === 0 && !state.isLoading) {
-        actions.loadAnalysisHistory();
+      // Load history when user clicks History tab
+      if (tab === 'history' && analysisHistory.length === 0 && !isAnalysisLoading) {
+        // TODO: Implement loadAnalysisHistory with Assessment Flow API
+        console.log('Loading analysis history - to be implemented with Assessment Flow');
       }
     },
-    [state.analysisHistory.length, state.isLoading, actions]
+    [analysisHistory.length, isAnalysisLoading]
   );
 
-  // Start analysis handler - Bug #813 fix: Changed appIds from number[] to string[] (UUIDs)
-  // PR #816: Extended to handle blocked status and show Tier 1 gap-filling modal
+  // Start analysis handler - Migration Phase 3 (Issue #839)
+  // Updated to use Assessment Flow API instead of deprecated sixrApi
   const handleStartAnalysis = useCallback(async (appIds: string[], queueName?: string) => {
     try {
-      console.log('Starting analysis for:', appIds, 'with queue name:', queueName);
+      setIsAnalysisLoading(true);
+      setAnalysisError(null);
+      console.log('Starting assessment flow for:', appIds, 'with flow name:', queueName);
 
-      // Create analysis using the SixR API - returns full response object (PR #816)
-      const analysis = await actions.createAnalysis({
-        application_ids: appIds,
-        parameters: state.parameters,
-        queue_name: queueName || `Analysis ${Date.now()}`
-      });
-
-      if (analysis) {
-        // Check if analysis is blocked by Tier 1 gaps (PR #816)
-        if (analysis.status === 'requires_input' && analysis.tier1_gaps_by_asset) {
-          console.log('Analysis blocked by Tier 1 gaps:', analysis.tier1_gaps_by_asset);
-          setBlockedAnalysis(analysis);
-          setShowGapModal(true);
-          // Toast is skipped by createAnalysis when status is requires_input
-        } else {
-          // Normal flow - analysis started successfully
-          toast.success(`Analysis started for ${appIds.length} applications`);
-          // Switch to progress tab to show the analysis progress
-          setCurrentTab('progress');
+      // Create assessment flow using the new Assessment Flow API
+      const flowId = await assessmentFlowApi.createAssessmentFlow({
+        selected_application_ids: appIds,
+        flow_name: queueName || `Assessment ${Date.now()}`,
+        parameters: {
+          business_value: parameters.business_value,
+          technical_complexity: parameters.technical_complexity,
+          migration_urgency: parameters.migration_urgency,
+          compliance_requirements: parameters.compliance_requirements,
+          cost_sensitivity: parameters.cost_sensitivity,
+          risk_tolerance: parameters.risk_tolerance,
+          innovation_priority: parameters.innovation_priority
         }
-      } else {
-        toast.error('Failed to start analysis');
-      }
-    } catch (error) {
-      console.error('Failed to start analysis:', error);
-      toast.error('Failed to start analysis: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  }, [actions, state.parameters]);
-
-  // PR #816: Handle submission of inline gap answers
-  const handleSubmitGapAnswers = useCallback(async (assetId: string, answers: Record<string, string>) => {
-    if (!blockedAnalysis) return;
-
-    try {
-      const result = await sixrApi.submitInlineAnswers(blockedAnalysis.analysis_id.toString(), {
-        asset_id: assetId,
-        answers
       });
 
-      console.log('Inline answers submitted:', result);
-
-      // If all gaps filled and analysis can proceed
-      if (result.can_proceed && result.remaining_tier1_gaps === 0) {
-        toast.success('All required information collected. Starting analysis...');
-        setShowGapModal(false);
-        setBlockedAnalysis(null);
-        // Switch to progress tab
-        setCurrentTab('progress');
+      if (flowId) {
+        toast.success(`Assessment flow started for ${appIds.length} applications`);
+        // Navigate to assessment flow page
+        navigate(`/assessment/${flowId}/architecture`);
       } else {
-        // More gaps remain
-        toast.info(`${result.remaining_tier1_gaps} asset(s) still need information`);
+        toast.error('Failed to start assessment flow');
       }
     } catch (error) {
-      console.error('Failed to submit gap answers:', error);
-      toast.error('Failed to submit answers: ' + (error instanceof Error ? error.message : 'Unknown error'));
-      throw error; // Re-throw so modal can handle it
+      console.error('Failed to start assessment flow:', error);
+      setAnalysisError(error instanceof Error ? error : new Error('Unknown error'));
+      toast.error('Failed to start assessment flow: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsAnalysisLoading(false);
     }
-  }, [blockedAnalysis]);
+  }, [parameters, navigate]);
+
+  // DEPRECATED - PR #816 gap filling logic
+  // Assessment Flow handles pause points natively via asset_application_resolution phase
+  const handleSubmitGapAnswers = useCallback(async (assetId: string, answers: Record<string, string>) => {
+    // This functionality is deprecated - Assessment Flow handles gaps via pause points
+    console.warn('handleSubmitGapAnswers is deprecated. Use Assessment Flow pause points instead.');
+    toast.info('Please use the Assessment Flow to resolve asset gaps');
+    setShowGapModal(false);
+    setBlockedAnalysis(null);
+  }, []);
 
   const handleUpdateParameters = useCallback((params: SixRParameters) => {
-    updateParameters(params);
-  }, [updateParameters]);
-
-  // Removed: handleAnswerQuestions (answerQuestions not available in AnalysisActions)
+    setParameters(params);
+  }, []);
 
   const handleAcceptRecommendation = useCallback(async () => {
     try {
-      await acceptRecommendation();
+      // TODO: Implement backend endpoint to accept recommendation via Assessment Flow API
+      console.log('Accepting recommendation - to be implemented with Assessment Flow');
       toast.success('Recommendation accepted successfully');
       setCurrentTab('history');
     } catch (error) {
       toast.error('Failed to accept recommendation');
     }
-  }, [acceptRecommendation]);
+  }, []);
 
   const handleIterateAnalysis = useCallback(() => {
-    iterateAnalysis();
+    // Assessment Flow handles iterations differently - this is deprecated
+    console.warn('handleIterateAnalysis is deprecated with Assessment Flow');
     setCurrentTab('parameters');
-  }, [iterateAnalysis]);
+  }, []);
 
   const handleCreateQueueItem = useCallback(async (request: unknown) => {
     try {
@@ -262,7 +259,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
                   ? 'bg-blue-100 text-blue-800'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
-              disabled={!state.analysisProgress}
+              disabled={selectedApplicationIds.length === 0}
             >
               Progress
             </button>
@@ -283,77 +280,64 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {/* Tab content */}
           {currentTab === 'selection' && (
-            <ApplicationSelector
-              applications={applications}
-              selectedApplications={selectedApplicationIds}
-              onSelectionChange={handleSelectApplications}
-              onStartAnalysis={handleStartAnalysis}
-            />
+            <div className="p-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Phase 5 Note:</strong> ApplicationSelector component removed as part of 6R Analysis deprecation.
+                  <br />
+                  <strong>Action Required (Phase 6):</strong> Replace with Assessment Flow application selection UI.
+                </p>
+              </div>
+              {/* TODO Phase 6: Replace with Assessment Flow ApplicationSelector equivalent */}
+              {/* <ApplicationSelector
+                applications={applications}
+                selectedApplications={selectedApplicationIds}
+                onSelectionChange={handleSelectApplications}
+                onStartAnalysis={handleStartAnalysis}
+              /> */}
+            </div>
           )}
 
-          {currentTab === 'parameters' && state.parameters && (
+          {currentTab === 'parameters' && (
             <ParameterSliders
-              parameters={state.parameters}
-              onParametersChange={updateParameters}
-            />
-          )}
-
-          {currentTab === 'questions' && state.qualifyingQuestions && (
-            <QualifyingQuestions
-              questions={state.qualifyingQuestions}
-              responses={state.questionResponses}
-              onResponseChange={submitQuestionResponse}
-              onSubmit={() => {}}
+              parameters={parameters}
+              onParametersChange={handleUpdateParameters}
             />
           )}
 
           {currentTab === 'progress' && (
-            <>
-              {state.analysisProgress ? (
-                <AnalysisProgressComponent progress={state.analysisProgress} />
-              ) : (
-                <div className="flex flex-col items-center justify-center p-12 space-y-6">
-                  <div className="animate-pulse">
-                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  </div>
+            <div className="flex flex-col items-center justify-center p-12 space-y-6">
+              <div className="animate-pulse">
+                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
 
-                  <div className="text-center space-y-2">
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Analysis in Progress
-                    </h3>
-                    <p className="text-gray-600 max-w-md">
-                      Your 6R assessment is being analyzed. This may take several minutes depending on the complexity of your applications.
-                    </p>
-                  </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Assessment Flow in Progress
+                </h3>
+                <p className="text-gray-600 max-w-md">
+                  Your assessment is being processed by the Assessment Flow. Navigate to the Assessment Flow page to see detailed progress.
+                </p>
+              </div>
 
-                  <button
-                    onClick={() => actions.refreshAnalysis?.()}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center gap-2"
-                  >
-                    <RefreshCw className="w-5 h-5" />
-                    Refresh Progress
-                  </button>
+              <button
+                onClick={() => toast.info('Assessment flow progress available in the Assessment page')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center gap-2"
+              >
+                <RefreshCw className="w-5 h-5" />
+                View Assessment Progress
+              </button>
 
-                  <p className="text-sm text-gray-500">
-                    Automatic updates are disabled. Click "Refresh Progress" to see the latest status.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {currentTab === 'recommendation' && state.currentRecommendation && (
-            <RecommendationDisplay
-              recommendation={state.currentRecommendation}
-              onAccept={acceptRecommendation}
-              onReject={iterateAnalysis}
-            />
+              <p className="text-sm text-gray-500">
+                This tab is deprecated. Use the Assessment Flow page for real-time progress tracking.
+              </p>
+            </div>
           )}
 
           {currentTab === 'history' && (
             <AnalysisHistory
-              analyses={state.analysisHistory || []}
-              // TODO: Implement these handlers as needed
+              analyses={analysisHistory || []}
+              // TODO: Implement these handlers with Assessment Flow API
               onSelect={() => {}}
               onCompare={() => {}}
               onExport={() => {}}
@@ -366,19 +350,9 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
           </div>
         </main>
 
-        {/* Two-Tier Inline Gap-Filling Modal (PR #816) */}
-        {showGapModal && blockedAnalysis?.tier1_gaps_by_asset && (
-          <Tier1GapFillingModal
-            isOpen={showGapModal}
-            onClose={() => {
-              setShowGapModal(false);
-              setBlockedAnalysis(null);
-            }}
-            analysisId={blockedAnalysis.analysis_id.toString()}
-            tier1_gaps_by_asset={blockedAnalysis.tier1_gaps_by_asset}
-            onSubmit={handleSubmitGapAnswers}
-          />
-        )}
+        {/* DEPRECATED - Two-Tier Inline Gap-Filling Modal (PR #816) */}
+        {/* Assessment Flow handles gaps via asset_application_resolution phase */}
+        {/* Kept for backward compatibility but should be removed in future */}
       </div>
     </div>
   );

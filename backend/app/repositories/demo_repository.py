@@ -6,7 +6,7 @@ Context-aware repository for accessing mock/demo data with multi-tenant support.
 import logging
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Make client_account import conditional to avoid deployment failures
@@ -19,7 +19,8 @@ except ImportError:
     ClientAccount = None
 
 from app.models.asset import Asset, MigrationWave
-from app.models.sixr_analysis import SixRAnalysis
+
+# from app.models.sixr_analysis import SixRAnalysis  # REMOVED - Use Assessment Flow (Phase 4, Issue #840)
 from app.models.tags import Tag
 from app.repositories.context_aware_repository import ContextAwareRepository
 
@@ -192,26 +193,15 @@ class DemoRepository(ContextAwareRepository):
             },
         }
 
-    async def get_demo_analyses(
-        self, limit: int = 50, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[SixRAnalysis]:
-        """Get demo 6R analyses."""
-        stmt = select(SixRAnalysis)
-
-        # Apply context filtering
-        stmt = self._apply_context_filter_stmt(stmt, SixRAnalysis)
-
-        # Apply additional filters
-        if filters:
-            for key, value in filters.items():
-                if hasattr(SixRAnalysis, key) and value is not None:
-                    stmt = stmt.where(getattr(SixRAnalysis, key) == value)
-
-        # Order by creation date (newest first)
-        stmt = stmt.order_by(desc(SixRAnalysis.created_at)).offset(offset).limit(limit)
-
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
+    # DEPRECATED (Phase 4, Issue #840): 6R Analysis replaced by Assessment Flow
+    # Use AssessmentFlow endpoints at /assessment-flow/* instead
+    # async def get_demo_analyses(
+    #     self, limit: int = 50, offset: int = 0, filters: Optional[Dict[str, Any]] = None
+    # ) -> List[SixRAnalysis]:
+    #     """Get demo 6R analyses - DEPRECATED."""
+    #     raise NotImplementedError(
+    #         "6R Analysis demo data removed. Use Assessment Flow at /assessment-flow/* endpoints"
+    #     )
 
     async def get_demo_waves(self) -> List[MigrationWave]:
         """Get demo migration waves."""

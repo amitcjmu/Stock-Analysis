@@ -125,12 +125,12 @@ const DataCleansing: React.FC = () => {
   // Extract quality issues and recommendations from analysis
   const allQualityIssues = dataCleansingAnalysis?.quality_issues || [];
   const agentRecommendations = dataCleansingAnalysis?.recommendations || [];
-  
+
   // Filter out resolved/ignored issues for counting (only show pending issues)
-  const qualityIssues = allQualityIssues.filter(issue => 
+  const qualityIssues = allQualityIssues.filter(issue =>
     !issue.status || issue.status === 'pending'
   );
-  
+
   // Count resolved and ignored issues separately
   const resolvedIssues = allQualityIssues.filter(issue => issue.status === 'resolved');
   const ignoredIssues = allQualityIssues.filter(issue => issue.status === 'ignored');

@@ -113,9 +113,10 @@ class Migration(Base):
     assessments = relationship(
         "Assessment", back_populates="migration", cascade="all, delete-orphan"
     )
-    sixr_analyses = relationship(
-        "SixRAnalysis", back_populates="migration", cascade="all, delete-orphan"
-    )
+    # sixr_analyses relationship REMOVED - Use Assessment Flow (Phase 4, Issue #840)
+    # sixr_analyses = relationship(
+    #     "SixRAnalysis", back_populates="migration", cascade="all, delete-orphan"
+    # )
 
     def __repr__(self):
         return f"<Migration(id={self.id}, name='{self.name}', status='{self.status}')>"

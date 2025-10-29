@@ -13,7 +13,7 @@ import bcrypt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.asset import Asset, AssetStatus, MigrationWave, SixRStrategy
+from app.models.asset import Asset, AssetStatus, MigrationWave
 from app.models.client_account import (
     ClientAccount,
     Engagement,
@@ -29,7 +29,9 @@ from app.models.rbac import (
     UserRole,
     UserStatus,
 )
-from app.models.sixr_analysis import AnalysisStatus, SixRAnalysis
+
+# REMOVED: app.models.sixr_analysis
+# Use Assessment Flow (Phase 4, Issue #840)
 from app.models.tags import AssetEmbedding, AssetTag, Tag
 
 try:
@@ -392,57 +394,13 @@ async def create_mock_assets(
     return asset_ids
 
 
-async def create_mock_sixr_analysis(
-    session: AsyncSession,
-    client_account_id: uuid.UUID,
-    engagement_id: uuid.UUID,
-    user_id: uuid.UUID,
-    asset_ids: List[uuid.UUID],
-):
-    """Creates a mock 6R analysis record for the engagement."""
-    logger.info("Creating mock 6R analysis record...")
-
-    # Check if an analysis for this engagement already exists
-    existing_analysis_result = await session.execute(
-        select(SixRAnalysis).where(SixRAnalysis.engagement_id == engagement_id)
-    )
-    existing_analysis = existing_analysis_result.scalar_one_or_none()
-
-    # Convert asset UUIDs to strings for JSON serialization
-    asset_id_strs = [str(aid) for aid in asset_ids]
-
-    if existing_analysis:
-        logger.info(
-            f"6R analysis for engagement {engagement_id} already exists. Updating application_ids."
-        )
-        existing_ids = set(existing_analysis.application_ids or [])
-        new_ids = set(asset_id_strs)
-        all_ids = list(existing_ids.union(new_ids))
-
-        existing_analysis.application_ids = all_ids
-        existing_analysis.updated_at = datetime.utcnow()
-        session.add(existing_analysis)
-    else:
-        logger.info("Creating new 6R analysis record.")
-        analysis_record = SixRAnalysis(
-            name="6R Analysis for Cloud Migration 2024",
-            description="Automated 6R analysis for the initial set of discovered assets.",
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
-            status=AnalysisStatus.COMPLETED,
-            application_ids=asset_id_strs,
-            final_recommendation=SixRStrategy.REHOST,
-            confidence_score=0.85,
-            created_by=str(user_id),
-        )
-        session.add(analysis_record)
-
-    try:
-        await session.commit()
-        logger.info("Successfully created/updated mock 6R analysis record.")
-    except Exception as e:
-        logger.error(f"Failed to commit 6R analysis record: {e}")
-        await session.rollback()
+# DEPRECATED (Phase 4, Issue #840): 6R Analysis replaced by Assessment Flow
+# Use AssessmentFlow endpoints at /assessment-flow/* instead
+# async def create_mock_sixr_analysis(...):
+#     """DEPRECATED: Creates a mock 6R analysis record - Use Assessment Flow instead."""
+#     raise NotImplementedError(
+#         "6R Analysis mock data removed. Use Assessment Flow at /assessment-flow/* endpoints"
+#     )
 
 
 async def create_mock_migration_waves(

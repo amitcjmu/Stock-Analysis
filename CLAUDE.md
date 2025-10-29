@@ -315,6 +315,35 @@ patterns = await memory_manager.retrieve_similar_patterns(
 - `/docs/development/TENANT_MEMORY_STRATEGY.md` - Implementation strategy
 - `backend/app/services/crewai_flows/memory/tenant_memory_manager/` - Implementation
 
+### Assessment Flow Architecture
+
+**Purpose**: Cloud readiness assessment and 6R migration recommendation
+
+**Endpoints**: `/api/v1/assessment-flow/*` (MFO-integrated per ADR-006)
+
+**Flow Progression**:
+1. Create assessment flow → Master flow in `crewai_flow_state_extensions`
+2. Child flow in `assessment_flows` tracks operational state
+3. Phases: Architecture Standards → Tech Debt → 6R Decisions
+4. Accept recommendations → Update `Asset.six_r_strategy`
+5. Export results → PDF/Excel/JSON
+
+**Two-Table Pattern** (ADR-012):
+- **Master Table**: `crewai_flow_state_extensions` (lifecycle: running/paused/completed)
+- **Child Table**: `assessment_flows` (operational: phases, UI state, selected applications)
+
+**Key Files**:
+- Backend: `backend/app/api/v1/endpoints/assessment_flow/`
+- Frontend: `src/lib/api/assessmentFlow.ts`
+- MFO Integration: `backend/app/api/v1/endpoints/assessment_flow/mfo_integration.py`
+
+**Deprecated**: `/api/v1/6r/*` endpoints (HTTP 410 Gone - use Assessment Flow instead)
+
+**Migration Context**:
+- 6R Analysis implementation was removed (Oct 2025) to eliminate duplicate code paths
+- Assessment Flow is the single source of truth for 6R recommendations
+- Strategy crew integrated with Assessment Flow via MFO architecture
+
 ## Subagent Instructions and Requirements
 
 ### AUTOMATIC ENFORCEMENT FOR ALL SUBAGENTS (Including Autonomous)
@@ -515,10 +544,11 @@ When modifying API endpoints, **ALWAYS**:
 - Flow Processing: `/api/v1/flow-processing/*`
 - Discovery: `/api/v1/unified-discovery/*`
 - Collection: `/api/v1/collection/*`
+- Assessment: `/api/v1/assessment-flow/*` (NOT `/6r/*` - deprecated)
 
 ### Files That MUST Be Updated Together
 - Backend: `router_registry.py`, `router_imports.py`, endpoint files
-- Frontend: `masterFlowService.ts`, `discoveryService.ts`, `collectionService.ts`
+- Frontend: `masterFlowService.ts`, `discoveryService.ts`, `collectionService.ts`, `assessmentFlowApi.ts`
 
 ### Never Do This
 - ❌ Change backend without frontend

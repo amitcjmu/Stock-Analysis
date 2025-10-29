@@ -1,9 +1,11 @@
 """
 Assessment flow finalization and reporting endpoints.
 Handles flow finalization, app-on-page views, and report generation.
+Uses MFO integration layer per ADR-006 (Master Flow Orchestrator pattern).
 """
 
 import logging
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +20,12 @@ from app.schemas.assessment_flow import (
     AppOnPageResponse,
     AssessmentFinalization,
     AssessmentReport,
+)
+
+# Import MFO integration functions (per ADR-006)
+from .mfo_integration import (
+    get_assessment_status_via_mfo,
+    complete_assessment_flow,
 )
 
 # Assessment flow utilities are available at assessment_flow_utils.py
@@ -37,13 +45,21 @@ async def get_app_on_page_view(
     client_account_id: str = Depends(verify_client_access),
 ):
     """
-    Get comprehensive app-on-page view for specific application.
+    Get comprehensive app-on-page view for specific application via MFO.
 
     - **flow_id**: Assessment flow identifier
     - **app_id**: Application identifier
     - Returns complete application assessment data for single-page view
+    - Uses MFO integration (ADR-006) to verify flow existence
     """
     try:
+        # Verify flow exists via MFO (checks both master and child tables)
+        try:
+            await get_assessment_status_via_mfo(UUID(flow_id), db)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Assessment flow not found")
+
+        # Get child flow data for application details
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
 
@@ -103,23 +119,28 @@ async def finalize_assessment_flow(
     client_account_id: str = Depends(verify_client_access),
 ):
     """
-    Finalize assessment flow and mark as complete.
+    Finalize assessment flow and mark as complete via MFO.
 
     - **flow_id**: Assessment flow identifier
     - **finalization_notes**: Optional notes for finalization
     - Validates all applications have 6R decisions before finalizing
+    - Uses MFO integration (ADR-006) for atomic completion
     """
     try:
+        # Get flow state via MFO (checks both master and child tables)
+        mfo_state = await get_assessment_status_via_mfo(UUID(flow_id), db)
+
+        if mfo_state["status"] == AssessmentFlowStatus.COMPLETED.value:
+            raise HTTPException(
+                status_code=400, detail="Assessment flow already completed"
+            )
+
+        # Get child flow data for validation
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
 
         if not flow_state:
             raise HTTPException(status_code=404, detail="Assessment flow not found")
-
-        if flow_state.status == AssessmentFlowStatus.COMPLETED:
-            raise HTTPException(
-                status_code=400, detail="Assessment flow already completed"
-            )
 
         # Validate all applications have required data
         validation_results = await _validate_flow_completion_requirements(
@@ -135,17 +156,20 @@ async def finalize_assessment_flow(
                 },
             )
 
-        # Finalize the flow
+        # Save finalization notes to repository before MFO completion
         await repository.finalize_assessment_flow(
             flow_id, request.finalization_notes, current_user.email
         )
 
+        # Complete flow via MFO (updates both master and child tables atomically)
+        result = await complete_assessment_flow(UUID(flow_id), db)
+
         return {
             "flow_id": flow_id,
-            "status": "completed",
+            "status": result["status"],
             "finalized_by": current_user.email,
             "applications_assessed": len(flow_state.selected_application_ids or []),
-            "message": "Assessment flow finalized successfully",
+            "message": "Assessment flow finalized successfully via MFO",
         }
 
     except HTTPException:
@@ -167,12 +191,17 @@ async def generate_assessment_report(
     client_account_id: str = Depends(verify_client_access),
 ):
     """
-    Generate comprehensive assessment report.
+    Generate comprehensive assessment report via MFO.
 
     - **flow_id**: Assessment flow identifier
     - Returns complete assessment report with all analysis data
+    - Uses MFO integration (ADR-006) to verify flow existence
     """
     try:
+        # Get flow state via MFO (checks both master and child tables)
+        _ = await get_assessment_status_via_mfo(UUID(flow_id), db)
+
+        # Get child flow data for report details
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
 

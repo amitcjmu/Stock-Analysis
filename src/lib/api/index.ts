@@ -1,12 +1,8 @@
-// Re-export sixr API and all types
-export * from './sixr';
-export { sixrApi } from './sixr';
-
 // Export the new simplified API client
 export { apiClient, ApiError } from './apiClient';
 
 // Export the generic API call function (backward compatibility)
 export { apiCall, apiCallWithFallback } from '@/config/api';
 
-// Default export for backward compatibility
-export { sixrApi as default } from './sixr';
+// Note: sixrApi has been removed as part of Assessment Flow Migration Phase 5
+// Use assessmentFlowApi from './assessmentFlow' instead

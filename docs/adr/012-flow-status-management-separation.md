@@ -142,6 +142,40 @@ completed → [] # Terminal for child flow
 - [ADR-006: Master Flow Orchestrator](006-master-flow-orchestrator.md)
 - [ADR-011: Flow-Based Architecture Evolution](011-flow-based-architecture-evolution.md)
 
+## Examples
+
+### Example: Discovery Flow
+
+**Master Flow** (`crewai_flow_state_extensions`):
+- flow_type: "discovery"
+- status: "running" | "paused" | "completed"
+- Used for: Cross-flow coordination, lifecycle management
+
+**Child Flow** (`discovery_flows`):
+- current_phase: "field_mapping" | "data_cleansing" | "validation"
+- phase_status: "pending" | "in_progress" | "completed"
+- operational_state: Detailed phase data, user approvals, agent insights
+- Used for: Operational decisions, UI state, phase progression
+
+**Frontend/Agents**: Query child flow for current state, not master flow
+
+### Example: Assessment Flow
+
+**Master Flow** (`crewai_flow_state_extensions`):
+- flow_type: "assessment"
+- status: "running" | "paused" | "completed"
+- Used for: Cross-flow coordination, lifecycle management
+
+**Child Flow** (`assessment_flows`):
+- current_phase: "architecture_standards" | "tech_debt_analysis" | "sixr_decisions"
+- phase_status: "pending" | "in_progress" | "completed"
+- selected_application_ids: List of apps being assessed
+- Used for: Operational decisions, UI state, phase progression, 6R recommendations
+
+**Frontend/Agents**: Query child flow for current state, not master flow
+
+**Reference**: See `/docs/architecture/ASSESSMENT_FLOW_MFO_INTEGRATION.md` for full implementation details
+
 ## Notes
 - Master flow status should be treated as a "lifecycle envelope" around child flow operations
 - Child flows are the "operational engine" that drives business logic and agent decisions

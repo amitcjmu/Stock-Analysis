@@ -52,18 +52,8 @@ export const useLazyUnifiedDiscoveryFlow = (immediate = false): ReturnType<typeo
  * Assessment-related lazy hooks
  */
 
-// Lazy load 6R analysis logic
-export const useLazySixRAnalysis = (immediate = false): ReturnType<typeof useLazyHook> => {
-  return useLazyHook(
-    'sixr-analysis',
-    () => import('@/hooks/useSixRAnalysis'),
-    {
-      priority: LoadingPriority.NORMAL,
-      immediate,
-      timeout: 20000
-    }
-  );
-};
+// Note: useLazySixRAnalysis removed as part of Assessment Flow Migration Phase 5
+// Use useLazyAssessmentFlow instead
 
 // Lazy load assessment flow logic
 export const useLazyAssessmentFlow = (immediate = false): ReturnType<typeof useLazyHook> => {

@@ -79,7 +79,9 @@ async def _get_data_import_for_flow(flow_id: str, flow: Any, db: AsyncSession) -
         if flow_db_id:
             # Look for data imports with this master_flow_id
             import_query = (
-                select(DataImport)
+                select(
+                    DataImport
+                )  # SKIP_TENANT_CHECK - master_flow_id FK enforces isolation
                 .where(DataImport.master_flow_id == flow_db_id)
                 .order_by(DataImport.created_at.desc())
                 .limit(1)
