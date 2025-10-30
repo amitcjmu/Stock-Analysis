@@ -73,26 +73,35 @@ async def export_planning_data(
         )
 
     try:
-        # Parse planning flow ID
+        # Parse planning flow ID and convert tenant IDs to UUIDs (per migration 115)
         try:
             planning_flow_uuid = UUID(planning_flow_id)
-        except ValueError:
+            client_account_uuid = (
+                UUID(client_account_id)
+                if isinstance(client_account_id, str)
+                else client_account_id
+            )
+            engagement_uuid = (
+                UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
+            )
+        except ValueError as e:
             raise HTTPException(
-                status_code=400, detail="Invalid planning flow UUID format"
+                status_code=400,
+                detail=f"Invalid UUID format: {str(e)}",
             )
 
-        # Initialize repository
+        # Initialize repository with UUIDs
         repo = PlanningFlowRepository(
             db=db,
-            client_account_id=str(client_account_id),
-            engagement_id=str(engagement_id),
+            client_account_id=client_account_uuid,
+            engagement_id=engagement_uuid,
         )
 
         # Get complete planning flow data
         planning_flow = await repo.get_planning_flow_by_id(
             planning_flow_id=planning_flow_uuid,
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
+            client_account_id=client_account_uuid,
+            engagement_id=engagement_uuid,
         )
 
         if not planning_flow:

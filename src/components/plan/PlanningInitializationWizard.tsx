@@ -277,8 +277,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
       setIsLoading(true);
 
       // CRITICAL: Use request body with snake_case fields per CLAUDE.md
+      // Note: engagement_id comes from X-Engagement-ID header (automatically added by apiClient)
       const response = await planningFlowApi.initializePlanningFlow({
-        engagement_id,
         selected_application_ids: formData.selected_application_ids,
         planning_config: {
           max_apps_per_wave: formData.max_apps_per_wave,

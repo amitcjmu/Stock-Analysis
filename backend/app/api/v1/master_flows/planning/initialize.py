@@ -31,9 +31,12 @@ router = APIRouter()
 
 
 class InitializePlanningRequest(BaseModel):
-    """Request model for planning flow initialization."""
+    """Request model for planning flow initialization.
 
-    engagement_id: int = Field(..., description="Engagement ID for project scoping")
+    Note: engagement_id comes from RequestContext (X-Engagement-ID header), not request body.
+    This ensures proper UUID handling and multi-tenant isolation.
+    """
+
     selected_application_ids: List[str] = Field(
         ..., description="Asset UUIDs from assessment flow"
     )
@@ -55,10 +58,13 @@ async def initialize_planning_flow(
     Creates master flow and child planning flow in atomic transaction.
     Follows MFO pattern with two-table architecture (ADR-012).
 
+    Headers (REQUIRED):
+    - X-Client-Account-ID: Client UUID (e.g., 11111111-1111-1111-1111-111111111111)
+    - X-Engagement-ID: Engagement UUID (e.g., 22222222-2222-2222-2222-222222222222)
+
     Request Body:
     ```json
     {
-        "engagement_id": 1,
         "selected_application_ids": ["uuid1", "uuid2"],
         "planning_config": {
             "max_apps_per_wave": 50,
@@ -79,7 +85,7 @@ async def initialize_planning_flow(
     ```
     """
     client_account_id = context.client_account_id
-    engagement_id = request.engagement_id
+    engagement_id = context.engagement_id  # From X-Engagement-ID header
 
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
@@ -88,19 +94,20 @@ async def initialize_planning_flow(
         raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
-        # Convert client_account_id and engagement_id to integers
-        # RequestContext may return UUID strings or integers depending on auth
+        # Convert context IDs (UUID strings from headers) to UUID objects
+        # Per migration 115: All tenant IDs must be valid UUIDs
+        # Demo UUIDs: 11111111-1111-1111-1111-111111111111 (client), 22222222-2222-2222-2222-222222222222 (engagement)
         try:
-            if isinstance(client_account_id, str):
-                # For development placeholder UUID, use 1
-                client_account_id_int = (
-                    1 if "1111111" in client_account_id else int(client_account_id)
-                )
-            else:
-                client_account_id_int = int(client_account_id)
+            client_account_uuid = (
+                UUID(client_account_id)
+                if isinstance(client_account_id, str)
+                else client_account_id
+            )
+            engagement_uuid = UUID(str(engagement_id)) if engagement_id else None
 
-            engagement_id_int = int(engagement_id)
-        except ValueError as e:
+            if not engagement_uuid:
+                raise ValueError("Engagement ID is required")
+        except (ValueError, TypeError) as e:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid client_account_id or engagement_id format: {str(e)}",
@@ -122,23 +129,24 @@ async def initialize_planning_flow(
             )
 
         # Initialize repositories with tenant scoping
+        # MasterFlowRepo expects string UUIDs, PlanningRepo expects UUID objects
         master_flow_repo = CrewAIFlowStateExtensionsRepository(
             db=db,
-            client_account_id=str(client_account_id_int),
-            engagement_id=str(engagement_id_int),
+            client_account_id=str(client_account_uuid),
+            engagement_id=str(engagement_uuid),
         )
 
         planning_repo = PlanningFlowRepository(
             db=db,
-            client_account_id=client_account_id_int,
-            engagement_id=engagement_id_int,
+            client_account_id=client_account_uuid,
+            engagement_id=engagement_uuid,
         )
 
         # Create master flow in crewai_flow_state_extensions (MFO pattern)
         await master_flow_repo.create_master_flow(
             flow_id=str(master_flow_id),
             flow_type="planning",
-            flow_name=f"Planning Flow {engagement_id_int}",
+            flow_name=f"Planning Flow {engagement_uuid}",
             flow_configuration=request.planning_config or {},
             initial_state={"phase": "wave_planning", "status": "pending"},
             auto_commit=False,  # Will commit after child flow creation
@@ -146,8 +154,8 @@ async def initialize_planning_flow(
 
         # Create child planning flow
         planning_flow = await planning_repo.create_planning_flow(
-            client_account_id=client_account_id_int,
-            engagement_id=engagement_id_int,
+            client_account_id=client_account_uuid,
+            engagement_id=engagement_uuid,
             master_flow_id=master_flow_id,
             planning_flow_id=planning_flow_id,
             current_phase="wave_planning",  # First valid phase per CHECK constraint
@@ -160,8 +168,8 @@ async def initialize_planning_flow(
 
         logger.info(
             f"Initialized planning flow: {planning_flow_id} "
-            f"(master: {master_flow_id}, client: {client_account_id_int}, "
-            f"engagement: {engagement_id_int})"
+            f"(master: {master_flow_id}, client: {client_account_uuid}, "
+            f"engagement: {engagement_uuid})"
         )
 
         # Auto-trigger wave planning execution (per user expectation from wizard UI)

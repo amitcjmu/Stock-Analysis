@@ -21,8 +21,6 @@ For full specification, see: /docs/api/MULTI_TENANT_HEADERS.md
 import logging
 from typing import Optional
 
-from app.core.security.secure_logging import safe_log_format
-
 logger = logging.getLogger(__name__)
 
 # Demo client configuration with fixed UUIDs for frontend fallback
@@ -81,21 +79,7 @@ def extract_client_account_id(headers) -> Optional[str]:
     if not client_account_id:
         return None
 
-    cleaned_value = clean_header_value(client_account_id)
-
-    # CRITICAL FIX: Convert legacy integer client IDs to proper UUIDs
-    # This handles cases where frontend has cached old integer values (e.g., "1")
-    # from before UUID migration. Map to demo client UUID.
-    if cleaned_value and cleaned_value.isdigit() and int(cleaned_value) == 1:
-        logger.warning(
-            safe_log_format(
-                "Converting legacy integer client_account_id=1 to demo UUID: {demo_uuid}",
-                demo_uuid=DEMO_CLIENT_CONFIG["client_account_id"],
-            )
-        )
-        return DEMO_CLIENT_CONFIG["client_account_id"]
-
-    return cleaned_value
+    return clean_header_value(client_account_id)
 
 
 def extract_engagement_id(headers) -> Optional[str]:
@@ -115,6 +99,7 @@ def extract_engagement_id(headers) -> Optional[str]:
         or headers.get("x-context-engagement-id")
         or headers.get("engagement-id")
     )
+
     return clean_header_value(engagement_id) if engagement_id else None
 
 
