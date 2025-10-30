@@ -29,11 +29,29 @@ async def get_wave_planning(
     client_account_id = context.client_account_id
     engagement_id = context.engagement_id
 
+    # Convert to UUIDs (per migration 115) - NEVER use integers for tenant IDs
+    from uuid import UUID
+
+    client_account_uuid = (
+        (
+            UUID(client_account_id)
+            if isinstance(client_account_id, str)
+            else client_account_id
+        )
+        if client_account_id
+        else None
+    )
+    engagement_uuid = (
+        (UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id)
+        if engagement_id
+        else None
+    )
+
     # Initialize repository with tenant scoping
     repository = PlanningFlowRepository(
         db=db,
-        client_account_id=str(client_account_id) if client_account_id else None,
-        engagement_id=str(engagement_id) if engagement_id else None,
+        client_account_id=client_account_uuid,
+        engagement_id=engagement_uuid,
     )
 
     # Get latest planning flow for engagement (get_all auto-filters by tenant context)

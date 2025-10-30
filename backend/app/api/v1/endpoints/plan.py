@@ -8,6 +8,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.endpoints.plan_data import get_resource_mock_data
 from app.core.context import get_current_context
 from app.core.database import get_db
 
@@ -29,11 +30,29 @@ async def get_roadmap(
     client_account_id = context.client_account_id
     engagement_id = context.engagement_id
 
+    # Convert to UUIDs (per migration 115) - NEVER use integers for tenant IDs
+    from uuid import UUID
+
+    client_account_uuid = (
+        (
+            UUID(client_account_id)
+            if isinstance(client_account_id, str)
+            else client_account_id
+        )
+        if client_account_id
+        else None
+    )
+    engagement_uuid = (
+        (UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id)
+        if engagement_id
+        else None
+    )
+
     # Initialize repository with tenant scoping
     repository = PlanningFlowRepository(
         db=db,
-        client_account_id=str(client_account_id) if client_account_id else None,
-        engagement_id=str(engagement_id) if engagement_id else None,
+        client_account_id=client_account_uuid,
+        engagement_id=engagement_uuid,
     )
 
     # Get all planning flows (timelines are associated with planning flows)
@@ -382,3 +401,19 @@ async def get_timeline(
     }
 
     return timeline_data
+
+
+@router.get("/resources")
+async def get_resources(
+    db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get resource planning data with teams, metrics, and recommendations.
+
+    Returns team allocations, utilization metrics, skill coverage analysis,
+    and resource optimization recommendations.
+
+    TODO: Replace with real database queries when resource_teams table is created.
+    See GitHub issue for database schema design and migration requirements.
+    """
+    return get_resource_mock_data(datetime.now())

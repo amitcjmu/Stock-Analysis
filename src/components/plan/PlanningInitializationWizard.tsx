@@ -139,6 +139,12 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
     staleTime: 30000, // Cache for 30 seconds
   });
 
+  // Filter applications to show only those with 6R strategies assigned
+  const assessedApplications = React.useMemo(() => {
+    if (!applicationsData?.applications) return [];
+    return applicationsData.applications.filter(app => app.six_r_strategy !== null && app.six_r_strategy !== '');
+  }, [applicationsData]);
+
   // =============================================================================
   // Handlers
   // =============================================================================
@@ -182,10 +188,10 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
         return;
       }
 
-      // Update form data with selected applications
-      const selectedApps = applicationsData?.applications.filter((app) =>
+      // Update form data with selected applications (from assessed applications only)
+      const selectedApps = assessedApplications.filter((app) =>
         selectedIds.has(app.id)
-      ) || [];
+      );
 
       setFormData((prev) => ({
         ...prev,
@@ -271,8 +277,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
       setIsLoading(true);
 
       // CRITICAL: Use request body with snake_case fields per CLAUDE.md
+      // Note: engagement_id comes from X-Engagement-ID header (automatically added by apiClient)
       const response = await planningFlowApi.initializePlanningFlow({
-        engagement_id,
         selected_application_ids: formData.selected_application_ids,
         planning_config: {
           max_apps_per_wave: formData.max_apps_per_wave,
@@ -316,10 +322,12 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
    * Step 1: Application Selection
    */
   const renderStep1 = () => {
-    const applications = applicationsData?.applications || [];
+    const applications = assessedApplications; // Use filtered applications with 6R strategies only
     const totalPages = applicationsData?.total_pages || 0;
     const currentPageIds = applications.map((app) => app.id);
     const allCurrentPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.has(id));
+    const totalApplications = applicationsData?.applications?.length || 0;
+    const assessedCount = applications.length;
 
     return (
       <div className="space-y-4">
@@ -344,7 +352,16 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
           </Button>
         </div>
 
-        {/* Selection Count */}
+        {/* Filter Info and Selection Count */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm text-blue-800 mb-1">
+            <strong>Showing {assessedCount} of {totalApplications} applications</strong>
+          </p>
+          <p className="text-xs text-blue-700">
+            Only applications with 6R strategies assigned can be included in planning
+          </p>
+        </div>
+
         {selectedIds.size > 0 && (
           <p className="text-sm text-green-600 flex items-center">
             <CheckCircle className="h-4 w-4 mr-1" />
@@ -373,9 +390,18 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
           <>
             {applications.length === 0 ? (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800">
-                  No applications found. {searchTerm && 'Try adjusting your search criteria.'}
-                </p>
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800 mb-1">
+                      No assessed applications found
+                    </p>
+                    <p className="text-sm text-yellow-700">
+                      {searchTerm ? 'Try adjusting your search criteria or ' : ''}
+                      Run the Assessment Flow first to assign 6R migration strategies to applications.
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="border rounded-lg overflow-hidden">

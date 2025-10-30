@@ -11,7 +11,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { planningFlowApi } from '@/lib/api/planningFlowService';
 import type { Wave } from '@/lib/api/planningFlowService';
 import WaveDashboard from '@/components/plan/WaveDashboard';
@@ -20,9 +21,24 @@ import Sidebar from '@/components/Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import { apiCall } from '@/config/api';
+import { Loader2, AlertCircle, Calendar, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+// Interface for planning flow list item
+interface PlanningFlowListItem {
+  planning_flow_id: string;
+  current_phase: string;
+  phase_status: string;
+  created_at: string;
+  wave_count?: number;
+  application_count?: number;
+}
 
 export default function WavePlanningPage(): JSX.Element {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   // Get query parameters (snake_case per CLAUDE.md)
@@ -31,50 +47,68 @@ export default function WavePlanningPage(): JSX.Element {
 
   // State management
   const [waves, setWaves] = useState<Wave[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWave, setSelectedWave] = useState<Wave | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  // Load planning data on mount
-  useEffect(() => {
-    if (planning_flow_id) {
-      loadPlanningData();
-    } else {
-      setLoading(false);
-      setError('No planning flow ID provided');
+  // Fetch available planning flows if no flow_id provided
+  const {
+    data: planningFlows,
+    isLoading: isLoadingFlows,
+    error: flowsError
+  } = useQuery<PlanningFlowListItem[]>({
+    queryKey: ['planning-flows'],
+    queryFn: async () => {
+      // Call wave planning endpoint to get available flows
+      const response = await apiCall('/api/v1/wave-planning/');
+      // If planning_status is "not_started", return empty array
+      if (response.planning_status === 'not_started') {
+        return [];
+      }
+      // Otherwise return as array (backend returns single flow for now)
+      return response.planning_flow_id ? [{
+        planning_flow_id: response.planning_flow_id,
+        current_phase: response.planning_status,
+        phase_status: response.phase_status,
+        created_at: new Date().toISOString(),
+        wave_count: response.waves?.length || 0,
+        application_count: response.summary?.total_apps || 0
+      }] : [];
+    },
+    enabled: !planning_flow_id, // Only fetch if no flow_id in URL
+    staleTime: 30000
+  });
+
+  // Fetch planning data when flow_id is available
+  const {
+    data: planningStatus,
+    isLoading: isLoadingPlanningData,
+    error: planningError,
+    refetch: refetchPlanningData
+  } = useQuery({
+    queryKey: ['planning-status', planning_flow_id],
+    queryFn: () => planningFlowApi.getPlanningStatus(planning_flow_id!),
+    enabled: !!planning_flow_id,
+    staleTime: 5000,
+    refetchInterval: (data) => {
+      // Poll more frequently if planning is in progress
+      if (!data) return false;
+      if (data.phase_status === 'completed') return false;
+      return data.phase_status === 'in_progress' ? 5000 : 15000;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planning_flow_id]);
+  });
+
+  // Update waves when planning data changes
+  useEffect(() => {
+    if (planningStatus?.wave_plan_data?.waves) {
+      setWaves(planningStatus.wave_plan_data.waves);
+    }
+  }, [planningStatus]);
 
   /**
-   * Load wave planning data from API.
-   * Uses snake_case field names throughout.
+   * Handle selecting a planning flow from the list
    */
-  const loadPlanningData = async () => {
-    if (!planning_flow_id) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const status = await planningFlowApi.getPlanningStatus(planning_flow_id);
-
-      // Extract waves from wave_plan_data (snake_case!)
-      const wavesData = status.wave_plan_data?.waves || [];
-      setWaves(wavesData);
-    } catch (error) {
-      console.error('Failed to load planning data:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load planning data');
-
-      toast({
-        title: 'Error Loading Planning Data',
-        description: error instanceof Error ? error.message : 'Unable to load wave planning data',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleSelectFlow = (flow: PlanningFlowListItem) => {
+    navigate(`/plan/waveplanning?planning_flow_id=${flow.planning_flow_id}&engagement_id=${engagement_id || 1}`);
   };
 
   /**
@@ -135,6 +169,7 @@ export default function WavePlanningPage(): JSX.Element {
 
       setWaves(updatedWaves);
       setIsModalOpen(false);
+      refetchPlanningData(); // Refresh data after save
 
       toast({
         title: 'Wave Saved',
@@ -177,6 +212,7 @@ export default function WavePlanningPage(): JSX.Element {
       });
 
       setWaves(updatedWaves);
+      refetchPlanningData(); // Refresh data after delete
 
       toast({
         title: 'Wave Deleted',
@@ -192,15 +228,103 @@ export default function WavePlanningPage(): JSX.Element {
     }
   };
 
-  // Loading state
-  if (loading) {
+  // Show flow selection if no flow_id provided
+  if (!planning_flow_id) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 p-8">
+            <ContextBreadcrumbs showContextSelector={true} />
+
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900">Wave Planning</h1>
+              <p className="text-gray-600 mt-2">
+                Select a planning flow or create a new one
+              </p>
+            </div>
+
+            {isLoadingFlows ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mr-3" />
+                <p className="text-gray-600">Loading planning flows...</p>
+              </div>
+            ) : flowsError ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="h-6 w-6 text-red-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-800 mb-1">Error Loading Flows</h3>
+                    <p className="text-red-700">
+                      {flowsError instanceof Error ? flowsError.message : 'Failed to load planning flows'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : planningFlows && planningFlows.length > 0 ? (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900">Available Planning Flows</h2>
+                {planningFlows.map((flow) => (
+                  <Card key={flow.planning_flow_id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                        onClick={() => handleSelectFlow(flow)}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-2">
+                          Planning Flow
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">Phase:</span>
+                            <span className="ml-2 font-medium">{flow.current_phase}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Status:</span>
+                            <span className="ml-2 font-medium">{flow.phase_status}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Waves:</span>
+                            <span className="ml-2 font-medium">{flow.wave_count || 0}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Applications:</span>
+                            <span className="ml-2 font-medium">{flow.application_count || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-6 w-6 text-gray-400" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+                <Calendar className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                  No Planning Flows Found
+                </h3>
+                <p className="text-blue-800 mb-4">
+                  Start by creating a new planning flow from the Plan Overview page
+                </p>
+                <Button onClick={() => navigate('/plan')}>
+                  Go to Plan Overview
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  // Loading state for specific flow
+  if (isLoadingPlanningData) {
     return (
       <SidebarProvider>
         <div className="min-h-screen bg-gray-50 flex">
           <Sidebar />
           <div className="flex-1 ml-64 flex items-center justify-center">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4 mx-auto" />
               <p className="text-gray-600">Loading wave planning data...</p>
             </div>
           </div>
@@ -209,24 +333,28 @@ export default function WavePlanningPage(): JSX.Element {
     );
   }
 
-  // Error state
-  if (error) {
+  // Error state for specific flow
+  if (planningError) {
     return (
       <SidebarProvider>
         <div className="min-h-screen bg-gray-50 flex">
           <Sidebar />
           <div className="flex-1 ml-64 p-8">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-red-800 mb-2">
-                Error Loading Planning Data
-              </h2>
-              <p className="text-red-700">{error}</p>
-              <button
-                onClick={loadPlanningData}
-                className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-              >
-                Retry
-              </button>
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-6 w-6 text-red-600 mt-0.5" />
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold text-red-800 mb-2">
+                    Error Loading Planning Data
+                  </h2>
+                  <p className="text-red-700 mb-4">
+                    {planningError instanceof Error ? planningError.message : 'Failed to load planning data'}
+                  </p>
+                  <Button onClick={() => refetchPlanningData()} variant="outline">
+                    Retry
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -252,18 +380,12 @@ export default function WavePlanningPage(): JSX.Element {
 
           {/* Actions */}
           <div className="mb-6 flex gap-3">
-            <button
-              onClick={handleCreateWave}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
+            <Button onClick={handleCreateWave}>
               + Create Wave
-            </button>
-            <button
-              onClick={loadPlanningData}
-              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-            >
+            </Button>
+            <Button onClick={() => refetchPlanningData()} variant="outline">
               Refresh
-            </button>
+            </Button>
           </div>
 
           {/* Wave Dashboard */}

@@ -24,10 +24,9 @@ import { apiClient } from './apiClient';
  * Request to initialize a new planning flow.
  *
  * CRITICAL: All field names use snake_case (NOT camelCase).
+ * Note: engagement_id comes from X-Engagement-ID header, not request body.
  */
 export interface InitializePlanningFlowRequest {
-  /** Engagement identifier */
-  engagement_id: number;
   /** Array of selected application UUID strings */
   selected_application_ids: string[];
   /** Optional planning configuration */
@@ -136,12 +135,15 @@ export class PlanningFlowApiClient {
    * 4. Links via flow_id
    * 5. Starts background planning process
    *
+   * Headers (REQUIRED):
+   * - X-Client-Account-ID: Client UUID (e.g., 11111111-1111-1111-1111-111111111111)
+   * - X-Engagement-ID: Engagement UUID (e.g., 22222222-2222-2222-2222-222222222222)
+   *
    * @param request - Planning flow initialization request
    * @returns Planning flow response with IDs
    *
    * @example
    * const result = await planningFlowApi.initializePlanningFlow({
-   *   engagement_id: 1,
    *   selected_application_ids: ['uuid1', 'uuid2', 'uuid3'],
    *   planning_config: {
    *     max_apps_per_wave: 5,
@@ -336,8 +338,9 @@ export class PlanningFlowApiClient {
  * ```typescript
  * import { planningFlowApi } from '@/lib/api/planningFlowService';
  *
+ * // Headers are automatically added by apiClient from context
+ * // (X-Client-Account-ID, X-Engagement-ID)
  * const result = await planningFlowApi.initializePlanningFlow({
- *   engagement_id: 1,
  *   selected_application_ids: ['uuid1', 'uuid2']
  * });
  * ```

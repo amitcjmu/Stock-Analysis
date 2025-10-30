@@ -92,7 +92,8 @@ def upgrade() -> None:
 
                     -- Resource Pool Metadata
                     is_active BOOLEAN DEFAULT true,
-                    utilization_percentage NUMERIC(5,2) DEFAULT 0.00 CHECK (utilization_percentage >= 0 AND utilization_percentage <= 100),
+                    utilization_percentage NUMERIC(5,2) DEFAULT 0.00
+                        CHECK (utilization_percentage >= 0 AND utilization_percentage <= 100),
 
                     -- Audit Fields
                     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -140,7 +141,8 @@ def upgrade() -> None:
 
                     -- Allocation Details
                     allocated_hours NUMERIC(10,2) NOT NULL,
-                    allocation_percentage NUMERIC(5,2) CHECK (allocation_percentage >= 0 AND allocation_percentage <= 100),
+                    allocation_percentage NUMERIC(5,2)
+                        CHECK (allocation_percentage >= 0 AND allocation_percentage <= 100),
 
                     -- Dates
                     allocation_start_date TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -152,12 +154,15 @@ def upgrade() -> None:
 
                     -- AI-Generated Allocation (from #690: AI suggestions with manual override)
                     is_ai_suggested BOOLEAN DEFAULT false,
-                    ai_confidence_score NUMERIC(5,2) CHECK (ai_confidence_score >= 0 AND ai_confidence_score <= 100),
+                    ai_confidence_score NUMERIC(5,2)
+                        CHECK (ai_confidence_score >= 0 AND ai_confidence_score <= 100),
                     manual_override BOOLEAN DEFAULT false,
                     override_reason TEXT,
 
                     -- Status
-                    status VARCHAR(20) CHECK (status IN ('planned', 'confirmed', 'in_progress', 'completed', 'cancelled')) DEFAULT 'planned',
+                    status VARCHAR(20)
+                        CHECK (status IN ('planned', 'confirmed', 'in_progress', 'completed', 'cancelled'))
+                        DEFAULT 'planned',
 
                     -- Audit Fields
                     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -200,7 +205,8 @@ def upgrade() -> None:
                     -- Skill Requirement
                     skill_name VARCHAR(255) NOT NULL,
                     skill_category VARCHAR(100),
-                    proficiency_level VARCHAR(20) CHECK (proficiency_level IN ('beginner', 'intermediate', 'advanced', 'expert')),
+                    proficiency_level VARCHAR(20)
+                        CHECK (proficiency_level IN ('beginner', 'intermediate', 'advanced', 'expert')),
 
                     -- Requirement Details
                     required_hours NUMERIC(10,2) NOT NULL,
@@ -208,7 +214,9 @@ def upgrade() -> None:
 
                     -- Gap Analysis (from #690: skill gap warnings)
                     has_gap BOOLEAN DEFAULT false,
-                    gap_severity VARCHAR(20) CHECK (gap_severity IN ('none', 'low', 'medium', 'high', 'critical')) DEFAULT 'none',
+                    gap_severity VARCHAR(20)
+                        CHECK (gap_severity IN ('none', 'low', 'medium', 'high', 'critical'))
+                        DEFAULT 'none',
                     gap_description TEXT,
 
                     -- Mitigation Plan

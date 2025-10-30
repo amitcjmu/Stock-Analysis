@@ -73,7 +73,7 @@ export const LazyAssess = createLazyRoute(
 );
 
 export const LazyPlan = createLazyRoute(
-  () => import("@/pages/Plan"),
+  () => import("@/pages/plan/Index"),
   "Planning",
   LoadingPriority.HIGH,
 );
@@ -320,6 +320,11 @@ export const LazyTimeline = createLazyRoute(
 export const LazyResource = createLazyRoute(
   () => import("@/pages/plan/Resource"),
   "Resource Planning",
+);
+
+export const LazyExport = createLazyRoute(
+  () => import("@/pages/plan/Export"),
+  "Export",
 );
 
 export const LazyTarget = createLazyRoute(

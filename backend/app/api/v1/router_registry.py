@@ -505,6 +505,14 @@ def register_special_routers(api_router: APIRouter):
     else:
         logger.warning("⚠️ Applications router not available")
 
+    # Wave Planning (for Plan Flow wizard)
+    if routers_with_flags.get("WAVE_PLANNING", (False, None))[0]:
+        wave_planning_router = routers_with_flags["WAVE_PLANNING"][1]
+        api_router.include_router(wave_planning_router, prefix="/wave-planning")
+        logger.info("✅ Wave Planning router included at /api/v1/wave-planning")
+    else:
+        logger.warning("⚠️ Wave Planning router not available")
+
 
 def register_all_routers(api_router: APIRouter):
     """Register all routers in organized groups."""
