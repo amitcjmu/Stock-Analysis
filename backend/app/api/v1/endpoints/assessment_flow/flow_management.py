@@ -438,12 +438,15 @@ def _calculate_progress_percentage(flow_state) -> int:
 
 
 def _get_next_phase(current_phase: AssessmentPhase) -> AssessmentPhase:
-    """Get the next phase in the assessment flow."""
+    """Get the next phase in the assessment flow (ADR-027 canonical phases)."""
     phase_progression = {
-        AssessmentPhase.ARCHITECTURE_MINIMUMS: AssessmentPhase.COMPONENT_ANALYSIS,
-        AssessmentPhase.COMPONENT_ANALYSIS: AssessmentPhase.TECH_DEBT_ANALYSIS,
-        AssessmentPhase.TECH_DEBT_ANALYSIS: AssessmentPhase.SIX_R_DECISION,
-        AssessmentPhase.SIX_R_DECISION: AssessmentPhase.FINALIZATION,
+        AssessmentPhase.INITIALIZATION: AssessmentPhase.READINESS_ASSESSMENT,
+        AssessmentPhase.READINESS_ASSESSMENT: AssessmentPhase.COMPLEXITY_ANALYSIS,
+        AssessmentPhase.COMPLEXITY_ANALYSIS: AssessmentPhase.DEPENDENCY_ANALYSIS,
+        AssessmentPhase.DEPENDENCY_ANALYSIS: AssessmentPhase.TECH_DEBT_ASSESSMENT,
+        AssessmentPhase.TECH_DEBT_ASSESSMENT: AssessmentPhase.RISK_ASSESSMENT,
+        AssessmentPhase.RISK_ASSESSMENT: AssessmentPhase.RECOMMENDATION_GENERATION,
+        AssessmentPhase.RECOMMENDATION_GENERATION: AssessmentPhase.FINALIZATION,
         AssessmentPhase.FINALIZATION: None,
     }
 
