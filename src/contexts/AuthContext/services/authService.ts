@@ -27,7 +27,7 @@ interface GuardedFunction {
   (...args: unknown[]): Promise<unknown>;
   isRunning?: boolean;
 }
-import { tokenStorage, contextStorage, persistClientData, persistEngagementData, syncContextToIndividualKeys } from '../storage'
+import { tokenStorage, contextStorage, persistClientData, persistEngagementData, syncContextToIndividualKeys, clearAllStoredData } from '../storage'
 
 export const useAuthService = (
   user: User | null,
@@ -46,10 +46,26 @@ export const useAuthService = (
   const navigate = useNavigate();
 
   const logout = (): unknown => {
+    // Clear auth and context data, but PRESERVE schema version
+    // The schema version persists across sessions to detect data format changes
     tokenStorage.removeToken();
-    tokenStorage.removeRefreshToken(); // Clear refresh token on logout
-    tokenStorage.setUser(null);
+    tokenStorage.removeRefreshToken();
+    tokenStorage.removeUser();
     contextStorage.clearContext();
+
+    // Clear individual context keys
+    try {
+      localStorage.removeItem('auth_client');
+      localStorage.removeItem('auth_engagement');
+      localStorage.removeItem('auth_session');
+      localStorage.removeItem('auth_client_id');
+      localStorage.removeItem('auth_flow');
+      localStorage.removeItem('user_data');
+    } catch (error) {
+      console.warn('Failed to clear context data:', error);
+    }
+
+    // Reset in-memory state
     setUser(null);
     setClient(null);
     setEngagement(null);
