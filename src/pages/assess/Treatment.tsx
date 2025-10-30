@@ -19,9 +19,9 @@ import type { SixRRecommendation, QuestionResponse, AnalysisProgress as Analysis
 import type { Analysis } from '@/types/assessment'
 
 // Components (restored from git history for backward compatibility)
-import { ParameterSliders, AnalysisHistory } from '@/components/assessment'
-// Note: Phase 5 - ApplicationSelector and Tier1GapFillingModal removed (from deleted sixr components)
-// TODO: Replace ParameterSliders and AnalysisHistory with Assessment Flow equivalents
+import { ParameterSliders, AnalysisHistory, ApplicationSelector } from '@/components/assessment'
+// Note: ParameterSliders and AnalysisHistory are backward compatibility components
+// ApplicationSelector is the new Assessment Flow component (Issue #860)
 import Sidebar from '@/components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
@@ -289,20 +289,13 @@ export const Treatment: React.FC = () => {
           {/* Tab content */}
           {currentTab === 'selection' && (
             <div className="p-6">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-yellow-800">
-                  <strong>Phase 5 Note:</strong> ApplicationSelector component removed as part of 6R Analysis deprecation.
-                  <br />
-                  <strong>Action Required (Phase 6):</strong> Replace with Assessment Flow application selection UI.
-                </p>
-              </div>
-              {/* TODO Phase 6: Replace with Assessment Flow ApplicationSelector equivalent */}
-              {/* <ApplicationSelector
+              {/* Application Selector - Issue #860: Proper replacement for deprecated 6R selector */}
+              <ApplicationSelector
                 applications={applications}
-                selectedApplications={selectedApplicationIds}
-                onSelectionChange={handleSelectApplications}
-                onStartAnalysis={handleStartAnalysis}
-              /> */}
+                selectedApplicationIds={selectedApplicationIds}
+                onSelectionChange={setSelectedApplicationIds}
+                isLoading={isLoadingApps}
+              />
 
               {/* Start Planning Button - Shown when applications are selected */}
               {selectedApplicationIds.length > 0 && (

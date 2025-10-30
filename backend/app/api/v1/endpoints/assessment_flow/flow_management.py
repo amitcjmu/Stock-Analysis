@@ -94,12 +94,14 @@ async def initialize_assessment_flow(
         ]
 
         # Create assessment flow via MFO (ADR-006: Two-table pattern)
+        # Issue #861: Pass source_collection_id to enable application loading
         result = await create_assessment_via_mfo(
             client_account_id=UUID(client_account_id),
             engagement_id=UUID(engagement_id),
             application_ids=application_ids_uuid,
             user_id=current_user.id,
             flow_name=request.flow_name if hasattr(request, "flow_name") else None,
+            source_collection_id=request.source_collection_id,  # Fix for Issue #861
             db=db,
         )
 

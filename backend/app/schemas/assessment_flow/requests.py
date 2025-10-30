@@ -38,6 +38,11 @@ class AssessmentFlowCreateRequest(BaseModel):
         description="Canonical application UUIDs (resolved from assets)",
     )
 
+    source_collection_id: Optional[UUID] = Field(
+        None,
+        description="UUID of the source collection flow (if assessment was created from collection)",
+    )
+
     application_asset_groups: Optional[List[ApplicationAssetGroup]] = Field(
         default_factory=list, description="Application-asset groupings with metadata"
     )
