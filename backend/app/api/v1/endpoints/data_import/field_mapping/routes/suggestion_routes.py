@@ -109,7 +109,7 @@ async def get_available_target_fields():
     The hardcoded list in FieldOptionsContext.tsx contains all asset model fields.
 
     Returns HTTP 410 Gone to indicate permanent removal.
-    Use /api/v1/data-import/available-target-fields instead.
+    Use /api/v1/data-import/available-target-fields instead (field_handler.py)
     """
     raise HTTPException(
         status_code=410,
@@ -124,7 +124,8 @@ async def get_available_target_fields():
             "message": (
                 "This endpoint is deprecated and no longer functional. "
                 "The _get_available_target_fields() method was removed "
-                "during ADR-015 refactoring."
+                "during ADR-015 refactoring. Frontend should use hardcoded "
+                "ASSET_TARGET_FIELDS in FieldOptionsContext.tsx"
             ),
         },
     )
