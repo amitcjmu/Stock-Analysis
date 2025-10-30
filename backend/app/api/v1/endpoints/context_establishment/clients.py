@@ -4,6 +4,8 @@ Client retrieval endpoint for context establishment.
 Handles GET /clients endpoint - provides list of accessible clients for user.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -88,7 +90,7 @@ async def _get_regular_user_clients(
     )
 
     # Debug: Print the actual SQL query (only in development)
-    if logger.isEnabledFor(logger.DEBUG):
+    if logger.isEnabledFor(logging.DEBUG):
         try:
             compiled_query = str(access_query.compile())
             logger.debug(
