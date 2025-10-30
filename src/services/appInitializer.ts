@@ -8,6 +8,7 @@
 
 import type { DemoContext } from './demoContextService'
 import { demoContextService } from './demoContextService'
+import { validateAndClearStaleData } from '@/contexts/AuthContext/storage'
 
 export class AppInitializer {
   private static initialized = false;
@@ -44,6 +45,13 @@ export class AppInitializer {
    */
   private static async runInitialization(): Promise<void> {
     try {
+      // Task 0: Validate localStorage schema version and clear stale data
+      // Bug Fix #867: Clears old INTEGER tenant IDs after migration 115
+      const wasCleared = validateAndClearStaleData();
+      if (wasCleared) {
+        console.log('📦 localStorage schema updated - user will re-fetch fresh data on next API call');
+      }
+
       // Task 1: Initialize demo context (only if user has access)
       const authToken = localStorage.getItem('auth-token');
       if (authToken) {

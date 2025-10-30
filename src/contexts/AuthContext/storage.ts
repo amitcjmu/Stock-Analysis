@@ -96,6 +96,12 @@ export const tokenStorage: TokenStorage = {
 
 const CONTEXT_STORAGE_KEY = 'user_context_selection';
 
+// Schema version for localStorage data format
+// Increment this when the data structure changes (e.g., INTEGER → UUID migration)
+// This forces clients to re-fetch fresh data from the backend
+const STORAGE_SCHEMA_VERSION = 2; // v2: Post-migration 115 (UUID tenant IDs)
+const SCHEMA_VERSION_KEY = 'auth_storage_schema_version';
+
 export const contextStorage = {
   getContext: (): ContextData | null => {
     const contextData = localStorage.getItem(CONTEXT_STORAGE_KEY);
@@ -183,6 +189,45 @@ export const clearAllStoredData = (): unknown => {
   localStorage.removeItem('auth_client_id');
   localStorage.removeItem('user_data');
   localStorage.removeItem('user_context_selection');
+  localStorage.removeItem(SCHEMA_VERSION_KEY);
+};
+
+/**
+ * Check and clear stale localStorage data from schema changes.
+ *
+ * Bug Fix (Issue #867): After migration 115 (Oct 2025), tenant IDs changed from
+ * INTEGER to UUID. Old localStorage may have client.id="1" instead of proper UUID.
+ * This function detects schema version mismatches and clears stale data.
+ *
+ * Call this on app initialization BEFORE any API calls.
+ */
+export const validateAndClearStaleData = (): boolean => {
+  try {
+    const storedVersion = localStorage.getItem(SCHEMA_VERSION_KEY);
+    const currentVersion = String(STORAGE_SCHEMA_VERSION);
+
+    if (storedVersion !== currentVersion) {
+      console.log(`🔄 localStorage schema mismatch detected (stored: ${storedVersion || 'none'}, current: ${currentVersion})`);
+      console.log('🧹 Clearing stale localStorage data to force re-fetch from backend');
+
+      // Clear context data but preserve auth token for seamless re-authentication
+      clearInvalidContextData();
+
+      // Update to current schema version
+      localStorage.setItem(SCHEMA_VERSION_KEY, currentVersion);
+
+      return true; // Indicates data was cleared
+    }
+
+    // Schema version matches, no action needed
+    return false;
+  } catch (error) {
+    console.error('❌ Error validating localStorage schema:', error);
+    // On error, clear everything to be safe
+    clearAllStoredData();
+    localStorage.setItem(SCHEMA_VERSION_KEY, String(STORAGE_SCHEMA_VERSION));
+    return true;
+  }
 };
 
 /**

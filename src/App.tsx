@@ -390,8 +390,12 @@ const AuthenticatedApp = (): JSX.Element => {
         path="/assessment/:flowId/tech-debt"
         element={<LazyAssessmentTechDebt />}
       />
-      {/* Note: /assessment/:flowId/sixr-review route removed as part of Phase 5 */}
-      {/* 6R Review is now handled by Assessment Flow pages */}
+      {/* Bug #869 fix: Redirect sixr-review to app-on-page (Assessment Flow architecture) */}
+      {/* 6R Strategy Review phase is handled by app-on-page which displays 6R decisions */}
+      <Route
+        path="/assessment/:flowId/sixr-review"
+        element={<LazyAssessmentAppOnPage />}
+      />
       <Route
         path="/assessment/:flowId/app-on-page"
         element={<LazyAssessmentAppOnPage />}
