@@ -6,7 +6,45 @@ import masterFlowServiceExtended from '@/services/api/masterFlowService.extensio
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { useToast } from '@/components/ui/use-toast';
 
-export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgress?: unknown): unknown => {
+/**
+ * Interface for flow state object with multiple possible ID property names
+ * to handle different naming conventions (snake_case, camelCase)
+ */
+interface FlowStateInput {
+  flow_id?: string;
+  flowId?: string;
+  id?: string;
+  status?: string;
+  [key: string]: any; // Allow other properties
+}
+
+/**
+ * Interface for mapping progress data
+ */
+interface MappingProgress {
+  [key: string]: any;
+}
+
+/**
+ * Return type for useAttributeMappingNavigation hook
+ */
+interface AttributeMappingNavigationReturn {
+  handleContinueToDataCleansing: () => Promise<void>;
+}
+
+/**
+ * Extracts flow ID from a flow state object, checking multiple possible property names
+ * to handle different naming conventions (flow_id, flowId, id)
+ */
+const extractFlowId = (state?: FlowStateInput): string | null => {
+  if (!state) return null;
+  return state.flow_id || state.flowId || state.id || null;
+};
+
+export const useAttributeMappingNavigation = (
+  flowState?: FlowStateInput,
+  mappingProgress?: MappingProgress
+): AttributeMappingNavigationReturn => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
 
@@ -50,30 +88,23 @@ export const useAttributeMappingNavigation = (flowState?: unknown, mappingProgre
   }, [client?.id, engagement?.id]);
 
   // Get the resolved flow ID for useUnifiedDiscoveryFlow
-  // flowState is already the full flow object, extract its ID
-  const extractedFlowId = (flowState as any)?.flow_id || (flowState as any)?.flowId || (flowState as any)?.id;
+  // flowState is already the full flow object, extract its ID using type-safe utility
+  const extractedFlowId = extractFlowId(flowState);
   const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(extractedFlowId);
   const { toast } = useToast();
 
   const handleContinueToDataCleansing = useCallback(async () => {
     try {
-      // CC FIX: Check multiple possible property names for flow_id
-      // flowState is the full flow object passed from parent
-      const rawFlowId =
-        (flowState as any)?.flow_id ||
-        (flowState as any)?.flowId ||
-        (flowState as any)?.id ||
-        flow?.flow_id ||
-        flow?.flowId ||
-        flow?.id;
+      // Extract flow ID from flowState or fall back to flow object
+      const rawFlowId = extractFlowId(flowState) || extractFlowId(flow as FlowStateInput);
 
       console.log('🔍 DEBUG: Flow ID resolution:', {
         flowState_flow_id: flowState?.flow_id,
         flowState_flowId: flowState?.flowId,
         flowState_id: flowState?.id,
-        flow_flow_id: flow?.flow_id,
-        flow_flowId: flow?.flowId,
-        flow_id: flow?.id,
+        flow_flow_id: (flow as any)?.flow_id,
+        flow_flowId: (flow as any)?.flowId,
+        flow_id: (flow as any)?.id,
         rawFlowId
       });
 
