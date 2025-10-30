@@ -73,7 +73,7 @@ export const LazyAssess = createLazyRoute(
 );
 
 export const LazyPlan = createLazyRoute(
-  () => import("@/pages/Plan"),
+  () => import("@/pages/plan/Index"),
   "Planning",
   LoadingPriority.HIGH,
 );

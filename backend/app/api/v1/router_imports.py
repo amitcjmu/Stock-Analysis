@@ -420,6 +420,12 @@ try:
 except ImportError:
     routers_with_flags["APPLICATIONS"] = (False, None)
 
+# Wave Planning (for Plan Flow wizard)
+if WAVE_PLANNING_AVAILABLE:
+    routers_with_flags["WAVE_PLANNING"] = (True, wave_planning_router)
+else:
+    routers_with_flags["WAVE_PLANNING"] = (False, None)
+
 # RBAC Admin router
 try:
     from app.api.v1.admin.rbac import router as rbac_admin_router
