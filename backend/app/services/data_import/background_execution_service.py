@@ -125,6 +125,13 @@ class BackgroundExecutionService:
         logger.info("=" * 80)
         logger.info(f"📊 Processing {len(file_data)} records")
 
+        # 🔧 CC FIX: Ensure CrewAI environment is configured before any CrewAI code runs
+        # This prevents "OPENAI_API_KEY is required" errors in Railway/production
+        from app.core.crewai_env_setup import ensure_crewai_environment
+
+        ensure_crewai_environment()
+        logger.info("✅ CrewAI environment configured for background execution")
+
         discovery_flow = None
 
         try:
@@ -492,6 +499,12 @@ class BackgroundExecutionService:
             logger.info(
                 f"🔄 Resuming flow {flow_id} from phase {resume_phase} with user input"
             )
+
+            # 🔧 CC FIX: Ensure CrewAI environment is configured before resuming flow
+            from app.core.crewai_env_setup import ensure_crewai_environment
+
+            ensure_crewai_environment()
+            logger.info("✅ CrewAI environment configured for flow resumption")
 
             # Create CrewAI service with fresh session
             async with AsyncSessionLocal() as fresh_db:
