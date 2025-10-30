@@ -2,7 +2,7 @@
 Refresh Token model definition.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ._common import (
     Base,
@@ -97,9 +97,9 @@ class RefreshToken(Base):
 
     def is_valid(self) -> bool:
         """Check if the refresh token is valid (not expired and not revoked)."""
-        return not self.is_revoked and datetime.utcnow() < self.expires_at
+        return not self.is_revoked and datetime.now(timezone.utc) < self.expires_at
 
     def revoke(self):
         """Revoke this refresh token."""
         self.is_revoked = True
-        self.revoked_at = datetime.utcnow()
+        self.revoked_at = datetime.now(timezone.utc)

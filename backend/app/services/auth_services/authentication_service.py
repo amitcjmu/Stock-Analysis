@@ -6,7 +6,7 @@ Handles login, password changes, token validation, and session management.
 import hashlib
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import bcrypt
@@ -118,7 +118,7 @@ class AuthenticationService:
 
             # Log successful login
             if user_profile:
-                user_profile.last_login_at = datetime.utcnow()
+                user_profile.last_login_at = datetime.now(timezone.utc)
                 user_profile.login_count = (user_profile.login_count or 0) + 1
                 user_profile.failed_login_attempts = 0
                 await self.db.commit()
@@ -149,7 +149,7 @@ class AuthenticationService:
                 db_refresh_token = RefreshToken(
                     token=refresh_token_hash,
                     user_id=user.id,
-                    expires_at=datetime.utcnow() + timedelta(days=7),
+                    expires_at=datetime.now(timezone.utc) + timedelta(days=7),
                     is_revoked=False,
                 )
                 self.db.add(db_refresh_token)
@@ -446,13 +446,13 @@ class AuthenticationService:
             new_db_refresh_token = RefreshToken(
                 token=new_refresh_token_hash,
                 user_id=user.id,
-                expires_at=datetime.utcnow() + timedelta(days=7),
+                expires_at=datetime.now(timezone.utc) + timedelta(days=7),
                 is_revoked=False,
             )
             self.db.add(new_db_refresh_token)
 
             # Update last_used_at for revoked token
-            db_refresh_token.last_used_at = datetime.utcnow()
+            db_refresh_token.last_used_at = datetime.now(timezone.utc)
 
             await self.db.commit()
 
