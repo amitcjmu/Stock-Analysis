@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Flag } from 'lucide-react'
-import { Calendar, Loader2, AlertTriangle, Clock, AlertCircle, ChevronRight } from 'lucide-react'
+import { Calendar, Loader2, AlertTriangle, Clock, AlertCircle, ChevronRight, BarChart3 } from 'lucide-react'
 import { useTimeline } from '@/hooks/useTimeline';
 import Sidebar from '@/components/Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -10,9 +10,12 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import PlanNavigation from '@/components/plan/PlanNavigation';
+import TimelineGantt from '@/components/plan/TimelineGantt';
 
 const Timeline = (): JSX.Element => {
   const { data, isLoading, isError, error } = useTimeline();
+  const [viewMode, setViewMode] = useState<'list' | 'gantt'>('gantt');
 
   if (isLoading) {
     return (
@@ -77,6 +80,9 @@ const Timeline = (): JSX.Element => {
           {/* Context Breadcrumbs */}
           <ContextBreadcrumbs showContextSelector={true} />
 
+          {/* Plan Navigation Tabs */}
+          <PlanNavigation />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">
@@ -86,10 +92,32 @@ const Timeline = (): JSX.Element => {
                     Track and manage the migration schedule and milestones
                   </p>
                 </div>
-                <Button variant="outline" className="bg-white">
-                  <Calendar className="h-5 w-5 mr-2" />
-                  Export Schedule
-                </Button>
+                <div className="flex items-center space-x-3">
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center bg-white rounded-lg border border-gray-200 p-1">
+                    <Button
+                      variant={viewMode === 'gantt' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('gantt')}
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Gantt View
+                    </Button>
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      List View
+                    </Button>
+                  </div>
+
+                  <Button variant="outline" className="bg-white">
+                    <Calendar className="h-5 w-5 mr-2" />
+                    Export Schedule
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -165,7 +193,20 @@ const Timeline = (): JSX.Element => {
               </div>
             </Card>
 
-            {/* Timeline Phases */}
+            {/* Gantt Chart View */}
+            {viewMode === 'gantt' && (
+              <TimelineGantt
+                data={data}
+                onPhaseUpdate={(phaseId, startDate, endDate) => {
+                  console.log('Phase updated:', phaseId, startDate, endDate);
+                  // TODO: Implement API call to update phase dates
+                }}
+                isLoading={isLoading}
+              />
+            )}
+
+            {/* Timeline Phases List View */}
+            {viewMode === 'list' && (
             <div className="space-y-6">
               {data.phases.map((phase) => (
                 <Card key={phase.id}>
@@ -236,6 +277,7 @@ const Timeline = (): JSX.Element => {
                 </Card>
               ))}
             </div>
+            )}
           </div>
         </main>
         </div>

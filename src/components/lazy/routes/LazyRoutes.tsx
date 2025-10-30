@@ -322,6 +322,11 @@ export const LazyResource = createLazyRoute(
   "Resource Planning",
 );
 
+export const LazyExport = createLazyRoute(
+  () => import("@/pages/plan/Export"),
+  "Export",
+);
+
 export const LazyTarget = createLazyRoute(
   () => import("@/pages/plan/Target"),
   "Target Architecture",

@@ -79,6 +79,7 @@ import {
   LazySixRAnalysis,
   LazyTimeline,
   LazyResource,
+  LazyExport,
   LazyTarget,
   LazyExecuteIndex,
   LazyRehost,
@@ -435,6 +436,7 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/plan/roadmap" element={<LazyRoadmap />} />
       <Route path="/plan/timeline" element={<LazyTimeline />} />
       <Route path="/plan/resource" element={<LazyResource />} />
+      <Route path="/plan/export" element={<LazyExport />} />
       <Route path="/plan/target" element={<LazyTarget />} />
 
       {/* Execute sub-routes */}

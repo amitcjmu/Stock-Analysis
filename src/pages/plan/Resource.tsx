@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import PlanNavigation from '@/components/plan/PlanNavigation';
 
 const Resource = (): JSX.Element => {
   const { data, isLoading, isError, error } = useResource();
@@ -69,6 +70,9 @@ const Resource = (): JSX.Element => {
         <main className="p-8">
           {/* Context Breadcrumbs */}
           <ContextBreadcrumbs showContextSelector={true} />
+
+          {/* Plan Navigation Tabs */}
+          <PlanNavigation />
 
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
