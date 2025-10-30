@@ -45,7 +45,6 @@ def upgrade() -> None:
             FOR assessment_record IN
                 SELECT
                     af.id,
-                    af.flow_id,
                     af.selected_asset_ids,
                     af.flow_metadata,
                     af.client_account_id,
@@ -57,15 +56,15 @@ def upgrade() -> None:
             LOOP
                 -- Skip if no selected assets
                 CONTINUE WHEN assessment_record.selected_asset_ids IS NULL
-                           OR array_length(assessment_record.selected_asset_ids, 1) = 0;
+                           OR jsonb_array_length(assessment_record.selected_asset_ids) = 0;
 
                 -- Find collection flow containing these assets
                 -- Strategy: Find collection_flow_id that has ANY of these assets
                 SELECT DISTINCT cfa.collection_flow_id
                 INTO collection_flow_uuid
                 FROM migration.collection_flow_applications cfa
-                WHERE cfa.asset_id = ANY(
-                    SELECT unnest(assessment_record.selected_asset_ids)::uuid
+                WHERE cfa.asset_id IN (
+                    SELECT (jsonb_array_elements_text(assessment_record.selected_asset_ids))::uuid
                 )
                 AND cfa.client_account_id = assessment_record.client_account_id
                 AND cfa.engagement_id = assessment_record.engagement_id
@@ -89,7 +88,7 @@ def upgrade() -> None:
                     updated_count := updated_count + 1;
 
                     RAISE NOTICE 'Backfilled assessment flow % with source collection %',
-                                 assessment_record.flow_id,
+                                 assessment_record.id,
                                  collection_flow_uuid;
                 END IF;
             END LOOP;
