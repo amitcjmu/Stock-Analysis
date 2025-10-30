@@ -229,8 +229,10 @@ export const useQuestionnairePolling = ({
     enabled: shouldEnablePolling,
     // Polling configuration based on completion status
     refetchInterval: () => {
-      // Only poll if status is pending
-      if (completionStatus === 'pending' && isPolling) {
+      // CRITICAL FIX (Issue #863): Continue polling while isPolling is true
+      // The completionStatus state may be stale (from previous fetch), so we rely on
+      // isPolling flag which is set to false inside fetchQuestionnaires when status becomes 'ready'
+      if (isPolling) {
         // Initialize polling start time on first poll
         if (pollStartTimeRef.current === null) {
           pollStartTimeRef.current = Date.now();
@@ -243,7 +245,7 @@ export const useQuestionnairePolling = ({
         if (elapsedTime < TOTAL_POLLING_TIMEOUT_MS) {
           const elapsedSeconds = Math.round(elapsedTime / 1000);
           const totalSeconds = TOTAL_POLLING_TIMEOUT_MS / 1000;
-          console.log(`📊 Polling (elapsed: ${elapsedSeconds}s / ${totalSeconds}s)`);
+          console.log(`📊 Polling (elapsed: ${elapsedSeconds}s / ${totalSeconds}s) @ useQuestionnairePolling`);
           return POLLING_INTERVAL_MS;
         } else {
           // We've reached the total timeout, stop polling

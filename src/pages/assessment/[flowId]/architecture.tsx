@@ -108,12 +108,14 @@ const ArchitecturePage: React.FC = () => {
       // ADR-027: Map canonical phase name to frontend route
       // Each phase now has its own dedicated page
       const phaseToRouteMap: Record<string, string> = {
+        'initialization': 'architecture',         // Initial phase redirects to architecture
         'readiness_assessment': 'architecture',
         'complexity_analysis': 'complexity',      // New page: complexity analysis metrics
         'dependency_analysis': 'dependency',      // New page: dependency mapping
         'tech_debt_assessment': 'tech-debt',      // Existing page: tech debt items
         'risk_assessment': 'sixr-review',
         'recommendation_generation': 'app-on-page',
+        'finalization': 'app-on-page',            // Final phase shows recommendations
       };
 
       // Get next phase from backend response (not state - ADR-027)

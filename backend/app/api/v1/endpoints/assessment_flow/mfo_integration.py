@@ -37,6 +37,7 @@ async def create_assessment_via_mfo(
     application_ids: List[UUID],
     user_id: str,
     flow_name: Optional[str],
+    source_collection_id: Optional[UUID],
     db: AsyncSession,
 ) -> Dict[str, Any]:
     """
@@ -54,6 +55,7 @@ async def create_assessment_via_mfo(
         application_ids: List of application UUIDs to assess
         user_id: User who initiated the flow
         flow_name: Optional name for the flow
+        source_collection_id: Optional UUID of source collection flow (for Issue #861)
         db: Database session
 
     Returns:
@@ -99,6 +101,15 @@ async def create_assessment_via_mfo(
 
             # Step 2: Create child assessment flow in assessment_flows table
             # Per ADR-012: Child flow contains operational state for UI and agents
+
+            # Build flow_metadata (Issue #861: Store source_collection for app loading)
+            flow_metadata = {}
+            if source_collection_id:
+                flow_metadata["source_collection"] = {
+                    "collection_flow_id": str(source_collection_id),
+                    "linked_at": datetime.utcnow().isoformat(),
+                }
+
             child_flow = AssessmentFlow(
                 flow_id=flow_id,  # Links to master via flow_id (not FK, but same UUID)
                 master_flow_id=master_flow.flow_id,  # FK reference for relationship
@@ -110,6 +121,7 @@ async def create_assessment_via_mfo(
                 progress=0,
                 selected_application_ids=[str(app_id) for app_id in application_ids],
                 selected_asset_ids=[str(app_id) for app_id in application_ids],
+                flow_metadata=flow_metadata,  # Store source collection link
                 configuration={
                     "application_count": len(application_ids),
                     "auto_progression_enabled": True,

@@ -29,3 +29,6 @@ export { ExportAndSharingControls } from './ExportAndSharingControls';
 // These were restored from git history and simplified for Assessment Flow integration
 export { ParameterSliders } from './ParameterSliders';
 export { AnalysisHistory } from './AnalysisHistory';
+
+// Assessment Flow ApplicationSelector (Issue #860 - replaces deprecated 6R selector)
+export { ApplicationSelector } from './ApplicationSelector';
