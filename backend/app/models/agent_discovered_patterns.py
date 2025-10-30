@@ -6,6 +6,7 @@ Part of the Agent Observability Enhancement
 
 import uuid
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pgvector.sqlalchemy import Vector
@@ -15,6 +16,7 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     DateTime,
+    Enum as SQLEnum,
     ForeignKey,
     Integer,
     String,
@@ -26,6 +28,22 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import text
 
 from app.core.database import Base
+
+
+class PatternType(str, Enum):
+    """Types of patterns that agents can discover"""
+
+    TECHNOLOGY_CORRELATION = "technology_correlation"
+    BUSINESS_VALUE_INDICATOR = "business_value_indicator"
+    RISK_FACTOR = "risk_factor"
+    MODERNIZATION_OPPORTUNITY = "modernization_opportunity"
+    DEPENDENCY_PATTERN = "dependency_pattern"
+    SECURITY_VULNERABILITY = "security_vulnerability"
+    PERFORMANCE_BOTTLENECK = "performance_bottleneck"
+    COMPLIANCE_REQUIREMENT = "compliance_requirement"
+    FIELD_MAPPING_APPROVAL = "field_mapping_approval"
+    FIELD_MAPPING_REJECTION = "field_mapping_rejection"
+    FIELD_MAPPING_SUGGESTION = "field_mapping_suggestion"
 
 
 class AgentDiscoveredPatterns(Base):
@@ -53,7 +71,10 @@ class AgentDiscoveredPatterns(Base):
         comment="Unique identifier for the pattern",
     )
     pattern_type = Column(
-        String(100), nullable=False, index=True, comment="Type of pattern discovered"
+        SQLEnum(PatternType),
+        nullable=False,
+        index=True,
+        comment="Type of pattern discovered",
     )
     pattern_name = Column(
         String(255), nullable=False, comment="Human-readable name of the pattern"

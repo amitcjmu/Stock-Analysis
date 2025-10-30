@@ -152,3 +152,62 @@ class AssessmentReadiness(str, enum.Enum):
     NOT_READY = "not_ready"
     PENDING = "pending"
     BLOCKED = "blocked"
+
+
+class ApplicationType(str, enum.Enum):
+    """Application type classification."""
+
+    COTS = "cots"  # Commercial Off-The-Shelf
+    CUSTOM = "custom"  # Custom developed
+    CUSTOM_COTS = "custom_cots"  # Customized COTS
+    OTHER = "other"
+
+
+class Lifecycle(str, enum.Enum):
+    """Asset lifecycle stage."""
+
+    RETIRE = "retire"  # Decommission
+    REPLACE = "replace"  # Replace with new
+    RETAIN = "retain"  # Keep as-is
+    INVEST = "invest"  # Modernize/enhance
+
+
+class HostingModel(str, enum.Enum):
+    """Infrastructure hosting model."""
+
+    ON_PREM = "on_prem"  # On-premises datacenter
+    CLOUD = "cloud"  # Public cloud
+    HYBRID = "hybrid"  # Mix of on-prem and cloud
+    COLO = "colo"  # Colocation
+
+
+class ServerRole(str, enum.Enum):
+    """Server role classification."""
+
+    WEB = "web"  # Web server
+    DB = "db"  # Database server
+    APP = "app"  # Application server
+    CITRIX = "citrix"  # Citrix/VDI
+    FILE = "file"  # File server
+    EMAIL = "email"  # Email server
+    OTHER = "other"
+
+
+class RiskLevel(str, enum.Enum):
+    """Migration risk assessment."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class TShirtSize(str, enum.Enum):
+    """Complexity sizing."""
+
+    XS = "xs"  # Extra small
+    S = "s"  # Small
+    M = "m"  # Medium
+    L = "l"  # Large
+    XL = "xl"  # Extra large
+    XXL = "xxl"  # Double extra large

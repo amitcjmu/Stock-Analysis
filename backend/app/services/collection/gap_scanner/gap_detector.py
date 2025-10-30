@@ -238,8 +238,7 @@ async def get_enriched_asset_data(
             return {
                 "description": enriched.description,
                 "environment": enriched.environment,
-                "business_owner": enriched.business_owner,
-                "technical_owner": enriched.technical_owner,
+                # business_owner and technical_owner moved to asset_contacts table (Migration 113)
             }
 
     logger.debug(

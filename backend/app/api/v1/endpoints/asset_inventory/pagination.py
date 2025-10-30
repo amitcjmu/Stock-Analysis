@@ -63,30 +63,61 @@ def _convert_assets_to_dicts(assets) -> List[Dict[str, Any]]:
     """Convert SQLAlchemy asset objects to dictionaries."""
     asset_dicts = []
     for asset in assets:
-        asset_dicts.append(
-            {
-                "id": str(asset.id),
-                "name": asset.name,
-                "asset_type": asset.asset_type,
-                "environment": asset.environment,
-                "criticality": asset.criticality,
-                "status": asset.status,
-                "six_r_strategy": asset.six_r_strategy,
-                "migration_wave": asset.migration_wave,
-                "application_name": asset.application_name,
-                "hostname": asset.hostname,
-                "operating_system": asset.operating_system,
-                "cpu_cores": asset.cpu_cores,
-                "memory_gb": asset.memory_gb,
-                "storage_gb": asset.storage_gb,
-                "created_at": (
-                    asset.created_at.isoformat() if asset.created_at else None
-                ),
-                "updated_at": (
-                    asset.updated_at.isoformat() if asset.updated_at else None
-                ),
-            }
-        )
+        asset_dict = {
+            "id": str(asset.id),
+            "name": asset.name,
+            "asset_type": asset.asset_type,
+            "environment": asset.environment,
+            "criticality": asset.criticality,
+            "status": asset.status,
+            "six_r_strategy": asset.six_r_strategy,
+            "migration_wave": asset.migration_wave,
+            "application_name": asset.application_name,
+            "hostname": asset.hostname,
+            "operating_system": asset.operating_system,
+            "cpu_cores": asset.cpu_cores,
+            "memory_gb": asset.memory_gb,
+            "storage_gb": asset.storage_gb,
+            "created_at": (asset.created_at.isoformat() if asset.created_at else None),
+            "updated_at": (asset.updated_at.isoformat() if asset.updated_at else None),
+            # CMDB Enhancement Fields (Issue #833)
+            "business_unit": asset.business_unit,
+            "vendor": asset.vendor,
+            "application_type": asset.application_type,
+            "lifecycle": asset.lifecycle,
+            "hosting_model": asset.hosting_model,
+            "server_role": asset.server_role,
+            "security_zone": asset.security_zone,
+            "database_type": asset.database_type,
+            "database_version": asset.database_version,
+            "database_size_gb": asset.database_size_gb,
+            "cpu_utilization_percent_max": asset.cpu_utilization_percent_max,
+            "memory_utilization_percent_max": asset.memory_utilization_percent_max,
+            "storage_free_gb": asset.storage_free_gb,
+            "storage_used_gb": asset.storage_used_gb,
+            "tech_debt_flags": asset.tech_debt_flags,
+            "pii_flag": asset.pii_flag,
+            "application_data_classification": asset.application_data_classification,
+            "has_saas_replacement": asset.has_saas_replacement,
+            "risk_level": asset.risk_level,
+            "tshirt_size": asset.tshirt_size,
+            "proposed_treatmentplan_rationale": asset.proposed_treatmentplan_rationale,
+            "annual_cost_estimate": asset.annual_cost_estimate,
+            "backup_policy": asset.backup_policy,
+            "asset_tags": asset.asset_tags,
+            # Child table relationships
+            "contacts": (
+                [c.to_dict() for c in asset.contacts]
+                if hasattr(asset, "contacts") and asset.contacts
+                else []
+            ),
+            "eol_assessments": (
+                [e.to_dict() for e in asset.eol_assessments]
+                if hasattr(asset, "eol_assessments") and asset.eol_assessments
+                else []
+            ),
+        }
+        asset_dicts.append(asset_dict)
     return asset_dicts
 
 
@@ -203,6 +234,7 @@ async def _get_assets_from_db(
 ):
     """Fetch assets from database with pagination."""
     from sqlalchemy import func, select
+    from sqlalchemy.orm import selectinload
     from app.models.asset import Asset
 
     # Build base query with context filtering
@@ -213,6 +245,7 @@ async def _get_assets_from_db(
             Asset.client_account_id == context.client_account_id,
             Asset.engagement_id == context.engagement_id,
         )
+        .options(selectinload(Asset.eol_assessments), selectinload(Asset.contacts))
         .order_by(Asset.created_at.desc())
     )
 

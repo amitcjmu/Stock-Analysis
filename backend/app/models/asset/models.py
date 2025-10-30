@@ -32,6 +32,7 @@ from .base import (
 from .mixins import AssetPropertiesMixin, AssetBusinessLogicMixin
 from .assessment_fields import AssessmentFieldsMixin
 from .import_fields import ImportFieldsMixin
+from .cmdb_fields import CMDBFieldsMixin
 
 
 class Asset(
@@ -40,6 +41,7 @@ class Asset(
     AssetBusinessLogicMixin,
     AssessmentFieldsMixin,
     ImportFieldsMixin,
+    CMDBFieldsMixin,
 ):
     """
     Represents a single Configuration Item (CI) or asset within the CMDB.
@@ -423,6 +425,16 @@ class Asset(
     )
     licenses = relationship(
         "AssetLicenses",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    eol_assessments = relationship(
+        "AssetEOLAssessment",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    contacts = relationship(
+        "AssetContact",
         back_populates="asset",
         lazy="selectin",
     )
