@@ -81,6 +81,24 @@ const CreateUser: React.FC = () => {
     initialData: [],
   });
 
+  // Form state - MUST be declared before useEffect that depends on it
+  const [formData, setFormData] = useState<CreateUserData>({
+    email: '',
+    password: '',
+    full_name: '',
+    username: '',
+    organization: '',
+    role_description: '',
+    phone_number: '',
+    manager_email: '',
+    access_level: 'read_only',
+    role_name: 'Analyst',
+    notes: '',
+    is_active: true,
+    default_client_id: '',
+    default_engagement_id: ''
+  });
+
   // Filter engagements by selected client
   const [filteredEngagements, setFilteredEngagements] = useState<Engagement[]>([]);
 
@@ -129,23 +147,6 @@ const CreateUser: React.FC = () => {
     }
   });
 
-  const [formData, setFormData] = useState<CreateUserData>({
-    email: '',
-    password: '',
-    full_name: '',
-    username: '',
-    organization: '',
-    role_description: '',
-    phone_number: '',
-    manager_email: '',
-    access_level: 'read_only',
-    role_name: 'Analyst',
-    notes: '',
-    is_active: true,
-    default_client_id: '',
-    default_engagement_id: ''
-  });
-
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleFormChange = (field: keyof CreateUserData, value: string | boolean): void => {
@@ -162,7 +163,7 @@ const CreateUser: React.FC = () => {
     setFormData(prev => ({ ...prev, is_active: checked }));
   };
 
-  const validateForm = (): JSX.Element => {
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
@@ -182,6 +183,10 @@ const CreateUser: React.FC = () => {
     if (!formData.organization) newErrors.organization = 'Organization is required';
     if (!formData.role_description) newErrors.role_description = 'Role description is required';
 
+    // CRITICAL: Client and engagement are required for proper authorization
+    if (!formData.default_client_id) newErrors.default_client_id = 'Default client is required';
+    if (!formData.default_engagement_id) newErrors.default_engagement_id = 'Default engagement is required';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -196,7 +201,15 @@ const CreateUser: React.FC = () => {
       });
       return;
     }
-    createUserMutation.mutate(formData);
+
+    // Clean up payload: convert empty strings to undefined for optional fields
+    const cleanPayload = {
+      ...formData,
+      default_client_id: formData.default_client_id || undefined,
+      default_engagement_id: formData.default_engagement_id || undefined
+    };
+
+    createUserMutation.mutate(cleanPayload as CreateUserData);
   };
 
   return (
@@ -405,13 +418,12 @@ const CreateUser: React.FC = () => {
                 <Separator />
 
                 <div className="space-y-2">
-                  <Label htmlFor="default_client_id">Default Client Account</Label>
+                  <Label htmlFor="default_client_id">Default Client Account *</Label>
                   <Select value={formData.default_client_id} onValueChange={(value) => handleFormChange('default_client_id', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select default client" />
+                      <SelectValue placeholder="Select default client (required)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No default client</SelectItem>
                       {clientsQuery.data?.map(client => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.account_name} ({client.industry})
@@ -419,20 +431,25 @@ const CreateUser: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.default_client_id && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {errors.default_client_id}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="default_engagement_id">Default Engagement</Label>
+                  <Label htmlFor="default_engagement_id">Default Engagement *</Label>
                   <Select
                     value={formData.default_engagement_id}
                     onValueChange={(value) => handleFormChange('default_engagement_id', value)}
                     disabled={!formData.default_client_id}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={formData.default_client_id ? "Select default engagement" : "Select client first"} />
+                      <SelectValue placeholder={formData.default_client_id ? "Select default engagement (required)" : "Select client first"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No default engagement</SelectItem>
                       {filteredEngagements.map(engagement => (
                         <SelectItem key={engagement.id} value={engagement.id}>
                           {engagement.engagement_name}
@@ -440,6 +457,12 @@ const CreateUser: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.default_engagement_id && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {errors.default_engagement_id}
+                    </p>
+                  )}
                 </div>
 
                 <Separator />

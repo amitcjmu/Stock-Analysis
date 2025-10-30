@@ -76,7 +76,8 @@ class Settings(BaseSettings):
     # Security settings
     SECRET_KEY: str = Field(default="", env="SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
-        default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES"
+        default=30,  # 30 minutes - secure default with refresh token rotation
+        env="ACCESS_TOKEN_EXPIRE_MINUTES",
     )
     ALGORITHM: str = "HS256"
 

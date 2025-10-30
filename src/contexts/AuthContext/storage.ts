@@ -92,6 +92,32 @@ export const tokenStorage: TokenStorage = {
       console.error("Failed to remove user from localStorage", error);
     }
   },
+  getRefreshToken: () => {
+    try {
+      return localStorage.getItem('auth_refresh_token');
+    } catch (error) {
+      console.error("Failed to get refresh token from localStorage", error);
+      return null;
+    }
+  },
+  setRefreshToken: (token: string | null) => {
+    try {
+      if (token) {
+        localStorage.setItem('auth_refresh_token', token);
+      } else {
+        localStorage.removeItem('auth_refresh_token');
+      }
+    } catch (error) {
+      console.error("Failed to set refresh token in localStorage", error);
+    }
+  },
+  removeRefreshToken: (): void => {
+    try {
+      localStorage.removeItem('auth_refresh_token');
+    } catch (error) {
+      console.error("Failed to remove refresh token from localStorage", error);
+    }
+  },
 };
 
 const CONTEXT_STORAGE_KEY = 'user_context_selection';

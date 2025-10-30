@@ -47,6 +47,7 @@ export const useAuthService = (
 
   const logout = (): unknown => {
     tokenStorage.removeToken();
+    tokenStorage.removeRefreshToken(); // Clear refresh token on logout
     tokenStorage.setUser(null);
     contextStorage.clearContext();
     setUser(null);
@@ -82,6 +83,10 @@ export const useAuthService = (
 
       // Immediately set essential authentication data
       tokenStorage.setToken(response.token.access_token);
+      // Store refresh token if provided
+      if (response.token.refresh_token) {
+        tokenStorage.setRefreshToken(response.token.refresh_token);
+      }
       tokenStorage.setUser(response.user);
       setUser(response.user);
 

@@ -96,3 +96,46 @@ class JWTService:
             remaining = datetime.fromtimestamp(exp) - datetime.utcnow()
             return max(0, int(remaining.total_seconds()))
         return None
+
+    def create_refresh_token(self, data: Dict[str, Any]) -> str:
+        """
+        Create a JWT refresh token with longer expiration (7 days).
+        Refresh tokens are used to obtain new access tokens.
+        """
+        to_encode = data.copy()
+        # Refresh tokens expire after 7 days
+        expire = datetime.utcnow() + timedelta(days=7)
+        to_encode.update({"exp": expire, "iat": datetime.utcnow(), "type": "refresh"})
+
+        try:
+            token = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
+            return token
+        except Exception as e:
+            logger.error(f"Failed to create refresh token: {e}")
+            raise
+
+    def verify_refresh_token(self, token: str) -> Optional[Dict[str, Any]]:
+        """Verify and decode a JWT refresh token."""
+        try:
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+
+            # Verify token type
+            if payload.get("type") != "refresh":
+                logger.error(
+                    f"❌ [JWT] Invalid token type: {payload.get('type')} (expected 'refresh')"
+                )
+                return None
+
+            return payload
+
+        except jwt.ExpiredSignatureError:
+            logger.debug("Refresh token expired")
+            return None
+        except jwt.InvalidTokenError:
+            logger.debug("Invalid refresh token")
+            return None
+        except Exception as e:
+            logger.error(
+                f"❌ [JWT] Refresh token verification error: {e}", exc_info=True
+            )
+            return None

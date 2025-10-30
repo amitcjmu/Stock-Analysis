@@ -52,9 +52,7 @@ def ensure_crewai_environment() -> None:
             "✅ Set OPENAI_API_KEY from DEEPINFRA_API_KEY for CrewAI compatibility"
         )
     else:
-        logger.debug(
-            "ℹ️ OPENAI_API_KEY already set, preserving existing configuration"
-        )
+        logger.debug("ℹ️ OPENAI_API_KEY already set, preserving existing configuration")
 
 
 def with_crewai_environment(func: Callable) -> Callable:
@@ -73,6 +71,7 @@ def with_crewai_environment(func: Callable) -> Callable:
     Returns:
         Wrapped function with environment setup
     """
+
     @wraps(func)
     async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
         ensure_crewai_environment()
@@ -85,6 +84,7 @@ def with_crewai_environment(func: Callable) -> Callable:
 
     # Return appropriate wrapper based on function type
     import inspect
+
     if inspect.iscoroutinefunction(func):
         return async_wrapper
     else:
@@ -114,8 +114,7 @@ def get_crewai_compatible_llm_config() -> dict:
 
     deepinfra_key = os.getenv("DEEPINFRA_API_KEY")
     deepinfra_model = os.getenv(
-        "DEEPINFRA_MODEL",
-        "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+        "DEEPINFRA_MODEL", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
     )
 
     return {

@@ -48,16 +48,33 @@ class RoleTypeEnum(str, Enum):
 
 
 class Token(BaseModel):
-    """Schema for the access token."""
+    """Schema for the access token and optional refresh token."""
 
     access_token: str
     token_type: str
+    refresh_token: Optional[str] = None  # Optional refresh token for token rotation
 
 
 class TokenPayload(BaseModel):
     """Schema for the JWT payload."""
 
     sub: Optional[str] = None  # Subject (user_id)
+
+
+class RefreshTokenRequest(BaseModel):
+    """Schema for refresh token request."""
+
+    refresh_token: str = Field(
+        ..., description="Refresh token to exchange for new access token"
+    )
+
+
+class RefreshTokenResponse(BaseModel):
+    """Schema for refresh token response."""
+
+    status: str
+    message: str
+    token: Optional[Token] = None
 
 
 # =========================
