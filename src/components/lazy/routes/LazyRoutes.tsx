@@ -277,8 +277,11 @@ export const LazyAssessmentTechDebt = createLazyRoute(
   "Assessment Tech Debt",
 );
 
-// Note: LazyAssessmentSixRReview removed as part of Assessment Flow Migration Phase 5
-// 6R Review is now handled by Assessment Flow pages
+// Bug #869 fix: Re-added LazyAssessmentSixRReview for Dependencies and Risk Assessment phases
+export const LazyAssessmentSixRReview = createLazyRoute(
+  () => import("@/pages/assessment/[flowId]/sixr-review"),
+  "6R Strategy Review",
+);
 
 export const LazyAssessmentAppOnPage = createLazyRoute(
   () => import("@/pages/assessment/[flowId]/app-on-page"),
