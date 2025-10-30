@@ -212,6 +212,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
         const engagementData = {
           id: selectedEngagement.id,
           name: selectedEngagement.name,
+          client_id: selectedEngagement.client_id,
           status: selectedEngagement.status || 'active',
         };
 
