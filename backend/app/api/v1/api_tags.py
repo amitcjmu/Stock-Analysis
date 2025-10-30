@@ -82,6 +82,7 @@ class APITags:
     EMERGENCY_CONTROL = "Emergency Control"
     WEBSOCKET_CACHE = "WebSocket Cache"
     CACHED_CONTEXT = "Cached Context"
+    CONTEXT_ESTABLISHMENT = "Context Establishment"
 
     # Legacy/Migration
     LEGACY_UPLOAD = "Legacy Upload"
