@@ -285,12 +285,25 @@ export const useAuthService = (
         console.log('🔍 switchClient - Switching to default engagement:', defaultEngagement.id);
         await switchEngagement(defaultEngagement.id, defaultEngagement);
         console.log('🔍 switchClient - switchEngagement completed');
+        // Note: switchEngagement already updates contextStorage and syncs to individual keys
       } else {
         console.log('🔍 switchClient - No engagements found, clearing engagement/flow');
         setEngagement(null);
         setFlow(null);
         localStorage.removeItem('auth_engagement');
         localStorage.removeItem('auth_flow');
+
+        // Per ADR-024/Bug Report: Update user_context_selection for client-only switch
+        contextStorage.setContext({
+          client: fullClientData,
+          engagement: null,
+          flow: null,
+          timestamp: Date.now(),
+          source: 'client_switch_no_engagement'
+        });
+
+        // Sync context to individual localStorage keys
+        syncContextToIndividualKeys();
 
         try {
           console.log('🔍 switchClient - Updating user defaults');
@@ -307,9 +320,6 @@ export const useAuthService = (
       }
 
       console.log('🔍 switchClient - Completed successfully');
-
-      // CRITICAL: Sync context to individual localStorage keys for new API client
-      syncContextToIndividualKeys();
 
     } catch (error) {
       console.error('Error switching client:', error);
@@ -390,6 +400,18 @@ export const useAuthService = (
       }
 
       console.log('🔍 switchEngagement - Completed successfully');
+
+      // Per ADR-024/Bug Report: Update user_context_selection BEFORE syncing
+      // This ensures syncContextToIndividualKeys() uses the NEW context, not stale data
+      const currentContext = contextStorage.getContext() || {};
+      contextStorage.setContext({
+        ...currentContext,
+        client: client || currentContext.client,
+        engagement: fullEngagementData,
+        flow: flowData,
+        timestamp: Date.now(),
+        source: 'engagement_switch'
+      });
 
       // CRITICAL: Sync context to individual localStorage keys for new API client
       syncContextToIndividualKeys();
