@@ -6,7 +6,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CryptoYogiLLC/migrate-ui-orchestrator.git"
+    "url": "https://github.com/CryptoYogiLLC/migrate-ui-orchestrator.git"
   },
   "keywords": [
     "cloud-migration",
@@ -87,13 +87,16 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "dayjs": "^1.11.10",
     "embla-carousel-react": "^8.3.0",
     "eventsource-polyfill": "^0.9.6",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
+    "moment": "^2.30.1",
     "next-themes": "^0.3.0",
     "papaparse": "^5.5.3",
     "react": "^18.3.1",
+    "react-calendar-timeline": "^0.30.0-beta.4",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.3.8",
@@ -113,7 +116,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
-    "@playwright/test": "^1.56.0",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -122,6 +125,7 @@
     "@types/node": "^22.5.5",
     "@types/pg": "^8.15.5",
     "@types/react": "^18.3.3",
+    "@types/react-calendar-timeline": "^0.28.6",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
@@ -138,15 +142,10 @@
     "pg": "^8.16.3",
     "postcss": "^8.4.47",
     "prettier": "^3.6.2",
-    "tailwindcss": "^3.4.11"
-  },
-  "main": ".eslintrc.field-naming.js",
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  },
-  "bugs": {
-    "url": "https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues"
-  },
-  "homepage": "https://github.com/CryptoYogiLLC/migrate-ui-orchestrator#readme"
+    "tailwindcss": "^3.4.11",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4"
+  }
 }

@@ -1,6 +1,6 @@
-app_id,application_name,version,criticality,environment,dependencies,owner,last_updated
-APP001,Customer Portal,2.5.0,High,Production,"Database, Redis",John Smith,2024-01-15
-APP002,Payment Gateway,1.8.2,Critical,Production,"Database, Queue, External API",Jane Doe,2024-01-20
-APP003,Admin Dashboard,3.1.0,Medium,Production,"Database, Auth Service",Bob Johnson,2024-01-18
-APP004,Mobile API,4.0.1,High,Production,"Database, Redis, Queue",Alice Brown,2024-01-22
-APP005,Analytics Engine,2.2.3,Low,Development,"Database, Data Lake",Charlie Davis,2024-01-10
+application_name,environment,server_name,ip_address,owner
+CRM System,production,crm-prod-01,10.0.1.10,john@example.com
+ERP System,production,erp-prod-01,10.0.1.20,jane@example.com
+Email Server,production,mail-prod-01,10.0.1.30,admin@example.com
+Database Server,staging,db-staging-01,10.0.2.10,dba@example.com
+Web Portal,development,web-dev-01,10.0.3.10,dev@example.com
