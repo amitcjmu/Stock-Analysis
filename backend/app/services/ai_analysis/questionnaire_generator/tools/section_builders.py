@@ -12,11 +12,41 @@ from .intelligent_options import (
     get_business_logic_complexity_options,
     get_change_tolerance_options,
     get_availability_requirements_options,
+    get_security_compliance_requirements_options,
+    get_eol_technology_assessment_options,
     infer_field_type_from_config,
     get_fallback_field_type_and_options,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _check_context_aware_field(
+    attr_name: str, asset_context: Dict
+) -> Optional[Tuple[str, List]]:
+    """Check if field has context-aware intelligent options.
+
+    Args:
+        attr_name: Field/attribute name
+        asset_context: Dict with asset data for intelligent option generation
+
+    Returns:
+        Tuple of (field_type, options) if context-aware function exists, None otherwise
+    """
+    # Map field names to their intelligent option functions
+    context_aware_handlers = {
+        "security_vulnerabilities": get_security_vulnerabilities_options,
+        "business_logic_complexity": get_business_logic_complexity_options,
+        "change_tolerance": get_change_tolerance_options,
+        "availability_requirements": get_availability_requirements_options,
+        "security_compliance_requirements": get_security_compliance_requirements_options,
+        "eol_technology_assessment": get_eol_technology_assessment_options,
+    }
+
+    handler = context_aware_handlers.get(attr_name)
+    if handler:
+        return handler(asset_context)
+    return None
 
 
 def create_basic_info_section() -> dict:
@@ -67,29 +97,9 @@ def determine_field_type_and_options(
     # CRITICAL: Check for context-aware fields BEFORE FIELD_OPTIONS
     # This enables intelligent option ordering based on asset characteristics
     if asset_context:
-        # Security vulnerabilities based on EOL status
-        if attr_name == "security_vulnerabilities":
-            result = get_security_vulnerabilities_options(asset_context)
-            if result:
-                return result
-
-        # Business logic complexity based on technology stack
-        if attr_name == "business_logic_complexity":
-            result = get_business_logic_complexity_options(asset_context)
-            if result:
-                return result
-
-        # Change tolerance based on business criticality
-        if attr_name == "change_tolerance":
-            result = get_change_tolerance_options(asset_context)
-            if result:
-                return result
-
-        # Availability requirements based on business criticality
-        if attr_name == "availability_requirements":
-            result = get_availability_requirements_options(asset_context)
-            if result:
-                return result
+        result = _check_context_aware_field(attr_name, asset_context)
+        if result:
+            return result
 
     # Check if field has predefined options in FIELD_OPTIONS
     if attr_name in FIELD_OPTIONS:
