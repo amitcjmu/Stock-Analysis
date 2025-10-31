@@ -104,7 +104,10 @@ def determine_field_type_and_options(
 
 
 def build_question_from_attribute(
-    attr_name: str, attr_config: dict, asset_ids: list
+    attr_name: str,
+    attr_config: dict,
+    asset_ids: list,
+    asset_context: Optional[Dict] = None,
 ) -> dict:
     """Build a question object from an attribute definition.
 
@@ -112,6 +115,7 @@ def build_question_from_attribute(
         attr_name: Name of the attribute (e.g., 'operating_system_version')
         attr_config: Configuration from CriticalAttributesDefinition
         asset_ids: List of asset IDs that need this attribute
+        asset_context: Optional dict with asset data for intelligent option generation
 
     Returns:
         Question dictionary with proper category assignment
@@ -124,9 +128,10 @@ def build_question_from_attribute(
     field_id = asset_fields[0] if asset_fields else attr_name
 
     readable_name = attr_name.replace("_", " ").title()
-    # CRITICAL FIX: Use field_id (database field name) instead of attr_name (critical attribute name)
-    # This ensures FIELD_OPTIONS lookup uses correct key (e.g., "cpu_cores" not "cpu_memory_storage_specs")
-    field_type, options = determine_field_type_and_options(field_id)
+
+    # CRITICAL FIX: Pass asset_context to enable intelligent EOL-aware options
+    # This ensures security_vulnerabilities gets EOL-based option ordering
+    field_type, options = determine_field_type_and_options(field_id, asset_context)
 
     # Get category from attribute config (NOT hardcoded)
     category = attr_config.get("category", "application")
@@ -152,8 +157,21 @@ def build_question_from_attribute(
     return question
 
 
-def group_attributes_by_category(missing_fields: dict, attribute_mapping: dict) -> dict:
-    """Group missing attributes by category, one question per unique attribute."""
+def group_attributes_by_category(
+    missing_fields: dict,
+    attribute_mapping: dict,
+    assets_data: Optional[List[Dict]] = None,
+) -> dict:
+    """Group missing attributes by category, one question per unique attribute.
+
+    Args:
+        missing_fields: Dict mapping asset_id to list of missing attribute names
+        attribute_mapping: Dict mapping attribute names to their configurations
+        assets_data: Optional list of asset data dicts with context (eol_technology, etc.)
+
+    Returns:
+        Dict mapping category names to lists of question dicts
+    """
     attrs_by_category = {
         "infrastructure": [],
         "application": [],
@@ -169,13 +187,31 @@ def group_attributes_by_category(missing_fields: dict, attribute_mapping: dict) 
                 attr_to_assets[attr_name] = []
             attr_to_assets[attr_name].append(asset_id)
 
+    # Build asset context lookup by asset_id for intelligent option generation
+    asset_context_by_id = {}
+    if assets_data:
+        for asset in assets_data:
+            asset_id = asset.get("id") or asset.get("asset_id")
+            if asset_id:
+                asset_context_by_id[asset_id] = asset
+
     # Generate ONE question per unique attribute
     for attr_name, asset_ids in attr_to_assets.items():
         if attr_name in attribute_mapping:
             attr_config = attribute_mapping[attr_name]
             category = attr_config.get("category", "application")
-            # Pass all asset IDs that need this attribute
-            question = build_question_from_attribute(attr_name, attr_config, asset_ids)
+
+            # Get asset context for the first asset (for intelligent options)
+            # All assets needing the same attribute get the same question
+            asset_context = None
+            if asset_ids and asset_context_by_id:
+                first_asset_id = asset_ids[0]
+                asset_context = asset_context_by_id.get(first_asset_id)
+
+            # Pass all asset IDs that need this attribute + asset context for intelligent options
+            question = build_question_from_attribute(
+                attr_name, attr_config, asset_ids, asset_context
+            )
             attrs_by_category[category].append(question)
 
     return attrs_by_category
