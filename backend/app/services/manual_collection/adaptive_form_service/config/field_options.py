@@ -112,6 +112,7 @@ FIELD_OPTIONS = {
         },
     ],
     "compliance_constraints": [
+        {"value": "none", "label": "None - No specific compliance requirements"},
         {"value": "healthcare", "label": "Healthcare (HIPAA, FDA)"},
         {"value": "financial", "label": "Financial Services (PCI DSS, SOX)"},
         {"value": "government", "label": "Government (FedRAMP, FISMA)"},
@@ -204,6 +205,21 @@ FIELD_OPTIONS = {
             "label": "Very Complex - Intricate business rules, regulatory logic",
         },
     ],
+    "business_logic_complexity": [
+        {"value": "simple", "label": "Simple - Basic CRUD, minimal business logic"},
+        {
+            "value": "moderate",
+            "label": "Moderate - Standard business rules, some workflows",
+        },
+        {
+            "value": "complex",
+            "label": "Complex - Advanced workflows, multi-step processes",
+        },
+        {
+            "value": "very_complex",
+            "label": "Very Complex - Intricate business rules, regulatory logic",
+        },
+    ],
     "custom_attributes.vulnerabilities": [
         {"value": "none_known", "label": "None Known - No vulnerabilities identified"},
         {"value": "low_severity", "label": "Low Severity - Minor issues, low risk"},
@@ -250,6 +266,30 @@ FIELD_OPTIONS = {
             "label": "Unknown - Dependency analysis not yet performed",
         },
     ],
+    # Security and EOL Technology Assessment (Issue #886)
+    "security_vulnerabilities": [
+        {"value": "none_known", "label": "None Known - No vulnerabilities identified"},
+        {"value": "low_severity", "label": "Low Severity - Minor issues, low risk"},
+        {
+            "value": "medium_severity",
+            "label": "Medium Severity - Moderate risk, should be addressed",
+        },
+        {
+            "value": "high_severity",
+            "label": "High Severity - Critical vulnerabilities exist",
+        },
+        {"value": "not_assessed", "label": "Not Assessed - Security scan needed"},
+    ],
+    "eol_technology": [
+        {"value": "current", "label": "Current - All technologies actively supported"},
+        {"value": "supported", "label": "Supported - Technologies in extended support"},
+        {"value": "eol_soon", "label": "EOL Soon - Support ending within 12 months"},
+        {"value": "eol_expired", "label": "EOL Expired - No vendor support available"},
+        {
+            "value": "mixed",
+            "label": "Mixed - Combination of supported and EOL components",
+        },
+    ],
     # Duplicate entries with custom_attributes prefix for proper lookup
     "custom_attributes.architecture_pattern": [
         {"value": "monolith", "label": "Monolithic Application"},
@@ -269,6 +309,7 @@ FIELD_OPTIONS = {
         {"value": "best_effort", "label": "Best Effort (No SLA)"},
     ],
     "custom_attributes.compliance_constraints": [
+        {"value": "none", "label": "None - No specific compliance requirements"},
         {"value": "healthcare", "label": "Healthcare (HIPAA, FDA)"},
         {"value": "financial", "label": "Financial Services (PCI DSS, SOX)"},
         {"value": "government", "label": "Government (FedRAMP, FISMA)"},

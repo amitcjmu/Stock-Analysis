@@ -1,3 +1,78 @@
+## [2025-10-31] - Intelligent Context-Aware Questionnaire Generation
+
+### 🚀 Enhancement - Intelligent Questionnaire Generation (PR #890)
+
+Introduced intelligent questionnaire generation that tailors question options based on asset context (OS, tech stack, business criticality, EOL status). The system now dynamically reorders dropdown options to prioritize most relevant choices based on asset characteristics.
+
+#### **Implemented Intelligent Patterns**
+- ✅ **Architecture Pattern** (tech-stack-aware ordering) - Enterprise patterns appear first for IBM middleware
+- ✅ **Compliance Constraints** ("None" option first) - Enables proper UX for non-regulated assets
+- ✅ **Security Vulnerabilities** (EOL-aware ordering) - High Severity appears first for EOL-expired assets
+- ✅ **Availability Requirements** (criticality-aware ordering) - 99.99% SLA appears first for mission-critical assets
+- ✅ **Security Compliance Requirements** (criticality-aware) - PCI-DSS/HIPAA first for mission-critical
+- ✅ **EOL Technology Assessment** (EOL-status-aware) - Critical EOL options first for expired systems
+
+#### **Technical Implementation**
+**Backend**:
+- Modularized `intelligent_options.py` (652 lines → 6 focused modules <400 lines each)
+  - `security_options.py` - Security vulnerabilities & compliance options
+  - `business_options.py` - Business logic & change tolerance options
+  - `infrastructure_options.py` - Availability requirements options
+  - `eol_options.py` - EOL technology assessment options
+  - `utils.py` - Field type inference & fallback options
+- Implemented `_determine_eol_status()` for EOL detection (AIX 7.2, RHEL 6/7, Windows Server 2008/2012, WebSphere 8.5)
+- Enhanced asset serialization in `collection_crud_questionnaires/utils.py` to include EOL status
+- Context-aware option ordering reduces user cognitive load
+- Fixed string matching bugs using exact normalized matching (prevents false positives)
+
+**Testing**:
+- Added 58 comprehensive unit tests (90%+ coverage)
+- Added 6 integration tests for end-to-end context threading
+- All 64 tests passing
+- Test files:
+  - `tests/backend/services/ai_analysis/questionnaire_generator/tools/test_intelligent_options.py`
+  - `tests/backend/integration/test_intelligent_questionnaire_generation.py`
+
+#### **User Experience Impact**
+- **Faster form completion**: Relevant options appear first based on asset characteristics
+- **Improved data quality**: Context-aware suggestions reduce user errors
+- **Enhanced platform intelligence**: Demonstrates agentic-first architecture principles
+- **Reduced cognitive load**: Users don't need to search through irrelevant options
+
+#### **Quality Improvements**
+- Fixed string matching edge case bug (substring → exact matching)
+- Reduced code complexity in `section_builders.py` with helper function
+- Added comprehensive logging for debugging and observability
+- Graceful fallback to default options when context is missing
+
+#### **Future Work**
+- Technology Stack (OS-aware) - Planned for future release
+- Change Tolerance (criticality-aware) - Planned for future release
+- Business Logic Complexity - Design decision: free-text field maintained
+
+#### **Testing & Verification**
+- Comprehensive QA testing: 7/8 scenarios passed (87.5% pass rate)
+- EOL-aware security vulnerabilities fix verified with AIX 7.2 asset
+- Manual testing completed with screenshots and evidence
+- Root cause analysis documented for all fixes
+- Test Reports:
+  - `TEST_REPORT_COMPLIANCE_AND_EOL_FIELDS_FIX.md`
+  - `FINAL_FIX_VERIFICATION_SECURITY_VULNERABILITIES_EOL_AWARE.md`
+
+#### **Files Modified**
+- Backend: `backend/app/services/ai_analysis/questionnaire_generator/tools/intelligent_options/` (6 modules)
+- Backend: `backend/app/api/v1/endpoints/collection_crud_questionnaires/utils.py` (EOL detection)
+- Backend: `backend/app/services/ai_analysis/questionnaire_generator/tools/section_builders.py` (complexity reduction)
+- Tests: `tests/backend/services/ai_analysis/questionnaire_generator/tools/test_intelligent_options.py` (58 tests)
+- Tests: `tests/backend/integration/test_intelligent_questionnaire_generation.py` (6 tests)
+
+#### **ADR Alignment**
+- ✅ ADR-008 (Agentic Intelligence System Architecture) - Intelligence embedded in option generation
+- ✅ ADR-010 (Docker-First Development) - All testing in Docker containers
+- ✅ Platform principles: Context-aware decisions, modular design, graceful degradation
+
+---
+
 ## [2025-10-25] - Fix: PAUSED Flows Should Not Block Bulk Operations
 
 ### 🐛 Bug Fix - ADR-012 Alignment

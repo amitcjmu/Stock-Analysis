@@ -170,7 +170,7 @@ CRITICAL_ATTRIBUTES_CONFIG = {
         "weight": 0.03,
         "label": "Security Vulnerability Assessment",
         "description": "CVE count, severity classification, security scan results",
-        "field_type": FieldType.TEXTAREA,
+        "field_type": FieldType.SELECT,  # Issue #886: Changed to SELECT for intelligent options
         "business_impact": "Critical for security posture and remediation planning",
     },
     "eol_technology": {
@@ -178,7 +178,7 @@ CRITICAL_ATTRIBUTES_CONFIG = {
         "weight": 0.02,
         "label": "End-of-Life Technology Assessment",
         "description": "Unsupported versions, deprecated features, legacy components",
-        "field_type": FieldType.TEXTAREA,
+        "field_type": FieldType.SELECT,  # Issue #886: Changed to SELECT for intelligent options
         "business_impact": "Determines modernization urgency and approach",
     },
     "documentation_quality": {
