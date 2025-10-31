@@ -295,6 +295,55 @@ def _assess_data_quality(asset) -> dict:
     return {}
 
 
+def _determine_eol_status(
+    operating_system: str, os_version: str, technology_stack: List[str]
+) -> str:
+    """
+    Determine EOL technology status based on OS and technology stack.
+
+    Returns:
+        EOL status string: "EOL_EXPIRED", "EOL_SOON", "DEPRECATED", or "CURRENT"
+    """
+    # Known EOL operating systems and versions
+    eol_os_patterns = {
+        "AIX 7.1": "EOL_EXPIRED",
+        "AIX 7.2": "EOL_EXPIRED",  # IBM ended extended support
+        "Windows Server 2008": "EOL_EXPIRED",
+        "Windows Server 2012": "EOL_EXPIRED",
+        "RHEL 6": "EOL_EXPIRED",
+        "RHEL 7": "EOL_SOON",
+        "Solaris 10": "EOL_EXPIRED",
+    }
+
+    # Known EOL technology stack components
+    eol_tech_patterns = {
+        "websphere_85": "EOL_EXPIRED",  # WebSphere 8.5.x extended support ended
+        "websphere_9": "EOL_SOON",
+        "jboss_6": "EOL_EXPIRED",
+        "tomcat_7": "EOL_EXPIRED",
+    }
+
+    # Check OS
+    if operating_system and os_version:
+        os_key = f"{operating_system} {os_version}".strip()
+        for pattern, status in eol_os_patterns.items():
+            if pattern in os_key:
+                logger.info(f"Detected EOL OS: {os_key} → {status}")
+                return status
+
+    # Check technology stack
+    if technology_stack and isinstance(technology_stack, list):
+        for tech in technology_stack:
+            if tech in eol_tech_patterns:
+                logger.info(
+                    f"Detected EOL technology: {tech} → {eol_tech_patterns[tech]}"
+                )
+                return eol_tech_patterns[tech]
+
+    # Default to CURRENT if no EOL indicators found
+    return "CURRENT"
+
+
 def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], dict]:
     """Analyze selected assets and extract comprehensive analysis."""
     selected_assets = []
@@ -310,6 +359,16 @@ def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], 
     for asset in existing_assets:
         asset_id_str = str(asset.id)
 
+        # Extract OS and tech stack for EOL determination
+        operating_system = getattr(asset, "operating_system", None) or ""
+        os_version = getattr(asset, "os_version", None) or ""
+        technology_stack = getattr(asset, "technology_stack", [])
+
+        # Determine EOL status for intelligent option ordering
+        eol_technology = _determine_eol_status(
+            operating_system, os_version, technology_stack
+        )
+
         selected_assets.append(
             {
                 "id": asset_id_str,  # CRITICAL: Use "id" not "asset_id" - section_builders.py expects "id" key
@@ -317,10 +376,12 @@ def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], 
                 "asset_type": getattr(asset, "asset_type", "application"),
                 "criticality": getattr(asset, "criticality", "unknown"),
                 "environment": getattr(asset, "environment", "unknown"),
-                "technology_stack": getattr(asset, "technology_stack", "unknown"),
+                "technology_stack": technology_stack,
                 # CRITICAL: Add OS data for OS-aware questionnaire generation
-                "operating_system": getattr(asset, "operating_system", None),
-                "os_version": getattr(asset, "os_version", None),
+                "operating_system": operating_system,
+                "os_version": os_version,
+                # CRITICAL: Add EOL status for security vulnerabilities intelligent ordering
+                "eol_technology": eol_technology,
             }
         )
 
