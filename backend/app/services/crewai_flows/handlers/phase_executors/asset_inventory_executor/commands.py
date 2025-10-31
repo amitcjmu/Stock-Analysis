@@ -22,19 +22,30 @@ logger = logging.getLogger(__name__)
 async def mark_records_processed(
     db: AsyncSession, raw_records: List[RawImportRecord], created_assets: List
 ) -> None:
-    """Mark raw import records as processed."""
+    """
+    Mark raw import records as processed using SQL Core updates.
+
+    Uses SQLAlchemy Core update() statements instead of ORM attribute assignment
+    to avoid potential greenlet context issues with async sessions.
+    This approach is aligned with our async/tenant-safe architectural patterns.
+    """
     try:
-        # Create asset mapping for linking
+        # Build mapping of raw_import_records_id -> asset.id
+        # Access attributes while objects are in the same session context
         asset_mapping = {}
         for asset in created_assets:
-            if asset.raw_import_records_id:
-                asset_mapping[asset.raw_import_records_id] = asset.id
+            raw_record_id = getattr(asset, "raw_import_records_id", None)
+            if raw_record_id is not None:
+                asset_mapping[raw_record_id] = asset.id
 
-        # Update records
+        # Use SQL Core UPDATE statements to avoid ORM attribute access after flush
+        # This is the architecturally correct approach per our SQLAlchemy patterns
         for record in raw_records:
-            record.is_processed = True
-            record.asset_id = asset_mapping.get(record.id)
-            # Don't set processed_at here - let the database handle it
+            await db.execute(
+                update(RawImportRecord)
+                .where(RawImportRecord.id == record.id)
+                .values(is_processed=True, asset_id=asset_mapping.get(record.id))
+            )
 
         await db.flush()  # Ensure updates are written
         logger.info(f"✅ Marked {len(raw_records)} raw records as processed")
