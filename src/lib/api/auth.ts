@@ -60,6 +60,7 @@ export interface User {
 export interface Token {
   access_token: string;
   token_type: string;
+  refresh_token?: string; // Optional refresh token for token rotation
 }
 
 export interface LoginResponse {
@@ -202,6 +203,38 @@ export const authApi = {
         errorMessage = errorData.detail;
       }
       throw new Error(errorMessage);
+    }
+
+    return response.json();
+  },
+
+  async refreshToken(refreshToken: string): Promise<{ status: string; message: string; token: Token }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Token refresh failed';
+      const status = response.status;
+
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+      } catch (jsonError) {
+        if (status === 401) {
+          errorMessage = 'Refresh token expired or invalid';
+        }
+      }
+
+      const error = new Error(errorMessage) as Error & { status?: number };
+      error.status = status;
+      throw error;
     }
 
     return response.json();

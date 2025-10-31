@@ -3,9 +3,10 @@ Authentication Service
 Handles login, password changes, token validation, and session management.
 """
 
+import hashlib
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import bcrypt
@@ -13,13 +14,15 @@ from fastapi import HTTPException
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.client_account import User
+from app.models.client_account import User, RefreshToken
 from app.models.rbac import UserProfile, UserRole
 from app.schemas.auth_schemas import (
     LoginRequest,
     LoginResponse,
     PasswordChangeRequest,
     PasswordChangeResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
     Token,
 )
 
@@ -115,7 +118,7 @@ class AuthenticationService:
 
             # Log successful login
             if user_profile:
-                user_profile.last_login_at = datetime.utcnow()
+                user_profile.last_login_at = datetime.now(timezone.utc)
                 user_profile.login_count = (user_profile.login_count or 0) + 1
                 user_profile.failed_login_attempts = 0
                 await self.db.commit()
@@ -126,18 +129,38 @@ class AuthenticationService:
 
                 jwt_service = JWTService()
 
-                # Create JWT token with user information
-                jwt_token = jwt_service.create_access_token(
-                    data={
-                        "sub": str(user.id),
-                        "email": user.email,
-                        "role": "admin" if is_admin else "user",
-                        "is_admin": is_admin,
-                    }
+                token_data = {
+                    "sub": str(user.id),
+                    "email": user.email,
+                    "role": "admin" if is_admin else "user",
+                    "is_admin": is_admin,
+                }
+
+                # Create JWT access token
+                jwt_token = jwt_service.create_access_token(data=token_data)
+
+                # Create refresh token (JWT with longer expiration)
+                refresh_jwt = jwt_service.create_refresh_token(data=token_data)
+
+                # Hash the refresh token before storing in database
+                refresh_token_hash = hashlib.sha256(refresh_jwt.encode()).hexdigest()
+
+                # Store refresh token in database
+                db_refresh_token = RefreshToken(
+                    token=refresh_token_hash,
+                    user_id=user.id,
+                    expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+                    is_revoked=False,
                 )
+                self.db.add(db_refresh_token)
+                await self.db.commit()
 
                 # OAuth2 standard token type, not a hardcoded credential
-                token = Token(access_token=jwt_token, token_type="bearer")  # nosec B106
+                token = Token(
+                    access_token=jwt_token,
+                    token_type="bearer",  # nosec B106
+                    refresh_token=refresh_jwt,
+                )
 
             except Exception as jwt_error:
                 logger.warning(
@@ -330,4 +353,125 @@ class AuthenticationService:
             logger.error(f"Error getting user dashboard stats: {e}")
             raise HTTPException(
                 status_code=500, detail="Failed to retrieve user dashboard stats"
+            )
+
+    async def refresh_access_token(
+        self, refresh_token_request: RefreshTokenRequest
+    ) -> RefreshTokenResponse:
+        """
+        Exchange a valid refresh token for a new access token and refresh token.
+        Implements token rotation for security.
+        """
+        try:
+            from app.services.auth_services.jwt_service import JWTService
+
+            jwt_service = JWTService()
+
+            # Verify the refresh token JWT
+            payload = jwt_service.verify_refresh_token(
+                refresh_token_request.refresh_token
+            )
+            if not payload:
+                raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+            user_id_str = payload.get("sub")
+            if not user_id_str:
+                raise HTTPException(status_code=401, detail="Invalid token payload")
+
+            # Hash the provided refresh token to check against database
+            refresh_token_hash = hashlib.sha256(
+                refresh_token_request.refresh_token.encode()
+            ).hexdigest()
+
+            # Check if refresh token exists in database and is valid
+            refresh_token_query = select(RefreshToken).where(
+                and_(
+                    RefreshToken.token == refresh_token_hash,
+                    RefreshToken.user_id == uuid.UUID(user_id_str),
+                    RefreshToken.is_revoked == False,  # noqa: E712
+                )
+            )
+            refresh_token_result = await self.db.execute(refresh_token_query)
+            db_refresh_token = refresh_token_result.scalar_one_or_none()
+
+            if not db_refresh_token:
+                raise HTTPException(
+                    status_code=401, detail="Refresh token not found or revoked"
+                )
+
+            # Check if token is expired
+            if not db_refresh_token.is_valid():
+                raise HTTPException(status_code=401, detail="Refresh token expired")
+
+            # Get user information
+            user_query = select(User).where(User.id == uuid.UUID(user_id_str))
+            user_result = await self.db.execute(user_query)
+            user = user_result.scalar_one_or_none()
+
+            if not user or not user.is_active:
+                raise HTTPException(
+                    status_code=401, detail="User not found or inactive"
+                )
+
+            # Get user roles
+            user_roles_query = select(UserRole).where(
+                and_(UserRole.user_id == user.id, UserRole.is_active)
+            )
+            roles_result = await self.db.execute(user_roles_query)
+            user_roles = roles_result.scalars().all()
+
+            is_admin = any(
+                role.role_type in ["platform_admin", "client_admin"]
+                for role in user_roles
+            )
+
+            # Revoke old refresh token (token rotation)
+            db_refresh_token.revoke()
+
+            # Create new access token and refresh token
+            token_data = {
+                "sub": str(user.id),
+                "email": user.email,
+                "role": "admin" if is_admin else "user",
+                "is_admin": is_admin,
+            }
+
+            new_access_token = jwt_service.create_access_token(data=token_data)
+            new_refresh_jwt = jwt_service.create_refresh_token(data=token_data)
+
+            # Hash and store new refresh token
+            new_refresh_token_hash = hashlib.sha256(
+                new_refresh_jwt.encode()
+            ).hexdigest()
+            new_db_refresh_token = RefreshToken(
+                token=new_refresh_token_hash,
+                user_id=user.id,
+                expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+                is_revoked=False,
+            )
+            self.db.add(new_db_refresh_token)
+
+            # Update last_used_at for revoked token
+            db_refresh_token.last_used_at = datetime.now(timezone.utc)
+
+            await self.db.commit()
+
+            token = Token(
+                access_token=new_access_token,
+                token_type="bearer",  # nosec B106
+                refresh_token=new_refresh_jwt,
+            )
+
+            logger.info(f"Refreshed token for user {user.email}")
+
+            return RefreshTokenResponse(
+                status="success", message="Token refreshed successfully", token=token
+            )
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error in refresh_access_token: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Token refresh failed: {str(e)}"
             )

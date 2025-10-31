@@ -16,6 +16,8 @@ from app.schemas.auth_schemas import (
     LoginResponse,
     PasswordChangeRequest,
     PasswordChangeResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
 )
 from app.services.auth_services.authentication_service import AuthenticationService
 
@@ -41,6 +43,25 @@ async def login_user(login_request: LoginRequest, db: AsyncSession = Depends(get
     except Exception as e:
         logger.error(f"Error in login_user: {e}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+
+@authentication_router.post("/refresh", response_model=RefreshTokenResponse)
+async def refresh_token(
+    refresh_request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Exchange a valid refresh token for a new access token and refresh token.
+    Implements token rotation for security.
+    """
+    try:
+        auth_service = AuthenticationService(db)
+        return await auth_service.refresh_access_token(refresh_request)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in refresh_token: {e}")
+        raise HTTPException(status_code=500, detail=f"Token refresh failed: {str(e)}")
 
 
 @authentication_router.post("/change-password", response_model=PasswordChangeResponse)

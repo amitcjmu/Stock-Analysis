@@ -242,24 +242,26 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
 
         # Add fields from related tables for complete CMDB mapping support
         # asset_resilience: RTO/RPO fields
-        fields.extend([
-            {
-                "name": "rto_minutes",
-                "type": "integer",
-                "required": False,
-                "description": "Recovery Time Objective in minutes (Asset Resilience)",
-                "category": "resilience",
-                "nullable": True,
-            },
-            {
-                "name": "rpo_minutes",
-                "type": "integer",
-                "required": False,
-                "description": "Recovery Point Objective in minutes (Asset Resilience)",
-                "category": "resilience",
-                "nullable": True,
-            },
-        ])
+        fields.extend(
+            [
+                {
+                    "name": "rto_minutes",
+                    "type": "integer",
+                    "required": False,
+                    "description": "Recovery Time Objective in minutes (Asset Resilience)",
+                    "category": "resilience",
+                    "nullable": True,
+                },
+                {
+                    "name": "rpo_minutes",
+                    "type": "integer",
+                    "required": False,
+                    "description": "Recovery Point Objective in minutes (Asset Resilience)",
+                    "category": "resilience",
+                    "nullable": True,
+                },
+            ]
+        )
 
         logger.info(f"Total fields including related tables: {len(fields)}")
         return fields

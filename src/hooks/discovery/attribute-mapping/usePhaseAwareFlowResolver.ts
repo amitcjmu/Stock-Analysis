@@ -93,7 +93,7 @@ export function usePhaseAwareFlowResolver(
               headers['X-Engagement-ID'] = engagement.id;
             }
 
-            const response = await apiCall(`/api/v1/data-import/imports/${providedId}`, {
+            const response = await apiCall(`/api/v1/data-import/import/${providedId}`, {
               method: 'GET',
               headers
             });

@@ -60,11 +60,14 @@ async def get_current_user(
         try:
             user_id = UUID(user_id_str)
 
-            # Find user by ID with eager loading of associations
+            # Find user by ID with eager loading of associations and roles
             result = await db.execute(
                 select(User)
                 .where(User.id == user_id)
-                .options(selectinload(User.user_associations))
+                .options(
+                    selectinload(User.user_associations),
+                    selectinload(User.roles),  # CC: Load roles for RBAC checks
+                )
             )
             user = result.scalar_one_or_none()
 

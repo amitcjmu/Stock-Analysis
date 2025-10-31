@@ -41,6 +41,10 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Demo client and engagement IDs - ALL approved users get access to these by default
+DEMO_CLIENT_ID = "11111111-1111-1111-1111-111111111111"
+DEMO_ENGAGEMENT_ID = "22222222-2222-2222-2222-222222222222"
+
 
 class ApprovalOperations(BaseRBACHandler):
     """Handler for user approval and rejection operations."""
@@ -77,6 +81,11 @@ class ApprovalOperations(BaseRBACHandler):
             if user:
                 user.is_active = True
                 user.is_verified = True
+                # CRITICAL: Set defaults to Demo client/engagement for all approved users
+                # This ensures users always have a "sandbox" environment they can access
+                user.default_client_id = DEMO_CLIENT_ID
+                user.default_engagement_id = DEMO_ENGAGEMENT_ID
+                logger.info(f"Set user {user_id} defaults to Demo client/engagement")
 
             # Update user profile
             user_profile.approve(approved_by)
@@ -86,6 +95,11 @@ class ApprovalOperations(BaseRBACHandler):
                 "access_level", user_profile.requested_access_level
             )
             client_accesses = approval_data.get("client_access", [])
+
+            # CRITICAL: Grant Demo client and engagement access to ALL approved users
+            # This ensures users can never be locked out - they always have sandbox access
+            # Additional clients/engagements can be added by admin through user management
+            await self._grant_demo_access(user_id, access_level, approved_by)
 
             # Activate pending access records
             await self._activate_pending_access_records(user_id, approved_by)
@@ -299,6 +313,88 @@ class ApprovalOperations(BaseRBACHandler):
             logger.info(
                 f"Activated pending EngagementAccess {access.id} for user {user_id}"
             )
+
+    async def _grant_demo_access(
+        self, user_id: str, access_level: str, approved_by: str
+    ) -> None:
+        """
+        Grant Demo client and engagement access to newly approved user.
+
+        This ensures ALL approved users have a sandbox environment they can access.
+        Additional clients/engagements must be granted by admin through user management.
+        """
+        # Check if user already has Demo client access (avoid duplicates)
+        existing_client_access = await self.db.execute(
+            select(ClientAccess).where(
+                and_(
+                    ClientAccess.user_profile_id == user_id,
+                    ClientAccess.client_account_id == DEMO_CLIENT_ID,
+                )
+            )
+        )
+        demo_client_access = existing_client_access.scalar_one_or_none()
+
+        # Create Demo client access if doesn't exist
+        if not demo_client_access:
+            demo_client_access = ClientAccess(
+                user_profile_id=user_id,
+                client_account_id=DEMO_CLIENT_ID,
+                access_level=access_level,
+                permissions=self._get_default_permissions(access_level),
+                granted_by=approved_by,
+                is_active=True,
+                granted_at=datetime.utcnow(),
+            )
+            self.db.add(demo_client_access)
+            logger.info(
+                f"✅ Created Demo ClientAccess for user {user_id} (access_level: {access_level})"
+            )
+        else:
+            # If exists but inactive, activate it
+            if not demo_client_access.is_active:
+                demo_client_access.is_active = True
+                demo_client_access.granted_by = approved_by
+                demo_client_access.granted_at = datetime.utcnow()
+                logger.info(
+                    f"✅ Activated existing Demo ClientAccess for user {user_id}"
+                )
+
+        # Check if user already has Demo engagement access (avoid duplicates)
+        existing_engagement_access = await self.db.execute(
+            select(EngagementAccess).where(
+                and_(
+                    EngagementAccess.user_profile_id == user_id,
+                    EngagementAccess.engagement_id == DEMO_ENGAGEMENT_ID,
+                )
+            )
+        )
+        demo_engagement_access = existing_engagement_access.scalar_one_or_none()
+
+        # Create Demo engagement access if doesn't exist
+        if not demo_engagement_access:
+            demo_engagement_access = EngagementAccess(
+                user_profile_id=user_id,
+                engagement_id=DEMO_ENGAGEMENT_ID,
+                access_level=access_level,
+                engagement_role="Analyst",  # Default role for demo access
+                permissions=self._get_default_permissions(access_level),
+                granted_by=approved_by,
+                is_active=True,
+                granted_at=datetime.utcnow(),
+            )
+            self.db.add(demo_engagement_access)
+            logger.info(
+                f"✅ Created Demo EngagementAccess for user {user_id} (access_level: {access_level})"
+            )
+        else:
+            # If exists but inactive, activate it
+            if not demo_engagement_access.is_active:
+                demo_engagement_access.is_active = True
+                demo_engagement_access.granted_by = approved_by
+                demo_engagement_access.granted_at = datetime.utcnow()
+                logger.info(
+                    f"✅ Activated existing Demo EngagementAccess for user {user_id}"
+                )
 
     async def _create_additional_client_access(
         self, user_id: str, client_accesses: list, access_level: str, approved_by: str

@@ -134,6 +134,18 @@ class AdminOperationsHandler(BaseRBACHandler):
             ).decode("utf-8")
 
             # Create base User record
+            # CRITICAL: Treat empty strings, None, and missing keys all as "not provided"
+            # This ensures ClientAccess authorization matches User.default_client_id
+            provided_client_id = user_data.get("default_client_id")
+            provided_engagement_id = user_data.get("default_engagement_id")
+
+            # Use provided values ONLY if they are non-empty strings
+            # If empty/None/missing, ClientAccess table will determine authorization
+            default_client_id = provided_client_id if provided_client_id else None
+            default_engagement_id = (
+                provided_engagement_id if provided_engagement_id else None
+            )
+
             user = User(
                 id=user_id,
                 email=user_data.get("email", ""),
@@ -142,13 +154,8 @@ class AdminOperationsHandler(BaseRBACHandler):
                 last_name=last_name,
                 is_active=user_data.get("is_active", True),
                 is_verified=True,
-                # Use provided values or default to demo IDs
-                default_client_id=user_data.get(
-                    "default_client_id", "11111111-1111-1111-1111-111111111111"
-                ),
-                default_engagement_id=user_data.get(
-                    "default_engagement_id", "22222222-2222-2222-2222-222222222222"
-                ),
+                default_client_id=default_client_id,
+                default_engagement_id=default_engagement_id,
             )
 
             self.db.add(user)
@@ -195,6 +202,11 @@ class AdminOperationsHandler(BaseRBACHandler):
 
             self.db.add(user_role)
 
+            # CRITICAL: Ensure Demo access is granted if default_client_id/engagement_id are provided
+            # Track whether we've granted access to any client/engagement
+            granted_client_access = False
+            granted_engagement_access = False
+
             # Automatically create ClientAccess if default_client_id is provided
             if user_data.get("default_client_id"):
                 try:
@@ -207,6 +219,7 @@ class AdminOperationsHandler(BaseRBACHandler):
                         is_active=True,
                     )
                     self.db.add(default_client_access)
+                    granted_client_access = True
                     logger.info(
                         f"Created ClientAccess for user {user_id} to default client {user_data['default_client_id']}"
                     )
@@ -226,12 +239,22 @@ class AdminOperationsHandler(BaseRBACHandler):
                         is_active=True,
                     )
                     self.db.add(default_engagement_access)
+                    granted_engagement_access = True
                     logger.info(
                         f"Created EngagementAccess for user {user_id} to default engagement "
                         f"{user_data['default_engagement_id']}"
                     )
                 except Exception as e:
                     logger.warning(f"Failed to create default engagement access: {e}")
+
+            # SAFETY CHECK: If no client/engagement access was granted, log warning
+            # This should never happen with required fields in CreateUser form
+            if not granted_client_access or not granted_engagement_access:
+                logger.warning(
+                    f"⚠️ User {user_id} created without complete access: "
+                    f"client_access={granted_client_access}, engagement_access={granted_engagement_access}. "
+                    f"Admin MUST grant additional access through user management."
+                )
 
             # Create additional client access if specified
             client_accesses = user_data.get("client_access", [])
