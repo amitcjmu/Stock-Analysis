@@ -108,6 +108,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    # CC: Add roles relationship for RBAC checks
+    roles = relationship(
+        "UserRole",
+        foreign_keys="[UserRole.user_id]",
+        back_populates="user",
+        lazy="select",
+    )
     default_client = relationship("ClientAccount", foreign_keys=[default_client_id])
     default_engagement = relationship(
         "Engagement", foreign_keys=[default_engagement_id]

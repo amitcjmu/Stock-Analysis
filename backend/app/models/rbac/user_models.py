@@ -309,7 +309,9 @@ class UserRole(Base):
     )
 
     # Relationships
-    user = relationship("User", foreign_keys=[user_id])
+    user = relationship(
+        "User", foreign_keys=[user_id], back_populates="roles"
+    )  # CC: Add back_populates for RBAC
     assigned_by_user = relationship("User", foreign_keys=[assigned_by])
     scope_client = relationship("ClientAccount")
     scope_engagement = relationship("Engagement")
