@@ -30,6 +30,14 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-022](022-asset-inventory-persistent-agent-architecture.md) | Asset Inventory Persistent Agent Architecture | Implemented | 2025-09-10 |
 | [ADR-023](023-collection-flow-phase-redesign.md) | Collection Flow Phase Redesign | Accepted | 2025-09-25 |
 | [ADR-024](024-tenant-memory-manager-architecture.md) | TenantMemoryManager Architecture - Replacing CrewAI Memory | Accepted | 2025-10-02 |
+| [ADR-025](025-collection-flow-child-service-migration.md) | Collection Flow Child Service Migration | Accepted | 2025-10-14 |
+| [ADR-027](027-universal-flow-type-config-pattern.md) | Universal Flow Type Config Pattern | Accepted | 2025-10-18 |
+| [ADR-028](028-eliminate-collection-phase-state-duplication.md) | Eliminate Collection Phase State Duplication | Accepted | 2025-10-20 |
+| [ADR-029](029-llm-output-json-sanitization-pattern.md) | LLM Output JSON Sanitization Pattern | Accepted | 2025-10-22 |
+| [ADR-030](030-collection-flow-adaptive-questionnaire-architecture.md) | Collection Flow Adaptive Questionnaire Architecture | Accepted | 2025-10-25 |
+| [ADR-031](031-environment-based-observability-architecture.md) | Enterprise Observability Architecture with Grafana Stack | Proposed | 2025-10-30 |
+| [ADR-032](032-jwt-refresh-token-security-architecture.md) | JWT Refresh Token Security Architecture | Accepted | 2025-10-30 |
+| [ADR-033](033-context-establishment-service-modularization.md) | Context Establishment Service Modularization | Accepted | 2025-10-30 |
 
 ## ADR Template
 
@@ -70,29 +78,37 @@ For new team members, we recommend reading ADRs in this order:
 
 ### Foundation Architecture (Start Here)
 1. **ADR-009** - Multi-Tenant Architecture - Core tenant isolation and security model
-2. **ADR-010** - Docker-First Development Mandate - Development environment setup
-3. **ADR-003** - PostgreSQL-Only State Management - Database architecture foundation
+2. **ADR-032** - JWT Refresh Token Security Architecture - Authentication and session management
+3. **ADR-010** - Docker-First Development Mandate - Development environment setup
+4. **ADR-003** - PostgreSQL-Only State Management - Database architecture foundation
 
 ### Platform Evolution
-4. **ADR-007** - Comprehensive Modularization Architecture - Codebase organization principles
-5. **ADR-011** - Flow-Based Architecture Evolution - Core flow patterns (supersedes ADR-001)
-6. **ADR-006** - Master Flow Orchestrator - Central orchestration system
-7. **ADR-021** - Flow Endpoint Plural Convention Consolidation - Standardized endpoint patterns
-8. **ADR-008** - Agentic Intelligence System - AI/ML integration patterns
-9. **ADR-015** - Persistent Multi-Tenant Agent Architecture - Agent persistence and memory systems
-10. **ADR-024** - TenantMemoryManager Architecture - Enterprise memory management (supersedes ADR-019)
-11. **ADR-022** - Asset Inventory Persistent Agent Architecture - Simplified persistent agent pattern
-12. **ADR-018** - Service Registry for CrewAI Tools - Service layer architecture for agent tools
-13. **ADR-020** - Flow-Type Aware Phase Transition Architecture - Dynamic phase management across flow types
-14. **ADR-013** - Adaptive Data Collection System Integration - Automated data collection capabilities
-15. **ADR-016** - Collection Flow for Intelligent Data Enrichment - Bridge between Discovery and Assessment flows
-16. **ADR-023** - Collection Flow Phase Redesign - Removing unimplemented platform detection phases
-17. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
-18. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
+5. **ADR-007** - Comprehensive Modularization Architecture - Codebase organization principles
+6. **ADR-033** - Context Establishment Service Modularization - Practical modularization example
+7. **ADR-011** - Flow-Based Architecture Evolution - Core flow patterns (supersedes ADR-001)
+8. **ADR-006** - Master Flow Orchestrator - Central orchestration system
+9. **ADR-021** - Flow Endpoint Plural Convention Consolidation - Standardized endpoint patterns
+10. **ADR-008** - Agentic Intelligence System - AI/ML integration patterns
+11. **ADR-015** - Persistent Multi-Tenant Agent Architecture - Agent persistence and memory systems
+12. **ADR-024** - TenantMemoryManager Architecture - Enterprise memory management (supersedes ADR-019)
+13. **ADR-022** - Asset Inventory Persistent Agent Architecture - Simplified persistent agent pattern
+14. **ADR-018** - Service Registry for CrewAI Tools - Service layer architecture for agent tools
+15. **ADR-020** - Flow-Type Aware Phase Transition Architecture - Dynamic phase management across flow types
+16. **ADR-013** - Adaptive Data Collection System Integration - Automated data collection capabilities
+17. **ADR-016** - Collection Flow for Intelligent Data Enrichment - Bridge between Discovery and Assessment flows
+18. **ADR-025** - Collection Flow Child Service Migration - Separating concerns in child flow services
+19. **ADR-027** - Universal Flow Type Config Pattern - Standardized flow type configuration
+20. **ADR-028** - Eliminate Collection Phase State Duplication - Reducing state management complexity
+21. **ADR-029** - LLM Output JSON Sanitization Pattern - Handling LLM JSON parsing
+22. **ADR-030** - Collection Flow Adaptive Questionnaire Architecture - Intelligent questionnaire generation
+23. **ADR-023** - Collection Flow Phase Redesign - Removing unimplemented platform detection phases
+24. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
+25. **ADR-031** - Enterprise Observability Architecture - Grafana stack for Azure/Railway environments
+26. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
 
 ### Legacy Context
-19. **ADR-005** - Database Consolidation Architecture - Historical database decisions
-20. **ADR-002** - API Consolidation Strategy - API versioning and migration
-21. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
-22. **ADR-019** - CrewAI DeepInfra Embeddings Monkey Patch - Historical memory patch approach (superseded by ADR-024)
-23. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)
+27. **ADR-005** - Database Consolidation Architecture - Historical database decisions
+28. **ADR-002** - API Consolidation Strategy - API versioning and migration
+29. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
+30. **ADR-019** - CrewAI DeepInfra Embeddings Monkey Patch - Historical memory patch approach (superseded by ADR-024)
+31. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)
