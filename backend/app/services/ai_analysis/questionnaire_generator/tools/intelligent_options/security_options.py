@@ -20,7 +20,8 @@ def get_security_vulnerabilities_options(
     Returns:
         Tuple of (field_type, options) or None if not applicable
     """
-    eol_status = asset_context.get("eol_technology", "").upper()
+    eol_technology = asset_context.get("eol_technology", "")
+    eol_status = (eol_technology or "").upper()  # Handle None gracefully
 
     # EOL expired → High vulnerability risk
     if "EOL_EXPIRED" in eol_status or "UNSUPPORTED" in eol_status:
@@ -106,10 +107,18 @@ def get_security_compliance_requirements_options(
     Returns:
         Tuple of (field_type, options) or None if not applicable
     """
-    business_criticality = asset_context.get("business_criticality", "").lower()
+    business_criticality_raw = asset_context.get("business_criticality", "")
+    # Normalize: strip whitespace, convert to lowercase
+    business_criticality = (business_criticality_raw or "").strip().lower()
 
     # Mission critical → Strict compliance requirements first
-    if "mission" in business_criticality or "mission_critical" in business_criticality:
+    # Use exact matching with normalized enum values to avoid substring matching bugs
+    if business_criticality in [
+        "mission_critical",
+        "mission-critical",
+        "critical",
+        "mission",
+    ]:
         options = [
             {"value": "pci_dss", "label": "PCI-DSS - Payment Card Industry"},
             {"value": "hipaa", "label": "HIPAA - Healthcare Data Protection"},
@@ -127,11 +136,12 @@ def get_security_compliance_requirements_options(
         return "multi_select", options
 
     # Business critical → Balanced compliance options
-    elif (
-        "business" in business_criticality
-        or "business_critical" in business_criticality
-        or "critical" in business_criticality
-    ):
+    elif business_criticality in [
+        "business_critical",
+        "business-critical",
+        "business",
+        "high",
+    ]:
         options = [
             {"value": "gdpr", "label": "GDPR - EU Data Protection"},
             {"value": "pci_dss", "label": "PCI-DSS - Payment Card Industry"},
@@ -147,11 +157,15 @@ def get_security_compliance_requirements_options(
         return "multi_select", options
 
     # Low priority/Development → "None" option first
-    elif (
-        "low" in business_criticality
-        or "development" in business_criticality
-        or "testing" in business_criticality
-    ):
+    elif business_criticality in [
+        "low",
+        "low_priority",
+        "development",
+        "testing",
+        "dev",
+        "test",
+        "qa",
+    ]:
         options = [
             {"value": "none", "label": "None - No specific compliance requirements"},
             {"value": "iso_27001", "label": "ISO 27001 - Information Security"},

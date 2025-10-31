@@ -114,10 +114,17 @@ def get_change_tolerance_options(
     Returns:
         Tuple of (field_type, options) or None if not applicable
     """
-    business_criticality = asset_context.get("business_criticality", "")
+    business_criticality_raw = asset_context.get("business_criticality", "")
+    # Normalize: strip whitespace, convert to lowercase
+    business_criticality = (business_criticality_raw or "").strip().lower()
 
     # Mission critical → Show "Very Low" tolerance first (change averse)
-    if business_criticality == "mission_critical":
+    if business_criticality in [
+        "mission_critical",
+        "mission-critical",
+        "critical",
+        "mission",
+    ]:
         options = [
             {
                 "value": "very_low",
@@ -143,7 +150,12 @@ def get_change_tolerance_options(
         return "select", options
 
     # Business critical → Show "Low/Medium" tolerance first
-    elif business_criticality == "business_critical":
+    elif business_criticality in [
+        "business_critical",
+        "business-critical",
+        "business",
+        "high",
+    ]:
         options = [
             {
                 "value": "low",
@@ -169,7 +181,15 @@ def get_change_tolerance_options(
         return "select", options
 
     # Low priority (development/testing) → Show "High" tolerance first
-    elif business_criticality == "low":
+    elif business_criticality in [
+        "low",
+        "low_priority",
+        "development",
+        "testing",
+        "dev",
+        "test",
+        "qa",
+    ]:
         options = [
             {
                 "value": "high",
@@ -195,7 +215,7 @@ def get_change_tolerance_options(
         return "select", options
 
     # Important or Standard → Show balanced options (Medium first)
-    elif business_criticality in ["important", "standard"]:
+    elif business_criticality in ["important", "standard", "moderate", "medium"]:
         options = [
             {
                 "value": "medium",

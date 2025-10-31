@@ -20,7 +20,8 @@ def get_eol_technology_assessment_options(
     Returns:
         Tuple of (field_type, options) or None if not applicable
     """
-    eol_status = asset_context.get("eol_technology", "").upper()
+    eol_technology = asset_context.get("eol_technology", "")
+    eol_status = (eol_technology or "").upper()  # Handle None gracefully
 
     # EOL expired → Critical EOL assessment options first
     if "EOL_EXPIRED" in eol_status or "UNSUPPORTED" in eol_status:
