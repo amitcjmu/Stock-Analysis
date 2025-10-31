@@ -109,49 +109,51 @@ class TestCMDBFieldsPopulation:
         with patch.object(
             asset_service, "_find_existing_asset", return_value=None
         ):
-            with patch.object(
-                asset_service.repository, "create_asset", new_callable=AsyncMock
-            ) as mock_create:
-                # Configure mock to return a fake asset
-                mock_asset = Asset(
-                    id=uuid.uuid4(),
-                    name="NextGen Case Management",
-                    asset_type=AssetType.APPLICATION,
-                    client_account_id=uuid.UUID(asset_service.context_info["client_account_id"]),
-                    engagement_id=uuid.UUID(asset_service.context_info["engagement_id"]),
-                )
-                mock_create.return_value = mock_asset
+            # Mock child table creation (called after asset creation)
+            with patch("app.services.asset_service.create_child_records_if_needed", new_callable=AsyncMock):
+                with patch.object(
+                    asset_service.repository, "create_no_commit", new_callable=AsyncMock
+                ) as mock_create:
+                    # Configure mock to return a fake asset
+                    mock_asset = Asset(
+                        id=uuid.uuid4(),
+                        name="NextGen Case Management",
+                        asset_type=AssetType.APPLICATION,
+                        client_account_id=uuid.UUID(asset_service.context_info["client_account_id"]),
+                        engagement_id=uuid.UUID(asset_service.context_info["engagement_id"]),
+                    )
+                    mock_create.return_value = mock_asset
 
-                # Act: Create asset
-                result_asset, status = await asset_service.create_or_update_asset(
-                    asset_data, upsert=False
-                )
+                    # Act: Create asset
+                    result_asset = await asset_service.create_asset(
+                        asset_data
+                    )
 
-                # Assert: Verify create_asset was called with CMDB fields
-                mock_create.assert_called_once()
-                call_kwargs = mock_create.call_args.kwargs
+                    # Assert: Verify create_no_commit was called with CMDB fields
+                    mock_create.assert_called_once()
+                    call_kwargs = mock_create.call_args.kwargs
 
-                # Verify all 24 CMDB fields were passed
-                assert call_kwargs["business_unit"] == "HR Systems"
-                assert call_kwargs["vendor"] == "Custom Dev"
-                assert call_kwargs["application_type"] == "Web Application"
-                assert call_kwargs["lifecycle"] == "In Development"
-                assert call_kwargs["hosting_model"] == "On-prem"
-                assert call_kwargs["server_role"] == "App Server"
-                assert call_kwargs["security_zone"] == "DMZ"
-                assert call_kwargs["database_type"] == "PostgreSQL"
-                assert call_kwargs["database_version"] == "12.5"
-                assert call_kwargs["database_size_gb"] == 500.0
-                assert call_kwargs["pii_flag"] is True
-                assert call_kwargs["application_data_classification"] == "Confidential"
-                assert call_kwargs["cpu_utilization_percent_max"] == 85.5
-                assert call_kwargs["memory_utilization_percent_max"] == 78.2
-                assert call_kwargs["storage_free_gb"] == 150.0
-                assert call_kwargs["has_saas_replacement"] is True
-                assert call_kwargs["risk_level"] == "Medium"
-                assert call_kwargs["tshirt_size"] == "L"
-                assert call_kwargs["proposed_treatmentplan_rationale"] == "Rehost due to high readiness"
-                assert call_kwargs["annual_cost_estimate"] == 250000.0
+                    # Verify all 24 CMDB fields were passed
+                    assert call_kwargs["business_unit"] == "HR Systems"
+                    assert call_kwargs["vendor"] == "Custom Dev"
+                    assert call_kwargs["application_type"] == "Web Application"
+                    assert call_kwargs["lifecycle"] == "In Development"
+                    assert call_kwargs["hosting_model"] == "On-prem"
+                    assert call_kwargs["server_role"] == "App Server"
+                    assert call_kwargs["security_zone"] == "DMZ"
+                    assert call_kwargs["database_type"] == "PostgreSQL"
+                    assert call_kwargs["database_version"] == "12.5"
+                    assert call_kwargs["database_size_gb"] == 500.0
+                    assert call_kwargs["pii_flag"] is True
+                    assert call_kwargs["application_data_classification"] == "Confidential"
+                    assert call_kwargs["cpu_utilization_percent_max"] == 85.5
+                    assert call_kwargs["memory_utilization_percent_max"] == 78.2
+                    assert call_kwargs["storage_free_gb"] == 150.0
+                    assert call_kwargs["has_saas_replacement"] is True
+                    assert call_kwargs["risk_level"] == "Medium"
+                    assert call_kwargs["tshirt_size"] == "L"
+                    assert call_kwargs["proposed_treatmentplan_rationale"] == "Rehost due to high readiness"
+                    assert call_kwargs["annual_cost_estimate"] == 250000.0
 
 
 @pytest.mark.unit
@@ -189,10 +191,10 @@ class TestEOLAssessmentCreation:
             asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.repository, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act: Create asset (which should also create EOL assessment)
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: Verify EOL assessment was added to session
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -229,13 +231,13 @@ class TestEOLAssessmentCreation:
 
         # Mock repository
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act: Create asset
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: Verify NO EOL assessment was added
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -267,13 +269,13 @@ class TestEOLAssessmentCreation:
             )
 
             with patch.object(
-                asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+                asset_service, "_find_existing_asset", return_value=None
             ):
                 with patch.object(
-                    asset_service.asset_repo, "create_asset", return_value=mock_asset
+                    asset_service.repository, "create_no_commit", return_value=mock_asset
                 ):
                     # Act
-                    await asset_service.create_or_update_asset(asset_data, upsert=False)
+                    await asset_service.create_asset(asset_data)
 
                     # Assert: EOL assessment created with valid risk level
                     added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -303,13 +305,13 @@ class TestEOLAssessmentCreation:
         )
 
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: EOL assessment created but risk_level is NULL
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -339,13 +341,13 @@ class TestEOLAssessmentCreation:
         )
 
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: Risk level normalized to lowercase
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -388,13 +390,13 @@ class TestAssetContactCreation:
 
         # Mock repository
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act: Create asset
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: Verify 3 contact records were added
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -442,13 +444,13 @@ class TestAssetContactCreation:
 
         # Mock repository
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act: Create asset
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: Verify NO contacts were added
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -479,13 +481,13 @@ class TestAssetContactCreation:
 
         # Mock repository
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act: Create asset
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: Contact created with name extracted from email
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -518,13 +520,13 @@ class TestAssetContactCreation:
 
         # Mock repository
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ):
                 # Act: Create asset
-                await asset_service.create_or_update_asset(asset_data, upsert=False)
+                await asset_service.create_asset(asset_data)
 
                 # Assert: Only 1 contact created
                 added_objects = [call[0][0] for call in mock_db_session.add.call_args_list]
@@ -585,18 +587,18 @@ class TestIntegratedCMDBWorkflow:
 
         # Mock repository
         with patch.object(
-            asset_service, "find_existing_asset_hierarchical", return_value=(None, None)
+            asset_service, "_find_existing_asset", return_value=None
         ):
             with patch.object(
-                asset_service.asset_repo, "create_asset", return_value=mock_asset
+                asset_service.repository, "create_no_commit", return_value=mock_asset
             ) as mock_create:
                 # Act: Create complete asset
-                result_asset, status = await asset_service.create_or_update_asset(
-                    asset_data, upsert=False
+                result_asset = await asset_service.create_asset(
+                    asset_data
                 )
 
                 # Assert 1: Main asset created with CMDB fields
-                assert status == "created"
+                assert result_asset is not None
                 mock_create.assert_called_once()
                 call_kwargs = mock_create.call_args.kwargs
                 assert call_kwargs["business_unit"] == "Finance"
