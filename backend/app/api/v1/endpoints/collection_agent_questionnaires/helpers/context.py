@@ -110,9 +110,10 @@ async def _process_assets_with_gaps(
     flow: CollectionFlow,
     context: RequestContext,
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Process assets with gap analysis."""
+    """Process assets with gap analysis and comprehensive enrichment data."""
     from .gaps import identify_comprehensive_gaps
     from .assets import calculate_completeness
+    from .serializers import serialize_asset_for_agent_context
 
     assets_with_gaps = []
     all_gaps = []
@@ -125,17 +126,14 @@ async def _process_assets_with_gaps(
         gaps = await identify_comprehensive_gaps(asset, db, context)
         all_gaps.extend(gaps)
 
-        # Build asset data with gaps
-        asset_data = {
-            "id": str(asset.id),
-            "name": asset.name,
-            "asset_type": asset.asset_type,
-            "business_criticality": asset.business_criticality,
-            "completeness": completeness,
-            "gaps": gaps,
-            "custom_attributes": asset.custom_attributes or {},
-            "technical_details": asset.technical_details or {},
-        }
+        # Serialize asset with ALL enriched data for intelligent cloud migration decisions
+        # This includes: core fields, resilience, compliance, vulnerabilities, licenses,
+        # EOL assessments, contacts - everything the agent needs for smart questionnaires
+        asset_data = serialize_asset_for_agent_context(
+            asset=asset,
+            completeness=completeness,
+            gaps=gaps,
+        )
 
         assets_with_gaps.append(asset_data)
 
@@ -326,8 +324,7 @@ async def _get_asset_dependencies(
     asset: Asset, db: AsyncSession
 ) -> List[AssetDependency]:
     """Get dependencies for an asset."""
-    # SKIP_TENANT_CHECK - Service-level/monitoring query
-    dependency_query = select(AssetDependency).where(
+    dependency_query = select(AssetDependency).where(  # SKIP_TENANT_CHECK
         (AssetDependency.asset_id == asset.id)
         | (AssetDependency.depends_on_asset_id == asset.id)
     )
