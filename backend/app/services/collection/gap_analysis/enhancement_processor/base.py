@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, List
 
 from app.core.redis_config import get_redis_manager
+from app.services.collection.gap_scanner.persistence import persist_gaps_with_dedup
 
 from .agent_setup import setup_agent_and_memory
 from .asset_processor import (
@@ -268,7 +269,8 @@ class EnhancementProcessorMixin:
                 else collection_flow_id
             )
 
-            gaps_persisted = await scanner._persist_gaps_with_dedup(
+            # CC: Call module-level function instead of non-existent method
+            gaps_persisted = await persist_gaps_with_dedup(
                 gaps=gaps_to_persist,
                 collection_flow_id=flow_uuid,
                 db=db_session,
