@@ -1,0 +1,91 @@
+# Grafana Prometheus Configuration
+# Purpose: Metrics time-series database
+# Retention: 14 days (configured via command args)
+# Architecture: ADR-031
+
+# Global configuration
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
+
+  # External labels (for federation/remote write)
+  external_labels:
+    cluster: 'migration'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+# rule_files:
+#   - "/etc/prometheus/rules/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Alloy metrics
+  - job_name: 'alloy'
+    static_configs:
+      - targets: ['alloy:12345']
+        labels:
+          service: 'alloy'
+
+  # Backend application metrics (Phase 4 - OTel instrumentation)
+  # Uncomment after Phase 4 implementation
+  # - job_name: 'migration_backend'
+  #   static_configs:
+  #     - targets: ['migration_backend:8000']
+  #       labels:
+  #         service: 'backend'
+  #         app: 'migration-ui-orchestrator'
+
+  # Frontend application metrics (if Prometheus exporter added)
+  # - job_name: 'migration_frontend'
+  #   static_configs:
+  #     - targets: ['migration_frontend:8081']
+  #       labels:
+  #         service: 'frontend'
+  #         app: 'migration-ui-orchestrator'
+
+  # PostgreSQL metrics (Azure dev only - requires postgres_exporter)
+  # Uncomment for Azure dev environment
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['migration_postgres:9187']
+  #       labels:
+  #         service: 'postgres'
+  #         database: 'migration_db'
+
+  # Redis metrics (Azure dev only - requires redis_exporter)
+  # Uncomment for Azure dev environment
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['migration_redis:9121']
+  #       labels:
+  #         service: 'redis'
+
+# Storage configuration (retention set via CLI args)
+# --storage.tsdb.retention.time=14d
+
+# Remote write configuration (for Grafana Cloud or external Prometheus)
+# remote_write:
+#   - url: https://prometheus-us-central1.grafana.net/api/prom/push
+#     basic_auth:
+#       username: <GRAFANA_CLOUD_USERNAME>
+#       password: <GRAFANA_CLOUD_API_KEY>
+
+# High cardinality warning (per ADR-031 Line 156):
+# DO NOT add client_account_id or engagement_id to every metric
+# Use these labels sparingly for critical metrics only
+# For per-tenant analytics, use SQL dashboards querying PostgreSQL
