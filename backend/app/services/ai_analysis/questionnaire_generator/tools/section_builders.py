@@ -5,8 +5,48 @@ Contains logic for building questionnaire sections and organizing questions by c
 """
 
 import logging
+from typing import Dict, Optional, Tuple, List
+
+from .intelligent_options import (
+    get_security_vulnerabilities_options,
+    get_business_logic_complexity_options,
+    get_change_tolerance_options,
+    get_availability_requirements_options,
+    get_security_compliance_requirements_options,
+    get_eol_technology_assessment_options,
+    infer_field_type_from_config,
+    get_fallback_field_type_and_options,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _check_context_aware_field(
+    attr_name: str, asset_context: Dict
+) -> Optional[Tuple[str, List]]:
+    """Check if field has context-aware intelligent options.
+
+    Args:
+        attr_name: Field/attribute name
+        asset_context: Dict with asset data for intelligent option generation
+
+    Returns:
+        Tuple of (field_type, options) if context-aware function exists, None otherwise
+    """
+    # Map field names to their intelligent option functions
+    context_aware_handlers = {
+        "security_vulnerabilities": get_security_vulnerabilities_options,
+        "business_logic_complexity": get_business_logic_complexity_options,
+        "change_tolerance": get_change_tolerance_options,
+        "availability_requirements": get_availability_requirements_options,
+        "security_compliance_requirements": get_security_compliance_requirements_options,
+        "eol_technology_assessment": get_eol_technology_assessment_options,
+    }
+
+    handler = context_aware_handlers.get(attr_name)
+    if handler:
+        return handler(asset_context)
+    return None
 
 
 def create_basic_info_section() -> dict:
@@ -28,11 +68,20 @@ def create_basic_info_section() -> dict:
     }
 
 
-def determine_field_type_and_options(attr_name: str) -> tuple:
-    """Determine field type and options based on attribute name.
+def determine_field_type_and_options(
+    attr_name: str, asset_context: Optional[Dict] = None
+) -> Tuple[str, List]:
+    """Determine field type and options based on attribute name and asset context.
 
     Uses FIELD_OPTIONS from config.py as single source of truth.
     Falls back to heuristics only for unmapped fields.
+
+    Args:
+        attr_name: Field/attribute name (e.g., 'business_logic_complexity')
+        asset_context: Optional dict with asset data including 'technology_stack', etc.
+
+    Returns:
+        Tuple of (field_type: str, options: list)
     """
     # Import FIELD_OPTIONS and CRITICAL_ATTRIBUTES_CONFIG
     try:
@@ -45,66 +94,30 @@ def determine_field_type_and_options(attr_name: str) -> tuple:
         FIELD_OPTIONS = {}
         CRITICAL_ATTRIBUTES_CONFIG = {}
 
-    # First check if field has predefined options in FIELD_OPTIONS
+    # CRITICAL: Check for context-aware fields BEFORE FIELD_OPTIONS
+    # This enables intelligent option ordering based on asset characteristics
+    if asset_context:
+        result = _check_context_aware_field(attr_name, asset_context)
+        if result:
+            return result
+
+    # Check if field has predefined options in FIELD_OPTIONS
     if attr_name in FIELD_OPTIONS:
         options = FIELD_OPTIONS[attr_name]
-
-        # Determine field type from CRITICAL_ATTRIBUTES_CONFIG if available
-        if attr_name in CRITICAL_ATTRIBUTES_CONFIG:
-            field_type_enum = CRITICAL_ATTRIBUTES_CONFIG[attr_name].get("field_type")
-            if field_type_enum:
-                field_type = (
-                    field_type_enum.value
-                    if hasattr(field_type_enum, "value")
-                    else str(field_type_enum)
-                )
-            else:
-                # Infer from options count
-                field_type = (
-                    "multi_select"
-                    if isinstance(options, list) and len(options) > 3
-                    else "select"
-                )
-        else:
-            # Infer from options count
-            field_type = (
-                "multi_select"
-                if isinstance(options, list) and len(options) > 3
-                else "select"
-            )
-
+        field_type = infer_field_type_from_config(
+            attr_name, options, CRITICAL_ATTRIBUTES_CONFIG
+        )
         return field_type, options
 
     # Fallback to heuristic matching for unmapped fields
-    field_type = "text"
-    options = []
-
-    if "criticality" in attr_name.lower():
-        field_type = "select"
-        options = ["Critical", "High", "Medium", "Low"]
-    elif attr_name == "compliance_constraints":  # Explicit match only
-        field_type = "multi_select"
-        options = ["PCI-DSS", "HIPAA", "GDPR", "SOX", "ISO 27001", "None"]
-    elif attr_name == "architecture_pattern":
-        field_type = "select"
-        options = [
-            "Monolithic",
-            "N-Tier",
-            "Microservices",
-            "Serverless",
-            "Event-Driven",
-        ]
-    elif attr_name == "technology_stack":
-        field_type = "text"
-    elif "dependencies" in attr_name.lower():
-        field_type = "multi_select"
-        options = []
-
-    return field_type, options
+    return get_fallback_field_type_and_options(attr_name)
 
 
 def build_question_from_attribute(
-    attr_name: str, attr_config: dict, asset_ids: list
+    attr_name: str,
+    attr_config: dict,
+    asset_ids: list,
+    asset_context: Optional[Dict] = None,
 ) -> dict:
     """Build a question object from an attribute definition.
 
@@ -112,6 +125,7 @@ def build_question_from_attribute(
         attr_name: Name of the attribute (e.g., 'operating_system_version')
         attr_config: Configuration from CriticalAttributesDefinition
         asset_ids: List of asset IDs that need this attribute
+        asset_context: Optional dict with asset data for intelligent option generation
 
     Returns:
         Question dictionary with proper category assignment
@@ -124,9 +138,10 @@ def build_question_from_attribute(
     field_id = asset_fields[0] if asset_fields else attr_name
 
     readable_name = attr_name.replace("_", " ").title()
-    # CRITICAL FIX: Use field_id (database field name) instead of attr_name (critical attribute name)
-    # This ensures FIELD_OPTIONS lookup uses correct key (e.g., "cpu_cores" not "cpu_memory_storage_specs")
-    field_type, options = determine_field_type_and_options(field_id)
+
+    # CRITICAL FIX: Pass asset_context to enable intelligent EOL-aware options
+    # This ensures security_vulnerabilities gets EOL-based option ordering
+    field_type, options = determine_field_type_and_options(field_id, asset_context)
 
     # Get category from attribute config (NOT hardcoded)
     category = attr_config.get("category", "application")
@@ -152,8 +167,21 @@ def build_question_from_attribute(
     return question
 
 
-def group_attributes_by_category(missing_fields: dict, attribute_mapping: dict) -> dict:
-    """Group missing attributes by category, one question per unique attribute."""
+def group_attributes_by_category(
+    missing_fields: dict,
+    attribute_mapping: dict,
+    assets_data: Optional[List[Dict]] = None,
+) -> dict:
+    """Group missing attributes by category, one question per unique attribute.
+
+    Args:
+        missing_fields: Dict mapping asset_id to list of missing attribute names
+        attribute_mapping: Dict mapping attribute names to their configurations
+        assets_data: Optional list of asset data dicts with context (eol_technology, etc.)
+
+    Returns:
+        Dict mapping category names to lists of question dicts
+    """
     attrs_by_category = {
         "infrastructure": [],
         "application": [],
@@ -169,13 +197,31 @@ def group_attributes_by_category(missing_fields: dict, attribute_mapping: dict) 
                 attr_to_assets[attr_name] = []
             attr_to_assets[attr_name].append(asset_id)
 
+    # Build asset context lookup by asset_id for intelligent option generation
+    asset_context_by_id = {}
+    if assets_data:
+        for asset in assets_data:
+            asset_id = asset.get("id") or asset.get("asset_id")
+            if asset_id:
+                asset_context_by_id[asset_id] = asset
+
     # Generate ONE question per unique attribute
     for attr_name, asset_ids in attr_to_assets.items():
         if attr_name in attribute_mapping:
             attr_config = attribute_mapping[attr_name]
             category = attr_config.get("category", "application")
-            # Pass all asset IDs that need this attribute
-            question = build_question_from_attribute(attr_name, attr_config, asset_ids)
+
+            # Get asset context for the first asset (for intelligent options)
+            # All assets needing the same attribute get the same question
+            asset_context = None
+            if asset_ids and asset_context_by_id:
+                first_asset_id = asset_ids[0]
+                asset_context = asset_context_by_id.get(first_asset_id)
+
+            # Pass all asset IDs that need this attribute + asset context for intelligent options
+            question = build_question_from_attribute(
+                attr_name, attr_config, asset_ids, asset_context
+            )
             attrs_by_category[category].append(question)
 
     return attrs_by_category

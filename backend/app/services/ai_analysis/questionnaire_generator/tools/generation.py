@@ -55,8 +55,18 @@ class QuestionnaireGenerationTool(BaseTool):
         """Create basic information section."""
         return create_basic_info_section()
 
-    def _process_missing_fields(self, missing_fields: dict) -> list:
-        """Process missing fields and generate sections."""
+    def _process_missing_fields(
+        self, missing_fields: dict, business_context: dict = None
+    ) -> list:
+        """Process missing fields and generate sections with asset context.
+
+        Args:
+            missing_fields: Dict mapping asset_id -> list of missing attribute names
+            business_context: Business context including existing_assets with OS data
+
+        Returns:
+            List of section dictionaries with categorized questions
+        """
         sections = []
 
         try:
@@ -67,9 +77,19 @@ class QuestionnaireGenerationTool(BaseTool):
             # Get the 22 critical attributes mapping
             attribute_mapping = CriticalAttributesDefinition.get_attribute_mapping()
 
-            # Group missing attributes by category
+            # Extract assets data from business_context for OS-aware question generation
+            # The serializer provides comprehensive asset data including operating_system
+            assets_data = None
+            if business_context:
+                assets_data = business_context.get("existing_assets", [])
+                logger.info(
+                    f"Received {len(assets_data) if assets_data else 0} assets with context "
+                    f"for OS-aware question generation"
+                )
+
+            # Group missing attributes by category with asset context
             attrs_by_category = group_attributes_by_category(
-                missing_fields, attribute_mapping
+                missing_fields, attribute_mapping, assets_data
             )
 
             # Create organized sections by category
@@ -134,7 +154,10 @@ class QuestionnaireGenerationTool(BaseTool):
                 )
 
             if missing_fields:
-                missing_field_sections = self._process_missing_fields(missing_fields)
+                # Pass business_context for OS-aware question generation
+                missing_field_sections = self._process_missing_fields(
+                    missing_fields, business_context
+                )
                 sections.extend(missing_field_sections)
 
             # Section 3: Data Quality Issues

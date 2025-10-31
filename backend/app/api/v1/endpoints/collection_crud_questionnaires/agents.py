@@ -210,6 +210,8 @@ async def _generate_agent_questionnaires(
                     "total_assets": len(selected_assets),
                     "assets_with_gaps": len(asset_analysis.get("assets_with_gaps", [])),
                     "asset_names": asset_names,  # CRITICAL: Pass asset names for proper display in questions
+                    # CRITICAL: Pass assets with OS data for OS-aware questions
+                    "existing_assets": selected_assets,
                 },
             }
 

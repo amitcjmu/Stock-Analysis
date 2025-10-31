@@ -146,6 +146,16 @@ class AgentConfigManager:
             if not CREWAI_AVAILABLE:
                 return
 
+            # Skip warmup for questionnaire_generator to prevent autonomous tool execution
+            # Issue: During warmup, agent autonomously calls questionnaire_generation tool
+            # with 0 assets, generating incorrect default options before real execution
+            # Fix: Skip warmup for agents with data-dependent tools
+            if agent_type == "questionnaire_generator":
+                logger.info(
+                    f"{agent_type} agent warmup skipped - prevents autonomous tool execution with empty data"
+                )
+                return
+
             # Create a simple warm-up task
             warmup_input = {
                 "task": f"Verify {agent_type} agent is ready for operation",
