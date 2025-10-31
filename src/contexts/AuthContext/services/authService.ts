@@ -283,6 +283,18 @@ export const useAuthService = (
       if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
         const defaultEngagement = engagementsResponse.engagements[0];
         console.log('🔍 switchClient - Switching to default engagement:', defaultEngagement.id);
+
+        // CRITICAL FIX: Update user_context_selection with NEW client BEFORE switchEngagement
+        // This prevents race condition where switchEngagement reads stale 'client' React state
+        // and overwrites the correct client data in user_context_selection
+        const currentContext = contextStorage.getContext() || {};
+        contextStorage.setContext({
+          ...currentContext,
+          client: fullClientData,  // Use the NEW client data, not stale React state
+          timestamp: Date.now(),
+          source: 'client_switch_before_engagement'
+        });
+
         await switchEngagement(defaultEngagement.id, defaultEngagement);
         console.log('🔍 switchClient - switchEngagement completed');
         // Note: switchEngagement already updates contextStorage and syncs to individual keys
@@ -403,10 +415,14 @@ export const useAuthService = (
 
       // Per ADR-024/Bug Report: Update user_context_selection BEFORE syncing
       // This ensures syncContextToIndividualKeys() uses the NEW context, not stale data
+      // CRITICAL FIX: Don't overwrite client if it was already set by switchClient()
+      // to prevent race condition with React state updates
       const currentContext = contextStorage.getContext() || {};
       contextStorage.setContext({
         ...currentContext,
-        client: client || currentContext.client,
+        // Only update client if not already set (standalone engagement switch)
+        // If switchClient() was called first, it already set the correct client
+        client: currentContext.client || client,
         engagement: fullEngagementData,
         flow: flowData,
         timestamp: Date.now(),
