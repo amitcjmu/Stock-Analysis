@@ -92,6 +92,47 @@ def transform_raw_record_to_asset(
             # Location information
             "location": asset_data_source.get("location"),
             "datacenter": asset_data_source.get("datacenter"),
+            # CMDB Fields (PR #847) - NEW FIELDS
+            # Business and organizational context
+            "business_unit": asset_data_source.get("business_unit"),
+            "vendor": asset_data_source.get("vendor"),
+            # Application-specific fields
+            "application_type": asset_data_source.get("application_type"),
+            "lifecycle": asset_data_source.get("lifecycle"),
+            "hosting_model": asset_data_source.get("hosting_model"),
+            # Server-specific fields
+            "server_role": asset_data_source.get("server_role"),
+            "security_zone": asset_data_source.get("security_zone"),
+            # Database-specific fields
+            "database_type": asset_data_source.get("database_type"),
+            "database_version": asset_data_source.get("database_version"),
+            "database_size_gb": asset_data_source.get("database_size_gb"),
+            # Compliance and security
+            "pii_flag": asset_data_source.get("pii_flag"),
+            "application_data_classification": asset_data_source.get(
+                "application_data_classification"
+            )
+            or asset_data_source.get("data_classification"),
+            # Performance metrics (max values)
+            "cpu_utilization_percent_max": asset_data_source.get(
+                "cpu_utilization_percent_max"
+            )
+            or asset_data_source.get("cpu_max_percent"),
+            "memory_utilization_percent_max": asset_data_source.get(
+                "memory_utilization_percent_max"
+            )
+            or asset_data_source.get("memory_max_percent"),
+            "storage_free_gb": asset_data_source.get("storage_free_gb"),
+            # Migration planning fields
+            "has_saas_replacement": asset_data_source.get("has_saas_replacement"),
+            "risk_level": asset_data_source.get("risk_level"),
+            "tshirt_size": asset_data_source.get("tshirt_size"),
+            "proposed_treatmentplan_rationale": asset_data_source.get(
+                "proposed_treatmentplan_rationale"
+            )
+            or asset_data_source.get("proposed_rationale"),
+            # Cost and backup
+            "annual_cost_estimate": asset_data_source.get("annual_cost_estimate"),
             # Discovery metadata
             "discovery_source": "Discovery Flow Import",
             "raw_import_records_id": record.id if hasattr(record, "id") else None,

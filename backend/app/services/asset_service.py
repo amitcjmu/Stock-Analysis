@@ -18,6 +18,15 @@ from sqlalchemy import select, and_
 from app.models.asset import Asset, AssetStatus
 from app.repositories.asset_repository import AssetRepository
 from app.core.context import RequestContext
+from app.services.asset_service.child_table_helpers import (
+    create_child_records_if_needed,
+)
+from app.services.asset_service.helpers import (
+    convert_numeric_fields,
+    extract_context_ids,
+    get_smart_asset_name,
+    resolve_flow_ids,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,185 +78,6 @@ class AssetService:
             db, client_account_id=client_account_id, engagement_id=engagement_id
         )
 
-    def _get_smart_asset_name(self, data: Dict[str, Any]) -> str:
-        """Generate unique asset name from available data with intelligent fallbacks"""
-        # Try explicit name field first
-        if data.get("name"):
-            return str(data["name"]).strip()
-
-        # Try asset_name field
-        if data.get("asset_name"):
-            return str(data["asset_name"]).strip()
-
-        # Try hostname (most common for servers/infrastructure)
-        if data.get("hostname"):
-            return str(data["hostname"]).strip()
-
-        # Try application_name (for applications)
-        if data.get("application_name"):
-            return str(data["application_name"]).strip()
-
-        # Try primary_application
-        if data.get("primary_application"):
-            return str(data["primary_application"]).strip()
-
-        # Try IP address as identifier
-        if data.get("ip_address"):
-            return f"Asset-{data['ip_address']}"
-
-        # Last resort: generate unique name based on asset type and UUID
-        asset_type = data.get("asset_type", "Asset").replace(" ", "-")
-        unique_id = str(uuid.uuid4())[:8]  # Short UUID for readability
-        return f"{asset_type}-{unique_id}"
-
-    def _safe_int_convert(self, value, default=None):
-        """Convert value to integer with safe error handling"""
-        if value is None or value == "":
-            return default
-        try:
-            return int(float(str(value)))  # Handle both int and float strings
-        except (ValueError, TypeError):
-            logger.warning(
-                f"Failed to convert '{value}' to integer, using default {default}"
-            )
-            return default
-
-    def _safe_float_convert(self, value, default=None):
-        """Convert value to float with safe error handling"""
-        if value is None or value == "":
-            return default
-        try:
-            return float(str(value))
-        except (ValueError, TypeError):
-            logger.warning(
-                f"Failed to convert '{value}' to float, using default {default}"
-            )
-            return default
-
-    async def _extract_context_ids(
-        self, asset_data: Dict[str, Any]
-    ) -> tuple[uuid.UUID, uuid.UUID]:
-        """Extract and validate context IDs from asset data."""
-        client_id = self._get_uuid(
-            asset_data.get("client_account_id")
-            or self.context_info.get("client_account_id")
-        )
-        engagement_id = self._get_uuid(
-            asset_data.get("engagement_id") or self.context_info.get("engagement_id")
-        )
-
-        if not client_id or not engagement_id:
-            raise ValueError(
-                "Missing required tenant context (client_id, engagement_id)"
-            )
-
-        return client_id, engagement_id
-
-    async def _resolve_flow_ids(
-        self, asset_data: Dict[str, Any], flow_id: str
-    ) -> tuple[str, str, uuid.UUID, uuid.UUID]:
-        """Resolve various flow IDs from asset data and parameters."""
-        # Honor explicit flow IDs if provided, fallback to flow_id parameter
-        master_flow_id = asset_data.pop("master_flow_id", None) or flow_id
-        discovery_flow_id = asset_data.pop("discovery_flow_id", None)
-
-        # Extract raw_import_records_id for linking
-        raw_import_records_id = self._get_uuid(
-            asset_data.pop("raw_import_records_id", None)
-        )
-
-        # If no discovery_flow_id, lookup from master_flow_id
-        # CC: Fix - discovery_flows have flow_id == master_flow_id, not a separate master_flow_id column
-        if not discovery_flow_id and master_flow_id:
-            try:
-                from app.models.discovery_flow import DiscoveryFlow
-
-                # Try looking up by flow_id first (which should equal master_flow_id)
-                result = await self.db.execute(
-                    select(DiscoveryFlow.flow_id).where(
-                        DiscoveryFlow.flow_id == master_flow_id
-                    )
-                )
-                discovery_flow = result.scalar_one_or_none()
-                if discovery_flow:
-                    discovery_flow_id = str(discovery_flow)
-                    logger.info(
-                        f"✅ Found discovery_flow_id {discovery_flow_id} for master_flow_id {master_flow_id}"
-                    )
-                else:
-                    # If master_flow_id is the discovery flow ID itself, use it
-                    discovery_flow_id = master_flow_id
-                    logger.info(
-                        f"📌 Using master_flow_id as discovery_flow_id: {discovery_flow_id}"
-                    )
-            except Exception as e:
-                logger.warning(f"Could not lookup discovery_flow_id: {e}")
-                # Fallback to using master_flow_id as discovery_flow_id
-                discovery_flow_id = master_flow_id
-
-        # Use provided flow IDs or fallback to context
-        effective_flow_id = self._get_uuid(
-            master_flow_id
-            or flow_id
-            or asset_data.get("flow_id")
-            or self.context_info.get("flow_id")
-        )
-
-        logger.info(
-            f"🔗 Associating asset with master_flow_id: {master_flow_id}, discovery_flow_id: {discovery_flow_id}"
-        )
-
-        return (
-            master_flow_id,
-            discovery_flow_id,
-            raw_import_records_id,
-            effective_flow_id,
-        )
-
-    def _convert_numeric_fields(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert all numeric fields with proper error handling."""
-        return {
-            # INTEGER fields
-            "cpu_cores": self._safe_int_convert(asset_data.get("cpu_cores"), None),
-            "migration_priority": self._safe_int_convert(
-                asset_data.get("migration_priority"), 5
-            ),
-            "migration_wave": self._safe_int_convert(
-                asset_data.get("migration_wave"), None
-            ),
-            # FLOAT fields
-            "memory_gb": self._safe_float_convert(asset_data.get("memory_gb"), None),
-            "storage_gb": self._safe_float_convert(asset_data.get("storage_gb"), None),
-            "cpu_utilization_percent": self._safe_float_convert(
-                asset_data.get("cpu_utilization_percent"), None
-            ),
-            "memory_utilization_percent": self._safe_float_convert(
-                asset_data.get("memory_utilization_percent"), None
-            ),
-            "disk_iops": self._safe_float_convert(asset_data.get("disk_iops"), None),
-            "network_throughput_mbps": self._safe_float_convert(
-                asset_data.get("network_throughput_mbps"), None
-            ),
-            "completeness_score": self._safe_float_convert(
-                asset_data.get("completeness_score"), None
-            ),
-            "quality_score": self._safe_float_convert(
-                asset_data.get("quality_score"), None
-            ),
-            "confidence_score": self._safe_float_convert(
-                asset_data.get("confidence_score"), None
-            ),
-            "current_monthly_cost": self._safe_float_convert(
-                asset_data.get("current_monthly_cost"), None
-            ),
-            "estimated_cloud_cost": self._safe_float_convert(
-                asset_data.get("estimated_cloud_cost"), None
-            ),
-            "assessment_readiness_score": self._safe_float_convert(
-                asset_data.get("assessment_readiness_score"), None
-            ),
-        }
-
     async def create_asset(
         self, asset_data: Dict[str, Any], flow_id: str = None
     ) -> Optional[Asset]:
@@ -263,10 +93,12 @@ class AssetService:
         """
         try:
             # Extract context IDs - handle both string and UUID types
-            client_id, engagement_id = await self._extract_context_ids(asset_data)
+            client_id, engagement_id = await extract_context_ids(
+                asset_data, self.context_info
+            )
 
             # Generate smart asset name
-            smart_name = self._get_smart_asset_name(asset_data)
+            smart_name = get_smart_asset_name(asset_data)
 
             logger.info(
                 f"🏷️ Generating asset name: '{smart_name}' from data keys: {list(asset_data.keys())}"
@@ -291,10 +123,10 @@ class AssetService:
                 discovery_flow_id,
                 raw_import_records_id,
                 effective_flow_id,
-            ) = await self._resolve_flow_ids(asset_data, flow_id)
+            ) = await resolve_flow_ids(asset_data, flow_id)
 
             # Convert numeric fields
-            numeric_fields = self._convert_numeric_fields(asset_data)
+            numeric_fields = convert_numeric_fields(asset_data)
 
             # Use repository's keyword-based create method
             # CRITICAL FIX: Always use create_no_commit to avoid individual commits
@@ -348,6 +180,42 @@ class AssetService:
                 business_criticality=asset_data.get("business_criticality", "Medium"),
                 # Migration planning
                 migration_complexity=asset_data.get("migration_complexity"),
+                # CMDB Fields (PR #847) - Business and organizational
+                business_unit=asset_data.get("business_unit"),
+                vendor=asset_data.get("vendor"),
+                # CMDB Fields - Application-specific
+                application_type=asset_data.get("application_type"),
+                lifecycle=asset_data.get("lifecycle"),
+                hosting_model=asset_data.get("hosting_model"),
+                # CMDB Fields - Server-specific
+                server_role=asset_data.get("server_role"),
+                security_zone=asset_data.get("security_zone"),
+                # CMDB Fields - Database-specific
+                database_type=asset_data.get("database_type"),
+                database_version=asset_data.get("database_version"),
+                database_size_gb=asset_data.get("database_size_gb"),
+                # CMDB Fields - Compliance and security
+                pii_flag=asset_data.get("pii_flag"),
+                application_data_classification=asset_data.get(
+                    "application_data_classification"
+                ),
+                # CMDB Fields - Performance metrics (max values)
+                cpu_utilization_percent_max=asset_data.get(
+                    "cpu_utilization_percent_max"
+                ),
+                memory_utilization_percent_max=asset_data.get(
+                    "memory_utilization_percent_max"
+                ),
+                storage_free_gb=asset_data.get("storage_free_gb"),
+                # CMDB Fields - Migration planning
+                has_saas_replacement=asset_data.get("has_saas_replacement"),
+                risk_level=asset_data.get("risk_level"),
+                tshirt_size=asset_data.get("tshirt_size"),
+                proposed_treatmentplan_rationale=asset_data.get(
+                    "proposed_treatmentplan_rationale"
+                ),
+                # CMDB Fields - Cost
+                annual_cost_estimate=asset_data.get("annual_cost_estimate"),
                 # Status
                 status=AssetStatus.DISCOVERED,
                 migration_status=AssetStatus.DISCOVERED,
@@ -365,6 +233,12 @@ class AssetService:
                 imported_at=asset_data.get("imported_at"),
                 source_filename=asset_data.get("source_filename"),
                 raw_data=asset_data,
+            )
+
+            # CMDB Child Tables (PR #847) - Create related records if data exists
+            # Only create these records when user actually supplied the data via CSV
+            await create_child_records_if_needed(
+                self.db, created_asset, asset_data, client_id, engagement_id
             )
 
             logger.info(
