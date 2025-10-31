@@ -312,12 +312,15 @@ def _analyze_selected_assets(existing_assets: List[Asset]) -> Tuple[List[dict], 
 
         selected_assets.append(
             {
-                "asset_id": asset_id_str,
+                "id": asset_id_str,  # CRITICAL: Use "id" not "asset_id" - section_builders.py expects "id" key
                 "asset_name": asset.name or getattr(asset, "application_name", None),
                 "asset_type": getattr(asset, "asset_type", "application"),
                 "criticality": getattr(asset, "criticality", "unknown"),
                 "environment": getattr(asset, "environment", "unknown"),
                 "technology_stack": getattr(asset, "technology_stack", "unknown"),
+                # CRITICAL: Add OS data for OS-aware questionnaire generation
+                "operating_system": getattr(asset, "operating_system", None),
+                "os_version": getattr(asset, "os_version", None),
             }
         )
 

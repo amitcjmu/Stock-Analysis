@@ -47,6 +47,13 @@ def serialize_asset_for_agent_context(
         Dictionary with comprehensive asset context
     """
 
+    # DEBUG: Log serializer invocation
+    logger.info(
+        f"🔍 DEBUG: serialize_asset_for_agent_context called for asset: {asset.name} "
+        f"(id={asset.id}, os={asset.operating_system}, os_version={asset.os_version}, "
+        f"tech_stack={asset.technology_stack})"
+    )
+
     # ====================
     # 1. CORE ASSET FIELDS
     # ====================

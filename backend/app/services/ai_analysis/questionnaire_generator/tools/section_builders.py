@@ -5,6 +5,16 @@ Contains logic for building questionnaire sections and organizing questions by c
 """
 
 import logging
+from typing import Dict, Optional, Tuple, List
+
+from .intelligent_options import (
+    get_security_vulnerabilities_options,
+    get_business_logic_complexity_options,
+    get_change_tolerance_options,
+    get_availability_requirements_options,
+    infer_field_type_from_config,
+    get_fallback_field_type_and_options,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +38,20 @@ def create_basic_info_section() -> dict:
     }
 
 
-def determine_field_type_and_options(attr_name: str) -> tuple:
-    """Determine field type and options based on attribute name.
+def determine_field_type_and_options(
+    attr_name: str, asset_context: Optional[Dict] = None
+) -> Tuple[str, List]:
+    """Determine field type and options based on attribute name and asset context.
 
     Uses FIELD_OPTIONS from config.py as single source of truth.
     Falls back to heuristics only for unmapped fields.
+
+    Args:
+        attr_name: Field/attribute name (e.g., 'business_logic_complexity')
+        asset_context: Optional dict with asset data including 'technology_stack', etc.
+
+    Returns:
+        Tuple of (field_type: str, options: list)
     """
     # Import FIELD_OPTIONS and CRITICAL_ATTRIBUTES_CONFIG
     try:
@@ -45,62 +64,43 @@ def determine_field_type_and_options(attr_name: str) -> tuple:
         FIELD_OPTIONS = {}
         CRITICAL_ATTRIBUTES_CONFIG = {}
 
-    # First check if field has predefined options in FIELD_OPTIONS
+    # CRITICAL: Check for context-aware fields BEFORE FIELD_OPTIONS
+    # This enables intelligent option ordering based on asset characteristics
+    if asset_context:
+        # Security vulnerabilities based on EOL status
+        if attr_name == "security_vulnerabilities":
+            result = get_security_vulnerabilities_options(asset_context)
+            if result:
+                return result
+
+        # Business logic complexity based on technology stack
+        if attr_name == "business_logic_complexity":
+            result = get_business_logic_complexity_options(asset_context)
+            if result:
+                return result
+
+        # Change tolerance based on business criticality
+        if attr_name == "change_tolerance":
+            result = get_change_tolerance_options(asset_context)
+            if result:
+                return result
+
+        # Availability requirements based on business criticality
+        if attr_name == "availability_requirements":
+            result = get_availability_requirements_options(asset_context)
+            if result:
+                return result
+
+    # Check if field has predefined options in FIELD_OPTIONS
     if attr_name in FIELD_OPTIONS:
         options = FIELD_OPTIONS[attr_name]
-
-        # Determine field type from CRITICAL_ATTRIBUTES_CONFIG if available
-        if attr_name in CRITICAL_ATTRIBUTES_CONFIG:
-            field_type_enum = CRITICAL_ATTRIBUTES_CONFIG[attr_name].get("field_type")
-            if field_type_enum:
-                field_type = (
-                    field_type_enum.value
-                    if hasattr(field_type_enum, "value")
-                    else str(field_type_enum)
-                )
-            else:
-                # Infer from options count
-                field_type = (
-                    "multi_select"
-                    if isinstance(options, list) and len(options) > 3
-                    else "select"
-                )
-        else:
-            # Infer from options count
-            field_type = (
-                "multi_select"
-                if isinstance(options, list) and len(options) > 3
-                else "select"
-            )
-
+        field_type = infer_field_type_from_config(
+            attr_name, options, CRITICAL_ATTRIBUTES_CONFIG
+        )
         return field_type, options
 
     # Fallback to heuristic matching for unmapped fields
-    field_type = "text"
-    options = []
-
-    if "criticality" in attr_name.lower():
-        field_type = "select"
-        options = ["Critical", "High", "Medium", "Low"]
-    elif attr_name == "compliance_constraints":  # Explicit match only
-        field_type = "multi_select"
-        options = ["PCI-DSS", "HIPAA", "GDPR", "SOX", "ISO 27001", "None"]
-    elif attr_name == "architecture_pattern":
-        field_type = "select"
-        options = [
-            "Monolithic",
-            "N-Tier",
-            "Microservices",
-            "Serverless",
-            "Event-Driven",
-        ]
-    elif attr_name == "technology_stack":
-        field_type = "text"
-    elif "dependencies" in attr_name.lower():
-        field_type = "multi_select"
-        options = []
-
-    return field_type, options
+    return get_fallback_field_type_and_options(attr_name)
 
 
 def build_question_from_attribute(

@@ -48,6 +48,11 @@ async def generate_questionnaire_with_agent(
                 selected_asset_ids=selected_asset_ids,
             )
 
+            # DEBUG: Verify agent_context contains assets
+            logger.info(
+                f"🔍 DEBUG generation.py:49: agent_context contains {len(agent_context.get('assets', []))} assets"
+            )
+
             # Get persistent questionnaire generator agent
             logger.info(
                 f"Getting TenantScopedAgentPool questionnaire_generator for flow {flow_uuid}"
@@ -67,6 +72,12 @@ async def generate_questionnaire_with_agent(
                 gaps_data = _prepare_gaps_data(agent_context)
                 agent_input = _prepare_agent_input(
                     gaps_data, agent_context, flow_uuid, selected_asset_ids
+                )
+
+                # DEBUG: Verify agent_input business_context has existing_assets
+                logger.info(
+                    f"🔍 DEBUG generation.py:74: agent_input business_context has "
+                    f"{len(agent_input.get('business_context', {}).get('existing_assets', []))} existing_assets"
                 )
 
                 # Execute questionnaire generation through persistent agent
@@ -102,42 +113,49 @@ async def generate_questionnaire_with_agent(
             pass
 
 
-def _prepare_gaps_data(agent_context: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Prepare gaps data from agent context for agent input."""
-    gaps_data = []
+def _prepare_gaps_data(agent_context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Prepare gaps data from agent context for agent input.
+
+    Returns Dict with structure expected by QuestionnaireGenerationTool:
+    {
+        "missing_critical_fields": {asset_id: [field_names]},
+        "assets_with_gaps": [asset_ids],
+        "data_quality_issues": {},
+        "unmapped_attributes": {}
+    }
+    """
+    missing_critical_fields = {}
+    assets_with_gaps = []
+
     for asset in agent_context.get("assets", []):
-        if asset.get("gaps"):
-            for gap in asset["gaps"]:
-                gaps_data.append(
-                    {
-                        "asset_id": asset["id"],
-                        "asset_name": asset["name"],
-                        "gap": gap,
-                        "priority": "high",
-                        "category": "data_collection",
-                    }
-                )
+        asset_id = asset["id"]
+        gaps = asset.get("gaps", [])
 
-    # If no specific gaps, create generic ones
-    if not gaps_data:
-        gaps_data = [
-            {
-                "gap": "Asset selection required",
-                "priority": "critical",
-                "category": "asset_selection",
-            },
-            {
-                "gap": "Basic information incomplete",
-                "priority": "high",
-                "category": "basic_info",
-            },
-        ]
+        if gaps:
+            # Extract field names from gap dictionaries
+            # Gaps structure: [{"field": "technology_stack", ...}, ...]
+            field_names = []
+            for gap in gaps:
+                if isinstance(gap, dict) and "field" in gap:
+                    field_names.append(gap["field"])
+                elif isinstance(gap, str):
+                    field_names.append(gap)
 
-    return gaps_data
+            if field_names:
+                missing_critical_fields[asset_id] = field_names
+                assets_with_gaps.append(asset_id)
+
+    return {
+        "missing_critical_fields": missing_critical_fields,
+        "assets_with_gaps": assets_with_gaps,
+        "data_quality_issues": {},
+        "unmapped_attributes": {},
+    }
 
 
 def _prepare_agent_input(
-    gaps_data: List[Dict[str, Any]],
+    gaps_data: Dict[str, Any],  # Changed from List to Dict
     agent_context: Dict[str, Any],
     flow_uuid: UUID,
     selected_asset_ids: Optional[List[str]],
@@ -158,7 +176,7 @@ def _prepare_agent_input(
 
 async def _execute_agent_generation(
     agent: Any,
-    gaps_data: List[Dict[str, Any]],
+    gaps_data: Dict[str, Any],  # Changed from List to Dict
     agent_input: Dict[str, Any],
     agent_context: Dict[str, Any],
     flow_uuid: UUID,
