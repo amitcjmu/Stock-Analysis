@@ -447,7 +447,7 @@
     "list": []
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {},

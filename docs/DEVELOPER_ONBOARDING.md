@@ -193,14 +193,6 @@ For detailed setup, architecture, and troubleshooting:
 - ❌ `.env.observability` is gitignored (contains your passwords)
 - ✅ Pattern `*.observability` ensures all variants are excluded
 
-**Why Grafana Alloy?**
-- Promtail (previous solution) reached End-of-Life: March 2, 2026
-- Alloy is the strategic replacement with:
-  - Unified logs + traces + metrics collection
-  - Full OTLP (OpenTelemetry Protocol) support
-  - Active development and long-term support
-  - Better performance than separate agents
-
 ---
 
 ## 📖 Documentation Learning Path
