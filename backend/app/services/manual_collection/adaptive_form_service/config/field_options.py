@@ -220,6 +220,21 @@ FIELD_OPTIONS = {
             "label": "Very Complex - Intricate business rules, regulatory logic",
         },
     ],
+    "custom_attributes.business_logic_complexity": [
+        {"value": "simple", "label": "Simple - Basic CRUD, minimal business logic"},
+        {
+            "value": "moderate",
+            "label": "Moderate - Standard business rules, some workflows",
+        },
+        {
+            "value": "complex",
+            "label": "Complex - Advanced workflows, multi-step processes",
+        },
+        {
+            "value": "very_complex",
+            "label": "Very Complex - Intricate business rules, regulatory logic",
+        },
+    ],
     "custom_attributes.vulnerabilities": [
         {"value": "none_known", "label": "None Known - No vulnerabilities identified"},
         {"value": "low_severity", "label": "Low Severity - Minor issues, low risk"},
