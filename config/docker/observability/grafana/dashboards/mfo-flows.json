@@ -87,7 +87,7 @@
           "refId": "A"
         }
       ],
-      "title": "Master Flows by Status (7 days)",
+      "title": "Master Flows by Status",
       "type": "stat"
     },
     {
@@ -143,7 +143,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  flow_type,\n  COUNT(*) AS count\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\nGROUP BY flow_type\nORDER BY count DESC;",
+          "rawSql": "SELECT\n  flow_type AS metric,\n  COUNT(*)::float AS value\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\nGROUP BY flow_type\nORDER BY value DESC;",
           "refId": "A"
         }
       ],
@@ -203,7 +203,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60) AS avg_duration_minutes\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\n  AND flow_status = 'completed';",
+          "rawSql": "SELECT\n  AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60) AS avg_duration_minutes\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\n  AND flow_status = 'completed'\n  AND updated_at > created_at;",
           "refId": "A"
         }
       ],
