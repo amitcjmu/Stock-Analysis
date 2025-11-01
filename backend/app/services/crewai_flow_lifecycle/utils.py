@@ -100,8 +100,8 @@ async def get_or_create_flow(
                     or f"Discovery Flow {str(master_flow.flow_id)[:8]}",
                     status=master_flow.flow_status,
                     current_phase="resuming",
-                    created_at=master_flow.created_at,
-                    updated_at=master_flow.updated_at,
+                    # Omit created_at and updated_at - let SQLAlchemy defaults handle it
+                    # Fix for timestamp corruption: new child flow = current time, not old master flow timestamps
                 )
                 db.add(discovery_flow)
                 await db.commit()
