@@ -1,0 +1,92 @@
+# Grafana Datasources Provisioning
+# Purpose: Auto-configure datasources on Grafana startup
+# Architecture: ADR-031
+
+apiVersion: 1
+
+datasources:
+  # Loki - Log aggregation
+  - name: Loki
+    type: loki
+    uid: Loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    version: 1
+    editable: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        # Extract trace ID from logs to link to Tempo
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"([^"]+)"'
+          name: TraceID
+          url: '$${__value.raw}'
+
+  # Tempo - Distributed tracing
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    version: 1
+    editable: false
+    uid: tempo
+    jsonData:
+      # HTTP-only mode (no WebSockets - Railway compatible per ADR-031)
+      httpMethod: GET
+      tracesToLogs:
+        datasourceUid: loki
+        mapTagNamesEnabled: true
+        mappedTags:
+          - key: service.name
+            value: service
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+      serviceMap:
+        datasourceUid: prometheus
+      search:
+        hide: false
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: loki
+
+  # Prometheus - Metrics TSDB
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    version: 1
+    editable: false
+    uid: prometheus
+    jsonData:
+      httpMethod: POST
+      timeInterval: 30s
+      queryTimeout: 60s
+      # Exemplars link to Tempo traces
+      exemplarTraceIdDestinations:
+        - datasourceUid: tempo
+          name: trace_id
+
+  # PostgreSQL - LLM usage logs and MFO flow queries
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: migration_postgres:5432
+    database: migration_db
+    # SECURITY: Use read-only user (NOT superuser)
+    # Create user with: CREATE USER grafana_readonly WITH PASSWORD '${POSTGRES_GRAFANA_PASSWORD}';
+    user: grafana_readonly
+    secureJsonData:
+      password: ${POSTGRES_GRAFANA_PASSWORD}
+    version: 1
+    editable: false
+    uid: postgres
+    jsonData:
+      sslmode: disable  # Docker internal network
+      postgresVersion: 1600  # PostgreSQL 16
+      timescaledb: false
+      # Database schema
+      schema: migration

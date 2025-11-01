@@ -1,121 +1,195 @@
-#version: '3.8'
+# Grafana Observability Stack (Tier B - Full Stack)
+# 5 containers: Grafana + Loki + Tempo + Prometheus + Alloy (native, not fallback)
+# Replaces: OpenLIT stack (7+ containers), Promtail (deprecated EOL March 2026)
+# Architecture: ADR-031
+# Environment: Azure dev (primary), Railway prod (optional), Local dev (optional)
 
 services:
-  # OpenLIT Observability Stack
-  openlit:
-    image: ghcr.io/openlit/openlit:latest
-    container_name: openlit_dashboard
+  # Grafana - Web UI, datasource configuration, dashboards
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: migration_grafana
     ports:
-      - "3000:3000"  # OpenLIT Dashboard
+      - "9999:3000"  # Port 9999 per project request (not 3001)
     environment:
-      - OPENLIT_ENVIRONMENT=development
-      - OPENLIT_DATABASE_URL=postgresql://openlit:openlit@openlit_db:5432/openlit
-      - OPENLIT_REDIS_URL=redis://openlit_redis:6379
+      # Local admin authentication (GitHub OAuth blocked by enterprise firewall)
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+
+      # Azure AD integration (optional, Phase 2)
+      - GF_AUTH_AZUREAD_ENABLED=${AZURE_AD_ENABLED:-false}
+      - GF_AUTH_AZUREAD_CLIENT_ID=${AZURE_AD_CLIENT_ID:-}
+      - GF_AUTH_AZUREAD_CLIENT_SECRET=${AZURE_AD_CLIENT_SECRET:-}
+      - GF_AUTH_AZUREAD_AUTH_URL=${AZURE_AD_AUTH_URL:-}
+      - GF_AUTH_AZUREAD_TOKEN_URL=${AZURE_AD_TOKEN_URL:-}
+
+      # GitHub OAuth (Railway prod only)
+      - GF_AUTH_GITHUB_ENABLED=${GF_AUTH_GITHUB_ENABLED:-false}
+      - GF_AUTH_GITHUB_CLIENT_ID=${GF_AUTH_GITHUB_CLIENT_ID:-}
+      - GF_AUTH_GITHUB_CLIENT_SECRET=${GF_AUTH_GITHUB_CLIENT_SECRET:-}
+      - GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS=${GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS:-}
+
+      # Server settings (HTTPS optional - set GF_SERVER_PROTOCOL=https in .env.observability)
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-http://localhost:9999}
+      - GF_SERVER_DOMAIN=${GF_SERVER_DOMAIN:-localhost}
+      - GF_SERVER_PROTOCOL=${GF_SERVER_PROTOCOL:-http}
+      - GF_SERVER_CERT_FILE=${GF_SERVER_CERT_FILE:-}
+      - GF_SERVER_CERT_KEY=${GF_SERVER_CERT_KEY:-}
+
+      # Database settings (internal SQLite)
+      - GF_DATABASE_TYPE=sqlite3
+      - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
+
+      # Logging
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=info
+
+      # Security
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+
+      # Features
+      - GF_FEATURE_TOGGLES_ENABLE=tempoSearch,tempoServiceGraph
+      - GF_INSTALL_PLUGINS=
+
+      # PostgreSQL datasource credentials
+      - POSTGRES_GRAFANA_PASSWORD=${POSTGRES_GRAFANA_PASSWORD}
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/data/grafana:/var/lib/grafana
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+      # SSL certificates (Azure/Railway)
+      - ./observability/ssl:/etc/grafana/ssl:ro
+    networks:
+      - migration_network
     depends_on:
-      - openlit_db
-      - openlit_redis
-      - openlit_otel_collector
-    networks:
-      - openlit_network
-      - migrate-ui-orchestrator_default  # Connect to main app network
+      - loki
+      - tempo
+      - prometheus
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  # OpenLIT Database
-  openlit_db:
-    image: postgres:17-alpine  # Updated from 15 to fix CVE-2025-8715, CVE-2025-8714, CVE-2025-8713
-    container_name: openlit_postgres
-    environment:
-      - POSTGRES_DB=openlit
-      - POSTGRES_USER=openlit
-      - POSTGRES_PASSWORD=openlit
-    volumes:
-      - openlit_db_data:/var/lib/postgresql/data
-    networks:
-      - openlit_network
-    restart: unless-stopped
-
-  # Redis for OpenLIT
-  openlit_redis:
-    image: redis:7-alpine
-    container_name: openlit_redis
-    networks:
-      - openlit_network
-    restart: unless-stopped
-
-  # OpenTelemetry Collector for CrewAI agent tracing
-  openlit_otel_collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    container_name: openlit_otel_collector
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    volumes:
-      - ./observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+  # Loki - Log aggregation and storage
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: migration_loki
     ports:
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
-      - "8888:8888"   # Prometheus metrics
-      - "8889:8889"   # Prometheus exporter metrics
+      - "3100:3100"  # HTTP API
+    environment:
+      - LOKI_RETENTION_DAYS=${LOKI_RETENTION_DAYS:-14}
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - ./observability/data/loki:/loki
     networks:
-      - openlit_network
-      - migrate-ui-orchestrator_default  # Connect to main app network
+      - migration_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  # Prometheus for metrics collection
+  # Tempo - Distributed tracing (replaces Jaeger)
+  tempo:
+    image: grafana/tempo:2.3.1
+    container_name: migration_tempo
+    ports:
+      - "3200:3200"  # HTTP API
+      # Note: 4317/4318 not exposed - Alloy forwards OTLP data internally
+    environment:
+      - TEMPO_RETENTION_DAYS=${TEMPO_RETENTION_DAYS:-7}
+    command: -config.file=/etc/tempo/tempo-config.yaml
+    volumes:
+      - ./observability/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
+      - ./observability/data/tempo:/var/tempo
+    networks:
+      - migration_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3200/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Prometheus - Metrics TSDB
   prometheus:
-    image: prom/prometheus:latest
-    container_name: openlit_prometheus
+    image: prom/prometheus:v2.48.0
+    container_name: migration_prometheus
+    ports:
+      - "9090:9090"  # HTTP API
+    environment:
+      - PROMETHEUS_RETENTION_DAYS=${PROMETHEUS_RETENTION_DAYS:-14}
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14}d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-remote-write-receiver'
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/data/prometheus:/prometheus
     networks:
-      - openlit_network
+      - migration_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  # Grafana for visualization
-  grafana:
-    image: grafana/grafana:latest
-    container_name: openlit_grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+  # Alloy - Unified telemetry collector (logs, traces, metrics)
+  # Replaces: Promtail (EOL March 2026), Grafana Agent, OTel Collector
+  alloy:
+    image: grafana/alloy:latest
+    container_name: migration_alloy
+    ports:
+      - "12345:12345"  # Alloy HTTP API and UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources
-    ports:
-      - "3001:3000"  # Use 3001 to avoid conflict with OpenLIT
+      - ./observability/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker log scraping
+      - ./observability/data/alloy:/var/lib/alloy
     networks:
-      - openlit_network
+      - migration_network
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
     restart: unless-stopped
-
-  # Jaeger for distributed tracing
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: jaeger_tracing
-    ports:
-      - "16686:16686"  # Jaeger UI
-      - "14268:14268"  # Jaeger collector HTTP
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    networks:
-      - openlit_network
-    restart: unless-stopped
-
-volumes:
-  openlit_db_data:
-  prometheus_data:
-  grafana_data:
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:12345/-/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
-  openlit_network:
-    driver: bridge
-  migrate-ui-orchestrator_default:
+  migration_network:
     external: true
+
+# Volumes are bind mounts to ./observability/data/* for easy management
+# Data persistence:
+#   - Loki: 14-day retention, ~14GB
+#   - Tempo: 7-day retention, ~1.4GB
+#   - Prometheus: 14-day retention, ~28GB
+#   - Total: ~45GB estimated

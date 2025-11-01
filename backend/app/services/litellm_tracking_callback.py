@@ -209,7 +209,22 @@ def setup_litellm_tracking():
 
     try:
         _callback_instance = LLMUsageCallback()
-        litellm.callbacks = [_callback_instance]
+
+        # Use modern LiteLLM callback API (success_callback/failure_callback)
+        # instead of legacy callbacks attribute. This matches the proven pattern
+        # in llm_config.py:154-158 and preserves existing callbacks.
+        # See: https://docs.litellm.ai/docs/observability/custom_callback
+
+        # Register success callback (append to preserve existing callbacks like DeepInfra fixer)
+        if not hasattr(litellm, "success_callback") or litellm.success_callback is None:
+            litellm.success_callback = []
+        litellm.success_callback.append(_callback_instance)
+
+        # Register failure callback (append to preserve existing callbacks)
+        if not hasattr(litellm, "failure_callback") or litellm.failure_callback is None:
+            litellm.failure_callback = []
+        litellm.failure_callback.append(_callback_instance)
+
         logger.info(
             "✅ LiteLLM tracking callback installed - all LLM calls will be logged"
         )
