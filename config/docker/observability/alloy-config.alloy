@@ -1,62 +1,87 @@
----
-# Grafana Alloy Configuration
-# Purpose: Unified collector for logs, traces, and metrics
-# Replaces: Promtail + OTel Collector
-# Architecture: ADR-031
+// Grafana Alloy Configuration
+// Purpose: Unified collector for logs, traces, and metrics
+// Replaces: Promtail + OTel Collector
+// Architecture: ADR-031
 
-# Logging configuration
+// Logging configuration
 logging {
   level  = "info"
   format = "logfmt"
 }
 
-# Server configuration
-server {
-  http_listen_address = "0.0.0.0"
-  http_listen_port    = 12345
+// =============================================================================
+// DOCKER LOG COLLECTION PIPELINE
+// =============================================================================
+
+// Step 1: Discover Docker containers
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+
+  filter {
+    name   = "status"
+    values = ["running"]
+  }
 }
 
-# Docker log scraping → Loki
+// Step 2: Scrape Docker logs
 loki.source.docker "docker_logs" {
-  host       = "unix:///var/run/docker.sock"
-  targets    = []
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.containers.targets
+  forward_to       = [loki.relabel.docker_labels.receiver]
+  refresh_interval = "5s"
+
+  labels = {
+    job = "docker_logs",
+  }
+}
+
+// Step 3: Add Docker metadata as labels
+loki.relabel "docker_labels" {
   forward_to = [loki.process.parse_json.receiver]
 
-  # Scrape all containers on migration_network
-  relabel_rules = <<EOT
-    - source_labels: [__meta_docker_container_name]
-      target_label: container
-    - source_labels: [__meta_docker_container_log_stream]
-      target_label: stream
-  EOT
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
 }
 
-# Parse JSON logs and extract labels
+// Step 4: Parse JSON logs and extract fields
 loki.process "parse_json" {
   forward_to = [loki.process.redact_secrets.receiver]
 
   stage.json {
     expressions = {
-      level               = "level"
-      client_account_id   = "client_account_id"
-      engagement_id       = "engagement_id"
-      flow_id             = "flow_id"
-      agent               = "agent"
-      phase               = "phase"
-      status              = "status"
-      message             = "message"
+      level             = "level",
+      client_account_id = "client_account_id",
+      engagement_id     = "engagement_id",
+      flow_id           = "flow_id",
+      agent             = "agent",
+      phase             = "phase",
+      status            = "status",
+      message           = "message",
     }
   }
 
   stage.labels {
     values = {
-      level             = ""
-      client_account_id = ""
-      engagement_id     = ""
-      flow_id           = ""
-      agent             = ""
-      phase             = ""
-      status            = ""
+      level             = "level",
+      client_account_id = "client_account_id",
+      engagement_id     = "engagement_id",
+      flow_id           = "flow_id",
+      agent             = "agent",
+      phase             = "phase",
+      status            = "status",
     }
   }
 
@@ -65,46 +90,52 @@ loki.process "parse_json" {
   }
 }
 
-# Redact sensitive fields (passwords, API keys)
+// Step 5: Redact sensitive fields
 loki.process "redact_secrets" {
   forward_to = [loki.write.endpoint.receiver]
 
   stage.replace {
     expression = "password"
+    source     = ""
     replace    = "***REDACTED***"
   }
 
   stage.replace {
     expression = "api_key"
+    source     = ""
     replace    = "***REDACTED***"
   }
 
   stage.replace {
     expression = "secret"
+    source     = ""
     replace    = "***REDACTED***"
   }
 
   stage.replace {
     expression = "token"
+    source     = ""
     replace    = "***REDACTED***"
   }
 }
 
-# Forward logs to Loki
+// Step 6: Forward logs to Loki
 loki.write "endpoint" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
   }
 }
 
-# OTLP receiver for traces and metrics
+// =============================================================================
+// OPENTELEMETRY TRACES & METRICS COLLECTION
+// =============================================================================
+
+// OTLP receiver for traces and metrics
 otelcol.receiver.otlp "default" {
-  # gRPC endpoint
   grpc {
     endpoint = "0.0.0.0:4317"
   }
 
-  # HTTP endpoint
   http {
     endpoint = "0.0.0.0:4318"
   }
@@ -115,7 +146,7 @@ otelcol.receiver.otlp "default" {
   }
 }
 
-# Batch processor (improves performance)
+// Batch processor (improves performance)
 otelcol.processor.batch "default" {
   output {
     traces  = [otelcol.exporter.otlp.tempo.input]
@@ -123,7 +154,7 @@ otelcol.processor.batch "default" {
   }
 }
 
-# Export traces to Tempo
+// Export traces to Tempo
 otelcol.exporter.otlp "tempo" {
   client {
     endpoint = "tempo:4317"
@@ -133,55 +164,59 @@ otelcol.exporter.otlp "tempo" {
   }
 }
 
-# Export metrics to Prometheus
+// Export metrics to Prometheus via remote write
 otelcol.exporter.prometheus "default" {
   forward_to = [prometheus.remote_write.default.receiver]
 }
 
-# Prometheus remote write
+// Prometheus remote write
 prometheus.remote_write "default" {
   endpoint {
     url = "http://prometheus:9090/api/v1/write"
   }
 }
 
-# Optional: Postgres integration (Azure dev only)
-# Uncomment to scrape PostgreSQL metrics
-# prometheus.scrape "postgres" {
-#   targets = [{
-#     __address__ = "migration_postgres:5432",
-#   }]
-#   forward_to = [prometheus.remote_write.default.receiver]
-#
-#   scrape_interval = "30s"
-#   metrics_path    = "/metrics"
-# }
+// =============================================================================
+// ALLOY SELF-MONITORING
+// =============================================================================
 
-# Optional: Redis integration (Azure dev only)
-# Uncomment to scrape Redis metrics
-# prometheus.scrape "redis" {
-#   targets = [{
-#     __address__ = "migration_redis:6379",
-#   }]
-#   forward_to = [prometheus.remote_write.default.receiver]
-#
-#   scrape_interval = "30s"
-#   metrics_path    = "/metrics"
-# }
-
-# Alloy self-monitoring metrics
-prometheus.exporter.self "alloy" {
-}
+// Alloy self-monitoring metrics
+prometheus.exporter.self "alloy" {}
 
 prometheus.scrape "alloy" {
-  targets    = prometheus.exporter.self.alloy.targets
-  forward_to = [prometheus.remote_write.default.receiver]
-
+  targets         = prometheus.exporter.self.alloy.targets
+  forward_to      = [prometheus.remote_write.default.receiver]
   scrape_interval = "30s"
 }
 
-# High cardinality warning:
-# Per ADR-031 Line 156: Limit tenant labels in Prometheus
-# For per-tenant analytics, use SQL dashboards querying PostgreSQL
-# DO NOT add client_account_id or engagement_id to every metric
-# Use these labels sparingly and only for critical metrics
+// =============================================================================
+// OPTIONAL: DATABASE & CACHE INTEGRATIONS (Azure dev only)
+// =============================================================================
+
+// PostgreSQL metrics (uncomment for Azure dev)
+// prometheus.scrape "postgres" {
+//   targets = [{
+//     __address__ = "migration_postgres:5432",
+//   }]
+//   forward_to      = [prometheus.remote_write.default.receiver]
+//   scrape_interval = "30s"
+//   metrics_path    = "/metrics"
+// }
+
+// Redis metrics (uncomment for Azure dev)
+// prometheus.scrape "redis" {
+//   targets = [{
+//     __address__ = "migration_redis:6379",
+//   }]
+//   forward_to      = [prometheus.remote_write.default.receiver]
+//   scrape_interval = "30s"
+//   metrics_path    = "/metrics"
+// }
+
+// =============================================================================
+// NOTES
+// =============================================================================
+// High cardinality warning per ADR-031 Line 156:
+// - Limit tenant labels (client_account_id, engagement_id) in Prometheus
+// - For per-tenant analytics, use SQL dashboards querying PostgreSQL
+// - Use tenant labels sparingly and only for critical metrics

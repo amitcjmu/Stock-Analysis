@@ -82,7 +82,9 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -98,7 +100,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  agent_name,\n  phase,\n  SUM(task_count) AS total_tasks,\n  AVG(avg_duration_seconds) AS avg_duration_sec,\n  SUM(success_count) AS successes,\n  SUM(error_count) AS errors,\n  CASE\n    WHEN SUM(task_count) > 0 THEN ROUND((SUM(success_count)::numeric / SUM(task_count)::numeric) * 100, 2)\n    ELSE 0\n  END AS success_rate_pct\nFROM migration.agent_performance_analytics\nWHERE created_at > NOW() - INTERVAL '7 days'\nGROUP BY agent_name, phase\nORDER BY total_tasks DESC;",
+          "rawSql": "SELECT\n  agent_name,\n  SUM(tasks_attempted) AS total_tasks,\n  AVG(avg_duration_seconds) AS avg_duration_sec,\n  SUM(tasks_completed) AS successes,\n  SUM(tasks_failed) AS errors,\n  CASE\n    WHEN SUM(tasks_attempted) > 0 THEN ROUND((SUM(tasks_completed)::numeric / SUM(tasks_attempted)::numeric) * 100, 2)\n    ELSE 0\n  END AS success_rate_pct\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY agent_name\nORDER BY total_tasks DESC;",
           "refId": "A"
         }
       ],
@@ -186,7 +188,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  SUM(task_count) AS tasks\nFROM migration.agent_performance_analytics\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY 1, 2\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  SUM(tasks_attempted) AS tasks\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -226,7 +228,10 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         },
         "pieType": "pie",
         "tooltip": {
@@ -243,7 +248,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  phase,\n  SUM(task_count) AS count\nFROM migration.agent_performance_analytics\nWHERE created_at > NOW() - INTERVAL '7 days'\nGROUP BY phase\nORDER BY count DESC;",
+          "rawSql": "SELECT\n  SUM(tasks_attempted) AS count\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY phase\nORDER BY count DESC;",
           "refId": "A"
         }
       ],
@@ -313,7 +318,9 @@
       "id": 4,
       "options": {
         "legend": {
-          "calcs": ["mean"],
+          "calcs": [
+            "mean"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -332,7 +339,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  AVG(avg_duration_seconds) AS duration_sec\nFROM migration.agent_performance_analytics\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY 1, 2\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  AVG(avg_duration_seconds) AS duration_sec\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -412,7 +419,9 @@
       "id": 5,
       "options": {
         "legend": {
-          "calcs": ["mean"],
+          "calcs": [
+            "mean"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -431,7 +440,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  CASE\n    WHEN SUM(task_count) > 0 THEN (SUM(success_count)::numeric / SUM(task_count)::numeric) * 100\n    ELSE 0\n  END AS success_rate\nFROM migration.agent_performance_analytics\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY 1, 2\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  agent_name,\n  CASE\n    WHEN SUM(tasks_attempted) > 0 THEN (SUM(tasks_completed)::numeric / SUM(tasks_attempted)::numeric) * 100\n    ELSE 0\n  END AS success_rate\nFROM migration.agent_performance_daily\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -442,7 +451,11 @@
   "refresh": "1m",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["observability", "agents", "health"],
+  "tags": [
+    "observability",
+    "agents",
+    "health"
+  ],
   "templating": {
     "list": []
   },

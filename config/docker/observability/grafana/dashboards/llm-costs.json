@@ -85,7 +85,9 @@
       "id": 1,
       "options": {
         "legend": {
-          "calcs": ["sum"],
+          "calcs": [
+            "sum"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -104,7 +106,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  model_name,\n  SUM(total_cost_usd) AS cost_usd\nFROM migration.llm_usage_logs\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY 1, 2\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  model_name,\n  SUM(total_cost) AS cost\nFROM migration.llm_usage_logs\nWHERE $__timeFilter(created_at)\nGROUP BY 1, 2\nORDER BY 1;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -171,7 +173,9 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": ""
         },
         "showThresholdLabels": false,
@@ -187,7 +191,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  SUM(total_cost_usd) AS \"Total Cost\"\nFROM migration.llm_usage_logs\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds';",
+          "rawSql": "SELECT\n  SUM(total_cost) AS \"Total Cost\"\nFROM migration.llm_usage_logs\nWHERE $__timeFilter(created_at);",
           "refId": "A"
         }
       ],
@@ -228,7 +232,10 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         },
         "pieType": "pie",
         "tooltip": {
@@ -245,7 +252,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  provider,\n  SUM(total_cost_usd) AS cost\nFROM migration.llm_usage_logs\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY provider\nORDER BY cost DESC;",
+          "rawSql": "SELECT\n  llm_provider,\n  SUM(total_cost) AS cost\nFROM migration.llm_usage_logs\nWHERE $__timeFilter(created_at)\nGROUP BY llm_provider\nORDER BY cost DESC;",
           "refId": "A"
         }
       ],
@@ -284,7 +291,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "cost_usd"
+              "options": "cost"
             },
             "properties": [
               {
@@ -307,14 +314,16 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
         "sortBy": [
           {
             "desc": true,
-            "displayName": "cost_usd"
+            "displayName": "cost"
           }
         ]
       },
@@ -328,7 +337,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  model_name,\n  provider,\n  feature_context,\n  client_account_id,\n  engagement_id,\n  SUM(total_cost_usd) AS cost_usd,\n  SUM(input_tokens) AS input_tokens,\n  SUM(output_tokens) AS output_tokens,\n  COUNT(*) AS call_count\nFROM migration.llm_usage_logs\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY 1,2,3,4,5\nORDER BY cost_usd DESC\nLIMIT 100;",
+          "rawSql": "SELECT\n  model_name,\n  llm_provider,\n  feature_context,\n  client_account_id,\n  engagement_id,\n  SUM(total_cost) AS cost,\n  SUM(input_tokens) AS input_tokens,\n  SUM(output_tokens) AS output_tokens,\n  COUNT(*) AS call_count\nFROM migration.llm_usage_logs\nWHERE $__timeFilter(created_at)\nGROUP BY 1,2,3,4,5\nORDER BY cost DESC\nLIMIT 100;",
           "refId": "A"
         }
       ],
@@ -417,7 +426,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  feature_context,\n  COUNT(*) AS calls\nFROM migration.llm_usage_logs\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY 1, 2\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  feature_context,\n  COUNT(*) AS calls\nFROM migration.llm_usage_logs\nWHERE $__timeFilter(created_at)\nGROUP BY 1, 2\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -428,7 +437,12 @@
   "refresh": "1m",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["observability", "llm", "costs", "finops"],
+  "tags": [
+    "observability",
+    "llm",
+    "costs",
+    "finops"
+  ],
   "templating": {
     "list": []
   },

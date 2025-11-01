@@ -64,7 +64,7 @@ backend/env.example
 .env.development.local
 .env.test.local
 .env.production.local
-.env.observability  # Grafana observability stack secrets
+*.observability  # Grafana observability stack secrets (any .observability file)
 
 # Database
 *.db

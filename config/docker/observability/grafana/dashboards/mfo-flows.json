@@ -65,7 +65,9 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": ""
         },
         "showThresholdLabels": false,
@@ -81,7 +83,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  flow_status,\n  COUNT(*) AS count\nFROM migration.crewai_flow_state_extensions\nWHERE created_at > NOW() - INTERVAL '7 days'\nGROUP BY flow_status\nORDER BY count DESC;",
+          "rawSql": "SELECT\n  flow_status,\n  COUNT(*) AS count\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\nGROUP BY flow_status\nORDER BY count DESC;",
           "refId": "A"
         }
       ],
@@ -121,7 +123,10 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         },
         "pieType": "donut",
         "tooltip": {
@@ -138,7 +143,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  flow_type,\n  COUNT(*) AS count\nFROM migration.crewai_flow_state_extensions\nWHERE created_at > NOW() - INTERVAL '7 days'\nGROUP BY flow_type\nORDER BY count DESC;",
+          "rawSql": "SELECT\n  flow_type,\n  COUNT(*) AS count\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\nGROUP BY flow_type\nORDER BY count DESC;",
           "refId": "A"
         }
       ],
@@ -180,7 +185,9 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["mean"],
+          "calcs": [
+            "mean"
+          ],
           "fields": ""
         },
         "showThresholdLabels": false,
@@ -196,7 +203,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/60) AS avg_duration_minutes\nFROM migration.crewai_flow_state_extensions\nWHERE created_at > NOW() - INTERVAL '7 days'\n  AND completed_at IS NOT NULL;",
+          "rawSql": "SELECT\n  AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60) AS avg_duration_minutes\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\n  AND flow_status = 'completed';",
           "refId": "A"
         }
       ],
@@ -245,7 +252,9 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -261,7 +270,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  'discovery' AS flow_type,\n  current_phase,\n  client_account_id,\n  engagement_id,\n  COUNT(*) AS count\nFROM migration.discovery_flows\nWHERE created_at > NOW() - INTERVAL '7 days'\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'assessment',\n  current_phase,\n  client_account_id,\n  engagement_id,\n  COUNT(*)\nFROM migration.assessment_flows\nWHERE created_at > NOW() - INTERVAL '7 days'\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'collection',\n  current_phase::text,\n  client_account_id,\n  engagement_id,\n  COUNT(*)\nFROM migration.collection_flows\nWHERE created_at > NOW() - INTERVAL '7 days'\nGROUP BY 1,2,3,4\nORDER BY flow_type, count DESC;",
+          "rawSql": "SELECT\n  'discovery' AS flow_type,\n  current_phase,\n  client_account_id,\n  engagement_id,\n  COUNT(*) AS count\nFROM migration.discovery_flows\nWHERE $__timeFilter(created_at)\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'assessment',\n  current_phase,\n  client_account_id,\n  engagement_id,\n  COUNT(*)\nFROM migration.assessment_flows\nWHERE $__timeFilter(created_at)\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'collection',\n  current_phase::text,\n  client_account_id,\n  engagement_id,\n  COUNT(*)\nFROM migration.collection_flows\nWHERE $__timeFilter(created_at)\nGROUP BY 1,2,3,4\nORDER BY flow_type, count DESC;",
           "refId": "A"
         }
       ],
@@ -349,7 +358,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  flow_type,\n  COUNT(*) AS flows\nFROM migration.crewai_flow_state_extensions\nWHERE created_at > NOW() - INTERVAL '$__range_s seconds'\nGROUP BY 1, 2\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  flow_type,\n  COUNT(*) AS flows\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\nGROUP BY 1, 2\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -360,7 +369,11 @@
   "refresh": "1m",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["observability", "mfo", "flows"],
+  "tags": [
+    "observability",
+    "mfo",
+    "flows"
+  ],
   "templating": {
     "list": []
   },

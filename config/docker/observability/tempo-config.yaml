@@ -55,12 +55,7 @@ query_frontend:
   # HTTP-only mode (no WebSockets - Railway compatible per ADR-031)
   search:
     max_duration: 5m
-  trace_by_id:
-    query_timeout: 30s
-
-  # Disable streaming features (WebSocket incompatible)
-  streaming:
-    enabled: false
+  # Note: query_timeout and streaming not supported in Tempo v2.3.1
 
 # Metrics generator configuration (optional)
 metrics_generator:
@@ -76,18 +71,9 @@ metrics_generator:
 
 # Overrides configuration
 overrides:
-  defaults:
-    metrics_generator:
-      processors: [service-graphs, span-metrics]
-      max_active_series: 100000
-      service_graphs_max_items: 10000
-
-    # Ingestion limits
-    ingestion:
-      max_traces_per_user: 100000
-      max_bytes_per_trace: 5000000
-      burst_size_bytes: 10000000
-      rate_limit_bytes: 5000000
+  # Note: defaults field not supported in Tempo v2.3.1
+  # Use per-tenant overrides or global limits instead
+  metrics_generator_processors: [service-graphs, span-metrics]
 
 # Use in-memory for small deployments
 memberlist:
@@ -97,6 +83,4 @@ memberlist:
   bind_port: 7946
   join_members: []
 
-# Analytics (minimal telemetry)
-analytics:
-  reporting_enabled: false
+# Note: analytics field not supported in Tempo v2.3.1

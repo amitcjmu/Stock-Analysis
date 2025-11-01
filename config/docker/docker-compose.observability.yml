@@ -1,6 +1,6 @@
 # Grafana Observability Stack (Tier B - Full Stack)
-# 5 containers: Grafana + Loki + Tempo + Prometheus + Alloy
-# Replaces: OpenLIT stack (7+ containers)
+# 5 containers: Grafana + Loki + Tempo + Prometheus + Alloy (native, not fallback)
+# Replaces: OpenLIT stack (7+ containers), Promtail (deprecated EOL March 2026)
 # Architecture: ADR-031
 # Environment: Azure dev (primary), Railway prod (optional), Local dev (optional)
 
@@ -55,6 +55,9 @@ services:
       # Features
       - GF_FEATURE_TOGGLES_ENABLE=tempoSearch,tempoServiceGraph
       - GF_INSTALL_PLUGINS=
+
+      # PostgreSQL datasource credentials
+      - POSTGRES_GRAFANA_PASSWORD=${POSTGRES_GRAFANA_PASSWORD}
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
       - ./observability/data/grafana:/var/lib/grafana
@@ -103,8 +106,7 @@ services:
     container_name: migration_tempo
     ports:
       - "3200:3200"  # HTTP API
-      - "4317:4317"  # OTLP gRPC
-      - "4318:4318"  # OTLP HTTP
+      # Note: 4317/4318 not exposed - Alloy forwards OTLP data internally
     environment:
       - TEMPO_RETENTION_DAYS=${TEMPO_RETENTION_DAYS:-7}
     command: -config.file=/etc/tempo/tempo-config.yaml
@@ -135,6 +137,7 @@ services:
       - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14}d'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-remote-write-receiver'
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./observability/data/prometheus:/prometheus
@@ -148,21 +151,22 @@ services:
       retries: 3
       start_period: 30s
 
-  # Alloy - Unified collector (replaces Promtail + OTel Collector)
+  # Alloy - Unified telemetry collector (logs, traces, metrics)
+  # Replaces: Promtail (EOL March 2026), Grafana Agent, OTel Collector
   alloy:
-    image: grafana/alloy:v1.0.0
+    image: grafana/alloy:latest
     container_name: migration_alloy
     ports:
-      - "4317:4317"  # OTLP gRPC
-      - "4318:4318"  # OTLP HTTP
-      - "12345:12345"  # Alloy HTTP
+      - "12345:12345"  # Alloy HTTP API and UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
     command:
       - run
-      - /etc/alloy/alloy-config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     volumes:
-      - ./observability/alloy-config.alloy:/etc/alloy/alloy-config.alloy:ro
+      - ./observability/alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker log scraping
       - ./observability/data/alloy:/var/lib/alloy
     networks:
