@@ -211,23 +211,25 @@ export const useFlowResumption = (): unknown => {
       }
 
       // Navigate based on routing context or current phase
+      // CRITICAL FIX: Always pass flow_id in URL to maintain flow context across pages
       if (data.routing_context) {
         console.log('📍 [DEBUG] Using routing context:', data.routing_context);
-        navigate(data.routing_context.target_page);
+        const targetUrl = `${data.routing_context.target_page}?flow_id=${flowId}`;
+        console.log('📍 [DEBUG] Navigating to:', targetUrl);
+        navigate(targetUrl);
       } else if (data.current_phase) {
-        // For field_mapping phase, navigate to attribute-mapping without flow ID
-        // The page will auto-detect the correct flow
+        // For field_mapping phase, navigate to attribute-mapping WITH flow ID
         if (data.current_phase === 'field_mapping' || data.current_phase === 'attribute_mapping') {
-          console.log('📍 [DEBUG] Navigating to attribute mapping (auto-detect flow)');
-          navigate('/discovery/attribute-mapping');
+          console.log('📍 [DEBUG] Navigating to attribute mapping with flow ID:', flowId);
+          navigate(`/discovery/attribute-mapping?flow_id=${flowId}`);
         } else {
           const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
           console.log('📍 [DEBUG] Navigating to phase route:', route);
           navigate(route);
         }
       } else {
-        console.log('📍 [DEBUG] No routing info, defaulting to attribute mapping (auto-detect)');
-        navigate('/discovery/attribute-mapping');
+        console.log('📍 [DEBUG] No routing info, defaulting to attribute mapping with flow ID:', flowId);
+        navigate(`/discovery/attribute-mapping?flow_id=${flowId}`);
       }
     },
     onError: (error: unknown) => {
