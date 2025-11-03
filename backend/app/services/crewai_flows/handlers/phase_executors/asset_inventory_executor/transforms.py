@@ -31,11 +31,30 @@ def transform_raw_record_to_asset(
         Asset data dictionary ready for AssetService.create_asset()
     """
     try:
-        # CC: CRITICAL FIX - Use cleansed_data instead of raw_data to leverage data cleansing phase
-        # This ensures assets are created from processed, validated data rather than raw imports
-        cleansed_data: Dict[str, Any] = record.cleansed_data or record.raw_data or {}
-        # Use cleansed data for asset creation, fallback to raw_data if cleansing hasn't occurred
-        asset_data_source = cleansed_data
+        # CC: CRITICAL FIX - Handle field mappings correctly based on cleansing status
+        # If cleansed_data has mappings_applied, use it directly (mappings already in lowercase)
+        # Otherwise use raw_data with field_mappings parameter for mapping application
+        cleansed_data: Dict[str, Any] = record.cleansed_data or {}
+        raw_data: Dict[str, Any] = record.raw_data or {}
+
+        # Check if cleansing phase already applied mappings
+        mappings_already_applied = cleansed_data.get("mappings_applied", 0) > 0
+
+        if mappings_already_applied:
+            # Use cleansed data (mappings already applied, fields in lowercase)
+            asset_data_source = cleansed_data
+            # Don't use field_mappings parameter since they're already applied
+            field_mappings_to_use = {}
+            logger.debug(
+                f"Using cleansed_data with {cleansed_data.get('mappings_applied')} mappings already applied"
+            )
+        else:
+            # Use raw data and apply field_mappings
+            asset_data_source = raw_data
+            field_mappings_to_use = field_mappings or {}
+            logger.debug(
+                f"Using raw_data with {len(field_mappings_to_use)} field mappings to apply"
+            )
 
         # Extract basic asset information with smart name resolution
         # CRITICAL FIX: Prioritize application_name over asset_name to avoid using
@@ -83,25 +102,38 @@ def transform_raw_record_to_asset(
             "department": asset_data_source.get("department"),
             "criticality": asset_data_source.get("criticality", "Medium"),
             # Apply field mapping for business_criticality if approved mapping exists
-            "business_criticality": apply_field_mapping(
-                asset_data_source,
-                "criticality",
-                "business_criticality",
-                field_mappings or {},
-                default="Medium",
+            "business_criticality": (
+                asset_data_source.get("business_criticality", "Medium")
+                if mappings_already_applied
+                else apply_field_mapping(
+                    asset_data_source,
+                    "criticality",
+                    "business_criticality",
+                    field_mappings_to_use,
+                    default="Medium",
+                )
             ),
-            # Application information - CRITICAL FIX: Use field mappings
-            "application_name": get_mapped_value(
-                asset_data_source,
-                "application_name",
-                field_mappings or {},
-                fallback_fields=["app_name", "application"],
-                default=None,
+            # Application information - CRITICAL FIX: Use field mappings correctly
+            # If mappings already applied (cleansed_data), use direct lookup
+            # Otherwise apply mappings from raw_data
+            "application_name": (
+                asset_data_source.get("application_name")
+                or asset_data_source.get(
+                    "name"
+                )  # Cleansed data uses "name" for application_name
+                if mappings_already_applied
+                else get_mapped_value(
+                    asset_data_source,
+                    "application_name",
+                    field_mappings_to_use,
+                    fallback_fields=["app_name", "application", "name"],
+                    default=None,
+                )
             ),
             "technology_stack": get_mapped_value(
                 asset_data_source,
                 "technology_stack",
-                field_mappings or {},
+                field_mappings_to_use,
                 fallback_fields=["tech_stack", "stack"],
                 default=None,
             ),
