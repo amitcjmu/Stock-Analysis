@@ -137,12 +137,13 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
                             <div className="font-medium text-gray-900">
                               {field.display_name || field.name}
                             </div>
-                            {field.short_hint && (
+                            {field.short_hint ? (
                               <div className="text-xs text-blue-600 mt-0.5">
                                 {field.short_hint}
                               </div>
+                            ) : (
+                              <div className="text-xs text-gray-500 mt-1">{field.description}</div>
                             )}
-                            <div className="text-xs text-gray-500 mt-1">{field.description}</div>
                           </div>
                           <div className="flex flex-col items-end space-y-1 ml-2">
                             <span className={`text-xs px-1 py-0.5 rounded ${getCategoryColor(field.category)}`}>

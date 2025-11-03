@@ -159,14 +159,15 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
                           <span className="text-xs text-purple-600">Custom</span>
                         )}
                       </div>
-                      {field.short_hint && (
+                      {field.short_hint ? (
                         <div className="text-xs text-blue-600 mt-0.5">
                           {field.short_hint}
                         </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {field.description || 'No description'}
+                        </div>
                       )}
-                      <div className="text-xs text-gray-500 mt-1">
-                        {field.description || 'No description'}
-                      </div>
                     </div>
                     <div className="text-xs text-gray-400 ml-2">
                       {field.type}
