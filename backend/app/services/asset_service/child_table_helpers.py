@@ -152,7 +152,12 @@ async def create_child_records_if_needed(
         if has_contact_data(asset_data):
             await create_contacts_if_exists(db, asset, asset_data, context)
 
+    except (ValueError, KeyError) as e:
+        # Validation errors - expected, log and continue
+        logger.warning(
+            f"⚠️ Validation error creating child records for asset {asset.id}: {e}"
+        )
     except Exception as e:
-        # Log error but don't fail asset creation
-        # Just log the error and continue
-        logger.warning(f"⚠️ Failed to create child records for asset {asset.id}: {e}")
+        # Programming/DB errors - fail fast, let transaction rollback
+        logger.error(f"❌ Failed to create child records for asset {asset.id}: {e}")
+        raise
