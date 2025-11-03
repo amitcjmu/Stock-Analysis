@@ -14,6 +14,7 @@ from .intelligent_options import (
     get_availability_requirements_options,
     get_security_compliance_requirements_options,
     get_eol_technology_assessment_options,
+    get_dependencies_options,
     infer_field_type_from_config,
     get_fallback_field_type_and_options,
 )
@@ -41,6 +42,7 @@ def _check_context_aware_field(
         "availability_requirements": get_availability_requirements_options,
         "security_compliance_requirements": get_security_compliance_requirements_options,
         "eol_technology_assessment": get_eol_technology_assessment_options,
+        "dependencies": get_dependencies_options,
     }
 
     handler = context_aware_handlers.get(attr_name)

@@ -26,6 +26,9 @@ from app.services.ai_analysis.questionnaire_generator.tools.intelligent_options.
     get_business_logic_complexity_options,
     get_change_tolerance_options,
 )
+from app.services.ai_analysis.questionnaire_generator.tools.intelligent_options.application_options import (
+    get_dependencies_options,
+)
 from app.api.v1.endpoints.collection_crud_questionnaires.utils import (
     _determine_eol_status,
 )
@@ -565,3 +568,170 @@ class TestOptionConsistency:
             # "none" should always be present
             values = [opt["value"] for opt in options]
             assert "none" in values
+
+
+class TestDependenciesOptions:
+    """Test dependencies intelligent option generation based on architecture pattern."""
+
+    def test_monolithic_shows_minimal_first(self):
+        """Monolithic architecture should show minimal dependencies first."""
+        context = {"architecture_pattern": "monolith"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert len(options) == 6
+        assert options[0]["value"] == "minimal"
+        assert (
+            options[0]["label"]
+            == "Minimal - Standalone with no or few external dependencies"
+        )
+        assert options[1]["value"] == "low"
+
+    def test_microservices_shows_high_first(self):
+        """Microservices architecture should show high dependencies first."""
+        context = {"architecture_pattern": "microservices"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert len(options) == 6
+        assert options[0]["value"] == "high"
+        assert options[0]["label"] == "High - Depends on 8-15 systems"
+        assert options[1]["value"] == "very_high"
+
+    def test_soa_shows_moderate_first(self):
+        """SOA architecture should show moderate dependencies first."""
+        context = {"architecture_pattern": "soa"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert len(options) == 6
+        assert options[0]["value"] == "moderate"
+        assert options[1]["value"] == "high"
+
+    def test_event_driven_shows_moderate_first(self):
+        """Event-driven architecture should show moderate dependencies first."""
+        context = {"architecture_pattern": "event_driven"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert len(options) == 6
+        assert options[0]["value"] == "moderate"
+
+    def test_layered_shows_low_first(self):
+        """Layered/N-tier architecture should show low dependencies first."""
+        context = {"architecture_pattern": "n_tier"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert len(options) == 6
+        assert options[0]["value"] == "low"
+        assert options[1]["value"] == "moderate"
+
+    def test_serverless_shows_minimal_first(self):
+        """Serverless architecture should show minimal dependencies first."""
+        context = {"architecture_pattern": "serverless"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert len(options) == 6
+        assert options[0]["value"] == "minimal"
+
+    def test_hybrid_shows_moderate_first(self):
+        """Hybrid architecture should show balanced moderate dependencies first."""
+        context = {"architecture_pattern": "hybrid"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert len(options) == 6
+        assert options[0]["value"] == "moderate"
+
+    def test_empty_context_returns_none(self):
+        """Empty or None context should return None (fallback to default)."""
+        context = {}
+        result = get_dependencies_options(context)
+        assert result is None
+
+        context = {"architecture_pattern": ""}
+        result = get_dependencies_options(context)
+        assert result is None
+
+        # Test None value handling
+        context = {"architecture_pattern": None}
+        result = get_dependencies_options(context)
+        assert result is None
+
+    def test_unknown_architecture_pattern_returns_none(self):
+        """Unknown architecture patterns should return None."""
+        context = {"architecture_pattern": "quantum_computing_mesh"}
+        result = get_dependencies_options(context)
+        assert result is None
+
+    def test_custom_attributes_prefix_handling(self):
+        """Should handle custom_attributes.architecture_pattern format."""
+        context = {"custom_attributes.architecture_pattern": "monolith"}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert options[0]["value"] == "minimal"
+
+    def test_case_insensitive_matching(self):
+        """Architecture pattern matching should be case-insensitive."""
+        contexts = [
+            {"architecture_pattern": "MICROSERVICES"},
+            {"architecture_pattern": "Microservices"},
+            {"architecture_pattern": "microservices"},
+        ]
+
+        for context in contexts:
+            field_type, options = get_dependencies_options(context)
+            assert field_type == "select"
+            assert options[0]["value"] == "high"
+
+    def test_all_dependency_options_present(self):
+        """All dependency levels should be present in all orderings."""
+        contexts = [
+            {"architecture_pattern": "monolith"},
+            {"architecture_pattern": "microservices"},
+            {"architecture_pattern": "soa"},
+        ]
+
+        expected_values = {"minimal", "low", "moderate", "high", "very_high", "unknown"}
+
+        for context in contexts:
+            _, options = get_dependencies_options(context)
+            actual_values = {opt["value"] for opt in options}
+            assert actual_values == expected_values
+
+    def test_alternative_pattern_names(self):
+        """Should recognize alternative architecture pattern names."""
+        # Test monolithic variants
+        for pattern in ["monolithic", "monolithic_application"]:
+            context = {"architecture_pattern": pattern}
+            _, options = get_dependencies_options(context)
+            assert options[0]["value"] == "minimal"
+
+        # Test SOA variants
+        for pattern in ["service_oriented_architecture", "service-oriented"]:
+            context = {"architecture_pattern": pattern}
+            _, options = get_dependencies_options(context)
+            assert options[0]["value"] == "moderate"
+
+        # Test layered variants
+        for pattern in ["layered", "n-tier", "ntier", "tiered"]:
+            context = {"architecture_pattern": pattern}
+            _, options = get_dependencies_options(context)
+            assert options[0]["value"] == "low"
+
+        # Test serverless variants
+        for pattern in ["serverless_function", "function_based", "lambda", "faas"]:
+            context = {"architecture_pattern": pattern}
+            _, options = get_dependencies_options(context)
+            assert options[0]["value"] == "minimal"
+
+    def test_whitespace_handling(self):
+        """Whitespace in architecture pattern should be handled."""
+        context = {"architecture_pattern": "  monolith  "}
+        field_type, options = get_dependencies_options(context)
+
+        assert field_type == "select"
+        assert options[0]["value"] == "minimal"

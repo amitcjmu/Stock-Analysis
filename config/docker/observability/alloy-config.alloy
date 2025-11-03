@@ -22,6 +22,12 @@ discovery.docker "containers" {
     name   = "status"
     values = ["running"]
   }
+
+  // Security: Only collect logs from migration project containers (label-based filtering)
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=migration"]
+  }
 }
 
 // Step 2: Scrape Docker logs

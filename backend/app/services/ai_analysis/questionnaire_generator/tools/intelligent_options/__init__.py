@@ -4,6 +4,7 @@ Extracted from intelligent_options.py for modularization.
 Contains context-aware pattern detection logic for questionnaire field options.
 """
 
+from .application_options import get_dependencies_options
 from .business_options import (
     get_business_logic_complexity_options,
     get_change_tolerance_options,
@@ -28,6 +29,8 @@ __all__ = [
     "get_change_tolerance_options",
     # Infrastructure options
     "get_availability_requirements_options",
+    # Application options
+    "get_dependencies_options",
     # EOL options
     "get_eol_technology_assessment_options",
     # Utilities

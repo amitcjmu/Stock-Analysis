@@ -1,0 +1,2 @@
+# Observability environment file with secrets (DO NOT COMMIT)
+.env.observability
