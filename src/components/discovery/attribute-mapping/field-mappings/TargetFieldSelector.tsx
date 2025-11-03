@@ -38,6 +38,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(field =>
         field.name.toLowerCase().includes(term) ||
+        (field.display_name && field.display_name.toLowerCase().includes(term)) ||
         field.description.toLowerCase().includes(term) ||
         field.category.toLowerCase().includes(term)
       );
@@ -133,7 +134,14 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <div className="font-medium">{field.name}</div>
+                            <div className="font-medium text-gray-900">
+                              {field.display_name || field.name}
+                            </div>
+                            {field.short_hint && (
+                              <div className="text-xs text-blue-600 mt-0.5">
+                                {field.short_hint}
+                              </div>
+                            )}
                             <div className="text-xs text-gray-500 mt-1">{field.description}</div>
                           </div>
                           <div className="flex flex-col items-end space-y-1 ml-2">

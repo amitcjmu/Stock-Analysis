@@ -149,7 +149,9 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium">{field.name}</span>
+                        <span className="font-medium text-gray-900">
+                          {field.display_name || field.name}
+                        </span>
                         {field.required && (
                           <span className="text-xs text-red-500">*</span>
                         )}
@@ -157,6 +159,11 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
                           <span className="text-xs text-purple-600">Custom</span>
                         )}
                       </div>
+                      {field.short_hint && (
+                        <div className="text-xs text-blue-600 mt-0.5">
+                          {field.short_hint}
+                        </div>
+                      )}
                       <div className="text-xs text-gray-500 mt-1">
                         {field.description || 'No description'}
                       </div>

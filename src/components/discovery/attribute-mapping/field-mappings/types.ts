@@ -3,6 +3,8 @@ import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 
 export interface TargetField {
   name: string;
+  display_name?: string;
+  short_hint?: string;
   type: string;
   required: boolean;
   description: string;

@@ -24,6 +24,11 @@ class CMDBFieldsMixin:
         nullable=True,
         index=True,
         comment="Business unit owning the asset",
+        info={
+            "display_name": "Business Unit",
+            "short_hint": None,
+            "category": "business",
+        },
     )
 
     vendor = Column(
@@ -31,12 +36,22 @@ class CMDBFieldsMixin:
         nullable=True,
         index=True,
         comment="Vendor or manufacturer name",
+        info={
+            "display_name": "Vendor",
+            "short_hint": "Software/hardware vendor name",
+            "category": "business",
+        },
     )
 
     application_type = Column(
         String(20),
         nullable=True,
         comment="Application type: cots, custom, custom_cots, other",
+        info={
+            "display_name": "Application Type",
+            "short_hint": "COTS / Custom / Custom-COTS / SaaS",
+            "category": "business",
+        },
     )
 
     lifecycle = Column(
@@ -44,6 +59,11 @@ class CMDBFieldsMixin:
         nullable=True,
         index=True,
         comment="Asset lifecycle status: retire, replace, retain, invest",
+        info={
+            "display_name": "Lifecycle Stage",
+            "short_hint": "Retire / Replace / Retain / Invest",
+            "category": "business",
+        },
     )
 
     # Infrastructure Fields
@@ -52,6 +72,11 @@ class CMDBFieldsMixin:
         nullable=True,
         index=True,
         comment="Hosting model: on_prem, cloud, hybrid, colo",
+        info={
+            "display_name": "Hosting Model",
+            "short_hint": "On-Prem / Cloud / Hybrid / Colo",
+            "category": "infrastructure",
+        },
     )
 
     server_role = Column(
@@ -59,12 +84,22 @@ class CMDBFieldsMixin:
         nullable=True,
         index=True,
         comment="Server role: web, db, app, citrix, file, email, other",
+        info={
+            "display_name": "Server Role",
+            "short_hint": "Web / DB / App / Citrix / File / Email",
+            "category": "infrastructure",
+        },
     )
 
     security_zone = Column(
         String(SMALL_STRING_LENGTH),
         nullable=True,
         comment="Network security zone or segment",
+        info={
+            "display_name": "Security Zone",
+            "short_hint": "DMZ / Internal / External / Restricted",
+            "category": "security",
+        },
     )
 
     # Database Fields
@@ -72,18 +107,33 @@ class CMDBFieldsMixin:
         String(MEDIUM_STRING_LENGTH),
         nullable=True,
         comment="Primary database platform name",
+        info={
+            "display_name": "Database Type",
+            "short_hint": "PostgreSQL / MySQL / Oracle / SQL Server / MongoDB",
+            "category": "database",
+        },
     )
 
     database_version = Column(
         String(SMALL_STRING_LENGTH),
         nullable=True,
         comment="Database version string",
+        info={
+            "display_name": "Database Version",
+            "short_hint": "Version number",
+            "category": "database",
+        },
     )
 
     database_size_gb = Column(
         Float,
         nullable=True,
         comment="Database size in gigabytes",
+        info={
+            "display_name": "Database Size (GB)",
+            "short_hint": "In gigabytes",
+            "category": "database",
+        },
     )
 
     # Performance/Capacity Fields
@@ -91,18 +141,33 @@ class CMDBFieldsMixin:
         Float,
         nullable=True,
         comment="Peak CPU utilization percentage",
+        info={
+            "display_name": "CPU Utilization (Max %)",
+            "short_hint": "0-100%",
+            "category": "performance",
+        },
     )
 
     memory_utilization_percent_max = Column(
         Float,
         nullable=True,
         comment="Peak memory utilization percentage",
+        info={
+            "display_name": "Memory Utilization (Max %)",
+            "short_hint": "0-100%",
+            "category": "performance",
+        },
     )
 
     storage_free_gb = Column(
         Float,
         nullable=True,
         comment="Available storage in gigabytes",
+        info={
+            "display_name": "Storage Free (GB)",
+            "short_hint": "Available storage in GB",
+            "category": "performance",
+        },
     )
 
     storage_used_gb = Column(
@@ -124,12 +189,22 @@ class CMDBFieldsMixin:
         nullable=True,
         index=True,
         comment="Contains Personally Identifiable Information",
+        info={
+            "display_name": "Contains PII",
+            "short_hint": "true / false",
+            "category": "security",
+        },
     )
 
     application_data_classification = Column(
         String(SMALL_STRING_LENGTH),
         nullable=True,
         comment="Data sensitivity classification level",
+        info={
+            "display_name": "Data Classification",
+            "short_hint": "Public / Internal / Confidential / Restricted",
+            "category": "security",
+        },
     )
 
     # Migration Planning Fields
@@ -137,24 +212,44 @@ class CMDBFieldsMixin:
         Boolean,
         nullable=True,
         comment="SaaS alternative available for this asset",
+        info={
+            "display_name": "Has SaaS Replacement",
+            "short_hint": "true / false",
+            "category": "migration",
+        },
     )
 
     risk_level = Column(
         String(20),
         nullable=True,
         comment="Migration risk level: low, medium, high, critical",
+        info={
+            "display_name": "Risk Level",
+            "short_hint": "Low / Medium / High / Critical",
+            "category": "migration",
+        },
     )
 
     tshirt_size = Column(
         String(10),
         nullable=True,
         comment="Complexity sizing: xs, s, m, l, xl, xxl",
+        info={
+            "display_name": "T-Shirt Size",
+            "short_hint": "XS / S / M / L / XL / XXL",
+            "category": "migration",
+        },
     )
 
     proposed_treatmentplan_rationale = Column(
         Text,
         nullable=True,
         comment="Rationale for proposed migration treatment plan",
+        info={
+            "display_name": "Treatment Plan Rationale",
+            "short_hint": "Explanation for recommended approach",
+            "category": "migration",
+        },
     )
 
     # Financial/Operational Fields
@@ -162,6 +257,11 @@ class CMDBFieldsMixin:
         Float,
         nullable=True,
         comment="Estimated annual operational cost",
+        info={
+            "display_name": "Annual Cost Estimate",
+            "short_hint": "Estimated yearly cost in USD",
+            "category": "financial",
+        },
     )
 
     backup_policy = Column(

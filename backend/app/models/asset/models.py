@@ -33,6 +33,9 @@ from .mixins import AssetPropertiesMixin, AssetBusinessLogicMixin
 from .assessment_fields import AssessmentFieldsMixin
 from .import_fields import ImportFieldsMixin
 from .cmdb_fields import CMDBFieldsMixin
+from .location_fields import LocationFieldsMixin
+from .performance_fields import PerformanceFieldsMixin
+from .discovery_fields import DiscoveryFieldsMixin
 
 
 class Asset(
@@ -42,6 +45,9 @@ class Asset(
     AssessmentFieldsMixin,
     ImportFieldsMixin,
     CMDBFieldsMixin,
+    LocationFieldsMixin,
+    PerformanceFieldsMixin,
+    DiscoveryFieldsMixin,
 ):
     """
     Represents a single Configuration Item (CI) or asset within the CMDB.
@@ -182,46 +188,45 @@ class Asset(
         String(MAC_ADDRESS_LENGTH),
         comment="The MAC address of the asset's primary network interface.",
     )
-
-    # Location and environment
-    environment = Column(
-        String(SMALL_STRING_LENGTH),
-        index=True,
-        comment="The operational environment (e.g., 'Production', 'Development', 'Test').",
-    )
-    location = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The geographical location or region of the asset.",
-    )
-    datacenter = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The datacenter where the asset is hosted.",
-    )
-    rack_location = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="The specific rack location within the datacenter.",
-    )
-    availability_zone = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="The cloud availability zone, if applicable.",
-    )
-
     # Technical specifications (from Azure Migrate)
     operating_system = Column(
         String(MEDIUM_STRING_LENGTH),
         comment="The operating system running on the asset.",
+        info={
+            "display_name": "Operating System",
+            "short_hint": "Windows / Linux / Unix / AIX",
+            "category": "technical",
+        },
     )
     os_version = Column(
         String(SMALL_STRING_LENGTH), comment="The version of the operating system."
     )
     cpu_cores = Column(
-        Integer, comment="The number of CPU cores allocated to the asset."
+        Integer,
+        comment="The number of CPU cores allocated to the asset.",
+        info={
+            "display_name": "CPU Cores",
+            "short_hint": "Number of cores",
+            "category": "technical",
+        },
     )
     memory_gb = Column(
-        Float, comment="The amount of RAM in gigabytes allocated to the asset."
+        Float,
+        comment="The amount of RAM in gigabytes allocated to the asset.",
+        info={
+            "display_name": "Memory (GB)",
+            "short_hint": "RAM in gigabytes",
+            "category": "technical",
+        },
     )
     storage_gb = Column(
-        Float, comment="The total storage in gigabytes allocated to the asset."
+        Float,
+        comment="The total storage in gigabytes allocated to the asset.",
+        info={
+            "display_name": "Storage (GB)",
+            "short_hint": "Total storage in gigabytes",
+            "category": "technical",
+        },
     )
 
     # Business information
@@ -250,7 +255,13 @@ class Asset(
         comment="The technical criticality of the asset (e.g., 'Low', 'Medium', 'High').",
     )
     business_criticality = Column(
-        String(20), comment="The business impact or criticality of the asset."
+        String(20),
+        comment="The business impact or criticality of the asset.",
+        info={
+            "display_name": "Business Criticality",
+            "short_hint": "1-5 scale (1=Low, 5=Critical)",
+            "category": "business",
+        },
     )
     custom_attributes = Column(
         JSON,
@@ -265,6 +276,11 @@ class Asset(
     six_r_strategy = Column(
         String(SMALL_STRING_LENGTH),
         comment="The recommended 6R migration strategy (e.g., 'Rehost', 'Refactor').",
+        info={
+            "display_name": "6R Strategy",
+            "short_hint": "Rehost / Replatform / Refactor / Repurchase / Retire / Retain",
+            "category": "migration",
+        },
     )
     mapping_status = Column(
         String(20),
@@ -279,6 +295,11 @@ class Asset(
     migration_complexity = Column(
         String(20),
         comment="The assessed complexity of migrating this asset (e.g., 'Low', 'Medium', 'High').",
+        info={
+            "display_name": "Migration Complexity",
+            "short_hint": "Low / Medium / High",
+            "category": "migration",
+        },
     )
     migration_wave = Column(
         Integer, comment="The migration wave this asset is assigned to."
@@ -301,69 +322,6 @@ class Asset(
         index=True,
         comment="The status of the asset within the migration lifecycle (e.g., 'discovered', 'assessed', 'migrated').",
     )
-
-    # Dependencies and relationships
-    dependencies = Column(
-        JSON, comment="A JSON array of assets that this asset depends on."
-    )
-    related_assets = Column(
-        JSON, comment="A JSON array of other related assets or CIs."
-    )
-
-    # Discovery metadata
-    discovery_method = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="How the asset was discovered (e.g., 'network_scan', 'agent', 'import').",
-    )
-    discovery_source = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The specific tool or system that discovered the asset (e.g., 'ServiceNow', 'Azure Migrate').",
-    )
-    discovery_timestamp = Column(
-        DateTime(timezone=True),
-        comment="Timestamp of when the asset was last discovered or updated.",
-    )
-
-    # Performance and utilization (from Azure Migrate)
-    cpu_utilization_percent = Column(
-        Float, comment="The average CPU utilization percentage."
-    )
-    memory_utilization_percent = Column(
-        Float, comment="The average memory utilization percentage."
-    )
-    disk_iops = Column(
-        Float, comment="The average disk Input/Output Operations Per Second."
-    )
-    network_throughput_mbps = Column(
-        Float, comment="The average network throughput in megabits per second."
-    )
-
-    # Data quality metrics
-    completeness_score = Column(
-        Float, comment="A score indicating how complete the asset's data is."
-    )
-    quality_score = Column(
-        Float, comment="An overall data quality score for the asset record."
-    )
-    confidence_score = Column(
-        Float,
-        comment="A confidence score (0.0-1.0) indicating reliability of asset data.",
-    )
-    complexity_score = Column(
-        Float,
-        comment="Technical complexity score (1-10) for migration planning.",
-    )
-
-    # Cost information
-    current_monthly_cost = Column(
-        Float,
-        comment="The estimated current monthly cost of running the asset on-premises.",
-    )
-    estimated_cloud_cost = Column(
-        Float, comment="The estimated monthly cost of running the asset in the cloud."
-    )
-
-    # Import and assessment fields are now provided by mixins
 
     # Audit fields
     created_at = Column(
