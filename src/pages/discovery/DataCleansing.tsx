@@ -338,12 +338,23 @@ const DataCleansing: React.FC = () => {
         SecureLogger.info('Flow context set successfully before navigation');
       }
 
-      // Secure navigation to asset inventory
-      secureNavigation.navigateToDiscoveryPhase('inventory', effectiveFlowId);
+      // CRITICAL FIX: Navigate to inventory with flow_id query parameter
+      // This maintains flow context across pages, consistent with attribute-mapping fix
+      if (effectiveFlowId) {
+        SecureLogger.info('Navigating to inventory with flow ID', { flowId: effectiveFlowId });
+        window.location.href = `/discovery/inventory?flow_id=${effectiveFlowId}`;
+      } else {
+        SecureLogger.warn('No effective flow ID, navigating to inventory without flow context');
+        window.location.href = '/discovery/inventory';
+      }
     } catch (error) {
       SecureLogger.error('Failed to complete data cleansing phase', error);
       // Still navigate even if phase completion fails
-      secureNavigation.navigateToDiscoveryPhase('inventory', effectiveFlowId);
+      if (effectiveFlowId) {
+        window.location.href = `/discovery/inventory?flow_id=${effectiveFlowId}`;
+      } else {
+        window.location.href = '/discovery/inventory';
+      }
     }
   };
 
