@@ -9,7 +9,6 @@ Only creates records when user actually supplies data via CSV import.
 """
 
 import logging
-import uuid
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,10 +43,13 @@ async def create_eol_assessment(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    client_id: uuid.UUID,
-    engagement_id: uuid.UUID,
 ) -> None:
-    """Create EOL assessment record for asset."""
+    """
+    Create EOL assessment record for asset.
+
+    Tenant context (client_account_id, engagement_id) is retrieved from the asset itself,
+    following the standard pattern where context comes from the data object, not parameters.
+    """
     from app.models.asset.specialized import AssetEOLAssessment
     from dateutil import parser as date_parser
 
@@ -72,10 +74,10 @@ async def create_eol_assessment(
                 f"for asset {asset.name}. Must be one of: {valid_levels}"
             )
 
-    # Create EOL assessment
+    # Create EOL assessment with tenant context from asset
     eol_assessment = AssetEOLAssessment(
-        client_account_id=client_id,
-        engagement_id=engagement_id,
+        client_account_id=asset.client_account_id,  # From asset, not parameter
+        engagement_id=asset.engagement_id,  # From asset, not parameter
         asset_id=asset.id,
         technology_component=asset_data.get("technology_component")
         or asset_data.get("technology_stack")
@@ -96,10 +98,13 @@ async def create_contacts_if_exists(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    client_id: uuid.UUID,
-    engagement_id: uuid.UUID,
 ) -> None:
-    """Create asset contact records if contact information exists."""
+    """
+    Create asset contact records if contact information exists.
+
+    Tenant context (client_account_id, engagement_id) is retrieved from the asset itself,
+    following the standard pattern where context comes from the data object, not parameters.
+    """
     from app.models.asset.specialized import AssetContact
 
     # Define contact mappings: CSV field → contact_type
@@ -115,10 +120,10 @@ async def create_contacts_if_exists(
     for email_field, (contact_type, name_field) in contact_mappings.items():
         email = asset_data.get(email_field)
         if email:
-            # Create contact record
+            # Create contact record with tenant context from asset
             contact = AssetContact(
-                client_account_id=client_id,
-                engagement_id=engagement_id,
+                client_account_id=asset.client_account_id,  # From asset, not parameter
+                engagement_id=asset.engagement_id,  # From asset, not parameter
                 asset_id=asset.id,
                 contact_type=contact_type,
                 email=email,
@@ -138,23 +143,22 @@ async def create_child_records_if_needed(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    client_id: uuid.UUID,
-    engagement_id: uuid.UUID,
 ) -> None:
     """
     Create child table records (EOL assessments, contacts) if data exists.
     Only creates records when user actually supplied the data via CSV.
+
+    Tenant context is automatically inherited from the asset object, following
+    the standard pattern where context comes from data objects, not parameters.
     """
     try:
         # 1. Create EOL Assessment if EOL data exists
         if has_eol_data(asset_data):
-            await create_eol_assessment(db, asset, asset_data, client_id, engagement_id)
+            await create_eol_assessment(db, asset, asset_data)
 
         # 2. Create Asset Contacts if contact data exists
         if has_contact_data(asset_data):
-            await create_contacts_if_exists(
-                db, asset, asset_data, client_id, engagement_id
-            )
+            await create_contacts_if_exists(db, asset, asset_data)
 
     except Exception as e:
         # Log error but don't fail asset creation
