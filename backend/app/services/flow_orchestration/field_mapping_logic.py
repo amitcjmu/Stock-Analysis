@@ -229,6 +229,9 @@ class FieldMappingLogic:
             if engagement_uuid:
                 filters.append(DiscoveryFlow.engagement_id == engagement_uuid)
 
+            # Note: SKIP_TENANT_CHECK is used when a query cannot include all tenant filters
+            # due to legacy data or optional fields. The comment MUST be on the same line
+            # as the query to bypass the pre-commit tenant filter validation hook.
             query = select(DiscoveryFlow).where(
                 and_(*filters)
             )  # SKIP_TENANT_CHECK - engagement_id is optional in this legacy code path
