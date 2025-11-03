@@ -329,19 +329,6 @@ class FieldMappingLogic:
 
                         # Only create mapping if we have a valid target field
                         if target_field and target_field != "unmapped":
-                            # Convert engagement_id to UUID if needed
-                            engagement_uuid = None
-                            if engagement_id:
-                                try:
-                                    if isinstance(engagement_id, str):
-                                        engagement_uuid = UUID(engagement_id)
-                                    else:
-                                        engagement_uuid = engagement_id
-                                except (ValueError, TypeError):
-                                    logger.warning(
-                                        f"⚠️ Invalid engagement_id format: {engagement_id}"
-                                    )
-
                             field_mapping = ImportFieldMapping(
                                 data_import_id=data_import_uuid,
                                 client_account_id=client_uuid,
