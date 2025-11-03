@@ -502,6 +502,71 @@ async def overwrite_asset(
 # ============================================================================
 
 
+def _check_single_asset_conflict(
+    asset_data: Dict[str, Any],
+    existing_by_name: Dict[str, Asset],
+    existing_by_name_type: Dict[Tuple[str, str], Asset],
+    existing_by_hostname: Dict[str, Asset],
+    existing_by_ip: Dict[str, Asset],
+) -> Optional[Dict[str, Any]]:
+    """
+    Check if single asset conflicts with existing assets.
+
+    Returns conflict dict if conflict found, None otherwise.
+    Extracted helper to reduce bulk_prepare_conflicts complexity.
+    """
+    hostname = asset_data.get("hostname")
+    ip = asset_data.get("ip_address")
+    name = get_smart_asset_name(asset_data)
+    asset_type = asset_data.get("asset_type", "Unknown")
+
+    # CRITICAL: Check NAME ALONE first (matches DB constraint)
+    # Database has UNIQUE constraint on (client_account_id, engagement_id, name)
+    if name and name in existing_by_name:
+        existing = existing_by_name[name]
+        name_type_key = (name, asset_type)
+        if name_type_key in existing_by_name_type:
+            conflict_key = f"{name} ({asset_type})"
+        else:
+            conflict_key = (
+                f"{name} (name conflict: "
+                f"existing={existing.asset_type}, new={asset_type})"
+            )
+
+        return {
+            "conflict_type": "name",
+            "conflict_key": conflict_key,
+            "existing_asset_id": existing.id,
+            "existing_asset_data": serialize_asset_for_comparison(existing),
+            "new_asset_data": asset_data,
+        }
+
+    # Check hostname (secondary check)
+    if hostname and hostname in existing_by_hostname:
+        existing = existing_by_hostname[hostname]
+        return {
+            "conflict_type": "hostname",
+            "conflict_key": hostname,
+            "existing_asset_id": existing.id,
+            "existing_asset_data": serialize_asset_for_comparison(existing),
+            "new_asset_data": asset_data,
+        }
+
+    # Check IP address (tertiary check)
+    if ip and ip in existing_by_ip:
+        existing = existing_by_ip[ip]
+        return {
+            "conflict_type": "ip_address",
+            "conflict_key": ip,
+            "existing_asset_id": existing.id,
+            "existing_asset_data": serialize_asset_for_comparison(existing),
+            "new_asset_data": asset_data,
+        }
+
+    # No conflict
+    return None
+
+
 async def bulk_prepare_conflicts(
     service_instance,
     assets_data: List[Dict[str, Any]],
@@ -556,7 +621,8 @@ async def bulk_prepare_conflicts(
 
     existing_by_hostname = {}
     existing_by_ip = {}
-    existing_by_name_type = {}  # NEW: name+type composite key
+    existing_by_name = {}  # CRITICAL FIX: name-only index (matches DB constraint)
+    existing_by_name_type = {}  # name+type composite (for conflict details)
 
     if hostnames:
         # Process in chunks to avoid parameter limits
@@ -598,7 +664,10 @@ async def bulk_prepare_conflicts(
                 existing_by_ip[asset.ip_address] = asset
         logger.debug(f"  Found {len(existing_by_ip)} existing assets by IP")
 
-    # NEW: Query by name+asset_type composite (reduces false positives)
+    # CRITICAL FIX: Query by NAME alone (matches database constraint)
+    # Database constraint: ix_assets_unique_name_per_context on (client_account_id, engagement_id, name)
+    # We MUST check name alone, not name+asset_type, to match the actual constraint
+    existing_by_name = {}  # NEW: name-only index (matches DB constraint)
     if name_type_pairs:
         # Process in chunks to avoid parameter limits
         names_only = list({name for name, _ in name_type_pairs})
@@ -615,69 +684,35 @@ async def bulk_prepare_conflicts(
                 )
             )
             result = await service_instance.db.execute(stmt)
-            # Build dict with (name, asset_type) composite key
+            # Build BOTH indexes: name-only (for constraint matching) AND name+type (for details)
             for asset in result.scalars().all():
+                # Name-only index (critical for constraint matching)
+                existing_by_name[asset.name] = asset
+                # Name+type composite (for better conflict messaging)
                 key = (asset.name, asset.asset_type or "Unknown")
                 existing_by_name_type[key] = asset
         logger.debug(
-            f"  Found {len(existing_by_name_type)} existing assets by name+type"
+            f"  Found {len(existing_by_name)} existing assets by name (DB constraint match), "
+            f"{len(existing_by_name_type)} by name+type (conflict details)"
         )
 
-    # Step 3: O(1) lookup for each asset
+    # Step 3: O(1) lookup for each asset using helper function
     conflict_free = []
     conflicts = []
 
     for asset_data in assets_data:
-        hostname = asset_data.get("hostname")
-        ip = asset_data.get("ip_address")
-        name = get_smart_asset_name(asset_data)
-        asset_type = asset_data.get("asset_type", "Unknown")  # NEW: for composite key
+        conflict = _check_single_asset_conflict(
+            asset_data,
+            existing_by_name,
+            existing_by_name_type,
+            existing_by_hostname,
+            existing_by_ip,
+        )
 
-        # Check hostname first (highest priority unique constraint)
-        if hostname and hostname in existing_by_hostname:
-            existing = existing_by_hostname[hostname]
-            conflicts.append(
-                {
-                    "conflict_type": "hostname",  # Aligned with CHECK constraint
-                    "conflict_key": hostname,
-                    "existing_asset_id": existing.id,
-                    "existing_asset_data": serialize_asset_for_comparison(existing),
-                    "new_asset_data": asset_data,
-                }
-            )
-            continue
-
-        # Check IP address
-        if ip and ip in existing_by_ip:
-            existing = existing_by_ip[ip]
-            conflicts.append(
-                {
-                    "conflict_type": "ip_address",  # Aligned with CHECK constraint
-                    "conflict_key": ip,
-                    "existing_asset_id": existing.id,
-                    "existing_asset_data": serialize_asset_for_comparison(existing),
-                    "new_asset_data": asset_data,
-                }
-            )
-            continue
-
-        # Check name+asset_type composite (NEW: reduces false positives)
-        name_type_key = (name, asset_type)
-        if name and name_type_key in existing_by_name_type:
-            existing = existing_by_name_type[name_type_key]
-            conflicts.append(
-                {
-                    "conflict_type": "name",  # Aligned with CHECK constraint
-                    "conflict_key": f"{name} ({asset_type})",  # Include type in display
-                    "existing_asset_id": existing.id,
-                    "existing_asset_data": serialize_asset_for_comparison(existing),
-                    "new_asset_data": asset_data,
-                }
-            )
-            continue
-
-        # No conflict found
-        conflict_free.append(asset_data)
+        if conflict:
+            conflicts.append(conflict)
+        else:
+            conflict_free.append(asset_data)
 
     logger.info(
         f"✅ Bulk conflict detection complete: "
@@ -840,8 +875,7 @@ async def bulk_create_or_update_assets(
 
     if or_conditions:
         conditions.append(or_(*or_conditions))
-        # SKIP_TENANT_CHECK - Service-level query
-        stmt = select(Asset).where(and_(*conditions))
+        stmt = select(Asset).where(and_(*conditions))  # SKIP_TENANT_CHECK
         result = await service_instance.db.execute(stmt)
         existing_assets = result.scalars().all()
         name_index, hostname_index, fqdn_index, ip_index = _build_lookup_indexes(
