@@ -1,0 +1,108 @@
+# Grafana Dashboards Provisioning
+# ADR-031: Automatic dashboard loading
+#
+# Dashboard files located at: /var/lib/grafana/dashboards/*.json
+#
+# Priority dashboards (Phase 2 - Issue #878):
+#   1. Application Logs (Loki)
+#   2. LLM Usage Costs (PostgreSQL)
+#   3. MFO Flow Lifecycle (PostgreSQL)
+#   4. Agent Health (PostgreSQL + Prometheus)
+
+apiVersion: 1
+
+providers:
+  # Load all dashboards from /var/lib/grafana/dashboards
+  - name: 'Migration Platform Dashboards'
+    orgId: 1
+    folder: 'Migration Platform'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true
+
+# ============================================================================
+# DASHBOARD FILES (Phase 2 Implementation)
+# ============================================================================
+# Create these JSON files in: config/docker/observability/grafana/dashboards/
+#
+# 1. app-logs.json
+#    - Loki datasource
+#    - Log filtering by container, level, error
+#    - Time series chart of log volume
+#    - Top errors table
+#
+# 2. llm-costs.json
+#    - PostgreSQL datasource
+#    - Cost by model/provider/feature over time
+#    - Tokens by client_account_id and engagement_id
+#    - Top 10 most expensive LLM calls
+#    - Usage trends and cost forecasting
+#    - Panel linking to /finops/llm-costs frontend UI
+#    - SQL queries from ADR-031 lines 180-195
+#
+# 3. mfo-flows.json
+#    - PostgreSQL datasource
+#    - Master flows by status with duration calculation
+#    - Child phase progression across flow types
+#    - Flow lifecycle duration (creation → completion)
+#    - Error rates by flow type
+#    - Per-tenant flow analytics
+#    - SQL queries from ADR-031 lines 214-250
+#
+# 4. agent-health.json
+#    - PostgreSQL datasource (agent_performance_analytics)
+#    - Prometheus datasource (agent metrics from Phase 4)
+#    - All 17 agents from registry
+#    - Agent run success/failure rates
+#    - Agent execution duration histograms
+#    - TenantMemoryManager metrics (Phase 4)
+#    - SQL queries from ADR-031 lines 276-300
+
+# ============================================================================
+# DASHBOARD JSON TEMPLATE
+# ============================================================================
+# {
+#   "annotations": {"list": []},
+#   "editable": true,
+#   "fiscalYearStartMonth": 0,
+#   "graphTooltip": 1,
+#   "id": null,
+#   "links": [],
+#   "liveNow": false,
+#   "panels": [],
+#   "schemaVersion": 38,
+#   "style": "dark",
+#   "tags": ["migration-platform"],
+#   "templating": {"list": []},
+#   "time": {"from": "now-6h", "to": "now"},
+#   "timepicker": {},
+#   "timezone": "",
+#   "title": "Dashboard Title",
+#   "uid": "unique-uid",
+#   "version": 1,
+#   "weekStart": ""
+# }
+
+# ============================================================================
+# CREATING DASHBOARDS
+# ============================================================================
+# Option 1: Use Grafana UI
+#   1. Access Grafana at http://localhost:9999
+#   2. Create dashboard manually with Explore
+#   3. Export JSON via Share → Export → Save to file
+#   4. Copy JSON to config/docker/observability/grafana/dashboards/
+#   5. Restart Grafana to load
+#
+# Option 2: Use grafonnet (Jsonnet library)
+#   - Install grafonnet: https://github.com/grafana/grafonnet
+#   - Write dashboard as code in Jsonnet
+#   - Generate JSON with jsonnet command
+#
+# Option 3: Use Terraform provider
+#   - Use grafana_dashboard resource
+#   - Store dashboards as code in Terraform
+#   - Apply with terraform apply

@@ -1,121 +1,231 @@
-#version: '3.8'
+# Grafana Observability Stack (Tier B)
+# ADR-031: Enterprise Observability Architecture
+# 5 Containers: Grafana + Loki + Tempo + Prometheus + Alloy
+#
+# Usage:
+#   Local Dev:  docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+#   Azure Dev:  docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+#   Railway:    Same command (HTTP-only verified, no WebSockets)
+#
+# Access:
+#   Grafana:    http://localhost:9999 (local) or https://aiforceasses.cloudsmarthcl.com:9999 (Azure)
+#   Prometheus: http://localhost:9090 (metrics UI)
+#
+# Prerequisites:
+#   1. Copy .env.observability.template to .env.observability
+#   2. Generate strong password: openssl rand -base64 32
+#   3. Fill in GRAFANA_ADMIN_PASSWORD
+
+name: migration
 
 services:
-  # OpenLIT Observability Stack
-  openlit:
-    image: ghcr.io/openlit/openlit:latest
-    container_name: openlit_dashboard
+  # ============================================================================
+  # GRAFANA - Web UI for dashboards and datasource configuration
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: migration_grafana
+    restart: unless-stopped
     ports:
-      - "3000:3000"  # OpenLIT Dashboard
+      - "9999:3000"  # External port 9999 (per ADR-031)
     environment:
-      - OPENLIT_ENVIRONMENT=development
-      - OPENLIT_DATABASE_URL=postgresql://openlit:openlit@openlit_db:5432/openlit
-      - OPENLIT_REDIS_URL=redis://openlit_redis:6379
+      # Admin credentials
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+
+      # Server configuration
+      - GF_SERVER_PROTOCOL=${GF_SERVER_PROTOCOL:-http}
+      - GF_SERVER_DOMAIN=${GF_SERVER_DOMAIN:-localhost}
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-http://localhost:9999}
+      - GF_SERVER_HTTP_PORT=3000
+
+      # Security
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+
+      # GitHub OAuth (Railway prod only - disabled for Azure due to firewall)
+      - GF_AUTH_GITHUB_ENABLED=${GF_AUTH_GITHUB_ENABLED:-false}
+      - GF_AUTH_GITHUB_CLIENT_ID=${GF_AUTH_GITHUB_CLIENT_ID:-}
+      - GF_AUTH_GITHUB_CLIENT_SECRET=${GF_AUTH_GITHUB_CLIENT_SECRET:-}
+      - GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS=${GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS:-}
+
+      # Azure AD OAuth (Phase 2 enhancement if available within firewall)
+      - GF_AUTH_AZUREAD_ENABLED=${AZURE_AD_ENABLED:-false}
+      - GF_AUTH_AZUREAD_CLIENT_ID=${AZURE_AD_CLIENT_ID:-}
+      - GF_AUTH_AZUREAD_CLIENT_SECRET=${AZURE_AD_CLIENT_SECRET:-}
+      - GF_AUTH_AZUREAD_AUTH_URL=${AZURE_AD_AUTH_URL:-}
+      - GF_AUTH_AZUREAD_TOKEN_URL=${AZURE_AD_TOKEN_URL:-}
+
+      # Disable telemetry
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+
+      # Logging
+      - GF_LOG_LEVEL=info
+      - GF_LOG_MODE=console
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # SSL certificates (only if GF_SERVER_PROTOCOL=https)
+      - ./observability/ssl:/etc/grafana/ssl:ro
+    networks:
+      - migration_network
     depends_on:
-      - openlit_db
-      - openlit_redis
-      - openlit_otel_collector
-    networks:
-      - openlit_network
-      - migrate-ui-orchestrator_default  # Connect to main app network
-    restart: unless-stopped
+      - loki
+      - tempo
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
-  # OpenLIT Database
-  openlit_db:
-    image: postgres:17-alpine  # Updated from 15 to fix CVE-2025-8715, CVE-2025-8714, CVE-2025-8713
-    container_name: openlit_postgres
-    environment:
-      - POSTGRES_DB=openlit
-      - POSTGRES_USER=openlit
-      - POSTGRES_PASSWORD=openlit
-    volumes:
-      - openlit_db_data:/var/lib/postgresql/data
-    networks:
-      - openlit_network
+  # ============================================================================
+  # LOKI - Log aggregation and storage
+  # ============================================================================
+  loki:
+    image: grafana/loki:3.2.0
+    container_name: migration_loki
     restart: unless-stopped
-
-  # Redis for OpenLIT
-  openlit_redis:
-    image: redis:7-alpine
-    container_name: openlit_redis
-    networks:
-      - openlit_network
-    restart: unless-stopped
-
-  # OpenTelemetry Collector for CrewAI agent tracing
-  openlit_otel_collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    container_name: openlit_otel_collector
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    volumes:
-      - ./observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    # Run as root to fix volume permission issues on Azure VM
+    user: "0"
     ports:
+      - "3100:3100"  # Loki API
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    networks:
+      - migration_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ============================================================================
+  # TEMPO - Distributed tracing (replaces Jaeger per ADR-031)
+  # ============================================================================
+  tempo:
+    image: grafana/tempo:2.6.0
+    container_name: migration_tempo
+    restart: unless-stopped
+    # Run as root to fix volume permission issues on Azure VM
+    user: "0"
+    ports:
+      - "3200:3200"   # Tempo API
       - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
-      - "8888:8888"   # Prometheus metrics
-      - "8889:8889"   # Prometheus exporter metrics
+    command: -config.file=/etc/tempo/tempo.yaml
+    volumes:
+      - ./observability/tempo-config.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
     networks:
-      - openlit_network
-      - migrate-ui-orchestrator_default  # Connect to main app network
-    restart: unless-stopped
+      - migration_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
-  # Prometheus for metrics collection
+  # ============================================================================
+  # PROMETHEUS - Metrics time-series database
+  # ============================================================================
   prometheus:
-    image: prom/prometheus:latest
-    container_name: openlit_prometheus
+    image: prom/prometheus:v2.54.1
+    container_name: migration_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"  # Prometheus UI
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14}d'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
     networks:
-      - openlit_network
-    restart: unless-stopped
+      - migration_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
-  # Grafana for visualization
-  grafana:
-    image: grafana/grafana:latest
-    container_name: openlit_grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+  # ============================================================================
+  # ALLOY - Unified collector (replaces Promtail + OTel Collector)
+  # ============================================================================
+  alloy:
+    image: grafana/alloy:v1.4.2
+    container_name: migration_alloy
+    restart: unless-stopped
+    # Run as root to access Docker socket and fix volume permissions
+    user: "0"
+    ports:
+      - "12345:12345"  # Alloy UI
+      - "4317"         # OTLP gRPC (internal)
+      - "4318"         # OTLP HTTP (internal)
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources
-    ports:
-      - "3001:3000"  # Use 3001 to avoid conflict with OpenLIT
+      - ./observability/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy
+      # Mount Docker socket for log collection
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - openlit_network
-    restart: unless-stopped
-
-  # Jaeger for distributed tracing
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: jaeger_tracing
-    ports:
-      - "16686:16686"  # Jaeger UI
-      - "14268:14268"  # Jaeger collector HTTP
+      - migration_network
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    networks:
-      - openlit_network
-    restart: unless-stopped
+      - LOKI_ENDPOINT=http://loki:3100
+      - TEMPO_ENDPOINT=tempo:4317
+      - PROMETHEUS_ENDPOINT=http://prometheus:9090
+      - OBSERVABILITY_ENVIRONMENT=${OBSERVABILITY_ENVIRONMENT:-local}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:12345/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
+# ============================================================================
+# VOLUMES
+# ============================================================================
 volumes:
-  openlit_db_data:
-  prometheus_data:
   grafana_data:
+    driver: local
+  loki_data:
+    driver: local
+  tempo_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  alloy_data:
+    driver: local
 
+# ============================================================================
+# NETWORKS
+# ============================================================================
+# Network is created by main docker-compose.yml (project name: migration)
+# Docker Compose names it: migration_migration_network
+# Reference it as external to connect observability stack
 networks:
-  openlit_network:
-    driver: bridge
-  migrate-ui-orchestrator_default:
+  migration_network:
     external: true
+    name: migration_migration_network
