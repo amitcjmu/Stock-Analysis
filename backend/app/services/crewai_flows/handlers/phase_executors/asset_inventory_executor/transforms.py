@@ -38,12 +38,16 @@ def transform_raw_record_to_asset(
         asset_data_source = cleansed_data
 
         # Extract basic asset information with smart name resolution
+        # CRITICAL FIX: Prioritize application_name over asset_name to avoid using
+        # technical identifiers (serial numbers, UUIDs) as asset names
         name = (
             asset_data_source.get("name")
+            or asset_data_source.get(
+                "application_name"
+            )  # Check application_name before asset_name
             or asset_data_source.get("hostname")
             or asset_data_source.get("server_name")
-            or asset_data_source.get("asset_name")
-            or asset_data_source.get("application_name")
+            or asset_data_source.get("asset_name")  # Demoted: only use as last resort
             or f"Asset-{record.row_number}"
         )
 

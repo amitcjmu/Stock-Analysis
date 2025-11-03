@@ -17,7 +17,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   fieldMappings,
   isAnalyzing,
   onMappingAction,
-  onMappingChange
+  onMappingChange,
+  onRemoveMapping
 }) => {
   const { getAuthHeaders } = useAuth();
   const [availableFields, setAvailableFields] = useState<TargetField[]>([]);
@@ -288,7 +289,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Field Mapping Suggestions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">🔴 TEST - Field Mapping Suggestions 🔴</h2>
           <p className="text-sm text-gray-600 mt-1">
             {Array.isArray(availableFields) ? availableFields.length : 0} available target fields across {getCategories().length - 1} categories
           </p>
@@ -319,6 +320,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         onTargetFieldChange={handleTargetFieldChange}
         onApproveMapping={handleApproveMapping}
         onRejectMapping={handleRejectMappingDialog}
+        onRemoveMapping={onRemoveMapping}
         selectedCategory={selectedCategory}
         searchTerm={searchTerm}
         loadingFields={loadingFields}

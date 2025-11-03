@@ -109,7 +109,7 @@ datasources:
   - name: PostgreSQL
     type: postgres
     access: proxy
-    url: postgres:5432
+    url: migration_postgres:5432
     database: migration_db
     # Use read-only user (created per ADR-031 Phase 3)
     user: grafana_readonly

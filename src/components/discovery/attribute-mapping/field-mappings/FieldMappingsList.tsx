@@ -15,6 +15,7 @@ const FieldMappingsList: React.FC<FieldMappingsListProps> = ({
   onTargetFieldChange,
   onApproveMapping,
   onRejectMapping,
+  onRemoveMapping,
   selectedCategory,
   searchTerm,
   loadingFields,
@@ -51,6 +52,7 @@ const FieldMappingsList: React.FC<FieldMappingsListProps> = ({
           onTargetFieldChange={(newTarget) => onTargetFieldChange(mapping.id, newTarget)}
           onApproveMapping={() => onApproveMapping(mapping.id)}
           onRejectMapping={() => onRejectMapping(mapping.id, mapping.sourceField, mapping.targetAttribute)}
+          onRemoveMapping={onRemoveMapping}
           selectedCategory={selectedCategory}
           searchTerm={searchTerm}
           loadingFields={loadingFields}

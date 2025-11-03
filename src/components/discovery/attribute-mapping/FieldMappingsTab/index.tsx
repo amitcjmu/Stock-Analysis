@@ -12,6 +12,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   fieldMappings,
   isAnalyzing,
   onMappingAction,
+  onRemoveMapping,
   onMappingChange,
   onRefresh,
   onApproveMappingWithLearning,
@@ -58,6 +59,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         fieldMappings={safeFieldMappings}
         availableFields={availableFields}
         onMappingAction={onMappingAction}
+        onRemoveMapping={onRemoveMapping}
         onMappingChange={onMappingChange}
         onRefresh={onRefresh}
         // Pass learning props to the mapper

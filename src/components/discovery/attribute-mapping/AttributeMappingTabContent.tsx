@@ -22,6 +22,7 @@ interface AttributeMappingTabContentProps {
   agenticData: AgenticData | null;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string, rejectionReason?: string) => void;
+  onRemoveMapping?: (mappingId: string) => Promise<void>;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   refetchAgentic?: () => void;
   refetchCriticalAttributes?: () => void;
@@ -44,6 +45,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   agenticData,
   onApproveMapping,
   onRejectMapping,
+  onRemoveMapping,
   onMappingChange,
   refetchAgentic,
   refetchCriticalAttributes,
@@ -72,6 +74,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
                   onRejectMapping(mappingId, rejectionReason);
                 }
               }}
+              onRemoveMapping={onRemoveMapping}
               onMappingChange={onMappingChange}
               onRefresh={refetchAgentic}
               // New learning-related props

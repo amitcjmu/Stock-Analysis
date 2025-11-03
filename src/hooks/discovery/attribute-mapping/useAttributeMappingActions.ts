@@ -53,6 +53,7 @@ export interface AttributeMappingActionsResult {
   handleTriggerFieldMappingCrew: () => Promise<void>;
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
+  handleRemoveMapping: (mappingId: string) => Promise<void>;
   handleBulkApproveNeedsReview: () => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
   handleAttributeUpdate: (attributeId: string, updates: Record<string, unknown>) => Promise<void>;
@@ -316,6 +317,58 @@ export const useAttributeMappingActions = (
       // Show error toast if available
       if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to reject mapping';
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
+      }
+    }
+  }, [fieldMappings, getAuthHeaders, refetchFieldMappings, flow?.flow_id, flow?.id]);
+
+  const handleRemoveMapping = useCallback(async (mappingId: string) => {
+    try {
+      console.log(`🗑️ Removing mapping: ${mappingId}`);
+
+      // Find the mapping to remove
+      const mapping = fieldMappings.find((m) => m.id === mappingId);
+      if (!mapping) {
+        console.error('❌ Mapping not found:', mappingId);
+        return;
+      }
+
+      // Use DELETE method to remove the mapping
+      const removeUrl = `/api/v1/field-mapping/mappings/${mappingId}`;
+
+      // Make API call to remove the specific mapping
+      const removeResult = await apiCall(removeUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+          // Add flow ID header for discovery operations
+          'X-Flow-ID': flow?.flow_id || ''
+        }
+      });
+
+      console.log('✅ Mapping removed successfully:', removeResult);
+
+      // Show success feedback
+      if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping removed: ${mapping.source_field}`);
+      }
+
+      // Immediately refetch to get updated data
+      try {
+        console.log('🔄 Refetching field mappings to update UI...');
+        // Force a fresh refetch by invalidating the query cache
+        await refetchFieldMappings();
+      } catch (refetchError) {
+        console.error('⚠️ Failed to refetch mappings:', refetchError);
+      }
+
+    } catch (error) {
+      console.error('❌ Error in remove handler:', error);
+
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to remove mapping';
         (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
     }
@@ -586,6 +639,7 @@ export const useAttributeMappingActions = (
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
+    handleRemoveMapping,
     handleBulkApproveNeedsReview,
     handleMappingChange,
     handleAttributeUpdate,

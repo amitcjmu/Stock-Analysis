@@ -22,6 +22,7 @@ interface AttributeMappingContentProps {
   navigation: NavigationState;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string) => void;
+  onRemoveMapping?: (mappingId: string) => Promise<void>;
   onMappingChange: (mappingId: string, updates: unknown) => void;
   onAttributeUpdate: (attributeId: string, updates: unknown) => void;
   onDataImportSelection: (importId: string) => void;
@@ -37,6 +38,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
   navigation,
   onApproveMapping,
   onRejectMapping,
+  onRemoveMapping,
   onMappingChange,
   onAttributeUpdate,
   onDataImportSelection,
@@ -264,6 +266,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
           criticalAttributes={criticalAttributes}
           onApproveMapping={onApproveMapping}
           onRejectMapping={onRejectMapping}
+          onRemoveMapping={onRemoveMapping}
           onMappingChange={onMappingChange}
           onAttributeUpdate={onAttributeUpdate}
           refetchAgentic={refetchAgentic}

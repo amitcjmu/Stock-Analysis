@@ -16,6 +16,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
   onTargetFieldChange,
   onApproveMapping,
   onRejectMapping,
+  onRemoveMapping,
   selectedCategory,
   searchTerm,
   loadingFields,
@@ -96,6 +97,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
           isRejecting={isRejecting}
           onApprove={onApproveMapping}
           onReject={onRejectMapping}
+          onRemove={onRemoveMapping}
         />
       </div>
     </div>
