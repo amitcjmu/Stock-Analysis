@@ -138,32 +138,40 @@ async def delete_field_mapping(
     service: MappingService = Depends(get_mapping_service),
 ):
     """
-    Delete an approved field mapping.
-    Frontend endpoint for removing mappings that need to be re-processed.
+    Remove an approved field mapping by changing status to 'rejected'.
+    This moves the mapping back to 'Needs Review' for re-processing.
     """
     try:
-        logger.info(f"🗑️ Field mapping deletion request: mapping_id={mapping_id}")
+        logger.info(f"🗑️ Field mapping removal request: mapping_id={mapping_id}")
 
-        # Delete the mapping
-        deleted = await service.delete_field_mapping(mapping_id)
+        # Change status to 'rejected' instead of deleting
+        # This moves the mapping back to "Needs Review" column
+        updated = await service.update_field_mapping_status(
+            mapping_id=mapping_id,
+            new_status="rejected",
+            rejection_reason="User removed approved mapping for review",
+        )
 
-        if not deleted:
+        if not updated:
             logger.warning(
                 safe_log_format(
-                    "Mapping {mapping_id} not found for deletion", mapping_id=mapping_id
+                    "Mapping {mapping_id} not found for status update",
+                    mapping_id=mapping_id,
                 )
             )
             raise HTTPException(
                 status_code=404, detail=f"Field mapping not found: {mapping_id}"
             )
 
-        logger.info(f"✅ Successfully deleted field mapping {mapping_id}")
+        logger.info(
+            f"✅ Successfully moved field mapping {mapping_id} back to needs review"
+        )
 
         return {
             "mapping_id": mapping_id,
-            "status": "deleted",
+            "status": "rejected",
             "success": True,
-            "message": "Field mapping deleted successfully",
+            "message": "Field mapping moved to needs review",
         }
 
     except HTTPException:
@@ -180,10 +188,12 @@ async def delete_field_mapping(
     except Exception as e:
         logger.error(
             safe_log_format(
-                "Error deleting mapping {mapping_id}: {e}", mapping_id=mapping_id, e=e
+                "Error updating mapping {mapping_id}: {e}", mapping_id=mapping_id, e=e
             )
         )
-        raise HTTPException(status_code=500, detail="Failed to delete field mapping")
+        raise HTTPException(
+            status_code=500, detail="Failed to update field mapping status"
+        )
 
 
 @router.get("/health")
