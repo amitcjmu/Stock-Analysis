@@ -90,9 +90,21 @@ def transform_raw_record_to_asset(
                 field_mappings or {},
                 default="Medium",
             ),
-            # Application information
-            "application_name": asset_data_source.get("application_name"),
-            "technology_stack": asset_data_source.get("technology_stack"),
+            # Application information - CRITICAL FIX: Use field mappings
+            "application_name": get_mapped_value(
+                asset_data_source,
+                "application_name",
+                field_mappings or {},
+                fallback_fields=["app_name", "application"],
+                default=None,
+            ),
+            "technology_stack": get_mapped_value(
+                asset_data_source,
+                "technology_stack",
+                field_mappings or {},
+                fallback_fields=["tech_stack", "stack"],
+                default=None,
+            ),
             # Location information
             "location": asset_data_source.get("location"),
             "datacenter": asset_data_source.get("datacenter"),
@@ -192,6 +204,52 @@ def apply_field_mapping(
     else:
         # No mapping - return default
         return default
+
+
+def get_mapped_value(
+    asset_data_source: Dict[str, Any],
+    target_field: str,
+    field_mappings: Dict[str, str],
+    fallback_fields: list = None,
+    default: Any = None,
+) -> Any:
+    """Get value for a target field by applying field mappings with reverse lookup.
+
+    Args:
+        asset_data_source: Source data dictionary
+        target_field: Name of the target field to get value for
+        field_mappings: Dict of approved mappings (source -> target)
+        fallback_fields: List of fallback field names to try if no mapping found
+        default: Default value if no mapping found and target field doesn't exist
+
+    Returns:
+        Mapped value, fallback value, or default
+    """
+    # First, try to find a source field that maps to this target
+    for source_field, mapped_target in field_mappings.items():
+        if mapped_target == target_field:
+            # Found a mapping! Use the source field value
+            value = asset_data_source.get(source_field)
+            if value is not None:
+                logger.debug(
+                    f"📋 Applied field mapping: {source_field} → {target_field} = {value}"
+                )
+                return value
+
+    # No mapping found, try direct lookup
+    value = asset_data_source.get(target_field)
+    if value is not None:
+        return value
+
+    # Try fallback fields if provided
+    if fallback_fields:
+        for fallback_field in fallback_fields:
+            value = asset_data_source.get(fallback_field)
+            if value is not None:
+                return value
+
+    # Not found, return default
+    return default
 
 
 def flatten_cleansed_data(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -371,6 +429,7 @@ def classify_asset_type(asset_data_source: Dict[str, Any]) -> str:
 __all__ = [
     "transform_raw_record_to_asset",
     "apply_field_mapping",
+    "get_mapped_value",
     "flatten_cleansed_data",
     "classify_asset_type",
 ]
