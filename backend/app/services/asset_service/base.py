@@ -333,7 +333,7 @@ class AssetService:
 
                 # Create child table records if data exists
                 # Build RequestContext from context_info for tenant extraction
-                from app.core.request_context import RequestContext
+                from app.core.context import RequestContext
 
                 context = RequestContext(
                     client_account_id=client_id,
