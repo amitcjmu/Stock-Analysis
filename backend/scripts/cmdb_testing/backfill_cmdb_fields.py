@@ -50,8 +50,49 @@ def safe_float_convert(value, default=None):
         return default
 
 
+def check_environment_safety():
+    """
+    Safety check to prevent accidental production runs.
+    
+    Checks database URL for production indicators and requires
+    explicit confirmation before proceeding with data modifications.
+    """
+    import sys
+    
+    db_url = os.getenv("DATABASE_URL", "")
+    
+    # Check if production-like environment
+    is_production = any([
+        "prod" in db_url.lower(),
+        "production" in db_url.lower(),
+        ".rds." in db_url.lower(),  # AWS RDS
+        "railway.app" in db_url.lower(),  # Railway
+    ])
+    
+    if is_production:
+        print("\n" + "⚠️  " + "="*76)
+        print("⚠️  WARNING: PRODUCTION DATABASE DETECTED!")
+        print("⚠️  " + "="*76)
+        print(f"⚠️  Database: {db_url[:50]}...")
+        print("⚠️  ")
+        print("⚠️  This script will UPDATE EXISTING DATA in the database.")
+        print("⚠️  Make sure you have a recent backup!")
+        print("⚠️  " + "="*76 + "\n")
+        
+        # Require explicit confirmation
+        confirmation = input("Type 'CONFIRM' to proceed (or anything else to abort): ")
+        if confirmation != "CONFIRM":
+            print("❌ Aborted by user - no changes made\n")
+            sys.exit(1)
+        print()
+
+
 async def backfill_cmdb_data(flow_id: str, dry_run: bool = False):
     """Backfill CMDB fields and child tables for a discovery flow."""
+    
+    # Safety check for production environments (only if not dry-run)
+    if not dry_run:
+        check_environment_safety()
 
     engine = create_async_engine(DATABASE_URL, echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
