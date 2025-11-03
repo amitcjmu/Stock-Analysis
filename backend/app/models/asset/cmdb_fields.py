@@ -174,12 +174,22 @@ class CMDBFieldsMixin:
         Float,
         nullable=True,
         comment="Used storage space in GB (calculated or imported from CMDB)",
+        info={
+            "display_name": "Storage Used (GB)",
+            "short_hint": "Used storage in GB",
+            "category": "performance",
+        },
     )
 
     tech_debt_flags = Column(
         Text,
         nullable=True,
         comment="Technical debt indicators and flags from CMDB assessment",
+        info={
+            "display_name": "Tech Debt Flags",
+            "short_hint": "Technical debt indicators",
+            "category": "quality",
+        },
     )
 
     # Compliance/Security Fields
@@ -268,6 +278,11 @@ class CMDBFieldsMixin:
         Text,
         nullable=True,
         comment="Backup and recovery policy details",
+        info={
+            "display_name": "Backup Policy",
+            "short_hint": "Backup and recovery details",
+            "category": "operational",
+        },
     )
 
     # Metadata Fields
@@ -276,4 +291,9 @@ class CMDBFieldsMixin:
         default=list,
         nullable=True,
         comment="Asset tags and labels as JSONB array",
+        info={
+            "display_name": "Asset Tags",
+            "short_hint": "Tags and labels",
+            "category": "metadata",
+        },
     )

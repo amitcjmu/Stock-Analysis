@@ -22,16 +22,36 @@ class LocationFieldsMixin:
     location = Column(
         String(MEDIUM_STRING_LENGTH),
         comment="The geographical location or region of the asset.",
+        info={
+            "display_name": "Location",
+            "short_hint": "Geographical location or region",
+            "category": "environment",
+        },
     )
     datacenter = Column(
         String(MEDIUM_STRING_LENGTH),
         comment="The datacenter where the asset is hosted.",
+        info={
+            "display_name": "Datacenter",
+            "short_hint": "Datacenter or facility",
+            "category": "environment",
+        },
     )
     rack_location = Column(
         String(SMALL_STRING_LENGTH),
         comment="The specific rack location within the datacenter.",
+        info={
+            "display_name": "Rack Location",
+            "short_hint": "Rack identifier",
+            "category": "environment",
+        },
     )
     availability_zone = Column(
         String(SMALL_STRING_LENGTH),
         comment="The cloud availability zone, if applicable.",
+        info={
+            "display_name": "Availability Zone",
+            "short_hint": "Cloud availability zone",
+            "category": "environment",
+        },
     )

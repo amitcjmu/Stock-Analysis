@@ -23,9 +23,6 @@ from .base import (
     LARGE_STRING_LENGTH,
     IP_ADDRESS_LENGTH,
     MAC_ADDRESS_LENGTH,
-    DEFAULT_MIGRATION_PRIORITY,
-    DEFAULT_STATUS,
-    DEFAULT_MIGRATION_STATUS,
     DEFAULT_CURRENT_PHASE,
     DEFAULT_SOURCE_PHASE,
 )
@@ -36,6 +33,8 @@ from .cmdb_fields import CMDBFieldsMixin
 from .location_fields import LocationFieldsMixin
 from .performance_fields import PerformanceFieldsMixin
 from .discovery_fields import DiscoveryFieldsMixin
+from .business_fields import BusinessFieldsMixin
+from .migration_fields import MigrationFieldsMixin
 
 
 class Asset(
@@ -48,6 +47,8 @@ class Asset(
     LocationFieldsMixin,
     PerformanceFieldsMixin,
     DiscoveryFieldsMixin,
+    BusinessFieldsMixin,
+    MigrationFieldsMixin,
 ):
     """
     Represents a single Configuration Item (CI) or asset within the CMDB.
@@ -154,39 +155,80 @@ class Asset(
         nullable=False,
         index=True,
         comment="The primary name of the asset.",
+        info={
+            "display_name": "Asset Name",
+            "short_hint": "Primary asset identifier",
+            "category": "identification",
+        },
     )
     asset_name = Column(
         String(LARGE_STRING_LENGTH),
         nullable=True,
         comment="Alternative or display name for the asset.",
+        info={
+            "display_name": "Display Name",
+            "short_hint": "Friendly display name",
+            "category": "identification",
+        },
     )
     hostname = Column(
         String(LARGE_STRING_LENGTH),
         index=True,
         comment="The hostname of the asset, if applicable.",
+        info={
+            "display_name": "Hostname",
+            "short_hint": "System hostname",
+            "category": "identification",
+        },
     )
     asset_type = Column(
         String(SMALL_STRING_LENGTH),
         nullable=False,
         index=True,
         comment="The type of the asset, from the AssetType enum (e.g., 'server', 'database').",
+        info={
+            "display_name": "Asset Type",
+            "short_hint": "Server / Database / Application / Network Device",
+            "category": "identification",
+        },
     )
     description = Column(
-        Text, comment="A detailed description of the asset and its function."
+        Text,
+        comment="A detailed description of the asset and its function.",
+        info={
+            "display_name": "Description",
+            "short_hint": "Asset description",
+            "category": "identification",
+        },
     )
 
     # Network information
     ip_address = Column(
         String(IP_ADDRESS_LENGTH),
         comment="The primary IP address of the asset (supports IPv6).",
+        info={
+            "display_name": "IP Address",
+            "short_hint": "Primary IP address",
+            "category": "network",
+        },
     )
     fqdn = Column(
         String(LARGE_STRING_LENGTH),
         comment="The fully qualified domain name of the asset.",
+        info={
+            "display_name": "FQDN",
+            "short_hint": "Fully qualified domain name",
+            "category": "network",
+        },
     )
     mac_address = Column(
         String(MAC_ADDRESS_LENGTH),
         comment="The MAC address of the asset's primary network interface.",
+        info={
+            "display_name": "MAC Address",
+            "short_hint": "Network MAC address",
+            "category": "network",
+        },
     )
     # Technical specifications (from Azure Migrate)
     operating_system = Column(
@@ -199,7 +241,13 @@ class Asset(
         },
     )
     os_version = Column(
-        String(SMALL_STRING_LENGTH), comment="The version of the operating system."
+        String(SMALL_STRING_LENGTH),
+        comment="The version of the operating system.",
+        info={
+            "display_name": "OS Version",
+            "short_hint": "Operating system version",
+            "category": "technical",
+        },
     )
     cpu_cores = Column(
         Integer,
@@ -227,100 +275,6 @@ class Asset(
             "short_hint": "Total storage in gigabytes",
             "category": "technical",
         },
-    )
-
-    # Business information
-    business_owner = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="The name of the business owner or department responsible for the asset.",
-    )
-    technical_owner = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="The name of the technical owner or team responsible for the asset.",
-    )
-    department = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The business department or unit that uses this asset.",
-    )
-    application_name = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="The primary application or service this asset supports.",
-    )
-    technology_stack = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="A summary of the technology stack running on the asset.",
-    )
-    criticality = Column(
-        String(20),
-        comment="The technical criticality of the asset (e.g., 'Low', 'Medium', 'High').",
-    )
-    business_criticality = Column(
-        String(20),
-        comment="The business impact or criticality of the asset.",
-        info={
-            "display_name": "Business Criticality",
-            "short_hint": "1-5 scale (1=Low, 5=Critical)",
-            "category": "business",
-        },
-    )
-    custom_attributes = Column(
-        JSON,
-        comment="A JSON blob for storing any custom fields or attributes not in the standard schema.",
-    )
-    technical_details = Column(
-        JSON,
-        comment="A JSON blob containing technical details and enrichments for the asset.",
-    )
-
-    # Migration assessment
-    six_r_strategy = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="The recommended 6R migration strategy (e.g., 'Rehost', 'Refactor').",
-        info={
-            "display_name": "6R Strategy",
-            "short_hint": "Rehost / Replatform / Refactor / Repurchase / Retire / Retain",
-            "category": "migration",
-        },
-    )
-    mapping_status = Column(
-        String(20),
-        index=True,
-        comment="The status of the asset's field mapping during import.",
-    )
-    migration_priority = Column(
-        Integer,
-        default=DEFAULT_MIGRATION_PRIORITY,
-        comment="A priority score (1-10) for migrating this asset.",
-    )
-    migration_complexity = Column(
-        String(20),
-        comment="The assessed complexity of migrating this asset (e.g., 'Low', 'Medium', 'High').",
-        info={
-            "display_name": "Migration Complexity",
-            "short_hint": "Low / Medium / High",
-            "category": "migration",
-        },
-    )
-    migration_wave = Column(
-        Integer, comment="The migration wave this asset is assigned to."
-    )
-    sixr_ready = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="Indicates if the asset is ready for 6R analysis (e.g., 'Ready', 'Needs Analysis').",
-    )
-
-    # Status and ownership
-    status = Column(
-        String(SMALL_STRING_LENGTH),
-        default=DEFAULT_STATUS,
-        index=True,
-        comment="The operational status of the asset (e.g., 'active', 'decommissioned', 'maintenance').",
-    )
-    migration_status = Column(
-        String(SMALL_STRING_LENGTH),
-        default=DEFAULT_MIGRATION_STATUS,
-        index=True,
-        comment="The status of the asset within the migration lifecycle (e.g., 'discovered', 'assessed', 'migrated').",
     )
 
     # Audit fields
