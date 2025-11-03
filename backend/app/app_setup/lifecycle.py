@@ -9,6 +9,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.core.agent_monitoring_startup import (
+    initialize_agent_monitoring,
+    shutdown_agent_monitoring,
+)
+
 
 def get_lifespan():  # noqa: C901
     @asynccontextmanager
@@ -133,6 +138,19 @@ def get_lifespan():  # noqa: C901
             )
             raise  # Re-raise to prevent startup with invalid configuration
 
+        # Initialize agent monitoring services
+        try:
+            logging.getLogger(__name__).info("🔧 Initializing agent monitoring...")
+            initialize_agent_monitoring()
+            logging.getLogger(__name__).info(
+                "✅ Agent monitoring initialized successfully"
+            )
+        except Exception as e:  # pragma: no cover
+            # Don't fail startup if monitoring fails - log and continue
+            logging.getLogger(__name__).error(
+                f"⚠️ Failed to initialize agent monitoring: {e}", exc_info=True
+            )
+
         # Log feature flags configuration
         try:
             logging.getLogger(__name__).info(
@@ -202,6 +220,20 @@ def get_lifespan():  # noqa: C901
 
         # Shutdown logic
         logging.getLogger(__name__).info("🔄 Application shutting down...")
+
+        # Shutdown agent monitoring
+        try:
+            logging.getLogger(__name__).info("🛑 Shutting down agent monitoring...")
+            shutdown_agent_monitoring()
+            logging.getLogger(__name__).info(
+                "✅ Agent monitoring shut down successfully"
+            )
+        except Exception as e:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "⚠️ Failed to shut down agent monitoring: %s", e
+            )
+
+        # Shutdown flow health monitor
         try:
             from app.services.flow_health_monitor import flow_health_monitor
 

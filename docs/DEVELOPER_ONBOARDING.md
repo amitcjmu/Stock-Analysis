@@ -45,6 +45,156 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 
 ---
 
+## 📊 Observability Stack Setup (Optional - 15 minutes)
+
+The platform includes an enterprise-grade observability stack powered by Grafana for monitoring logs, traces, and metrics. This is **optional** for development but **highly recommended** for debugging and understanding system behavior.
+
+### 🎯 What's Included in Observability
+
+When enabled, you get **5 additional containers**:
+1. **Grafana** (port 9999): Dashboards and visualizations
+2. **Loki** (port 3100): Log aggregation and storage (14-day retention)
+3. **Tempo** (port 3200): Distributed tracing (7-day retention)
+4. **Prometheus** (port 9090): Metrics time-series database (14-day retention)
+5. **Alloy** (ports 12345, 4317, 4318): Unified telemetry collector (replaces deprecated Promtail)
+
+**Pre-built Dashboards**:
+- 📋 **Application Logs - Enhanced**: 8 specialized panels for CrewAI monitoring
+- 🏥 **Agent Health Dashboard**: Agent performance and memory usage
+- 💰 **LLM Costs Dashboard**: Token usage and cost tracking
+- 🔄 **Master Flow Orchestrator**: Flow lifecycle and state tracking
+
+### ✅ Option 1: Enable Observability (Recommended)
+
+```bash
+# 1. Create observability environment file
+cd config/docker
+cp .env.observability.template .env.observability
+
+# 2. Edit .env.observability and set required passwords
+# GRAFANA_ADMIN_PASSWORD=<your-secure-password>
+# POSTGRES_GRAFANA_PASSWORD=<your-postgres-password>
+
+# 3. Start all services INCLUDING observability (9 total containers)
+docker-compose up -d
+docker-compose -f docker-compose.observability.yml up -d
+
+# 4. Verify observability stack is running
+docker ps | grep migration_
+
+# You should see: backend, frontend, postgres, redis (core) + grafana, loki, tempo, prometheus, alloy (observability)
+```
+
+**Access Grafana**:
+- URL: http://localhost:9999
+- Login: `admin` / `<your-GRAFANA_ADMIN_PASSWORD>`
+- Navigate to: Dashboards → Observability
+
+**Verify Log Collection**:
+```bash
+# Check Alloy is collecting logs
+curl http://localhost:12345/-/ready
+# Should return: "Alloy is ready."
+
+# Check Loki has logs
+curl -G http://localhost:3100/loki/api/v1/query \
+  --data-urlencode 'query={container="migration_backend"}' \
+  --data-urlencode 'limit=5'
+```
+
+### ❌ Option 2: Run Without Observability (Lightweight)
+
+If you prefer a minimal setup without monitoring (saves ~2GB RAM):
+
+```bash
+# Start ONLY the core 4 containers
+docker-compose up -d
+
+# Core containers:
+# - migration_backend (FastAPI + CrewAI)
+# - migration_frontend (Next.js)
+# - migration_postgres (PostgreSQL 16 + pgvector)
+# - migration_redis (Redis 7)
+```
+
+**When to skip observability**:
+- You're on a resource-constrained machine (<8GB RAM)
+- You're doing quick feature testing
+- You don't need log/trace/metric analysis
+
+**Re-enable later anytime**:
+```bash
+cd config/docker
+docker-compose -f docker-compose.observability.yml up -d
+```
+
+### 🛑 Stop Observability Stack
+
+To stop observability while keeping core services running:
+
+```bash
+cd config/docker
+docker-compose -f docker-compose.observability.yml down
+```
+
+To stop EVERYTHING (core + observability):
+
+```bash
+docker-compose down
+docker-compose -f docker-compose.observability.yml down
+```
+
+**Note**: Stopping containers preserves data in mounted volumes. To delete all data:
+```bash
+docker-compose down -v  # Deletes core volumes
+docker-compose -f docker-compose.observability.yml down -v  # Deletes observability volumes
+```
+
+### 🔍 Using Observability for Development
+
+**Debugging with Logs**:
+1. Open Grafana: http://localhost:9999
+2. Go to: Dashboards → Observability → Application Logs - Enhanced
+3. Use panels:
+   - **Error & Exception Logs**: See full error stack traces with context
+   - **Flow Phase Transitions**: Track flow progress through phases
+   - **CrewAI Agent Decisions**: Watch agent decision-making in real-time
+   - **Log Levels**: Overview of INFO/WARNING/ERROR distribution
+
+**Finding Issues**:
+- Use the `$search` filter at the top to narrow results
+- Click any log entry to expand and see full JSON details
+- Adjust time range (default: Last 6 hours) for historical analysis
+- Use "Log Rate by Container" to spot unusual activity spikes
+
+**Monitoring LLM Costs**:
+1. Navigate to: Dashboards → Observability → LLM Costs Dashboard
+2. See real-time usage by model (Gemma 3, Llama 4)
+3. Track token consumption and cost per engagement
+4. Identify expensive CrewAI operations
+
+**Performance Troubleshooting**:
+- **Agent Health Dashboard**: Memory usage, execution times, success rates
+- **Master Flow Orchestrator**: Flow bottlenecks and state transitions
+- **Prometheus**: Query backend metrics at http://localhost:9090
+
+### 📚 Observability Documentation
+
+For detailed setup, architecture, and troubleshooting:
+- **Setup Guide**: `/tmp/observability-stack-setup-guide.md` (generated during setup)
+- **Migration Summary**: `.serena/memories/promtail-to-alloy-migration-oct-2025.md`
+- **Alloy Docs**: https://grafana.com/docs/alloy/latest/
+- **Loki Query Syntax**: https://grafana.com/docs/loki/latest/logql/
+
+### ⚠️ Important: Secrets Management
+
+**NEVER commit** `.env.observability` to Git:
+- ✅ `.env.observability.template` is tracked (template for reference)
+- ❌ `.env.observability` is gitignored (contains your passwords)
+- ✅ Pattern `*.observability` ensures all variants are excluded
+
+---
+
 ## 📖 Documentation Learning Path
 
 ### 🏛️ Foundation Architecture (Read First - 45 minutes)
