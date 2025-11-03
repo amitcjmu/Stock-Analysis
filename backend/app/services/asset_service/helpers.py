@@ -163,33 +163,18 @@ def safe_int_convert(value, default=None):
 
 
 def safe_float_convert(value, default=None):
-    """
-    Convert value to float with safe error handling.
-
-    Handles NaN and Infinity values to prevent JSON serialization errors
-    at the Python → JavaScript boundary (API responses).
-
-    Args:
-        value: Value to convert to float
-        default: Default value if conversion fails or result is NaN/Infinity
-
-    Returns:
-        Float value or default if conversion fails/invalid
-    """
+    """Convert value to float with safe error handling and NaN/Infinity checks."""
     if value is None or value == "":
         return default
     try:
         result = float(str(value))
-
-        # CRITICAL: Check for NaN/Infinity before JSON serialization
-        # These values cause JSON serialization errors in API responses
+        # Check for NaN/Infinity - not valid JSON values
         if math.isnan(result) or math.isinf(result):
             logger.warning(
-                f"NaN/Infinity detected in float conversion: {value}, "
+                f"NaN/Infinity detected in float conversion: '{value}', "
                 f"using default {default}"
             )
             return default
-
         return result
     except (ValueError, TypeError):
         logger.warning(f"Failed to convert '{value}' to float, using default {default}")

@@ -12,6 +12,7 @@ import logging
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +44,9 @@ async def create_eol_assessment(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    context_info: Dict[str, Any],
+    context: RequestContext,
 ) -> None:
-    """
-    Create EOL assessment record for asset.
-
-    Tenant context (client_account_id, engagement_id) comes from service context (source of truth),
-    not from the asset object. This follows dependency injection pattern where context is passed
-    down the call stack from the service layer.
-    """
+    """Create EOL assessment record for asset."""
     from app.models.asset.specialized import AssetEOLAssessment
     from dateutil import parser as date_parser
 
@@ -76,10 +71,10 @@ async def create_eol_assessment(
                 f"for asset {asset.name}. Must be one of: {valid_levels}"
             )
 
-    # Create EOL assessment with tenant context from service context (injected via DI)
+    # Create EOL assessment - extract tenant from context
     eol_assessment = AssetEOLAssessment(
-        client_account_id=context_info.get("client_account_id"),  # From service context
-        engagement_id=context_info.get("engagement_id"),  # From service context
+        client_account_id=context.client_account_id,
+        engagement_id=context.engagement_id,
         asset_id=asset.id,
         technology_component=asset_data.get("technology_component")
         or asset_data.get("technology_stack")
@@ -100,15 +95,9 @@ async def create_contacts_if_exists(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    context_info: Dict[str, Any],
+    context: RequestContext,
 ) -> None:
-    """
-    Create asset contact records if contact information exists.
-
-    Tenant context (client_account_id, engagement_id) comes from service context (source of truth),
-    not from the asset object. This follows dependency injection pattern where context is passed
-    down the call stack from the service layer.
-    """
+    """Create asset contact records if contact information exists."""
     from app.models.asset.specialized import AssetContact
 
     # Define contact mappings: CSV field → contact_type
@@ -124,12 +113,10 @@ async def create_contacts_if_exists(
     for email_field, (contact_type, name_field) in contact_mappings.items():
         email = asset_data.get(email_field)
         if email:
-            # Create contact record with tenant context from service context (injected via DI)
+            # Create contact record - extract tenant from context
             contact = AssetContact(
-                client_account_id=context_info.get(
-                    "client_account_id"
-                ),  # From service context
-                engagement_id=context_info.get("engagement_id"),  # From service context
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
                 asset_id=asset.id,
                 contact_type=contact_type,
                 email=email,
@@ -149,29 +136,21 @@ async def create_child_records_if_needed(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    context_info: Dict[str, Any],
+    context: RequestContext,
 ) -> None:
     """
     Create child table records (EOL assessments, contacts) if data exists.
     Only creates records when user actually supplied the data via CSV.
-
-    Tenant context comes from service context (injected via dependency injection),
-    which is the source of truth for multi-tenant scoping in the current request.
-
-    Args:
-        db: Database session
-        asset: The asset to create child records for
-        asset_data: Source data containing EOL/contact information
-        context_info: Service context containing client_account_id, engagement_id (source of truth)
+    Tenant context extracted from context object.
     """
     try:
         # 1. Create EOL Assessment if EOL data exists
         if has_eol_data(asset_data):
-            await create_eol_assessment(db, asset, asset_data, context_info)
+            await create_eol_assessment(db, asset, asset_data, context)
 
         # 2. Create Asset Contacts if contact data exists
         if has_contact_data(asset_data):
-            await create_contacts_if_exists(db, asset, asset_data, context_info)
+            await create_contacts_if_exists(db, asset, asset_data, context)
 
     except Exception as e:
         # Log error but don't fail asset creation

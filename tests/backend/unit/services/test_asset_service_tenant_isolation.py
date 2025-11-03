@@ -2,13 +2,14 @@
 Unit tests for tenant isolation in AssetService child table helpers.
 
 Verifies that child table creation (EOL assessments, contacts) properly
-uses injected context_info and does not rely on asset object for tenant scoping.
+uses RequestContext for tenant scoping and does not rely on asset object.
 """
 
 import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from app.core.request_context import RequestContext
 from app.services.asset_service.child_table_helpers import (
     create_eol_assessment,
     create_contacts_if_exists,
@@ -27,7 +28,7 @@ class TestTenantIsolation:
         test_client_account_id,  # From conftest
         test_engagement_id,  # From conftest
     ):
-        """Verify EOL assessment uses context_info for tenant IDs, not asset"""
+        """Verify EOL assessment uses RequestContext for tenant IDs, not asset"""
 
         # Create mock asset with DIFFERENT tenant IDs (simulating wrong tenant)
         mock_asset = MagicMock()
@@ -37,10 +38,10 @@ class TestTenantIsolation:
         mock_asset.engagement_id = uuid.uuid4()  # Wrong engagement!
 
         # Context has the CORRECT tenant IDs (from fixtures - source of truth)
-        context_info = {
-            "client_account_id": test_client_account_id,  # From fixture
-            "engagement_id": test_engagement_id,  # From fixture
-        }
+        context = RequestContext(
+            client_account_id=test_client_account_id,  # From fixture
+            engagement_id=test_engagement_id,  # From fixture
+        )
 
         asset_data = {
             "eol_date": "2025-12-31",
@@ -49,10 +50,10 @@ class TestTenantIsolation:
 
         # Execute
         await create_eol_assessment(
-            mock_async_session, mock_asset, asset_data, context_info
+            mock_async_session, mock_asset, asset_data, context
         )
 
-        # Verify the created EOL assessment used context_info, NOT asset
+        # Verify the created EOL assessment used context, NOT asset
         mock_async_session.add.assert_called_once()
         created_eol = mock_async_session.add.call_args[0][0]
 
@@ -68,7 +69,7 @@ class TestTenantIsolation:
         test_client_account_id,  # From conftest
         test_engagement_id,  # From conftest
     ):
-        """Verify contact creation uses context_info for tenant IDs, not asset"""
+        """Verify contact creation uses RequestContext for tenant IDs, not asset"""
 
         # Create mock asset with DIFFERENT tenant IDs (simulating wrong tenant)
         mock_asset = MagicMock()
@@ -78,10 +79,10 @@ class TestTenantIsolation:
         mock_asset.engagement_id = uuid.uuid4()  # Wrong engagement!
 
         # Context has the CORRECT tenant IDs (from fixtures - source of truth)
-        context_info = {
-            "client_account_id": test_client_account_id,  # From fixture
-            "engagement_id": test_engagement_id,  # From fixture
-        }
+        context = RequestContext(
+            client_account_id=test_client_account_id,  # From fixture
+            engagement_id=test_engagement_id,  # From fixture
+        )
 
         asset_data = {
             "business_owner_email": "owner@example.com",
@@ -90,10 +91,10 @@ class TestTenantIsolation:
 
         # Execute
         await create_contacts_if_exists(
-            mock_async_session, mock_asset, asset_data, context_info
+            mock_async_session, mock_asset, asset_data, context
         )
 
-        # Verify the created contact used context_info, NOT asset
+        # Verify the created contact used context, NOT asset
         mock_async_session.add.assert_called_once()
         created_contact = mock_async_session.add.call_args[0][0]
 
@@ -109,17 +110,17 @@ class TestTenantIsolation:
         test_client_account_id,  # From conftest
         test_engagement_id,  # From conftest
     ):
-        """Verify orchestrator passes context to individual helpers"""
+        """Verify orchestrator passes RequestContext to individual helpers"""
 
         mock_asset = MagicMock()
         mock_asset.id = uuid.uuid4()
         mock_asset.name = "Test Asset"
 
         # Use fixtures for context (source of truth)
-        context_info = {
-            "client_account_id": test_client_account_id,
-            "engagement_id": test_engagement_id,
-        }
+        context = RequestContext(
+            client_account_id=test_client_account_id,
+            engagement_id=test_engagement_id,
+        )
 
         asset_data = {
             "eol_date": "2025-12-31",
@@ -138,13 +139,13 @@ class TestTenantIsolation:
 
                 # Execute
                 await create_child_records_if_needed(
-                    mock_async_session, mock_asset, asset_data, context_info
+                    mock_async_session, mock_asset, asset_data, context
                 )
 
                 # Verify context was passed to both helpers
                 mock_eol.assert_called_once_with(
-                    mock_async_session, mock_asset, asset_data, context_info
+                    mock_async_session, mock_asset, asset_data, context
                 )
                 mock_contacts.assert_called_once_with(
-                    mock_async_session, mock_asset, asset_data, context_info
+                    mock_async_session, mock_asset, asset_data, context
                 )
