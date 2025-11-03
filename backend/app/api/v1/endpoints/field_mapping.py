@@ -144,15 +144,12 @@ async def delete_field_mapping(
     try:
         logger.info(f"🗑️ Field mapping removal request: mapping_id={mapping_id}")
 
-        # Change status to 'rejected' instead of deleting
+        # Change is_approved to False instead of deleting
         # This moves the mapping back to "Needs Review" column
-        updated = await service.update_field_mapping_status(
-            mapping_id=mapping_id,
-            new_status="rejected",
-            rejection_reason="User removed approved mapping for review",
-        )
+        update_data = FieldMappingUpdate(is_approved=False)
+        updated_mapping = await service.update_field_mapping(mapping_id, update_data)
 
-        if not updated:
+        if not updated_mapping:
             logger.warning(
                 safe_log_format(
                     "Mapping {mapping_id} not found for status update",
@@ -169,9 +166,10 @@ async def delete_field_mapping(
 
         return {
             "mapping_id": mapping_id,
-            "status": "rejected",
+            "is_approved": False,
             "success": True,
             "message": "Field mapping moved to needs review",
+            "updated_mapping": updated_mapping,
         }
 
     except HTTPException:
