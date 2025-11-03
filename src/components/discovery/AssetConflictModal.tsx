@@ -72,6 +72,26 @@ function AssetComparisonRow({ label, existingValue, newValue }: { label: string;
   );
 }
 
+// Backend-defined field allowlists (must match backend/app/services/asset_service/deduplication.py)
+const ALLOWED_MERGE_FIELDS = new Set([
+  // Technical specs
+  'operating_system', 'os_version', 'cpu_cores', 'memory_gb', 'storage_gb',
+  // Network info
+  'ip_address', 'fqdn', 'mac_address',
+  // Infrastructure
+  'environment', 'location', 'datacenter', 'rack_location', 'availability_zone',
+  // Business info
+  'business_owner', 'technical_owner', 'department', 'application_name',
+  'technology_stack', 'criticality', 'business_criticality',
+  // Migration planning
+  'six_r_strategy', 'migration_priority', 'migration_complexity', 'migration_wave',
+  // Metadata
+  'description', 'custom_attributes',
+  // Performance metrics
+  'cpu_utilization_percent', 'memory_utilization_percent', 'disk_iops',
+  'network_throughput_mbps', 'current_monthly_cost', 'estimated_cloud_cost',
+]);
+
 export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
   conflicts,
   isOpen,
@@ -110,8 +130,37 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
       [conflictId]: action,
     }));
 
-    // Clear merge selections if action is not "merge"
-    if (action !== 'merge') {
+    if (action === 'merge') {
+      // Auto-populate merge selections with all differing fields from new data
+      const conflict = conflicts.find((c) => c.conflict_id === conflictId);
+      if (conflict?.existing_asset && conflict?.new_asset) {
+        const fieldSelections: MergeFieldSelections = {};
+
+        Object.keys(conflict.new_asset).forEach((field) => {
+          // CRITICAL: Only include fields that backend allows merging
+          if (!ALLOWED_MERGE_FIELDS.has(field)) {
+            return; // Skip protected/disallowed fields
+          }
+
+          const existingValue = conflict.existing_asset[field];
+          const newValue = conflict.new_asset[field];
+
+          // Select 'new' for fields that differ
+          if (existingValue !== newValue && newValue !== null && newValue !== undefined) {
+            fieldSelections[field] = 'new';
+          }
+        });
+
+        // Set merge selections for this conflict
+        if (Object.keys(fieldSelections).length > 0) {
+          setMergeSelections((prev) => ({
+            ...prev,
+            [conflictId]: fieldSelections,
+          }));
+        }
+      }
+    } else {
+      // Clear merge selections if action is not "merge"
       setMergeSelections((prev) => {
         const updated = { ...prev };
         delete updated[conflictId];
@@ -136,15 +185,51 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
     });
     setResolutions(allResolutions);
 
-    // Clear merge selections if action is not "merge"
-    if (action !== 'merge') {
-      setMergeSelections({});
-    }
+    // If action is "merge", auto-select all differing fields from new data
+    if (action === 'merge') {
+      const autoMergeSelections: Record<string, MergeFieldSelections> = {};
+      conflicts.forEach((conflict) => {
+        const fieldSelections: MergeFieldSelections = {};
 
-    toast({
-      title: 'Applied to All',
-      description: `Set all conflicts to "${action.replace('_', ' ')}"`,
-    });
+        // For each field in the conflict details, select 'new' if values differ
+        if (conflict.existing_asset && conflict.new_asset) {
+          Object.keys(conflict.new_asset).forEach((field) => {
+            // CRITICAL: Only include fields that backend allows merging
+            if (!ALLOWED_MERGE_FIELDS.has(field)) {
+              return; // Skip protected/disallowed fields
+            }
+
+            const existingValue = conflict.existing_asset[field];
+            const newValue = conflict.new_asset[field];
+
+            // Select 'new' for fields that differ
+            if (existingValue !== newValue && newValue !== null && newValue !== undefined) {
+              fieldSelections[field] = 'new';
+            }
+          });
+        }
+
+        // Only add merge selections if there are fields to merge
+        if (Object.keys(fieldSelections).length > 0) {
+          autoMergeSelections[conflict.conflict_id] = fieldSelections;
+        }
+      });
+
+      setMergeSelections(autoMergeSelections);
+
+      toast({
+        title: 'Applied to All',
+        description: `Set all conflicts to merge with new data for ${Object.keys(autoMergeSelections).length} conflicts`,
+      });
+    } else {
+      // Clear merge selections if action is not "merge"
+      setMergeSelections({});
+
+      toast({
+        title: 'Applied to All',
+        description: `Set all conflicts to "${action.replace('_', ' ')}"`,
+      });
+    }
   };
 
   // Submit resolutions
@@ -163,14 +248,16 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
     // Validate merge selections for "merge" actions
     const invalidMergeActions = conflicts.filter((c) => {
       const action = resolutions[c.conflict_id];
-      return action === 'merge' && !mergeSelections[c.conflict_id];
+      const selections = mergeSelections[c.conflict_id];
+      // Check if merge action exists without selections OR with empty selections
+      return action === 'merge' && (!selections || Object.keys(selections).length === 0);
     });
 
     if (invalidMergeActions.length > 0) {
       toast({
         variant: 'destructive',
         title: 'Missing Merge Selections',
-        description: `Please select fields to merge for ${invalidMergeActions.length} conflicts.`,
+        description: `Please select fields to merge for ${invalidMergeActions.length} conflicts. Tip: The merge action auto-selects all differing fields by default.`,
       });
       return;
     }
