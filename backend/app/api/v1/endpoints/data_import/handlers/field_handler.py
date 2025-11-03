@@ -67,7 +67,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
             # Determine if field is nullable
             is_nullable = col.is_nullable == "YES"
 
-            # Generate field description
+            # Generate base description
             description = generate_field_description(field_name, field_type)
 
             # Extract metadata from SQLAlchemy Column.info if available

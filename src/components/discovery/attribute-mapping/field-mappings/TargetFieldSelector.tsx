@@ -39,7 +39,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
       filtered = filtered.filter(field =>
         field.name.toLowerCase().includes(term) ||
         (field.display_name && field.display_name.toLowerCase().includes(term)) ||
-        field.description.toLowerCase().includes(term) ||
+        (field.short_hint && field.short_hint.toLowerCase().includes(term)) ||
         field.category.toLowerCase().includes(term)
       );
     }
@@ -137,12 +137,8 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
                             <div className="font-medium text-gray-900">
                               {field.display_name || field.name}
                             </div>
-                            {field.short_hint ? (
-                              <div className="text-xs text-blue-600 mt-0.5">
-                                {field.short_hint}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-gray-500 mt-1">{field.description}</div>
+                            {field.short_hint && (
+                              <div className="text-xs text-gray-500 mt-1">{field.short_hint}</div>
                             )}
                           </div>
                           <div className="flex flex-col items-end space-y-1 ml-2">
