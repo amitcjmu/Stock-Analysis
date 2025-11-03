@@ -1,75 +1,68 @@
-# Grafana Observability Stack (Tier B)
-# ADR-031: Enterprise Observability Architecture
-# 5 Containers: Grafana + Loki + Tempo + Prometheus + Alloy
-#
-# Usage:
-#   Local Dev:  docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
-#   Azure Dev:  docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
-#   Railway:    Same command (HTTP-only verified, no WebSockets)
-#
-# Access:
-#   Grafana:    http://localhost:9999 (local) or https://aiforceasses.cloudsmarthcl.com:9999 (Azure)
-#   Prometheus: http://localhost:9090 (metrics UI)
-#
-# Prerequisites:
-#   1. Copy .env.observability.template to .env.observability
-#   2. Generate strong password: openssl rand -base64 32
-#   3. Fill in GRAFANA_ADMIN_PASSWORD
-
-name: migration
+# Grafana Observability Stack (Tier B - Full Stack)
+# 5 containers: Grafana + Loki + Tempo + Prometheus + Alloy (native, not fallback)
+# Replaces: OpenLIT stack (7+ containers), Promtail (deprecated EOL March 2026)
+# Architecture: ADR-031
+# Environment: Azure dev (primary), Railway prod (optional), Local dev (optional)
 
 services:
-  # ============================================================================
-  # GRAFANA - Web UI for dashboards and datasource configuration
-  # ============================================================================
+  # Grafana - Web UI, datasource configuration, dashboards
   grafana:
-    image: grafana/grafana:11.3.0
+    image: grafana/grafana:10.2.0
     container_name: migration_grafana
-    restart: unless-stopped
     ports:
-      - "9999:3000"  # External port 9999 (per ADR-031)
+      - "9999:3000"  # Port 9999 per project request (not 3001)
     environment:
-      # Admin credentials
+      # Local admin authentication (GitHub OAuth blocked by enterprise firewall)
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-
-      # Server configuration
-      - GF_SERVER_PROTOCOL=${GF_SERVER_PROTOCOL:-http}
-      - GF_SERVER_DOMAIN=${GF_SERVER_DOMAIN:-localhost}
-      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-http://localhost:9999}
-      - GF_SERVER_HTTP_PORT=3000
-
-      # Security
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_USERS_ALLOW_ORG_CREATE=false
       - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
 
-      # GitHub OAuth (Railway prod only - disabled for Azure due to firewall)
-      - GF_AUTH_GITHUB_ENABLED=${GF_AUTH_GITHUB_ENABLED:-false}
-      - GF_AUTH_GITHUB_CLIENT_ID=${GF_AUTH_GITHUB_CLIENT_ID:-}
-      - GF_AUTH_GITHUB_CLIENT_SECRET=${GF_AUTH_GITHUB_CLIENT_SECRET:-}
-      - GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS=${GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS:-}
-
-      # Azure AD OAuth (Phase 2 enhancement if available within firewall)
+      # Azure AD integration (optional, Phase 2)
       - GF_AUTH_AZUREAD_ENABLED=${AZURE_AD_ENABLED:-false}
       - GF_AUTH_AZUREAD_CLIENT_ID=${AZURE_AD_CLIENT_ID:-}
       - GF_AUTH_AZUREAD_CLIENT_SECRET=${AZURE_AD_CLIENT_SECRET:-}
       - GF_AUTH_AZUREAD_AUTH_URL=${AZURE_AD_AUTH_URL:-}
       - GF_AUTH_AZUREAD_TOKEN_URL=${AZURE_AD_TOKEN_URL:-}
 
-      # Disable telemetry
-      - GF_ANALYTICS_REPORTING_ENABLED=false
-      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      # GitHub OAuth (Railway prod only)
+      - GF_AUTH_GITHUB_ENABLED=${GF_AUTH_GITHUB_ENABLED:-false}
+      - GF_AUTH_GITHUB_CLIENT_ID=${GF_AUTH_GITHUB_CLIENT_ID:-}
+      - GF_AUTH_GITHUB_CLIENT_SECRET=${GF_AUTH_GITHUB_CLIENT_SECRET:-}
+      - GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS=${GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS:-}
+
+      # Server settings (HTTPS optional - set GF_SERVER_PROTOCOL=https in .env.observability)
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-http://localhost:9999}
+      - GF_SERVER_DOMAIN=${GF_SERVER_DOMAIN:-localhost}
+      - GF_SERVER_PROTOCOL=${GF_SERVER_PROTOCOL:-http}
+      - GF_SERVER_CERT_FILE=${GF_SERVER_CERT_FILE:-}
+      - GF_SERVER_CERT_KEY=${GF_SERVER_CERT_KEY:-}
+
+      # Database settings (internal SQLite)
+      - GF_DATABASE_TYPE=sqlite3
+      - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
 
       # Logging
-      - GF_LOG_LEVEL=info
       - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=info
+
+      # Security
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+
+      # Features
+      - GF_FEATURE_TOGGLES_ENABLE=tempoSearch,tempoServiceGraph
+      - GF_INSTALL_PLUGINS=
+
+      # PostgreSQL datasource credentials
+      - POSTGRES_GRAFANA_PASSWORD=${POSTGRES_GRAFANA_PASSWORD}
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      # SSL certificates (only if GF_SERVER_PROTOCOL=https)
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/data/grafana:/var/lib/grafana
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+      # SSL certificates (Azure/Railway)
       - ./observability/ssl:/etc/grafana/ssl:ro
     networks:
       - migration_network
@@ -77,105 +70,147 @@ services:
       - loki
       - tempo
       - prometheus
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 30s
 
-  # ============================================================================
-  # LOKI - Log aggregation and storage
-  # ============================================================================
+  # Loki init - Fix volume permissions for Azure VM
+  loki-init:
+    image: alpine:3.19
+    container_name: migration_loki_init
+    command: >
+      sh -c "
+      mkdir -p /loki/chunks /loki/rules /loki/boltdb-shipper-active /loki/boltdb-shipper-cache &&
+      chown -R 10001:10001 /loki &&
+      chmod -R 755 /loki
+      "
+    volumes:
+      - ./observability/data/loki:/loki
+    restart: "no"
+
+  # Loki - Log aggregation and storage
   loki:
-    image: grafana/loki:3.2.0
+    image: grafana/loki:2.9.3
     container_name: migration_loki
-    restart: unless-stopped
-    # Run as root to fix volume permission issues on Azure VM
-    user: "0"
+    user: "10001"  # Run as loki user (not root)
     ports:
-      - "3100:3100"  # Loki API
-    command: -config.file=/etc/loki/local-config.yaml
+      - "3100:3100"  # HTTP API
+    environment:
+      - LOKI_RETENTION_DAYS=${LOKI_RETENTION_DAYS:-14}
+    command: -config.file=/etc/loki/loki-config.yaml
     volumes:
-      - ./observability/loki-config.yaml:/etc/loki/local-config.yaml:ro
-      - loki_data:/loki
+      - ./observability/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - ./observability/data/loki:/loki
     networks:
       - migration_network
+    depends_on:
+      loki-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      test: ["CMD", "wget", "--spider", "http://localhost:3100/ready"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 30s
 
-  # ============================================================================
-  # TEMPO - Distributed tracing (replaces Jaeger per ADR-031)
-  # ============================================================================
+  # Tempo init - Fix volume permissions for Azure VM
+  tempo-init:
+    image: alpine:3.19
+    container_name: migration_tempo_init
+    command: >
+      sh -c "
+      mkdir -p /var/tempo &&
+      chown -R 10001:10001 /var/tempo &&
+      chmod -R 755 /var/tempo
+      "
+    volumes:
+      - ./observability/data/tempo:/var/tempo
+    restart: "no"
+
+  # Tempo - Distributed tracing (replaces Jaeger)
   tempo:
-    image: grafana/tempo:2.6.0
+    image: grafana/tempo:2.3.1
     container_name: migration_tempo
-    restart: unless-stopped
-    # Run as root to fix volume permission issues on Azure VM
-    user: "0"
+    user: "10001"  # Run as tempo user (not root)
     ports:
-      - "3200:3200"   # Tempo API
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
-    command: -config.file=/etc/tempo/tempo.yaml
+      - "3200:3200"  # HTTP API
+      # Note: 4317/4318 not exposed - Alloy forwards OTLP data internally
+    environment:
+      - TEMPO_RETENTION_DAYS=${TEMPO_RETENTION_DAYS:-7}
+    command: -config.file=/etc/tempo/tempo-config.yaml
     volumes:
-      - ./observability/tempo-config.yaml:/etc/tempo/tempo.yaml:ro
-      - tempo_data:/var/tempo
+      - ./observability/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
+      - ./observability/data/tempo:/var/tempo
     networks:
       - migration_network
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
-  # ============================================================================
-  # PROMETHEUS - Metrics time-series database
-  # ============================================================================
-  prometheus:
-    image: prom/prometheus:v2.54.1
-    container_name: migration_prometheus
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3200/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Prometheus - Metrics TSDB
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: migration_prometheus
     ports:
-      - "9090:9090"  # Prometheus UI
+      - "9090:9090"  # HTTP API
+    environment:
+      - PROMETHEUS_RETENTION_DAYS=${PROMETHEUS_RETENTION_DAYS:-14}
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14}d'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-remote-write-receiver'
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - ./observability/data/prometheus:/prometheus
     networks:
       - migration_network
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
-  # ============================================================================
-  # ALLOY - Unified collector (replaces Promtail + OTel Collector)
-  # ============================================================================
-  alloy:
-    image: grafana/alloy:v1.4.2
-    container_name: migration_alloy
     restart: unless-stopped
-    # Run as root to access Docker socket and fix volume permissions
-    user: "0"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Alloy init - Fix volume permissions for Azure VM
+  alloy-init:
+    image: alpine:3.19
+    container_name: migration_alloy_init
+    command: >
+      sh -c "
+      mkdir -p /var/lib/alloy/data &&
+      chown -R 472:472 /var/lib/alloy &&
+      chmod -R 755 /var/lib/alloy
+      "
+    volumes:
+      - ./observability/data/alloy:/var/lib/alloy
+    restart: "no"
+
+  # Alloy - Unified telemetry collector (logs, traces, metrics)
+  # Replaces: Promtail (EOL March 2026), Grafana Agent, OTel Collector
+  alloy:
+    image: grafana/alloy:latest
+    container_name: migration_alloy
+    user: "472:999"  # alloy user + docker group for socket access
     ports:
-      - "12345:12345"  # Alloy UI
-      - "4317"         # OTLP gRPC (internal)
-      - "4318"         # OTLP HTTP (internal)
+      - "12345:12345"  # Alloy HTTP API and UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -183,49 +218,36 @@ services:
       - /etc/alloy/config.alloy
     volumes:
       - ./observability/alloy-config.alloy:/etc/alloy/config.alloy:ro
-      - alloy_data:/var/lib/alloy
-      # Mount Docker socket for log collection
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker log scraping
+      - ./observability/data/alloy:/var/lib/alloy
+    security_opt:
+      - no-new-privileges:true
     networks:
       - migration_network
     depends_on:
-      - loki
-      - tempo
-      - prometheus
-    environment:
-      - LOKI_ENDPOINT=http://loki:3100
-      - TEMPO_ENDPOINT=tempo:4317
-      - PROMETHEUS_ENDPOINT=http://prometheus:9090
-      - OBSERVABILITY_ENVIRONMENT=${OBSERVABILITY_ENVIRONMENT:-local}
+      alloy-init:
+        condition: service_completed_successfully
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:12345/-/healthy || exit 1"]
+      test: ["CMD", "wget", "--spider", "http://localhost:12345/-/ready"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 30s
 
-# ============================================================================
-# VOLUMES
-# ============================================================================
-volumes:
-  grafana_data:
-    driver: local
-  loki_data:
-    driver: local
-  tempo_data:
-    driver: local
-  prometheus_data:
-    driver: local
-  alloy_data:
-    driver: local
-
-# ============================================================================
-# NETWORKS
-# ============================================================================
-# Network is created by main docker-compose.yml (project name: migration)
-# Docker Compose names it: migration_migration_network
-# Reference it as external to connect observability stack
 networks:
   migration_network:
     external: true
-    name: migration_migration_network
+
+# Volumes are bind mounts to ./observability/data/* for easy management
+# Data persistence:
+#   - Loki: 14-day retention, ~14GB
+#   - Tempo: 7-day retention, ~1.4GB
+#   - Prometheus: 14-day retention, ~28GB
+#   - Total: ~45GB estimated

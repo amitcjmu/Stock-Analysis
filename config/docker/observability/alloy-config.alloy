@@ -16,10 +16,10 @@
 discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 
-  // Only collect logs from migration stack containers
+  // Only collect logs from migration stack containers (label-based filtering)
   filter {
-    name   = "name"
-    values = ["migration_.*"]
+    name   = "label"
+    values = ["com.docker.compose.project=migration"]
   }
 }
 
