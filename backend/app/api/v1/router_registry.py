@@ -28,6 +28,7 @@ def register_core_routers(api_router: APIRouter):
         context_router,
         data_import_router,
         execute_router,
+        field_mapping_router,
         monitoring_router,
         context_establishment_router,
         flow_sync_debug_router,
@@ -73,6 +74,9 @@ def register_core_routers(api_router: APIRouter):
 
     # Data and Monitoring
     api_router.include_router(data_import_router, prefix="/data-import")
+    api_router.include_router(
+        field_mapping_router
+    )  # Uses /field-mapping prefix from router
     api_router.include_router(monitoring_router, prefix="/monitoring")
     api_router.include_router(flow_sync_debug_router, prefix="/flow-sync-debug")
     logger.info("✅ Data and monitoring routers registered")

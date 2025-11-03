@@ -13,6 +13,7 @@ from . import (
     chat,
     context,
     data_import,
+    field_mapping,
     flow_processing,
 )
 from .agents import router as agents_router
@@ -37,3 +38,4 @@ assessment_events_router = assessment_events.router
 agents_router = agents_router  # Use the imported agents_router
 analysis_router = analysis.router
 asset_workflow_router = asset_workflow.router
+field_mapping_router = field_mapping.router

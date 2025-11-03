@@ -17,6 +17,7 @@ export interface ThreeColumnFieldMapperProps {
   availableFields: TargetField[];
   onMappingAction: (mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => Promise<void> | void;
   onMappingChange?: (mappingId: string, newTarget: string) => Promise<void> | void;
+  onRemoveMapping?: (mappingId: string) => Promise<void> | void; // For removing approved mappings
   onRefresh?: () => Promise<void> | void;
   className?: string;
   disabled?: boolean;
@@ -75,6 +76,7 @@ export interface CardProps {
   onApprove?: (mappingId: string) => void;
   onReject?: (mappingId: string, reason?: string) => void;
   onEdit?: (mappingId: string) => void;
+  onRemove?: (mappingId: string) => void; // For removing approved mappings
   processing?: boolean;
   disabled?: boolean;
   className?: string;

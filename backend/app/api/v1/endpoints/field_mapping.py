@@ -132,6 +132,60 @@ async def update_field_mapping(
         raise HTTPException(status_code=500, detail="Failed to update field mapping")
 
 
+@router.delete("/mappings/{mapping_id}")
+async def delete_field_mapping(
+    mapping_id: str,
+    service: MappingService = Depends(get_mapping_service),
+):
+    """
+    Delete an approved field mapping.
+    Frontend endpoint for removing mappings that need to be re-processed.
+    """
+    try:
+        logger.info(f"🗑️ Field mapping deletion request: mapping_id={mapping_id}")
+
+        # Delete the mapping
+        deleted = await service.delete_field_mapping(mapping_id)
+
+        if not deleted:
+            logger.warning(
+                safe_log_format(
+                    "Mapping {mapping_id} not found for deletion", mapping_id=mapping_id
+                )
+            )
+            raise HTTPException(
+                status_code=404, detail=f"Field mapping not found: {mapping_id}"
+            )
+
+        logger.info(f"✅ Successfully deleted field mapping {mapping_id}")
+
+        return {
+            "mapping_id": mapping_id,
+            "status": "deleted",
+            "success": True,
+            "message": "Field mapping deleted successfully",
+        }
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.warning(
+            safe_log_format(
+                "Mapping {mapping_id} not found: {e}", mapping_id=mapping_id, e=e
+            )
+        )
+        raise HTTPException(
+            status_code=404, detail=f"Field mapping not found: {mapping_id}"
+        )
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Error deleting mapping {mapping_id}: {e}", mapping_id=mapping_id, e=e
+            )
+        )
+        raise HTTPException(status_code=500, detail="Failed to delete field mapping")
+
+
 @router.get("/health")
 async def health_check():
     """Health check for top-level field mapping endpoints."""
@@ -139,5 +193,9 @@ async def health_check():
         "status": "healthy",
         "service": "field_mapping_top_level",
         "delegates_to": "data_import.field_mapping_modular",
-        "endpoints": ["/approve/{mapping_id}", "/update/{mapping_id}"],
+        "endpoints": [
+            "/approve/{mapping_id}",
+            "/update/{mapping_id}",
+            "/mappings/{mapping_id} (DELETE)",
+        ],
     }

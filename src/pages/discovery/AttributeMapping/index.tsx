@@ -194,6 +194,7 @@ const AttributeMappingContainer: React.FC = () => {
                   navigation={navigation}
                   onApproveMapping={handleApproveMapping}
                   onRejectMapping={handleRejectMapping}
+                  onRemoveMapping={actions.handleRemoveMapping}
                   onMappingChange={handleMappingChange}
                   onAttributeUpdate={handleAttributeUpdate}
                   onDataImportSelection={handleDataImportSelection}

@@ -241,6 +241,11 @@ export interface DiscoveryFlowService {
   rejectFieldMapping(mappingId: string, request: FieldMappingLearningRejectionRequest, clientAccountId: string, engagementId: string): Promise<FieldMappingLearningResponse>;
 
   /**
+   * Remove (delete) an approved field mapping
+   */
+  removeFieldMapping(mappingId: string, clientAccountId: string, engagementId: string): Promise<{ success: boolean; message: string }>;
+
+  /**
    * Bulk learn from multiple field mappings
    */
   bulkLearnFieldMappings(request: BulkFieldMappingLearningRequest, clientAccountId: string, engagementId: string): Promise<BulkFieldMappingLearningResponse>;
@@ -374,6 +379,23 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
     );
 
     console.log(`✅ [DiscoveryFlowService] Field mapping rejection result:`, response);
+    return response;
+  }
+
+  async removeFieldMapping(mappingId: string, clientAccountId: string, engagementId: string): Promise<{ success: boolean; message: string }> {
+    console.log(`🗑️ [DiscoveryFlowService] Removing field mapping: ${mappingId}`);
+
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      `/field-mapping/mappings/${mappingId}`,  // Use top-level field-mapping endpoint
+      {
+        headers: {
+          'X-Client-Account-Id': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
+      }
+    );
+
+    console.log(`✅ [DiscoveryFlowService] Field mapping removal result:`, response);
     return response;
   }
 

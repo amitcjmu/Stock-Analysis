@@ -14,6 +14,7 @@ export interface FieldMappingsTabProps {
   fieldMappings: FieldMapping[];
   isAnalyzing: boolean;
   onMappingAction: (mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => void;
+  onRemoveMapping?: (mappingId: string) => Promise<void>;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   onRefresh?: () => void;
   // New learning-related props
