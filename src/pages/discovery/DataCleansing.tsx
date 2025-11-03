@@ -340,18 +340,22 @@ const DataCleansing: React.FC = () => {
 
       // CRITICAL FIX: Navigate to inventory with flow_id query parameter
       // This maintains flow context across pages, consistent with attribute-mapping fix
-      if (effectiveFlowId) {
-        SecureLogger.info('Navigating to inventory with flow ID', { flowId: effectiveFlowId });
-        window.location.href = `/discovery/inventory?flow_id=${effectiveFlowId}`;
+      // Use effectiveFlowId from hook, or fallback to flow.flow_id if hook hasn't resolved yet
+      const flowIdForNavigation = effectiveFlowId || flow?.flow_id;
+
+      if (flowIdForNavigation) {
+        SecureLogger.info('Navigating to inventory with flow ID', { flowId: flowIdForNavigation });
+        window.location.href = `/discovery/inventory?flow_id=${flowIdForNavigation}`;
       } else {
-        SecureLogger.warn('No effective flow ID, navigating to inventory without flow context');
+        SecureLogger.warn('No flow ID available, navigating to inventory without flow context');
         window.location.href = '/discovery/inventory';
       }
     } catch (error) {
       SecureLogger.error('Failed to complete data cleansing phase', error);
       // Still navigate even if phase completion fails
-      if (effectiveFlowId) {
-        window.location.href = `/discovery/inventory?flow_id=${effectiveFlowId}`;
+      const flowIdForNavigation = effectiveFlowId || flow?.flow_id;
+      if (flowIdForNavigation) {
+        window.location.href = `/discovery/inventory?flow_id=${flowIdForNavigation}`;
       } else {
         window.location.href = '/discovery/inventory';
       }
