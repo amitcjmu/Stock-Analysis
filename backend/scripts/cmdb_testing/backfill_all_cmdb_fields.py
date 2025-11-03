@@ -53,32 +53,34 @@ def safe_float_convert(value, default=None):
 def check_environment_safety():
     """
     Safety check to prevent accidental production runs.
-    
+
     Checks database URL for production indicators and requires
     explicit confirmation before proceeding with data modifications.
     """
     import sys
-    
+
     db_url = os.getenv("DATABASE_URL", "")
-    
+
     # Check if production-like environment
-    is_production = any([
-        "prod" in db_url.lower(),
-        "production" in db_url.lower(),
-        ".rds." in db_url.lower(),  # AWS RDS
-        "railway.app" in db_url.lower(),  # Railway
-    ])
-    
+    is_production = any(
+        [
+            "prod" in db_url.lower(),
+            "production" in db_url.lower(),
+            ".rds." in db_url.lower(),  # AWS RDS
+            "railway.app" in db_url.lower(),  # Railway
+        ]
+    )
+
     if is_production:
-        print("\n" + "⚠️  " + "="*76)
+        print("\n" + "⚠️  " + "=" * 76)
         print("⚠️  WARNING: PRODUCTION DATABASE DETECTED!")
-        print("⚠️  " + "="*76)
+        print("⚠️  " + "=" * 76)
         print(f"⚠️  Database: {db_url[:50]}...")
         print("⚠️  ")
         print("⚠️  This script will UPDATE EXISTING DATA in the database.")
         print("⚠️  Make sure you have a recent backup!")
-        print("⚠️  " + "="*76 + "\n")
-        
+        print("⚠️  " + "=" * 76 + "\n")
+
         # Require explicit confirmation
         confirmation = input("Type 'CONFIRM' to proceed (or anything else to abort): ")
         if confirmation != "CONFIRM":
@@ -212,7 +214,7 @@ def extract_all_cmdb_fields(cleansed: Dict[str, Any]) -> Dict[str, Any]:
 
 async def backfill_comprehensive_cmdb(flow_id: str, dry_run: bool = False):
     """Backfill ALL CMDB fields and child tables comprehensively."""
-    
+
     # Safety check for production environments (only if not dry-run)
     if not dry_run:
         check_environment_safety()
