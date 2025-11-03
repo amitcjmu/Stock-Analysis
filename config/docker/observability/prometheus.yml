@@ -1,167 +1,91 @@
-# Prometheus Configuration
-# ADR-031: Metrics time-series database
-# Retention: 14 days (configured via --storage.tsdb.retention.time in docker-compose)
-# Storage: Filesystem (local development and Azure dev)
-# For Railway: Use persistent volumes
+# Grafana Prometheus Configuration
+# Purpose: Metrics time-series database
+# Retention: 14 days (configured via command args)
+# Architecture: ADR-031
 
+# Global configuration
 global:
-  # How frequently to scrape targets
-  scrape_interval: 15s
-  # How long until a scrape request times out
+  scrape_interval: 30s
+  evaluation_interval: 30s
   scrape_timeout: 10s
-  # How frequently to evaluate rules
-  evaluation_interval: 15s
 
-  # External labels (added to all metrics)
+  # External labels (for federation/remote write)
   external_labels:
-    cluster: 'migration-platform'
-    environment: 'development'  # Override via env var for Azure/Railway
+    cluster: 'migration'
+    environment: 'production'
 
-# Alertmanager configuration (optional - Phase 2)
+# Alertmanager configuration (optional)
 # alerting:
 #   alertmanagers:
 #     - static_configs:
 #         - targets:
 #           - alertmanager:9093
 
-# Rule files (for recording rules and alerts)
+# Load rules once and periodically evaluate them
 # rule_files:
-#   - "alerts/*.yml"
-#   - "rules/*.yml"
+#   - "/etc/prometheus/rules/*.yml"
 
 # Scrape configurations
 scrape_configs:
-  # ============================================================================
-  # PROMETHEUS SELF-MONITORING
-  # ============================================================================
+  # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
         labels:
           service: 'prometheus'
 
-  # ============================================================================
-  # GRAFANA ALLOY METRICS
-  # ============================================================================
+  # Alloy metrics
   - job_name: 'alloy'
     static_configs:
       - targets: ['alloy:12345']
         labels:
           service: 'alloy'
 
-  # ============================================================================
-  # LOKI METRICS
-  # ============================================================================
-  - job_name: 'loki'
-    static_configs:
-      - targets: ['loki:3100']
-        labels:
-          service: 'loki'
-
-  # ============================================================================
-  # TEMPO METRICS
-  # ============================================================================
-  - job_name: 'tempo'
-    static_configs:
-      - targets: ['tempo:3200']
-        labels:
-          service: 'tempo'
-
-  # ============================================================================
-  # GRAFANA METRICS
-  # ============================================================================
-  - job_name: 'grafana'
-    static_configs:
-      - targets: ['grafana:3000']
-        labels:
-          service: 'grafana'
-
-  # ============================================================================
-  # BACKEND APPLICATION METRICS (Phase 4 - OTel Instrumentation)
-  # ============================================================================
-  # Uncomment after Phase 4 when backend is instrumented with OTel
-  # - job_name: 'backend'
+  # Backend application metrics (Phase 4 - OTel instrumentation)
+  # Uncomment after Phase 4 implementation
+  # - job_name: 'migration_backend'
   #   static_configs:
-  #     - targets: ['backend:8000']
+  #     - targets: ['migration_backend:8000']
   #       labels:
   #         service: 'backend'
-  #         tier: 'api'
+  #         app: 'migration-ui-orchestrator'
 
-  # ============================================================================
-  # POSTGRES METRICS (Azure Dev Only - Optional)
-  # ============================================================================
-  # Uncomment for Azure dev environment if postgres_exporter is deployed
+  # Frontend application metrics (if Prometheus exporter added)
+  # - job_name: 'migration_frontend'
+  #   static_configs:
+  #     - targets: ['migration_frontend:8081']
+  #       labels:
+  #         service: 'frontend'
+  #         app: 'migration-ui-orchestrator'
+
+  # PostgreSQL metrics (Azure dev only - requires postgres_exporter)
+  # Uncomment for Azure dev environment
   # - job_name: 'postgres'
   #   static_configs:
-  #     - targets: ['postgres_exporter:9187']
+  #     - targets: ['migration_postgres:9187']
   #       labels:
   #         service: 'postgres'
-  #         tier: 'database'
+  #         database: 'migration_db'
 
-  # ============================================================================
-  # REDIS METRICS (Azure Dev Only - Optional)
-  # ============================================================================
-  # Uncomment for Azure dev environment if redis_exporter is deployed
+  # Redis metrics (Azure dev only - requires redis_exporter)
+  # Uncomment for Azure dev environment
   # - job_name: 'redis'
   #   static_configs:
-  #     - targets: ['redis_exporter:9121']
+  #     - targets: ['migration_redis:9121']
   #       labels:
   #         service: 'redis'
-  #         tier: 'cache'
 
-  # ============================================================================
-  # DOCKER METRICS (Optional - cAdvisor)
-  # ============================================================================
-  # Uncomment to scrape Docker container metrics
-  # Requires cAdvisor container: google/cadvisor:latest
-  # - job_name: 'docker'
-  #   static_configs:
-  #     - targets: ['cadvisor:8080']
-  #       labels:
-  #         service: 'docker'
+# Storage configuration (retention set via CLI args)
+# --storage.tsdb.retention.time=14d
 
-# ============================================================================
-# REMOTE WRITE (Optional - for Grafana Cloud or central Prometheus)
-# ============================================================================
+# Remote write configuration (for Grafana Cloud or external Prometheus)
 # remote_write:
-#   - url: https://prometheus-prod.grafana.net/api/prom/push
+#   - url: https://prometheus-us-central1.grafana.net/api/prom/push
 #     basic_auth:
-#       username: <instance-id>
-#       password: <api-key>
+#       username: <GRAFANA_CLOUD_USERNAME>
+#       password: <GRAFANA_CLOUD_API_KEY>
 
-# ============================================================================
-# STORAGE CONFIGURATION
-# ============================================================================
-# Retention: Configured via command line (--storage.tsdb.retention.time=14d)
-# Storage path: /prometheus (mounted volume)
-# Compression: Enabled by default (snappy)
-
-# ============================================================================
-# PRODUCTION NOTES
-# ============================================================================
-# For Azure production:
-#   - Monitor disk usage (14 days × 2GB/day ≈ 28GB)
-#   - Enable postgres/redis exporters for database metrics
-#   - Set up recording rules for frequently queried metrics
-#   - Configure alerts for service health
-#
-# For Railway production:
-#   - Use Railway native metrics instead of scraping
-#   - Only scrape observability stack (Grafana, Loki, Tempo, Alloy)
-#   - Consider Grafana Cloud for managed Prometheus
-#
-# High cardinality warning (from ADR-031):
-#   - Limit tenant labels (client_account_id, engagement_id) in metrics
-#   - Use span attributes in Tempo traces for per-tenant details
-#   - Use SQL dashboards for per-tenant analytics (query database directly)
-#   - Monitor cardinality with: sum(scrape_samples_scraped)
-#
-# Backend instrumentation (Phase 4):
-#   - Add OpenTelemetry metrics to backend
-#   - Use meter.create_counter() and meter.create_histogram()
-#   - Export via OTLP to Alloy (Alloy → Prometheus remote write)
-#   - Example metrics:
-#     - agent_runs_total{agent, phase, outcome}
-#     - agent_duration_ms{agent, phase}
-#     - tenant_memory_search_total{scope}
-#     - llm_api_calls_total{provider, model}
+# High cardinality warning (per ADR-031 Line 156):
+# DO NOT add client_account_id or engagement_id to every metric
+# Use these labels sparingly for critical metrics only
+# For per-tenant analytics, use SQL dashboards querying PostgreSQL

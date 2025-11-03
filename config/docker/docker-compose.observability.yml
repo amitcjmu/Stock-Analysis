@@ -84,7 +84,7 @@ services:
     container_name: migration_loki_init
     command: >
       sh -c "
-      mkdir -p /loki/chunks /loki/rules /loki/boltdb-shipper-active /loki/boltdb-shipper-cache &&
+      mkdir -p /loki/chunks /loki/rules /loki/boltdb-shipper-active /loki/boltdb-shipper-cache /loki/wal /loki/tsdb-index /loki/tsdb-cache /loki/compactor &&
       chown -R 10001:10001 /loki &&
       chmod -R 755 /loki
       "
@@ -96,7 +96,7 @@ services:
   loki:
     image: grafana/loki:2.9.3
     container_name: migration_loki
-    user: "10001"  # Run as loki user (not root)
+    user: "10001"  # Run as loki user (not root) - Security hardening
     ports:
       - "3100:3100"  # HTTP API
     environment:
@@ -136,7 +136,7 @@ services:
   tempo:
     image: grafana/tempo:2.3.1
     container_name: migration_tempo
-    user: "10001"  # Run as tempo user (not root)
+    user: "10001"  # Run as tempo user (not root) - Security hardening
     ports:
       - "3200:3200"  # HTTP API
       # Note: 4317/4318 not exposed - Alloy forwards OTLP data internally
@@ -206,7 +206,7 @@ services:
   alloy:
     image: grafana/alloy:latest
     container_name: migration_alloy
-    user: "472:999"  # alloy user + docker group for socket access
+    user: "472:999"  # alloy user + docker group for socket access - Security hardening
     ports:
       - "12345:12345"  # Alloy HTTP API and UI
       - "4317:4317"    # OTLP gRPC receiver

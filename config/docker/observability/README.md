@@ -1,292 +1,385 @@
-# Grafana Observability Stack (Tier B)
+# Grafana Observability Stack
 
-**ADR-031**: Enterprise Observability Architecture
-**Issue #878**: Implementation tracking
+**Architecture**: ADR-031
+**Status**: Phase 1 & 2 Complete (Infrastructure + Dashboards)
+**Tier**: B (Full Stack - Logs, Metrics, Traces)
 
-## Architecture
+## Overview
 
-**5 Containers**:
-1. **Grafana** (port 9999) - Web UI, dashboards, datasource configuration
-2. **Loki** (port 3100) - Log aggregation, 14-day retention
-3. **Tempo** (port 3200) - Distributed tracing, 7-day retention (replaces Jaeger)
-4. **Prometheus** (port 9090) - Metrics TSDB, 14-day retention
-5. **Alloy** (port 12345) - Unified collector (replaces Promtail + OTel Collector)
+This directory contains the complete Grafana observability stack for the AI Modernize Migration Platform. It replaces the OpenLIT-based stack (7+ containers) with a modern, efficient 5-container solution.
 
-**Supersedes**: OpenLIT stack (7+ containers), Jaeger tracing
+### Technology Stack
+
+1. **Grafana** - Web UI, datasource configuration, dashboards (Port 9999)
+2. **Loki** - Log aggregation and storage (14-day retention)
+3. **Tempo** - Distributed tracing (7-day retention, replaces Jaeger)
+4. **Prometheus** - Metrics TSDB (14-day retention)
+5. **Alloy** - Unified collector (replaces Promtail + OTel Collector)
 
 ## Quick Start
 
-### Prerequisites
+### Local Development (Optional)
 
-1. **Generate strong Grafana admin password**:
-   ```bash
-   openssl rand -base64 32
-   ```
-
-2. **Copy environment file** (if it doesn't exist):
-   ```bash
-   cd config/docker
-   cp .env.observability.template .env.observability
-   # Edit .env.observability and set GRAFANA_ADMIN_PASSWORD
-   ```
-
-3. **Create read-only PostgreSQL user**:
-   ```bash
-   docker exec -it migration_postgres psql -U postgres -d migration_db
-   ```
-
-   ```sql
-   CREATE USER grafana_readonly WITH PASSWORD '<strong-password>';
-   GRANT CONNECT ON DATABASE migration_db TO grafana_readonly;
-   GRANT USAGE ON SCHEMA migration TO grafana_readonly;
-   GRANT SELECT ON migration.llm_usage_logs TO grafana_readonly;
-   GRANT SELECT ON migration.crewai_flow_state_extensions TO grafana_readonly;
-   GRANT SELECT ON migration.discovery_flows TO grafana_readonly;
-   GRANT SELECT ON migration.assessment_flows TO grafana_readonly;
-   GRANT SELECT ON migration.collection_flows TO grafana_readonly;
-   GRANT SELECT ON migration.agent_discovered_patterns TO grafana_readonly;
-   GRANT SELECT ON migration.agent_performance_analytics TO grafana_readonly;
-   GRANT SELECT ON pg_stat_statements TO grafana_readonly;
-   ```
-
-   Update `.env.observability`:
-   ```bash
-   POSTGRES_GRAFANA_PASSWORD=<strong-password>
-   ```
-
-### Deployment
-
-#### Local Development
 ```bash
+# 1. Copy environment template
+cp config/docker/.env.observability.template config/docker/.env.observability
+
+# 2. Generate strong password
+openssl rand -base64 32
+
+# 3. Edit .env.observability
+#    - Set GRAFANA_ADMIN_PASSWORD
+#    - Set POSTGRES_GRAFANA_PASSWORD
+#    - Keep OTEL_SDK_DISABLED=true (Phase 4 only)
+
+# 4. Create Postgres read-only user
+docker exec -i migration_postgres psql -U postgres -d migration_db < config/docker/observability/create-grafana-user.sql
+
+# 5. Start observability stack
 cd config/docker
+docker-compose -f docker-compose.yml -f docker-compose.observability.yml --env-file .env.observability up -d
 
-# Start main stack + observability stack together
-docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
-
-# Verify all containers running
-docker ps | grep migration
-
-# Access Grafana
+# 6. Access Grafana
 open http://localhost:9999
-# Login: admin / <GRAFANA_ADMIN_PASSWORD from .env.observability>
+# Login: admin / <GRAFANA_ADMIN_PASSWORD>
+
+# 7. View dashboards
+#    - Application Logs (Loki)
+#    - LLM Usage Costs (PostgreSQL)
+#    - MFO Flow Lifecycle (PostgreSQL)
+#    - Agent Health (PostgreSQL + Prometheus)
 ```
 
-#### Azure Dev (Manual Deployment)
+### Azure Dev Environment (PRIMARY)
+
+**Prerequisites**:
+- Azure VM (Ubuntu) with Docker Compose
+- Browser-based Bastion access (Azure Portal SSH)
+- NSG rule for port 9999 (IP-restricted recommended)
+- SSL certificates for HTTPS
+
 ```bash
-# SSH into Azure VM via Bastion (browser-based)
-# https://portal.azure.com → CNCoE-Ubuntu → Connect → Bastion
+# 1. SSH into Azure VM via Bastion
+#    Azure Portal → CNCoE-Ubuntu → Connect → Bastion
 
-# Navigate to project directory
-cd /home/achall/AIForce-Assess/config/docker
+# 2. Copy observability configs to VM
+#    (SCP or git pull to /path/to/migrate-ui-orchestrator)
 
-# Ensure .env.observability exists with strong password
-# (Copy from secure password manager or Azure Key Vault)
+# 3. Generate and configure secrets
+openssl rand -base64 32  # For Grafana admin password
+openssl rand -base64 32  # For Postgres Grafana user
 
-# Deploy observability stack
-docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+# 4. Edit .env.observability
+nano config/docker/.env.observability
+#    - Set GRAFANA_ADMIN_PASSWORD
+#    - Set POSTGRES_GRAFANA_PASSWORD
+#    - Set AZURE_AD_* vars if available
 
-# Verify deployment
-docker ps | grep migration
-docker logs migration_grafana -f
+# 5. Create Postgres read-only user
+docker exec -i migration_postgres psql -U postgres -d migration_db < config/docker/observability/create-grafana-user.sql
 
-# Access Grafana
-# https://aiforceasses.cloudsmarthcl.com:9999
-# (Requires NSG rule for port 9999 - see ADR-031 Phase 3)
+# 6. Deploy observability stack
+cd config/docker
+docker-compose -f docker-compose.yml -f docker-compose.observability.yml --env-file .env.observability up -d
+
+# 7. Verify all 5 containers running
+docker ps | grep -E "grafana|loki|tempo|prometheus|alloy"
+
+# 8. Access Grafana
+#    https://aiforceasses.cloudsmarthcl.com:9999
+#    Login: admin / <GRAFANA_ADMIN_PASSWORD>
+
+# 9. Configure Azure NSG (if not already done)
+#    Add inbound rule:
+#      - Port: 9999
+#      - Protocol: TCP
+#      - Source: <office-public-ip> (or Any)
+#      - Priority: 310
+#      - Name: Allow-Grafana-9999
 ```
 
-#### Railway Prod (Optional - Future)
-See ADR-031 Phase 5 for Railway deployment options:
-- **Self-hosted**: Same 5-container stack (~$40-300/month)
-- **Grafana Cloud**: Alloy only + remote write (~$5-70/month)
+## Directory Structure
 
-## Configuration Files
+```
+observability/
+├── README.md                          # This file
+├── docker-compose.observability.yml   # 5 services definition
+├── .env.observability.template        # Environment template
+├── alloy-config.yaml                  # Alloy collector config
+├── loki-config.yaml                   # Loki retention + storage
+├── tempo-config.yaml                  # Tempo retention + HTTP-only
+├── prometheus.yml                     # Prometheus scrape config
+├── create-grafana-user.sql            # Read-only Postgres user
+├── grafana/
+│   ├── provisioning/
+│   │   ├── datasources/
+│   │   │   └── datasources.yaml       # Loki, Tempo, Prometheus, PostgreSQL
+│   │   └── dashboards/
+│   │       └── dashboards.yaml        # Auto-load dashboards
+│   └── dashboards/
+│       ├── app-logs.json              # Application logs (Loki)
+│       ├── llm-costs.json             # LLM usage costs (PostgreSQL)
+│       ├── mfo-flows.json             # MFO flow lifecycle (PostgreSQL)
+│       └── agent-health.json          # Agent health (PostgreSQL + Prometheus)
+├── data/                              # Runtime data (gitignored)
+│   ├── .gitkeep
+│   ├── grafana/                       # Grafana SQLite DB
+│   ├── loki/                          # Log storage
+│   ├── tempo/                         # Trace storage
+│   ├── prometheus/                    # Metrics TSDB
+│   └── alloy/                         # Alloy state
+└── ssl/                               # SSL certificates (gitignored)
+    ├── grafana.crt
+    └── grafana.key
+```
 
-### Core Configs
-- `alloy-config.alloy` - Docker log collection, OTLP receiver, log redaction
-- `loki-config.yaml` - 14-day retention, compaction, filesystem storage
-- `tempo-config.yaml` - 7-day retention, HTTP-only queries (no WebSockets)
-- `prometheus.yml` - 14-day retention, scrape targets, remote write
+## Dashboards
 
-### Grafana Provisioning
-- `grafana/provisioning/datasources/datasources.yml` - Auto-configure Loki, Tempo, Prometheus, PostgreSQL
-- `grafana/provisioning/dashboards/dashboards.yml` - Auto-load dashboard JSON files
-- `grafana/dashboards/*.json` - Dashboard definitions (Phase 2 - see README in dashboards/)
+### 1. Application Logs (Loki)
+- **Purpose**: View logs from all containers with filtering
+- **Datasource**: Loki
+- **Panels**:
+  - Log rate by container
+  - All application logs (with search)
+  - Error logs (ERROR|EXCEPTION|CRITICAL|FATAL)
+- **Variables**:
+  - Container selector (multi-select)
+  - Search filter (text box)
 
-## Accessing Services
+### 2. LLM Usage Costs (PostgreSQL)
+- **Purpose**: Track LLM costs per CLAUDE.md mandatory requirement
+- **Datasource**: PostgreSQL (`migration.llm_usage_logs`)
+- **Panels**:
+  - Cost by model over time
+  - Total cost gauge
+  - Cost by provider (pie chart)
+  - Top 100 expensive LLM calls (table)
+  - Calls by feature context
+- **Integration**: Links to `/finops/llm-costs` frontend UI
 
-### Grafana Web UI
-- **Local**: http://localhost:9999
-- **Azure**: https://aiforceasses.cloudsmarthcl.com:9999
-- **Login**: admin / `<GRAFANA_ADMIN_PASSWORD>`
+### 3. MFO Flow Lifecycle (PostgreSQL)
+- **Purpose**: Monitor Master Flow Orchestrator (ADR-006)
+- **Datasource**: PostgreSQL (`crewai_flow_state_extensions` + child flows)
+- **Panels**:
+  - Master flows by status (running/paused/completed)
+  - Flows by type (discovery/assessment/collection)
+  - Average flow duration
+  - Child flow phase progression (table)
+  - Flow creation rate by type
 
-### Prometheus UI (Optional)
-- **Local**: http://localhost:9090
-- Use for ad-hoc metric queries and troubleshooting
+### 4. Agent Health (PostgreSQL + Prometheus)
+- **Purpose**: Monitor 17 CrewAI agents across 9 phases
+- **Datasource**: PostgreSQL (`agent_performance_analytics`) + Prometheus (Phase 4)
+- **Panels**:
+  - Agent performance summary (table)
+  - Task execution over time
+  - Task distribution by phase (pie chart)
+  - Agent average duration
+  - Agent success rate (%)
+- **Integration**: Links to `/api/v1/observability/health` API
 
-### Alloy UI (Optional)
-- **Local**: http://localhost:12345
-- Shows pipeline health and metrics
+## Configuration Details
 
-## Dashboards (Phase 2)
+### Retention Policies
 
-Create these dashboards in `grafana/dashboards/`:
+| Component | Default Retention | Configurable Via | Storage Estimate |
+|-----------|------------------|------------------|------------------|
+| Loki | 14 days | `LOKI_RETENTION_DAYS` | ~14GB |
+| Tempo | 7 days | `TEMPO_RETENTION_DAYS` | ~1.4GB |
+| Prometheus | 14 days | `PROMETHEUS_RETENTION_DAYS` | ~28GB |
+| **Total** | - | - | **~45GB** |
 
-1. **app-logs.json** - Loki log aggregation with filtering
-2. **llm-costs.json** - LLM usage cost tracking (PostgreSQL queries)
-3. **mfo-flows.json** - Master Flow Orchestrator lifecycle (PostgreSQL queries)
-4. **agent-health.json** - Agent performance analytics (PostgreSQL + Prometheus)
+### Ports
 
-See `grafana/dashboards/README.md` for SQL queries and examples.
+| Service | Port | Purpose |
+|---------|------|---------|
+| Grafana | 9999 | Web UI (HTTPS in production) |
+| Loki | 3100 | HTTP API (internal) |
+| Tempo | 3200, 4317, 4318 | HTTP API, OTLP gRPC/HTTP |
+| Prometheus | 9090 | HTTP API (internal) |
+| Alloy | 12345, 4317, 4318 | HTTP, OTLP gRPC/HTTP |
+
+### Security Configuration
+
+#### Azure Dev Environment
+- **Authentication**: Local admin (GitHub OAuth blocked by enterprise firewall)
+- **Password**: 20+ chars, stored in Azure Key Vault (if available)
+- **Rotation**: Every 90 days
+- **Network**: NSG rule port 9999, IP-restricted to office IP
+- **TLS**: HTTPS mandatory (terminate at nginx/Traefik/App Gateway)
+- **Database Access**: Read-only `grafana_readonly` user (NOT superuser)
+
+#### Railway Prod (Optional)
+- **Authentication**: GitHub OAuth (recommended)
+- **Network**: Grafana public, others private
+- **TLS**: HTTPS by default (Railway)
+- **Database Access**: Same read-only user pattern
+
+#### Local Dev
+- **Authentication**: Local admin from `.env.local` (NOT committed)
+- **Network**: localhost:9999
+- **TLS**: Optional (HTTP acceptable for local)
+
+### High Cardinality Warning
+
+Per ADR-031 line 156:
+- **DO NOT** add `client_account_id` or `engagement_id` to every Prometheus metric
+- Use these labels sparingly for critical metrics only
+- For per-tenant analytics, use SQL dashboards querying PostgreSQL
+- This prevents Prometheus cardinality explosion
+
+## Phase 4: Backend OTel Instrumentation (Optional)
+
+**Status**: Pending implementation
+**Purpose**: Enable distributed tracing and agent performance metrics
+
+### Prerequisites
+- Phase 1 & 2 complete (infrastructure + dashboards)
+- Tempo running and accepting traces
+- Prometheus receiving metrics from Alloy
+
+### Implementation Steps
+
+See issue #878 for full implementation plan. Key files to modify:
+- `backend/app/services/child_flow_services/*` (phase execution)
+- `backend/app/services/crewai_flows/executors/*` (agent run boundaries)
+- `backend/app/services/persistent_agents/tenant_scoped_agent_pool.py` (agent checkout)
+- `backend/app/services/crewai_flows/memory/tenant_memory_manager.py` (vector search)
+
+Metrics to add:
+```python
+from opentelemetry import metrics
+
+meter = metrics.get_meter(__name__)
+
+# Agent execution metrics
+agent_runs_total = meter.create_counter(
+    "agent.runs.total",
+    description="Total agent runs",
+    unit="1"
+)
+
+agent_duration = meter.create_histogram(
+    "agent.phase.duration_ms",
+    description="Agent phase execution duration",
+    unit="ms"
+)
+
+# TenantMemoryManager metrics
+tenant_memory_search_total = meter.create_counter(
+    "tenant_memory.search.total",
+    description="Total memory searches",
+    unit="1"
+)
+```
 
 ## Troubleshooting
 
-### Network Error: "migration_network declared as external, but could not be found"
-**Solution**: Run both compose files together (creates shared network)
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
-```
-
-If running observability stack standalone (not recommended):
-```bash
-# Create network manually first
-docker network create migration_migration_network --driver bridge
-
-# Then start observability stack
-docker-compose -f docker-compose.observability.yml up -d
-```
-
 ### Grafana Won't Start
-**Check password set**:
 ```bash
-grep GRAFANA_ADMIN_PASSWORD config/docker/.env.observability
+# Check logs
+docker logs migration_grafana
+
+# Common issues:
+# 1. Port 9999 already in use
+sudo lsof -i :9999
+# Kill process or change port in docker-compose.observability.yml
+
+# 2. Permission error on /var/lib/grafana
+docker exec migration_grafana chown -R grafana:grafana /var/lib/grafana
 ```
 
-**Check logs**:
+### Dashboards Show "No Data"
 ```bash
-docker logs migration_grafana -f
-```
+# 1. Check datasource connectivity
+docker exec migration_grafana grafana-cli admin data-sources list
 
-### Can't Query PostgreSQL
-**Verify read-only user exists**:
-```bash
-docker exec -it migration_postgres psql -U postgres -d migration_db -c "\du"
-# Should show grafana_readonly user
-```
-
-**Test connection**:
-```bash
+# 2. Verify Postgres user
 docker exec -it migration_postgres psql -U grafana_readonly -d migration_db -c "SELECT COUNT(*) FROM migration.llm_usage_logs;"
-```
 
-### Loki/Tempo Not Receiving Data
-**Check Alloy pipeline**:
-```bash
-docker logs migration_alloy -f
-# Look for errors in log processing
-```
+# 3. Check Loki receiving logs
+curl http://localhost:3100/ready
 
-**Verify containers on same network**:
-```bash
-docker network inspect migration_migration_network
-# All migration_* containers should be listed
+# 4. Verify Alloy forwarding
+docker logs migration_alloy
 ```
 
 ### High Disk Usage
-**Check volume sizes**:
 ```bash
-docker system df -v | grep migration
+# Check data volume sizes
+du -sh config/docker/observability/data/*
+
+# Reduce retention periods in .env.observability:
+LOKI_RETENTION_DAYS=7
+TEMPO_RETENTION_DAYS=3
+PROMETHEUS_RETENTION_DAYS=7
+
+# Restart affected services
+docker-compose -f docker-compose.observability.yml restart
 ```
 
-**Loki data**:
+## Operational Procedures
+
+### Password Rotation (Every 90 Days)
+
 ```bash
-docker exec migration_loki du -sh /loki
-# Should be ~14GB (14 days × 1GB/day)
+# 1. Generate new passwords
+openssl rand -base64 32  # Grafana
+openssl rand -base64 32  # Postgres Grafana user
+
+# 2. Update Grafana admin password
+docker exec -it migration_grafana grafana-cli admin reset-admin-password <NEW_PASSWORD>
+
+# 3. Update Postgres user password
+docker exec -it migration_postgres psql -U postgres -d migration_db -c "ALTER USER grafana_readonly WITH PASSWORD '<NEW_PASSWORD>';"
+
+# 4. Update .env.observability
+nano config/docker/.env.observability
+
+# 5. Restart Grafana
+docker-compose -f docker-compose.observability.yml restart grafana
 ```
-
-**Prometheus data**:
-```bash
-docker exec migration_prometheus du -sh /prometheus
-# Should be ~28GB (14 days × 2GB/day)
-```
-
-## Maintenance
-
-### Rotate Grafana Password (Every 90 Days)
-```bash
-# Generate new password
-NEW_PASSWORD=$(openssl rand -base64 32)
-
-# Update .env.observability
-sed -i "s/GRAFANA_ADMIN_PASSWORD=.*/GRAFANA_ADMIN_PASSWORD=${NEW_PASSWORD}/" .env.observability
-
-# Restart Grafana
-docker-compose restart grafana
-
-# Store in Azure Key Vault (if available)
-```
-
-### Cleanup Old Data
-Data cleanup is automatic via retention policies:
-- **Loki**: 14 days (compactor runs every 10 minutes)
-- **Tempo**: 7 days (compactor runs every 30 minutes)
-- **Prometheus**: 14 days (automatic TSDB cleanup)
 
 ### Backup Dashboards
+
 ```bash
 # Export all dashboards
-docker exec migration_grafana grafana-cli admin export-dashboard \
-  --output /var/lib/grafana/dashboards/backup
+docker exec migration_grafana grafana-cli admin export-all > dashboards-backup-$(date +%Y%m%d).json
 
-# Copy to host
-docker cp migration_grafana:/var/lib/grafana/dashboards/backup ./dashboards-backup-$(date +%Y%m%d)
+# Store in secure location (Azure Blob Storage, S3, etc.)
 ```
 
-### Monitor Disk Usage
+### Monitoring Disk Usage
+
 ```bash
-# Set up alert at 80% disk usage
-# In Azure Portal: VM → Monitoring → Alerts
-# Threshold: Disk usage > 80%
-# Action: Email SRE team
+# Add to crontab for alerts at 80% usage
+crontab -e
+
+# Add line:
+0 * * * * df -h /path/to/observability/data | awk '{if(NR>1 && $5+0 > 80) print "Observability disk usage: " $5}' | mail -s "Disk Alert" ops@company.com
 ```
-
-## Security
-
-### Authentication
-- **Local/Azure Dev**: Local admin auth (GitHub OAuth blocked by firewall)
-- **Railway Prod**: GitHub OAuth (recommended) OR local admin
-- **Password**: 20+ characters, rotated every 90 days
-
-### Network Security (Azure)
-- **NSG Rule**: Port 9999 inbound
-- **Recommended**: IP allowlist (office public IP only)
-- **TLS**: HTTPS mandatory (terminate at nginx/App Gateway)
-
-### Database Access
-- **Grafana**: Uses read-only user (`grafana_readonly`)
-- **NO superuser access** for Grafana datasource
-- **Permissions**: SELECT only on specific tables (see ADR-031)
-
-### Secrets Management
-- **Local**: `.env.observability` (NOT committed to git)
-- **Azure**: Pull from Azure Key Vault (if available)
-- **Railway**: Use Railway project variables
-
-## Cost Estimates
-
-### Azure Dev (VM-Based)
-- **Infrastructure**: Existing Ubuntu VM (no new compute)
-- **Storage**: ~45GB additional disk
-- **Cost**: ~$5-10/month (storage only)
-
-### Railway Prod (If Deployed)
-- **Self-hosted**: ~$40-300/month (5 services + volumes)
-- **Grafana Cloud**: ~$5-70/month (Alloy + remote write)
-- **Decision**: Defer to Phase 5 (see ADR-031)
 
 ## References
 
-- **ADR-031**: Full architecture documentation
-- **Issue #878**: Implementation plan (60+ tasks across 5 phases)
-- **CLAUDE.md**: Integration with LLM tracking (MANDATORY)
-- **Grafana Docs**: https://grafana.com/docs/
-- **Alloy Docs**: https://grafana.com/docs/alloy/
+### Documentation
+- **ADR-031**: Architecture decision record
+- **Issue #878**: Implementation plan and tracking
+- **CLAUDE.md (lines 96-156)**: LLM tracking requirements
+
+### API Endpoints
+- **Observability API**: `/api/v1/observability/health`
+- **LLM Costs UI**: `/finops/llm-costs`
+
+### Related ADRs
+- **ADR-006**: Master Flow Orchestrator
+- **ADR-010**: Docker-First Development
+- **ADR-012**: Flow Status Management Separation
+- **ADR-024**: TenantMemoryManager Architecture
+
+## Support
+
+For issues or questions:
+1. Check troubleshooting section above
+2. Review ADR-031 for architectural context
+3. Check issue #878 for implementation status
+4. Contact DevOps team for Azure-specific issues

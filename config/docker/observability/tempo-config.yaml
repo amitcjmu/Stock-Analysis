@@ -1,50 +1,42 @@
-# Tempo Configuration
-# ADR-031: Distributed tracing (replaces Jaeger)
-# Retention: 7 days
-# Storage: Filesystem (local development and Azure dev)
-# HTTP-only queries (no WebSockets for Railway compatibility)
+# Grafana Tempo Configuration
+# Purpose: Distributed tracing storage
+# Retention: 7 days (configurable via env var)
+# Replaces: Jaeger (as requested per ADR-031)
+# Architecture: ADR-031
 
+# Server configuration
 server:
   http_listen_port: 3200
   log_level: info
-  # Disable gRPC server for Railway compatibility (HTTP-only)
-  grpc_server_max_recv_msg_size: 4194304
-  grpc_server_max_send_msg_size: 4194304
 
-# Distributor configuration (receives traces from Alloy OTLP receiver)
+# Distributor configuration
 distributor:
   receivers:
     otlp:
       protocols:
-        grpc:
-          endpoint: 0.0.0.0:4317
         http:
           endpoint: 0.0.0.0:4318
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+  # Log received traces
+  log_received_spans:
+    enabled: true
+    include_all_attributes: false
 
 # Ingester configuration
 ingester:
-  max_block_duration: 5m
-  max_block_bytes: 1073741824  # 1GB
-  complete_block_timeout: 5m
-  # Trace retention in memory before flushing to disk
   trace_idle_period: 10s
-  # WAL (Write-Ahead Log)
-  wal:
-    path: /var/tempo/wal
+  max_block_bytes: 1000000
+  max_block_duration: 5m
 
-# Compactor configuration (for retention and cleanup)
+# Compactor configuration (reduces storage)
 compactor:
   compaction:
-    # Compact blocks older than 1 hour
-    compacted_block_retention: 1h
-    max_block_bytes: 107374182400  # 100GB
-    block_retention: 168h  # 7 days (ADR-031 requirement)
+    compaction_window: 1h
     max_compaction_objects: 1000000
-    # Run compaction every 30 minutes
-    compaction_window: 30m
-    v2_in_buffer_bytes: 5242880
-    v2_out_buffer_bytes: 20971520
-    v2_prefetch_traces_count: 1000
+    block_retention: 168h  # 7 days (7 * 24h)
+    compacted_block_retention: 10m
 
 # Storage configuration
 storage:
@@ -52,102 +44,43 @@ storage:
     backend: local
     local:
       path: /var/tempo/traces
-    # WAL configuration
     wal:
       path: /var/tempo/wal
-    # Block configuration
-    block:
-      version: vParquet4
-      # Encoding: snappy for better compression
-      encoding: snappy
-      # Index page size (affects query performance)
-      index_page_size_bytes: 1000000
+    pool:
+      max_workers: 100
+      queue_depth: 10000
 
-# Query frontend configuration (HTTP-only for Railway)
+# Query frontend configuration
 query_frontend:
-  # Search configuration
+  # HTTP-only mode (no WebSockets - Railway compatible per ADR-031)
   search:
-    # Disable live tail (requires WebSockets - not supported on Railway)
-    max_duration: 0s
-    default_result_limit: 20
-    max_result_limit: 100
-    # Query timeout
-    query_timeout: 30s
+    max_duration: 5m
+  # Note: query_timeout and streaming not supported in Tempo v2.3.1
 
-  # Trace by ID query
-  trace_by_id:
-    # HTTP query mode (no streaming)
-    query_shards: 50
-    query_timeout: 30s
-    # Hedge requests for better latency
-    hedge_requests_at: 8s
-    hedge_requests_up_to: 2
-
-# Querier configuration
-querier:
-  max_concurrent_queries: 20
-  # Frontend worker (connects to query frontend)
-  frontend_worker:
-    frontend_address: localhost:3200
-    parallelism: 5
-    # HTTP client (no gRPC for Railway compatibility)
-    grpc_client_config:
-      max_recv_msg_size: 10485760
-      max_send_msg_size: 10485760
-
-# Metrics generator (optional - generates RED metrics from traces)
+# Metrics generator configuration (optional)
 metrics_generator:
-  # Disabled by default (use Prometheus metrics from backend instead)
-  # Enable if you want automatic span metrics
+  registry:
+    external_labels:
+      source: tempo
+      cluster: migration
   storage:
-    path: /var/tempo/generator
-  # Uncomment to enable:
-  # processor:
-  #   service_graphs:
-  #     enabled: true
-  #   span_metrics:
-  #     enabled: true
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
 
-# Overrides configuration (per-tenant limits)
+# Overrides configuration
 overrides:
-  defaults:
-    # Ingestion limits
-    max_traces_per_user: 100000
-    max_bytes_per_trace: 5000000  # 5MB
-    ingestion_rate_strategy: local
-    ingestion_rate_limit_bytes: 15000000  # 15MB/s
-    ingestion_burst_size_bytes: 20000000  # 20MB
+  # Note: defaults field not supported in Tempo v2.3.1
+  # Use per-tenant overrides or global limits instead
+  metrics_generator_processors: [service-graphs, span-metrics]
 
-    # Query limits
-    max_search_duration: 168h  # 7 days (matches retention)
-    max_bytes_per_tag_values_query: 5000000
+# Use in-memory for small deployments
+memberlist:
+  node_name: tempo
+  randomize_node_name: false
+  abort_if_cluster_join_fails: false
+  bind_port: 7946
+  join_members: []
 
-    # Block retention (7 days per ADR-031)
-    block_retention: 168h
-
-# Usage report (disable telemetry)
-usage_report:
-  reporting_enabled: false
-
-# ============================================================================
-# PRODUCTION NOTES
-# ============================================================================
-# For Azure production:
-#   - Monitor disk usage (7 days × 200MB/day ≈ 1.4GB)
-#   - Increase max_bytes_per_trace for complex workflows
-#   - Set up alerts for trace ingestion failures
-#
-# For Railway production:
-#   - HTTP-only queries verified (no WebSocket streaming)
-#   - Disable Grafana live tail feature (requires WebSockets)
-#   - Use persistent volumes for /var/tempo directory
-#
-# Integration with Grafana:
-#   - Configure Tempo datasource with HTTP endpoint
-#   - Disable streaming and live tail in Grafana UI
-#   - Use trace ID search instead of live tail
-#
-# Correlation with Loki:
-#   - Add trace_id to log lines in JSON format
-#   - Use Grafana Explore to jump from logs → traces
-#   - Example: {"trace_id": "abc123", "message": "Agent completed"}
+# Note: analytics field not supported in Tempo v2.3.1

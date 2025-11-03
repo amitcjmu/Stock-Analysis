@@ -1,124 +1,159 @@
 // Grafana Alloy Configuration
-// ADR-031: Unified collector (replaces Promtail + OTel Collector)
-//
-// Purpose:
-//   1. Collect Docker container logs → Loki
-//   2. Receive OTLP traces → Tempo
-//   3. Receive OTLP metrics → Prometheus
-//   4. Parse JSON logs and extract labels
-//   5. Redact sensitive fields (passwords, API keys)
+// Purpose: Unified collector for logs, traces, and metrics
+// Replaces: Promtail + OTel Collector
+// Architecture: ADR-031
 
-// ============================================================================
-// DOCKER LOG COLLECTION → LOKI
-// ============================================================================
+// Logging configuration
+logging {
+  level  = "info"
+  format = "logfmt"
+}
 
-// Discover Docker containers
+// =============================================================================
+// DOCKER LOG COLLECTION PIPELINE
+// =============================================================================
+
+// Step 1: Discover Docker containers
 discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
 
-  // Only collect logs from migration stack containers (label-based filtering)
+  filter {
+    name   = "status"
+    values = ["running"]
+  }
+
+  // Security: Only collect logs from migration project containers (label-based filtering)
   filter {
     name   = "label"
     values = ["com.docker.compose.project=migration"]
   }
 }
 
-// Collect logs from discovered containers
-loki.source.docker "containers" {
-  host       = "unix:///var/run/docker.sock"
-  targets    = discovery.docker.containers.targets
+// Step 2: Scrape Docker logs
+loki.source.docker "docker_logs" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.containers.targets
+  forward_to       = [loki.relabel.docker_labels.receiver]
+  refresh_interval = "5s"
+
+  labels = {
+    job = "docker_logs",
+  }
+}
+
+// Step 3: Add Docker metadata as labels
+loki.relabel "docker_labels" {
   forward_to = [loki.process.parse_json.receiver]
 
-  // Label logs with container metadata
-  relabel_configs = [
-    {
-      source_labels = ["__meta_docker_container_name"]
-      target_label  = "container"
-      regex         = "/(.*)"
-      replacement   = "$1"
-    },
-    {
-      source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
-      target_label  = "service"
-    },
-  ]
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
 }
 
-// Parse JSON logs and extract structured fields
+// Step 4: Parse JSON logs and extract fields
 loki.process "parse_json" {
-  // Extract JSON fields from log lines
+  forward_to = [loki.process.redact_secrets.receiver]
+
   stage.json {
     expressions = {
-      level            = "level",
-      message          = "message",
-      timestamp        = "timestamp",
+      level             = "level",
       client_account_id = "client_account_id",
-      engagement_id    = "engagement_id",
-      flow_id          = "flow_id",
-      master_flow_id   = "master_flow_id",
-      agent            = "agent",
-      phase            = "phase",
-      status           = "status",
-      error_code       = "error_code",
-      duration_ms      = "duration_ms",
+      engagement_id     = "engagement_id",
+      flow_id           = "flow_id",
+      agent             = "agent",
+      phase             = "phase",
+      status            = "status",
+      message           = "message",
     }
   }
 
-  // Add extracted fields as labels
   stage.labels {
     values = {
-      level            = "",
-      client_account_id = "",
-      engagement_id    = "",
-      flow_id          = "",
-      agent            = "",
-      phase            = "",
-      status           = "",
+      level             = "level",
+      client_account_id = "client_account_id",
+      engagement_id     = "engagement_id",
+      flow_id           = "flow_id",
+      agent             = "agent",
+      phase             = "phase",
+      status            = "status",
     }
   }
 
-  // Redact sensitive fields (passwords, API keys, tokens)
+  stage.output {
+    source = "message"
+  }
+}
+
+// Step 5: Redact sensitive fields
+loki.process "redact_secrets" {
+  forward_to = [loki.write.endpoint.receiver]
+
   stage.replace {
-    expression = "(?i)(password|api_key|token|secret|authorization)\\s*[:=]\\s*['\"]?([^'\"\\s,}]+)"
-    replace    = "$1=<REDACTED>"
+    expression = "password"
+    source     = ""
+    replace    = "***REDACTED***"
   }
 
-  // Forward processed logs to Loki
-  forward_to = [loki.write.default.receiver]
+  stage.replace {
+    expression = "api_key"
+    source     = ""
+    replace    = "***REDACTED***"
+  }
+
+  stage.replace {
+    expression = "secret"
+    source     = ""
+    replace    = "***REDACTED***"
+  }
+
+  stage.replace {
+    expression = "token"
+    source     = ""
+    replace    = "***REDACTED***"
+  }
 }
 
-// Write logs to Loki
-loki.write "default" {
+// Step 6: Forward logs to Loki
+loki.write "endpoint" {
   endpoint {
-    url = env("LOKI_ENDPOINT") + "/loki/api/v1/push"
-
-    // Tenant ID (optional, for multi-tenancy)
-    // headers = { "X-Scope-OrgID" = "migration" }
-  }
-
-  // Batch configuration
-  external_labels = {
-    environment = env("OBSERVABILITY_ENVIRONMENT"),
-    cluster     = "migration-platform",
+    url = "http://loki:3100/loki/api/v1/push"
   }
 }
 
-// ============================================================================
-// OTLP RECEIVER → TEMPO (Traces)
-// ============================================================================
+// =============================================================================
+// OPENTELEMETRY TRACES & METRICS COLLECTION
+// =============================================================================
 
+// OTLP receiver for traces and metrics
 otelcol.receiver.otlp "default" {
-  // OTLP gRPC receiver (port 4317)
   grpc {
     endpoint = "0.0.0.0:4317"
   }
 
-  // OTLP HTTP receiver (port 4318)
   http {
     endpoint = "0.0.0.0:4318"
   }
 
-  // Forward traces to Tempo, metrics to Prometheus
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Batch processor (improves performance)
+otelcol.processor.batch "default" {
   output {
     traces  = [otelcol.exporter.otlp.tempo.input]
     metrics = [otelcol.exporter.prometheus.default.input]
@@ -128,55 +163,66 @@ otelcol.receiver.otlp "default" {
 // Export traces to Tempo
 otelcol.exporter.otlp "tempo" {
   client {
-    endpoint = env("TEMPO_ENDPOINT")
-
-    // Use HTTP (no TLS for internal communication)
+    endpoint = "tempo:4317"
     tls {
       insecure = true
     }
   }
 }
 
-// ============================================================================
-// OTLP METRICS → PROMETHEUS
-// ============================================================================
-
-// Export metrics to Prometheus remote write
+// Export metrics to Prometheus via remote write
 otelcol.exporter.prometheus "default" {
   forward_to = [prometheus.remote_write.default.receiver]
 }
 
-// Write metrics to Prometheus
+// Prometheus remote write
 prometheus.remote_write "default" {
   endpoint {
-    url = env("PROMETHEUS_ENDPOINT") + "/api/v1/write"
-
-    // No authentication for internal communication
+    url = "http://prometheus:9090/api/v1/write"
   }
 }
 
-// ============================================================================
-// OPTIONAL: POSTGRES/REDIS METRICS (AZURE DEV ONLY)
-// ============================================================================
-// Uncomment for Azure dev environment to scrape Postgres/Redis metrics
+// =============================================================================
+// ALLOY SELF-MONITORING
+// =============================================================================
 
+// Alloy self-monitoring metrics
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy" {
+  targets         = prometheus.exporter.self.alloy.targets
+  forward_to      = [prometheus.remote_write.default.receiver]
+  scrape_interval = "30s"
+}
+
+// =============================================================================
+// OPTIONAL: DATABASE & CACHE INTEGRATIONS (Azure dev only)
+// =============================================================================
+
+// PostgreSQL metrics (uncomment for Azure dev)
 // prometheus.scrape "postgres" {
-//   targets = [
-//     {"__address__" = "postgres:5432"},
-//   ]
-//   forward_to = [prometheus.remote_write.default.receiver]
+//   targets = [{
+//     __address__ = "migration_postgres:5432",
+//   }]
+//   forward_to      = [prometheus.remote_write.default.receiver]
+//   scrape_interval = "30s"
+//   metrics_path    = "/metrics"
 // }
 
+// Redis metrics (uncomment for Azure dev)
 // prometheus.scrape "redis" {
-//   targets = [
-//     {"__address__" = "redis:6379"},
-//   ]
-//   forward_to = [prometheus.remote_write.default.receiver]
+//   targets = [{
+//     __address__ = "migration_redis:6379",
+//   }]
+//   forward_to      = [prometheus.remote_write.default.receiver]
+//   scrape_interval = "30s"
+//   metrics_path    = "/metrics"
 // }
 
-// ============================================================================
-// HEALTH CHECK ENDPOINT
-// ============================================================================
-
-// Expose health check at http://alloy:12345/-/healthy
-// (Configured via command line: --server.http.listen-addr=0.0.0.0:12345)
+// =============================================================================
+// NOTES
+// =============================================================================
+// High cardinality warning per ADR-031 Line 156:
+// - Limit tenant labels (client_account_id, engagement_id) in Prometheus
+// - For per-tenant analytics, use SQL dashboards querying PostgreSQL
+// - Use tenant labels sparingly and only for critical metrics
