@@ -209,7 +209,7 @@ class Asset(
         info={
             "display_name": "IP Address",
             "short_hint": "Primary IP address",
-            "category": "network",
+            "category": "identification",
         },
     )
     fqdn = Column(
@@ -218,7 +218,7 @@ class Asset(
         info={
             "display_name": "FQDN",
             "short_hint": "Fully qualified domain name",
-            "category": "network",
+            "category": "identification",
         },
     )
     mac_address = Column(
@@ -227,7 +227,7 @@ class Asset(
         info={
             "display_name": "MAC Address",
             "short_hint": "Network MAC address",
-            "category": "network",
+            "category": "identification",
         },
     )
     # Technical specifications (from Azure Migrate)

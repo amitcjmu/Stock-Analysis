@@ -42,16 +42,6 @@
 
 **Reference:** PR #581 - executor.py line 442-516
 
-### ✅ Atomic Transaction Pattern for Related Records
-**Pattern:** Wrap parent and child record creation in single transaction - all commit together or all rollback  
-**Why:** Prevents partial data states (parent exists but children missing, or vice versa)  
-**How:** 
-- Use single transaction boundary for related operations
-- Leverage transaction-aware repository methods
-- Ensure atomicity: all records succeed or all fail together
-
-**Reference:** PR #884 - Parent-child record creation patterns
-
 ### ❌ N+1 Query Pattern
 **Issue:** Looping through items and making individual database queries for each  
 **Why:** Severe performance impact - 100 items = 200+ queries instead of 2 batch queries  
@@ -101,16 +91,6 @@
 - Add comments explaining the constant
 
 **Reference:** PR #581 - operations.py lines 303, 388
-
-### ✅ JSON-Safe Numeric Conversion Pattern
-**Pattern:** Always check for NaN/Infinity in numeric conversions before returning values used in API responses  
-**Why:** NaN/Infinity are not valid JSON - causes serialization errors at Python-to-JavaScript boundary  
-**How:** 
-- After float conversion, check with `math.isnan()` and `math.isinf()`
-- Return default value if NaN/Infinity detected
-- Apply to all conversion utilities feeding API responses
-
-**Reference:** PR #884 - Safe numeric conversion patterns
 
 ---
 
@@ -171,21 +151,6 @@
 
 ---
 
-## Security & Multi-Tenant Isolation
-
-### ✅ Tenant Context Extraction Pattern
-**Pattern:** Always extract tenant fields (`client_account_id`, `engagement_id`) from the context object  
-**Why:** Single source of truth for tenant scoping, prevents cross-tenant data leaks  
-**How:** 
-- Read from context: `client_id = context.client_account_id`
-- Read from context: `engagement_id = context.engagement_id`
-- Never accept tenant IDs as function parameters
-- Apply to ALL database operations
-
-**Reference:** PR #884 - Multi-tenant context patterns
-
----
-
 ## Testing
 
 ### ❌ No Tests for Critical Bug Fixes
@@ -243,9 +208,6 @@ Use this before submitting PRs:
 
 - [ ] All imports at module top (no local imports in functions)
 - [ ] Reusing existing database sessions (no new session creation mid-transaction)
-- [ ] Atomic transactions for parent+child record creation
-- [ ] Tenant context extracted from context object only (never as parameters)
-- [ ] JSON-safe numeric conversions (NaN/Infinity checked)
 - [ ] Error handling with try-catch and fallbacks
 - [ ] No magic numbers - using named constants
 - [ ] Type safety - using dataclasses not SimpleNamespace
@@ -279,9 +241,9 @@ Use this before submitting PRs:
 
 ---
 
-**Last Updated:** November 3, 2025  
+**Last Updated:** October 14, 2025  
 **Initial Contributors:** Ram, CryptoYogiLLC  
-**Source PRs:** #581 (Discovery Flow Status Fixes), #884 (CMDB Fields Data Population)
+**Source PR:** #581 - Discovery Flow Status Fixes
 
 ---
 

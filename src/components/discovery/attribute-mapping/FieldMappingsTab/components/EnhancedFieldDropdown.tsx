@@ -57,7 +57,13 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
     }
   }, [safeAvailableFields.length]);
 
-  const categories = ['all', ...new Set(safeAvailableFields.map(field => field?.category || 'unknown'))];
+  const allCategories = Array.from(new Set(safeAvailableFields.map(field => field?.category || 'unknown')));
+  // Move 'other' to the end
+  const filteredCategories = allCategories.filter(cat => cat !== 'other');
+  if (allCategories.includes('other')) {
+    filteredCategories.push('other');
+  }
+  const categories = ['all', ...filteredCategories];
 
   const filteredFields = safeAvailableFields.filter(field => {
     try {
@@ -115,7 +121,7 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
             >
               {categories.map(category => (
                 <option key={category} value={category}>
-                  {category === 'all' ? 'All Categories' : category}
+                  {category === 'all' ? 'All Categories' : category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </option>
               ))}
             </select>

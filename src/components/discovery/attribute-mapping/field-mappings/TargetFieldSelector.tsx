@@ -19,8 +19,13 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
     if (!Array.isArray(availableFields) || availableFields.length === 0) {
       return ['all'];
     }
-    const categories = Array.from(new Set(availableFields.map(field => field.category))).sort();
-    return ['all', ...categories];
+    const categories = Array.from(new Set(availableFields.map(field => field.category)));
+    // Move 'other' to the end
+    const filteredCategories = categories.filter(cat => cat !== 'other');
+    if (categories.includes('other')) {
+      filteredCategories.push('other');
+    }
+    return ['all', ...filteredCategories];
   };
 
   const getFilteredFields = (): unknown[] => {
@@ -143,7 +148,7 @@ const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({
                           </div>
                           <div className="flex flex-col items-end space-y-1 ml-2">
                             <span className={`text-xs px-1 py-0.5 rounded ${getCategoryColor(field.category)}`}>
-                              {field.category.replace('_', ' ')}
+                              {field.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </span>
                             <span className={`px-1 py-0.5 text-xs rounded ${field.required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                               {field.required ? 'Required' : 'Optional'}

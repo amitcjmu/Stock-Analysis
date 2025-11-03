@@ -69,87 +69,120 @@ TYPE_MAPPINGS = {
 
 
 def categorize_field(field_name: str) -> str:
-    """Categorize field based on naming patterns."""
+    """
+    Categorize field into one of 6 core categories.
+
+    Categories:
+    - identification: Names, IDs, hostnames, network identifiers
+    - technical: OS, CPU, memory, storage, databases, infrastructure
+    - performance: Utilization, throughput, metrics, quality scores
+    - business: Owners, departments, applications, costs
+    - migration: 6R strategy, waves, priorities, status
+    - other: Everything else
+    """
     name = field_name.lower()
 
-    # Identity fields
-    if any(
-        pattern in name
-        for pattern in ["asset_id", "asset_name", "name", "hostname", "fqdn"]
-    ):
-        return "identification"
-
-    # Network fields
-    if any(
-        pattern in name
-        for pattern in ["ip_", "mac_", "dns_", "subnet", "vlan", "network"]
-    ):
-        return "network"
-
-    # Technical/System fields
+    # Identification fields (names, IDs, network identifiers, locations)
     if any(
         pattern in name
         for pattern in [
-            "cpu_",
-            "memory_",
-            "ram_",
-            "storage_",
-            "disk_",
-            "os_",
-            "operating_",
-        ]
-    ):
-        return "technical"
-
-    # Performance fields
-    if any(
-        pattern in name
-        for pattern in ["utilization", "performance", "throughput", "iops", "latency"]
-    ):
-        return "performance"
-
-    # Location/Environment fields
-    if any(
-        pattern in name
-        for pattern in [
+            "asset_id",
+            "asset_name",
+            "name",
+            "hostname",
+            "fqdn",
+            "ip_",
+            "mac_",
+            "dns_",
+            "subnet",
+            "vlan",
             "datacenter",
-            "location_",
+            "location",
             "region",
             "environment",
             "availability_",
             "rack",
         ]
     ):
-        return "environment"
+        return "identification"
 
-    # Business fields
+    # Performance fields (utilization, metrics, scores)
     if any(
         pattern in name
-        for pattern in ["owner", "business_", "department", "cost_", "application_"]
+        for pattern in [
+            "utilization",
+            "performance",
+            "throughput",
+            "iops",
+            "latency",
+            "quality_",
+            "completeness_",
+            "score",
+            "confidence_",
+        ]
+    ):
+        return "performance"
+
+    # Technical fields (OS, CPU, memory, storage, databases, infrastructure)
+    if any(
+        pattern in name
+        for pattern in [
+            "cpu",
+            "memory",
+            "ram",
+            "storage",
+            "disk",
+            "os_",
+            "operating_",
+            "database_",
+            "db_",
+            "server_",
+            "hosting_",
+            "vendor",
+            "platform",
+        ]
+    ):
+        return "technical"
+
+    # Business fields (owners, departments, costs, security, compliance)
+    if any(
+        pattern in name
+        for pattern in [
+            "owner",
+            "business_",
+            "department",
+            "cost",
+            "price",
+            "budget",
+            "financial",
+            "application_",
+            "pii",
+            "classification",
+            "security_",
+            "backup",
+        ]
     ):
         return "business"
 
-    # Migration fields
+    # Migration fields (6R, waves, priorities, readiness)
     if any(
         pattern in name
         for pattern in [
             "migration_",
-            "six_r_",
-            "criticality",
+            "six_r",
+            "sixr_",
+            "wave",
             "readiness",
-            "target_",
-            "cloud_",
+            "strategy",
+            "complexity",
+            "priority",
+            "risk_",
+            "tshirt_",
+            "saas_",
+            "lifecycle",
         ]
     ):
         return "migration"
-
-    # Financial fields
-    if any(pattern in name for pattern in ["cost", "price", "budget", "financial"]):
-        return "financial"
-
-    # Quality/Assessment fields
-    if any(pattern in name for pattern in ["quality_", "completeness_", "score"]):
-        return "quality"
 
     return "other"
 

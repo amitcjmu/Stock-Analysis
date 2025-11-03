@@ -75,7 +75,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Hosting Model",
             "short_hint": "On-Prem / Cloud / Hybrid / Colo",
-            "category": "infrastructure",
+            "category": "technical",
         },
     )
 
@@ -86,8 +86,8 @@ class CMDBFieldsMixin:
         comment="Server role: web, db, app, citrix, file, email, other",
         info={
             "display_name": "Server Role",
-            "short_hint": "Web / DB / App / Citrix / File / Email",
-            "category": "infrastructure",
+            "short_hint": "Web server/ DB server/ App server/ Citrix / File / Email",
+            "category": "technical",
         },
     )
 
@@ -98,7 +98,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Security Zone",
             "short_hint": "DMZ / Internal / External / Restricted",
-            "category": "security",
+            "category": "business",
         },
     )
 
@@ -110,7 +110,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Database Type",
             "short_hint": "PostgreSQL / MySQL / Oracle / SQL Server / MongoDB",
-            "category": "database",
+            "category": "technical",
         },
     )
 
@@ -121,7 +121,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Database Version",
             "short_hint": "Version number",
-            "category": "database",
+            "category": "technical",
         },
     )
 
@@ -132,7 +132,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Database Size (GB)",
             "short_hint": "In gigabytes",
-            "category": "database",
+            "category": "technical",
         },
     )
 
@@ -188,7 +188,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Tech Debt Flags",
             "short_hint": "Technical debt indicators",
-            "category": "quality",
+            "category": "performance",
         },
     )
 
@@ -202,7 +202,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Contains PII",
             "short_hint": "true / false",
-            "category": "security",
+            "category": "business",
         },
     )
 
@@ -213,7 +213,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Data Classification",
             "short_hint": "Public / Internal / Confidential / Restricted",
-            "category": "security",
+            "category": "business",
         },
     )
 
@@ -270,7 +270,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Annual Cost Estimate",
             "short_hint": "Estimated yearly cost in USD",
-            "category": "financial",
+            "category": "business",
         },
     )
 
@@ -281,7 +281,7 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Backup Policy",
             "short_hint": "Backup and recovery details",
-            "category": "operational",
+            "category": "migration",
         },
     )
 
@@ -294,6 +294,6 @@ class CMDBFieldsMixin:
         info={
             "display_name": "Asset Tags",
             "short_hint": "Tags and labels",
-            "category": "metadata",
+            "category": "other",
         },
     )

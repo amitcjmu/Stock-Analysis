@@ -5,7 +5,6 @@ Extracted to keep asset_service.py under 400 lines per project standards.
 """
 
 import logging
-import math
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
@@ -163,19 +162,11 @@ def safe_int_convert(value, default=None):
 
 
 def safe_float_convert(value, default=None):
-    """Convert value to float with safe error handling and NaN/Infinity checks."""
+    """Convert value to float with safe error handling."""
     if value is None or value == "":
         return default
     try:
-        result = float(str(value))
-        # Check for NaN/Infinity - not valid JSON values
-        if math.isnan(result) or math.isinf(result):
-            logger.warning(
-                f"NaN/Infinity detected in float conversion: '{value}', "
-                f"using default {default}"
-            )
-            return default
-        return result
+        return float(str(value))
     except (ValueError, TypeError):
         logger.warning(f"Failed to convert '{value}' to float, using default {default}")
         return default

@@ -16,7 +16,7 @@ class LocationFieldsMixin:
         info={
             "display_name": "Environment",
             "short_hint": "Production / Staging / Development / QA",
-            "category": "environment",
+            "category": "identification",
         },
     )
     location = Column(
@@ -25,7 +25,7 @@ class LocationFieldsMixin:
         info={
             "display_name": "Location",
             "short_hint": "Geographical location or region",
-            "category": "environment",
+            "category": "identification",
         },
     )
     datacenter = Column(
@@ -34,7 +34,7 @@ class LocationFieldsMixin:
         info={
             "display_name": "Datacenter",
             "short_hint": "Datacenter or facility",
-            "category": "environment",
+            "category": "identification",
         },
     )
     rack_location = Column(
@@ -43,7 +43,7 @@ class LocationFieldsMixin:
         info={
             "display_name": "Rack Location",
             "short_hint": "Rack identifier",
-            "category": "environment",
+            "category": "identification",
         },
     )
     availability_zone = Column(
@@ -52,6 +52,6 @@ class LocationFieldsMixin:
         info={
             "display_name": "Availability Zone",
             "short_hint": "Cloud availability zone",
-            "category": "environment",
+            "category": "identification",
         },
     )

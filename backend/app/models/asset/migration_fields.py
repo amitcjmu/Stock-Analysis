@@ -75,7 +75,7 @@ class MigrationFieldsMixin:
         info={
             "display_name": "Status",
             "short_hint": "Active / Decommissioned / Maintenance",
-            "category": "operational",
+            "category": "migration",
         },
     )
     migration_status = Column(
