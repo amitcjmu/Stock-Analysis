@@ -326,8 +326,10 @@ class AssetService:
             )
 
             # Create child table records if data exists
-            # Tenant context comes from the asset itself, not passed as parameters
-            await create_child_records_if_needed(self.db, created_asset, asset_data)
+            # Pass service context (source of truth for tenant scoping via DI)
+            await create_child_records_if_needed(
+                self.db, created_asset, asset_data, self.context_info
+            )
 
             logger.info(
                 f"✅ Asset created via service: {created_asset.name} (ID: {created_asset.id})"
