@@ -156,7 +156,15 @@ async def create_child_records_if_needed(
                 db, asset, asset_data, client_id, engagement_id
             )
 
+    except (ValueError, KeyError) as e:
+        # Validation errors are expected, log and continue without failing asset creation.
+        logger.warning(
+            f"⚠️ Validation error creating child records for asset {asset.id}: {e}"
+        )
     except Exception as e:
-        # Log error but don't fail asset creation
-        # Just log the error and continue
-        logger.warning(f"⚠️ Failed to create child records for asset {asset.id}: {e}")
+        # For unexpected errors (e.g., DB issues), log as an error and re-raise.
+        # This will cause the transaction to roll back, ensuring data consistency.
+        logger.error(
+            f"❌ Unexpected error creating child records for asset {asset.id}: {e}"
+        )
+        raise
