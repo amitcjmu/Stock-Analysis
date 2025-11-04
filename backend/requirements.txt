@@ -1,3 +1,4 @@
+# Updated: 2025-11-04 - Force Railway cache invalidation for apscheduler dependency
 aiofiles==24.1.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.14
