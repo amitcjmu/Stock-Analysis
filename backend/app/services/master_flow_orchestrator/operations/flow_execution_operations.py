@@ -194,7 +194,11 @@ class FlowExecutionOperations:
 
             # Update current phase if execution result indicates progression
             if execution_result.get("next_phase"):
-                master_flow.current_phase = execution_result["next_phase"]
+                next_phase = execution_result["next_phase"]
+                master_flow.current_phase = next_phase
+                logger.info(
+                    f"🔄 Phase transition: {phase_name} → {next_phase} for flow {master_flow.flow_id}"
+                )
 
             # Update progress percentage
             if execution_result.get("progress_percentage") is not None:
@@ -218,6 +222,38 @@ class FlowExecutionOperations:
             await self.db.commit()
 
             logger.info(f"✅ Flow state updated after phase '{phase_name}' execution")
+
+            # CC FIX (Issue #907): Auto-continue to next phase if not paused
+            # After updating current_phase, check if we should automatically execute the next phase
+            # This enables PhaseTransitionAgent decisions to take effect immediately
+            if execution_result.get("next_phase"):
+                next_phase = execution_result["next_phase"]
+                result_status = execution_result.get("status", "").lower()
+
+                # Only auto-continue if the phase doesn't explicitly pause or complete the flow
+                should_auto_continue = result_status not in [
+                    "paused",
+                    "waiting_for_approval",
+                    "completed",
+                    "failed",
+                    "error",
+                ]
+
+                if should_auto_continue:
+                    logger.info(
+                        f"🚀 Auto-continuing to next phase '{next_phase}' for flow {master_flow.flow_id}"
+                    )
+                    # Recursively execute the next phase
+                    await self.execute_phase(
+                        flow_id=str(master_flow.flow_id),
+                        phase_name=next_phase,
+                        phase_input={},
+                        validation_overrides=None,
+                    )
+                else:
+                    logger.info(
+                        f"⏸️  Not auto-continuing due to status '{result_status}' - flow will pause at '{next_phase}'"
+                    )
 
         except Exception as e:
             logger.error(f"❌ Failed to update flow state after execution: {e}")

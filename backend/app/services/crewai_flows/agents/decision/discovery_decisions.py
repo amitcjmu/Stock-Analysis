@@ -236,23 +236,24 @@ class DiscoveryDecisionLogic:
                 },
             )
 
-        # Successful cleansing - proceed to asset creation
+        # Successful cleansing - proceed to asset inventory (Issue #907)
+        # CC: Changed from asset_creation to asset_inventory to support preview/approval workflow
         proceed_confidence = ConfidenceCalculator.weighted_average(
             {
                 "cleansing_success_rate": success_rate,
                 "failure_rate_acceptable": 1.0 if failure_rate <= 0.1 else 0.0,
                 "records_processed_sufficient": 1.0 if records_processed > 0 else 0.0,
-                "asset_creation_readiness": 1.0 if success_rate > 0.8 else 0.5,
+                "asset_inventory_readiness": 1.0 if success_rate > 0.8 else 0.5,
                 "data_quality_improved": cleansing_impact.get("quality_improvement", 0),
             }
         )
 
         return AgentDecision(
             action=PhaseAction.PROCEED,
-            next_phase="asset_creation",
+            next_phase="asset_inventory",  # CC FIX: Changed from asset_creation (Issue #907)
             confidence=proceed_confidence,
             reasoning="Data cleansing completed successfully. "
-            "Proceeding to asset creation phase to build initial asset inventory.",
+            "Proceeding to asset inventory phase for preview and approval before database creation.",
             metadata=cleansing_impact,
         )
 

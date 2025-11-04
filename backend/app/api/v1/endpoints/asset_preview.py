@@ -17,7 +17,9 @@ from app.core.database import get_db
 from app.core.context import get_request_context, RequestContext
 from app.api.v1.auth.auth_utils import get_current_user
 from app.models.client_account import User
-from app.repositories.crewai_flow_repository import CrewAIFlowRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 
 router = APIRouter(prefix="/asset-preview")
 logger = logging.getLogger(__name__)
@@ -49,7 +51,7 @@ async def get_asset_preview(
     engagement_id = UUID(request_context.engagement_id)
 
     # Get flow with persistence data
-    flow_repo = CrewAIFlowRepository(
+    flow_repo = CrewAIFlowStateExtensionsRepository(
         db,
         str(client_account_id),
         str(engagement_id),
@@ -116,7 +118,7 @@ async def approve_asset_preview(
     client_account_id = UUID(request_context.client_account_id)
     engagement_id = UUID(request_context.engagement_id)
 
-    flow_repo = CrewAIFlowRepository(
+    flow_repo = CrewAIFlowStateExtensionsRepository(
         db,
         str(client_account_id),
         str(engagement_id),
@@ -130,11 +132,12 @@ async def approve_asset_preview(
         )
 
     # Update flow persistence data with approval
+    from datetime import datetime
+
     persistence_data = flow.flow_persistence_data or {}
     persistence_data["approved_asset_ids"] = approved_asset_ids
-    persistence_data["approval_timestamp"] = str(
-        UUID
-    )  # Use datetime.utcnow() in production
+    persistence_data["approval_timestamp"] = datetime.utcnow().isoformat()
+    persistence_data["approved_by_user_id"] = str(current_user.id)
     flow.flow_persistence_data = persistence_data
 
     await db.commit()
@@ -143,9 +146,39 @@ async def approve_asset_preview(
         f"User {current_user.id} approved {len(approved_asset_ids)} assets for flow {flow_id}"
     )
 
+    # Resume the flow to process approved assets
+    # Import resume functionality
+    from app.api.v1.endpoints.unified_discovery.flow_control_handlers import (
+        resume_flow as resume_flow_handler,
+    )
+    from app.core.context import get_current_context
+
+    try:
+        # Create context for resume call
+        resume_context = get_current_context()
+
+        # Resume the flow - this will re-run the asset_inventory phase
+        # which will now see the approved_asset_ids and create the assets
+        await resume_flow_handler(
+            flow_id=str(flow_id),
+            phase_input=None,
+            db=db,
+            context=request_context,
+            current_user=current_user,
+        )
+
+        logger.info(f"✅ Flow {flow_id} resumed after asset approval")
+
+    except Exception as e:
+        logger.warning(
+            f"⚠️ Failed to auto-resume flow {flow_id} after approval: {e}. "
+            "User may need to manually resume the flow."
+        )
+        # Don't fail the approval if resume fails - approval is still recorded
+
     return {
         "flow_id": str(flow_id),
         "approved_count": len(approved_asset_ids),
         "status": "approved",
-        "message": "Assets approved for creation. Flow will resume processing.",
+        "message": f"Assets approved for creation. Flow resumed to create {len(approved_asset_ids)} assets.",
     }
