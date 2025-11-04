@@ -132,19 +132,14 @@ class RedisConnectionManager:
         try:
             from upstash_redis import Redis as UpstashRedis
 
-            # Get optimized configuration from upstash_config
-            config = upstash_optimizer.get_optimized_pool_config()
-
-            # Remove 'url' from config to avoid duplicate parameter error
-            # URL and token must be passed explicitly to UpstashRedis constructor
-            config_without_url = {
-                k: v for k, v in config.items() if k not in ["url", "token"]
-            }
-
+            # Upstash Redis uses REST API, not redis-py protocol
+            # It only accepts: url, token, retry, allow_telemetry
+            # Connection pooling/SSL settings not needed (handled internally)
             self.client = UpstashRedis(
                 url=settings.UPSTASH_REDIS_URL,
                 token=settings.UPSTASH_REDIS_TOKEN,
-                **config_without_url,
+                # retry defaults to 3, which is reasonable
+                # allow_telemetry defaults to False
             )
 
             # Test connection
