@@ -230,18 +230,21 @@ class FlowExecutionOperations:
                 next_phase = execution_result["next_phase"]
                 result_status = execution_result.get("status", "").lower()
 
-                # Only auto-continue if the phase doesn't explicitly pause or complete the flow
+                # CRITICAL: If next_phase is present, that means "proceed to next phase"
+                # The 'completed' status means THIS PHASE is done, NOT the entire flow
+                # Only pause/wait statuses should block auto-continuation
                 should_auto_continue = result_status not in [
                     "paused",
                     "waiting_for_approval",
-                    "completed",
-                    "failed",
-                    "error",
                 ]
+
+                # Note: 'completed', 'failed', 'error' do NOT block continuation if next_phase exists
+                # because next_phase indicates the workflow should proceed
 
                 if should_auto_continue:
                     logger.info(
-                        f"🚀 Auto-continuing to next phase '{next_phase}' for flow {master_flow.flow_id}"
+                        f"🚀 Auto-continuing to next phase '{next_phase}' "
+                        f"for flow {master_flow.flow_id} (status: {result_status})"
                     )
                     # Recursively execute the next phase
                     await self.execute_phase(
