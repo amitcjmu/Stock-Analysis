@@ -99,8 +99,8 @@ class RedisConnectionManager:
             logger.info("Redis cache is disabled via configuration")
             return
 
-        # Initialize connection
-        asyncio.create_task(self.initialize())
+        # Note: Initialization happens in app lifespan (lifecycle.py)
+        # Not here to avoid "no running event loop" error
 
     async def initialize(self) -> bool:
         """Initialize Redis connection with proper error handling"""

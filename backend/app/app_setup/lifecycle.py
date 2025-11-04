@@ -120,6 +120,25 @@ def get_lifespan():  # noqa: C901
                 "⚠️⚠️⚠️ Database connection test failed: %s", e, exc_info=True
             )
 
+        # Initialize Redis connection (Upstash for caching)
+        try:
+            from app.core.redis_config import redis_manager
+
+            logging.getLogger(__name__).info("🔧 Initializing Redis connection...")
+            redis_initialized = await redis_manager.initialize()
+            if redis_initialized:
+                logging.getLogger(__name__).info(
+                    f"✅ Redis connected ({redis_manager.client_type})"
+                )
+            else:
+                logging.getLogger(__name__).warning(
+                    "⚠️ Redis unavailable - running in fallback mode (no caching)"
+                )
+        except Exception as e:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "Redis initialization warning: %s", e, exc_info=True
+            )
+
         # Validate critical attributes consistency
         try:
             logging.getLogger(__name__).info(
