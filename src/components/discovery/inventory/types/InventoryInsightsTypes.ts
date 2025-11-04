@@ -3,6 +3,9 @@
  * Extracted from EnhancedInventoryInsights.tsx for modularization
  */
 
+import type { Asset } from '../../../types/asset';
+import type { InventoryProgress } from './inventory.types';
+
 // Asset dependency interface
 export interface AssetDependency {
   id: string;
@@ -13,32 +16,8 @@ export interface AssetDependency {
   metadata?: Record<string, unknown>;
 }
 
-export interface AssetInventory {
-  id?: string;
-  asset_name?: string;
-  asset_type?: string;
-  environment?: string;
-  criticality?: string;
-  migration_readiness?: number;
-  risk_score?: number;
-  operating_system?: string;
-  location?: string;
-  status?: string;
-  dependencies?: AssetDependency[];
-}
-
-export interface InventoryProgress {
-  total_assets: number;
-  classified_assets: number;
-  servers: number;
-  applications: number;
-  devices: number;
-  databases: number;
-  classification_accuracy: number;
-}
-
 export interface EnhancedInventoryInsightsProps {
-  assets: AssetInventory[];
+  assets: Asset[];
   inventoryProgress: InventoryProgress;
   className?: string;
 }

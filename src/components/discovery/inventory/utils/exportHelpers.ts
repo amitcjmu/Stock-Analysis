@@ -1,6 +1,6 @@
-import type { AssetInventory } from '../types/inventory.types';
+import type { Asset } from '../../../types/asset';
 
-export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]): void => {
+export const exportAssets = (assets: Asset[], selectedColumns: string[]): void => {
   try {
     console.log('🔄 Starting CSV export...', { assetCount: assets.length, columns: selectedColumns });
 
@@ -20,7 +20,7 @@ export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]
     const csvHeaders = selectedColumns.join(',');
     const csvRows = assets.map(asset =>
       selectedColumns.map(col => {
-        const value = asset[col as keyof AssetInventory];
+        const value = asset[col as keyof Asset];
         // Escape commas and quotes in CSV
         if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
           return `"${value.replace(/"/g, '""')}"`;

@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useMemo } from 'react'
-import type { AssetInventory, AssetFilters } from '../types/inventory.types';
+import type { Asset } from '../../../types/asset';
+import type { AssetFilters } from '../types/inventory.types';
 
-export const useAssetFilters = (assets: AssetInventory[] = []): {
+export const useAssetFilters = (assets: Asset[] = []): {
   filters: AssetFilters;
   updateFilter: (key: keyof AssetFilters, value: unknown) => void;
   resetFilters: () => void;
-  filteredAssets: AssetInventory[];
+  filteredAssets: Asset[];
   uniqueEnvironments: string[];
   uniqueAssetTypes: string[];
 } => {

@@ -64,8 +64,8 @@ def register_core_routers(api_router: APIRouter):
     api_router.include_router(asset_conflicts_router)  # Uses prefix from router
     api_router.include_router(asset_preview_router)  # Uses prefix from router
     api_router.include_router(
-        asset_editing_router, prefix="/assets", tags=[APITags.ASSETS]
-    )  # Issues #911, #912
+        asset_editing_router, prefix="/unified-discovery/assets", tags=[APITags.ASSETS]
+    )  # Issues #911, #912 - Align with frontend routing
     logger.info("✅ Asset management routers registered")
 
     # Communication and Context

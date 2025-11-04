@@ -1,21 +1,3 @@
-export interface AssetInventory {
-  id: string;
-  asset_name: string;
-  asset_type?: string;
-  environment?: string;
-  operating_system?: string;
-  location?: string;
-  status?: string;
-  business_criticality?: string;
-  risk_score?: number;
-  migration_readiness?: number;
-  dependencies?: string;
-  last_updated?: string;
-  confidence_score?: number;
-  criticality?: string;
-  [key: string]: unknown;
-}
-
 export interface InventoryProgress {
   total_assets: number;
   classified_assets: number;
