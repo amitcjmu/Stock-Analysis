@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { FieldOptionsContext } from './context';
 import type { TargetField } from './types';
 import { useAuth } from '../AuthContext';
+import { apiCall } from '@/config/api';
 
 interface FieldOptionsProviderProps {
   children: ReactNode;
@@ -25,18 +26,10 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:8000/api/v1/data-import/available-target-fields', {
-        headers: {
-          'X-Client-Account-ID': client?.id || '11111111-1111-1111-1111-111111111111',
-          'X-Engagement-ID': engagement?.id || '22222222-2222-2222-2222-222222222222',
-        },
+      // Use apiCall utility which handles environment-specific URLs (localhost/Vercel/Railway)
+      const data = await apiCall('/data-import/available-target-fields', {
+        method: 'GET',
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch fields: ${response.statusText}`);
-      }
-
-      const data = await response.json();
 
       if (data.fields && Array.isArray(data.fields)) {
         setAvailableFields(data.fields);
