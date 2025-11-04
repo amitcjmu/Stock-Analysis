@@ -55,7 +55,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   onProcessForAssessment,
   isApplicationsSelected,
   isTrashView = false,
-  enableInlineEditing = false
+  enableInlineEditing = true  // CC FIX: Enable inline editing by default (AG Grid migration)
 }) => {
   return (
     <EnhancedAssetTable

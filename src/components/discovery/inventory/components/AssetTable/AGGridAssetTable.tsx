@@ -261,15 +261,18 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
       if (editableColumn && !isTrashView && enableInlineEditing) {
         colDef.editable = true;
 
-        // Set editor based on field type
-        if (editableColumn.field_type === 'select') {
+        // Set editor based on column type (from useAssetInventoryGrid hook)
+        if (editableColumn.column_type === 'dropdown') {
           colDef.cellEditor = 'agSelectCellEditor';
           colDef.cellEditorParams = {
-            values: editableColumn.allowed_values || [],
+            values: editableColumn.dropdown_options?.map(opt => opt.value) || [],
           };
-        } else if (editableColumn.field_type === 'number') {
+        } else if (editableColumn.column_type === 'number') {
           colDef.cellEditor = 'agNumberCellEditor';
+        } else if (editableColumn.column_type === 'boolean') {
+          colDef.cellEditor = 'agCheckboxCellEditor';
         } else {
+          // Default to text editor for 'text' type
           colDef.cellEditor = 'agTextCellEditor';
         }
       }
@@ -391,13 +394,12 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
                 mode: 'multiRow',
                 checkboxes: true,
                 headerCheckbox: true,
-                enableClickSelection: false,
+                enableClickSelection: false, // Fix: Use this instead of suppressRowClickSelection (AG Grid v32.2+)
               }}
               onGridReady={onGridReady}
               onCellEditingStopped={handleCellEditingStopped}
               onSelectionChanged={handleSelectionChanged}
               getRowId={(params) => String(params.data.id)}
-              suppressRowClickSelection={true}
               enableCellTextSelection={true}
               ensureDomOrder={true}
             />
