@@ -86,7 +86,7 @@ const SIXR_STRATEGY_OPTIONS = [
  */
 export const EDITABLE_COLUMNS: EditableColumn[] = [
   {
-    field_name: 'name',
+    field_name: 'asset_name',  // CC FIX: Use 'asset_name' to match Asset type field
     display_name: 'Asset Name',
     column_type: 'text',
     editable: true,

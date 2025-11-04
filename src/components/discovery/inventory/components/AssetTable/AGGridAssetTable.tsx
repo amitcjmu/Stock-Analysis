@@ -271,10 +271,17 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
           colDef.cellEditor = 'agNumberCellEditor';
         } else if (editableColumn.column_type === 'boolean') {
           colDef.cellEditor = 'agCheckboxCellEditor';
-        } else {
-          // Default to text editor for 'text' type
+        } else if (editableColumn.column_type === 'text') {
+          // CC FIX: Explicitly set text editor and enable single-click editing
           colDef.cellEditor = 'agTextCellEditor';
+          colDef.cellEditorParams = {
+            maxLength: 255,
+          };
+          // Enable single-click editing for better UX (double-click was reported as not working)
+          colDef.singleClickEdit = false; // Keep double-click for consistency
         }
+
+        console.log(`✅ Column "${column}" marked as editable with ${editableColumn.column_type} editor`);
       }
 
       // Apply custom renderers for special columns
