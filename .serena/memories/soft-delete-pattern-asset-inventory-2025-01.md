@@ -1,7 +1,7 @@
 # Soft Delete Pattern for Asset Inventory
 
-**Date**: January 2025  
-**Context**: Need reversible deletion for asset cleanup  
+**Date**: January 2025
+**Context**: Need reversible deletion for asset cleanup
 **Issue**: #912
 
 ## Problem
@@ -19,18 +19,18 @@ Users need to remove assets from active inventory view without permanently delet
 ### Database Schema
 ```sql
 -- Add to assets table
-ALTER TABLE migration.assets 
+ALTER TABLE migration.assets
 ADD COLUMN deleted_at TIMESTAMP DEFAULT NULL,
 ADD COLUMN deleted_by UUID DEFAULT NULL;
 
 -- Index for active assets (most common query)
-CREATE INDEX idx_assets_active 
-    ON migration.assets(client_account_id, engagement_id) 
+CREATE INDEX idx_assets_active
+    ON migration.assets(client_account_id, engagement_id)
     WHERE deleted_at IS NULL;
 
 -- Index for trash view
-CREATE INDEX idx_assets_deleted 
-    ON migration.assets(deleted_at DESC) 
+CREATE INDEX idx_assets_deleted
+    ON migration.assets(deleted_at DESC)
     WHERE deleted_at IS NOT NULL;
 ```
 
@@ -55,11 +55,11 @@ class Asset(Base):
     deleted_by: Mapped[Optional[UUID]] = mapped_column(
         UUID(as_uuid=True), nullable=True, default=None
     )
-    
+
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
-    
+
     @property
     def is_active(self) -> bool:
         return self.deleted_at is None
@@ -76,7 +76,7 @@ class AssetSoftDeleteService:
         asset.deleted_by = deleted_by
         await self.db.commit()
         return asset
-    
+
     async def restore_asset(self, asset_id: UUID, restored_by: UUID) -> Asset:
         """Restore soft-deleted asset"""
         asset = await self._get_deleted_asset(asset_id)
@@ -96,11 +96,11 @@ class AssetRepository:
             Asset.client_account_id == self.client_account_id,
             Asset.engagement_id == self.engagement_id
         )
-        
+
         # Default: exclude soft-deleted
         if not include_deleted:
             stmt = stmt.where(Asset.deleted_at.is_(None))
-        
+
         return await self.db.execute(stmt).scalars().all()
 ```
 
@@ -176,8 +176,8 @@ export const useAssetSoftDelete = () => {
 ### 1. Partial Index for Performance
 ```sql
 -- Only index active assets (most common query)
-CREATE INDEX idx_assets_active 
-    ON migration.assets(client_account_id, engagement_id) 
+CREATE INDEX idx_assets_active
+    ON migration.assets(client_account_id, engagement_id)
     WHERE deleted_at IS NULL;
 ```
 
@@ -231,8 +231,8 @@ const confirmed = await confirm(
 ### Active Assets Query (Optimized)
 ```sql
 SELECT * FROM migration.assets
-WHERE client_account_id = ? 
-  AND engagement_id = ? 
+WHERE client_account_id = ?
+  AND engagement_id = ?
   AND deleted_at IS NULL  -- Uses partial index
 ORDER BY name;
 ```
@@ -242,8 +242,8 @@ ORDER BY name;
 ### Trash Query
 ```sql
 SELECT * FROM migration.assets
-WHERE client_account_id = ? 
-  AND engagement_id = ? 
+WHERE client_account_id = ?
+  AND engagement_id = ?
   AND deleted_at IS NOT NULL  -- Uses partial index
 ORDER BY deleted_at DESC;  -- Most recent first
 ```
@@ -283,7 +283,7 @@ await log_change(
 
 ### Query Deletion History
 ```sql
-SELECT asset_id, deleted_at, deleted_by, 
+SELECT asset_id, deleted_at, deleted_by,
        changed_at, changed_by
 FROM migration.asset_field_change_log
 WHERE field_name = 'deleted_at'
@@ -298,11 +298,11 @@ ORDER BY changed_at DESC;
 async def test_soft_delete_asset():
     asset = await service.create_asset(data)
     assert asset.is_active
-    
+
     deleted = await service.soft_delete_asset(asset.id, user_id)
     assert deleted.is_deleted
     assert deleted.deleted_by == user_id
-    
+
     restored = await service.restore_asset(asset.id, user_id)
     assert restored.is_active
 ```
@@ -312,19 +312,19 @@ async def test_soft_delete_asset():
 async def test_soft_delete_hides_from_list():
     asset1 = await service.create_asset(data1)
     asset2 = await service.create_asset(data2)
-    
+
     # Both visible initially
     assets = await repo.get_all()
     assert len(assets) == 2
-    
+
     # Soft delete one
     await service.soft_delete_asset(asset1.id, user_id)
-    
+
     # Only one visible
     assets = await repo.get_all()
     assert len(assets) == 1
     assert assets[0].id == asset2.id
-    
+
     # Both visible with include_deleted=True
     all_assets = await repo.get_all(include_deleted=True)
     assert len(all_assets) == 2
@@ -335,21 +335,21 @@ async def test_soft_delete_hides_from_list():
 test('soft delete and restore workflow', async ({ page }) => {
   // Navigate to inventory
   await page.goto('/discovery/inventory');
-  
+
   // Delete asset
   await page.click('[data-asset="prod-db-01"] [data-action="delete"]');
   await page.click('[data-confirm="delete"]');
-  
+
   // Verify removed from list
   await expect(page.locator('[data-asset="prod-db-01"]')).not.toBeVisible();
-  
+
   // View trash
   await page.click('[data-action="view-trash"]');
   await expect(page.locator('[data-asset="prod-db-01"]')).toBeVisible();
-  
+
   // Restore asset
   await page.click('[data-asset="prod-db-01"] [data-action="restore"]');
-  
+
   // Return to inventory
   await page.click('[data-action="back-to-inventory"]');
   await expect(page.locator('[data-asset="prod-db-01"]')).toBeVisible();

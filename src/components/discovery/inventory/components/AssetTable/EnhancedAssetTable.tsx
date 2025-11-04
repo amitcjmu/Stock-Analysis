@@ -1,23 +1,34 @@
+/**
+ * Enhanced Asset Table Component (Issues #911 and #912)
+ * Features:
+ * - AI Grid inline editing with validation
+ * - Soft delete with trash view
+ * - Restore functionality
+ * - Bulk operations
+ */
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { AssetInventory } from '../../types/inventory.types';
+import { Button } from '@/components/ui/button';
+import { Trash2, RotateCcw } from 'lucide-react';
 import type { Asset } from '@/types/asset';
 import { AssetTableFilters } from './AssetTableFilters';
 import { AssetTablePagination } from './AssetTablePagination';
 import { ColumnSelector } from './ColumnSelector';
-import { getReadinessColor } from '../../utils/iconHelpers'
-import { getTypeIcon } from '../../utils/iconHelpers'
-import { EnhancedAssetTable } from './EnhancedAssetTable';
+import { EditableCell } from './EditableCell';
+import { getReadinessColor, getTypeIcon } from '../../utils/iconHelpers';
+import { useAssetInventoryGrid } from '@/hooks/discovery/useAssetInventoryGrid';
+import { useAssetSoftDelete } from '@/hooks/discovery/useAssetSoftDelete';
 
-interface AssetTableProps {
-  assets: AssetInventory[] | Asset[];
-  filteredAssets: AssetInventory[] | Asset[];
-  selectedAssets: string[] | number[];
-  onSelectAsset: (assetId: string | number) => void;
-  onSelectAll: (assetIds: string[] | number[]) => void;
+interface EnhancedAssetTableProps {
+  assets: Asset[];
+  filteredAssets: Asset[];
+  selectedAssets: number[];
+  onSelectAsset: (assetId: number) => void;
+  onSelectAll: (assetIds: number[]) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   selectedEnvironment: string;
@@ -37,10 +48,9 @@ interface AssetTableProps {
   onProcessForAssessment?: () => void;
   isApplicationsSelected?: boolean;
   isTrashView?: boolean;
-  enableInlineEditing?: boolean;
 }
 
-export const AssetTable: React.FC<AssetTableProps> = ({
+export const EnhancedAssetTable: React.FC<EnhancedAssetTableProps> = ({
   assets,
   filteredAssets,
   selectedAssets,
@@ -64,55 +74,52 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   isReclassifying,
   onProcessForAssessment,
   isApplicationsSelected,
-  isTrashView = false,
-  enableInlineEditing = false
+  isTrashView = false
 }) => {
-  // Use enhanced table if inline editing is enabled, it's the trash view, or if we're dealing with Asset[] type
-  const isAssetType = assets.length > 0 && typeof assets[0].id === 'number';
+  const { editableColumns, updateField, isUpdating } = useAssetInventoryGrid();
+  const { softDelete, restore, isDeleting, isRestoring } = useAssetSoftDelete();
 
-  if (enableInlineEditing || isTrashView || isAssetType) {
-    return (
-      <EnhancedAssetTable
-        assets={assets as Asset[]}
-        filteredAssets={filteredAssets as Asset[]}
-        selectedAssets={selectedAssets as number[]}
-        onSelectAsset={onSelectAsset as (id: number) => void}
-        onSelectAll={onSelectAll as (ids: number[]) => void}
-        searchTerm={searchTerm}
-        onSearchChange={onSearchChange}
-        selectedEnvironment={selectedEnvironment}
-        onEnvironmentChange={onEnvironmentChange}
-        uniqueEnvironments={uniqueEnvironments}
-        showAdvancedFilters={showAdvancedFilters}
-        onToggleAdvancedFilters={onToggleAdvancedFilters}
-        onExport={onExport}
-        currentPage={currentPage}
-        recordsPerPage={recordsPerPage}
-        onPageChange={onPageChange}
-        selectedColumns={selectedColumns}
-        allColumns={allColumns}
-        onToggleColumn={onToggleColumn}
-        onReclassifySelected={onReclassifySelected}
-        isReclassifying={isReclassifying}
-        onProcessForAssessment={onProcessForAssessment}
-        isApplicationsSelected={isApplicationsSelected}
-        isTrashView={isTrashView}
-      />
-    );
-  }
-
-  // Legacy AssetTable for AssetInventory type
   const totalPages = Math.ceil(filteredAssets.length / recordsPerPage);
   const startIndex = (currentPage - 1) * recordsPerPage;
   const endIndex = startIndex + recordsPerPage;
   const currentAssets = filteredAssets.slice(startIndex, endIndex);
   const currentAssetIds = currentAssets.map(a => a.id);
 
-  const formatValue = (value: unknown, column: string): JSX.Element => {
-    if (value === null || value === undefined) return '-';
+  const handleCellEdit = async (asset_id: number, field_name: string, field_value: any) => {
+    updateField({ asset_id, field_name, field_value });
+  };
 
+  const handleDelete = (asset: Asset) => {
+    softDelete(asset.id, asset.name);
+  };
+
+  const handleRestore = (asset: Asset) => {
+    restore(asset.id, asset.name);
+  };
+
+  const formatValue = (asset: Asset, column: string): JSX.Element => {
+    const value = asset[column as keyof Asset];
+
+    if (value === null || value === undefined) return <span>-</span>;
+
+    // Find editable column configuration
+    const editableColumn = editableColumns.find(col => col.field_name === column);
+
+    // If column is editable and not in trash view, render EditableCell
+    if (editableColumn && !isTrashView) {
+      return (
+        <EditableCell
+          value={value}
+          column={editableColumn}
+          onSave={(newValue) => handleCellEdit(asset.id, column, newValue)}
+          isUpdating={isUpdating}
+        />
+      );
+    }
+
+    // Special formatting for non-editable or trash view columns
     if (column === 'risk_score' || column === 'migration_readiness') {
-      const numValue = typeof value === 'number' ? value : parseInt(value);
+      const numValue = typeof value === 'number' ? value : parseInt(value as string);
       const color = getReadinessColor(numValue);
       return (
         <div className="flex items-center gap-2">
@@ -127,36 +134,38 @@ export const AssetTable: React.FC<AssetTableProps> = ({
     if (column === 'business_criticality' || column === 'criticality') {
       const variant = value === 'High' ? 'destructive' :
                      value === 'Medium' ? 'secondary' : 'default';
-      return <Badge variant={variant}>{value}</Badge>;
+      return <Badge variant={variant}>{String(value)}</Badge>;
     }
 
     if (column === 'status') {
       const variant = value === 'Active' ? 'default' : 'secondary';
-      return <Badge variant={variant}>{value}</Badge>;
+      return <Badge variant={variant}>{String(value)}</Badge>;
     }
 
     if (column === 'asset_type') {
-      const Icon = getTypeIcon(value);
+      const Icon = getTypeIcon(value as string);
       return (
         <div className="flex items-center gap-2">
           <Icon className="h-4 w-4" />
-          <span>{value}</span>
+          <span>{String(value)}</span>
         </div>
       );
     }
 
-    if (column === 'last_updated' && value) {
-      return new Date(value).toLocaleDateString();
+    if ((column === 'last_updated' || column === 'deleted_at') && value) {
+      return <span>{new Date(value as string).toLocaleDateString()}</span>;
     }
 
-    return String(value);
+    return <span>{String(value)}</span>;
   };
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Asset Inventory</CardTitle>
+          <CardTitle>
+            {isTrashView ? 'Deleted Assets (Trash)' : 'Asset Inventory'}
+          </CardTitle>
           <ColumnSelector
             allColumns={allColumns}
             selectedColumns={selectedColumns}
@@ -184,7 +193,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
         <div className="mt-4 border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+              <thead className={`${isTrashView ? 'bg-red-50' : 'bg-gray-50'} border-b`}>
                 <tr>
                   <th className="p-3 text-left">
                     <Checkbox
@@ -200,11 +209,17 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                       ).join(' ')}
                     </th>
                   ))}
+                  <th className="p-3 text-left text-sm font-medium text-gray-700">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {currentAssets.map((asset) => (
-                  <tr key={asset.id} className="hover:bg-gray-50">
+                  <tr
+                    key={asset.id}
+                    className={`hover:bg-gray-50 ${isTrashView ? 'opacity-60' : ''}`}
+                  >
                     <td className="p-3">
                       <Checkbox
                         checked={selectedAssets.includes(asset.id)}
@@ -213,9 +228,32 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                     </td>
                     {selectedColumns.map(column => (
                       <td key={column} className="p-3 text-sm">
-                        {formatValue(asset[column], column)}
+                        {formatValue(asset, column)}
                       </td>
                     ))}
+                    <td className="p-3">
+                      {isTrashView ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRestore(asset)}
+                          disabled={isRestoring}
+                          title="Restore asset"
+                        >
+                          <RotateCcw className="h-4 w-4 text-green-600" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(asset)}
+                          disabled={isDeleting}
+                          title="Move to trash"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -88,6 +88,9 @@ class APITags:
     LEGACY_UPLOAD = "Legacy Upload"
     QUALITY_ANALYSIS = "Quality Analysis"
 
+    # Asset Management
+    ASSETS = "Assets"
+
     @classmethod
     def get_all_tags(cls) -> list[str]:
         """Return all defined tags for validation."""

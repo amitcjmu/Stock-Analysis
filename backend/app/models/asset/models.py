@@ -301,6 +301,21 @@ class Asset(
         comment="The user who last updated this asset record.",
     )
 
+    # Soft Delete Fields (Issue #912)
+    deleted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None,
+        comment="Timestamp when the asset was soft deleted (NULL if active).",
+    )
+    deleted_by = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+        default=None,
+        comment="User ID who performed the soft delete.",
+    )
+
     # Relationships
     client_account = relationship("ClientAccount")
     migration = relationship("Migration", back_populates="assets")

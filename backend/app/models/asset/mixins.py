@@ -31,6 +31,16 @@ class AssetPropertiesMixin:
         """Check if asset has dependencies."""
         return bool(self.dependencies and len(self.dependencies) > 0)
 
+    @property
+    def is_deleted(self) -> bool:
+        """Check if asset has been soft deleted (Issue #912)."""
+        return self.deleted_at is not None
+
+    @property
+    def is_active(self) -> bool:
+        """Check if asset is active (not soft deleted) (Issue #912)."""
+        return self.deleted_at is None
+
 
 class AssetBusinessLogicMixin:
     """Mixin providing business logic methods for Asset model."""

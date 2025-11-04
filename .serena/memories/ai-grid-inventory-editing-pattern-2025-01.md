@@ -1,7 +1,7 @@
 # AI Grid Pattern: Inline Editing for Asset Inventory
 
-**Date**: January 2025  
-**Context**: Need to fix AI misclassifications and data gaps after inventory creation  
+**Date**: January 2025
+**Context**: Need to fix AI misclassifications and data gaps after inventory creation
 **Issue**: #911
 
 ## Problem
@@ -101,17 +101,17 @@ def _validate_field_value(field_name: str, value: Any) -> Any:
     if field_name in ["cpu_cores", "memory_gb", "storage_gb"]:
         # Numeric: 0 ≤ value ≤ max_value
         return float(value) if isinstance(value, (int, float)) else None
-    
+
     elif field_name in ["asset_type", "criticality", "environment"]:
         # Enum: value in allowed_values
         allowed = get_allowed_enum_values(field_name)
         if value not in allowed:
             raise ValueError(f"Invalid {field_name}: {value}")
-    
+
     elif field_name in ["name", "hostname", "operating_system"]:
         # String: trim whitespace
         return str(value).strip() if value else None
-    
+
     return value
 ```
 
@@ -207,27 +207,27 @@ class AssetFieldUpdateService:
     ) -> Asset:
         # 1. Fetch asset with tenant scoping
         asset = await self._get_asset_with_tenant_check(asset_id)
-        
+
         # 2. Store old value for audit
         old_value = getattr(asset, field_name, None)
-        
+
         # 3. Validate new value
         validated_value = self._validate_field_value(field_name, new_value)
-        
+
         # 4. Update field
         setattr(asset, field_name, validated_value)
         asset.updated_at = datetime.utcnow()
         asset.updated_by = updated_by
-        
+
         # 5. Commit transaction
         await self.db.commit()
         await self.db.refresh(asset)
-        
+
         # 6. Log audit trail (optional)
         await self._log_field_change(
             asset_id, field_name, old_value, validated_value, updated_by
         )
-        
+
         return asset
 ```
 
@@ -328,7 +328,7 @@ async def test_update_asset_field_with_validation():
         json={"value": 16}
     )
     assert response.status_code == 200
-    
+
     # Attempt invalid value
     response = await client.patch(
         f"/api/v1/assets/{asset_id}/fields/cpu_cores",
@@ -341,16 +341,16 @@ async def test_update_asset_field_with_validation():
 ```typescript
 test('edit asset criticality inline', async ({ page }) => {
   await page.goto('/discovery/inventory');
-  
+
   // Click criticality cell
   await page.click('[data-row="0"] [data-field="criticality"]');
-  
+
   // Select new value
   await page.selectOption('[data-field="criticality"] select', 'High');
-  
+
   // Verify checkmark appears
   await expect(page.locator('[data-row="0"] .success-icon')).toBeVisible();
-  
+
   // Verify value persists on reload
   await page.reload();
   await expect(page.locator('[data-row="0"] [data-field="criticality"]')).toHaveText('High');
