@@ -204,12 +204,88 @@ NUMERIC_FIELD_CONVERTERS = {
 }
 
 
+# VARCHAR field length limits from database schema
+# CC: CRITICAL - Prevents StringDataRightTruncationError during conflict resolution (Issue #921)
+# PostgreSQL VARCHAR(n) limits by character count (not bytes), matching Python len()
+# No safety margin needed - exact limits prevent unnecessary data loss
+VARCHAR_FIELD_LIMITS = {
+    # SMALL_STRING_LENGTH = 50
+    "asset_type": 50,
+    "status": 50,
+    "source_phase": 50,
+    "current_phase": 50,
+    "rack_location": 50,
+    "six_r_strategy": 50,
+    "migration_status": 50,
+    "assessment_readiness": 50,
+    "environment": 50,
+    # MEDIUM_STRING_LENGTH = 100
+    "location": 100,
+    "datacenter": 100,
+    "department": 100,
+    "business_owner": 100,
+    "technical_owner": 100,
+    "os_version": 100,
+    "fqdn": 100,
+    "business_criticality": 100,
+    "criticality": 100,
+    "technology_stack": 100,
+    # LARGE_STRING_LENGTH = 255
+    "name": 255,
+    "asset_name": 255,
+    "hostname": 255,
+    "application_name": 255,
+    "operating_system": 255,
+}
+
+
+def truncate_string_to_limit(field_name: str, value: str, limit: int) -> str:
+    """
+    Truncate string value to fit VARCHAR database constraint.
+
+    Prevents StringDataRightTruncationError by enforcing field length limits
+    during asset updates and conflict resolution.
+
+    Args:
+        field_name: Name of the field (for logging)
+        value: String value to truncate
+        limit: Maximum allowed length
+
+    Returns:
+        Truncated string if necessary, original value if within limit
+    """
+    if len(value) <= limit:
+        return value
+
+    truncated = value[:limit]
+
+    # Only add ellipsis to log output if strings exceed display limit
+    log_display_limit = 50
+    original_display = (
+        f"{value[:log_display_limit]}..." if len(value) > log_display_limit else value
+    )
+    truncated_display = (
+        f"{truncated[:log_display_limit]}..."
+        if len(truncated) > log_display_limit
+        else truncated
+    )
+
+    logger.warning(
+        f"⚠️ Truncated {field_name} from {len(value)} to {limit} chars: "
+        f"'{original_display}' → '{truncated_display}'"
+    )
+    return truncated
+
+
 def convert_single_field_value(field_name: str, raw_value):
     """
     Convert a single field value to proper type based on field name.
 
     CC: Fixes production bug where CSV imports provide string values
     but database expects typed values (e.g., cpu_cores='8' as INTEGER).
+
+    CC: Issue #921 - Added VARCHAR truncation to prevent StringDataRightTruncationError
+    during conflict resolution when merged field values exceed database constraints.
 
     Args:
         field_name: Name of the field
@@ -231,5 +307,12 @@ def convert_single_field_value(field_name: str, raw_value):
         converter = NUMERIC_FIELD_CONVERTERS[field_name]
         return converter(raw_value, None)
 
-    # For non-numeric fields, return as-is
+    # CC FIX Issue #921: Truncate VARCHAR fields to prevent database constraint violations
+    # This fixes StringDataRightTruncationError during conflict resolution when users
+    # select verbose field values from "new" asset that exceed VARCHAR limits
+    if field_name in VARCHAR_FIELD_LIMITS and isinstance(raw_value, str):
+        limit = VARCHAR_FIELD_LIMITS[field_name]
+        return truncate_string_to_limit(field_name, raw_value, limit)
+
+    # For other fields, return as-is
     return raw_value
