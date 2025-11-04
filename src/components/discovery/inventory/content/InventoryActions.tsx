@@ -87,7 +87,9 @@ export const useInventoryActions = ({
     try {
       console.log(`🔄 Reclassifying ${selectedAssets.length} selected assets...`);
 
-      const response = await apiCall('/assets/auto-classify', {
+      // CC FIX: Correct API endpoint path (was /assets/auto-classify causing 404)
+      // Backend endpoint: /api/v1/asset-inventory/auto-classify
+      const response = await apiCall('/asset-inventory/auto-classify', {
         method: 'POST',
         body: JSON.stringify({
           asset_ids: selectedAssets,

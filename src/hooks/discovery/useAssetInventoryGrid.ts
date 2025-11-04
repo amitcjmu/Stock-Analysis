@@ -33,16 +33,17 @@ export interface EditableColumn {
 
 /**
  * Asset type options for dropdown
+ * CC FIX: Use lowercase values to match backend enum validation
  */
 const ASSET_TYPE_OPTIONS = [
-  { value: 'SERVER', label: 'Server' },
-  { value: 'APPLICATION', label: 'Application' },
-  { value: 'DATABASE', label: 'Database' },
-  { value: 'NETWORK_DEVICE', label: 'Network Device' },
-  { value: 'STORAGE_DEVICE', label: 'Storage Device' },
-  { value: 'SECURITY_DEVICE', label: 'Security Device' },
-  { value: 'VIRTUALIZATION', label: 'Virtualization' },
-  { value: 'UNKNOWN', label: 'Unknown' }
+  { value: 'server', label: 'Server' },
+  { value: 'application', label: 'Application' },
+  { value: 'database', label: 'Database' },
+  { value: 'network', label: 'Network Device' },
+  { value: 'storage', label: 'Storage Device' },
+  { value: 'security_group', label: 'Security Device' },
+  { value: 'virtual_machine', label: 'Virtualization' },
+  { value: 'other', label: 'Other' }
 ];
 
 /**
@@ -86,7 +87,7 @@ const SIXR_STRATEGY_OPTIONS = [
  */
 export const EDITABLE_COLUMNS: EditableColumn[] = [
   {
-    field_name: 'name',
+    field_name: 'asset_name',  // CC FIX: Use 'asset_name' to match Asset type field
     display_name: 'Asset Name',
     column_type: 'text',
     editable: true,

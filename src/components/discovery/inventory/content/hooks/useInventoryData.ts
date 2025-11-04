@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Asset } from '../../../../../types/asset';
-import type { AssetInventory } from '../../types/inventory.types';
 
 interface UseInventoryDataProps {
   clientId?: number;
@@ -35,7 +34,14 @@ export const useInventoryData = ({
   setNeedsClassification,
   setHasTriggeredInventory,
   getAssetsFromFlow
-}: UseInventoryDataProps) => {
+}: UseInventoryDataProps): {
+  assets: Asset[];
+  assetsLoading: boolean;
+  refetchAssets: () => void;
+  hasBackendError: boolean;
+  isFlowNotFound: boolean;
+  error: Error | null;
+} => {
   // Get assets data - fetch from API endpoint that returns assets based on view mode
   // Updated to support both "All Assets" and "Current Flow Only" modes
   const { data: assetsData, isLoading: assetsLoading, error: assetsError, refetch: refetchAssets } = useQuery({
@@ -171,29 +177,7 @@ export const useInventoryData = ({
         // If no pagination metadata, return first page only
         if (!firstPageData.pagination) {
           console.log(`📊 Using single page (no pagination):`, firstPageData.assets.length);
-
-          // Transform and return first page assets
-          return firstPageData.assets.map((asset: Asset) => ({
-            id: asset.id,
-            asset_name: asset.name,
-            asset_type: asset.asset_type,
-            environment: asset.environment,
-            criticality: asset.business_criticality,
-            status: 'discovered',
-            six_r_strategy: asset.six_r_strategy,
-            migration_wave: asset.migration_wave,
-            application_name: asset.name,
-            hostname: asset.hostname,
-            operating_system: asset.operating_system,
-            cpu_cores: asset.cpu_cores,
-            memory_gb: asset.memory_gb,
-            storage_gb: asset.storage_gb,
-            business_criticality: asset.business_criticality,
-            risk_score: 0,
-            migration_readiness: asset.sixr_ready ? 'ready' : 'pending',
-            dependencies: 0,
-            last_updated: asset.updated_at || asset.created_at
-          }));
+          return firstPageData.assets;
         }
 
         // For 'all' mode with pagination, fetch all pages iteratively
@@ -239,28 +223,7 @@ export const useInventoryData = ({
         console.log('📊 Assets from API (final):', allAssets.length);
         console.log('📊 Assets need classification:', firstPageData.needsClassification);
 
-        // Transform all assets to match expected format
-        return allAssets.map((asset: Asset) => ({
-          id: asset.id,
-          asset_name: asset.name,
-          asset_type: asset.asset_type,
-          environment: asset.environment,
-          criticality: asset.business_criticality,
-          status: 'discovered',
-          six_r_strategy: asset.six_r_strategy,
-          migration_wave: asset.migration_wave,
-          application_name: asset.name,
-          hostname: asset.hostname,
-          operating_system: asset.operating_system,
-          cpu_cores: asset.cpu_cores,
-          memory_gb: asset.memory_gb,
-          storage_gb: asset.storage_gb,
-          business_criticality: asset.business_criticality,
-          risk_score: 0,
-          migration_readiness: asset.sixr_ready ? 'ready' : 'pending',
-          dependencies: 0,
-          last_updated: asset.updated_at || asset.created_at
-        }));
+        return allAssets;
 
       } catch (error) {
         console.error('Error fetching assets:', error);
@@ -295,7 +258,7 @@ export const useInventoryData = ({
     staleTime: 30000
   });
 
-  const assets: AssetInventory[] = useMemo(() => {
+  const assets: Asset[] = useMemo(() => {
     if (!assetsData) return [];
     if (Array.isArray(assetsData)) return assetsData;
     if (assetsData && Array.isArray((assetsData as { assets?: Asset[] }).assets)) {
