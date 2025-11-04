@@ -142,10 +142,12 @@ class RedisConnectionManager:
                 # allow_telemetry defaults to False
             )
 
+            # Set client type BEFORE test connection so _test_connection() knows to use sync API
+            self.client_type = "upstash"
+
             # Test connection
             await self._test_connection()
 
-            self.client_type = "upstash"
             self.health_status["connected"] = True
 
             return True
