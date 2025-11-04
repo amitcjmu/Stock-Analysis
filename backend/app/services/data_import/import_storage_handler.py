@@ -284,6 +284,16 @@ class ImportStorageHandler:
                 # Now trigger the master flow using existing service
                 # import_service = DataImportService(self.db, context)  # Currently unused
 
+                # 🔧 CC FIX: Ensure CrewAI environment is configured BEFORE creating MFO
+                # This prevents "OPENAI_API_KEY is required" errors during initialize_all_flows()
+                # which is called in MasterFlowOrchestrator.__init__ -> core.py:90-94
+                from app.core.crewai_env_setup import ensure_crewai_environment
+
+                ensure_crewai_environment()
+                logger.info(
+                    "✅ CrewAI environment configured for MasterFlowOrchestrator initialization"
+                )
+
                 # Create the master flow and link it to the data import
                 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
