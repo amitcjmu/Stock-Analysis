@@ -18,12 +18,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { FieldMergeSelector } from './FieldMergeSelector';
+import { DependencySelector } from './DependencySelector';
 import { assetConflictService } from '@/services/api/assetConflictService';
 import type {
   AssetConflict,
   ResolutionAction,
   ConflictResolution,
   MergeFieldSelections,
+  DependencySelection,
 } from '@/types/assetConflict';
 import { useToast } from '@/components/ui/use-toast';
 import SecureLogger from '@/utils/secureLogger';
@@ -33,6 +35,8 @@ interface AssetConflictModalProps {
   isOpen: boolean;
   onClose: () => void;
   onResolutionComplete: () => void;
+  client_account_id: string;
+  engagement_id: string;
 }
 
 /**
@@ -97,6 +101,8 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
   isOpen,
   onClose,
   onResolutionComplete,
+  client_account_id,
+  engagement_id,
 }) => {
   const { toast } = useToast();
 
@@ -105,6 +111,9 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
 
   // Track merge field selections for conflicts with "merge" action
   const [mergeSelections, setMergeSelections] = useState<Record<string, MergeFieldSelections>>({});
+
+  // Track dependency selections for conflicts with "create_both_with_dependency" action (Issue #910)
+  const [dependencySelections, setDependencySelections] = useState<Record<string, DependencySelection | null>>({});
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -159,9 +168,32 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
           }));
         }
       }
-    } else {
-      // Clear merge selections if action is not "merge"
+      // Clear dependency selections for merge action
+      setDependencySelections((prev) => {
+        const updated = { ...prev };
+        delete updated[conflictId];
+        return updated;
+      });
+    } else if (action === 'create_both_with_dependency') {
+      // Clear merge selections for dependency action (Issue #910)
       setMergeSelections((prev) => {
+        const updated = { ...prev };
+        delete updated[conflictId];
+        return updated;
+      });
+      // Initialize dependency selection as null (user must select)
+      setDependencySelections((prev) => ({
+        ...prev,
+        [conflictId]: null,
+      }));
+    } else {
+      // Clear both merge and dependency selections for other actions
+      setMergeSelections((prev) => {
+        const updated = { ...prev };
+        delete updated[conflictId];
+        return updated;
+      });
+      setDependencySelections((prev) => {
         const updated = { ...prev };
         delete updated[conflictId];
         return updated;
@@ -174,6 +206,14 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
     setMergeSelections((prev) => ({
       ...prev,
       [conflictId]: selections,
+    }));
+  };
+
+  // Handle dependency selections (Issue #910)
+  const handleDependencySelectionChange = (conflictId: string, selection: DependencySelection | null) => {
+    setDependencySelections((prev) => ({
+      ...prev,
+      [conflictId]: selection,
     }));
   };
 
@@ -262,17 +302,37 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
       return;
     }
 
+    // Validate dependency selections for "create_both_with_dependency" actions (Issue #910)
+    const invalidDependencyActions = conflicts.filter((c) => {
+      const action = resolutions[c.conflict_id];
+      const selection = dependencySelections[c.conflict_id];
+      return action === 'create_both_with_dependency' && !selection;
+    });
+
+    if (invalidDependencyActions.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Dependency Selection',
+        description: `Please select a parent application for ${invalidDependencyActions.length} conflict${invalidDependencyActions.length > 1 ? 's' : ''}.`,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     SecureLogger.info('Submitting conflict resolutions', { conflictCount: conflicts.length });
 
     try {
-      // Build resolution request
+      // Build resolution request (Issue #910: Added dependency_selection)
       const resolutionRequests: ConflictResolution[] = conflicts.map((conflict) => ({
         conflict_id: conflict.conflict_id,
         resolution_action: resolutions[conflict.conflict_id],
         merge_field_selections:
           resolutions[conflict.conflict_id] === 'merge'
             ? mergeSelections[conflict.conflict_id]
+            : undefined,
+        dependency_selection:
+          resolutions[conflict.conflict_id] === 'create_both_with_dependency'
+            ? dependencySelections[conflict.conflict_id] || undefined
             : undefined,
       }));
 
@@ -419,6 +479,12 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                             Merge Fields (choose field-by-field)
                           </Label>
                         </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="create_both_with_dependency" id={`${conflict.conflict_id}-dep`} />
+                          <Label htmlFor={`${conflict.conflict_id}-dep`} className="cursor-pointer">
+                            Create Both with Shared Dependency (link to parent application)
+                          </Label>
+                        </div>
                       </RadioGroup>
                     </div>
 
@@ -429,6 +495,18 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                         new_asset={conflict.new_asset}
                         onChange={(selections) => handleMergeSelectionsChange(conflict.conflict_id, selections)}
                         initialSelections={mergeSelections[conflict.conflict_id]}
+                      />
+                    )}
+
+                    {/* Dependency Selector (only for "create_both_with_dependency" action) - Issue #910 */}
+                    {currentAction === 'create_both_with_dependency' && (
+                      <DependencySelector
+                        client_account_id={client_account_id}
+                        engagement_id={engagement_id}
+                        onSelectionChange={(selection) =>
+                          handleDependencySelectionChange(conflict.conflict_id, selection)
+                        }
+                        className="mt-4 p-4 border rounded-md bg-muted/50"
                       />
                     )}
 

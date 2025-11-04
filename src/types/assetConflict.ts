@@ -88,8 +88,13 @@ export interface AssetConflict {
 
 /**
  * Resolution action types
+ * Issue #910: Added 'create_both_with_dependency' option
  */
-export type ResolutionAction = 'keep_existing' | 'replace_with_new' | 'merge';
+export type ResolutionAction =
+  | 'keep_existing'
+  | 'replace_with_new'
+  | 'merge'
+  | 'create_both_with_dependency';
 
 /**
  * Field source selection for merge action
@@ -103,13 +108,26 @@ export type FieldSource = 'existing' | 'new';
 export type MergeFieldSelections = Record<string, FieldSource>;
 
 /**
+ * Dependency selection for "create_both_with_dependency" action
+ * Issue #910: Allows user to link both conflicting assets to a shared parent
+ */
+export interface DependencySelection {
+  parent_asset_id: string; // UUID of parent application asset
+  parent_asset_name: string; // Display name for confirmation
+  dependency_type: 'hosting' | 'infrastructure' | 'server';
+  confidence_score?: number; // Defaults to 1.0 for user-created dependencies
+}
+
+/**
  * Single conflict resolution request
  * Matches AssetConflictResolutionRequest from backend schemas
+ * Issue #910: Added dependency_selection for create_both_with_dependency action
  */
 export interface ConflictResolution {
   conflict_id: string; // UUID
   resolution_action: ResolutionAction;
   merge_field_selections?: MergeFieldSelections; // Required if action is "merge"
+  dependency_selection?: DependencySelection; // Required if action is "create_both_with_dependency"
 }
 
 /**
@@ -123,10 +141,12 @@ export interface BulkConflictResolutionRequest {
 /**
  * Resolution response from backend
  * Matches ConflictResolutionResponse from backend schemas
+ * Issue #910: Added created_dependencies to track newly created dependency relationships
  */
 export interface ConflictResolutionResponse {
   resolved_count: number;
   total_requested: number;
+  created_dependencies?: string[]; // UUIDs of created dependency relationships
   errors?: string[];
 }
 

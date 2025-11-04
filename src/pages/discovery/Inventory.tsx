@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useState, useEffect } from 'react';
 
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
@@ -6,11 +7,15 @@ import AgentClarificationPanel from '../../components/discovery/AgentClarificati
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
 import InventoryContent from '../../components/discovery/inventory/InventoryContent';
+import { AssetCreationPreviewModal } from '../../components/discovery/AssetCreationPreviewModal';
 import { useInventoryFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Inventory = (): JSX.Element => {
   const { client, engagement } = useAuth();
+
+  // Asset preview state (Issue #907)
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Use the new auto-detection hook for consistent flow detection
   const {
@@ -21,6 +26,18 @@ const Inventory = (): JSX.Element => {
     isFlowListLoading,
     hasEffectiveFlow
   } = useInventoryFlowDetection();
+
+  // Auto-show preview modal on mount if flow is available (Issue #907)
+  useEffect(() => {
+    if (effectiveFlowId && !showPreviewModal) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        setShowPreviewModal(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveFlowId]); // Only trigger on effectiveFlowId availability, intentionally excluding showPreviewModal
 
   // Debug info for flow detection
   console.log('🔍 Inventory flow detection:', {
@@ -91,16 +108,30 @@ const Inventory = (): JSX.Element => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <div className="hidden lg:block w-64 border-r bg-white">
-        <Sidebar />
-      </div>
+    <>
+      {/* Asset Creation Preview Modal (Issue #907) */}
+      {effectiveFlowId && (
+        <AssetCreationPreviewModal
+          flow_id={effectiveFlowId}
+          isOpen={showPreviewModal}
+          onClose={() => setShowPreviewModal(false)}
+          onSuccess={() => {
+            setShowPreviewModal(false);
+            // Inventory will auto-refresh to show newly created assets
+          }}
+        />
+      )}
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
-          <div className="mb-6">
-            <ContextBreadcrumbs />
-          </div>
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+            <div className="mb-6">
+              <ContextBreadcrumbs />
+            </div>
 
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -146,6 +177,7 @@ const Inventory = (): JSX.Element => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
