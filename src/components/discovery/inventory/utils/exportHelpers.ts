@@ -21,11 +21,19 @@ export const exportAssets = (assets: Asset[], selectedColumns: string[]): void =
     const csvRows = assets.map(asset =>
       selectedColumns.map(col => {
         const value = asset[col as keyof Asset];
-        // Escape commas and quotes in CSV
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`;
+        let stringValue = value !== null && value !== undefined ? String(value) : '';
+
+        // Security: Prevent CSV formula injection by prepending single quote to dangerous characters
+        // Excel/LibreOffice interpret cells starting with =, +, -, @, or | as formulas
+        if (stringValue.length > 0 && /^[=+\-@|]/.test(stringValue)) {
+          stringValue = `'${stringValue}`;
         }
-        return value !== null && value !== undefined ? String(value) : '';
+
+        // Escape commas and quotes in CSV
+        if (stringValue.includes(',') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
       }).join(',')
     );
 

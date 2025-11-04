@@ -48,6 +48,7 @@ interface EnhancedAssetTableProps {
   onProcessForAssessment?: () => void;
   isApplicationsSelected?: boolean;
   isTrashView?: boolean;
+  enableInlineEditing?: boolean;
 }
 
 export const EnhancedAssetTable: React.FC<EnhancedAssetTableProps> = ({
@@ -74,7 +75,8 @@ export const EnhancedAssetTable: React.FC<EnhancedAssetTableProps> = ({
   isReclassifying,
   onProcessForAssessment,
   isApplicationsSelected,
-  isTrashView = false
+  isTrashView = false,
+  enableInlineEditing = true
 }) => {
   const { editableColumns, updateField, isUpdating } = useAssetInventoryGrid();
   const { softDelete, restore, isDeleting, isRestoring } = useAssetSoftDelete();
@@ -105,8 +107,8 @@ export const EnhancedAssetTable: React.FC<EnhancedAssetTableProps> = ({
     // Find editable column configuration
     const editableColumn = editableColumns.find(col => col.field_name === column);
 
-    // If column is editable and not in trash view, render EditableCell
-    if (editableColumn && !isTrashView) {
+    // If column is editable, not in trash view, and inline editing is enabled, render EditableCell
+    if (editableColumn && !isTrashView && enableInlineEditing) {
       return (
         <EditableCell
           value={value}

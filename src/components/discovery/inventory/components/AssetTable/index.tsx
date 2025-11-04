@@ -83,6 +83,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
       onProcessForAssessment={onProcessForAssessment}
       isApplicationsSelected={isApplicationsSelected}
       isTrashView={isTrashView}
+      enableInlineEditing={enableInlineEditing}
     />
   );
 };
