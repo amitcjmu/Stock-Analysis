@@ -206,35 +206,36 @@ NUMERIC_FIELD_CONVERTERS = {
 
 # VARCHAR field length limits from database schema
 # CC: CRITICAL - Prevents StringDataRightTruncationError during conflict resolution (Issue #921)
-# Safety margin: truncate at 95% of limit to account for encoding variations
+# PostgreSQL VARCHAR(n) limits by character count (not bytes), matching Python len()
+# No safety margin needed - exact limits prevent unnecessary data loss
 VARCHAR_FIELD_LIMITS = {
-    # SMALL_STRING_LENGTH = 50 (truncate at 47)
-    "asset_type": 47,
-    "status": 47,
-    "source_phase": 47,
-    "current_phase": 47,
-    "rack_location": 47,
-    "six_r_strategy": 47,
-    "migration_status": 47,
-    "assessment_readiness": 47,
-    "environment": 47,
-    # MEDIUM_STRING_LENGTH = 100 (truncate at 95)
-    "location": 95,
-    "datacenter": 95,
-    "department": 95,
-    "business_owner": 95,
-    "technical_owner": 95,
-    "os_version": 95,
-    "fqdn": 95,
-    "business_criticality": 95,
-    "criticality": 95,
-    "technology_stack": 95,
-    # LARGE_STRING_LENGTH = 255 (truncate at 240)
-    "name": 240,
-    "asset_name": 240,
-    "hostname": 240,
-    "application_name": 240,
-    "operating_system": 240,
+    # SMALL_STRING_LENGTH = 50
+    "asset_type": 50,
+    "status": 50,
+    "source_phase": 50,
+    "current_phase": 50,
+    "rack_location": 50,
+    "six_r_strategy": 50,
+    "migration_status": 50,
+    "assessment_readiness": 50,
+    "environment": 50,
+    # MEDIUM_STRING_LENGTH = 100
+    "location": 100,
+    "datacenter": 100,
+    "department": 100,
+    "business_owner": 100,
+    "technical_owner": 100,
+    "os_version": 100,
+    "fqdn": 100,
+    "business_criticality": 100,
+    "criticality": 100,
+    "technology_stack": 100,
+    # LARGE_STRING_LENGTH = 255
+    "name": 255,
+    "asset_name": 255,
+    "hostname": 255,
+    "application_name": 255,
+    "operating_system": 255,
 }
 
 
@@ -257,9 +258,21 @@ def truncate_string_to_limit(field_name: str, value: str, limit: int) -> str:
         return value
 
     truncated = value[:limit]
+
+    # Only add ellipsis to log output if strings exceed display limit
+    log_display_limit = 50
+    original_display = (
+        f"{value[:log_display_limit]}..." if len(value) > log_display_limit else value
+    )
+    truncated_display = (
+        f"{truncated[:log_display_limit]}..."
+        if len(truncated) > log_display_limit
+        else truncated
+    )
+
     logger.warning(
         f"⚠️ Truncated {field_name} from {len(value)} to {limit} chars: "
-        f"'{value[:50]}...' → '{truncated[:50]}...'"
+        f"'{original_display}' → '{truncated_display}'"
     )
     return truncated
 
