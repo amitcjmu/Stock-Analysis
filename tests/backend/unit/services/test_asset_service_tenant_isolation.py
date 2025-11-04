@@ -9,7 +9,7 @@ import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.core.request_context import RequestContext
+from app.core.context import RequestContext
 from app.services.asset_service.child_table_helpers import (
     create_eol_assessment,
     create_contacts_if_exists,

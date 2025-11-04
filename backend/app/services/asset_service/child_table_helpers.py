@@ -12,7 +12,7 @@ import logging
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.request_context import RequestContext
+from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 
