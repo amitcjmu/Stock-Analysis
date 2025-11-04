@@ -9,10 +9,10 @@ Only creates records when user actually supplies data via CSV import.
 """
 
 import logging
-import uuid
 from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +44,7 @@ async def create_eol_assessment(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    client_id: uuid.UUID,
-    engagement_id: uuid.UUID,
+    context: RequestContext,
 ) -> None:
     """Create EOL assessment record for asset."""
     from app.models.asset.specialized import AssetEOLAssessment
@@ -74,8 +73,8 @@ async def create_eol_assessment(
 
     # Create EOL assessment
     eol_assessment = AssetEOLAssessment(
-        client_account_id=client_id,
-        engagement_id=engagement_id,
+        client_account_id=context.client_account_id,
+        engagement_id=context.engagement_id,
         asset_id=asset.id,
         technology_component=asset_data.get("technology_component")
         or asset_data.get("technology_stack")
@@ -96,8 +95,7 @@ async def create_contacts_if_exists(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    client_id: uuid.UUID,
-    engagement_id: uuid.UUID,
+    context: RequestContext,
 ) -> None:
     """Create asset contact records if contact information exists."""
     from app.models.asset.specialized import AssetContact
@@ -117,8 +115,8 @@ async def create_contacts_if_exists(
         if email:
             # Create contact record
             contact = AssetContact(
-                client_account_id=client_id,
-                engagement_id=engagement_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
                 asset_id=asset.id,
                 contact_type=contact_type,
                 email=email,
@@ -138,8 +136,7 @@ async def create_child_records_if_needed(
     db: AsyncSession,
     asset,
     asset_data: Dict[str, Any],
-    client_id: uuid.UUID,
-    engagement_id: uuid.UUID,
+    context: RequestContext,
 ) -> None:
     """
     Create child table records (EOL assessments, contacts) if data exists.
@@ -148,13 +145,11 @@ async def create_child_records_if_needed(
     try:
         # 1. Create EOL Assessment if EOL data exists
         if has_eol_data(asset_data):
-            await create_eol_assessment(db, asset, asset_data, client_id, engagement_id)
+            await create_eol_assessment(db, asset, asset_data, context)
 
         # 2. Create Asset Contacts if contact data exists
         if has_contact_data(asset_data):
-            await create_contacts_if_exists(
-                db, asset, asset_data, client_id, engagement_id
-            )
+            await create_contacts_if_exists(db, asset, asset_data, context)
 
     except (ValueError, KeyError) as e:
         # Validation errors are expected, log and continue without failing asset creation.
