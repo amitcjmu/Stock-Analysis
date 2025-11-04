@@ -10,7 +10,8 @@ import logging
 from typing import List, Dict, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+from pydantic import BaseModel, Field, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -20,6 +21,25 @@ from app.models.client_account import User
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
+
+
+class ApproveAssetsRequest(BaseModel):
+    """Request model for asset approval with validation"""
+
+    approved_asset_ids: List[str] = Field(
+        ...,
+        min_items=1,
+        max_items=1000,
+        description="List of asset IDs to approve (max 1000)",
+    )
+
+    @validator("approved_asset_ids")
+    def validate_asset_ids(cls, v):
+        """Ensure all asset IDs are non-empty strings"""
+        if not all(isinstance(id, str) and id.strip() for id in v):
+            raise ValueError("All asset IDs must be non-empty strings")
+        return v
+
 
 router = APIRouter(prefix="/asset-preview")
 logger = logging.getLogger(__name__)
@@ -98,7 +118,7 @@ async def get_asset_preview(
 @router.post("/{flow_id}/approve")
 async def approve_asset_preview(
     flow_id: UUID,
-    approved_asset_ids: List[str],
+    request: ApproveAssetsRequest = Body(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     request_context: RequestContext = Depends(get_request_context),
@@ -110,11 +130,15 @@ async def approve_asset_preview(
 
     Args:
         flow_id: Master flow UUID
-        approved_asset_ids: List of asset IDs approved for creation
+        request: Validated request containing approved_asset_ids (1-1000 items)
 
     Returns:
         Dictionary with created asset count and status
+
+    Raises:
+        HTTPException: 400 if asset_ids invalid, 404 if flow not found
     """
+    approved_asset_ids = request.approved_asset_ids
     client_account_id = UUID(request_context.client_account_id)
     engagement_id = UUID(request_context.engagement_id)
 
@@ -151,12 +175,8 @@ async def approve_asset_preview(
     from app.api.v1.endpoints.unified_discovery.flow_control_handlers import (
         resume_flow as resume_flow_handler,
     )
-    from app.core.context import get_current_context
 
     try:
-        # Create context for resume call
-        resume_context = get_current_context()
-
         # Resume the flow - this will re-run the asset_inventory phase
         # which will now see the approved_asset_ids and create the assets
         await resume_flow_handler(

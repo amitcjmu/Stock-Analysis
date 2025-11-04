@@ -1,7 +1,7 @@
 """Add confidence_score to asset_dependencies
 
-Revision ID: 123
-Revises: 122
+Revision ID: 123_add_confidence_score_to_asset_dependencies
+Revises: 122_add_refresh_tokens_table
 Create Date: 2025-11-03
 
 Per Issue #910: Add confidence_score field to track manual vs. auto-detected dependencies.
@@ -13,8 +13,8 @@ from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision = "123"
-down_revision = "122"
+revision = "123_add_confidence_score_to_asset_dependencies"
+down_revision = "122_add_refresh_tokens_table"
 branch_labels = None
 depends_on = None
 

@@ -59,7 +59,7 @@ export const approveAssets = async (
   return apiCall(`/api/v1/asset-preview/${flow_id}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(asset_ids), // Backend expects List[str]
+    body: JSON.stringify({ approved_asset_ids: asset_ids }), // Pydantic model expects object
   });
 };
 

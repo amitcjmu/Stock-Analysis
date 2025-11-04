@@ -78,11 +78,16 @@ class AssetConflictService:
         # Commit transaction if no errors, otherwise rollback
         if errors:
             await self.db.rollback()
+            # CC FIX (Qodo Security): Clear lists after rollback to reflect actual DB state
+            created_assets.clear()
+            created_dependencies.clear()
+            resolved_count = 0
         else:
             await self.db.commit()
+            resolved_count = len(request.resolutions)
 
         return ConflictResolutionResponse(
-            resolved_count=len(request.resolutions) - len(errors),
+            resolved_count=resolved_count,
             total_requested=len(request.resolutions),
             created_assets=created_assets,
             created_dependencies=created_dependencies,
@@ -121,7 +126,7 @@ class AssetConflictService:
                     "Missing existing_asset_id or new_asset_data for replace action"
                 )
 
-            updated_asset = await self.asset_repository.update(
+            _ = await self.asset_repository.update(
                 resolution.existing_asset_id, **resolution.new_asset_data
             )
             logger.info(
