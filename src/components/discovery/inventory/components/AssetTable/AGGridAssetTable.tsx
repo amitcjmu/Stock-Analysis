@@ -152,10 +152,13 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
       const selectedRows = event.api.getSelectedRows();
       const selectedIds = selectedRows.map((row) => row.id);
 
-      // Sync with parent component's selection state
-      // This is a simplified version - you may need more complex logic
-      // to handle select all vs individual selections
-      if (selectedIds.length !== selectedAssets.length) {
+      // CC FIX (Qodo): Check if selection actually changed by comparing IDs, not just length
+      // This prevents false negatives when deselecting one asset and selecting another (same length)
+      const hasChanged = selectedIds.length !== selectedAssets.length ||
+        selectedIds.some(id => !selectedAssets.includes(id)) ||
+        selectedAssets.some(id => !selectedIds.includes(id));
+
+      if (hasChanged) {
         onSelectAll(selectedIds);
       }
     },

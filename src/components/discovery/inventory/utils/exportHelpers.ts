@@ -23,14 +23,19 @@ export const exportAssets = (assets: Asset[], selectedColumns: string[]): void =
         const value = asset[col as keyof Asset];
         let stringValue = value !== null && value !== undefined ? String(value) : '';
 
+        // CC FIX (Qodo): Enhanced CSV security - remove newlines/tabs that could break CSV structure
+        stringValue = stringValue.replace(/[\r\n\t]/g, ' ');
+
         // Security: Prevent CSV formula injection by prepending single quote to dangerous characters
         // Excel/LibreOffice interpret cells starting with =, +, -, @, or | as formulas
+        let needsQuoting = false;
         if (stringValue.length > 0 && /^[=+\-@|]/.test(stringValue)) {
           stringValue = `'${stringValue}`;
+          needsQuoting = true;
         }
 
-        // Escape commas and quotes in CSV
-        if (stringValue.includes(',') || stringValue.includes('"')) {
+        // Always wrap in quotes if contains special characters (commas, quotes) or was modified for security
+        if (needsQuoting || stringValue.includes(',') || stringValue.includes('"')) {
           return `"${stringValue.replace(/"/g, '""')}"`;
         }
         return stringValue;
