@@ -136,6 +136,9 @@ export interface ConflictResolution {
  */
 export interface BulkConflictResolutionRequest {
   resolutions: ConflictResolution[];
+  client_account_id: string; // Multi-tenant isolation
+  engagement_id: string; // Multi-tenant isolation
+  flow_id: string; // Flow context for conflict resolution
 }
 
 /**

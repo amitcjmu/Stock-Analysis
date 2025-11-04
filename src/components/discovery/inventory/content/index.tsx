@@ -357,6 +357,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           setShowConflictModal(false);
         }}
         onResolutionComplete={handleConflictResolutionComplete}
+        client_account_id={client?.id || ''}
+        engagement_id={engagement?.id || ''}
+        flow_id={flowId || ''}
       />
 
       <ViewModeToggle

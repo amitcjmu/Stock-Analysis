@@ -7,6 +7,7 @@ CC: Preview transformed assets from flow_persistence_data before creating in DB
 """
 
 import logging
+from datetime import datetime
 from typing import List, Dict, Any
 from uuid import UUID
 
@@ -155,14 +156,16 @@ async def approve_asset_preview(
             detail=f"Flow {flow_id} not found",
         )
 
-    # Update flow persistence data with approval
-    from datetime import datetime
-
+    # CRITICAL FIX (Issue #917): Use dictionary reassignment for SQLAlchemy change tracking
+    # Creating a new dictionary triggers automatic change detection for JSONB columns
+    # This is cleaner than mutating in-place and using flag_modified()
     persistence_data = flow.flow_persistence_data or {}
-    persistence_data["approved_asset_ids"] = approved_asset_ids
-    persistence_data["approval_timestamp"] = datetime.utcnow().isoformat()
-    persistence_data["approved_by_user_id"] = str(current_user.id)
-    flow.flow_persistence_data = persistence_data
+    flow.flow_persistence_data = {
+        **persistence_data,
+        "approved_asset_ids": approved_asset_ids,
+        "approval_timestamp": datetime.utcnow().isoformat(),
+        "approved_by_user_id": str(current_user.id),
+    }
 
     await db.commit()
 

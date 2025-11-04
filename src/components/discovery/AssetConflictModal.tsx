@@ -37,6 +37,7 @@ interface AssetConflictModalProps {
   onResolutionComplete: () => void;
   client_account_id: string;
   engagement_id: string;
+  flow_id: string; // Flow context for multi-tenant isolation
 }
 
 /**
@@ -98,11 +99,12 @@ const ALLOWED_MERGE_FIELDS = new Set([
 
 export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
   conflicts,
+  client_account_id,
+  engagement_id,
+  flow_id,
   isOpen,
   onClose,
   onResolutionComplete,
-  client_account_id,
-  engagement_id,
 }) => {
   const { toast } = useToast();
 
@@ -336,9 +338,12 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
             : undefined,
       }));
 
-      // Call backend API
+      // Call backend API with multi-tenant context (Issue: Asset conflict resolution 422 error)
       const response = await assetConflictService.resolveConflicts({
         resolutions: resolutionRequests,
+        client_account_id,
+        engagement_id,
+        flow_id,
       });
 
       SecureLogger.info('Conflict resolution response', response);

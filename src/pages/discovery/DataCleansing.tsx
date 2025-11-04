@@ -580,7 +580,7 @@ const DataCleansing: React.FC = () => {
       isAnalyzing={isAnalyzing}
     >
       {/* Asset Conflict Resolution Modal (Issue #910) */}
-      {client && engagement && (
+      {client && engagement && effectiveFlowId && (
         <AssetConflictModal
           conflicts={assetConflicts}
           isOpen={showConflictModal}
@@ -588,6 +588,7 @@ const DataCleansing: React.FC = () => {
           onResolutionComplete={handleConflictResolutionComplete}
           client_account_id={client.id.toString()}
           engagement_id={engagement.id.toString()}
+          flow_id={effectiveFlowId}
         />
       )}
 
