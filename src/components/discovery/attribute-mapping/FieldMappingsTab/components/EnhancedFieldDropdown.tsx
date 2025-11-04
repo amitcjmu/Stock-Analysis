@@ -57,7 +57,13 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
     }
   }, [safeAvailableFields.length]);
 
-  const categories = ['all', ...new Set(safeAvailableFields.map(field => field?.category || 'unknown'))];
+  const allCategories = Array.from(new Set(safeAvailableFields.map(field => field?.category || 'unknown')));
+  // Move 'other' to the end
+  const filteredCategories = allCategories.filter(cat => cat !== 'other');
+  if (allCategories.includes('other')) {
+    filteredCategories.push('other');
+  }
+  const categories = ['all', ...filteredCategories];
 
   const filteredFields = safeAvailableFields.filter(field => {
     try {
@@ -115,7 +121,7 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
             >
               {categories.map(category => (
                 <option key={category} value={category}>
-                  {category === 'all' ? 'All Categories' : category}
+                  {category === 'all' ? 'All Categories' : category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </option>
               ))}
             </select>
@@ -149,7 +155,9 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium">{field.name}</span>
+                        <span className="font-medium text-gray-900">
+                          {field.display_name || field.name}
+                        </span>
                         {field.required && (
                           <span className="text-xs text-red-500">*</span>
                         )}
@@ -157,9 +165,9 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
                           <span className="text-xs text-purple-600">Custom</span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {field.description || 'No description'}
-                      </div>
+                      {field.short_hint && (
+                        <div className="text-xs text-gray-500 mt-1">{field.short_hint}</div>
+                      )}
                     </div>
                     <div className="text-xs text-gray-400 ml-2">
                       {field.type}

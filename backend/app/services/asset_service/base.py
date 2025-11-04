@@ -9,7 +9,7 @@ CC: Service layer for asset operations following repository pattern
 
 import logging
 import uuid
-from typing import Dict, Any, Optional, Union, List, Tuple
+from typing import Dict, Any, Optional, Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -354,48 +354,3 @@ class AssetService:
         except Exception as e:
             logger.error(f"❌ Asset service failed to create asset: {e}")
             raise
-
-    async def create_or_update_asset(
-        self,
-        asset_data: Dict[str, Any],
-        flow_id: Optional[str] = None,
-        *,
-        upsert: bool = False,
-    ) -> Tuple[Optional[Any], str]:
-        """
-        Create or update asset with deduplication logic.
-
-        Wrapper method that delegates to deduplication module.
-
-        Args:
-            asset_data: Asset information
-            flow_id: Optional flow ID
-            upsert: If True, merge with existing; if False, reject duplicates
-
-        Returns:
-            Tuple of (asset, status) where status is 'created', 'updated', or 'existed'
-        """
-        from .deduplication import create_or_update_asset as dedup_create
-
-        return await dedup_create(self, asset_data, flow_id, upsert=upsert)
-
-    async def bulk_create_or_update_assets(
-        self, assets_data: List[Dict[str, Any]], flow_id: Optional[str] = None
-    ) -> List[Tuple[Optional[Any], str]]:
-        """
-        Bulk create or update assets with deduplication.
-
-        Args:
-            assets_data: List of asset data dictionaries
-            flow_id: Optional flow ID
-
-        Returns:
-            List of (asset, status) tuples
-        """
-        results = []
-        for asset_data in assets_data:
-            result = await self.create_or_update_asset(
-                asset_data, flow_id, upsert=False
-            )
-            results.append(result)
-        return results

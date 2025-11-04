@@ -65,7 +65,7 @@ const FieldMappingItem: React.FC<FieldMappingItemProps> = ({
             {/* Show current field category if mapped */}
             {mapping.targetAttribute !== 'unmapped' && Array.isArray(availableFields) && (
               <span className={`text-xs px-2 py-1 rounded ${getCategoryColor(availableFields.find(f => f.name === mapping.targetAttribute)?.category || 'unknown')}`}>
-                {availableFields.find(f => f.name === mapping.targetAttribute)?.category?.replace('_', ' ') || 'Unknown'}
+                {availableFields.find(f => f.name === mapping.targetAttribute)?.category?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown'}
               </span>
             )}
           </div>

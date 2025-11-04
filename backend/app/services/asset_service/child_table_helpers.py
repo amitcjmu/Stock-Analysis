@@ -71,7 +71,7 @@ async def create_eol_assessment(
                 f"for asset {asset.name}. Must be one of: {valid_levels}"
             )
 
-    # Create EOL assessment - extract tenant from context
+    # Create EOL assessment
     eol_assessment = AssetEOLAssessment(
         client_account_id=context.client_account_id,
         engagement_id=context.engagement_id,
@@ -113,7 +113,7 @@ async def create_contacts_if_exists(
     for email_field, (contact_type, name_field) in contact_mappings.items():
         email = asset_data.get(email_field)
         if email:
-            # Create contact record - extract tenant from context
+            # Create contact record
             contact = AssetContact(
                 client_account_id=context.client_account_id,
                 engagement_id=context.engagement_id,
@@ -141,7 +141,6 @@ async def create_child_records_if_needed(
     """
     Create child table records (EOL assessments, contacts) if data exists.
     Only creates records when user actually supplied the data via CSV.
-    Tenant context extracted from context object.
     """
     try:
         # 1. Create EOL Assessment if EOL data exists
@@ -153,11 +152,14 @@ async def create_child_records_if_needed(
             await create_contacts_if_exists(db, asset, asset_data, context)
 
     except (ValueError, KeyError) as e:
-        # Validation errors - expected, log and continue
+        # Validation errors are expected, log and continue without failing asset creation.
         logger.warning(
             f"⚠️ Validation error creating child records for asset {asset.id}: {e}"
         )
     except Exception as e:
-        # Programming/DB errors - fail fast, let transaction rollback
-        logger.error(f"❌ Failed to create child records for asset {asset.id}: {e}")
+        # For unexpected errors (e.g., DB issues), log as an error and re-raise.
+        # This will cause the transaction to roll back, ensuring data consistency.
+        logger.error(
+            f"❌ Unexpected error creating child records for asset {asset.id}: {e}"
+        )
         raise
