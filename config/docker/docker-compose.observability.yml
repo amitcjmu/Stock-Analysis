@@ -90,6 +90,8 @@ services:
       "
     volumes:
       - ./observability/data/loki:/loki
+    networks:
+      - migration_network
     restart: "no"
 
   # Loki - Log aggregation and storage
@@ -130,6 +132,8 @@ services:
       "
     volumes:
       - ./observability/data/tempo:/var/tempo
+    networks:
+      - migration_network
     restart: "no"
 
   # Tempo - Distributed tracing (replaces Jaeger)
@@ -199,6 +203,8 @@ services:
       "
     volumes:
       - ./observability/data/alloy:/var/lib/alloy
+    networks:
+      - migration_network
     restart: "no"
 
   # Alloy - Unified telemetry collector (logs, traces, metrics)
@@ -243,6 +249,7 @@ services:
 
 networks:
   migration_network:
+    name: migration_migration_network
     external: true
 
 # Volumes are bind mounts to ./observability/data/* for easy management
