@@ -29,12 +29,25 @@ const Inventory = (): JSX.Element => {
 
   // Auto-show preview modal on mount if flow is available (Issue #907)
   useEffect(() => {
+    console.log('🔍 Auto-open modal useEffect triggered:', {
+      effectiveFlowId,
+      showPreviewModal,
+      willAttemptOpen: !!effectiveFlowId && !showPreviewModal
+    });
+
     if (effectiveFlowId && !showPreviewModal) {
+      console.log('✅ Scheduling modal open in 500ms for flow:', effectiveFlowId);
+
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
+        console.log('🚀 Opening preview modal now for flow:', effectiveFlowId);
         setShowPreviewModal(true);
       }, 500);
-      return () => clearTimeout(timer);
+
+      return () => {
+        console.log('🧹 Cleaning up modal timer');
+        clearTimeout(timer);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveFlowId]); // Only trigger on effectiveFlowId availability, intentionally excluding showPreviewModal

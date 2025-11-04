@@ -71,15 +71,33 @@ export const AssetCreationPreviewModal: React.FC<
     error,
   } = useQuery<AssetPreviewResponse>({
     queryKey: ['assetPreview', flow_id],
-    queryFn: () => getAssetPreview(flow_id),
+    queryFn: async () => {
+      console.log('📡 Fetching asset preview for flow:', flow_id);
+      const result = await getAssetPreview(flow_id);
+      console.log('📊 Asset preview API response:', {
+        flow_id,
+        status: result.status,
+        count: result.count,
+        hasAssets: !!result.assets_preview,
+        assetsLength: result.assets_preview?.length || 0
+      });
+      return result;
+    },
     enabled: isOpen && !!flow_id,
     refetchInterval: (data) => {
       // Poll every 5 seconds if preview not ready, otherwise no polling
       return data?.status === 'preview_ready' ? false : 5000;
     },
     onSuccess: (data) => {
+      console.log('✅ Asset preview query success:', {
+        count: data.count,
+        status: data.status,
+        hasAssets: !!data.assets_preview
+      });
+
       // Initialize editable assets with selection state
       if (data.assets_preview && editableAssets.length === 0) {
+        console.log(`🎨 Initializing ${data.assets_preview.length} editable assets`);
         setEditableAssets(
           data.assets_preview.map((asset) => ({
             ...asset,
