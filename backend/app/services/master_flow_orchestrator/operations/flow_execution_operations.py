@@ -14,6 +14,7 @@ from app.core.context import RequestContext
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.flow_orchestration import FlowAuditLogger
 from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLevel
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
@@ -246,11 +247,39 @@ class FlowExecutionOperations:
                         f"🚀 Auto-continuing to next phase '{next_phase}' "
                         f"for flow {master_flow.flow_id} (status: {result_status})"
                     )
+
+                    # CC FIX (Issue #907): Retrieve discovery flow to pass data_import_id
+                    # to next phase (required for asset_inventory)
+                    discovery_repo = DiscoveryFlowRepository(
+                        self.db,
+                        str(master_flow.client_account_id),
+                        str(master_flow.engagement_id),
+                    )
+                    discovery_flow = await discovery_repo.get_by_flow_id(
+                        str(master_flow.flow_id)
+                    )
+
+                    # Build phase_input with necessary context
+                    next_phase_input = {
+                        "master_flow_id": str(master_flow.flow_id),
+                        "client_account_id": str(master_flow.client_account_id),
+                        "engagement_id": str(master_flow.engagement_id),
+                    }
+
+                    # Add data_import_id if available
+                    if discovery_flow and discovery_flow.data_import_id:
+                        next_phase_input["data_import_id"] = str(
+                            discovery_flow.data_import_id
+                        )
+                        logger.info(
+                            f"📋 Passing data_import_id={discovery_flow.data_import_id} to next phase"
+                        )
+
                     # Recursively execute the next phase
                     await self.execute_phase(
                         flow_id=str(master_flow.flow_id),
                         phase_name=next_phase,
-                        phase_input={},
+                        phase_input=next_phase_input,
                         validation_overrides=None,
                     )
                 else:
