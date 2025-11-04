@@ -86,7 +86,7 @@ export default function WavePlanningPage(): JSX.Element {
     refetch: refetchPlanningData
   } = useQuery({
     queryKey: ['planning-status', planning_flow_id],
-    queryFn: () => planningFlowApi.getPlanningStatus(planning_flow_id!),
+    queryFn: () => planningFlowApi.getPlanningStatus(planning_flow_id),
     enabled: !!planning_flow_id,
     staleTime: 5000,
     refetchInterval: (data) => {
