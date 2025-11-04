@@ -6,14 +6,11 @@ CC: Implements actual asset creation from raw_import_records data
 """
 
 import logging
-from datetime import datetime
 from typing import Dict, Any
 from uuid import UUID
 
 from app.services.asset_service import AssetService
 from app.services.asset_service.deduplication import bulk_prepare_conflicts
-from app.models.asset_conflict_resolution import AssetConflictResolution
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
@@ -22,41 +19,15 @@ from ..base_phase_executor import BasePhaseExecutor
 from .queries import get_raw_records, get_field_mappings
 from .commands import mark_records_processed, persist_asset_inventory_completion
 from .transforms import transform_raw_record_to_asset
+from .preview_handler import (
+    check_preview_and_approval,
+    store_preview_data,
+    filter_approved_assets,
+    mark_assets_created,
+)
+from .conflict_handler import create_conflict_free_assets, handle_conflicts
 
 logger = logging.getLogger(__name__)
-
-
-def serialize_uuids_for_jsonb(data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Convert all UUID objects to strings for JSONB storage compatibility.
-
-    PostgreSQL JSONB columns cannot directly store Python UUID objects.
-    This function recursively converts all UUID instances to strings.
-
-    Args:
-        data: Dictionary potentially containing UUID objects
-
-    Returns:
-        Dictionary with all UUIDs converted to strings
-    """
-    result = {}
-    for key, value in data.items():
-        if isinstance(value, UUID):
-            result[key] = str(value)
-        elif isinstance(value, dict):
-            result[key] = serialize_uuids_for_jsonb(value)
-        elif isinstance(value, list):
-            result[key] = [
-                (
-                    serialize_uuids_for_jsonb(item)
-                    if isinstance(item, dict)
-                    else str(item) if isinstance(item, UUID) else item
-                )
-                for item in value
-            ]
-        else:
-            result[key] = value
-    return result
 
 
 class AssetInventoryExecutor(BasePhaseExecutor):
@@ -207,24 +178,18 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 }
 
             # === ASSET PREVIEW AND APPROVAL WORKFLOW (Issue #907) ===
-            # Get master flow to check for preview data and approval
             master_flow_repo = CrewAIFlowStateExtensionsRepository(
                 db_session,
                 str(client_account_id),
                 str(engagement_id),
             )
 
-            master_flow = await master_flow_repo.get_by_flow_id(str(master_flow_id))
-            if not master_flow:
-                logger.error(f"❌ Master flow {master_flow_id} not found")
-                raise ValueError(f"Master flow {master_flow_id} not found")
-
-            persistence_data = master_flow.flow_persistence_data or {}
-
-            # Step 0: Check if preview data exists and if assets are approved
-            assets_preview = persistence_data.get("assets_preview")
-            approved_asset_ids = persistence_data.get("approved_asset_ids")
-            assets_already_created = persistence_data.get("assets_created", False)
+            # Check preview and approval status
+            (
+                assets_preview,
+                approved_asset_ids,
+                assets_already_created,
+            ) = await check_preview_and_approval(master_flow_repo, master_flow_id)
 
             # If assets were already created, skip this phase
             if assets_already_created:
@@ -239,49 +204,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
 
             # If preview data doesn't exist, store it and pause for user approval
             if not assets_preview:
-                logger.info(
-                    f"📋 Storing {len(assets_data)} assets for preview (Issue #907)"
+                return await store_preview_data(
+                    master_flow_repo, master_flow_id, assets_data, db_session
                 )
-
-                # Serialize assets_data for JSONB storage (convert UUIDs to strings)
-                serialized_assets = []
-                for i, asset in enumerate(assets_data):
-                    serialized_asset = serialize_uuids_for_jsonb(asset)
-                    # CC FIX (Issue #907): Use 'id' field for frontend compatibility
-                    # Frontend AssetPreviewData interface expects 'id', not 'temp_id'
-                    serialized_asset["id"] = f"asset-{i}"
-                    serialized_assets.append(serialized_asset)
-
-                # Store preview data in flow_persistence_data
-                persistence_data["assets_preview"] = serialized_assets
-                persistence_data["preview_generated_at"] = datetime.utcnow().isoformat()
-                master_flow.flow_persistence_data = persistence_data
-
-                # CC FIX (Issue #907): Mark JSONB column as modified for SQLAlchemy change tracking
-                from sqlalchemy.orm.attributes import flag_modified
-
-                flag_modified(master_flow, "flow_persistence_data")
-
-                await db_session.commit()
-
-                logger.info(
-                    f"✅ Stored {len(serialized_assets)} assets for preview. "
-                    "Waiting for user approval via /api/v1/asset-preview/{flow_id}/approve"
-                )
-
-                return {
-                    "status": "paused",  # Per ADR-012: Child flow status
-                    "phase": "asset_inventory",
-                    "message": (
-                        f"Preview ready: {len(serialized_assets)} assets transformed. "
-                        "Waiting for user approval before database creation."
-                    ),
-                    "preview_count": len(serialized_assets),
-                    "preview_ready": True,
-                    "phase_state": {
-                        "preview_pending_approval": True,
-                    },
-                }
 
             # If preview exists but no approval, wait
             if not approved_asset_ids:
@@ -308,24 +233,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 "Proceeding with creation..."
             )
 
-            # Filter assets_data to only approved assets
-            # Match by temp_id which was added during preview generation
-            approved_assets_data = []
-            for asset in assets_data:
-                # During transformation, we need to check if this asset was approved
-                # We'll match by index since temp_id was "asset-{i}"
-                asset_index = assets_data.index(asset)
-                temp_id = f"asset-{asset_index}"
-                if temp_id in approved_asset_ids:
-                    approved_assets_data.append(asset)
-
-            logger.info(
-                f"📋 Filtered to {len(approved_assets_data)} approved assets "
-                f"(from {len(assets_data)} total)"
-            )
-
-            # Replace assets_data with approved subset
-            assets_data = approved_assets_data
+            # Filter to only approved assets
+            assets_data = filter_approved_assets(assets_data, approved_asset_ids)
 
             if not assets_data:
                 logger.warning("⚠️ No approved assets to create")
@@ -352,162 +261,27 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Step 2: Create conflict-free assets FIRST (before pausing for conflicts)
             # CC CRITICAL FIX: Must create conflict-free assets BEFORE pausing
             # Otherwise, auto-execution will re-run the phase and create duplicate conflicts
-            logger.info(f"✅ Processing {len(conflict_free)} conflict-free assets")
-
-            created_assets = []
-            duplicate_assets = []
-            failed_count = 0
-
-            if conflict_free:
-                # Create assets via service (transaction managed by caller)
-                # CC: Don't start a new transaction - db_session already has an active transaction
-                try:
-                    results = await asset_service.bulk_create_or_update_assets(
-                        conflict_free, flow_id=master_flow_id
-                    )
-
-                    # Categorize results by status
-                    for asset, status in results:
-                        if status == "created":
-                            created_assets.append(asset)
-                            logger.debug(f"✅ Created asset: {asset.name}")
-                        elif status == "existed":
-                            duplicate_assets.append(asset)
-                            logger.debug(f"🔄 Duplicate asset skipped: {asset.name}")
-
-                except Exception as e:
-                    # If batch fails, fall back to individual processing
-                    logger.warning(
-                        f"⚠️ Batch processing failed, falling back to individual: {e}"
-                    )
-                    for asset_data in conflict_free:
-                        try:
-                            asset, status = await asset_service.create_or_update_asset(
-                                asset_data, flow_id=master_flow_id
-                            )
-
-                            if status == "created":
-                                created_assets.append(asset)
-                                logger.debug(f"✅ Created asset: {asset.name}")
-                            elif status == "existed":
-                                duplicate_assets.append(asset)
-                                logger.debug(
-                                    f"🔄 Duplicate asset skipped: {asset.name}"
-                                )
-
-                        except Exception as e:
-                            failed_count += 1
-                            logger.error(
-                                f"❌ Failed to create asset {asset_data.get('name', 'unnamed')}: {e}"
-                            )
-
-                # Flush to make asset IDs available for foreign key relationships
-                await db_session.flush()
-
-                logger.info(
-                    f"✅ Created {len(created_assets)} conflict-free assets, "
-                    f"{len(duplicate_assets)} duplicates, {failed_count} failed"
+            created_assets, duplicate_assets, failed_count = (
+                await create_conflict_free_assets(
+                    asset_service, conflict_free, master_flow_id, db_session
                 )
+            )
 
             # Step 3: If conflicts detected, store and pause flow - NEW
             if conflicts_data:
-                logger.warning(
-                    f"⚠️ Detected {len(conflicts_data)} asset conflicts - pausing for user resolution"
-                )
-
-                # Step 3a: Get discovery flow record to obtain PK for FK constraint
-                # CC FIX: Need both id (PK) and flow_id for different purposes
-                discovery_repo = DiscoveryFlowRepository(
-                    db_session, str(client_account_id), str(engagement_id)
-                )
-                # Query by flow_id (not master_flow_id) since they're typically the same
-                flow_record = await discovery_repo.get_by_flow_id(
-                    str(discovery_flow_id)
-                )
-                if not flow_record:
-                    raise ValueError(
-                        f"Discovery flow not found for flow_id {discovery_flow_id}"
-                    )
-
-                flow_pk_id = (
-                    flow_record.id
-                )  # UUID PK for FK constraint in conflict records
-                logger.info(
-                    f"📋 Retrieved discovery flow - PK: {flow_pk_id}, flow_id: {discovery_flow_id}"
-                )
-
-                # Store conflicts in database
-                for conflict in conflicts_data:
-                    # Serialize UUID objects for JSONB storage compatibility
-                    serialized_new_asset_data = serialize_uuids_for_jsonb(
-                        conflict["new_asset_data"]
-                    )
-
-                    conflict_record = AssetConflictResolution(
-                        client_account_id=UUID(client_account_id),
-                        engagement_id=UUID(engagement_id),
-                        data_import_id=UUID(data_import_id) if data_import_id else None,
-                        discovery_flow_id=flow_pk_id,  # Use PK for FK constraint
-                        master_flow_id=UUID(master_flow_id),  # Indexed for filtering
-                        conflict_type=conflict["conflict_type"],
-                        conflict_key=conflict["conflict_key"],
-                        existing_asset_id=conflict["existing_asset_id"],
-                        existing_asset_snapshot=conflict["existing_asset_data"],
-                        new_asset_data=serialized_new_asset_data,
-                        resolution_status="pending",
-                    )
-                    db_session.add(conflict_record)
-
-                await db_session.flush()
-
-                # Step 3b: Mark raw records as processed for conflict-free assets
-                # CC: Track which records have been processed (created as assets)
-                all_processed_assets = created_assets + duplicate_assets
-                if all_processed_assets:
-                    await mark_records_processed(
-                        db_session, raw_records, all_processed_assets
-                    )
-                    logger.info(
-                        f"✅ Marked {len(all_processed_assets)} records as processed"
-                    )
-
-                # Step 3c: Mark phase as complete to prevent re-execution
-                # CC CRITICAL: Set asset_inventory_completed=true even when pausing for conflicts
-                # This prevents auto-execution from re-running the phase and creating duplicate conflicts
-                await persist_asset_inventory_completion(
-                    db_session,
-                    flow_id=str(discovery_flow_id),
+                return await handle_conflicts(
+                    conflicts_data=conflicts_data,
+                    created_assets=created_assets,
+                    duplicate_assets=duplicate_assets,
+                    failed_count=failed_count,
+                    raw_records=raw_records,
+                    db_session=db_session,
                     client_account_id=str(client_account_id),
                     engagement_id=str(engagement_id),
-                    mark_flow_complete=False,  # Don't mark flow as complete yet (conflicts pending)
+                    data_import_id=str(data_import_id),
+                    discovery_flow_id=str(discovery_flow_id),
+                    master_flow_id=str(master_flow_id),
                 )
-                logger.info(
-                    "✅ Marked asset_inventory phase as complete (with pending conflicts)"
-                )
-
-                # Step 3d: Pause flow via repository - use flow_id for WHERE clause
-                # CC FIX: Pass flow_id (business identifier) not id (PK)
-                await discovery_repo.set_conflict_resolution_pending(
-                    UUID(discovery_flow_id),  # flow_id column for WHERE clause
-                    conflict_count=len(conflicts_data),
-                    data_import_id=UUID(data_import_id) if data_import_id else None,
-                )
-
-                # Step 3e: Return paused status
-                return {
-                    "status": "paused",  # Child flow status per ADR-012
-                    "phase": "asset_inventory",
-                    "message": f"Found {len(conflicts_data)} duplicate assets. User resolution required.",
-                    "conflict_count": len(conflicts_data),
-                    "conflict_free_count": len(conflict_free),
-                    "assets_created": len(created_assets),
-                    "assets_duplicates": len(duplicate_assets),
-                    "assets_failed": failed_count,
-                    "data_import_id": str(data_import_id) if data_import_id else None,
-                    "phase_state": {
-                        "conflict_resolution_pending": True,
-                    },
-                }
 
             # Step 4: No conflicts - proceed with normal completion
             logger.info("✅ No conflicts detected, proceeding with phase completion")
@@ -527,18 +301,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             )
 
             # Mark assets as created in flow_persistence_data (Issue #907)
-            # This prevents re-creation if phase re-runs
-            persistence_data["assets_created"] = True
-            persistence_data["assets_created_at"] = datetime.utcnow().isoformat()
-            persistence_data["assets_created_count"] = len(created_assets)
-            master_flow.flow_persistence_data = persistence_data
-
-            # CC FIX (Issue #907): Mark JSONB column as modified for SQLAlchemy change tracking
-            from sqlalchemy.orm.attributes import flag_modified
-
-            flag_modified(master_flow, "flow_persistence_data")
-
-            await db_session.flush()  # Persist the flag
+            await mark_assets_created(
+                master_flow_repo, master_flow_id, len(created_assets), db_session
+            )
 
             # Transaction will be committed by caller
 
