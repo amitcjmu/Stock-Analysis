@@ -128,6 +128,8 @@ async def handle_field_mapping_action(
                     )  # Demo user fallback
                     new_mapping = ImportFieldMapping(
                         data_import_id=data_import_id,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
                         source_field=source_field,
                         target_field=target_field,
                         confidence_score=mapping_data.get("confidence", 0.9),

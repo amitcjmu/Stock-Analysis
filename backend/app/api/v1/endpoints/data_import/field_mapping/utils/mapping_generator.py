@@ -74,6 +74,7 @@ class MappingGenerator:
             and_(
                 DataImport.id == import_uuid,
                 DataImport.client_account_id == client_account_uuid,
+                DataImport.engagement_id == self.context.engagement_id,
             )
         )
         import_result = await self.db.execute(import_query)
@@ -193,6 +194,7 @@ class MappingGenerator:
                                 mapping = ImportFieldMapping(
                                     data_import_id=import_uuid,
                                     client_account_id=client_account_uuid,
+                                    engagement_id=self.context.engagement_id,
                                     source_field=source_field,
                                     target_field=target_field,
                                     match_type="ai_generated",
@@ -242,6 +244,7 @@ class MappingGenerator:
                                 mapping = ImportFieldMapping(
                                     data_import_id=import_uuid,
                                     client_account_id=client_account_uuid,
+                                    engagement_id=self.context.engagement_id,
                                     source_field=source_field,
                                     target_field=target_field,
                                     match_type="ai_generated",
@@ -323,7 +326,7 @@ class MappingGenerator:
         )
 
         mappings_created = []
-        mapping_creator = FieldMappingCreator(self.db)
+        mapping_creator = FieldMappingCreator(self.db, self.context)
 
         # Only create mappings for fields that actually exist in the uploaded data
         logger.info(
