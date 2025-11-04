@@ -204,12 +204,75 @@ NUMERIC_FIELD_CONVERTERS = {
 }
 
 
+# VARCHAR field length limits from database schema
+# CC: CRITICAL - Prevents StringDataRightTruncationError during conflict resolution (Issue #921)
+# Safety margin: truncate at 95% of limit to account for encoding variations
+VARCHAR_FIELD_LIMITS = {
+    # SMALL_STRING_LENGTH = 50 (truncate at 47)
+    "asset_type": 47,
+    "status": 47,
+    "source_phase": 47,
+    "current_phase": 47,
+    "rack_location": 47,
+    "six_r_strategy": 47,
+    "migration_status": 47,
+    "assessment_readiness": 47,
+    "environment": 47,
+    # MEDIUM_STRING_LENGTH = 100 (truncate at 95)
+    "location": 95,
+    "datacenter": 95,
+    "department": 95,
+    "business_owner": 95,
+    "technical_owner": 95,
+    "os_version": 95,
+    "fqdn": 95,
+    "business_criticality": 95,
+    "criticality": 95,
+    "technology_stack": 95,
+    # LARGE_STRING_LENGTH = 255 (truncate at 240)
+    "name": 240,
+    "asset_name": 240,
+    "hostname": 240,
+    "application_name": 240,
+    "operating_system": 240,
+}
+
+
+def truncate_string_to_limit(field_name: str, value: str, limit: int) -> str:
+    """
+    Truncate string value to fit VARCHAR database constraint.
+
+    Prevents StringDataRightTruncationError by enforcing field length limits
+    during asset updates and conflict resolution.
+
+    Args:
+        field_name: Name of the field (for logging)
+        value: String value to truncate
+        limit: Maximum allowed length
+
+    Returns:
+        Truncated string if necessary, original value if within limit
+    """
+    if len(value) <= limit:
+        return value
+
+    truncated = value[:limit]
+    logger.warning(
+        f"⚠️ Truncated {field_name} from {len(value)} to {limit} chars: "
+        f"'{value[:50]}...' → '{truncated[:50]}...'"
+    )
+    return truncated
+
+
 def convert_single_field_value(field_name: str, raw_value):
     """
     Convert a single field value to proper type based on field name.
 
     CC: Fixes production bug where CSV imports provide string values
     but database expects typed values (e.g., cpu_cores='8' as INTEGER).
+
+    CC: Issue #921 - Added VARCHAR truncation to prevent StringDataRightTruncationError
+    during conflict resolution when merged field values exceed database constraints.
 
     Args:
         field_name: Name of the field
@@ -231,5 +294,12 @@ def convert_single_field_value(field_name: str, raw_value):
         converter = NUMERIC_FIELD_CONVERTERS[field_name]
         return converter(raw_value, None)
 
-    # For non-numeric fields, return as-is
+    # CC FIX Issue #921: Truncate VARCHAR fields to prevent database constraint violations
+    # This fixes StringDataRightTruncationError during conflict resolution when users
+    # select verbose field values from "new" asset that exceed VARCHAR limits
+    if field_name in VARCHAR_FIELD_LIMITS and isinstance(raw_value, str):
+        limit = VARCHAR_FIELD_LIMITS[field_name]
+        return truncate_string_to_limit(field_name, raw_value, limit)
+
+    # For other fields, return as-is
     return raw_value
