@@ -278,15 +278,18 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     } catch (error: unknown) {
       // Bug #892 Fix: Provide more actionable error messages
       let errorMessage = "Failed to start enhancement. Please try again.";
-      if (error instanceof Error) {
-        if (error.message.includes("409")) {
+      if (error && typeof error === 'object') {
+        const status = (error as any).response?.status;
+        if (status === 409) {
           errorMessage = "An enhancement job is already running. Please wait for it to complete.";
-        } else if (error.message.includes("429")) {
+        } else if (status === 429) {
           errorMessage = "Rate limit reached. Please wait a few seconds before retrying.";
-        } else if (error.message.includes("timeout")) {
-          errorMessage = "Request timed out. Please check your connection and try again.";
-        } else {
-          errorMessage = error.message;
+        } else if (error instanceof Error) {
+          if (error.message.toLowerCase().includes("timeout")) {
+            errorMessage = "Request timed out. Please check your connection and try again.";
+          } else {
+            errorMessage = error.message;
+          }
         }
       }
       toast({

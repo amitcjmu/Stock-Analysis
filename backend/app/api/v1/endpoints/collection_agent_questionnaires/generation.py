@@ -99,14 +99,14 @@ async def generate_questionnaire_with_agent(
                         ),
                         timeout=AGENT_EXECUTION_TIMEOUT,
                     )
-                except asyncio.TimeoutError:
+                except asyncio.TimeoutError as e:
                     logger.warning(
                         f"Agent questionnaire generation timed out "
                         f"after {AGENT_EXECUTION_TIMEOUT}s for flow {flow_uuid}"
                     )
-                    raise Exception(
+                    raise RuntimeError(
                         f"Agent execution timeout after {AGENT_EXECUTION_TIMEOUT}s"
-                    )
+                    ) from e
 
             except Exception as agent_error:
                 logger.error(
