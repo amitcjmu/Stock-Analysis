@@ -6,6 +6,7 @@ CC: Implements actual asset creation from raw_import_records data
 """
 
 import logging
+from datetime import datetime
 from typing import Dict, Any
 from uuid import UUID
 
@@ -13,6 +14,9 @@ from app.services.asset_service import AssetService
 from app.services.asset_service.deduplication import bulk_prepare_conflicts
 from app.models.asset_conflict_resolution import AssetConflictResolution
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.core.context import RequestContext
 from ..base_phase_executor import BasePhaseExecutor
 from .queries import get_raw_records, get_field_mappings
@@ -198,6 +202,137 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     "status": "completed",
                     "phase": "asset_inventory",
                     "message": "No valid asset data in raw records",
+                    "assets_created": 0,
+                    "execution_time": "0.001s",
+                }
+
+            # === ASSET PREVIEW AND APPROVAL WORKFLOW (Issue #907) ===
+            # Get master flow to check for preview data and approval
+            master_flow_repo = CrewAIFlowStateExtensionsRepository(
+                db_session,
+                str(client_account_id),
+                str(engagement_id),
+            )
+
+            master_flow = await master_flow_repo.get_by_flow_id(str(master_flow_id))
+            if not master_flow:
+                logger.error(f"❌ Master flow {master_flow_id} not found")
+                raise ValueError(f"Master flow {master_flow_id} not found")
+
+            persistence_data = master_flow.flow_persistence_data or {}
+
+            # Step 0: Check if preview data exists and if assets are approved
+            assets_preview = persistence_data.get("assets_preview")
+            approved_asset_ids = persistence_data.get("approved_asset_ids")
+            assets_already_created = persistence_data.get("assets_created", False)
+
+            # If assets were already created, skip this phase
+            if assets_already_created:
+                logger.info("✅ Assets already created for this flow, skipping")
+                return {
+                    "status": "completed",
+                    "phase": "asset_inventory",
+                    "message": "Assets have already been created for this flow",
+                    "assets_created": 0,
+                    "execution_time": "0.001s",
+                }
+
+            # If preview data doesn't exist, store it and pause for user approval
+            if not assets_preview:
+                logger.info(
+                    f"📋 Storing {len(assets_data)} assets for preview (Issue #907)"
+                )
+
+                # Serialize assets_data for JSONB storage (convert UUIDs to strings)
+                serialized_assets = []
+                for i, asset in enumerate(assets_data):
+                    serialized_asset = serialize_uuids_for_jsonb(asset)
+                    # CC FIX (Issue #907): Use 'id' field for frontend compatibility
+                    # Frontend AssetPreviewData interface expects 'id', not 'temp_id'
+                    serialized_asset["id"] = f"asset-{i}"
+                    serialized_assets.append(serialized_asset)
+
+                # Store preview data in flow_persistence_data
+                persistence_data["assets_preview"] = serialized_assets
+                persistence_data["preview_generated_at"] = datetime.utcnow().isoformat()
+                master_flow.flow_persistence_data = persistence_data
+
+                # CC FIX (Issue #907): Mark JSONB column as modified for SQLAlchemy change tracking
+                from sqlalchemy.orm.attributes import flag_modified
+
+                flag_modified(master_flow, "flow_persistence_data")
+
+                await db_session.commit()
+
+                logger.info(
+                    f"✅ Stored {len(serialized_assets)} assets for preview. "
+                    "Waiting for user approval via /api/v1/asset-preview/{flow_id}/approve"
+                )
+
+                return {
+                    "status": "paused",  # Per ADR-012: Child flow status
+                    "phase": "asset_inventory",
+                    "message": (
+                        f"Preview ready: {len(serialized_assets)} assets transformed. "
+                        "Waiting for user approval before database creation."
+                    ),
+                    "preview_count": len(serialized_assets),
+                    "preview_ready": True,
+                    "phase_state": {
+                        "preview_pending_approval": True,
+                    },
+                }
+
+            # If preview exists but no approval, wait
+            if not approved_asset_ids:
+                logger.info(
+                    f"⏳ Preview exists ({len(assets_preview)} assets) but no approval yet. "
+                    "Waiting for user to approve via /api/v1/asset-preview/{flow_id}/approve"
+                )
+                return {
+                    "status": "paused",
+                    "phase": "asset_inventory",
+                    "message": (
+                        f"Preview ready: {len(assets_preview)} assets waiting for approval"
+                    ),
+                    "preview_count": len(assets_preview),
+                    "preview_ready": True,
+                    "phase_state": {
+                        "preview_pending_approval": True,
+                    },
+                }
+
+            # If approval exists, filter assets and proceed with creation
+            logger.info(
+                f"✅ User approved {len(approved_asset_ids)} assets. "
+                "Proceeding with creation..."
+            )
+
+            # Filter assets_data to only approved assets
+            # Match by temp_id which was added during preview generation
+            approved_assets_data = []
+            for asset in assets_data:
+                # During transformation, we need to check if this asset was approved
+                # We'll match by index since temp_id was "asset-{i}"
+                asset_index = assets_data.index(asset)
+                temp_id = f"asset-{asset_index}"
+                if temp_id in approved_asset_ids:
+                    approved_assets_data.append(asset)
+
+            logger.info(
+                f"📋 Filtered to {len(approved_assets_data)} approved assets "
+                f"(from {len(assets_data)} total)"
+            )
+
+            # Replace assets_data with approved subset
+            assets_data = approved_assets_data
+
+            if not assets_data:
+                logger.warning("⚠️ No approved assets to create")
+                return {
+                    "status": "completed",
+                    "phase": "asset_inventory",
+                    "message": "No assets were approved for creation",
                     "assets_created": 0,
                     "execution_time": "0.001s",
                 }
@@ -390,6 +525,20 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 engagement_id=str(engagement_id),
                 mark_flow_complete=True,  # Single source of truth for completion
             )
+
+            # Mark assets as created in flow_persistence_data (Issue #907)
+            # This prevents re-creation if phase re-runs
+            persistence_data["assets_created"] = True
+            persistence_data["assets_created_at"] = datetime.utcnow().isoformat()
+            persistence_data["assets_created_count"] = len(created_assets)
+            master_flow.flow_persistence_data = persistence_data
+
+            # CC FIX (Issue #907): Mark JSONB column as modified for SQLAlchemy change tracking
+            from sqlalchemy.orm.attributes import flag_modified
+
+            flag_modified(master_flow, "flow_persistence_data")
+
+            await db_session.flush()  # Persist the flag
 
             # Transaction will be committed by caller
 

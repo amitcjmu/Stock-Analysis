@@ -12,6 +12,8 @@ import type {
   AssetConflict,
   BulkConflictResolutionRequest,
   ConflictResolutionResponse,
+  DependencySelection,
+  ResolutionAction,
 } from '@/types/assetConflict';
 
 /**
@@ -80,11 +82,13 @@ export async function resolveAssetConflicts(
 
 /**
  * Convenience wrapper for single conflict resolution
+ * Issue #910: Added support for 'create_both_with_dependency' action
  */
 export async function resolveSingleConflict(
   conflict_id: string,
-  resolution_action: 'keep_existing' | 'replace_with_new' | 'merge',
-  merge_field_selections?: Record<string, 'existing' | 'new'>
+  resolution_action: ResolutionAction,
+  merge_field_selections?: Record<string, 'existing' | 'new'>,
+  dependency_selection?: DependencySelection
 ): Promise<ConflictResolutionResponse> {
   return resolveAssetConflicts({
     resolutions: [
@@ -92,6 +96,7 @@ export async function resolveSingleConflict(
         conflict_id,
         resolution_action,
         merge_field_selections,
+        dependency_selection,
       },
     ],
   });

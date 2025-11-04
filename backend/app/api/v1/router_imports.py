@@ -24,8 +24,11 @@ from app.api.v1.endpoints import (
     # sixr_router removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
 )
 
-# Asset conflicts router
+# Asset conflicts and preview routers
 from app.api.v1.endpoints.asset_conflicts import router as asset_conflicts_router
+from app.api.v1.endpoints.asset_preview import (  # noqa: F401
+    router as asset_preview_router,
+)
 
 from app.api.v1.endpoints.execute import router as execute_router
 

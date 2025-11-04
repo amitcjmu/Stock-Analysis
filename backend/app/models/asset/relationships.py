@@ -79,6 +79,14 @@ class AssetDependency(Base):
         comment="Criticality of this dependency (e.g., 'low', 'medium', 'high').",
     )
     description = Column(Text, comment="A description of the dependency relationship.")
+    confidence_score = Column(
+        Float,
+        nullable=True,
+        comment=(
+            "Confidence score (0.0-1.0) for dependency accuracy. "
+            "1.0 = manual/user-created, <1.0 = auto-detected (Issue #910)"
+        ),
+    )
 
     # Network Discovery Fields (Issue #833)
     port = Column(Integer, nullable=True, comment="Network port for connection")

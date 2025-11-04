@@ -14,6 +14,7 @@ from app.core.context import RequestContext
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.flow_orchestration import FlowAuditLogger
 from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLevel
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
@@ -194,7 +195,11 @@ class FlowExecutionOperations:
 
             # Update current phase if execution result indicates progression
             if execution_result.get("next_phase"):
-                master_flow.current_phase = execution_result["next_phase"]
+                next_phase = execution_result["next_phase"]
+                master_flow.current_phase = next_phase
+                logger.info(
+                    f"🔄 Phase transition: {phase_name} → {next_phase} for flow {master_flow.flow_id}"
+                )
 
             # Update progress percentage
             if execution_result.get("progress_percentage") is not None:
@@ -218,6 +223,69 @@ class FlowExecutionOperations:
             await self.db.commit()
 
             logger.info(f"✅ Flow state updated after phase '{phase_name}' execution")
+
+            # CC FIX (Issue #907): Auto-continue to next phase if not paused
+            # After updating current_phase, check if we should automatically execute the next phase
+            # This enables PhaseTransitionAgent decisions to take effect immediately
+            if execution_result.get("next_phase"):
+                next_phase = execution_result["next_phase"]
+                result_status = execution_result.get("status", "").lower()
+
+                # CRITICAL: If next_phase is present, that means "proceed to next phase"
+                # The 'completed' status means THIS PHASE is done, NOT the entire flow
+                # Only pause/wait statuses should block auto-continuation
+                should_auto_continue = result_status not in [
+                    "paused",
+                    "waiting_for_approval",
+                ]
+
+                # Note: 'completed', 'failed', 'error' do NOT block continuation if next_phase exists
+                # because next_phase indicates the workflow should proceed
+
+                if should_auto_continue:
+                    logger.info(
+                        f"🚀 Auto-continuing to next phase '{next_phase}' "
+                        f"for flow {master_flow.flow_id} (status: {result_status})"
+                    )
+
+                    # CC FIX (Issue #907): Retrieve discovery flow to pass data_import_id
+                    # to next phase (required for asset_inventory)
+                    discovery_repo = DiscoveryFlowRepository(
+                        self.db,
+                        str(master_flow.client_account_id),
+                        str(master_flow.engagement_id),
+                    )
+                    discovery_flow = await discovery_repo.get_by_flow_id(
+                        str(master_flow.flow_id)
+                    )
+
+                    # Build phase_input with necessary context
+                    next_phase_input = {
+                        "master_flow_id": str(master_flow.flow_id),
+                        "client_account_id": str(master_flow.client_account_id),
+                        "engagement_id": str(master_flow.engagement_id),
+                    }
+
+                    # Add data_import_id if available
+                    if discovery_flow and discovery_flow.data_import_id:
+                        next_phase_input["data_import_id"] = str(
+                            discovery_flow.data_import_id
+                        )
+                        logger.info(
+                            f"📋 Passing data_import_id={discovery_flow.data_import_id} to next phase"
+                        )
+
+                    # Recursively execute the next phase
+                    await self.execute_phase(
+                        flow_id=str(master_flow.flow_id),
+                        phase_name=next_phase,
+                        phase_input=next_phase_input,
+                        validation_overrides=None,
+                    )
+                else:
+                    logger.info(
+                        f"⏸️  Not auto-continuing due to status '{result_status}' - flow will pause at '{next_phase}'"
+                    )
 
         except Exception as e:
             logger.error(f"❌ Failed to update flow state after execution: {e}")

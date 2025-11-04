@@ -25,6 +25,7 @@ import AgentClarificationPanel from '../../components/discovery/AgentClarificati
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
 import AssetConflictModal from '../../components/discovery/AssetConflictModal';
+import { AssetCreationPreviewModal } from '../../components/discovery/AssetCreationPreviewModal';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -41,6 +42,9 @@ const DataCleansing: React.FC = () => {
   // Asset conflict resolution state
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [assetConflicts, setAssetConflicts] = useState<AssetConflict[]>([]);
+
+  // Asset preview state (Issue #907)
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Get URL flow ID from params
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
@@ -575,13 +579,30 @@ const DataCleansing: React.FC = () => {
       onTriggerAnalysis={handleTriggerDataCleansingCrew}
       isAnalyzing={isAnalyzing}
     >
-      {/* Asset Conflict Resolution Modal */}
-      <AssetConflictModal
-        conflicts={assetConflicts}
-        isOpen={showConflictModal}
-        onClose={() => setShowConflictModal(false)}
-        onResolutionComplete={handleConflictResolutionComplete}
-      />
+      {/* Asset Conflict Resolution Modal (Issue #910) */}
+      {client && engagement && (
+        <AssetConflictModal
+          conflicts={assetConflicts}
+          isOpen={showConflictModal}
+          onClose={() => setShowConflictModal(false)}
+          onResolutionComplete={handleConflictResolutionComplete}
+          client_account_id={client.id.toString()}
+          engagement_id={engagement.id.toString()}
+        />
+      )}
+
+      {/* Asset Creation Preview Modal (Issue #907) */}
+      {effectiveFlowId && (
+        <AssetCreationPreviewModal
+          flow_id={effectiveFlowId}
+          isOpen={showPreviewModal}
+          onClose={() => setShowPreviewModal(false)}
+          onSuccess={() => {
+            setShowPreviewModal(false);
+            refresh();
+          }}
+        />
+      )}
 
       <div className="flex min-h-screen bg-gray-50">
         <div className="hidden lg:block w-64 border-r bg-white">
@@ -820,6 +841,28 @@ const DataCleansing: React.FC = () => {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Asset Preview Button (Issue #907) */}
+                <Card className="mb-4">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold">Asset Creation Preview</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Review and approve transformed assets before creating them in the database
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => setShowPreviewModal(true)}
+                        variant="outline"
+                        disabled={!effectiveFlowId}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Preview Assets
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <DataCleansingNavigationButtons
                   canContinue={canContinueToInventory}

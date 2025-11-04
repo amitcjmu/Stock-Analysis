@@ -1,0 +1,41 @@
+Name,Description,Environment,Owner,Status,IP Address,Location,Cost Center
+Customer Portal,Web application for customer self-service,Production,John Smith,Active,10.0.1.10,US-East,CC-1001
+Order Management System,Backend system for order processing,Production,Jane Doe,Active,10.0.1.11,US-East,CC-1002
+Payment Gateway,Payment processing service,Production,Mike Johnson,Active,10.0.1.12,US-East,CC-1003
+Inventory Tracker,Real-time inventory management,Production,Sarah Williams,Active,10.0.1.13,US-West,CC-1004
+CRM Application,Customer relationship management,Production,Tom Brown,Active,10.0.1.14,US-West,CC-1005
+Analytics Dashboard,Business intelligence reporting,Production,Emily Davis,Active,10.0.1.15,EU-Central,CC-1006
+Email Service,Transactional email delivery,Production,David Wilson,Active,10.0.1.16,EU-Central,CC-1007
+File Storage API,Document management system,Production,Lisa Anderson,Active,10.0.1.17,APAC,CC-1008
+User Authentication,SSO and identity management,Production,Robert Taylor,Active,10.0.1.18,APAC,CC-1009
+Notification Service,Push and SMS notifications,Production,Maria Garcia,Active,10.0.1.19,US-East,CC-1010
+Data Warehouse,Central analytics repository,Production,James Martinez,Active,10.0.2.10,US-East,CC-1011
+API Gateway,External API management,Production,Jennifer Lopez,Active,10.0.2.11,US-West,CC-1012
+Search Engine,Product catalog search,Production,Michael Rodriguez,Active,10.0.2.12,US-West,CC-1013
+Cache Service,Distributed caching layer,Production,Elizabeth Hernandez,Active,10.0.2.13,EU-Central,CC-1014
+Message Queue,Asynchronous message broker,Production,William Moore,Active,10.0.2.14,EU-Central,CC-1015
+Logging Service,Centralized log aggregation,Production,Barbara Jackson,Active,10.0.2.15,APAC,CC-1016
+Monitoring System,Infrastructure health monitoring,Production,Richard Lee,Active,10.0.2.16,APAC,CC-1017
+Backup Service,Automated backup solution,Production,Susan Walker,Active,10.0.2.17,US-East,CC-1018
+Load Balancer,Traffic distribution service,Production,Joseph Hall,Active,10.0.2.18,US-East,CC-1019
+CDN Manager,Content delivery network,Production,Nancy Allen,Active,10.0.2.19,US-West,CC-1020
+Database Cluster,Primary PostgreSQL cluster,Production,Christopher Young,Active,10.0.3.10,US-West,CC-1021
+Redis Cache,In-memory data store,Production,Karen King,Active,10.0.3.11,EU-Central,CC-1022
+Elasticsearch,Full-text search engine,Production,Daniel Wright,Active,10.0.3.12,EU-Central,CC-1023
+RabbitMQ,Message queue broker,Production,Laura Scott,Active,10.0.3.13,APAC,CC-1024
+MongoDB,NoSQL document database,Production,Matthew Green,Active,10.0.3.14,APAC,CC-1025
+Kafka Cluster,Event streaming platform,Production,Dorothy Adams,Active,10.0.3.15,US-East,CC-1026
+Prometheus,Metrics collection system,Production,Anthony Baker,Active,10.0.3.16,US-East,CC-1027
+Grafana,Visualization dashboard,Production,Sandra Nelson,Active,10.0.3.17,US-West,CC-1028
+Consul,Service discovery tool,Production,Mark Carter,Active,10.0.3.18,US-West,CC-1029
+Vault,Secrets management,Production,Betty Mitchell,Active,10.0.3.19,EU-Central,CC-1030
+Jenkins,CI/CD automation server,Production,Kenneth Perez,Active,10.0.4.10,EU-Central,CC-1031
+GitLab,Source code repository,Production,Helen Roberts,Active,10.0.4.11,APAC,CC-1032
+Nexus,Artifact repository,Production,Steven Turner,Active,10.0.4.12,APAC,CC-1033
+SonarQube,Code quality analyzer,Production,Ruth Phillips,Active,10.0.4.13,US-East,CC-1034
+Docker Registry,Container image storage,Production,Paul Campbell,Active,10.0.4.14,US-East,CC-1035
+Kubernetes Master,Container orchestration,Production,Deborah Parker,Active,10.0.4.15,US-West,CC-1036
+Istio Gateway,Service mesh control plane,Production,Brian Evans,Active,10.0.4.16,US-West,CC-1037
+Terraform State,Infrastructure state backend,Production,Carol Edwards,Active,10.0.4.17,EU-Central,CC-1038
+Ansible Tower,Configuration management,Production,George Collins,Active,10.0.4.18,EU-Central,CC-1039
+Splunk,Log analytics platform,Production,Sharon Stewart,Active,10.0.4.19,APAC,CC-1040

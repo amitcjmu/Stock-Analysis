@@ -26,7 +26,7 @@ from app.models.discovery_flow import DiscoveryFlow
 from app.schemas.asset_conflict import (
     AssetConflictDetail,
     BulkConflictResolutionRequest,
-    ConflictResolutionResponse,
+    ConflictResolutionResponse,  # Issue #910
 )
 from app.services.asset_service import AssetService
 from app.services.asset_service.deduplication import (
@@ -385,6 +385,85 @@ async def resolve_conflicts_bulk(  # noqa: C901
                     f"✅ Merged {len(merge_selections)} fields for "
                     f"asset {existing_asset.name} and associated with flow {flow.flow_id} (conflict {conflict_id})"
                 )
+
+            elif action == "create_both_with_dependency":
+                # NEW (Issue #910): Create both assets and link to shared parent
+                if not resolution.dependency_selection:
+                    errors.append(
+                        f"Conflict {conflict_id}: create_both_with_dependency requires dependency_selection"
+                    )
+                    continue
+
+                # Create new asset and dependencies
+                try:
+                    # Build new asset data from conflict
+                    new_asset_data = conflict.new_asset_data.copy()
+                    new_asset_data.update(
+                        {
+                            "client_account_id": client_account_id,
+                            "engagement_id": engagement_id,
+                            "discovery_flow_id": flow.id,
+                            "flow_id": flow.flow_id,
+                        }
+                    )
+
+                    # Create new asset
+                    new_asset = await db.execute(
+                        select(Asset).from_statement(
+                            Asset.__table__.insert()
+                            .values(**new_asset_data)
+                            .returning(Asset)
+                        )
+                    )
+                    new_asset_obj = new_asset.scalar_one()
+
+                    # Create dependencies using repository
+                    from app.repositories.dependency_repository import (
+                        DependencyRepository,
+                    )
+
+                    dep_repo = DependencyRepository(
+                        db,
+                        str(client_account_id),
+                        str(engagement_id),
+                    )
+
+                    # Dependency: Parent → Existing Asset
+                    await dep_repo.create_dependency(
+                        source_asset_id=str(
+                            resolution.dependency_selection.parent_asset_id
+                        ),
+                        target_asset_id=str(conflict.existing_asset_id),
+                        dependency_type=resolution.dependency_selection.dependency_type,
+                        confidence_score=resolution.dependency_selection.confidence_score,
+                        description=f"Manual link: {resolution.dependency_selection.parent_asset_name} → Existing",
+                    )
+
+                    # Dependency: Parent → New Asset
+                    await dep_repo.create_dependency(
+                        source_asset_id=str(
+                            resolution.dependency_selection.parent_asset_id
+                        ),
+                        target_asset_id=str(new_asset_obj.id),
+                        dependency_type=resolution.dependency_selection.dependency_type,
+                        confidence_score=resolution.dependency_selection.confidence_score,
+                        description=f"Manual link: {resolution.dependency_selection.parent_asset_name} → New",
+                    )
+
+                    logger.info(
+                        f"✅ Created new asset {new_asset_obj.name} and linked both to "
+                        f"parent {resolution.dependency_selection.parent_asset_name} (conflict {conflict_id})"
+                    )
+
+                except Exception as e:
+                    errors.append(
+                        f"Conflict {conflict_id}: Failed to create dependencies: {str(e)}"
+                    )
+                    logger.error(
+                        f"❌ create_both_with_dependency failed: {str(e)}",
+                        exc_info=True,
+                    )
+                    continue
 
             # Mark conflict as resolved
             conflict.resolution_status = "resolved"
