@@ -157,12 +157,17 @@ async def approve_asset_preview(
 
     # Update flow persistence data with approval
     from datetime import datetime
+    from sqlalchemy.orm.attributes import flag_modified
 
     persistence_data = flow.flow_persistence_data or {}
     persistence_data["approved_asset_ids"] = approved_asset_ids
     persistence_data["approval_timestamp"] = datetime.utcnow().isoformat()
     persistence_data["approved_by_user_id"] = str(current_user.id)
     flow.flow_persistence_data = persistence_data
+
+    # CRITICAL FIX (Issue #917): Mark JSONB column as modified for SQLAlchemy change tracking
+    # Without this, SQLAlchemy doesn't detect the mutation and won't persist the changes
+    flag_modified(flow, "flow_persistence_data")
 
     await db.commit()
 
