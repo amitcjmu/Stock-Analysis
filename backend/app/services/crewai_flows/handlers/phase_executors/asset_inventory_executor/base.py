@@ -247,8 +247,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 serialized_assets = []
                 for i, asset in enumerate(assets_data):
                     serialized_asset = serialize_uuids_for_jsonb(asset)
-                    # Add a temporary ID for frontend tracking
-                    serialized_asset["temp_id"] = f"asset-{i}"
+                    # CC FIX (Issue #907): Use 'id' field for frontend compatibility
+                    # Frontend AssetPreviewData interface expects 'id', not 'temp_id'
+                    serialized_asset["id"] = f"asset-{i}"
                     serialized_assets.append(serialized_asset)
 
                 # Store preview data in flow_persistence_data
