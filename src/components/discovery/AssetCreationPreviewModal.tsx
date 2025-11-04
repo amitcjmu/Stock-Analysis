@@ -88,26 +88,22 @@ export const AssetCreationPreviewModal: React.FC<
       // Poll every 5 seconds if preview not ready, otherwise no polling
       return data?.status === 'preview_ready' ? false : 5000;
     },
-    onSuccess: (data) => {
-      console.log('✅ Asset preview query success:', {
-        count: data.count,
-        status: data.status,
-        hasAssets: !!data.assets_preview
-      });
-
-      // Initialize editable assets with selection state
-      if (data.assets_preview && editableAssets.length === 0) {
-        console.log(`🎨 Initializing ${data.assets_preview.length} editable assets`);
-        setEditableAssets(
-          data.assets_preview.map((asset) => ({
-            ...asset,
-            isSelected: true, // Default: all selected
-            validationErrors: {},
-          }))
-        );
-      }
-    },
   });
+
+  // CC FIX (Issue #907): Initialize editable assets when preview data loads
+  // Replaced deprecated onSuccess callback with useEffect
+  useEffect(() => {
+    if (previewData?.assets_preview && editableAssets.length === 0) {
+      console.log(`🎨 Initializing ${previewData.assets_preview.length} editable assets`);
+      setEditableAssets(
+        previewData.assets_preview.map((asset) => ({
+          ...asset,
+          isSelected: true, // Default: all selected
+          validationErrors: {},
+        }))
+      );
+    }
+  }, [previewData, editableAssets.length]);
 
   // Approve assets mutation
   const approveMutation = useMutation({
