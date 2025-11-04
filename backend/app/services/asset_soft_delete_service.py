@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -260,16 +260,15 @@ class AssetSoftDeleteService:
         result = await self.db.execute(query)
         assets = result.scalars().all()
 
-        # Get total count
-        count_query = select(Asset).where(
+        # Get total count efficiently
+        count_query = select(func.count(Asset.id)).where(
             and_(
                 Asset.client_account_id == UUID(self.client_account_id),
                 Asset.engagement_id == UUID(self.engagement_id),
                 Asset.deleted_at.isnot(None),
             )
         )
-        count_result = await self.db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = (await self.db.execute(count_query)).scalar_one()
 
         # Convert to response models
         trash_assets = [

@@ -48,18 +48,25 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       }
 
       if (column.column_type === 'number') {
-        const numValue = parseFloat(editValue);
-        if (isNaN(numValue)) {
-          setValidationError('Must be a valid number');
-          return;
-        }
-        if (column.validation.min !== undefined && numValue < column.validation.min) {
-          setValidationError(`Must be at least ${column.validation.min}`);
-          return;
-        }
-        if (column.validation.max !== undefined && numValue > column.validation.max) {
-          setValidationError(`Cannot exceed ${column.validation.max}`);
-          return;
+        if (editValue === '' || editValue === null) {
+          if (column.validation.required) {
+            setValidationError(`${column.display_name} is required`);
+            return;
+          }
+        } else {
+          const numValue = parseFloat(editValue);
+          if (isNaN(numValue)) {
+            setValidationError('Must be a valid number');
+            return;
+          }
+          if (column.validation.min !== undefined && numValue < column.validation.min) {
+            setValidationError(`Must be at least ${column.validation.min}`);
+            return;
+          }
+          if (column.validation.max !== undefined && numValue > column.validation.max) {
+            setValidationError(`Cannot exceed ${column.validation.max}`);
+            return;
+          }
         }
       }
 

@@ -67,10 +67,10 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   isTrashView = false,
   enableInlineEditing = false
 }) => {
-  // Use enhanced table if inline editing is enabled or if we're dealing with Asset[] type
+  // Use enhanced table if inline editing is enabled, it's the trash view, or if we're dealing with Asset[] type
   const isAssetType = assets.length > 0 && typeof assets[0].id === 'number';
 
-  if (enableInlineEditing || isAssetType) {
+  if (enableInlineEditing || isTrashView || isAssetType) {
     return (
       <EnhancedAssetTable
         assets={assets as Asset[]}

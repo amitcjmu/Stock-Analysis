@@ -173,8 +173,7 @@ class AssetFieldUpdateService:
         """
         if field_name not in ALLOWED_EDITABLE_FIELDS:
             raise FieldValidationError(
-                f"Field '{field_name}' is not editable. "
-                f"Allowed fields: {sorted(ALLOWED_EDITABLE_FIELDS)}"
+                f"Field '{field_name}' is not editable or does not exist"
             )
 
     def validate_field_value(self, field_name: str, value: Any) -> Any:  # noqa: C901
@@ -213,17 +212,17 @@ class AssetFieldUpdateService:
                     f"Field '{field_name}' requires a numeric value, got {type(value).__name__}"
                 ) from e
 
-        # Boolean fields
+        # Boolean fields - strict validation
         if field_name in BOOLEAN_FIELDS:
             if isinstance(value, bool):
                 return value
             if isinstance(value, str):
-                if value.lower() in ("true", "1", "yes"):
+                if value.lower() == "true":
                     return True
-                if value.lower() in ("false", "0", "no"):
+                if value.lower() == "false":
                     return False
             raise FieldValidationError(
-                f"Field '{field_name}' requires a boolean value, got '{value}'"
+                f"Field '{field_name}' requires a boolean value (true/false), got '{value}'"
             )
 
         # Enum fields

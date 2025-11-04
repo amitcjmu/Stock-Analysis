@@ -155,12 +155,11 @@ export class AssetAPI {
     field_name: string,
     field_value: string | number | boolean | null
   ): Promise<Asset> {
-    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/field`;
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/fields/${field_name}`;
     return await apiCall(endpoint, {
       method: 'PATCH',
       body: JSON.stringify({
-        field_name,
-        field_value
+        value: field_value
       })
     });
   }
@@ -173,13 +172,15 @@ export class AssetAPI {
     field_name: string,
     field_value: string | number | boolean | null
   ): Promise<{ updated_count: number }> {
-    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/bulk-field-update`;
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/bulk-update`;
     return await apiCall(endpoint, {
       method: 'PATCH',
       body: JSON.stringify({
-        asset_ids,
-        field_name,
-        field_value
+        updates: asset_ids.map(asset_id => ({
+          asset_id,
+          field_name,
+          value: field_value
+        }))
       })
     });
   }
