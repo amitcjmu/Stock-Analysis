@@ -32,9 +32,35 @@ class AssetRepository(ContextAwareRepository[Asset]):
         db: AsyncSession,
         client_account_id: Optional[str] = None,
         engagement_id: Optional[str] = None,
+        include_deleted: bool = False,
     ):
-        """Initialize asset repository with context."""
+        """
+        Initialize asset repository with context.
+
+        Args:
+            db: Database session
+            client_account_id: Client account ID for tenant scoping
+            engagement_id: Engagement ID for tenant scoping
+            include_deleted: Whether to include soft-deleted assets (Issue #912)
+        """
         super().__init__(db, Asset, client_account_id, engagement_id)
+        self.include_deleted = include_deleted
+
+    def _apply_context_filter(self, query):
+        """
+        Override to add soft delete filtering (Issue #912).
+
+        Applies tenant scoping from parent class, then adds
+        deleted_at filter unless include_deleted is True.
+        """
+        # Apply parent tenant scoping first
+        query = super()._apply_context_filter(query)
+
+        # Add soft delete filter unless explicitly including deleted
+        if not self.include_deleted:
+            query = query.where(Asset.deleted_at.is_(None))
+
+        return query
 
     async def get_by_hostname(self, hostname: str) -> Optional[Asset]:
         """Get asset by hostname with context filtering."""
@@ -73,7 +99,9 @@ class AssetRepository(ContextAwareRepository[Asset]):
 
     async def search_assets(self, search_term: str) -> List[Asset]:
         """Search assets by name, hostname, or description."""
-        query = select(Asset).where(
+        query = select(
+            Asset
+        ).where(  # SKIP_TENANT_CHECK - Applied by query_with_context
             or_(
                 Asset.name.ilike(f"%{search_term}%"),
                 Asset.hostname.ilike(f"%{search_term}%"),
@@ -85,7 +113,9 @@ class AssetRepository(ContextAwareRepository[Asset]):
 
     async def get_assets_with_dependencies(self) -> List[Asset]:
         """Get assets that have dependencies."""
-        query = select(Asset).where(
+        query = select(
+            Asset
+        ).where(  # SKIP_TENANT_CHECK - Applied by query_with_context
             or_(
                 Asset.dependencies.isnot(None),
                 Asset.dependents.isnot(None),
@@ -106,7 +136,9 @@ class AssetRepository(ContextAwareRepository[Asset]):
 
     async def get_assets_needing_analysis(self) -> List[Asset]:
         """Get assets that need AI analysis."""
-        query = select(Asset).where(
+        query = select(
+            Asset
+        ).where(  # SKIP_TENANT_CHECK - Applied by query_with_context
             or_(
                 Asset.last_ai_analysis.is_(None),
                 Asset.ai_confidence_score < 0.7,
@@ -225,7 +257,9 @@ class AssetRepository(ContextAwareRepository[Asset]):
 
     async def get_multi_phase_assets(self) -> List[Asset]:
         """Get assets that have progressed through multiple phases."""
-        query = select(Asset).where(
+        query = select(
+            Asset
+        ).where(  # SKIP_TENANT_CHECK - Applied by query_with_context
             and_(
                 Asset.source_phase.isnot(None),
                 Asset.current_phase.isnot(None),

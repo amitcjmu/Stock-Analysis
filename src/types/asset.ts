@@ -76,6 +76,11 @@ export interface Asset {
   // Timestamps
   created_at: string;
   updated_at?: string;
+
+  // Soft delete fields (Issue #912)
+  deleted_at?: string;
+  deleted_by?: string;
+  is_deleted?: boolean;
 }
 
 export interface AssetSummary {

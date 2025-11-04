@@ -17,29 +17,29 @@ async def bulk_prepare_conflicts(...):
     # Step 1: Build indexes (complexity +2)
     existing_by_name = {}
     # ...
-    
+
     # Step 2: Check each asset (complexity +14)
     for asset_data in assets_data:
         hostname = asset_data.get("hostname")
         ip = asset_data.get("ip_address")
         name = get_smart_asset_name(asset_data)
         asset_type = asset_data.get("asset_type", "Unknown")
-        
+
         # Check name (complexity +2)
         if name and name in existing_by_name:
             # ... 10 lines of logic
             continue
-        
+
         # Check hostname (complexity +2)
         if hostname and hostname in existing_by_hostname:
             # ... 8 lines of logic
             continue
-        
+
         # Check IP (complexity +2)
         if ip and ip in existing_by_ip:
             # ... 8 lines of logic
             continue
-        
+
         # No conflict (complexity +1)
         conflict_free.append(asset_data)
 ```
@@ -58,20 +58,20 @@ def _check_single_asset_conflict(
     ip = asset_data.get("ip_address")
     name = get_smart_asset_name(asset_data)
     asset_type = asset_data.get("asset_type", "Unknown")
-    
+
     # Check name
     if name and name in existing_by_name:
         # ... conflict logic
         return {...}
-    
+
     # Check hostname
     if hostname and hostname in existing_by_hostname:
         return {...}
-    
+
     # Check IP
     if ip and ip in existing_by_ip:
         return {...}
-    
+
     return None  # No conflict
 
 
@@ -79,7 +79,7 @@ async def bulk_prepare_conflicts(...):
     # Step 1: Build indexes
     existing_by_name = {}
     # ...
-    
+
     # Step 2: Check each asset using helper (complexity +2 only)
     for asset_data in assets_data:
         conflict = _check_single_asset_conflict(
@@ -89,7 +89,7 @@ async def bulk_prepare_conflicts(...):
             existing_by_hostname,
             existing_by_ip,
         )
-        
+
         if conflict:
             conflicts.append(conflict)
         else:

@@ -55,7 +55,7 @@ if name and name in existing_by_name:
         conflict_key = f"{name} ({asset_type})"  # Exact duplicate
     else:
         conflict_key = f"{name} (name conflict: existing={existing.asset_type}, new={asset_type})"
-    
+
     conflicts.append({...})
     continue
 

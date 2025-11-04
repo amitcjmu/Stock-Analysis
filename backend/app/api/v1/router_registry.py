@@ -25,6 +25,7 @@ def register_core_routers(api_router: APIRouter):
         asset_inventory_router,
         asset_conflicts_router,
         asset_preview_router,
+        asset_editing_router,
         chat_router,
         context_router,
         data_import_router,
@@ -60,12 +61,11 @@ def register_core_routers(api_router: APIRouter):
 
     # Asset Management
     api_router.include_router(asset_inventory_router, prefix="/asset-inventory")
+    api_router.include_router(asset_conflicts_router)  # Uses prefix from router
+    api_router.include_router(asset_preview_router)  # Uses prefix from router
     api_router.include_router(
-        asset_conflicts_router
-    )  # Uses prefix from router definition
-    api_router.include_router(
-        asset_preview_router
-    )  # Uses prefix from router definition
+        asset_editing_router, prefix="/assets", tags=[APITags.ASSETS]
+    )  # Issues #911, #912
     logger.info("✅ Asset management routers registered")
 
     # Communication and Context

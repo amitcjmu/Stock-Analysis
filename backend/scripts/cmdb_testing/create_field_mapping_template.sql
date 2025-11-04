@@ -74,4 +74,6 @@ VALUES
 COMMIT;
 
 -- Verify mappings created
-SELECT COUNT(*) as total_mappings FROM migration.import_field_mappings WHERE data_import_id = '<DATA_IMPORT_ID>';
+SELECT COUNT(*) AS total_mappings
+FROM migration.import_field_mappings
+WHERE data_import_id = '<DATA_IMPORT_ID>';

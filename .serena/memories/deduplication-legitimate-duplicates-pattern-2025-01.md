@@ -1,7 +1,7 @@
 # Deduplication Pattern: Handling Legitimate Duplicate Assets
 
-**Date**: January 2025  
-**Context**: Canada Life import with 150+ server cluster conflicts  
+**Date**: January 2025
+**Context**: Canada Life import with 150+ server cluster conflicts
 **Issue**: #910
 
 ## Problem
@@ -86,9 +86,9 @@ class DependencySelection(BaseModel):
 class AssetConflictResolutionRequest(BaseModel):
     conflict_id: str
     resolution_action: Literal[
-        "keep_existing", 
-        "replace_with_new", 
-        "merge", 
+        "keep_existing",
+        "replace_with_new",
+        "merge",
         "create_both_with_dependency"  # NEW
     ]
     merge_field_selections: Optional[dict[str, str]] = None
