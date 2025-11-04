@@ -3,6 +3,7 @@ Collection Agent Questionnaire Generation
 Agent-driven questionnaire generation logic with fallback handling.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Optional, Dict, List, Any
@@ -21,6 +22,11 @@ from .helpers import build_agent_context, mark_generation_failed
 from .bootstrap import get_bootstrap_questionnaire
 
 logger = logging.getLogger(__name__)
+
+# Bug #893 Fix: Agent execution timeout (matches router timeout)
+AGENT_EXECUTION_TIMEOUT = (
+    85  # seconds (slightly less than router timeout for proper cleanup)
+)
 
 
 async def generate_questionnaire_with_agent(
@@ -85,10 +91,22 @@ async def generate_questionnaire_with_agent(
                     f"Executing questionnaire generation with persistent agent for flow {flow_uuid}"
                 )
 
-                # Execute agent generation
-                result = await _execute_agent_generation(
-                    agent, gaps_data, agent_input, agent_context, flow_uuid
-                )
+                # Bug #893 Fix: Wrap agent execution with timeout to prevent indefinite hangs
+                try:
+                    result = await asyncio.wait_for(
+                        _execute_agent_generation(
+                            agent, gaps_data, agent_input, agent_context, flow_uuid
+                        ),
+                        timeout=AGENT_EXECUTION_TIMEOUT,
+                    )
+                except asyncio.TimeoutError as e:
+                    logger.warning(
+                        f"Agent questionnaire generation timed out "
+                        f"after {AGENT_EXECUTION_TIMEOUT}s for flow {flow_uuid}"
+                    )
+                    raise RuntimeError(
+                        f"Agent execution timeout after {AGENT_EXECUTION_TIMEOUT}s"
+                    ) from e
 
             except Exception as agent_error:
                 logger.error(

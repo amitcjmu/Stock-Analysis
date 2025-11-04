@@ -246,9 +246,13 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             setEnhancementProgress(null);
           } else if (progress.status === "failed") {
             clearInterval(pollProgress);
+            // Bug #892 Fix: Display specific error message from backend
+            const errorDescription = progress.user_message ||
+              progress.error ||
+              "AI enhancement encountered an error. Please try again.";
             toast({
               title: "Enhancement Failed",
-              description: "AI enhancement encountered errors. Check logs for details.",
+              description: errorDescription,
               variant: "destructive",
             });
             setIsAnalyzing(false);
@@ -272,7 +276,22 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       }, 30000); // Poll every 30 seconds
 
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to start enhancement";
+      // Bug #892 Fix: Provide more actionable error messages
+      let errorMessage = "Failed to start enhancement. Please try again.";
+      if (error && typeof error === 'object') {
+        const status = (error as any).response?.status;
+        if (status === 409) {
+          errorMessage = "An enhancement job is already running. Please wait for it to complete.";
+        } else if (status === 429) {
+          errorMessage = "Rate limit reached. Please wait a few seconds before retrying.";
+        } else if (error instanceof Error) {
+          if (error.message.toLowerCase().includes("timeout")) {
+            errorMessage = "Request timed out. Please check your connection and try again.";
+          } else {
+            errorMessage = error.message;
+          }
+        }
+      }
       toast({
         title: "Enhancement Failed",
         description: errorMessage,

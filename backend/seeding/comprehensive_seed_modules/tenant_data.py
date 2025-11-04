@@ -24,7 +24,7 @@ async def seed_core_entities(session: AsyncSession):
             text(
                 """
                 INSERT INTO migration.client_accounts (
-                    id, company_name, company_domain, industry,
+                    id, name, slug, industry,
                     company_size, primary_contact_name, primary_contact_email,
                     is_active, created_at, updated_at
                 ) VALUES (

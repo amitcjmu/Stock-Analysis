@@ -30,7 +30,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Constants
-AGENT_GENERATION_TIMEOUT = 30  # seconds (increased to allow agent generation)
+# Bug #893 Fix: Increased timeout from 30s to 90s to accommodate LLM API latency and agent orchestration
+AGENT_GENERATION_TIMEOUT = (
+    90  # seconds (allows sufficient time for agent + LLM execution)
+)
 QUESTIONNAIRE_POLL_INTERVAL = 5  # seconds
 
 
