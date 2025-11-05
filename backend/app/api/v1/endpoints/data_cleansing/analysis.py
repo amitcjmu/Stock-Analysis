@@ -316,6 +316,11 @@ async def _load_recommendations_from_database(
         # Convert database models to Pydantic models
         recommendations = []
         for db_rec in db_recommendations:
+               # Ensure fields_affected is always a list
+            fields_affected = db_rec.fields_affected
+            if not isinstance(fields_affected, list):
+                fields_affected = [] if fields_affected is None else [fields_affected]
+            
             recommendations.append(
                 DataCleansingRecommendation(
                     id=str(db_rec.id),
@@ -325,7 +330,7 @@ async def _load_recommendations_from_database(
                     priority=db_rec.priority,
                     impact=db_rec.impact,
                     effort_estimate=db_rec.effort_estimate,
-                    fields_affected=db_rec.fields_affected or [],
+                    fields_affected=fields_affected,
                     status=db_rec.status or "pending",
                 )
             )
