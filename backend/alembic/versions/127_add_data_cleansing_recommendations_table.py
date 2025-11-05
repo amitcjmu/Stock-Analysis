@@ -67,7 +67,7 @@ def upgrade() -> None:
             ),
             sa.Column("action_notes", sa.Text(), nullable=True),
             sa.Column("applied_by_user_id", sa.String(255), nullable=True),
-            sa.Column("applied_at", sa.Text(), nullable=True),
+            sa.Column("applied_at", sa.DateTime(timezone=True), nullable=True),
             sa.Column(
                 "client_account_id", postgresql.UUID(as_uuid=True), nullable=False
             ),

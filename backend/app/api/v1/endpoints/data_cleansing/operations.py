@@ -562,9 +562,6 @@ async def apply_recommendation(
                 db_rec.applied_by_user_id = str(current_user.id)
                 db_rec.applied_at = applied_at
 
-                # Ensure the recommendation object is properly tracked by the session
-                db.add(db_rec)
-
                 logger.info(
                     f"Updating recommendation {recommendation_id} with action '{request.action}' for flow {flow_id}"
                 )
