@@ -31,10 +31,11 @@ class TestFlowConfigurations:
         assert "handlers_registered" in results
         assert "errors" in results
 
-        # Verify all 8 flows are registered
+        # Verify all 9 flows are registered
         expected_flows = [
             "discovery",
             "assessment",
+            "collection",
             "planning",
             "execution",
             "modernize",
@@ -44,7 +45,7 @@ class TestFlowConfigurations:
         ]
 
         if results.get("status") != "already_initialized":
-            assert len(results["flows_registered"]) == 8
+            assert len(results["flows_registered"]) == 9
             for flow in expected_flows:
                 assert flow in results["flows_registered"]
 
@@ -72,7 +73,7 @@ class TestFlowConfigurations:
         assert "issues" in verification
 
         # Verify all flows present
-        assert verification["total_flows"] == 8
+        assert verification["total_flows"] == 9
         assert verification["consistency_check"] is True
         assert len(verification["issues"]) == 0
 
@@ -93,7 +94,7 @@ class TestFlowConfigurations:
         summary = get_flow_summary()
 
         # Check summary
-        assert len(summary) == 8
+        assert len(summary) == 9
 
         for flow_summary in summary:
             assert "name" in flow_summary
@@ -333,7 +334,7 @@ def test_flow_configurations_basic():
     for flow in summary:
         print(f"- {flow['name']}: {flow['phase_count']} phases, v{flow['version']}")
 
-    assert verification["total_flows"] == 8
+    assert verification["total_flows"] == 9
     assert verification["consistency_check"] is True
 
 
