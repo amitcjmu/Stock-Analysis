@@ -460,26 +460,50 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/modernize/rewrite" element={<LazyRewrite />} />
       <Route path="/modernize/progress" element={<LazyProgress />} />
 
-      <Route path="/decommission" element={<LazyDecommission />} />
+      {/* Decom routes - renamed from Decommission per Issue #930 */}
+      <Route path="/decom" element={<LazyDecommission />} />
       <Route
-        path="/decommission/overview"
+        path="/decom/overview"
         element={<LazyDecommissionIndex />}
       />
       <Route
-        path="/decommission/planning"
+        path="/decom/planning"
         element={<LazyDecommissionPlanning />}
       />
       <Route
-        path="/decommission/data-retention"
+        path="/decom/data-retention"
         element={<LazyDataRetention />}
       />
       <Route
-        path="/decommission/execution"
+        path="/decom/execution"
         element={<LazyDecommissionExecution />}
       />
       <Route
-        path="/decommission/validation"
+        path="/decom/validation"
         element={<LazyDecommissionValidation />}
+      />
+
+      {/* Redirects for backward compatibility - /decommission/* to /decom/* */}
+      <Route path="/decommission" element={<Navigate to="/decom" replace />} />
+      <Route
+        path="/decommission/overview"
+        element={<Navigate to="/decom/overview" replace />}
+      />
+      <Route
+        path="/decommission/planning"
+        element={<Navigate to="/decom/planning" replace />}
+      />
+      <Route
+        path="/decommission/data-retention"
+        element={<Navigate to="/decom/data-retention" replace />}
+      />
+      <Route
+        path="/decommission/execution"
+        element={<Navigate to="/decom/execution" replace />}
+      />
+      <Route
+        path="/decommission/validation"
+        element={<Navigate to="/decom/validation" replace />}
       />
 
       <Route path="/finops" element={<LazyFinOps />} />

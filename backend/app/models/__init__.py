@@ -109,6 +109,16 @@ from app.models.collection_flow import (
 )
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 
+# Decommission Flow Models (New - Issue #932)
+from app.models.decommission_flow import (
+    DecommissionFlow,
+    DecommissionPlan,
+    DataRetentionPolicy,
+    ArchiveJob,
+    DecommissionExecutionLog,
+    DecommissionValidationCheck,
+)
+
 # Canonical Applications Models
 from app.models.canonical_applications import (
     CanonicalApplication,
@@ -264,6 +274,13 @@ __all__ = [
     "CollectedDataInventory",
     "CollectionDataGap",
     "CollectionQuestionnaireResponse",
+    # Decommission Flow Models
+    "DecommissionFlow",
+    "DecommissionPlan",
+    "DataRetentionPolicy",
+    "ArchiveJob",
+    "DecommissionExecutionLog",
+    "DecommissionValidationCheck",
     # Canonical Applications Models
     "CanonicalApplication",
     "ApplicationNameVariant",

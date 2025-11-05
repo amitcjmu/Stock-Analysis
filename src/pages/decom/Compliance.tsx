@@ -2,7 +2,7 @@ import type React from 'react';
 import { Shield, FileText, RefreshCw } from 'lucide-react'
 import { CheckCircle, AlertTriangle, Clock, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
-import { useCompliance, useStartAudit, useUpdateRequirement } from '@/hooks/decommission/useCompliance';
+import { useCompliance, useStartAudit, useUpdateRequirement } from '@/hooks/decom/useCompliance';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';

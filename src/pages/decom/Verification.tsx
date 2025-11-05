@@ -1,7 +1,7 @@
 import type React from 'react';
 import { CheckCircle, AlertTriangle, Clock, X, FileText, Download, RefreshCw, Database } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useVerification, useRunVerification, useGenerateReport } from '@/hooks/decommission/useVerification';
+import { useVerification, useRunVerification, useGenerateReport } from '@/hooks/decom/useVerification';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';

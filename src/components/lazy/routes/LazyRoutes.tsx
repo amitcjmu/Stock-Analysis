@@ -387,30 +387,30 @@ export const LazyProgress = createLazyRoute(
   "Progress Tracking",
 );
 
-// Decommission Sub-routes
+// Decom Sub-routes (renamed from Decommission - Issue #930)
 export const LazyDecommissionIndex = createLazyRoute(
-  () => import("@/pages/decommission/Index"),
-  "Decommission Overview",
+  () => import("@/pages/decom/Index"),
+  "Decom Overview",
 );
 
 export const LazyDecommissionPlanning = createLazyRoute(
-  () => import("@/pages/decommission/Planning"),
-  "Decommission Planning",
+  () => import("@/pages/decom/Planning"),
+  "Decom Planning",
 );
 
 export const LazyDataRetention = createLazyRoute(
-  () => import("@/pages/decommission/DataRetention"),
+  () => import("@/pages/decom/DataRetention"),
   "Data Retention",
 );
 
 export const LazyDecommissionExecution = createLazyRoute(
-  () => import("@/pages/decommission/Execution"),
-  "Decommission Execution",
+  () => import("@/pages/decom/Execution"),
+  "Decom Execution",
 );
 
 export const LazyDecommissionValidation = createLazyRoute(
-  () => import("@/pages/decommission/Validation"),
-  "Decommission Validation",
+  () => import("@/pages/decom/Validation"),
+  "Decom Validation",
 );
 
 // FinOps Sub-routes

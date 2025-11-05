@@ -2,7 +2,7 @@ import type React from 'react';
 import { Archive, Database, HardDrive } from 'lucide-react'
 import { CheckCircle, AlertTriangle, Clock, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
-import { useArchival, useStartArchival, useVerifyArchival } from '@/hooks/decommission/useArchival';
+import { useArchival, useStartArchival, useVerifyArchival } from '@/hooks/decom/useArchival';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';

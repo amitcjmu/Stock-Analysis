@@ -75,7 +75,7 @@ export default defineConfig(({ mode }) => ({
           execution: ["./src/pages/Execute.tsx"],
           modernization: ["./src/pages/Modernize.tsx"],
           finops: ["./src/pages/FinOps.tsx"],
-          decommission: ["./src/pages/Decommission.tsx"],
+          decom: ["./src/pages/Decommission.tsx"],
           utils: [],
           icons: ["lucide-react"],
           charts: ["recharts"],

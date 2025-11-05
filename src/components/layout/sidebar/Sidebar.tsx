@@ -88,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     plan: location.pathname.startsWith('/plan'),
     execute: location.pathname.startsWith('/execute'),
     modernize: location.pathname.startsWith('/modernize'),
-    decommission: location.pathname.startsWith('/decommission'),
+    decommission: location.pathname.startsWith('/decom'),
     finops: location.pathname.startsWith('/finops'),
     observability: location.pathname.startsWith('/observability'),
     admin: location.pathname.startsWith('/admin')
@@ -245,19 +245,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       ]
     },
     {
-      name: 'Decommission',
-      path: '/decommission',
-      icon: Archive,
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Overview', path: '/decommission/overview', icon: Archive },
-        { name: 'Planning', path: '/decommission/planning', icon: FileText },
-        { name: 'Data Retention', path: '/decommission/data-retention', icon: Database },
-        { name: 'Execution', path: '/decommission/execution', icon: Trash2 },
-        { name: 'Validation', path: '/decommission/validation', icon: CheckCircle }
-      ]
-    },
-    {
       name: 'FinOps',
       path: '/finops',
       icon: BarChart3,
@@ -270,6 +257,19 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         { name: 'Wave Breakdown', path: '/finops/wave-breakdown', icon: BarChart3 },
         { name: 'Cost Trends', path: '/finops/cost-trends', icon: TrendingUp },
         { name: 'Budget Alerts', path: '/finops/budget-alerts', icon: AlertTriangle }
+      ]
+    },
+    {
+      name: 'Decom',
+      path: '/decom',
+      icon: Archive,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/decom/overview', icon: Archive },
+        { name: 'Planning', path: '/decom/planning', icon: FileText },
+        { name: 'Data Retention', path: '/decom/data-retention', icon: Database },
+        { name: 'Execution', path: '/decom/execution', icon: Trash2 },
+        { name: 'Validation', path: '/decom/validation', icon: CheckCircle }
       ]
     },
     {
@@ -296,8 +296,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     },
   ];
 
-  // Split items: keep FinOps, Observability, Admin at the bottom near the profile block
-  const bottomNames = new Set(['FinOps', 'Observability', 'Admin']);
+  // Split items: keep FinOps, Decom, Observability, Admin at the bottom near the profile block
+  const bottomNames = new Set(['FinOps', 'Decom', 'Observability', 'Admin']);
   const topNavigationItems = navigationItems.filter((i) => !bottomNames.has(i.name));
   const bottomNavigationItems = navigationItems.filter((i) => bottomNames.has(i.name));
 
