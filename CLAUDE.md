@@ -399,6 +399,78 @@ When invoking ANY subagent (qa-playwright-tester, python-crewai-fastapi-expert, 
 
 ## Development Best Practices
 
+### CRITICAL: Bug Investigation Workflow (MUST READ - Prevents False Fixes)
+
+**⚠️ MANDATORY PROCESS FOR ALL BUG INVESTIGATIONS - LEARNED FROM ISSUE #795**
+
+Before assuming something is a bug and implementing a fix, **ALWAYS** follow this sequence:
+
+#### 1. Check Serena Memories FIRST
+```bash
+# Search for relevant architectural context
+mcp__serena__list_memories  # List all available memories
+mcp__serena__read_memory <memory_name>  # Read relevant memories
+```
+
+**Why**: Many "bugs" are actually **working as designed**. Serena memories document:
+- Architectural intent and design decisions
+- Intelligent behavior patterns (e.g., adaptive questionnaires, gap-based filtering)
+- Why certain code appears to do "less" but is actually doing "more intelligently"
+
+#### 2. Understand Architectural Intent
+Ask yourself:
+- **Is this behavior intentional?** (e.g., fewer questions = better data quality, not a bug)
+- **What problem does this design solve?** (e.g., intelligent gap-based question generation)
+- **Does showing "less" actually mean "smarter"?** (e.g., adaptive forms showing only data gaps)
+
+#### 3. Reproduce with Playwright FIRST
+**NEVER** ask users for manual testing - use qa-playwright-tester agent:
+```typescript
+Task tool with subagent_type: "qa-playwright-tester"
+// Reproduce the exact scenario
+// Capture screenshots, console logs, network traces
+// Verify actual vs expected behavior
+```
+
+#### 4. Analyze Backend Logic
+Check the backend code that generates the data:
+- Gap analysis services
+- Intelligent filtering logic
+- Agent-based decision making
+- Database queries with proper scoping
+
+#### 5. Present Analysis BEFORE Implementing
+**MANDATORY**: Before writing ANY fix:
+1. Document what you found (root cause analysis)
+2. Explain whether it's a bug or working as designed
+3. If it's a bug, propose the fix approach
+4. **Wait for user approval** before implementing
+
+#### Example: Issue #795 (Adaptive Forms)
+**Reported**: "Asset 2 shows only 3 sections instead of 7 - BUG!"
+
+**Investigation Revealed**:
+- ✅ Serena memory: "questions should be generated based on gaps"
+- ✅ Asset 2 has better data quality → fewer gaps → fewer questions
+- ✅ Playwright testing: System working correctly
+- ✅ Backend: Gap analysis correctly identifying missing fields only
+- ❌ **NOT A BUG** - Intelligent adaptive behavior
+
+**What Went Wrong**:
+- Assumed fewer sections = bug without checking intent
+- Implemented "fix" that broke intelligent filtering
+- Made system ask unnecessary questions for complete data
+
+**Correct Action**: Close as "Working as Designed"
+
+#### Red Flags That Suggest "Not a Bug"
+- 🚩 "Fewer items displayed" in an **adaptive/intelligent** system
+- 🚩 "Different behavior per asset/user" in a **personalized** system
+- 🚩 "Empty sections hidden" in a **smart UI** that shows only relevant content
+- 🚩 "Questions vary by data quality" in a **gap-based** collection system
+
+**When in doubt: CHECK SERENA MEMORIES FIRST, REPRODUCE WITH PLAYWRIGHT, PRESENT ANALYSIS**
+
 ### CRITICAL: API Request Body vs Query Parameters (MUST READ - Prevents 422 Errors)
 
 **⚠️ THIS IS THE #1 RECURRING BUG - FIXED MULTIPLE TIMES**

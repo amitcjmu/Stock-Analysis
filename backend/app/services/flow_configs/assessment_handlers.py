@@ -44,9 +44,13 @@ async def assessment_initialization(
 
                 # Create request context from service instance context
                 request_context = service_instance.context
+                db_session = (
+                    service_instance.db
+                )  # FIX #812: Get db session from service
 
                 crewai_flow = create_unified_assessment_flow(
                     context=request_context,
+                    db=db_session,  # FIX #812: Pass db session to UnifiedAssessmentFlow
                     flow_configuration=config,
                     selected_applications=selected_application_ids,
                     master_flow_id=flow_id,
