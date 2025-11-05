@@ -71,14 +71,34 @@ const DecommissionPlanning: React.FC = () => {
   const resumeFlowMutation = useResumeDecommissionFlow();
   const cancelFlowMutation = useCancelDecommissionFlow();
 
-  // Filter eligible systems to only show selected ones
+  // Get details for selected systems (regardless of current eligibility status)
+  // Users can override eligibility - show all selected systems with status indicators
   const selectedSystemsDetails = useMemo(() => {
     if (!flowStatus?.selected_systems || !eligibleSystems) return [];
 
     // selected_systems is an array of UUID strings
     const selectedIds = new Set(flowStatus.selected_systems);
 
-    return eligibleSystems.filter(system => selectedIds.has(system.asset_id));
+    // First, try to match with eligible systems (these will have full details)
+    const matchedSystems = eligibleSystems.filter(system => selectedIds.has(system.asset_id));
+
+    // For any selected systems not in eligibleSystems, create placeholder entries
+    // This handles the case where systems were selected but no longer meet eligibility criteria
+    const matchedIds = new Set(matchedSystems.map(s => s.asset_id));
+    const unmatchedIds = flowStatus.selected_systems.filter(id => !matchedIds.has(id));
+
+    // Add placeholder entries for unmatched systems (they exist but aren't "eligible")
+    const placeholders = unmatchedIds.map(asset_id => ({
+      asset_id,
+      asset_name: `System ${asset_id.slice(0, 8)}...`, // Show partial UUID
+      six_r_strategy: null,
+      annual_cost: 0,
+      decommission_eligible: false,
+      grace_period_end: null,
+      retirement_reason: 'Selected for decommission (eligibility criteria not met)',
+    }));
+
+    return [...matchedSystems, ...placeholders];
   }, [flowStatus?.selected_systems, eligibleSystems]);
 
   // Redirect if no flow_id
@@ -313,11 +333,17 @@ const DecommissionPlanning: React.FC = () => {
 
             {/* Selected Systems Section */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <div className="flex items-center space-x-3 mb-4">
-                <Server className="h-6 w-6 text-blue-600" />
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Selected Systems ({flowStatus.selected_systems?.length || 0})
-                </h2>
+              <div className="mb-4">
+                <div className="flex items-center space-x-3 mb-2">
+                  <Server className="h-6 w-6 text-blue-600" />
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Selected Systems ({flowStatus.selected_systems?.length || 0})
+                  </h2>
+                </div>
+                <p className="text-sm text-gray-600 ml-9">
+                  Systems can be decommissioned regardless of 6R strategy or migration status.
+                  Systems marked <span className="px-1 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 border border-yellow-300">OVERRIDE</span> don't meet standard eligibility criteria.
+                </p>
               </div>
 
               {isLoadingSystems ? (
@@ -340,11 +366,18 @@ const DecommissionPlanning: React.FC = () => {
                         <h3 className="font-semibold text-gray-900 flex-1">
                           {system.asset_name}
                         </h3>
-                        {system.six_r_strategy && system.six_r_strategy.toLowerCase().includes('retire') && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
-                            RETIRE
-                          </span>
-                        )}
+                        <div className="flex gap-2">
+                          {!system.decommission_eligible && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">
+                              OVERRIDE
+                            </span>
+                          )}
+                          {system.six_r_strategy && system.six_r_strategy.toLowerCase().includes('retire') && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                              RETIRE
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="space-y-2 text-sm">

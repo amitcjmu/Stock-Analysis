@@ -48,14 +48,15 @@ async def get_assessment_status_via_mfo(
     """
     try:
         # Query both master and child flows
-        # Per two-table pattern: Join on flow_id with tenant scoping
+        # Per two-table pattern: Join on master_flow_id with child flow ID filter
+        # Fixed per CodeRabbit: filter on AssessmentFlow.id (child PK) not master flow_id
         query = (
             select(CrewAIFlowStateExtensions, AssessmentFlow)
             .join(
                 AssessmentFlow,
                 AssessmentFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id,
             )
-            .where(CrewAIFlowStateExtensions.flow_id == flow_id)
+            .where(AssessmentFlow.id == flow_id)
         )
 
         # Add tenant scoping filters if provided
@@ -78,8 +79,9 @@ async def get_assessment_status_via_mfo(
 
         # Per ADR-012: Return child flow operational data for UI/agents
         # Master flow status included for cross-flow coordination context
+        # Fixed per CodeRabbit: use child_flow.id (PK) not child_flow.flow_id
         return {
-            "flow_id": str(child_flow.flow_id),
+            "flow_id": str(child_flow.id),
             "master_flow_id": str(master_flow.flow_id),
             # Operational state (from child flow - USE THIS for decisions)
             "status": child_flow.status,

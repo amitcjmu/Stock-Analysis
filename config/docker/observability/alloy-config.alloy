@@ -34,8 +34,10 @@ discovery.docker "containers" {
 loki.source.docker "docker_logs" {
   host             = "unix:///var/run/docker.sock"
   targets          = discovery.docker.containers.targets
-  forward_to       = [loki.relabel.docker_labels.receiver]
+  forward_to       = [loki.write.endpoint.receiver]
   refresh_interval = "5s"
+
+  relabel_rules = loki.relabel.docker_labels.rules
 
   labels = {
     job = "docker_logs",
@@ -44,10 +46,12 @@ loki.source.docker "docker_logs" {
 
 // Step 3: Add Docker metadata as labels
 loki.relabel "docker_labels" {
-  forward_to = [loki.process.parse_json.receiver]
+  forward_to = []  // Not used as a receiver, only for rule generation
 
   rule {
     source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    replacement   = "$1"
     target_label  = "container"
   }
 

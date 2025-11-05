@@ -21,12 +21,15 @@ organized in separate modules within backend/app/models/decommission_flow/
 """
 
 # Re-export all models from the package for backward compatibility
-from app.models.decommission_flow import (
-    ArchiveJob,
-    DataRetentionPolicy,
-    DecommissionExecutionLog,
+# Fixed per CodeRabbit: Import from submodules to avoid circular import
+from app.models.decommission_flow.core_models import (
     DecommissionFlow,
     DecommissionPlan,
+)
+from app.models.decommission_flow.policy_models import DataRetentionPolicy
+from app.models.decommission_flow.audit_models import (
+    ArchiveJob,
+    DecommissionExecutionLog,
     DecommissionValidationCheck,
 )
 

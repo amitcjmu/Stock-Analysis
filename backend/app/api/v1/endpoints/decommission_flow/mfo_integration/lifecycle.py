@@ -27,6 +27,7 @@ async def resume_decommission_flow(
     client_account_id: UUID,
     engagement_id: UUID,
     phase: str | None,
+    user_input: Dict[str, Any] | None,  # Fixed per CodeRabbit: Add user_input parameter
     db: AsyncSession,
 ) -> Dict[str, Any]:
     """
@@ -40,6 +41,7 @@ async def resume_decommission_flow(
         client_account_id: Client account UUID for multi-tenant isolation
         engagement_id: Engagement UUID for multi-tenant isolation
         phase: Optional phase to resume from (if None, continues from current)
+        user_input: Optional user input data for resuming execution
         db: Database session
 
     Returns:
@@ -85,17 +87,22 @@ async def resume_decommission_flow(
             master_flow.flow_status = "running"
 
             # Resume child flow (operational state)
+            # NOTE: Per DecommissionFlow model, status uses phase names (decommission_planning, etc.)
+            # This is intentional - see CheckConstraint in core_models.py lines 45-48
             # If specific phase requested, update current_phase
             if phase:
                 child_flow.current_phase = phase
-                child_flow.status = phase
+                child_flow.status = phase  # Status tracks phase for decommission flows
             else:
                 # Restore status to current phase
                 child_flow.status = child_flow.current_phase
 
-            # Update runtime_state with resume timestamp
+            # Update runtime_state with resume timestamp and user input
             runtime_state = child_flow.runtime_state or {}
             runtime_state["resumed_at"] = datetime.utcnow().isoformat()
+            # Fixed per CodeRabbit: Store user_input if provided
+            if user_input:
+                runtime_state["resume_user_input"] = user_input
             child_flow.runtime_state = runtime_state
 
             # Transaction commits automatically on context exit
@@ -109,7 +116,7 @@ async def resume_decommission_flow(
 
         # Return updated unified state
         return await get_decommission_status_via_mfo(
-            flow_id, client_account_id, engagement_id, db
+            flow_id, db, client_account_id, engagement_id
         )
 
     except ValueError:
@@ -203,6 +210,8 @@ async def pause_decommission_flow(
             runtime_state["paused_at"] = datetime.utcnow().isoformat()
             runtime_state["status_before_pause"] = child_flow.status
             child_flow.runtime_state = runtime_state
+            # Fixed per Qodo: Set child flow status to "paused" for consistency
+            child_flow.status = "paused"
 
             # Transaction commits automatically on context exit
 
@@ -215,7 +224,7 @@ async def pause_decommission_flow(
 
         # Return updated unified state
         return await get_decommission_status_via_mfo(
-            flow_id, client_account_id, engagement_id, db
+            flow_id, db, client_account_id, engagement_id
         )
 
     except ValueError:
@@ -293,16 +302,18 @@ async def cancel_decommission_flow(
 
             master_flow, child_flow = row
 
+            # Fixed per CodeRabbit: Capture status BEFORE modification
+            runtime_state = child_flow.runtime_state or {}
+            runtime_state["status_before_cancel"] = child_flow.status
+            runtime_state["cancelled_at"] = datetime.utcnow().isoformat()
+
             # Cancel master flow (lifecycle) - mark as deleted
             master_flow.flow_status = "deleted"
 
             # Cancel child flow (operational state)
             child_flow.status = "failed"
 
-            # Update runtime_state with cancellation timestamp
-            runtime_state = child_flow.runtime_state or {}
-            runtime_state["cancelled_at"] = datetime.utcnow().isoformat()
-            runtime_state["status_before_cancel"] = child_flow.status
+            # Apply runtime_state changes
             child_flow.runtime_state = runtime_state
 
             # Transaction commits automatically on context exit
@@ -314,14 +325,10 @@ async def cancel_decommission_flow(
             )
         )
 
-        # Return final state
-        return {
-            "flow_id": str(flow_id),
-            "master_flow_id": str(master_flow.flow_id),
-            "status": child_flow.status,
-            "current_phase": child_flow.current_phase,
-            "selected_systems": [str(sid) for sid in child_flow.selected_system_ids],
-        }
+        # Fixed per CodeRabbit: Return unified state consistent with resume/pause
+        return await get_decommission_status_via_mfo(
+            flow_id, db, client_account_id, engagement_id
+        )
 
     except ValueError:
         # Re-raise validation errors

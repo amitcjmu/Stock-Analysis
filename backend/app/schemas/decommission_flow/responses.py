@@ -50,6 +50,10 @@ class DecommissionFlowStatusResponse(BaseModel):
     status: str = Field(..., description="Flow operational status")
     current_phase: str = Field(..., description="Current phase (per FlowTypeConfig)")
     system_count: int = Field(..., description="Number of systems being decommissioned")
+    selected_systems: List[str] = Field(
+        default_factory=list,
+        description="List of selected system UUIDs for decommission",
+    )
 
     # Phase progress (ADR-027: names match FlowTypeConfig)
     phase_progress: Dict[str, str] = Field(

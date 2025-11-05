@@ -76,6 +76,7 @@ export interface DecommissionFlowStatusResponse {
   status: string;
   current_phase: string; // ✅ snake_case
   system_count: number; // ✅ snake_case
+  selected_systems: string[]; // ✅ snake_case (UUIDs) - CRITICAL for Planning page
 
   // Phase progress (ADR-027: names match FlowTypeConfig)
   phase_progress: { // ✅ snake_case

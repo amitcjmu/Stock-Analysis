@@ -44,7 +44,7 @@ class DecommissionFlow(Base):
     __table_args__ = (
         CheckConstraint(
             "status IN ('initialized', 'decommission_planning', "
-            "'data_migration', 'system_shutdown', 'completed', 'failed')",
+            "'data_migration', 'system_shutdown', 'completed', 'failed', 'paused')",
             name="valid_decommission_flow_status",
         ),
         CheckConstraint(

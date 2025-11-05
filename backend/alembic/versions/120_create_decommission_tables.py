@@ -310,7 +310,9 @@ def upgrade() -> None:
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
                     CONSTRAINT fk_execution_flow FOREIGN KEY (flow_id)
-                        REFERENCES migration.decommission_flows(flow_id) ON DELETE CASCADE
+                        REFERENCES migration.decommission_flows(flow_id) ON DELETE CASCADE,
+                    CONSTRAINT fk_execution_plan FOREIGN KEY (plan_id)
+                        REFERENCES migration.decommission_plans(plan_id) ON DELETE CASCADE
                 );
 
                 CREATE INDEX idx_execution_logs_flow ON migration.decommission_execution_logs(flow_id);

@@ -103,7 +103,7 @@ async def create_assessment_via_mfo(
                 }
 
             child_flow = AssessmentFlow(
-                flow_id=flow_id,  # Links to master via flow_id (not FK, but same UUID)
+                # AssessmentFlow uses 'id' as PK, not 'flow_id' (CodeRabbit fix)
                 master_flow_id=master_flow.flow_id,  # FK reference for relationship
                 engagement_id=engagement_id,
                 client_account_id=client_account_id,

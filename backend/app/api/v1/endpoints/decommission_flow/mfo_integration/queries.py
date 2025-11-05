@@ -52,16 +52,6 @@ async def get_decommission_status_via_mfo(
         SQLAlchemyError: If database operations fail
     """
     try:
-        # DEBUG: Log incoming parameters
-        logger.info(
-            safe_log_format(
-                "Getting decommission status: flow_id={flow_id}, "
-                "client_account_id={client_id}, engagement_id={engagement_id}",
-                flow_id=str(flow_id),
-                client_id=str(client_account_id) if client_account_id else "None",
-                engagement_id=str(engagement_id) if engagement_id else "None",
-            )
-        )
 
         # Query both master and child flows
         # Per two-table pattern: Join on flow_id with tenant scoping
@@ -84,102 +74,67 @@ async def get_decommission_status_via_mfo(
                 CrewAIFlowStateExtensions.engagement_id == engagement_id
             )
 
-        # DEBUG: Log the compiled SQL query
-        from sqlalchemy.dialects import postgresql
-
-        compiled_query = query.compile(
-            dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
-        )
-        logger.debug(
-            safe_log_format("Executing query: {query}", query=str(compiled_query))
-        )
-
         result = await db.execute(query)
         row = result.first()
 
-        # DEBUG: Log result
-        logger.debug(
-            safe_log_format(
-                "Query returned: {row_count} rows", row_count=1 if row else 0
-            )
-        )
-
         if not row:
-            # DEBUG: Log why flow wasn't found
-            logger.warning(
-                safe_log_format(
-                    "Decommission flow not found: flow_id={flow_id}, "
-                    "client_account_id={client_id}, engagement_id={engagement_id}",
-                    flow_id=str(flow_id),
-                    client_id=str(client_account_id) if client_account_id else "None",
-                    engagement_id=str(engagement_id) if engagement_id else "None",
-                )
-            )
             raise ValueError(f"Decommission flow not found: flow_id={str(flow_id)[:8]}")
 
         master_flow, child_flow = row
 
         # Per ADR-012: Return child flow operational data for UI/agents
         # Master flow status included for cross-flow coordination context
-        return {
-            "flow_id": str(child_flow.flow_id),
-            "master_flow_id": str(master_flow.flow_id),
-            # Operational state (from child flow - USE THIS for decisions)
-            "status": child_flow.status,
-            "current_phase": child_flow.current_phase,
-            "phase_progress": {
-                "decommission_planning": {
-                    "status": child_flow.decommission_planning_status,
-                    "completed_at": (
-                        child_flow.decommission_planning_completed_at.isoformat()
-                        if child_flow.decommission_planning_completed_at
-                        else None
-                    ),
+        try:
+            response_dict = {
+                "flow_id": str(child_flow.flow_id),
+                "master_flow_id": str(master_flow.flow_id),
+                # Operational state (from child flow - USE THIS for decisions)
+                "status": child_flow.status,
+                "current_phase": child_flow.current_phase,
+                # Phase progress simplified to match schema (Dict[str, str])
+                "phase_progress": {
+                    "decommission_planning": child_flow.decommission_planning_status
+                    or "pending",
+                    "data_migration": child_flow.data_migration_status or "pending",
+                    "system_shutdown": child_flow.system_shutdown_status or "pending",
                 },
-                "data_migration": {
-                    "status": child_flow.data_migration_status,
-                    "completed_at": (
-                        child_flow.data_migration_completed_at.isoformat()
-                        if child_flow.data_migration_completed_at
-                        else None
+                # Master flow state (for cross-flow coordination only)
+                "master_status": master_flow.flow_status,
+                "master_flow_type": master_flow.flow_type,
+                # Metadata
+                "selected_systems": [
+                    str(sid) for sid in (child_flow.selected_system_ids or [])
+                ],
+                "system_count": child_flow.system_count,
+                "created_at": child_flow.created_at,
+                "updated_at": child_flow.updated_at,
+                # Metrics (per schema: Dict[str, Any])
+                "metrics": {
+                    "systems_decommissioned": child_flow.total_systems_decommissioned
+                    or 0,
+                    "estimated_savings": (
+                        float(child_flow.estimated_annual_savings)
+                        if child_flow.estimated_annual_savings
+                        else 0.0
                     ),
+                    "compliance_score": child_flow.compliance_score or 0,
                 },
-                "system_shutdown": {
-                    "status": child_flow.system_shutdown_status,
-                    "started_at": (
-                        child_flow.system_shutdown_started_at.isoformat()
-                        if child_flow.system_shutdown_started_at
-                        else None
-                    ),
-                    "completed_at": (
-                        child_flow.system_shutdown_completed_at.isoformat()
-                        if child_flow.system_shutdown_completed_at
-                        else None
-                    ),
-                },
-            },
-            # Master flow state (for cross-flow coordination only)
-            "master_status": master_flow.flow_status,
-            "master_flow_type": master_flow.flow_type,
-            # Metadata
-            "selected_systems": [
-                str(sid) for sid in (child_flow.selected_system_ids or [])
-            ],
-            "system_count": child_flow.system_count,
-            "created_at": child_flow.created_at,
-            "updated_at": child_flow.updated_at,
-            # Configuration
-            "decommission_strategy": child_flow.decommission_strategy,
-            "runtime_state": child_flow.runtime_state,
-            # Metrics
-            "total_systems_decommissioned": child_flow.total_systems_decommissioned,
-            "estimated_annual_savings": (
-                float(child_flow.estimated_annual_savings)
-                if child_flow.estimated_annual_savings
-                else None
-            ),
-            "compliance_score": child_flow.compliance_score,
-        }
+                # Runtime state (per schema: Dict[str, Any])
+                "runtime_state": child_flow.runtime_state or {},
+                # Completion indicator
+                "decommission_complete": child_flow.status == "completed",
+            }
+            return response_dict
+        except Exception as e:
+            logger.error(
+                safe_log_format(
+                    "Failed to build response dict for flow {flow_id}: {error_type}: {error_msg}",
+                    flow_id=str(flow_id)[:8],
+                    error_type=type(e).__name__,
+                    error_msg=str(e),
+                )
+            )
+            raise
 
     except ValueError:
         # Re-raise flow not found errors

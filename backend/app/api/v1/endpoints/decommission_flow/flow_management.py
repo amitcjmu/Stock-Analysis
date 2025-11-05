@@ -154,6 +154,10 @@ async def get_decommission_flow_status(
     - Per ADR-012: Returns child flow operational status
     """
     try:
+        # Fixed per CodeRabbit: Verify engagement authorization before MFO operation
+        if engagement_id:
+            await verify_engagement_access(db, engagement_id, client_account_id)
+
         # Get unified status via MFO (queries child flow operational state)
         status = await get_decommission_status_via_mfo(
             flow_id=UUID(flow_id),
@@ -202,6 +206,10 @@ async def resume_decommission_flow_endpoint(
     - Uses MFO integration (ADR-006) for atomic state updates
     """
     try:
+        # Fixed per CodeRabbit: Verify engagement authorization before MFO operation
+        if engagement_id:
+            await verify_engagement_access(db, engagement_id, client_account_id)
+
         # Get current flow state to validate
         current_status = await get_decommission_status_via_mfo(
             flow_id=UUID(flow_id),
@@ -216,11 +224,13 @@ async def resume_decommission_flow_endpoint(
             )
 
         # Resume via MFO (updates both master and child tables atomically)
+        # Fixed per CodeRabbit: Pass through user_input
         result = await resume_decommission_flow(
             UUID(flow_id),
             UUID(client_account_id),
             UUID(engagement_id) if engagement_id else None,
             request.phase,
+            request.user_input,  # Pass through user input from request
             db,
         )
 
@@ -289,6 +299,10 @@ async def pause_decommission_flow_endpoint(
     - Uses MFO integration (ADR-006) for atomic state updates
     """
     try:
+        # Fixed per CodeRabbit: Verify engagement authorization before MFO operation
+        if engagement_id:
+            await verify_engagement_access(db, engagement_id, client_account_id)
+
         # Pause via MFO (updates both master and child tables atomically)
         result = await pause_decommission_flow(
             UUID(flow_id),
@@ -344,6 +358,10 @@ async def cancel_decommission_flow_endpoint(
     - Uses MFO integration (ADR-006) for atomic state updates
     """
     try:
+        # Fixed per CodeRabbit: Verify engagement authorization before MFO operation
+        if engagement_id:
+            await verify_engagement_access(db, engagement_id, client_account_id)
+
         # Cancel via MFO (updates both master and child tables atomically)
         result = await cancel_decommission_flow(
             UUID(flow_id),

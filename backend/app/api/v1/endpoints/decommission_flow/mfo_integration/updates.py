@@ -151,8 +151,13 @@ async def update_decommission_phase_via_mfo(
             )
         )
 
-        # Return updated unified state
-        return await get_decommission_status_via_mfo(flow_id, db)
+        # Fixed per Qodo: Pass tenant identifiers for multi-tenancy security
+        return await get_decommission_status_via_mfo(
+            flow_id,
+            db,
+            client_account_id=child_flow.client_account_id,
+            engagement_id=child_flow.engagement_id,
+        )
 
     except ValueError:
         # Re-raise validation errors

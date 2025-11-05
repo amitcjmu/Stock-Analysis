@@ -99,6 +99,10 @@ class DecommissionFlowRepository(ContextAwareRepository[DecommissionFlow]):
         # Generate flow_id if not provided
         flow_id = kwargs.get("flow_id") or uuid.uuid4()
 
+        # Fixed per CodeRabbit: Block tenant overrides from kwargs to prevent multi-tenant boundary bypass
+        unsafe_keys = {"client_account_id", "engagement_id"}
+        extra_fields = {k: v for k, v in kwargs.items() if k not in unsafe_keys}
+
         # Prepare flow data
         flow_data = {
             "flow_id": flow_id,
@@ -113,7 +117,7 @@ class DecommissionFlowRepository(ContextAwareRepository[DecommissionFlow]):
             "master_flow_id": master_flow_id,
             "client_account_id": self.client_account_id,
             "engagement_id": self.engagement_id,
-            **kwargs,
+            **extra_fields,
         }
 
         # Use parent class create method with no commit (Service Registry pattern)
@@ -398,14 +402,16 @@ class DecommissionFlowRepository(ContextAwareRepository[DecommissionFlow]):
             SQLAlchemyError: On database errors
         """
         try:
-            all_flows = await self.get_all()
+            # Fixed per Qodo: Filter at database level for better performance
             active_statuses = [
                 "initialized",
                 "decommission_planning",
                 "data_migration",
                 "system_shutdown",
             ]
-            return [flow for flow in all_flows if flow.status in active_statuses]
+            return await self.get_by_filters(
+                DecommissionFlow.status.in_(active_statuses)
+            )
         except SQLAlchemyError as e:
             logger.error(f"Database error in get_active_flows: {e}")
             raise

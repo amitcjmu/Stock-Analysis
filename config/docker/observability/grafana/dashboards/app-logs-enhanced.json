@@ -224,7 +224,9 @@
       "id": 2,
       "options": {
         "legend": {
-          "calcs": ["sum"],
+          "calcs": [
+            "sum"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -281,12 +283,12 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=\"migration_backend\"} |~ \"(?i)(🤖.*decision|agent.*decision|PhaseTransitionAgent|decision.*proceed|decision.*retry|decision.*abort)\" |~ \"$search\"",
+          "expr": "{container=\"migration_backend\"} |~ \"(?i)(\ud83e\udd16.*decision|agent.*decision|PhaseTransitionAgent|decision.*proceed|decision.*retry|decision.*abort)\" |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "🤖 CrewAI Agent Decisions & Responses",
+      "title": "\ud83e\udd16 CrewAI Agent Decisions & Responses",
       "description": "Shows agent decision-making logs including phase transitions, proceed/retry/abort decisions",
       "type": "logs"
     },
@@ -320,12 +322,12 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=\"migration_backend\"} |~ \"(?i)(ERROR|exception|critical|fatal|failed|error)\" |~ \"$search\"",
+          "expr": "{container=\"migration_backend\"} |~ \"(?i) - (ERROR|CRITICAL|FATAL) -|^(ERROR|CRITICAL|FATAL):|exception|traceback\" !~ \"(?i)(error_handler.*initialized|handler.*initialized|registered.*handler)\" |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "🚨 Error & Exception Logs",
+      "title": "\ud83d\udea8 Error & Exception Logs",
       "description": "All ERROR, EXCEPTION, CRITICAL, and FATAL logs from the backend",
       "type": "logs"
     },
@@ -359,12 +361,12 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=\"migration_backend\"} |~ \"(?i)(phase.*completed|phase.*started|✅ Phase|📋 Phase|Phase.*transition)\" |~ \"$search\"",
+          "expr": "{container=\"migration_backend\"} |~ \"(?i)(phase.*completed|phase.*started|\u2705 Phase|\ud83d\udccb Phase|Phase.*transition)\" |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "📋 Flow Phase Transitions",
+      "title": "\ud83d\udccb Flow Phase Transitions",
       "description": "Shows flow phase lifecycle events (started, completed, transitions)",
       "type": "logs"
     },
@@ -398,12 +400,12 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=\"migration_backend\"} |~ \"📝 AUDIT:\" |~ \"$search\"",
+          "expr": "{container=\"migration_backend\"} |~ \"\ud83d\udcdd AUDIT:\" |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "📝 Audit Events",
+      "title": "\ud83d\udcdd Audit Events",
       "description": "All audit trail events including compliance violations",
       "type": "logs"
     },
@@ -437,12 +439,12 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=\"migration_backend\"} |~ \"(?i)(discovery_agent|cmdb_agent|dependency_mapper|assessment_agent|strategy_agent|wave_planner|questionnaire_agent)\" |~ \"$search\"",
+          "expr": "{container=\"migration_backend\"} |~ \"(?i)(agent_monitor|agent_learning|agent_ui_bridge|agent_performance|crew.*start|task.*execut|tool.*call)\" !~ \"(?i)(initialized|registry|available)\" |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "🔍 Agent-Specific Activities",
+      "title": "\ud83d\udd0d Agent-Specific Activities",
       "description": "Logs from specific CrewAI agents (discovery, CMDB, dependency mapper, assessment, strategy, wave planner, questionnaire)",
       "type": "logs"
     },
@@ -481,7 +483,7 @@
           "refId": "A"
         }
       ],
-      "title": "📜 All Application Logs (Filtered)",
+      "title": "\ud83d\udcdc All Application Logs (Filtered)",
       "description": "All logs from selected containers with custom search filter",
       "type": "logs"
     }
@@ -489,7 +491,13 @@
   "refresh": "10s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["observability", "logs", "loki", "crewai", "agents"],
+  "tags": [
+    "observability",
+    "logs",
+    "loki",
+    "crewai",
+    "agents"
+  ],
   "templating": {
     "list": [
       {
@@ -542,7 +550,16 @@
     "to": "now"
   },
   "timepicker": {
-    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h"]
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ]
   },
   "timezone": "",
   "title": "Application Logs - Enhanced",
