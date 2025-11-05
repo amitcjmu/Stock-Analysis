@@ -366,14 +366,20 @@ class DiscoveryDecisionLogic:
             }
         )
 
-        # Get next phase from registry (will be None for terminal phase)
+        # Get next phase from registry (will be None or "completed" for terminal phase)
         # This properly delegates to FlowTypeConfig which knows the phase sequence
         next_phase = DecisionUtils.get_next_phase("asset_inventory", "discovery")
+
+        # Per ADR-027: asset_inventory is the terminal phase
+        # If next_phase is "completed" (string), convert to empty string to prevent
+        # orchestrator from trying to execute "completed" as a phase
+        if next_phase == "completed":
+            next_phase = ""
 
         # Discovery flow is COMPLETED - this is the terminal phase per ADR-027
         return AgentDecision(
             action=PhaseAction.PROCEED,
-            next_phase=next_phase,  # Will be None or "completed" from registry
+            next_phase=next_phase,  # Empty string = no next phase to execute
             confidence=completion_confidence,
             reasoning=(
                 f"Asset inventory phase completed. Created {assets_created_count} assets. "
