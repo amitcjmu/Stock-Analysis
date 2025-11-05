@@ -545,5 +545,5 @@ async def resolve_conflicts_bulk(  # noqa: C901
     return ConflictResolutionResponse(
         resolved_count=resolved_count,
         total_requested=len(request.resolutions),
-        errors=errors if errors else None,
+        errors=errors,  # Pydantic schema expects list, not None (default_factory=list)
     )
