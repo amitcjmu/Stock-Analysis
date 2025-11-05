@@ -311,8 +311,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     },
   ];
 
-  // Split items: keep FinOps, Decommission, Decom, Observability, Admin at the bottom near the profile block
-  const bottomNames = new Set(['FinOps', 'Decommission', 'Decom', 'Observability', 'Admin']);
+  // Split items: keep FinOps, Decom (old mockup), Observability, Admin at the bottom near the profile block
+  // NOTE: NEW "Decommission" stays in TOP section after Modernize
+  const bottomNames = new Set(['FinOps', 'Decom', 'Observability', 'Admin']);
   const topNavigationItems = navigationItems.filter((i) => !bottomNames.has(i.name));
   const bottomNavigationItems = navigationItems.filter((i) => bottomNames.has(i.name));
 

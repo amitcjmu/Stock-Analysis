@@ -13,7 +13,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -133,42 +133,41 @@ async def get_eligible_systems(
     engagement_id: str = Header(..., alias="X-Engagement-ID"),
 ) -> List[EligibleSystemResponse]:
     """
-    Get systems eligible for decommission.
+    Get ALL assets in inventory for potential decommission selection.
 
-    Eligibility criteria:
-    1. **six_r_strategy = "Retire"** (from Assessment Flow)
-    2. **OR status = "decommissioned"** (manually marked)
-    3. **Not already in an active decommission flow**
+    IMPORTANT: Users can select ANY asset from inventory. Checks and validations
+    happen AFTER selection during the decommission planning phase to determine
+    if an asset is truly ready for decommission.
 
-    Per Issue #948: Wave integration sets decommission readiness
-    Per Issue #947: Assessment sets six_r_strategy = "Retire"
+    Filtering criteria:
+    1. **All assets in inventory** (no pre-filtering by 6R strategy)
+    2. **Not already in an active decommission flow**
+
+    NOTE: Assets with six_r_strategy = "Retire" are RECOMMENDED but not REQUIRED.
+    The decommission planning phase will flag assets that aren't ready.
 
     Multi-tenant scoping: client_account_id + engagement_id
 
     Returns:
-    - List of assets eligible for decommission with cost and status info
+    - List of ALL assets with metadata for user selection
+    - six_r_strategy field indicates if Assessment recommended retirement
     """
     try:
         logger.info(
             safe_log_format(
-                "Getting eligible systems: client_account_id={client_account_id}, "
-                "engagement_id={engagement_id}",
+                "Getting all inventory systems for decommission selection: "
+                "client_account_id={client_account_id}, engagement_id={engagement_id}",
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
             )
         )
 
-        # Query assets with Retire strategy OR explicitly marked for decommission
-        # Per migration_fields.py: six_r_strategy options include "retire"
-        # Per migration_fields.py: status can be "decommissioned"
+        # Query ALL assets in inventory
+        # User can select any asset - validation happens during planning phase
         asset_stmt = select(Asset).where(
             Asset.client_account_id == UUID(client_account_id),
             Asset.engagement_id == UUID(engagement_id),
-            or_(
-                # Case-insensitive match for six_r_strategy
-                Asset.six_r_strategy.ilike("%retire%"),
-                Asset.status == "decommissioned",
-            ),
+            # No filtering by six_r_strategy - show ALL assets
         )
 
         # Get active decommission flow system IDs to exclude
@@ -199,20 +198,20 @@ async def get_eligible_systems(
 
         logger.info(
             safe_log_format(
-                "Found {total_assets} assets with Retire strategy, "
-                "{active_count} already in active flows",
+                "Found {total_assets} assets in inventory, "
+                "{active_count} already in active decommission flows",
                 total_assets=len(assets),
                 active_count=len(active_system_ids),
             )
         )
 
         # Filter out assets already being decommissioned
-        eligible_assets = [a for a in assets if str(a.id) not in active_system_ids]
+        available_assets = [a for a in assets if str(a.id) not in active_system_ids]
 
         logger.info(
             safe_log_format(
-                "Returning {eligible_count} eligible systems",
-                eligible_count=len(eligible_assets),
+                "Returning {available_count} assets available for selection",
+                available_count=len(available_assets),
             )
         )
 
@@ -222,17 +221,17 @@ async def get_eligible_systems(
             EligibleSystemResponse(
                 asset_id=str(asset.id),
                 asset_name=asset.asset_name or "Unknown",
-                six_r_strategy=asset.six_r_strategy,
+                six_r_strategy=asset.six_r_strategy,  # May be None - that's OK
                 annual_cost=float(asset.annual_cost_estimate or 0),
-                decommission_eligible=True,  # All returned assets are eligible
-                grace_period_end=None,  # Not yet implemented in Asset model
+                decommission_eligible=True,  # Available for selection
+                grace_period_end=None,  # Future: Wave integration sets this
                 retirement_reason=(
-                    "Marked for retirement via Assessment"
-                    if asset.six_r_strategy
-                    else "Manually marked as decommissioned"
+                    f"Recommended: {asset.six_r_strategy} strategy"
+                    if asset.six_r_strategy and "retire" in asset.six_r_strategy.lower()
+                    else "Available for decommission assessment"
                 ),
             )
-            for asset in eligible_assets
+            for asset in available_assets
         ]
 
     except ValueError as e:

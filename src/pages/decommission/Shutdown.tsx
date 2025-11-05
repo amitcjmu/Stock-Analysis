@@ -25,6 +25,7 @@ import {
   Server,
 } from 'lucide-react';
 import Sidebar from '../../components/layout/sidebar/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import {
   useDecommissionFlowStatus,
   useResumeDecommissionFlow,
@@ -310,6 +311,7 @@ const Shutdown: React.FC = () => {
       <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
+          <ContextBreadcrumbs />
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">

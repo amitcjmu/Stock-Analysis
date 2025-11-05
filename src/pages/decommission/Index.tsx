@@ -21,6 +21,7 @@
 import React, { useState, useMemo } from 'react';
 import { Archive, Trash2, FileText, Database, CheckCircle, AlertTriangle } from 'lucide-react';
 import Sidebar from '../../components/layout/sidebar/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import {
   useInitializeDecommissionFlow,
   useDecommissionFlows,
@@ -287,6 +288,7 @@ const DecommissionOverview: React.FC = () => {
       <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
+          <ContextBreadcrumbs />
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
@@ -482,7 +484,8 @@ const DecommissionOverview: React.FC = () => {
               Initialize Decommission Flow
             </h2>
             <p className="text-gray-600 mb-6">
-              Select systems to schedule for decommissioning
+              Select any assets from inventory to evaluate for decommission.
+              Readiness checks will be performed during the planning phase.
             </p>
 
             <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
@@ -504,7 +507,14 @@ const DecommissionOverview: React.FC = () => {
                       className="mr-3 h-4 w-4"
                     />
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{system.asset_name}</div>
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-gray-900">{system.asset_name}</div>
+                        {system.six_r_strategy && system.six_r_strategy.toLowerCase().includes('retire') && (
+                          <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                            Recommended for Retirement
+                          </span>
+                        )}
+                      </div>
                       <div className="text-sm text-gray-500">
                         Annual Cost: ${(system.annual_cost / 1000).toFixed(0)}K
                         {system.six_r_strategy && ` | Strategy: ${system.six_r_strategy}`}
@@ -514,9 +524,9 @@ const DecommissionOverview: React.FC = () => {
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No systems eligible for decommission</p>
+                  <p className="text-gray-500">No assets available in inventory</p>
                   <p className="text-sm text-gray-400 mt-2">
-                    Systems with 6R strategy &quot;Retire&quot; will appear here
+                    Import assets via Discovery flow to begin decommission planning
                   </p>
                 </div>
               )}
