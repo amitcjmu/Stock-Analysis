@@ -76,13 +76,13 @@ class DecommissionFlow(Base):
     # Multi-tenant scoping (REQUIRED for all queries)
     client_account_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("migration.client_accounts.client_account_id"),
+        ForeignKey("migration.client_accounts.id"),
         nullable=False,
         index=True,
     )
     engagement_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("migration.engagements.engagement_id"),
+        ForeignKey("migration.engagements.id"),
         nullable=False,
         index=True,
     )
