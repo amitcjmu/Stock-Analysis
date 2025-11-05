@@ -84,8 +84,25 @@ async def get_decommission_status_via_mfo(
                 CrewAIFlowStateExtensions.engagement_id == engagement_id
             )
 
+        # DEBUG: Log the compiled SQL query
+        from sqlalchemy.dialects import postgresql
+
+        compiled_query = query.compile(
+            dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+        )
+        logger.debug(
+            safe_log_format("Executing query: {query}", query=str(compiled_query))
+        )
+
         result = await db.execute(query)
         row = result.first()
+
+        # DEBUG: Log result
+        logger.debug(
+            safe_log_format(
+                "Query returned: {row_count} rows", row_count=1 if row else 0
+            )
+        )
 
         if not row:
             # DEBUG: Log why flow wasn't found

@@ -123,6 +123,11 @@ async def create_decommission_via_mfo(
         # Commit the transaction (FastAPI's get_db handles this automatically)
         await db.commit()
 
+        # Refresh both objects to ensure they're attached to the session
+        # and visible to subsequent queries
+        await db.refresh(master_flow)
+        await db.refresh(child_flow)
+
         logger.info(
             safe_log_format(
                 "Created decommission flow via MFO: flow_id={flow_id}, "
