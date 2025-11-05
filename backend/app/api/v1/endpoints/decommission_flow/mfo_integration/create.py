@@ -69,56 +69,59 @@ async def create_decommission_via_mfo(
 
     try:
         # ATOMIC TRANSACTION: Both master and child created together
-        async with db.begin():
-            # Step 1: Create master flow in crewai_flow_state_extensions
-            # Per ADR-006: Master flow is the single source of truth for lifecycle
-            master_flow = CrewAIFlowStateExtensions(
-                flow_id=flow_id,
-                flow_type="decommission",
-                flow_name=flow_name or f"Decommission Flow {flow_id}",
-                flow_status="running",  # High-level lifecycle status
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                user_id=user_id,
-                flow_configuration={
-                    "system_count": len(system_ids),
-                    "created_via": "decommission_flow_api",
-                    "mfo_integrated": True,
-                    "strategy": decommission_strategy or {},
-                },
-                flow_persistence_data={},
-            )
-            db.add(master_flow)
+        # Note: FastAPI's get_db() dependency manages the transaction context
+        # We don't need explicit db.begin() as the session auto-commits on success
 
-            # Flush to make master_flow.flow_id available for foreign key
-            await db.flush()
+        # Step 1: Create master flow in crewai_flow_state_extensions
+        # Per ADR-006: Master flow is the single source of truth for lifecycle
+        master_flow = CrewAIFlowStateExtensions(
+            flow_id=flow_id,
+            flow_type="decommission",
+            flow_name=flow_name or f"Decommission Flow {flow_id}",
+            flow_status="running",  # High-level lifecycle status
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            user_id=user_id,
+            flow_configuration={
+                "system_count": len(system_ids),
+                "created_via": "decommission_flow_api",
+                "mfo_integrated": True,
+                "strategy": decommission_strategy or {},
+            },
+            flow_persistence_data={},
+        )
+        db.add(master_flow)
 
-            # Step 2: Create child decommission flow in decommission_flows table
-            # Per ADR-012: Child flow contains operational state for UI and agents
-            child_flow = DecommissionFlow(
-                flow_id=flow_id,  # Links to master via flow_id (not FK, but same UUID)
-                master_flow_id=master_flow.flow_id,  # FK reference for relationship
-                engagement_id=engagement_id,
-                client_account_id=client_account_id,
-                flow_name=flow_name or f"Decommission Flow {flow_id}",
-                created_by=user_id,
-                status="initialized",  # Child operational status
-                current_phase="decommission_planning",  # First phase per ADR-027
-                selected_system_ids=system_ids,
-                system_count=len(system_ids),
-                decommission_strategy=decommission_strategy or {},
-                runtime_state={
-                    "initialized_at": datetime.utcnow().isoformat(),
-                    "current_agent": None,
-                },
-                # Phase status tracking (per ADR-027 FlowTypeConfig)
-                decommission_planning_status="pending",
-                data_migration_status="pending",
-                system_shutdown_status="pending",
-            )
-            db.add(child_flow)
+        # Flush to make master_flow.flow_id available for foreign key
+        await db.flush()
 
-            # Step 3: Transaction commits automatically on context exit
+        # Step 2: Create child decommission flow in decommission_flows table
+        # Per ADR-012: Child flow contains operational state for UI and agents
+        child_flow = DecommissionFlow(
+            flow_id=flow_id,  # Links to master via flow_id (not FK, but same UUID)
+            master_flow_id=master_flow.flow_id,  # FK reference for relationship
+            engagement_id=engagement_id,
+            client_account_id=client_account_id,
+            flow_name=flow_name or f"Decommission Flow {flow_id}",
+            created_by=user_id,
+            status="initialized",  # Child operational status
+            current_phase="decommission_planning",  # First phase per ADR-027
+            selected_system_ids=system_ids,
+            system_count=len(system_ids),
+            decommission_strategy=decommission_strategy or {},
+            runtime_state={
+                "initialized_at": datetime.utcnow().isoformat(),
+                "current_agent": None,
+            },
+            # Phase status tracking (per ADR-027 FlowTypeConfig)
+            decommission_planning_status="pending",
+            data_migration_status="pending",
+            system_shutdown_status="pending",
+        )
+        db.add(child_flow)
+
+        # Commit the transaction (FastAPI's get_db handles this automatically)
+        await db.commit()
 
         logger.info(
             safe_log_format(
