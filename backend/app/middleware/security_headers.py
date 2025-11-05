@@ -4,6 +4,7 @@ Adds security headers to all HTTP responses.
 """
 
 import logging
+from urllib.parse import unquote
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -228,10 +229,10 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
             "javascript:",
             "onerror=",
             "onload=",
-            # Path traversal
+            # Path traversal (Qodo Bot: URL-decode before checking)
             "../",
             "..\\",
-            "%2e%2e",
+            "..",  # Check for decoded form as well
         ]
 
         # Command injection patterns (shell metacharacters)
@@ -245,40 +246,48 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
             "$(",
         ]
 
-        # Check URL path with ALL patterns (URL security + command injection)
+        # Prepare URL components for checking (Qodo Bot: refactor for efficiency)
         path_lower = request.url.path.lower()
-        all_path_patterns = url_security_patterns + command_injection_patterns
-        for pattern in all_path_patterns:
-            if pattern in path_lower:
+        path_decoded = unquote(path_lower)  # URL-decode to catch encoded attacks
+        query_lower = request.url.query.lower() if request.url.query else ""
+        query_decoded = unquote(query_lower) if query_lower else ""
+
+        client_ip = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "")
+
+        # Combined pattern checking loop (Qodo Bot: efficiency improvement)
+        all_patterns = url_security_patterns + command_injection_patterns
+
+        for pattern in all_patterns:
+            # Check URL path with ALL patterns (both original and decoded)
+            if pattern in path_lower or pattern in path_decoded:
                 logger.warning(
-                    f"Suspicious pattern detected in URL: {pattern}",
+                    f"Suspicious pattern detected in URL path: {pattern}",
                     extra={
-                        "client_ip": (
-                            request.client.host if request.client else "unknown"
-                        ),
+                        "client_ip": client_ip,
                         "path": request.url.path,
                         "pattern": pattern,
-                        "user_agent": request.headers.get("user-agent", ""),
+                        "user_agent": user_agent,
                     },
                 )
 
-        # Check query parameters ONLY with URL security patterns
-        # Exclude command injection patterns to avoid false positives on standard URL separators
-        if request.url.query:
-            query_lower = request.url.query.lower()
-            for pattern in url_security_patterns:
-                if pattern in query_lower:
-                    logger.warning(
-                        f"Suspicious pattern detected in query: {pattern}",
-                        extra={
-                            "client_ip": (
-                                request.client.host if request.client else "unknown"
-                            ),
-                            "query": request.url.query,
-                            "pattern": pattern,
-                            "user_agent": request.headers.get("user-agent", ""),
-                        },
-                    )
+            # Check query parameters ONLY with URL security patterns
+            # Exclude command injection patterns to avoid false positives on standard separators
+            if (
+                query_lower
+                and pattern in url_security_patterns
+                and (pattern in query_lower or pattern in query_decoded)
+            ):
+                logger.warning(
+                    f"Suspicious pattern detected in query: {pattern}",
+                    extra={
+                        "client_ip": client_ip,
+                        "path": request.url.path,
+                        "query": request.url.query,
+                        "pattern": pattern,
+                        "user_agent": user_agent,
+                    },
+                )
 
     def _log_security_events(self, request: Request, response: Response):
         """Log security-related events."""

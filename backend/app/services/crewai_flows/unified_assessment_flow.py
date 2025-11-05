@@ -118,6 +118,16 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         selected_applications: List[str] = None,
         master_flow_id: Optional[str] = None,
     ):
+        # Validate required parameters (Qodo Bot feedback)
+        if db is None:
+            raise ValueError(
+                "db session is required for UnifiedAssessmentFlow initialization"
+            )
+        if context is None:
+            raise ValueError(
+                "context is required for UnifiedAssessmentFlow initialization"
+            )
+
         # Use master_flow_id if provided to preserve orchestration identity
         self.flow_id = str(master_flow_id) if master_flow_id else str(uuid.uuid4())
         self.context = context
