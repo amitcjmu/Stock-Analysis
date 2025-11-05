@@ -24,7 +24,11 @@ Each phase includes pause points for user input and collaboration.
 
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+# Import database types for type hints
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import models and dependencies (placed early per lint rules)
 from app.core.context import RequestContext
@@ -109,6 +113,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
     def __init__(
         self,
         context: RequestContext,
+        db: "AsyncSession",  # FIX #812: Required for PostgresFlowStateStore
         flow_configuration: Dict[str, Any] = None,
         selected_applications: List[str] = None,
         master_flow_id: Optional[str] = None,
@@ -116,6 +121,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         # Use master_flow_id if provided to preserve orchestration identity
         self.flow_id = str(master_flow_id) if master_flow_id else str(uuid.uuid4())
         self.context = context
+        self.db = db  # FIX #812: Store db session for state persistence
         self.flow_configuration = flow_configuration or {}
         self.selected_applications = selected_applications or []
         self.master_flow_id = master_flow_id
@@ -145,10 +151,9 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         """Initialize all flow components."""
         try:
             # Initialize state store
-            # TODO: PostgresFlowStateStore requires db session - should be provided by MFO
-            # Currently instantiated without params which will fail at runtime
-            # This needs to be refactored to get db session from context or MFO
-            self.state_store = PostgresFlowStateStore()
+            # FIX #812: Pass db session and context to PostgresFlowStateStore
+            # This was causing all assessment flows to crash during initialization
+            self.state_store = PostgresFlowStateStore(db=self.db, context=self.context)
 
             # Initialize flow state manager
             self.flow_state_manager = FlowStateManager(
@@ -262,6 +267,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
 # Factory function
 def create_unified_assessment_flow(
     context: RequestContext,
+    db: "AsyncSession",  # FIX #812: Required for PostgresFlowStateStore
     flow_configuration: Dict[str, Any] = None,
     selected_applications: List[str] = None,
     master_flow_id: Optional[str] = None,
@@ -271,6 +277,7 @@ def create_unified_assessment_flow(
 
     Args:
         context: Request context with engagement and user information
+        db: Database session for state persistence
         flow_configuration: Flow-specific configuration
         selected_applications: List of application IDs to assess
         master_flow_id: ID of the master flow for MFO integration
@@ -282,6 +289,7 @@ def create_unified_assessment_flow(
 
     return UnifiedAssessmentFlow(
         context=context,
+        db=db,
         flow_configuration=flow_configuration,
         selected_applications=selected_applications,
         master_flow_id=master_flow_id,
