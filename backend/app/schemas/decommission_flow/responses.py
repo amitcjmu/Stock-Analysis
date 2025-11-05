@@ -139,3 +139,65 @@ class DecommissionSystemInfo(BaseModel):
             }
         }
     )
+
+
+class DecommissionFlowListItem(BaseModel):
+    """List item for decommission flows (Overview dashboard)."""
+
+    flow_id: str = Field(..., description="Decommission flow UUID")
+    master_flow_id: str = Field(..., description="Master flow UUID (MFO)")
+    flow_name: str = Field(..., description="Descriptive name for the flow")
+    status: str = Field(..., description="Flow operational status")
+    current_phase: str = Field(..., description="Current phase (per FlowTypeConfig)")
+    system_count: int = Field(..., description="Number of systems in this flow")
+    estimated_savings: float = Field(..., description="Estimated annual cost savings")
+    created_at: str = Field(..., description="Flow creation timestamp (ISO format)")
+    updated_at: str = Field(..., description="Last update timestamp (ISO format)")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+                "master_flow_id": "550e8400-e29b-41d4-a716-446655440000",
+                "flow_name": "Q1 2025 Legacy System Retirement",
+                "status": "decommission_planning",
+                "current_phase": "decommission_planning",
+                "system_count": 5,
+                "estimated_savings": 250000.00,
+                "created_at": "2025-01-05T10:30:00Z",
+                "updated_at": "2025-01-05T11:45:00Z",
+            }
+        }
+    )
+
+
+class EligibleSystemResponse(BaseModel):
+    """System eligible for decommission (pre-flight check)."""
+
+    asset_id: str = Field(..., description="Asset UUID")
+    asset_name: str = Field(..., description="Asset name")
+    six_r_strategy: Optional[str] = Field(
+        None, description="6R strategy from Assessment (e.g., 'Retire')"
+    )
+    annual_cost: float = Field(..., description="Estimated annual cost")
+    decommission_eligible: bool = Field(
+        ..., description="Whether eligible for decommission"
+    )
+    grace_period_end: Optional[str] = Field(
+        None, description="Grace period end date (ISO format)"
+    )
+    retirement_reason: str = Field(..., description="Reason for retirement")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "asset_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+                "asset_name": "Legacy Billing System",
+                "six_r_strategy": "Retire",
+                "annual_cost": 120000.00,
+                "decommission_eligible": True,
+                "grace_period_end": None,
+                "retirement_reason": "Marked for retirement via Assessment",
+            }
+        }
+    )

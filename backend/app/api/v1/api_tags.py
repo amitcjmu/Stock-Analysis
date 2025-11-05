@@ -77,6 +77,9 @@ class APITags:
     # Planning
     PLANNING_FLOW = "Planning Flow"
 
+    # Decommission
+    DECOMMISSION = "Decommission"
+
     # System
     SYSTEM_HEALTH = "System Health"
     EMERGENCY_CONTROL = "Emergency Control"

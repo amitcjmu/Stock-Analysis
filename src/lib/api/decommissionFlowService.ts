@@ -124,6 +124,35 @@ export interface DecommissionFlowOperationResponse {
   message: string;
 }
 
+/**
+ * List item for decommission flows (query response)
+ */
+export interface DecommissionFlowListItem {
+  flow_id: string; // ✅ snake_case
+  master_flow_id: string; // ✅ snake_case
+  flow_name: string; // ✅ snake_case
+  status: string;
+  current_phase: string; // ✅ snake_case
+  system_count: number; // ✅ snake_case
+  estimated_savings: number; // ✅ snake_case
+  created_at: string; // ✅ snake_case (ISO 8601)
+  updated_at: string; // ✅ snake_case (ISO 8601)
+  runtime_state?: unknown; // ✅ Optional runtime state (includes compliance_score, etc.)
+}
+
+/**
+ * System eligible for decommission
+ */
+export interface EligibleSystemResponse {
+  asset_id: string; // ✅ snake_case
+  asset_name: string; // ✅ snake_case
+  six_r_strategy: string | null; // ✅ snake_case
+  annual_cost: number; // ✅ snake_case
+  decommission_eligible: boolean; // ✅ snake_case
+  grace_period_end: string | null; // ✅ snake_case (ISO 8601)
+  retirement_reason: string; // ✅ snake_case
+}
+
 // ============================================================================
 // API CLIENT
 // ============================================================================
@@ -229,6 +258,48 @@ export const decommissionFlowService = {
     // ✅ CORRECT: POST with no body needed
     return apiCall(`/decommission-flow/${flowId}/cancel`, {
       method: "POST",
+    });
+  },
+
+  /**
+   * List all decommission flows for current client/engagement
+   *
+   * Endpoint: GET /api/v1/decommission-flow/
+   * Per ADR-006: Queries child flows (decommission_flows table)
+   *
+   * @param params - Optional filters (status, limit, offset)
+   * @returns Promise with array of flow list items
+   */
+  async listDecommissionFlows(params?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<DecommissionFlowListItem[]> {
+    // ✅ CORRECT: GET request with query parameters
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append("status", params.status);
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.offset) queryParams.append("offset", params.offset.toString());
+
+    const url = `/decommission-flow/${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+
+    return apiCall(url, {
+      method: "GET",
+    });
+  },
+
+  /**
+   * Get systems eligible for decommission
+   *
+   * Endpoint: GET /api/v1/decommission-flow/eligible-systems
+   * Returns assets with 6R strategy = "Retire" or marked decommission_eligible
+   *
+   * @returns Promise with array of eligible systems
+   */
+  async getEligibleSystems(): Promise<EligibleSystemResponse[]> {
+    // ✅ CORRECT: GET request (no parameters)
+    return apiCall("/decommission-flow/eligible-systems", {
+      method: "GET",
     });
   },
 };

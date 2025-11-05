@@ -413,6 +413,32 @@ export const LazyDecommissionValidation = createLazyRoute(
   "Decom Validation",
 );
 
+// Decommission Flow Sub-routes (Issue #942-946 - v2.5.0)
+export const LazyDecommissionFlowOverview = createLazyRoute(
+  () => import("@/pages/decommission/Index"),
+  "Decommission Flow Overview",
+);
+
+export const LazyDecommissionFlowPlanning = createLazyRoute(
+  () => import("@/pages/decommission/Planning"),
+  "Decommission Planning",
+);
+
+export const LazyDecommissionDataMigration = createLazyRoute(
+  () => import("@/pages/decommission/DataMigration"),
+  "Decommission Data Migration",
+);
+
+export const LazyDecommissionShutdown = createLazyRoute(
+  () => import("@/pages/decommission/Shutdown"),
+  "Decommission Shutdown",
+);
+
+export const LazyDecommissionExport = createLazyRoute(
+  () => import("@/pages/decommission/Export"),
+  "Decommission Export",
+);
+
 // FinOps Sub-routes
 export const LazyCloudComparison = createLazyRoute(
   () => import("@/pages/finops/CloudComparison"),

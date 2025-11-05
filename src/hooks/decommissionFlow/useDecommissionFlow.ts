@@ -29,6 +29,8 @@ import {
   DecommissionFlowStatusResponse,
   ResumeDecommissionFlowRequest,
   DecommissionFlowOperationResponse,
+  DecommissionFlowListItem,
+  EligibleSystemResponse,
 } from "../../lib/api/decommissionFlowService";
 
 // ============================================================================
@@ -428,4 +430,62 @@ export function calculateProgress(
 
   // Calculate percentage based on completed phases
   return Math.round((completedPhases / totalPhases) * 100);
+}
+
+// ============================================================================
+// QUERY HOOKS (List & Eligible Systems)
+// ============================================================================
+
+/**
+ * Hook for fetching list of all decommission flows
+ *
+ * Endpoint: GET /api/v1/decommission-flow/
+ * Per ADR-006: Queries child flows (decommission_flows table)
+ *
+ * @param params - Optional filters (status, limit, offset)
+ * @param options - Additional query options
+ * @returns Query result with array of flow list items (all fields in snake_case)
+ */
+export function useDecommissionFlows(
+  params?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  },
+  options?: {
+    enabled?: boolean;
+    refetchInterval?: number | false;
+  }
+): UseQueryResult<DecommissionFlowListItem[], Error> {
+  return useQuery({
+    queryKey: decommissionFlowKeys.list(params || {}),
+    queryFn: () => decommissionFlowService.listDecommissionFlows(params),
+    enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchInterval ?? false,
+    // Keep previous data while refetching
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+/**
+ * Hook for fetching systems eligible for decommission
+ *
+ * Endpoint: GET /api/v1/decommission-flow/eligible-systems
+ * Returns assets with 6R strategy = "Retire" or marked decommission_eligible
+ *
+ * @param options - Additional query options
+ * @returns Query result with array of eligible systems (all fields in snake_case)
+ */
+export function useEligibleSystems(options?: {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+}): UseQueryResult<EligibleSystemResponse[], Error> {
+  return useQuery({
+    queryKey: [...decommissionFlowKeys.all, "eligible-systems"] as const,
+    queryFn: () => decommissionFlowService.getEligibleSystems(),
+    enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchInterval ?? false,
+    // Keep previous data while refetching
+    placeholderData: (previousData) => previousData,
+  });
 }

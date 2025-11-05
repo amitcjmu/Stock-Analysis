@@ -12,6 +12,8 @@ export {
   useResumeDecommissionFlow,
   usePauseDecommissionFlow,
   useCancelDecommissionFlow,
+  useDecommissionFlows,
+  useEligibleSystems,
   decommissionFlowKeys,
 } from "./useDecommissionFlow";
 
@@ -35,6 +37,8 @@ export type {
   DecommissionFlowStatusResponse,
   ResumeDecommissionFlowRequest,
   DecommissionFlowOperationResponse,
+  DecommissionFlowListItem,
+  EligibleSystemResponse,
 } from "../../lib/api/decommissionFlowService";
 
 // Re-export API service for direct access if needed

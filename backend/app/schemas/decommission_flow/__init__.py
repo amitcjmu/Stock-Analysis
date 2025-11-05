@@ -12,6 +12,8 @@ from .requests import (
 from .responses import (
     DecommissionFlowResponse,
     DecommissionFlowStatusResponse,
+    DecommissionFlowListItem,
+    EligibleSystemResponse,
 )
 
 __all__ = [
@@ -21,4 +23,6 @@ __all__ = [
     # Response schemas
     "DecommissionFlowResponse",
     "DecommissionFlowStatusResponse",
+    "DecommissionFlowListItem",
+    "EligibleSystemResponse",
 ]

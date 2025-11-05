@@ -41,7 +41,8 @@ import {
   Wand2,
   ShieldAlert,
   GitBranch,
-  Cloud
+  Cloud,
+  Power
 } from 'lucide-react';
 import type { SidebarProps } from './types'
 import type { NavigationItem, ExpandedStates } from './types'
@@ -88,7 +89,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     plan: location.pathname.startsWith('/plan'),
     execute: location.pathname.startsWith('/execute'),
     modernize: location.pathname.startsWith('/modernize'),
-    decommission: location.pathname.startsWith('/decom'),
+    decommission: location.pathname.startsWith('/decommission'),
+    decom: location.pathname.startsWith('/decom'),
     finops: location.pathname.startsWith('/finops'),
     observability: location.pathname.startsWith('/observability'),
     admin: location.pathname.startsWith('/admin')
@@ -245,6 +247,19 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       ]
     },
     {
+      name: 'Decommission',
+      path: '/decommission',
+      icon: Trash2,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/decommission', icon: LayoutDashboard },
+        { name: 'Planning', path: '/decommission/planning', icon: FileText },
+        { name: 'Data Migration', path: '/decommission/data-migration', icon: Database },
+        { name: 'Shutdown', path: '/decommission/shutdown', icon: Power },
+        { name: 'Export', path: '/decommission/export', icon: Upload }
+      ]
+    },
+    {
       name: 'FinOps',
       path: '/finops',
       icon: BarChart3,
@@ -296,8 +311,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     },
   ];
 
-  // Split items: keep FinOps, Decom, Observability, Admin at the bottom near the profile block
-  const bottomNames = new Set(['FinOps', 'Decom', 'Observability', 'Admin']);
+  // Split items: keep FinOps, Decommission, Decom, Observability, Admin at the bottom near the profile block
+  const bottomNames = new Set(['FinOps', 'Decommission', 'Decom', 'Observability', 'Admin']);
   const topNavigationItems = navigationItems.filter((i) => !bottomNames.has(i.name));
   const bottomNavigationItems = navigationItems.filter((i) => bottomNames.has(i.name));
 
@@ -323,6 +338,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         execute: false,
         modernize: false,
         decommission: false,
+        decom: false,
         finops: false,
         observability: false,
         admin: false

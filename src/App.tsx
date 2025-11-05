@@ -96,6 +96,11 @@ import {
   LazyDataRetention,
   LazyDecommissionExecution,
   LazyDecommissionValidation,
+  LazyDecommissionFlowOverview,
+  LazyDecommissionFlowPlanning,
+  LazyDecommissionDataMigration,
+  LazyDecommissionShutdown,
+  LazyDecommissionExport,
   LazyCloudComparison,
   LazySavingsAnalysis,
   LazyCostAnalysis,
@@ -483,27 +488,23 @@ const AuthenticatedApp = (): JSX.Element => {
         element={<LazyDecommissionValidation />}
       />
 
-      {/* Redirects for backward compatibility - /decommission/* to /decom/* */}
-      <Route path="/decommission" element={<Navigate to="/decom" replace />} />
-      <Route
-        path="/decommission/overview"
-        element={<Navigate to="/decom/overview" replace />}
-      />
+      {/* Decommission Flow routes (Issue #942-946 - v2.5.0) */}
+      <Route path="/decommission" element={<LazyDecommissionFlowOverview />} />
       <Route
         path="/decommission/planning"
-        element={<Navigate to="/decom/planning" replace />}
+        element={<LazyDecommissionFlowPlanning />}
       />
       <Route
-        path="/decommission/data-retention"
-        element={<Navigate to="/decom/data-retention" replace />}
+        path="/decommission/data-migration"
+        element={<LazyDecommissionDataMigration />}
       />
       <Route
-        path="/decommission/execution"
-        element={<Navigate to="/decom/execution" replace />}
+        path="/decommission/shutdown"
+        element={<LazyDecommissionShutdown />}
       />
       <Route
-        path="/decommission/validation"
-        element={<Navigate to="/decom/validation" replace />}
+        path="/decommission/export"
+        element={<LazyDecommissionExport />}
       />
 
       <Route path="/finops" element={<LazyFinOps />} />
