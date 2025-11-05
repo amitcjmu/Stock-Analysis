@@ -12,7 +12,7 @@
  * Per ADR-006: MFO pattern with HTTP polling (5s active, 15s paused)
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -22,6 +22,7 @@ import {
   DollarSign,
   Shield,
   TrendingUp,
+  Server,
 } from 'lucide-react';
 import Sidebar from '../../components/layout/sidebar/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
@@ -29,6 +30,7 @@ import {
   useDecommissionFlowStatus,
   useResumeDecommissionFlow,
   useCancelDecommissionFlow,
+  useEligibleSystems,
   getPhaseDisplayName,
 } from '../../hooks/decommissionFlow/useDecommissionFlow';
 import { useToast } from '@/hooks/use-toast';
@@ -57,8 +59,21 @@ const DecommissionPlanning: React.FC = () => {
 
   // API hooks
   const { data: flowStatus, isLoading, error } = useDecommissionFlowStatus(flowId);
+  const { data: eligibleSystems, isLoading: isLoadingSystems } = useEligibleSystems({
+    enabled: !!flowId,
+  });
   const resumeFlowMutation = useResumeDecommissionFlow();
   const cancelFlowMutation = useCancelDecommissionFlow();
+
+  // Filter eligible systems to only show selected ones
+  const selectedSystemsDetails = useMemo(() => {
+    if (!flowStatus?.selected_systems || !eligibleSystems) return [];
+
+    // selected_systems is an array of UUID strings
+    const selectedIds = new Set(flowStatus.selected_systems);
+
+    return eligibleSystems.filter(system => selectedIds.has(system.asset_id));
+  }, [flowStatus?.selected_systems, eligibleSystems]);
 
   // Redirect if no flow_id
   useEffect(() => {
@@ -269,6 +284,71 @@ const DecommissionPlanning: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Selected Systems Section */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <div className="flex items-center space-x-3 mb-4">
+                <Server className="h-6 w-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Selected Systems ({flowStatus.selected_systems?.length || 0})
+                </h2>
+              </div>
+
+              {isLoadingSystems ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                  <span className="ml-3 text-gray-600">Loading system details...</span>
+                </div>
+              ) : selectedSystemsDetails.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No systems found for this flow.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {selectedSystemsDetails.map((system) => (
+                    <div
+                      key={system.asset_id}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900 flex-1">
+                          {system.asset_name}
+                        </h3>
+                        {system.six_r_strategy && system.six_r_strategy.toLowerCase().includes('retire') && (
+                          <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                            RETIRE
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">6R Strategy:</span>
+                          <span className="font-medium text-gray-900">
+                            {system.six_r_strategy || 'Not assessed'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Annual Cost:</span>
+                          <span className="font-medium text-green-600">
+                            ${system.annual_cost?.toLocaleString() || '0'}
+                          </span>
+                        </div>
+
+                        {system.retirement_reason && (
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <p className="text-xs text-gray-600 italic">
+                              {system.retirement_reason}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Risk Assessment Summary */}

@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Archive, Trash2, FileText, Database, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Archive, Trash2, FileText, Database, CheckCircle, AlertTriangle, ChevronDown, Server } from 'lucide-react';
 import Sidebar from '../../components/layout/sidebar/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import {
@@ -27,6 +27,7 @@ import {
   useDecommissionFlows,
   useEligibleSystems,
   calculateProgress,
+  getPhaseDisplayName,
 } from '../../hooks/decommissionFlow';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +55,7 @@ const DecommissionOverview: React.FC = () => {
   const { toast } = useToast();
   const [showInitModal, setShowInitModal] = useState(false);
   const [selectedSystemIds, setSelectedSystemIds] = useState<string[]>([]);
+  const [expandedFlowId, setExpandedFlowId] = useState<string | null>(null);
 
   // API hooks - Fetch real data
   const initializeFlowMutation = useInitializeDecommissionFlow();
@@ -264,6 +266,11 @@ const DecommissionOverview: React.FC = () => {
     );
   };
 
+  // Toggle flow expansion to show/hide systems
+  const toggleFlowExpansion = (flowId: string) => {
+    setExpandedFlowId(prev => prev === flowId ? null : flowId);
+  };
+
   // Show loading spinner while data is fetching
   if (isLoadingFlows || isLoadingEligible) {
     return (
@@ -403,6 +410,75 @@ const DecommissionOverview: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Active Decommission Flows */}
+            {flows && flows.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md mb-8">
+                <div className="p-6 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Active Decommission Flows</h3>
+                  <p className="text-sm text-gray-600 mt-1">Click on a flow to view detailed planning and system information</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  {flows.map((flow) => (
+                    <div key={flow.flow_id} className="border rounded-lg hover:shadow-md transition-shadow">
+                      {/* Flow Header - Clickable */}
+                      <div
+                        className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => navigate(`/decommission/planning?flow_id=${flow.flow_id}`)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className="font-semibold text-gray-900">{flow.flow_name}</h4>
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  flow.status === 'completed'
+                                    ? 'bg-green-100 text-green-800'
+                                    : flow.status === 'failed'
+                                    ? 'bg-red-100 text-red-800'
+                                    : flow.status === 'paused'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-blue-100 text-blue-800'
+                                }`}
+                              >
+                                {flow.status.toUpperCase()}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-600">Phase:</span>
+                                <span className="ml-2 font-medium">{getPhaseDisplayName(flow.current_phase)}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Systems:</span>
+                                <span className="ml-2 font-medium">{flow.system_count}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Estimated Savings:</span>
+                                <span className="ml-2 font-medium text-green-600">
+                                  ${(flow.estimated_savings / 1000).toFixed(0)}K
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Created:</span>
+                                <span className="ml-2 font-medium">
+                                  {new Date(flow.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="ml-4 text-blue-600 hover:text-blue-700">
+                            <span className="text-sm font-medium">View Details →</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Upcoming Decommissions */}
             <div className="bg-white rounded-lg shadow-md">
