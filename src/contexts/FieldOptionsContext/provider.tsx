@@ -49,14 +49,21 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
   useEffect(() => {
     // Only fetch if we have both client and engagement context
     if (client?.id && engagement?.id) {
+      console.log('FieldOptionsProvider: Fetching fields for context:', {
+        clientId: client.id,
+        engagementId: engagement.id
+      });
       fetchFields();
     } else {
       console.warn('FieldOptionsProvider: Skipping fetch - missing client or engagement context', {
         hasClient: !!client?.id,
         hasEngagement: !!engagement?.id
       });
+      // Reset fields when context is incomplete
+      setAvailableFields([]);
+      setIsLoading(false);
     }
-  }, [client?.id, engagement?.id]);
+  }, [client, engagement]); // Changed: Listen to full objects, not just IDs
 
   const refetchFields = async () =>  {
     await fetchFields();
