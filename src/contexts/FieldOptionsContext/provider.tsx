@@ -26,6 +26,10 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
       setIsLoading(true);
       setError(null);
 
+      // Small delay to ensure API context is synchronized
+      // This allows useApiContextSync to update the global context before we make the API call
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Use apiCall utility which handles environment-specific URLs (localhost/Vercel/Railway)
       const data = await apiCall('/data-import/available-target-fields', {
         method: 'GET',
@@ -34,6 +38,7 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
       if (data.fields && Array.isArray(data.fields)) {
         setAvailableFields(data.fields);
         setLastUpdated(new Date());
+        console.log(`✅ FieldOptionsProvider: Loaded ${data.fields.length} available fields`);
       } else {
         throw new Error('Invalid response format');
       }
