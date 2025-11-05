@@ -9,6 +9,7 @@ Per ADR-027: Phase names match FlowTypeConfig exactly
 """
 
 import logging
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
@@ -142,7 +143,7 @@ async def get_decommission_flow_status(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_account_id: str = Depends(verify_client_access),
-    engagement_id: str = Header(..., alias="X-Engagement-ID"),
+    engagement_id: Optional[str] = Header(None, alias="X-Engagement-ID"),
 ):
     """
     Get current status and progress of decommission flow via MFO.
@@ -158,7 +159,7 @@ async def get_decommission_flow_status(
             flow_id=UUID(flow_id),
             db=db,
             client_account_id=UUID(client_account_id),
-            engagement_id=UUID(engagement_id),
+            engagement_id=UUID(engagement_id) if engagement_id else None,
         )
 
         return DecommissionFlowStatusResponse(**status)
@@ -189,7 +190,7 @@ async def resume_decommission_flow_endpoint(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_account_id: str = Depends(verify_client_access),
-    engagement_id: str = Header(..., alias="X-Engagement-ID"),
+    engagement_id: Optional[str] = Header(None, alias="X-Engagement-ID"),
 ):
     """
     Resume paused decommission flow from specific phase via MFO.
@@ -206,7 +207,7 @@ async def resume_decommission_flow_endpoint(
             flow_id=UUID(flow_id),
             db=db,
             client_account_id=UUID(client_account_id),
-            engagement_id=UUID(engagement_id),
+            engagement_id=UUID(engagement_id) if engagement_id else None,
         )
 
         if current_status["status"] == "completed":
@@ -218,7 +219,7 @@ async def resume_decommission_flow_endpoint(
         result = await resume_decommission_flow(
             UUID(flow_id),
             UUID(client_account_id),
-            UUID(engagement_id),
+            UUID(engagement_id) if engagement_id else None,
             request.phase,
             db,
         )
@@ -278,7 +279,7 @@ async def pause_decommission_flow_endpoint(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_account_id: str = Depends(verify_client_access),
-    engagement_id: str = Header(..., alias="X-Engagement-ID"),
+    engagement_id: Optional[str] = Header(None, alias="X-Engagement-ID"),
 ):
     """
     Pause running decommission flow via MFO.
@@ -292,7 +293,7 @@ async def pause_decommission_flow_endpoint(
         result = await pause_decommission_flow(
             UUID(flow_id),
             UUID(client_account_id),
-            UUID(engagement_id),
+            UUID(engagement_id) if engagement_id else None,
             db,
         )
 
@@ -333,7 +334,7 @@ async def cancel_decommission_flow_endpoint(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     client_account_id: str = Depends(verify_client_access),
-    engagement_id: str = Header(..., alias="X-Engagement-ID"),
+    engagement_id: Optional[str] = Header(None, alias="X-Engagement-ID"),
 ):
     """
     Cancel decommission flow via MFO.
@@ -347,7 +348,7 @@ async def cancel_decommission_flow_endpoint(
         result = await cancel_decommission_flow(
             UUID(flow_id),
             UUID(client_account_id),
-            UUID(engagement_id),
+            UUID(engagement_id) if engagement_id else None,
             db,
         )
 

@@ -52,6 +52,17 @@ async def get_decommission_status_via_mfo(
         SQLAlchemyError: If database operations fail
     """
     try:
+        # DEBUG: Log incoming parameters
+        logger.info(
+            safe_log_format(
+                "Getting decommission status: flow_id={flow_id}, "
+                "client_account_id={client_id}, engagement_id={engagement_id}",
+                flow_id=str(flow_id),
+                client_id=str(client_account_id) if client_account_id else "None",
+                engagement_id=str(engagement_id) if engagement_id else "None",
+            )
+        )
+
         # Query both master and child flows
         # Per two-table pattern: Join on flow_id with tenant scoping
         query = (
@@ -77,7 +88,17 @@ async def get_decommission_status_via_mfo(
         row = result.first()
 
         if not row:
-            raise ValueError(f"Decommission flow {flow_id} not found")
+            # DEBUG: Log why flow wasn't found
+            logger.warning(
+                safe_log_format(
+                    "Decommission flow not found: flow_id={flow_id}, "
+                    "client_account_id={client_id}, engagement_id={engagement_id}",
+                    flow_id=str(flow_id),
+                    client_id=str(client_account_id) if client_account_id else "None",
+                    engagement_id=str(engagement_id) if engagement_id else "None",
+                )
+            )
+            raise ValueError(f"Decommission flow not found: flow_id={str(flow_id)[:8]}")
 
         master_flow, child_flow = row
 
@@ -124,7 +145,9 @@ async def get_decommission_status_via_mfo(
             "master_status": master_flow.flow_status,
             "master_flow_type": master_flow.flow_type,
             # Metadata
-            "selected_systems": len(child_flow.selected_system_ids or []),
+            "selected_systems": [
+                str(sid) for sid in (child_flow.selected_system_ids or [])
+            ],
             "system_count": child_flow.system_count,
             "created_at": child_flow.created_at,
             "updated_at": child_flow.updated_at,
