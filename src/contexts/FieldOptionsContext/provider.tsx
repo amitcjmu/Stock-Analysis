@@ -47,7 +47,15 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
   };
 
   useEffect(() => {
-    fetchFields();
+    // Only fetch if we have both client and engagement context
+    if (client?.id && engagement?.id) {
+      fetchFields();
+    } else {
+      console.warn('FieldOptionsProvider: Skipping fetch - missing client or engagement context', {
+        hasClient: !!client?.id,
+        hasEngagement: !!engagement?.id
+      });
+    }
   }, [client?.id, engagement?.id]);
 
   const refetchFields = async () =>  {
