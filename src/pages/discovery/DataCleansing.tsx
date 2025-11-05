@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
 import { useLatestImport, useAssets, useDataCleansingStats, useDataCleansingAnalysis, useTriggerDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingQueries';
-import { downloadRawData, downloadCleanedData } from '../../services/dataCleansingService';
+import { downloadRawData, downloadCleanedData, applyRecommendation } from '../../services/dataCleansingService';
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
 import SecureLogger from '../../utils/secureLogger';
@@ -217,6 +217,30 @@ const DataCleansing: React.FC = () => {
       await Promise.all([refetchStats(), refetchAnalysis(), refresh()]);
     } catch (error) {
       SecureLogger.error('Failed to refresh data cleansing data', error);
+    }
+  };
+
+  // Handler for applying/rejecting recommendations
+  const handleApplyRecommendation = async (recommendationId: string, action: 'apply' | 'reject'): Promise<void> => {
+    if (!effectiveFlowId) {
+      SecureLogger.error('No flow ID available for applying recommendation');
+      return;
+    }
+
+    try {
+      SecureLogger.info('Applying/rejecting recommendation', { recommendationId, action, flowId: effectiveFlowId });
+
+      // Call backend PATCH endpoint
+      await applyRecommendation(effectiveFlowId, recommendationId, action);
+
+      SecureLogger.info('Recommendation action completed successfully', { recommendationId, action });
+
+      // Refresh data to show updated state
+      await Promise.all([refetchAnalysis(), refresh()]);
+
+    } catch (error) {
+      SecureLogger.error('Failed to apply recommendation', { error, recommendationId, action, flowId: effectiveFlowId });
+      alert(`Failed to ${action === 'apply' ? 'apply' : 'reject'} recommendation. Please try again.`);
     }
   };
 
@@ -663,10 +687,7 @@ const DataCleansing: React.FC = () => {
                 {(agentRecommendations.length > 0 || isLoadingData) && (
                   <CleansingRecommendationsPanel
                     recommendations={agentRecommendations}
-                    onApplyRecommendation={(recommendationId) => {
-                      SecureLogger.info('Applying cleansing recommendation');
-                      // Implementation for applying recommendations
-                    }}
+                    onApplyRecommendation={handleApplyRecommendation}
                     isLoading={isLoadingData}
                   />
                 )}

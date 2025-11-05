@@ -290,6 +290,100 @@ async def _apply_stored_resolutions(
         return quality_issues
 
 
+async def _apply_stored_recommendation_actions(
+    flow_id: str, recommendations: List[DataCleansingRecommendation], db_session: AsyncSession
+) -> List[DataCleansingRecommendation]:
+    """
+    Apply stored actions to recommendations.
+
+    This function checks the flow's crewai_state_data for stored recommendation actions
+    and updates the recommendations with their action status.
+    """
+    try:
+        # Get the flow to check for stored actions
+        from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select
+
+        # Get the flow directly from the database using the provided session
+        # First, expire any cached instances to force a fresh read from the database
+        db_session.expire_all()
+
+        flow_query = select(
+            DiscoveryFlow
+        ).where(  # SKIP_TENANT_CHECK - flow_id validated via MFO
+            DiscoveryFlow.flow_id == flow_id
+        )
+        flow_result = await db_session.execute(flow_query)
+        flow = flow_result.scalar_one_or_none()
+
+        if not flow:
+            logger.warning(f"Flow {flow_id} not found when applying recommendation actions")
+            return recommendations
+
+        # Get stored actions from crewai_state_data
+        crewai_data = flow.crewai_state_data or {}
+        logger.info(
+            f"Flow {flow_id} crewai_state_data keys: {list(crewai_data.keys())}"
+        )
+
+        data_cleansing_results = crewai_data.get("data_cleansing_results", {})
+        stored_actions = data_cleansing_results.get("recommendation_actions", {})
+        logger.info(f"Flow {flow_id} stored_recommendation_actions: {stored_actions}")
+
+        if not stored_actions:
+            logger.info(f"No stored recommendation actions found for flow {flow_id}")
+            return recommendations
+
+        logger.info(
+            f"Found {len(stored_actions)} stored recommendation actions for flow {flow_id}"
+        )
+
+        # Apply actions to recommendations
+        updated_recommendations = []
+        for recommendation in recommendations:
+            recommendation_id = recommendation.id
+
+            # Check if this recommendation has been acted upon
+            if recommendation_id in stored_actions:
+                action = stored_actions[recommendation_id]
+                action_status = action.get("status", "pending")
+
+                # Create a copy of the recommendation with updated status
+                updated_recommendation = DataCleansingRecommendation(
+                    id=recommendation.id,
+                    category=recommendation.category,
+                    title=recommendation.title,
+                    description=recommendation.description,
+                    priority=recommendation.priority,
+                    impact=recommendation.impact,
+                    effort_estimate=recommendation.effort_estimate,
+                    fields_affected=recommendation.fields_affected,
+                    status=action_status,  # Add the action status
+                )
+                updated_recommendations.append(updated_recommendation)
+            else:
+                # Recommendation has no action, keep as pending
+                updated_recommendation = DataCleansingRecommendation(
+                    id=recommendation.id,
+                    category=recommendation.category,
+                    title=recommendation.title,
+                    description=recommendation.description,
+                    priority=recommendation.priority,
+                    impact=recommendation.impact,
+                    effort_estimate=recommendation.effort_estimate,
+                    fields_affected=recommendation.fields_affected,
+                    status="pending",  # Default to pending
+                )
+                updated_recommendations.append(updated_recommendation)
+
+        return updated_recommendations
+
+    except Exception as e:
+        logger.error(f"Failed to apply stored recommendation actions: {e}")
+        # Return original recommendations if action application fails
+        return recommendations
+
+
 async def _perform_data_cleansing_analysis(
     flow_id: str,
     data_imports: List[Any],
@@ -394,11 +488,17 @@ async def _perform_data_cleansing_analysis(
             logger.error(f"Failed to analyze raw data for quality issues: {e}")
             # Continue with empty quality issues if analysis fails
 
-        # Generate sample recommendations
+        # Generate sample recommendations (with deterministic IDs)
+        def _generate_deterministic_recommendation_id(category: str, title: str) -> str:
+            """Generate a deterministic ID for a recommendation based on category and title."""
+            recommendation_key = f"{category}:{title}"
+            namespace = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")  # Standard namespace
+            return str(uuid.uuid5(namespace, recommendation_key))
+
         recommendations.extend(
             [
                 DataCleansingRecommendation(
-                    id=str(uuid.uuid4()),
+                    id=_generate_deterministic_recommendation_id("standardization", "Standardize date formats"),
                     category="standardization",
                     title="Standardize date formats",
                     description="Multiple date formats detected. Standardize to ISO 8601 format",
@@ -406,9 +506,10 @@ async def _perform_data_cleansing_analysis(
                     impact="Improves data consistency and query performance",
                     effort_estimate="2-4 hours",
                     fields_affected=["created_date", "modified_date", "last_seen"],
+                    status="pending",  # Default status
                 ),
                 DataCleansingRecommendation(
-                    id=str(uuid.uuid4()),
+                    id=_generate_deterministic_recommendation_id("validation", "Validate server names"),
                     category="validation",
                     title="Validate server names",
                     description="Some server names contain invalid characters or inconsistent naming",
@@ -416,8 +517,14 @@ async def _perform_data_cleansing_analysis(
                     impact="Ensures proper asset identification",
                     effort_estimate="1-2 hours",
                     fields_affected=["server_name", "hostname"],
+                    status="pending",  # Default status
                 ),
             ]
+        )
+
+        # Apply stored actions to recommendations
+        recommendations = await _apply_stored_recommendation_actions(
+            flow_id, recommendations, db_session
         )
 
     # Calculate overall quality score

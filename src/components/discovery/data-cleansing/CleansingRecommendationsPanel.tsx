@@ -4,15 +4,17 @@ import { Brain } from 'lucide-react';
 
 interface CleansingRecommendation {
   id: string;
-  type: string;
+  category?: string; // 'standardization' | 'validation' | 'enrichment' | 'deduplication'
+  type?: string; // Legacy field for backward compatibility
   title: string;
   description: string;
-  confidence: number;
+  confidence?: number; // Optional, may not be provided by backend
   priority: 'high' | 'medium' | 'low';
-  fields: string[];
-  agent_source: string;
-  implementation_steps: string[];
-  status: 'pending' | 'applied' | 'rejected';
+  fields_affected?: string[]; // Backend field name
+  fields?: string[]; // Legacy field for backward compatibility
+  agent_source?: string; // Optional, may not be provided by backend
+  implementation_steps?: string[]; // Optional, may not be provided by backend
+  status?: 'pending' | 'applied' | 'rejected'; // Optional, defaults to 'pending'
 }
 
 interface CleansingRecommendationsPanelProps {
@@ -102,26 +104,39 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
                         {rec.priority.toUpperCase()}
                       </span>
                       <span className="text-sm font-medium text-gray-900">{rec.title}</span>
-                      <span className="text-xs text-gray-500">({Math.round(rec.confidence * 100)}% confidence)</span>
+                      {rec.confidence !== undefined && (
+                        <span className="text-xs text-gray-500">({Math.round(rec.confidence * 100)}% confidence)</span>
+                      )}
+                      {rec.category && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                          {rec.category}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-700 mb-2">{rec.description}</p>
                     <div className="text-xs text-gray-600">
-                      <p><strong>Fields:</strong> {rec.fields_affected?.join(', ') || 'N/A'}</p>
-                      <p><strong>Steps:</strong></p>
-                      <ul className="list-disc list-inside ml-2 space-y-1">
-                        {rec.implementation_steps?.map((step, idx) => (
-                          <li key={idx}>{step}</li>
-                        )) || <li>No implementation steps available</li>}
-                      </ul>
+                      <p><strong>Fields:</strong> {(rec.fields_affected || rec.fields || []).join(', ') || 'N/A'}</p>
+                      {rec.implementation_steps && rec.implementation_steps.length > 0 && (
+                        <>
+                          <p><strong>Steps:</strong></p>
+                          <ul className="list-disc list-inside ml-2 space-y-1">
+                            {rec.implementation_steps.map((step, idx) => (
+                              <li key={idx}>{step}</li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
                     </div>
-                    <p className="text-xs text-blue-600 mt-1">Source: {rec.agent_source}</p>
+                    {rec.agent_source && (
+                      <p className="text-xs text-blue-600 mt-1">Source: {rec.agent_source}</p>
+                    )}
                   </div>
                   <div className="flex space-x-2 ml-4">
                     <Button
                       size="sm"
                       onClick={() => onApplyRecommendation(rec.id, 'apply')}
-                      disabled={rec.status !== 'pending'}
-                      className={rec.status === 'applied' ? 'bg-green-600' : ''}
+                      disabled={rec.status === 'applied' || rec.status === 'rejected'}
+                      className={rec.status === 'applied' ? 'bg-green-600 hover:bg-green-700' : ''}
                     >
                       {rec.status === 'applied' ? 'Applied' : 'Apply'}
                     </Button>
@@ -129,7 +144,8 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
                       size="sm"
                       variant="outline"
                       onClick={() => onApplyRecommendation(rec.id, 'reject')}
-                      disabled={rec.status !== 'pending'}
+                      disabled={rec.status === 'applied' || rec.status === 'rejected'}
+                      className={rec.status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' : ''}
                     >
                       {rec.status === 'rejected' ? 'Rejected' : 'Reject'}
                     </Button>

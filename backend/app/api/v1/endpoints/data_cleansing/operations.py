@@ -22,6 +22,8 @@ from .base import (
     DataCleansingStats,
     ResolveQualityIssueRequest,
     ResolveQualityIssueResponse,
+    ApplyRecommendationRequest,
+    ApplyRecommendationResponse,
 )
 from .validation import _validate_and_get_flow, _get_data_import_for_flow
 from .analysis import _perform_data_cleansing_analysis
@@ -412,4 +414,126 @@ async def resolve_quality_issue(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to resolve quality issue: {str(e)}",
+        )
+
+
+@router.patch(
+    "/flows/{flow_id}/data-cleansing/recommendations/{recommendation_id}",
+    response_model=ApplyRecommendationResponse,
+    summary="Apply or reject a cleansing recommendation",
+    tags=["Data Cleansing Operations"],
+)
+async def apply_recommendation(
+    flow_id: str,
+    recommendation_id: str,
+    request: ApplyRecommendationRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user),
+) -> ApplyRecommendationResponse:
+    """
+    Apply or reject a data cleansing recommendation.
+
+    This endpoint stores the action in the flow's data_cleansing_results field
+    with audit trail information (user_id, timestamp, action status).
+    """
+    try:
+        from datetime import datetime
+
+        logger.info(
+            f"Processing recommendation {recommendation_id} for flow {flow_id} with action: {request.action}"
+        )
+
+        # Validate action
+        if request.action not in ["apply", "reject"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid action: {request.action}. Must be 'apply' or 'reject'",
+            )
+
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(
+            db, context.client_account_id, context.engagement_id
+        )
+
+        # Verify flow exists and user has access
+        flow = await _validate_and_get_flow(flow_id, flow_repo)
+
+        logger.info(f"Flow {flow_id} found: {flow.flow_name} (status: {flow.status})")
+
+        # Prepare action data with audit trail
+        applied_at = datetime.utcnow().isoformat()
+        action_data = {
+            "recommendation_id": recommendation_id,
+            "action": request.action,
+            "status": "applied" if request.action == "apply" else "rejected",
+            "applied_at": applied_at,
+            "applied_by_user_id": str(current_user.id),
+            "client_account_id": str(context.client_account_id),
+            "engagement_id": str(context.engagement_id),
+            "notes": request.notes,
+        }
+
+        # Get existing data_cleansing_results or initialize
+        existing_data = flow.crewai_state_data or {}
+        data_cleansing_results = existing_data.get("data_cleansing_results", {})
+
+        # Store action in recommendations dict keyed by recommendation_id
+        if "recommendation_actions" not in data_cleansing_results:
+            data_cleansing_results["recommendation_actions"] = {}
+
+        data_cleansing_results["recommendation_actions"][recommendation_id] = action_data
+
+        logger.info(f"Stored action for recommendation {recommendation_id}: {action_data}")
+        logger.info(
+            f"Total recommendation actions stored: {len(data_cleansing_results['recommendation_actions'])}"
+        )
+
+        # Update flow with new data_cleansing_results
+        existing_data["data_cleansing_results"] = data_cleansing_results
+        flow.crewai_state_data = existing_data
+
+        # Ensure SQLAlchemy detects the JSONB field change
+        from sqlalchemy.orm.attributes import flag_modified
+
+        flag_modified(flow, "crewai_state_data")
+
+        # Ensure the flow object is properly tracked by the session
+        db.add(flow)
+
+        logger.info(
+            f"Updating flow {flow_id} with action data for recommendation {recommendation_id}"
+        )
+
+        # Commit changes to database
+        await db.commit()
+        await db.refresh(flow)
+
+        logger.info(f"Database commit successful for flow {flow_id}")
+
+        logger.info(
+            f"Recommendation {recommendation_id} {request.action}ed successfully for flow {flow_id}"
+        )
+
+        return ApplyRecommendationResponse(
+            success=True,
+            message=f"Recommendation {request.action}ed successfully",
+            recommendation_id=recommendation_id,
+            action=request.action,
+            applied_at=applied_at,
+        )
+
+    except HTTPException as he:
+        logger.error(f"❌ HTTP Exception in apply recommendation endpoint: {he.detail}")
+        raise he
+    except Exception as e:
+        logger.error(
+            f"❌ Failed to {request.action} recommendation {recommendation_id} for flow {flow_id}: {str(e)}"
+        )
+        import traceback
+
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to {request.action} recommendation: {str(e)}",
         )

@@ -30,6 +30,13 @@ class ResolveQualityIssueRequest(BaseModel):
     resolution_notes: Optional[str] = None
 
 
+class ApplyRecommendationRequest(BaseModel):
+    """Request to apply or reject a cleansing recommendation"""
+
+    action: str  # 'apply', 'reject'
+    notes: Optional[str] = None
+
+
 # Response Models
 class DataQualityIssue(BaseModel):
     """Data quality issue identified during cleansing analysis"""
@@ -56,6 +63,7 @@ class DataCleansingRecommendation(BaseModel):
     impact: str
     effort_estimate: str
     fields_affected: List[str]
+    status: Optional[str] = None  # 'pending', 'applied', 'rejected'
 
 
 class DataCleansingAnalysis(BaseModel):
@@ -93,3 +101,13 @@ class ResolveQualityIssueResponse(BaseModel):
     issue_id: str
     resolution_status: str
     resolved_at: str
+
+
+class ApplyRecommendationResponse(BaseModel):
+    """Response after applying or rejecting a recommendation"""
+
+    success: bool
+    message: str
+    recommendation_id: str
+    action: str  # 'apply', 'reject'
+    applied_at: str
