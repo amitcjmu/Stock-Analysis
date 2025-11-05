@@ -5,7 +5,7 @@ Functions for checking if collection is ready for assessment transition.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,7 @@ from app.models.collection_questionnaire_response import CollectionQuestionnaire
 from app.services.flow_configs.collection_flow_config import get_collection_flow_config
 
 
-async def check_and_set_assessment_ready(
+async def check_and_set_assessment_ready(  # noqa: C901
     flow: CollectionFlow,
     form_responses: Dict[str, Any],
     db: AsyncSession,
@@ -137,6 +137,13 @@ async def check_and_set_assessment_ready(
             has_environment_from_questionnaire or has_environment_from_assets
         )
 
+        # CRITICAL FIX: Check if ALL selected assets have completed questionnaires
+        # Bug: Previously only checked if required fields exist, not if all assets have questionnaires
+        selected_asset_ids = (flow.flow_metadata or {}).get("selected_asset_ids", [])
+        all_questionnaires_completed = await _check_all_questionnaires_completed(
+            flow, selected_asset_ids, db, logger
+        )
+
         logger.info(
             f"Assessment readiness check - "
             f"business_criticality: {has_business_criticality} "
@@ -145,11 +152,16 @@ async def check_and_set_assessment_ready(
             f"environment: {has_environment_or_technical_detail} "
             f"(questionnaire: {has_environment_from_questionnaire}, "
             f"assets: {has_environment_from_assets}), "
-            f"total responses: {len(collected_question_ids)}"
+            f"total responses: {len(collected_question_ids)}, "
+            f"all_questionnaires_completed: {all_questionnaires_completed}"
         )
 
-        # Set assessment_ready if all required attributes are present
-        if has_business_criticality and has_environment_or_technical_detail:
+        # Set assessment_ready if all required attributes are present AND all questionnaires completed
+        if (
+            has_business_criticality
+            and has_environment_or_technical_detail
+            and all_questionnaires_completed
+        ):
             if not flow.assessment_ready:
                 flow.assessment_ready = True
                 flow.updated_at = datetime.utcnow()
@@ -166,6 +178,8 @@ async def check_and_set_assessment_ready(
                 missing.append("business_criticality")
             if not has_environment_or_technical_detail:
                 missing.append("environment/technical_detail")
+            if not all_questionnaires_completed:
+                missing.append("incomplete questionnaires")
             logger.info(
                 f"⚠️ Collection flow {flow.flow_id} not yet ready for assessment. "
                 f"Missing: {', '.join(missing)}"
@@ -177,3 +191,73 @@ async def check_and_set_assessment_ready(
         )
         # Don't fail the entire submission if this check fails
         pass
+
+
+async def _check_all_questionnaires_completed(
+    flow: CollectionFlow,
+    selected_asset_ids: List[str],
+    db: AsyncSession,
+    logger: logging.Logger,
+) -> bool:
+    """
+    Check if ALL selected assets have completed questionnaires.
+
+    Returns True only if:
+    1. There are selected assets
+    2. Every selected asset has at least one completed questionnaire
+
+    Returns False if any asset is missing a completed questionnaire.
+    """
+    if not selected_asset_ids:
+        logger.warning(
+            f"⚠️ No selected_asset_ids found in flow metadata for flow {flow.flow_id}. "
+            "Cannot verify all questionnaires completed."
+        )
+        return False
+
+    # Import here to avoid circular dependency
+    from app.models.collection_flow.adaptive_questionnaire_model import (
+        AdaptiveQuestionnaire,
+    )
+
+    # Get all completed questionnaires for this flow
+    completed_questionnaires_result = await db.execute(
+        select(AdaptiveQuestionnaire).where(
+            AdaptiveQuestionnaire.collection_flow_id == flow.id,
+            AdaptiveQuestionnaire.completion_status == "completed",
+        )
+    )
+    completed_questionnaires = list(completed_questionnaires_result.scalars().all())
+
+    # Build set of asset IDs that have completed questionnaires
+    # Each questionnaire's target_gaps contains the asset_id it applies to
+    assets_with_completed_questionnaires = set()
+    for questionnaire in completed_questionnaires:
+        # target_gaps structure: [{"asset_id": "uuid", "field": "...", ...}, ...]
+        if questionnaire.target_gaps:
+            for gap in questionnaire.target_gaps:
+                if isinstance(gap, dict) and gap.get("asset_id"):
+                    assets_with_completed_questionnaires.add(str(gap["asset_id"]))
+
+    # Convert selected_asset_ids to strings for comparison
+    selected_asset_ids_set = {str(aid) for aid in selected_asset_ids}
+
+    # Check if all selected assets have completed questionnaires
+    missing_questionnaires = (
+        selected_asset_ids_set - assets_with_completed_questionnaires
+    )
+
+    if missing_questionnaires:
+        logger.info(
+            f"⚠️ Not all questionnaires completed for flow {flow.flow_id}. "
+            f"{len(selected_asset_ids_set)} selected assets, "
+            f"{len(assets_with_completed_questionnaires)} with completed questionnaires. "
+            f"Missing: {len(missing_questionnaires)} assets"
+        )
+        return False
+
+    logger.info(
+        f"✅ All {len(selected_asset_ids_set)} selected assets have completed questionnaires "
+        f"for flow {flow.flow_id}"
+    )
+    return True
