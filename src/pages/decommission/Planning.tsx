@@ -34,6 +34,7 @@ import {
   getPhaseDisplayName,
 } from '../../hooks/decommissionFlow/useDecommissionFlow';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DependencyItem {
   id: string;
@@ -54,13 +55,17 @@ const DecommissionPlanning: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { engagement } = useAuth();
 
   const flowId = searchParams.get('flow_id');
 
-  // API hooks
-  const { data: flowStatus, isLoading, error } = useDecommissionFlowStatus(flowId);
+  // API hooks - only enable when we have both flowId AND engagement context
+  // Per security requirement: middleware needs X-Engagement-ID header
+  const { data: flowStatus, isLoading, error } = useDecommissionFlowStatus(flowId, {
+    enabled: !!flowId && !!engagement?.id,
+  });
   const { data: eligibleSystems, isLoading: isLoadingSystems } = useEligibleSystems({
-    enabled: !!flowId,
+    enabled: !!flowId && !!engagement?.id,
   });
   const resumeFlowMutation = useResumeDecommissionFlow();
   const cancelFlowMutation = useCancelDecommissionFlow();
@@ -207,6 +212,22 @@ const DecommissionPlanning: React.FC = () => {
       });
     }
   };
+
+  // Show loading state if engagement context is not yet available
+  // Per security requirement: we need engagement context before making API calls
+  if (!engagement?.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading engagement context...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
