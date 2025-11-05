@@ -6,14 +6,13 @@
  * Issue #796 - Frontend UI Integration for Dynamic Questions
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormContainer";
 import { QuestionFilterControls } from "./QuestionFilterControls";
 import { DependencyWarningBanner } from "./DependencyWarningBanner";
 import { Badge } from "@/components/ui/badge";
 import { useFilteredQuestions, useDependencyChange } from "@/hooks/collection/adaptive-questionnaire";
 import type { AssetGroup, ProgressMilestone } from "../types";
-import type { FormSection, FormField } from "@/components/collection/types";
 
 interface QuestionnaireDisplayProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
@@ -119,13 +118,10 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
             // Find question titles for reopened questions
             const reopenedTitles: string[] = [];
             if (formData && formData.sections) {
-              // Type guard: Verify sections is an array
-              const sections = Array.isArray(formData.sections) ? formData.sections : [];
-              sections.forEach((section: FormSection) => {
-                const fields = Array.isArray(section.fields) ? section.fields : [];
-                fields.forEach((field: FormField) => {
+              formData.sections.forEach((section: any) => {
+                section.fields?.forEach((field: any) => {
                   if (data.reopened_question_ids.includes(field.id)) {
-                    reopenedTitles.push(field.label || field.id);
+                    reopenedTitles.push(field.label || field.name || field.id);
                   }
                 });
               });
@@ -151,24 +147,16 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
     const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId);
     if (!selectedGroup) return formData;
 
-    // Fix #795: Preserve global questions that apply to all assets
-    // Filter sections to include selected asset's questions AND global questions
-    const sections = Array.isArray(formData.sections) ? formData.sections : [];
-    const filteredSections = sections.map((section: FormSection) => ({
+    // Filter sections to only include selected asset's questions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
+    const filteredSections = formData.sections.map((section: any) => ({
       ...section,
-      fields: section.fields.filter((field: FormField) => {
-        // Include if field belongs to selected asset OR if it's a global field
-        const belongsToSelectedAsset = selectedGroup.questions.some(q => q.field_id === field.id);
-
-        // A field is global if it has no asset_id metadata OR has multiple asset_ids
-        // Type guard for metadata which may have dynamic properties
-        const fieldMetadata = field.metadata as Record<string, unknown> | undefined;
-        const isGlobalField = !fieldMetadata?.asset_id ||
-                             (Array.isArray(fieldMetadata?.asset_ids) && (fieldMetadata.asset_ids as unknown[]).length > 1);
-
-        return belongsToSelectedAsset || isGlobalField;
-      })
-    })).filter((section: FormSection) => section.fields.length > 0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
+      fields: section.fields.filter((field: any) =>
+        selectedGroup.questions.some(q => q.field_id === field.id)
+      )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
+    })).filter((section: any) => section.fields.length > 0);
 
     // Apply client-side filters (answered status, section)
     // FIX: Update applicationName to match selected asset
@@ -180,26 +168,24 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
 
     // Apply answered filter
     if (answeredFilter !== 'all') {
-      const currentSections = Array.isArray(finalFormData.sections) ? finalFormData.sections : [];
       finalFormData = {
         ...finalFormData,
-        sections: currentSections.map((section: FormSection) => ({
+        sections: finalFormData.sections.map((section: any) => ({
           ...section,
-          fields: section.fields.filter((field: FormField) => {
+          fields: section.fields.filter((field: any) => {
             const hasValue = formValues && formValues[field.id] !== undefined &&
               formValues[field.id] !== null && formValues[field.id] !== '';
             return answeredFilter === 'answered' ? hasValue : !hasValue;
           })
-        })).filter((section: FormSection) => section.fields.length > 0)
+        })).filter((section: any) => section.fields.length > 0)
       };
     }
 
     // Apply section filter
     if (sectionFilter !== 'all') {
-      const currentSections = Array.isArray(finalFormData.sections) ? finalFormData.sections : [];
       finalFormData = {
         ...finalFormData,
-        sections: currentSections.filter((section: FormSection) => section.id === sectionFilter)
+        sections: finalFormData.sections.filter((section: any) => section.id === sectionFilter)
       };
     }
 
@@ -208,14 +194,11 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
 
   // Calculate question counts
   const questionCounts = useMemo(() => {
-    const allSections = Array.isArray(formData?.sections) ? formData.sections : [];
-    const filteredSections = Array.isArray(filteredFormData?.sections) ? filteredFormData.sections : [];
-
-    const allFields = allSections.flatMap((s: FormSection) => s.fields);
-    const filteredFields = filteredSections.flatMap((s: FormSection) => s.fields);
+    const allFields = formData?.sections?.flatMap((s: any) => s.fields) || [];
+    const filteredFields = filteredFormData?.sections?.flatMap((s: any) => s.fields) || [];
 
     const total = allFields.length;
-    const unanswered = allFields.filter((field: FormField) => {
+    const unanswered = allFields.filter((field: any) => {
       const hasValue = formValues && formValues[field.id] !== undefined &&
         formValues[field.id] !== null && formValues[field.id] !== '';
       return !hasValue;
@@ -228,10 +211,9 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
   // Get available sections for filter dropdown
   const availableSections = useMemo(() => {
     if (!formData || !formData.sections) return [];
-    const sections = Array.isArray(formData.sections) ? formData.sections : [];
-    return sections.map((section: FormSection) => ({
+    return formData.sections.map((section: any) => ({
       id: section.id,
-      title: section.title || section.id
+      title: section.title || section.name || section.id
     }));
   }, [formData]);
 
