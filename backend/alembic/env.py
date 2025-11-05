@@ -42,6 +42,7 @@ from app.models.collection_flow import (
 )
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.data_cleansing import DataCleansingRecommendation
 from app.models.data_import.core import DataImport, RawImportRecord
 from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow

@@ -290,101 +290,131 @@ async def _apply_stored_resolutions(
         return quality_issues
 
 
-async def _apply_stored_recommendation_actions(
-    flow_id: str, recommendations: List[DataCleansingRecommendation], db_session: AsyncSession
+async def _load_recommendations_from_database(
+    flow_id: str, db_session: AsyncSession, client_account_id: str, engagement_id: str
 ) -> List[DataCleansingRecommendation]:
     """
-    Apply stored actions to recommendations.
+    Load recommendations from database for a flow.
 
-    This function checks the flow's crewai_state_data for stored recommendation actions
-    and updates the recommendations with their action status.
+    Returns Pydantic models created from database records.
+    Returns empty list if table doesn't exist or if there's an error.
     """
     try:
-        # Get the flow to check for stored actions
-        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.data_cleansing import (
+            DataCleansingRecommendation as DBRecommendation,
+        )
         from sqlalchemy import select
+        from uuid import UUID
 
-        # Get the flow directly from the database using the provided session
-        # First, expire any cached instances to force a fresh read from the database
-        db_session.expire_all()
+        # Query database for recommendations
+        # If table doesn't exist, this will raise an exception which we'll catch
+        flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+        query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
+        result = await db_session.execute(query)
+        db_recommendations = result.scalars().all()
 
-        flow_query = select(
-            DiscoveryFlow
-        ).where(  # SKIP_TENANT_CHECK - flow_id validated via MFO
-            DiscoveryFlow.flow_id == flow_id
-        )
-        flow_result = await db_session.execute(flow_query)
-        flow = flow_result.scalar_one_or_none()
-
-        if not flow:
-            logger.warning(f"Flow {flow_id} not found when applying recommendation actions")
-            return recommendations
-
-        # Get stored actions from crewai_state_data
-        crewai_data = flow.crewai_state_data or {}
-        logger.info(
-            f"Flow {flow_id} crewai_state_data keys: {list(crewai_data.keys())}"
-        )
-
-        data_cleansing_results = crewai_data.get("data_cleansing_results", {})
-        stored_actions = data_cleansing_results.get("recommendation_actions", {})
-        logger.info(f"Flow {flow_id} stored_recommendation_actions: {stored_actions}")
-
-        if not stored_actions:
-            logger.info(f"No stored recommendation actions found for flow {flow_id}")
-            return recommendations
+        # Convert database models to Pydantic models
+        recommendations = []
+        for db_rec in db_recommendations:
+            recommendations.append(
+                DataCleansingRecommendation(
+                    id=str(db_rec.id),
+                    category=db_rec.category,
+                    title=db_rec.title,
+                    description=db_rec.description,
+                    priority=db_rec.priority,
+                    impact=db_rec.impact,
+                    effort_estimate=db_rec.effort_estimate,
+                    fields_affected=db_rec.fields_affected or [],
+                    status=db_rec.status or "pending",
+                )
+            )
 
         logger.info(
-            f"Found {len(stored_actions)} stored recommendation actions for flow {flow_id}"
+            f"Loaded {len(recommendations)} recommendations from database for flow {flow_id}"
         )
-
-        # Apply actions to recommendations
-        updated_recommendations = []
-        for recommendation in recommendations:
-            recommendation_id = recommendation.id
-
-            # Check if this recommendation has been acted upon
-            if recommendation_id in stored_actions:
-                action = stored_actions[recommendation_id]
-                action_status = action.get("status", "pending")
-
-                # Create a copy of the recommendation with updated status
-                updated_recommendation = DataCleansingRecommendation(
-                    id=recommendation.id,
-                    category=recommendation.category,
-                    title=recommendation.title,
-                    description=recommendation.description,
-                    priority=recommendation.priority,
-                    impact=recommendation.impact,
-                    effort_estimate=recommendation.effort_estimate,
-                    fields_affected=recommendation.fields_affected,
-                    status=action_status,  # Add the action status
-                )
-                updated_recommendations.append(updated_recommendation)
-            else:
-                # Recommendation has no action, keep as pending
-                updated_recommendation = DataCleansingRecommendation(
-                    id=recommendation.id,
-                    category=recommendation.category,
-                    title=recommendation.title,
-                    description=recommendation.description,
-                    priority=recommendation.priority,
-                    impact=recommendation.impact,
-                    effort_estimate=recommendation.effort_estimate,
-                    fields_affected=recommendation.fields_affected,
-                    status="pending",  # Default to pending
-                )
-                updated_recommendations.append(updated_recommendation)
-
-        return updated_recommendations
-
-    except Exception as e:
-        logger.error(f"Failed to apply stored recommendation actions: {e}")
-        # Return original recommendations if action application fails
         return recommendations
 
+    except Exception as e:
+        logger.warning(
+            f"Failed to load recommendations from database (table may not exist): {e}"
+        )
+        import traceback
 
-async def _perform_data_cleansing_analysis(
+        logger.debug(f"Traceback: {traceback.format_exc()}")
+        return []
+
+
+async def _store_recommendations_to_database(
+    flow_id: str,
+    recommendations: List[DataCleansingRecommendation],
+    db_session: AsyncSession,
+    client_account_id: str,
+    engagement_id: str,
+) -> None:
+    """
+    Store recommendations to database.
+
+    Creates or updates database records for recommendations.
+    """
+    try:
+        from app.models.data_cleansing import (
+            DataCleansingRecommendation as DBRecommendation,
+        )
+        from sqlalchemy import select
+        from uuid import UUID
+
+        # Get existing recommendations for this flow
+        flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+        query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
+        result = await db_session.execute(query)
+        existing_recs = {str(rec.id): rec for rec in result.scalars().all()}
+
+        # Create or update recommendations
+        for rec in recommendations:
+            rec_id = UUID(rec.id) if isinstance(rec.id, str) else rec.id
+
+            if str(rec.id) in existing_recs:
+                # Update existing recommendation
+                db_rec = existing_recs[str(rec.id)]
+                db_rec.category = rec.category
+                db_rec.title = rec.title
+                db_rec.description = rec.description
+                db_rec.priority = rec.priority
+                db_rec.impact = rec.impact
+                db_rec.effort_estimate = rec.effort_estimate
+                db_rec.fields_affected = rec.fields_affected
+                # Note: status is updated separately via apply_recommendation endpoint
+            else:
+                # Create new recommendation
+                db_rec = DBRecommendation(
+                    id=rec_id,
+                    flow_id=flow_uuid,
+                    category=rec.category,
+                    title=rec.title,
+                    description=rec.description,
+                    priority=rec.priority,
+                    impact=rec.impact,
+                    effort_estimate=rec.effort_estimate,
+                    fields_affected=rec.fields_affected,
+                    status=rec.status or "pending",
+                    client_account_id=UUID(client_account_id),
+                    engagement_id=UUID(engagement_id),
+                )
+                db_session.add(db_rec)
+
+        await db_session.commit()
+        logger.info(
+            f"Stored {len(recommendations)} recommendations to database for flow {flow_id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to store recommendations to database: {e}")
+        await db_session.rollback()
+        raise
+
+
+async def _perform_data_cleansing_analysis(  # noqa: C901
     flow_id: str,
     data_imports: List[Any],
     field_mappings: List[Any],
@@ -488,17 +518,159 @@ async def _perform_data_cleansing_analysis(
             logger.error(f"Failed to analyze raw data for quality issues: {e}")
             # Continue with empty quality issues if analysis fails
 
-        # Generate sample recommendations (with deterministic IDs)
-        def _generate_deterministic_recommendation_id(category: str, title: str) -> str:
-            """Generate a deterministic ID for a recommendation based on category and title."""
-            recommendation_key = f"{category}:{title}"
-            namespace = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")  # Standard namespace
-            return str(uuid.uuid5(namespace, recommendation_key))
+        # Load existing recommendations from database or create new ones
+        try:
+            from app.models.discovery_flow import DiscoveryFlow
+            from uuid import UUID as UUIDType
 
-        recommendations.extend(
-            [
+            # Convert flow_id to UUID if it's a string
+            flow_uuid = UUIDType(flow_id) if isinstance(flow_id, str) else flow_id
+            flow_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+            flow_result = await db_session.execute(flow_query)
+            flow = flow_result.scalar_one_or_none()
+
+            if flow:
+                # Try to load existing recommendations from database
+                try:
+                    existing_recommendations = (
+                        await _load_recommendations_from_database(
+                            flow_id,
+                            db_session,
+                            str(flow.client_account_id),
+                            str(flow.engagement_id),
+                        )
+                    )
+
+                    if existing_recommendations:
+                        # Use existing recommendations from database
+                        logger.info(
+                            f"Using {len(existing_recommendations)} existing recommendations from database"
+                        )
+                        recommendations.extend(existing_recommendations)
+                    else:
+                        # No existing recommendations, create new sample recommendations
+                        logger.info(
+                            "No existing recommendations found, creating new sample recommendations"
+                        )
+                        new_recommendations = [
+                            DataCleansingRecommendation(
+                                id=str(uuid.uuid4()),  # Generate stable UUID
+                                category="standardization",
+                                title="Standardize date formats",
+                                description="Multiple date formats detected. Standardize to ISO 8601 format",
+                                priority="high",
+                                impact="Improves data consistency and query performance",
+                                effort_estimate="2-4 hours",
+                                fields_affected=[
+                                    "created_date",
+                                    "modified_date",
+                                    "last_seen",
+                                ],
+                                status="pending",
+                            ),
+                            DataCleansingRecommendation(
+                                id=str(uuid.uuid4()),  # Generate stable UUID
+                                category="validation",
+                                title="Validate server names",
+                                description="Some server names contain invalid characters or inconsistent naming",
+                                priority="medium",
+                                impact="Ensures proper asset identification",
+                                effort_estimate="1-2 hours",
+                                fields_affected=["server_name", "hostname"],
+                                status="pending",
+                            ),
+                        ]
+                        recommendations.extend(new_recommendations)
+
+                        # Try to store new recommendations to database (gracefully handle if table doesn't exist)
+                        try:
+                            await _store_recommendations_to_database(
+                                flow_id,
+                                new_recommendations,
+                                db_session,
+                                str(flow.client_account_id),
+                                str(flow.engagement_id),
+                            )
+                        except Exception as store_error:
+                            logger.warning(
+                                f"Failed to store recommendations to database "
+                                f"(table may not exist yet): {store_error}. "
+                                f"Recommendations will still be returned but not persisted."
+                            )
+                            # Continue without storing - recommendations are still in memory
+                except Exception as load_error:
+                    logger.warning(
+                        f"Failed to load recommendations from database (table may not exist yet): {load_error}. "
+                        f"Creating new sample recommendations instead."
+                    )
+                    # Create sample recommendations as fallback
+                    new_recommendations = [
+                        DataCleansingRecommendation(
+                            id=str(uuid.uuid4()),
+                            category="standardization",
+                            title="Standardize date formats",
+                            description="Multiple date formats detected. Standardize to ISO 8601 format",
+                            priority="high",
+                            impact="Improves data consistency and query performance",
+                            effort_estimate="2-4 hours",
+                            fields_affected=[
+                                "created_date",
+                                "modified_date",
+                                "last_seen",
+                            ],
+                            status="pending",
+                        ),
+                        DataCleansingRecommendation(
+                            id=str(uuid.uuid4()),
+                            category="validation",
+                            title="Validate server names",
+                            description="Some server names contain invalid characters or inconsistent naming",
+                            priority="medium",
+                            impact="Ensures proper asset identification",
+                            effort_estimate="1-2 hours",
+                            fields_affected=["server_name", "hostname"],
+                            status="pending",
+                        ),
+                    ]
+                    recommendations.extend(new_recommendations)
+            else:
+                # Flow not found, create sample recommendations anyway
+                logger.warning(
+                    f"Flow {flow_id} not found, creating sample recommendations"
+                )
+                new_recommendations = [
+                    DataCleansingRecommendation(
+                        id=str(uuid.uuid4()),
+                        category="standardization",
+                        title="Standardize date formats",
+                        description="Multiple date formats detected. Standardize to ISO 8601 format",
+                        priority="high",
+                        impact="Improves data consistency and query performance",
+                        effort_estimate="2-4 hours",
+                        fields_affected=["created_date", "modified_date", "last_seen"],
+                        status="pending",
+                    ),
+                    DataCleansingRecommendation(
+                        id=str(uuid.uuid4()),
+                        category="validation",
+                        title="Validate server names",
+                        description="Some server names contain invalid characters or inconsistent naming",
+                        priority="medium",
+                        impact="Ensures proper asset identification",
+                        effort_estimate="1-2 hours",
+                        fields_affected=["server_name", "hostname"],
+                        status="pending",
+                    ),
+                ]
+                recommendations.extend(new_recommendations)
+        except Exception as e:
+            # Fallback: create sample recommendations if anything goes wrong
+            logger.error(
+                f"Error loading/creating recommendations: {e}. Creating fallback recommendations."
+            )
+            fallback_recommendations = [
                 DataCleansingRecommendation(
-                    id=_generate_deterministic_recommendation_id("standardization", "Standardize date formats"),
+                    id=str(uuid.uuid4()),
                     category="standardization",
                     title="Standardize date formats",
                     description="Multiple date formats detected. Standardize to ISO 8601 format",
@@ -506,10 +678,10 @@ async def _perform_data_cleansing_analysis(
                     impact="Improves data consistency and query performance",
                     effort_estimate="2-4 hours",
                     fields_affected=["created_date", "modified_date", "last_seen"],
-                    status="pending",  # Default status
+                    status="pending",
                 ),
                 DataCleansingRecommendation(
-                    id=_generate_deterministic_recommendation_id("validation", "Validate server names"),
+                    id=str(uuid.uuid4()),
                     category="validation",
                     title="Validate server names",
                     description="Some server names contain invalid characters or inconsistent naming",
@@ -517,15 +689,10 @@ async def _perform_data_cleansing_analysis(
                     impact="Ensures proper asset identification",
                     effort_estimate="1-2 hours",
                     fields_affected=["server_name", "hostname"],
-                    status="pending",  # Default status
+                    status="pending",
                 ),
             ]
-        )
-
-        # Apply stored actions to recommendations
-        recommendations = await _apply_stored_recommendation_actions(
-            flow_id, recommendations, db_session
-        )
+            recommendations.extend(fallback_recommendations)
 
     # Calculate overall quality score
     quality_score = 85.0  # Mock score

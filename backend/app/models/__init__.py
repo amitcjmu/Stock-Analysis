@@ -125,6 +125,9 @@ from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.data_import.core import DataImport, RawImportRecord
 from app.models.data_import.mapping import ImportFieldMapping
 
+# Data Cleansing Models
+from app.models.data_cleansing import DataCleansingRecommendation
+
 # V2 Discovery Flow Models (Primary)
 from app.models.discovery_flow import DiscoveryFlow
 
@@ -188,6 +191,8 @@ __all__ = [
     "DataImport",
     "RawImportRecord",
     "ImportFieldMapping",
+    # Data Cleansing Models
+    "DataCleansingRecommendation",
     # Assessment Models
     "Assessment",
     "WavePlan",
