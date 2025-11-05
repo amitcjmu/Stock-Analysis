@@ -139,7 +139,9 @@ async def create_decommission_via_mfo(
             "master_flow_id": str(master_flow.flow_id),
             "status": child_flow.status,  # Per ADR-012: Use child status for operations
             "current_phase": child_flow.current_phase,
-            "selected_systems": len(system_ids),
+            "selected_systems": [
+                str(sid) for sid in system_ids
+            ],  # List of UUIDs as strings
             "message": "Decommission flow created through Master Flow Orchestrator",
         }
 

@@ -83,7 +83,7 @@ async def initialize_decommission_flow(
             client_account_id=UUID(client_account_id),
             engagement_id=UUID(engagement_id),
             system_ids=system_ids_uuid,
-            user_id=current_user.id,
+            user_id=str(current_user.id),  # Convert UUID to str for user_id column
             flow_name=request.flow_name,
             decommission_strategy=request.decommission_strategy,
             db=db,
@@ -155,10 +155,10 @@ async def get_decommission_flow_status(
     try:
         # Get unified status via MFO (queries child flow operational state)
         status = await get_decommission_status_via_mfo(
-            UUID(flow_id),
-            UUID(client_account_id),
-            UUID(engagement_id),
-            db,
+            flow_id=UUID(flow_id),
+            db=db,
+            client_account_id=UUID(client_account_id),
+            engagement_id=UUID(engagement_id),
         )
 
         return DecommissionFlowStatusResponse(**status)
@@ -203,10 +203,10 @@ async def resume_decommission_flow_endpoint(
     try:
         # Get current flow state to validate
         current_status = await get_decommission_status_via_mfo(
-            UUID(flow_id),
-            UUID(client_account_id),
-            UUID(engagement_id),
-            db,
+            flow_id=UUID(flow_id),
+            db=db,
+            client_account_id=UUID(client_account_id),
+            engagement_id=UUID(engagement_id),
         )
 
         if current_status["status"] == "completed":
