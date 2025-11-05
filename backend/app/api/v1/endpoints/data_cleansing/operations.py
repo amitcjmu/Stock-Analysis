@@ -473,60 +473,88 @@ async def apply_recommendation(
             from sqlalchemy import select
             import uuid
 
+            # Validate and convert recommendation_id to UUID
+            try:
+                recommendation_uuid = uuid.UUID(recommendation_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid recommendation ID format: {recommendation_id}. Expected a valid UUID.",
+                )
+
             # Find the recommendation in database
             rec_query = select(DBRecommendation).where(
-                DBRecommendation.id == uuid.UUID(recommendation_id),
+                DBRecommendation.id == recommendation_uuid,
                 DBRecommendation.flow_id == flow.flow_id,
             )
             rec_result = await db.execute(rec_query)
             db_rec = rec_result.scalar_one_or_none()
 
             if not db_rec:
-                # If table doesn't exist or recommendation not found, fall back to storing in crewai_state_data
-                logger.warning(
-                    f"Recommendation {recommendation_id} not found in database (table may not exist). "
-                    f"Falling back to crewai_state_data storage."
-                )
-                # Fall back to legacy storage method
-                existing_data = flow.crewai_state_data or {}
-                data_cleansing_results = existing_data.get("data_cleansing_results", {})
+                # Recommendation not found - need to check if table exists or ID is invalid
+                try:
+                    # Test if table exists by querying any recommendation
+                    test_query = select(DBRecommendation).limit(1)
+                    await db.execute(test_query)
+                    # Table exists but recommendation not found - this is a 404 error
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Recommendation {recommendation_id} not found for flow {flow_id}",
+                    )
+                except HTTPException:
+                    # Re-raise HTTP exceptions (like 404)
+                    raise
+                except Exception as table_error:
+                    # Check if the error is due to table not existing
+                    error_msg = str(table_error)
+                    if "does not exist" in error_msg or "UndefinedTableError" in error_msg:
+                        # Table doesn't exist - fall back to legacy storage
+                        logger.warning(
+                            f"Recommendation table does not exist. "
+                            f"Falling back to crewai_state_data storage for recommendation {recommendation_id}"
+                        )
+                        # Fall back to legacy storage method
+                        existing_data = flow.crewai_state_data or {}
+                        data_cleansing_results = existing_data.get("data_cleansing_results", {})
 
-                # Store action in recommendations dict keyed by recommendation_id
-                if "recommendation_actions" not in data_cleansing_results:
-                    data_cleansing_results["recommendation_actions"] = {}
+                        if "recommendation_actions" not in data_cleansing_results:
+                            data_cleansing_results["recommendation_actions"] = {}
 
-                action_data = {
-                    "recommendation_id": recommendation_id,
-                    "action": request.action,
-                    "status": action_status,
-                    "applied_at": applied_at,
-                    "applied_by_user_id": str(current_user.id),
-                    "client_account_id": str(context.client_account_id),
-                    "engagement_id": str(context.engagement_id),
-                    "notes": request.notes,
-                }
+                        action_data = {
+                            "recommendation_id": recommendation_id,
+                            "action": request.action,
+                            "status": action_status,
+                            "applied_at": applied_at,
+                            "applied_by_user_id": str(current_user.id),
+                            "client_account_id": str(context.client_account_id),
+                            "engagement_id": str(context.engagement_id),
+                            "notes": request.notes,
+                        }
 
-                data_cleansing_results["recommendation_actions"][
-                    recommendation_id
-                ] = action_data
+                        data_cleansing_results["recommendation_actions"][
+                            recommendation_id
+                        ] = action_data
 
-                # Update flow with new data_cleansing_results
-                existing_data["data_cleansing_results"] = data_cleansing_results
-                flow.crewai_state_data = existing_data
+                        # Update flow with new data_cleansing_results
+                        existing_data["data_cleansing_results"] = data_cleansing_results
+                        flow.crewai_state_data = existing_data
 
-                # Ensure SQLAlchemy detects the JSONB field change
-                from sqlalchemy.orm.attributes import flag_modified
+                        # Ensure SQLAlchemy detects the JSONB field change
+                        from sqlalchemy.orm.attributes import flag_modified
 
-                flag_modified(flow, "crewai_state_data")
-                db.add(flow)
+                        flag_modified(flow, "crewai_state_data")
+                        db.add(flow)
 
-                await db.commit()
-                await db.refresh(flow)
+                        await db.commit()
+                        await db.refresh(flow)
 
-                logger.info(
-                    f"Stored recommendation action in crewai_state_data "
-                    f"(table not available) for recommendation {recommendation_id}"
-                )
+                        logger.info(
+                            f"Stored recommendation action in crewai_state_data (fallback) "
+                            f"for recommendation {recommendation_id}"
+                        )
+                    else:
+                        # Re-raise if it's a different error
+                        raise
             else:
                 # Update recommendation status and action data
                 db_rec.status = action_status
@@ -545,62 +573,16 @@ async def apply_recommendation(
                 await db.commit()
                 await db.refresh(db_rec)
 
+        except HTTPException:
+            # Re-raise HTTP exceptions (like 404)
+            raise
         except Exception as e:
-            # If database operation fails (e.g., table doesn't exist), fall back to crewai_state_data
-            error_msg = str(e)
-            if "does not exist" in error_msg or "UndefinedTableError" in error_msg:
-                logger.warning(
-                    f"Database table does not exist yet. "
-                    f"Falling back to crewai_state_data storage for recommendation {recommendation_id}"
-                )
-
-                # Fall back to legacy storage method
-                existing_data = flow.crewai_state_data or {}
-                data_cleansing_results = existing_data.get("data_cleansing_results", {})
-
-                # Store action in recommendations dict keyed by recommendation_id
-                if "recommendation_actions" not in data_cleansing_results:
-                    data_cleansing_results["recommendation_actions"] = {}
-
-                action_data = {
-                    "recommendation_id": recommendation_id,
-                    "action": request.action,
-                    "status": action_status,
-                    "applied_at": applied_at,
-                    "applied_by_user_id": str(current_user.id),
-                    "client_account_id": str(context.client_account_id),
-                    "engagement_id": str(context.engagement_id),
-                    "notes": request.notes,
-                }
-
-                data_cleansing_results["recommendation_actions"][
-                    recommendation_id
-                ] = action_data
-
-                # Update flow with new data_cleansing_results
-                existing_data["data_cleansing_results"] = data_cleansing_results
-                flow.crewai_state_data = existing_data
-
-                # Ensure SQLAlchemy detects the JSONB field change
-                from sqlalchemy.orm.attributes import flag_modified
-
-                flag_modified(flow, "crewai_state_data")
-                db.add(flow)
-
-                await db.commit()
-                await db.refresh(flow)
-
-                logger.info(
-                    f"Stored recommendation action in crewai_state_data (fallback) "
-                    f"for recommendation {recommendation_id}"
-                )
-            else:
-                # Re-raise if it's a different error
-                logger.error(f"Failed to update recommendation in database: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to {request.action} recommendation: {str(e)}",
-                )
+            # If database operation fails for other reasons, log and re-raise
+            logger.error(f"Failed to update recommendation in database: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to {request.action} recommendation: {str(e)}",
+            )
 
         logger.info(f"Database commit successful for flow {flow_id}")
 

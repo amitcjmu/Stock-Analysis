@@ -19,25 +19,21 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-def table_exists(table_name: str) -> bool:
+def table_exists(table_name: str, schema: str = "migration") -> bool:
     """Check if a table exists in the database"""
     bind = op.get_bind()
-    try:
-        result = bind.execute(
-            sa.text(
-                """
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables
-                    WHERE table_schema = 'migration'
-                    AND table_name = :table_name
-                )
+    result = bind.execute(
+        sa.text(
             """
-            ).bindparams(table_name=table_name)
-        ).scalar()
-        return result
-    except Exception as e:
-        print(f"Error checking if table {table_name} exists: {e}")
-        return False
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = :schema
+                AND table_name = :table_name
+            )
+        """
+        ).bindparams(schema=schema, table_name=table_name)
+    ).scalar()
+    return result
 
 
 def upgrade() -> None:

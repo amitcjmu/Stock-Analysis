@@ -552,34 +552,27 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                         logger.info(
                             "No existing recommendations found, creating new sample recommendations"
                         )
-                        new_recommendations = [
-                            DataCleansingRecommendation(
-                                id=str(uuid.uuid4()),  # Generate stable UUID
-                                category="standardization",
-                                title="Standardize date formats",
-                                description="Multiple date formats detected. Standardize to ISO 8601 format",
-                                priority="high",
-                                impact="Improves data consistency and query performance",
-                                effort_estimate="2-4 hours",
-                                fields_affected=[
-                                    "created_date",
-                                    "modified_date",
-                                    "last_seen",
-                                ],
-                                status="pending",
-                            ),
-                            DataCleansingRecommendation(
-                                id=str(uuid.uuid4()),  # Generate stable UUID
-                                category="validation",
-                                title="Validate server names",
-                                description="Some server names contain invalid characters or inconsistent naming",
-                                priority="medium",
-                                impact="Ensures proper asset identification",
-                                effort_estimate="1-2 hours",
-                                fields_affected=["server_name", "hostname"],
-                                status="pending",
-                            ),
-                        ]
+                        # Only create sample recommendations if we have actual field data
+                        if field_stats:
+                            actual_fields = list(field_stats.keys())[:3]  # Use first 3 actual fields
+                            new_recommendations = [
+                                DataCleansingRecommendation(
+                                    id=str(uuid.uuid4()),
+                                    category="standardization",
+                                    title="Standardize date formats",
+                                    description="Multiple date formats detected. Standardize to ISO 8601 format",
+                                    priority="high",
+                                    impact="Improves data consistency and query performance",
+                                    effort_estimate="2-4 hours",
+                                    fields_affected=actual_fields if actual_fields else ["example_field"],
+                                    status="pending",
+                                ),
+                            ]
+                        else:
+                            # No field data available, create generic example
+                            new_recommendations = []
+                            logger.info("No field data available for creating sample recommendations")
+
                         recommendations.extend(new_recommendations)
 
                         # Try to store new recommendations to database (gracefully handle if table doesn't exist)
