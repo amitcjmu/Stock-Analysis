@@ -73,73 +73,78 @@ async def update_decommission_phase_via_mfo(
         )
 
     try:
-        async with db.begin():
-            # Get both master and child flows
-            query = (
-                select(CrewAIFlowStateExtensions, DecommissionFlow)
-                .join(
-                    DecommissionFlow,
-                    DecommissionFlow.master_flow_id
-                    == CrewAIFlowStateExtensions.flow_id,
-                )
-                .where(CrewAIFlowStateExtensions.flow_id == flow_id)
+        # ATOMIC TRANSACTION: Both master and child updated together
+        # Note: FastAPI's get_db() dependency manages the transaction context
+        # We don't need explicit db.begin() as the session auto-commits on success
+
+        # Get both master and child flows
+        query = (
+            select(CrewAIFlowStateExtensions, DecommissionFlow)
+            .join(
+                DecommissionFlow,
+                DecommissionFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id,
             )
+            .where(CrewAIFlowStateExtensions.flow_id == flow_id)
+        )
 
-            result = await db.execute(query)
-            row = result.first()
+        result = await db.execute(query)
+        row = result.first()
 
-            if not row:
-                raise ValueError(f"Decommission flow {flow_id} not found")
+        if not row:
+            raise ValueError(f"Decommission flow {flow_id} not found")
 
-            master_flow, child_flow = row
+        master_flow, child_flow = row
 
-            # Update child flow phase-specific status column
-            phase_status_col = f"{phase_name}_status"
-            setattr(child_flow, phase_status_col, phase_status)
+        # Update child flow phase-specific status column
+        phase_status_col = f"{phase_name}_status"
+        setattr(child_flow, phase_status_col, phase_status)
 
-            # Update timestamp if phase completed
-            if phase_status == "completed":
-                phase_completed_col = f"{phase_name}_completed_at"
-                setattr(child_flow, phase_completed_col, datetime.utcnow())
+        # Update timestamp if phase completed
+        if phase_status == "completed":
+            phase_completed_col = f"{phase_name}_completed_at"
+            setattr(child_flow, phase_completed_col, datetime.utcnow())
 
-                # Advance current_phase to next phase
-                phase_progression = {
-                    "decommission_planning": "data_migration",
-                    "data_migration": "system_shutdown",
-                    "system_shutdown": "completed",
-                }
-                next_phase = phase_progression.get(phase_name)
-                if next_phase:
-                    child_flow.current_phase = next_phase
+            # Advance current_phase to next phase
+            phase_progression = {
+                "decommission_planning": "data_migration",
+                "data_migration": "system_shutdown",
+                "system_shutdown": "completed",
+            }
+            next_phase = phase_progression.get(phase_name)
+            if next_phase:
+                child_flow.current_phase = next_phase
 
-            # Update runtime_state if phase_data provided
-            if phase_data:
-                runtime_state = child_flow.runtime_state or {}
-                runtime_state[f"{phase_name}_data"] = phase_data
-                runtime_state["last_updated"] = datetime.utcnow().isoformat()
-                child_flow.runtime_state = runtime_state
+        # Update runtime_state if phase_data provided
+        if phase_data:
+            runtime_state = child_flow.runtime_state or {}
+            runtime_state[f"{phase_name}_data"] = phase_data
+            runtime_state["last_updated"] = datetime.utcnow().isoformat()
+            child_flow.runtime_state = runtime_state
 
-            # Sync master flow status based on child flow state
-            # Per ADR-012: Master flow reflects high-level lifecycle
-            if phase_status == "failed":
-                master_flow.flow_status = "failed"
-                child_flow.status = "failed"
-            elif child_flow.current_phase == "completed":
-                # All phases complete
-                master_flow.flow_status = "completed"
-                child_flow.status = "completed"
-            elif phase_status == "running":
-                # Flow actively processing
-                master_flow.flow_status = "running"
-                child_flow.status = phase_name  # Status matches current phase
-            elif (
-                phase_status == "completed" and child_flow.current_phase != "completed"
-            ):
-                # Phase complete but flow continues
-                master_flow.flow_status = "running"
-                child_flow.status = child_flow.current_phase
+        # Sync master flow status based on child flow state
+        # Per ADR-012: Master flow reflects high-level lifecycle
+        if phase_status == "failed":
+            master_flow.flow_status = "failed"
+            child_flow.status = "failed"
+        elif child_flow.current_phase == "completed":
+            # All phases complete
+            master_flow.flow_status = "completed"
+            child_flow.status = "completed"
+        elif phase_status == "running":
+            # Flow actively processing
+            master_flow.flow_status = "running"
+            child_flow.status = phase_name  # Status matches current phase
+        elif phase_status == "completed" and child_flow.current_phase != "completed":
+            # Phase complete but flow continues
+            master_flow.flow_status = "running"
+            child_flow.status = child_flow.current_phase
 
-            # Transaction commits automatically on context exit
+        # Commit the transaction (FastAPI's get_db handles this automatically)
+        await db.commit()
+
+        # Refresh both objects to ensure they're attached to the session
+        await db.refresh(master_flow)
+        await db.refresh(child_flow)
 
         logger.info(
             safe_log_format(

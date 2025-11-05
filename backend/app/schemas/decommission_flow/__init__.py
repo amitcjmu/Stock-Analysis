@@ -8,6 +8,7 @@ Follows the pattern established in assessment_flow schemas.
 from .requests import (
     DecommissionFlowCreateRequest,
     ResumeFlowRequest,
+    UpdatePhaseRequest,
 )
 from .responses import (
     DecommissionFlowResponse,
@@ -20,6 +21,7 @@ __all__ = [
     # Request schemas
     "DecommissionFlowCreateRequest",
     "ResumeFlowRequest",
+    "UpdatePhaseRequest",
     # Response schemas
     "DecommissionFlowResponse",
     "DecommissionFlowStatusResponse",

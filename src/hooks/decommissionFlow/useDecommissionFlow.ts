@@ -19,18 +19,22 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+} from "@tanstack/react-query";
+import type {
   UseMutationResult,
   UseQueryResult,
 } from "@tanstack/react-query";
-import {
-  decommissionFlowService,
+import { decommissionFlowService } from "../../lib/api/decommissionFlowService";
+import type {
   InitializeDecommissionFlowRequest,
   DecommissionFlowResponse,
   DecommissionFlowStatusResponse,
   ResumeDecommissionFlowRequest,
+  UpdatePhaseRequest,
   DecommissionFlowOperationResponse,
   DecommissionFlowListItem,
   EligibleSystemResponse,
+  DecommissionPhase,
 } from "../../lib/api/decommissionFlowService";
 
 // ============================================================================
@@ -227,6 +231,50 @@ export function useResumeDecommissionFlow(): UseMutationResult<
     onError: (error, variables) => {
       console.error(
         `❌ Failed to resume decommission flow ${variables.flowId}:`,
+        error
+      );
+    },
+  });
+}
+
+/**
+ * Hook for updating decommission phase status
+ *
+ * Endpoint: POST /api/v1/decommission-flow/{flow_id}/phases/{phase_name}
+ * Per ADR-006: Updates both master and child flow state atomically
+ *
+ * @returns Mutation object with mutate function (flowId, phaseName, params)
+ */
+export function useUpdatePhaseStatus(): UseMutationResult<
+  DecommissionFlowStatusResponse,
+  Error,
+  { flowId: string; phaseName: DecommissionPhase; params: UpdatePhaseRequest },
+  unknown
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ flowId, phaseName, params }) =>
+      decommissionFlowService.updatePhaseStatus(flowId, phaseName, params),
+    onSuccess: (data, variables) => {
+      // Update status cache optimistically
+      queryClient.setQueryData(
+        decommissionFlowKeys.status(variables.flowId),
+        data
+      );
+
+      // Trigger refetch to get latest state
+      queryClient.invalidateQueries({
+        queryKey: decommissionFlowKeys.status(variables.flowId),
+      });
+
+      console.log(
+        `✅ Updated decommission phase ${variables.phaseName} to ${variables.params.phase_status}`
+      );
+    },
+    onError: (error, variables) => {
+      console.error(
+        `❌ Failed to update decommission phase ${variables.phaseName}:`,
         error
       );
     },

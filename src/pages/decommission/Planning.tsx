@@ -28,7 +28,7 @@ import Sidebar from '../../components/layout/sidebar/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import {
   useDecommissionFlowStatus,
-  useResumeDecommissionFlow,
+  useUpdatePhaseStatus,
   useCancelDecommissionFlow,
   useEligibleSystems,
   getPhaseDisplayName,
@@ -68,7 +68,7 @@ const DecommissionPlanning: React.FC = () => {
   const { data: eligibleSystems, isLoading: isLoadingSystems } = useEligibleSystems({
     enabled: !!flowId && !isAuthLoading && !!engagement?.id,
   });
-  const resumeFlowMutation = useResumeDecommissionFlow();
+  const updatePhaseMutation = useUpdatePhaseStatus();
   const cancelFlowMutation = useCancelDecommissionFlow();
 
   // Get details for selected systems (regardless of current eligibility status)
@@ -184,11 +184,12 @@ const DecommissionPlanning: React.FC = () => {
     if (!flowId) return;
 
     try {
-      await resumeFlowMutation.mutateAsync({
+      await updatePhaseMutation.mutateAsync({
         flowId,
+        phaseName: 'decommission_planning',
         params: {
-          phase: 'data_migration', // Move to next phase
-          user_input: { planning_approved: true },
+          phase_status: 'completed',
+          phase_data: { planning_approved: true },
         },
       });
 
@@ -322,7 +323,7 @@ const DecommissionPlanning: React.FC = () => {
                   </button>
                   <button
                     onClick={handleApprovePlanning}
-                    disabled={resumeFlowMutation.isPending}
+                    disabled={updatePhaseMutation.isPending}
                     className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                   >
                     Approve & Continue

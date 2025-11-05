@@ -27,6 +27,7 @@ from app.schemas.decommission_flow import (
     DecommissionFlowResponse,
     DecommissionFlowStatusResponse,
     ResumeFlowRequest,
+    UpdatePhaseRequest,
 )
 
 # Import MFO integration functions (per ADR-006)
@@ -36,6 +37,7 @@ from .mfo_integration import (
     pause_decommission_flow,
     resume_decommission_flow,
     cancel_decommission_flow,
+    update_decommission_phase_via_mfo,
 )
 
 logger = logging.getLogger(__name__)
@@ -281,6 +283,72 @@ async def resume_decommission_flow_endpoint(
             safe_log_format("Failed to resume decommission flow: {str_e}", str_e=str(e))
         )
         raise HTTPException(status_code=500, detail="Failed to resume flow")
+
+
+@router.post(
+    "/{flow_id}/phases/{phase_name}", response_model=DecommissionFlowStatusResponse
+)
+async def update_phase_status_endpoint(
+    flow_id: str,
+    phase_name: str,
+    request: UpdatePhaseRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access),
+    engagement_id: Optional[str] = Header(None, alias="X-Engagement-ID"),
+):
+    """
+    Update decommission phase status via MFO.
+
+    - **flow_id**: Decommission flow identifier
+    - **phase_name**: Phase to update (decommission_planning, data_migration, system_shutdown)
+    - **phase_status**: New status (pending/running/completed/failed)
+    - Uses MFO integration (ADR-006) for atomic state updates
+    """
+    try:
+        # Fixed per CodeRabbit: Verify engagement authorization before MFO operation
+        if engagement_id:
+            await verify_engagement_access(db, engagement_id, client_account_id)
+
+        # Update phase via MFO (updates both master and child tables atomically)
+        result = await update_decommission_phase_via_mfo(
+            flow_id=UUID(flow_id),
+            phase_name=phase_name,
+            phase_status=request.phase_status,
+            phase_data=request.phase_data,
+            db=db,
+        )
+
+        logger.info(
+            safe_log_format(
+                "Updated decommission phase: flow_id={flow_id}, phase={phase}, status={status}",
+                flow_id=flow_id,
+                phase=phase_name,
+                status=request.phase_status,
+            )
+        )
+
+        # Return the updated flow status
+        return DecommissionFlowStatusResponse(**result)
+
+    except ValueError as e:
+        logger.warning(
+            safe_log_format(
+                "Invalid phase update request: flow_id={flow_id}, error={str_e}",
+                flow_id=flow_id,
+                str_e=str(e),
+            )
+        )
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Failed to update decommission phase: {str_e}", str_e=str(e)
+            )
+        )
+        raise HTTPException(status_code=500, detail="Failed to update phase status")
 
 
 @router.post("/{flow_id}/pause")

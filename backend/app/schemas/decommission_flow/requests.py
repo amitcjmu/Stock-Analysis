@@ -132,3 +132,41 @@ class ResumeFlowRequest(BaseModel):
             }
         }
     )
+
+
+class UpdatePhaseRequest(BaseModel):
+    """Request schema for updating decommission phase status."""
+
+    phase_status: str = Field(
+        ...,
+        description="New status for the phase (pending/running/completed/failed)",
+    )
+
+    phase_data: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Optional phase-specific data to store",
+    )
+
+    @field_validator("phase_status")
+    @classmethod
+    def validate_phase_status(cls, v):
+        """Validate phase status."""
+        valid_statuses = ["pending", "running", "completed", "failed"]
+        if v not in valid_statuses:
+            raise ValueError(
+                f"Invalid phase_status. Must be one of: {', '.join(valid_statuses)}"
+            )
+        return v
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "phase_status": "completed",
+                "phase_data": {
+                    "approved_by": "admin@example.com",
+                    "planning_approved": True,
+                    "risks_acknowledged": True,
+                },
+            }
+        }
+    )

@@ -116,6 +116,14 @@ export interface ResumeDecommissionFlowRequest {
 }
 
 /**
+ * Request for updating decommission phase status
+ */
+export interface UpdatePhaseRequest {
+  phase_status: "pending" | "running" | "completed" | "failed"; // ✅ snake_case
+  phase_data?: Record<string, unknown>; // ✅ snake_case (optional phase-specific data)
+}
+
+/**
  * Response from pause/cancel operations
  */
 export interface DecommissionFlowOperationResponse {
@@ -221,6 +229,29 @@ export const decommissionFlowService = {
   ): Promise<DecommissionFlowResponse> {
     // ✅ CORRECT: POST with request body
     return apiCall(`/decommission-flow/${flowId}/resume`, {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  },
+
+  /**
+   * Update decommission phase status
+   *
+   * Endpoint: POST /api/v1/decommission-flow/{flow_id}/phases/{phase_name}
+   * Per ADR-006: Updates both master and child flow state atomically
+   *
+   * @param flowId - Decommission flow UUID
+   * @param phaseName - Phase to update (decommission_planning, data_migration, system_shutdown)
+   * @param params - Update parameters (phase_status, phase_data)
+   * @returns Promise with updated flow status
+   */
+  async updatePhaseStatus(
+    flowId: string,
+    phaseName: DecommissionPhase,
+    params: UpdatePhaseRequest
+  ): Promise<DecommissionFlowStatusResponse> {
+    // ✅ CORRECT: POST with request body
+    return apiCall(`/decommission-flow/${flowId}/phases/${phaseName}`, {
       method: "POST",
       body: JSON.stringify(params),
     });

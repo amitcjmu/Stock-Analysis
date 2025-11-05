@@ -52,60 +52,67 @@ async def resume_decommission_flow(
         SQLAlchemyError: If database operations fail
     """
     try:
-        async with db.begin():
-            # Get both master and child flows
-            query = (
-                select(CrewAIFlowStateExtensions, DecommissionFlow)
-                .join(
-                    DecommissionFlow,
-                    DecommissionFlow.master_flow_id
-                    == CrewAIFlowStateExtensions.flow_id,
-                )
-                .where(
-                    CrewAIFlowStateExtensions.flow_id == flow_id,
-                    DecommissionFlow.client_account_id == client_account_id,
-                    DecommissionFlow.engagement_id == engagement_id,
-                )
+        # ATOMIC TRANSACTION: Both master and child updated together
+        # Note: FastAPI's get_db() dependency manages the transaction context
+        # We don't need explicit db.begin() as the session auto-commits on success
+
+        # Get both master and child flows
+        query = (
+            select(CrewAIFlowStateExtensions, DecommissionFlow)
+            .join(
+                DecommissionFlow,
+                DecommissionFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id,
+            )
+            .where(
+                CrewAIFlowStateExtensions.flow_id == flow_id,
+                DecommissionFlow.client_account_id == client_account_id,
+                DecommissionFlow.engagement_id == engagement_id,
+            )
+        )
+
+        result = await db.execute(query)
+        row = result.first()
+
+        if not row:
+            raise ValueError(f"Decommission flow {flow_id} not found")
+
+        master_flow, child_flow = row
+
+        # Validate flow is in paused state
+        if master_flow.flow_status != "paused":
+            raise ValueError(
+                f"Flow {flow_id} cannot be resumed - current status: "
+                f"{master_flow.flow_status}"
             )
 
-            result = await db.execute(query)
-            row = result.first()
+        # Resume master flow (lifecycle)
+        master_flow.flow_status = "running"
 
-            if not row:
-                raise ValueError(f"Decommission flow {flow_id} not found")
+        # Resume child flow (operational state)
+        # NOTE: Per DecommissionFlow model, status uses phase names (decommission_planning, etc.)
+        # This is intentional - see CheckConstraint in core_models.py lines 45-48
+        # If specific phase requested, update current_phase
+        if phase:
+            child_flow.current_phase = phase
+            child_flow.status = phase  # Status tracks phase for decommission flows
+        else:
+            # Restore status to current phase
+            child_flow.status = child_flow.current_phase
 
-            master_flow, child_flow = row
+        # Update runtime_state with resume timestamp and user input
+        runtime_state = child_flow.runtime_state or {}
+        runtime_state["resumed_at"] = datetime.utcnow().isoformat()
+        # Fixed per CodeRabbit: Store user_input if provided
+        if user_input:
+            runtime_state["resume_user_input"] = user_input
+        child_flow.runtime_state = runtime_state
 
-            # Validate flow is in paused state
-            if master_flow.flow_status != "paused":
-                raise ValueError(
-                    f"Flow {flow_id} cannot be resumed - current status: "
-                    f"{master_flow.flow_status}"
-                )
+        # Commit the transaction (FastAPI's get_db handles this automatically)
+        await db.commit()
 
-            # Resume master flow (lifecycle)
-            master_flow.flow_status = "running"
-
-            # Resume child flow (operational state)
-            # NOTE: Per DecommissionFlow model, status uses phase names (decommission_planning, etc.)
-            # This is intentional - see CheckConstraint in core_models.py lines 45-48
-            # If specific phase requested, update current_phase
-            if phase:
-                child_flow.current_phase = phase
-                child_flow.status = phase  # Status tracks phase for decommission flows
-            else:
-                # Restore status to current phase
-                child_flow.status = child_flow.current_phase
-
-            # Update runtime_state with resume timestamp and user input
-            runtime_state = child_flow.runtime_state or {}
-            runtime_state["resumed_at"] = datetime.utcnow().isoformat()
-            # Fixed per CodeRabbit: Store user_input if provided
-            if user_input:
-                runtime_state["resume_user_input"] = user_input
-            child_flow.runtime_state = runtime_state
-
-            # Transaction commits automatically on context exit
+        # Refresh both objects to ensure they're attached to the session
+        await db.refresh(master_flow)
+        await db.refresh(child_flow)
 
         logger.info(
             safe_log_format(
@@ -170,50 +177,57 @@ async def pause_decommission_flow(
         SQLAlchemyError: If database operations fail
     """
     try:
-        async with db.begin():
-            # Get both master and child flows
-            query = (
-                select(CrewAIFlowStateExtensions, DecommissionFlow)
-                .join(
-                    DecommissionFlow,
-                    DecommissionFlow.master_flow_id
-                    == CrewAIFlowStateExtensions.flow_id,
-                )
-                .where(
-                    CrewAIFlowStateExtensions.flow_id == flow_id,
-                    DecommissionFlow.client_account_id == client_account_id,
-                    DecommissionFlow.engagement_id == engagement_id,
-                )
+        # ATOMIC TRANSACTION: Both master and child updated together
+        # Note: FastAPI's get_db() dependency manages the transaction context
+        # We don't need explicit db.begin() as the session auto-commits on success
+
+        # Get both master and child flows
+        query = (
+            select(CrewAIFlowStateExtensions, DecommissionFlow)
+            .join(
+                DecommissionFlow,
+                DecommissionFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id,
+            )
+            .where(
+                CrewAIFlowStateExtensions.flow_id == flow_id,
+                DecommissionFlow.client_account_id == client_account_id,
+                DecommissionFlow.engagement_id == engagement_id,
+            )
+        )
+
+        result = await db.execute(query)
+        row = result.first()
+
+        if not row:
+            raise ValueError(f"Decommission flow {flow_id} not found")
+
+        master_flow, child_flow = row
+
+        # Validate flow is in running state
+        if master_flow.flow_status not in ["running", "initialized"]:
+            raise ValueError(
+                f"Flow {flow_id} cannot be paused - current status: "
+                f"{master_flow.flow_status}"
             )
 
-            result = await db.execute(query)
-            row = result.first()
+        # Pause master flow (lifecycle)
+        master_flow.flow_status = "paused"
 
-            if not row:
-                raise ValueError(f"Decommission flow {flow_id} not found")
+        # Update child flow operational status
+        # Store current status before pausing
+        runtime_state = child_flow.runtime_state or {}
+        runtime_state["paused_at"] = datetime.utcnow().isoformat()
+        runtime_state["status_before_pause"] = child_flow.status
+        child_flow.runtime_state = runtime_state
+        # Fixed per Qodo: Set child flow status to "paused" for consistency
+        child_flow.status = "paused"
 
-            master_flow, child_flow = row
+        # Commit the transaction (FastAPI's get_db handles this automatically)
+        await db.commit()
 
-            # Validate flow is in running state
-            if master_flow.flow_status not in ["running", "initialized"]:
-                raise ValueError(
-                    f"Flow {flow_id} cannot be paused - current status: "
-                    f"{master_flow.flow_status}"
-                )
-
-            # Pause master flow (lifecycle)
-            master_flow.flow_status = "paused"
-
-            # Update child flow operational status
-            # Store current status before pausing
-            runtime_state = child_flow.runtime_state or {}
-            runtime_state["paused_at"] = datetime.utcnow().isoformat()
-            runtime_state["status_before_pause"] = child_flow.status
-            child_flow.runtime_state = runtime_state
-            # Fixed per Qodo: Set child flow status to "paused" for consistency
-            child_flow.status = "paused"
-
-            # Transaction commits automatically on context exit
+        # Refresh both objects to ensure they're attached to the session
+        await db.refresh(master_flow)
+        await db.refresh(child_flow)
 
         logger.info(
             safe_log_format(
@@ -278,45 +292,52 @@ async def cancel_decommission_flow(
         SQLAlchemyError: If database operations fail
     """
     try:
-        async with db.begin():
-            # Get both master and child flows
-            query = (
-                select(CrewAIFlowStateExtensions, DecommissionFlow)
-                .join(
-                    DecommissionFlow,
-                    DecommissionFlow.master_flow_id
-                    == CrewAIFlowStateExtensions.flow_id,
-                )
-                .where(
-                    CrewAIFlowStateExtensions.flow_id == flow_id,
-                    DecommissionFlow.client_account_id == client_account_id,
-                    DecommissionFlow.engagement_id == engagement_id,
-                )
+        # ATOMIC TRANSACTION: Both master and child updated together
+        # Note: FastAPI's get_db() dependency manages the transaction context
+        # We don't need explicit db.begin() as the session auto-commits on success
+
+        # Get both master and child flows
+        query = (
+            select(CrewAIFlowStateExtensions, DecommissionFlow)
+            .join(
+                DecommissionFlow,
+                DecommissionFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id,
             )
+            .where(
+                CrewAIFlowStateExtensions.flow_id == flow_id,
+                DecommissionFlow.client_account_id == client_account_id,
+                DecommissionFlow.engagement_id == engagement_id,
+            )
+        )
 
-            result = await db.execute(query)
-            row = result.first()
+        result = await db.execute(query)
+        row = result.first()
 
-            if not row:
-                raise ValueError(f"Decommission flow {flow_id} not found")
+        if not row:
+            raise ValueError(f"Decommission flow {flow_id} not found")
 
-            master_flow, child_flow = row
+        master_flow, child_flow = row
 
-            # Fixed per CodeRabbit: Capture status BEFORE modification
-            runtime_state = child_flow.runtime_state or {}
-            runtime_state["status_before_cancel"] = child_flow.status
-            runtime_state["cancelled_at"] = datetime.utcnow().isoformat()
+        # Fixed per CodeRabbit: Capture status BEFORE modification
+        runtime_state = child_flow.runtime_state or {}
+        runtime_state["status_before_cancel"] = child_flow.status
+        runtime_state["cancelled_at"] = datetime.utcnow().isoformat()
 
-            # Cancel master flow (lifecycle) - mark as deleted
-            master_flow.flow_status = "deleted"
+        # Cancel master flow (lifecycle) - mark as deleted
+        master_flow.flow_status = "deleted"
 
-            # Cancel child flow (operational state)
-            child_flow.status = "failed"
+        # Cancel child flow (operational state)
+        child_flow.status = "failed"
 
-            # Apply runtime_state changes
-            child_flow.runtime_state = runtime_state
+        # Apply runtime_state changes
+        child_flow.runtime_state = runtime_state
 
-            # Transaction commits automatically on context exit
+        # Commit the transaction (FastAPI's get_db handles this automatically)
+        await db.commit()
+
+        # Refresh both objects to ensure they're attached to the session
+        await db.refresh(master_flow)
+        await db.refresh(child_flow)
 
         logger.info(
             safe_log_format(
