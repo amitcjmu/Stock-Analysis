@@ -209,9 +209,15 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
         return response
 
     def _check_suspicious_patterns(self, request: Request):
-        """Check for suspicious request patterns."""
+        """Check for suspicious request patterns with context-aware detection.
 
-        suspicious_patterns = [
+        FIX #877: Separate command injection patterns from URL security patterns
+        to prevent false positives on RFC 3986 compliant query parameters.
+        """
+
+        # URL security patterns (SQL injection, XSS, path traversal)
+        # These are checked in BOTH URL path and query parameters
+        url_security_patterns = [
             # SQL injection patterns
             "union select",
             "drop table",
@@ -226,7 +232,12 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
             "../",
             "..\\",
             "%2e%2e",
-            # Command injection
+        ]
+
+        # Command injection patterns (shell metacharacters)
+        # These are checked ONLY in URL path, NOT in query parameters
+        # Rationale: '&' is RFC 3986 standard query separator, ';' can be valid in URLs
+        command_injection_patterns = [
             "|",
             "&",
             ";",
@@ -234,9 +245,10 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
             "$(",
         ]
 
-        # Check URL path
+        # Check URL path with ALL patterns (URL security + command injection)
         path_lower = request.url.path.lower()
-        for pattern in suspicious_patterns:
+        all_path_patterns = url_security_patterns + command_injection_patterns
+        for pattern in all_path_patterns:
             if pattern in path_lower:
                 logger.warning(
                     f"Suspicious pattern detected in URL: {pattern}",
@@ -250,10 +262,11 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
                     },
                 )
 
-        # Check query parameters
+        # Check query parameters ONLY with URL security patterns
+        # Exclude command injection patterns to avoid false positives on standard URL separators
         if request.url.query:
             query_lower = request.url.query.lower()
-            for pattern in suspicious_patterns:
+            for pattern in url_security_patterns:
                 if pattern in query_lower:
                     logger.warning(
                         f"Suspicious pattern detected in query: {pattern}",
