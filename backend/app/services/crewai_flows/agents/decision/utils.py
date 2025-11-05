@@ -245,15 +245,15 @@ class DecisionUtils:
             )
 
         # Fallback to hardcoded phase orders for backward compatibility
+        # Per ADR-027: Discovery v3.0.0 has only 5 phases
+        # dependency_analysis and tech_debt_assessment moved to Assessment flow
         if flow_type == "discovery":
             discovery_order = [
                 "data_import",
+                "data_validation",  # Added in v3.0.0
                 "field_mapping",
                 "data_cleansing",
-                "asset_creation",
-                "asset_inventory",
-                "dependency_analysis",
-                "tech_debt_assessment",
+                "asset_inventory",  # Terminal phase - no more phases after this
                 "completed",
             ]
             try:

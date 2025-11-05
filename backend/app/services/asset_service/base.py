@@ -9,7 +9,7 @@ CC: Service layer for asset operations following repository pattern
 
 import logging
 import uuid
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -354,3 +354,69 @@ class AssetService:
         except Exception as e:
             logger.error(f"❌ Asset service failed to create asset: {e}")
             raise
+
+    async def create_or_update_asset(
+        self,
+        asset_data: Dict[str, Any],
+        flow_id: Optional[str] = None,
+        *,
+        upsert: bool = False,
+    ) -> Tuple[Any, str]:
+        """
+        Wrapper method that delegates to deduplication module.
+
+        This method exists for backward compatibility with conflict_handler.py
+        which was created during the modularization refactor (PR #919).
+
+        Args:
+            asset_data: Asset information
+            flow_id: Optional flow ID
+            upsert: Whether to update existing assets
+
+        Returns:
+            Tuple of (asset, status) where status is "created" or "existed"
+        """
+        from app.services.asset_service.deduplication.orchestration import (
+            create_or_update_asset as dedup_create_or_update,
+        )
+
+        # Pass self (service_instance) as first parameter
+        return await dedup_create_or_update(
+            service_instance=self,
+            asset_data=asset_data,
+            flow_id=flow_id,
+            upsert=upsert,
+        )
+
+    async def bulk_create_or_update_assets(
+        self,
+        assets_data: List[Dict[str, Any]],
+        flow_id: Optional[str] = None,
+        *,
+        upsert: bool = False,
+    ) -> List[Tuple[Any, str]]:
+        """
+        Wrapper method for bulk asset operations.
+
+        This method exists for backward compatibility with conflict_handler.py
+        which was created during the modularization refactor (PR #919).
+
+        Args:
+            assets_data: List of asset information dictionaries
+            flow_id: Optional flow ID
+            upsert: Whether to update existing assets
+
+        Returns:
+            List of tuples (asset, status) where status is "created" or "existed"
+        """
+        from app.services.asset_service.deduplication.batch_operations import (
+            bulk_create_or_update_assets as dedup_bulk_create,
+        )
+
+        # Pass self (service_instance) as first parameter
+        return await dedup_bulk_create(
+            service_instance=self,
+            assets_data=assets_data,
+            flow_id=flow_id,
+            upsert=upsert,
+        )

@@ -30,6 +30,8 @@ class DiscoveryDecisionLogic:
             return DiscoveryDecisionLogic._decide_after_cleansing(analysis)
         elif current_phase == "asset_creation":
             return DiscoveryDecisionLogic._decide_after_asset_creation(analysis)
+        elif current_phase == "asset_inventory":
+            return DiscoveryDecisionLogic._decide_after_asset_inventory(analysis)
         else:
             # Default progression
             from app.services.crewai_flows.agents.decision.utils import DecisionUtils
@@ -336,3 +338,52 @@ class DiscoveryDecisionLogic:
 
         # Return True if either database shows assets created OR state has assets
         return assets_created > 0 or len(state_assets) > 0
+
+    @staticmethod
+    def _decide_after_asset_inventory(analysis: Dict[str, Any]) -> AgentDecision:
+        """
+        Decision logic after asset_inventory phase.
+
+        Per ADR-027: asset_inventory is the TERMINAL phase of Discovery v3.0.0.
+        Discovery flow ends here. dependency_analysis and tech_debt_assessment
+        have been moved to Assessment flow.
+
+        This phase uses DecisionUtils.get_next_phase() to delegate to FlowTypeConfig
+        registry, which will return None for the terminal phase, properly ending the flow.
+        """
+        from app.services.crewai_flows.agents.decision.utils import DecisionUtils
+
+        asset_inventory_results = analysis.get("asset_inventory_results", {})
+        assets_created_count = asset_inventory_results.get("assets_created", 0)
+
+        # Calculate completion confidence based on asset creation success
+        completion_confidence = ConfidenceCalculator.weighted_average(
+            {
+                "phase_completed_successfully": 1.0,
+                "assets_in_inventory": 1.0 if assets_created_count > 0 else 0.5,
+                "discovery_objectives_met": 1.0,
+                "terminal_phase_reached": 1.0,  # This is the final phase
+            }
+        )
+
+        # Get next phase from registry (will be None for terminal phase)
+        # This properly delegates to FlowTypeConfig which knows the phase sequence
+        next_phase = DecisionUtils.get_next_phase("asset_inventory", "discovery")
+
+        # Discovery flow is COMPLETED - this is the terminal phase per ADR-027
+        return AgentDecision(
+            action=PhaseAction.PROCEED,
+            next_phase=next_phase,  # Will be None or "completed" from registry
+            confidence=completion_confidence,
+            reasoning=(
+                f"Asset inventory phase completed. Created {assets_created_count} assets. "
+                "Discovery v3.0.0 flow is now complete (per ADR-027: asset_inventory is the terminal phase). "
+                "Dependency analysis and tech debt assessment have moved to Assessment flow."
+            ),
+            metadata={
+                "assets_created_count": assets_created_count,
+                "discovery_phase": "completed",
+                "next_recommended_flow": "assessment",
+                "adr_reference": "ADR-027: Discovery Phase Consolidation",
+            },
+        )
