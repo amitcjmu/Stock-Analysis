@@ -99,8 +99,26 @@ def get_business_logic_complexity_options(
         )
         return "select", options
 
-    # If technology_stack is present but doesn't match patterns, return None
-    return None
+    # If technology_stack is present but doesn't match patterns,
+    # fallback to static FIELD_OPTIONS with balanced ordering (NOT None/textarea)
+    # This ensures proper field type even when tech stack doesn't match intelligent patterns
+    options = [
+        {"value": "simple", "label": "Simple - Basic CRUD, minimal business logic"},
+        {
+            "value": "moderate",
+            "label": "Moderate - Standard business rules, some workflows",
+        },
+        {
+            "value": "complex",
+            "label": "Complex - Advanced workflows, multi-step processes",
+        },
+        {
+            "value": "very_complex",
+            "label": "Very Complex - Intricate business rules, regulatory logic",
+        },
+    ]
+    logger.info("Providing default balanced complexity options (no tech stack match)")
+    return "select", options
 
 
 def get_change_tolerance_options(

@@ -179,6 +179,11 @@ FIELD_OPTIONS = {
         {"value": "ubuntu_20.04", "label": "Ubuntu 20.04 LTS"},
         {"value": "centos_8", "label": "CentOS 8"},
         {"value": "debian", "label": "Debian"},
+        {"value": "aix_7.3", "label": "IBM AIX 7.3"},
+        {"value": "aix_7.2", "label": "IBM AIX 7.2"},
+        {"value": "aix_7.1", "label": "IBM AIX 7.1"},
+        {"value": "solaris_11", "label": "Oracle Solaris 11"},
+        {"value": "hp_ux_11", "label": "HP-UX 11"},
         {"value": "other", "label": "Other (specify in notes)"},
     ],
     "business_owner": [

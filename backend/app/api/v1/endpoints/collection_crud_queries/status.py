@@ -78,6 +78,7 @@ async def get_collection_flow(
     db: AsyncSession,
     current_user: User,
     context: RequestContext,
+    include_completed: bool = True,
 ) -> CollectionFlowResponse:
     """Get collection flow by ID with authorization.
 
@@ -86,6 +87,8 @@ async def get_collection_flow(
         db: Database session
         current_user: Current authenticated user
         context: Request context
+        include_completed: If True, allows querying COMPLETED flows (for assessment transition).
+                          If False, excludes COMPLETED (for active flow lists). Defaults to True.
 
     Returns:
         Collection flow details
@@ -95,20 +98,25 @@ async def get_collection_flow(
     """
     try:
         # Bug #799 Fix: Check both flow_id and id columns for flexible lookup
-        # Also exclude cancelled/failed/completed flows (treat as deleted)
+        # IMPORTANT: COMPLETED flows need different treatment than CANCELLED/FAILED:
+        # - COMPLETED: Should be queryable for assessment transition (include_completed=True)
+        # - CANCELLED/FAILED: Should never be queryable (always excluded)
         flow_uuid = UUID(flow_id)
+
+        # Build status exclusion list based on include_completed flag
+        excluded_statuses = [
+            CollectionFlowStatus.CANCELLED.value,
+            CollectionFlowStatus.FAILED.value,
+        ]
+        if not include_completed:
+            excluded_statuses.append(CollectionFlowStatus.COMPLETED.value)
+
         result = await db.execute(
             select(CollectionFlow).where(
                 (CollectionFlow.flow_id == flow_uuid)
                 | (CollectionFlow.id == flow_uuid),
                 CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status.notin_(
-                    [
-                        CollectionFlowStatus.CANCELLED.value,
-                        CollectionFlowStatus.FAILED.value,
-                        CollectionFlowStatus.COMPLETED.value,
-                    ]
-                ),
+                CollectionFlow.status.notin_(excluded_statuses),
             )
         )
         collection_flow = result.scalar_one_or_none()
