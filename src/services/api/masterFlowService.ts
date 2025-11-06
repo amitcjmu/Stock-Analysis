@@ -836,7 +836,7 @@ export const masterFlowService = {
         status: string;
         progress_percentage: number;  // Backend returns this
         current_phase: string;
-        selected_applications: number;  // Backend returns this (count of apps)
+        application_count: number;  // Backend returns this (count of apps)
       }>(
         `/master-flows/${flowId}/assessment-status`,
         {
@@ -850,7 +850,7 @@ export const masterFlowService = {
         status: response.status,
         progress: response.progress_percentage,  // Transform field name
         current_phase: response.current_phase,
-        application_count: response.selected_applications,  // Transform field name
+        application_count: response.application_count,  // Use correct field name
       };
     } catch (error) {
       handleApiError(error, "getAssessmentStatus");

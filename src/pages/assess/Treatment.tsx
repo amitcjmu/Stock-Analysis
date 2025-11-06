@@ -74,6 +74,7 @@ export const Treatment: React.FC = () => {
     cost_sensitivity: 5,
     risk_tolerance: 5,
     innovation_priority: 5,
+    application_type: 'custom',
   });
   const [analysisHistory, setAnalysisHistory] = React.useState<Analysis[]>([]);
   const [isAnalysisLoading, setIsAnalysisLoading] = React.useState(false);

@@ -172,7 +172,10 @@ const AppOnPagePage: React.FC = () => {
             applications={state.selectedApplicationIds}
             selectedApp={selectedApp}
             onAppSelect={setSelectedApp}
-            getApplicationName={(appId) => appId} // In real implementation, get from application data
+            getApplicationName={(appId) => {
+              const app = state.selectedApplications.find(a => a.application_id === appId);
+              return app?.application_name || appId;
+            }}
           />
         )}
 

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class StateQueries:
     """Helper queries for state construction"""
 
-    def __init__(self, db: AsyncSession, client_account_id: int):
+    def __init__(self, db: AsyncSession, client_account_id: str):
         self.db = db
         self.client_account_id = client_account_id
 

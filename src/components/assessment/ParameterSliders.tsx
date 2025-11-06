@@ -11,17 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Info } from 'lucide-react'
 import { RotateCcw, Save } from 'lucide-react'
 import { toast } from 'sonner';
-
-export interface SixRParameters {
-  business_value: number;
-  technical_complexity: number;
-  migration_urgency: number;
-  compliance_requirements: number;
-  cost_sensitivity: number;
-  risk_tolerance: number;
-  innovation_priority: number;
-  application_type: 'custom' | 'cots' | 'hybrid';
-}
+import type { SixRParameters } from '@/types/assessment';
 
 interface ParameterSliderProps {
   parameters: SixRParameters;

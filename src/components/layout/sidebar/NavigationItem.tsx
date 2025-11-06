@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { NavigationItemProps } from './types';
 
 const NavigationItem: React.FC<NavigationItemProps> = ({
@@ -8,6 +8,10 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   isSubItem = false
 }) => {
   const Icon = item.icon;
+  const location = useLocation();
+
+  // Preserve query parameters when navigating between flow pages
+  const pathWithParams = `${item.path}${location.search}`;
 
   const baseClasses = "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200";
   const activeClasses = isSubItem
@@ -22,7 +26,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
 
   return (
     <Link
-      to={item.path}
+      to={pathWithParams}
       className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
     >
       <Icon className={iconSize} />
