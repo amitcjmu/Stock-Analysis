@@ -202,6 +202,153 @@
 
 ---
 
+## Refactoring & Code Splitting
+
+### ❌ Losing Functionality During Refactoring/Code Splitting
+**Issue:** When splitting large files into modules or refactoring code structure, critical parameters, fields, or logic get accidentally dropped  
+**Why:** Causes data loss, silent failures, broken features that worked before refactoring  
+**Example:** Splitting `asset_service.py` into `deduplication/orchestration.py` and forgetting to copy 22 CMDB field parameters  
+**Check - MANDATORY for ANY refactoring:**
+
+**1. Line Count Verification:**
+```bash
+# Before refactoring
+wc -l backend/app/services/asset_service/base.py
+
+# After refactoring (sum of all new files)
+wc -l backend/app/services/asset_service/deduplication/*.py | tail -1
+# Total lines should be approximately equal (±10% for imports/headers)
+```
+
+**2. Parameter/Field Integrity Check:**
+```bash
+# Count critical field occurrences BEFORE refactoring
+grep -c "business_unit" backend/app/services/asset_service/base.py
+
+# Count critical field occurrences AFTER refactoring (all new files)
+grep -c "business_unit" backend/app/services/asset_service/deduplication/*.py
+
+# Numbers MUST match! Repeat for ALL critical fields.
+```
+
+**3. Function Signature Preservation:**
+```bash
+# Extract old function signature
+grep -A 50 "def create_asset" backend/app/services/asset_service/base.py > /tmp/old_sig.txt
+
+# Extract new function signature
+grep -A 50 "def create_asset" backend/app/services/asset_service/deduplication/orchestration.py > /tmp/new_sig.txt
+
+# Manually compare - every parameter must be present
+```
+
+**4. Behavioral Equivalence Test:**
+- Before refactoring: Run existing tests and note results
+- After refactoring: Tests must produce identical results
+- Add integration test that exercises the refactored code path
+
+**Cursor-Specific Verification Commands:**
+
+Use Cursor's `codebase_search` to find ALL references:
+```
+Query: "Where is create_asset method called with business_unit parameter?"
+Target: [] (search everywhere)
+```
+
+Use `grep` to count occurrences:
+```bash
+# Find all CMDB fields in old code
+grep -o "business_unit\|vendor\|application_type\|lifecycle\|hosting_model" backend/app/services/asset_service/base.py | wc -l
+
+# Find all CMDB fields in new code
+grep -o "business_unit\|vendor\|application_type\|lifecycle\|hosting_model" backend/app/services/asset_service/deduplication/*.py | wc -l
+```
+
+**Git-Based Verification:**
+```bash
+# Compare what was removed vs what was added
+git diff HEAD~1 backend/app/services/asset_service/base.py | grep "^-.*=" | wc -l  # Removed lines
+git diff HEAD~1 backend/app/services/asset_service/deduplication/ | grep "^+.*=" | wc -l  # Added lines
+# Should be approximately equal
+```
+
+**Real World Example of Violation:**
+- PR #884 added 22 CMDB fields to `base.py:create_asset()` 
+- Commit d327e56ae (Qodo Bot refactoring) moved code to `orchestration.py:create_new_asset()`
+- **FORGOT to copy all 22 CMDB field parameters** → Data loss for weeks
+- A simple `grep -c "business_unit"` before/after would have caught this immediately
+
+**Reference:** PR #884 → Commit d327e56ae refactoring bug (Nov 2025)
+
+---
+
+## Cursor AI Assistant Best Practices
+
+### ❌ Not Using Cursor Tools for Refactoring Verification
+**Issue:** Relying on manual inspection instead of using Cursor's built-in tools to verify refactoring completeness  
+**Why:** Human eyes miss things, especially in large refactorings with 500+ lines moved  
+**Check - Use these Cursor tools EVERY TIME:**
+
+**Tool 1: `codebase_search` - For Understanding Context**
+```
+Query: "How does AssetService.create_asset handle CMDB fields?"
+Target: ["backend/app/services/asset_service"]
+```
+Use before AND after refactoring to verify same behavior.
+
+**Tool 2: `grep` - For Counting Occurrences**
+```bash
+# Count critical patterns
+grep -c "business_unit" backend/app/services/asset_service/base.py
+grep -c "\.get\(\"" backend/app/services/asset_service/base.py  # Count field extractions
+```
+
+**Tool 3: `read_file` - For Comparing Implementations**
+```
+# Read old implementation
+read_file("backend/app/services/asset_service/base.py", offset=100, limit=150)
+
+# Read new implementation  
+read_file("backend/app/services/asset_service/deduplication/orchestration.py", offset=150, limit=200)
+
+# Manually compare side-by-side
+```
+
+**Tool 4: `run_terminal_cmd` - For Automated Verification**
+```bash
+# Create verification script
+diff <(grep "business_unit\|vendor\|lifecycle" old_file.py | sort) \
+     <(grep "business_unit\|vendor\|lifecycle" new_file.py | sort)
+# Empty output = all fields present
+```
+
+**Cursor Memory System:**
+- Cursor stores memories of coding patterns and decisions
+- When refactoring, explicitly tell Cursor: "Remember this refactoring must preserve all 22 CMDB fields"
+- Ask Cursor to verify: "Did I copy all fields from old implementation to new?"
+
+**Pre-Refactoring Checklist (Tell Cursor):**
+```
+"Before I start this refactoring:
+1. List all functions being moved
+2. List all parameters in each function signature
+3. List all fields being passed to repository/database calls
+4. Store these counts - we'll verify after refactoring"
+```
+
+**Post-Refactoring Checklist (Ask Cursor):**
+```
+"After refactoring, verify:
+1. Compare function signatures - all parameters present?
+2. Compare field counts - use grep to verify
+3. Compare line counts - total preserved?
+4. Run tests - same results?"
+```
+
+**Reference:** Refactoring failures in commits d327e56ae, 96e79d34f (Nov 2025)
+
+---
+
 ## 🔄 Review Checklist Template
 
 Use this before submitting PRs:
@@ -218,6 +365,8 @@ Use this before submitting PRs:
 - [ ] Pulled and merged latest from main
 - [ ] Pre-commit checks passing
 - [ ] Manual verification completed
+- [ ] **Refactoring integrity verified (line counts, field counts, signature preservation)**
+- [ ] **Used Cursor tools (grep, codebase_search) to verify completeness**
 
 ---
 
