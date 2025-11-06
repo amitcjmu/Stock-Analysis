@@ -53,7 +53,11 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   const normalizeFlowId = (id: string | null | undefined): string | undefined => {
     if (!id) return undefined;
     const trimmed = id.trim();
-    // Basic UUID format validation
+    // UUID v4 format validation (strict)
+    // NOTE: This regex is intentionally strict to match UUID v4 only (not all UUID versions)
+    // Backend exclusively uses uuid.uuid4() for all ID generation (Asset.id, DiscoveryFlow.id, etc.)
+    // Rejecting non-v4 UUIDs provides additional security against ID manipulation attacks
+    // See: backend/app/models/asset/models.py:65, backend/app/models/discovery_flow.py:26
     const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
     return trimmed && uuidPattern.test(trimmed) ? trimmed : undefined;
   };
@@ -75,7 +79,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       // Emergency fallback: try to extract flow ID from URL with validation
       const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
 
-      // Look for flow ID patterns in current URL with secure validation
+      // Look for UUID v4 patterns in current URL with secure validation
+      // Must match the same strict v4 pattern used in normalizeFlowId
       const flowIdPattern = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}/i;
       const urlMatch = currentUrl.match(flowIdPattern);
 

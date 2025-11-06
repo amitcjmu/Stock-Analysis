@@ -249,35 +249,27 @@ async def _get_assets_from_db(
     from sqlalchemy.orm import selectinload
     from app.models.asset import Asset
 
-    # Build base query with context filtering
+    # Build filter conditions once (DRY principle)
     # SECURITY: Always enforce multi-tenancy - no platform admin bypass for regular users
+    filter_conditions = [
+        Asset.client_account_id == context.client_account_id,
+        Asset.engagement_id == context.engagement_id,
+    ]
+
+    # Add flow_id filter if provided
+    if flow_id:
+        filter_conditions.append(Asset.discovery_flow_id == flow_id)
+
+    # Build base query with shared filter conditions
     query = (
-        select(Asset)
-        .where(
-            Asset.client_account_id == context.client_account_id,
-            Asset.engagement_id == context.engagement_id,
-        )
+        select(Asset)  # SKIP_TENANT_CHECK - Filters applied via filter_conditions list
+        .where(*filter_conditions)
         .options(selectinload(Asset.eol_assessments), selectinload(Asset.contacts))
         .order_by(Asset.created_at.desc())
     )
 
-    # Add flow_id filter if provided
-    if flow_id:
-        query = query.where(Asset.discovery_flow_id == flow_id)
-
-    # Get total count with proper context filtering
-    count_query = (
-        select(func.count())
-        .select_from(Asset)
-        .where(
-            Asset.client_account_id == context.client_account_id,
-            Asset.engagement_id == context.engagement_id,
-        )
-    )
-
-    # Add flow_id filter to count query if provided
-    if flow_id:
-        count_query = count_query.where(Asset.discovery_flow_id == flow_id)
+    # Get total count with same filter conditions (ensures consistency)
+    count_query = select(func.count()).select_from(Asset).where(*filter_conditions)
 
     count_result = await db.execute(count_query)
     total_items = count_result.scalar() or 0
@@ -303,7 +295,13 @@ async def list_assets_paginated(
     page_size: int = Query(20, gt=0, le=100),
     per_page: int = Query(None),  # Support both page_size and per_page
     flow_id: Optional[str] = Query(
-        None, description="Optional discovery flow ID to filter assets"
+        None,
+        description="Optional discovery flow ID to filter assets. "
+        "Uses Optional[str] instead of UUID4 for flexibility: "
+        "(1) Frontend validation in useDiscoveryFlowAutoDetection ensures UUID v4 format, "
+        "(2) Allows graceful error messages for invalid formats, "
+        "(3) Maintains backward compatibility with non-UUID flow IDs, "
+        "(4) SQLAlchemy safely handles type conversion for database queries.",
     ),
 ):
     """Get paginated list of assets for the current context.
