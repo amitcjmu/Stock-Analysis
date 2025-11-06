@@ -61,8 +61,7 @@ const Inventory = (): JSX.Element => {
     totalFlowsAvailable: flowList?.length || 0
   });
 
-  // CRITICAL FIX FOR ISSUE #306: Only render when Flow ID is available
-  // This prevents the race condition where API calls fire before Flow ID is set
+  // Show loading state while detecting flows
   if (isFlowListLoading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -80,45 +79,8 @@ const Inventory = (): JSX.Element => {
     );
   }
 
-  if (!hasEffectiveFlow) {
-    return (
-      <div className="flex min-h-screen bg-gray-50">
-        <div className="hidden lg:block w-64 border-r bg-white">
-          <Sidebar />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
-            <div className="mb-6">
-              <ContextBreadcrumbs />
-            </div>
-            <div className="flex items-center justify-center min-h-96">
-              <div className="text-center max-w-md">
-                <div className="mb-4">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                    <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                  </div>
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">No Active Discovery Flow</h2>
-                <p className="text-gray-600 mb-4">
-                  The Asset Inventory requires an active discovery flow context. Please ensure you have:
-                </p>
-                <ul className="text-left text-sm text-gray-600 space-y-1 mb-4">
-                  <li>• Started a discovery flow from Data Import</li>
-                  <li>• Completed the Data Cleansing phase</li>
-                  <li>• Navigated from the discovery workflow</li>
-                </ul>
-                <p className="text-sm text-gray-500">
-                  Available flows: {flowList?.length || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Note: Removed blocking "No Active Discovery Flow" state
+  // Inventory now supports viewing all assets without a flow context
 
   return (
     <>
@@ -160,8 +122,8 @@ const Inventory = (): JSX.Element => {
 
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             <div className="xl:col-span-3 space-y-6">
-              {/* Main Inventory Content - now self-contained */}
-              <InventoryContent className="" flowId={effectiveFlowId} />
+              {/* Main Inventory Content - supports optional flowId for "Show All Assets" feature */}
+              <InventoryContent className="" flowId={effectiveFlowId || undefined} />
             </div>
 
             <div className="xl:col-span-1 space-y-6">
