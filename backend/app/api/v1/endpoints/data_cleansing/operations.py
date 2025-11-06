@@ -438,7 +438,7 @@ async def apply_recommendation(
     with audit trail information (user_id, timestamp, action status).
     """
     try:
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         logger.info(
             f"Processing recommendation {recommendation_id} for flow {flow_id} with action: {request.action}"
@@ -462,10 +462,15 @@ async def apply_recommendation(
         logger.info(f"Flow {flow_id} found: {flow.flow_name} (status: {flow.status})")
 
         # Prepare action data with audit trail
-        applied_at = datetime.utcnow().isoformat()
+        # Use timezone-aware datetime object for database storage, ISO string for JSONB fallback
+        applied_at_datetime = datetime.now(timezone.utc)
+        applied_at_iso = applied_at_datetime.isoformat()  # For JSONB fallback
         action_status = "applied" if request.action == "apply" else "rejected"
 
-        # Update recommendation in database (with graceful fallback if table doesn't exist)
+        # Update recommendation in database (with graceful fallback for legacy IDs)
+        # Per ADR-012, we maintain backward compatibility for operational state
+        # Legacy flows use deterministic UUID5-based IDs that may not exist in the new table
+        db_rec = None
         try:
             from app.models.data_cleansing import (
                 DataCleansingRecommendation as DBRecommendation,
@@ -473,112 +478,121 @@ async def apply_recommendation(
             from sqlalchemy import select
             import uuid
 
-            # Validate and convert recommendation_id to UUID
+            # Try to convert recommendation_id to UUID (non-blocking for backward compatibility)
+            recommendation_uuid = None
             try:
                 recommendation_uuid = uuid.UUID(recommendation_id)
             except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid recommendation ID format: {recommendation_id}. Expected a valid UUID.",
+                # Not a valid UUID - skip database lookup and fall back to JSONB storage
+                logger.info(
+                    f"Recommendation ID {recommendation_id} is not a valid UUID. "
+                    f"Falling back to JSONB storage for backward compatibility."
                 )
+                recommendation_uuid = None
 
-            # Find the recommendation in database
-            rec_query = select(DBRecommendation).where(
-                DBRecommendation.id == recommendation_uuid,
-                DBRecommendation.flow_id == flow.flow_id,
-            )
-            rec_result = await db.execute(rec_query)
-            db_rec = rec_result.scalar_one_or_none()
-
-            if not db_rec:
-                # Recommendation not found - need to check if table exists or ID is invalid
+            # Only try database lookup if we have a valid UUID
+            if recommendation_uuid is not None:
                 try:
-                    # Test if table exists by querying any recommendation
-                    test_query = select(DBRecommendation).limit(1)
-                    await db.execute(test_query)
-                    # Table exists but recommendation not found - this is a 404 error
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Recommendation {recommendation_id} not found for flow {flow_id}",
+                    # Find the recommendation in database
+                    rec_query = select(DBRecommendation).where(
+                        DBRecommendation.id == recommendation_uuid,
+                        DBRecommendation.flow_id == flow.flow_id,
                     )
-                except HTTPException:
-                    # Re-raise HTTP exceptions (like 404)
-                    raise
-                except Exception as table_error:
+                    rec_result = await db.execute(rec_query)
+                    db_rec = rec_result.scalar_one_or_none()
+
+                    if db_rec:
+                        # Found in database - update it
+                        db_rec.status = action_status
+                        db_rec.action_notes = request.notes
+                        db_rec.applied_by_user_id = str(current_user.id)
+                        db_rec.applied_at = applied_at_datetime  # Use datetime object for database
+
+                        logger.info(
+                            f"Updating recommendation {recommendation_id} with action '{request.action}' for flow {flow_id}"
+                        )
+
+                        # Commit changes to database
+                        await db.commit()
+                        await db.refresh(db_rec)
+                    else:
+                        # Valid UUID but not found in database - fall back to JSONB for legacy flows
+                        logger.info(
+                            f"Recommendation {recommendation_id} (valid UUID) not found in database. "
+                            f"Falling back to JSONB storage for legacy flow compatibility."
+                        )
+                        db_rec = None  # Ensure we fall through to JSONB storage
+
+                except Exception as db_error:
                     # Check if the error is due to table not existing
-                    error_msg = str(table_error)
+                    error_msg = str(db_error)
                     if "does not exist" in error_msg or "UndefinedTableError" in error_msg:
                         # Table doesn't exist - fall back to legacy storage
                         logger.warning(
                             f"Recommendation table does not exist. "
                             f"Falling back to crewai_state_data storage for recommendation {recommendation_id}"
                         )
-                        # Fall back to legacy storage method
-                        existing_data = flow.crewai_state_data or {}
-                        data_cleansing_results = existing_data.get("data_cleansing_results", {})
-
-                        if "recommendation_actions" not in data_cleansing_results:
-                            data_cleansing_results["recommendation_actions"] = {}
-
-                        action_data = {
-                            "recommendation_id": recommendation_id,
-                            "action": request.action,
-                            "status": action_status,
-                            "applied_at": applied_at,
-                            "applied_by_user_id": str(current_user.id),
-                            "client_account_id": str(context.client_account_id),
-                            "engagement_id": str(context.engagement_id),
-                            "notes": request.notes,
-                        }
-
-                        data_cleansing_results["recommendation_actions"][
-                            recommendation_id
-                        ] = action_data
-
-                        # Update flow with new data_cleansing_results
-                        existing_data["data_cleansing_results"] = data_cleansing_results
-                        flow.crewai_state_data = existing_data
-
-                        # Ensure SQLAlchemy detects the JSONB field change
-                        from sqlalchemy.orm.attributes import flag_modified
-
-                        flag_modified(flow, "crewai_state_data")
-                        db.add(flow)
-
-                        await db.commit()
-                        await db.refresh(flow)
-
-                        logger.info(
-                            f"Stored recommendation action in crewai_state_data (fallback) "
-                            f"for recommendation {recommendation_id}"
-                        )
+                        db_rec = None  # Ensure we fall through to JSONB storage
                     else:
                         # Re-raise if it's a different error
+                        logger.error(f"Database error during recommendation lookup: {db_error}")
                         raise
-            else:
-                # Update recommendation status and action data
-                db_rec.status = action_status
-                db_rec.action_notes = request.notes
-                db_rec.applied_by_user_id = str(current_user.id)
-                db_rec.applied_at = applied_at
-
-                logger.info(
-                    f"Updating recommendation {recommendation_id} with action '{request.action}' for flow {flow_id}"
-                )
-
-                # Commit changes to database
-                await db.commit()
-                await db.refresh(db_rec)
 
         except HTTPException:
-            # Re-raise HTTP exceptions (like 404)
+            # Re-raise HTTP exceptions
             raise
         except Exception as e:
-            # If database operation fails for other reasons, log and re-raise
-            logger.error(f"Failed to update recommendation in database: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to {request.action} recommendation: {str(e)}",
+            # If database operation fails for other reasons, log and fall back to JSONB
+            logger.warning(
+                f"Failed to update recommendation in database: {e}. "
+                f"Falling back to JSONB storage for recommendation {recommendation_id}"
+            )
+            db_rec = None  # Ensure we fall through to JSONB storage
+
+        # If database lookup failed or recommendation not found, fall back to JSONB storage
+        # This maintains backward compatibility for legacy flows with deterministic IDs
+        if db_rec is None:
+            logger.info(
+                f"Storing recommendation action in JSONB (fallback) for recommendation {recommendation_id}"
+            )
+            # Fall back to legacy storage method
+            existing_data = flow.crewai_state_data or {}
+            data_cleansing_results = existing_data.get("data_cleansing_results", {})
+
+            if "recommendation_actions" not in data_cleansing_results:
+                data_cleansing_results["recommendation_actions"] = {}
+
+            action_data = {
+                "recommendation_id": recommendation_id,
+                "action": request.action,
+                "status": action_status,
+                "applied_at": applied_at_iso,  # Use ISO string for JSONB storage
+                "applied_by_user_id": str(current_user.id),
+                "client_account_id": str(context.client_account_id),
+                "engagement_id": str(context.engagement_id),
+                "notes": request.notes,
+            }
+
+            data_cleansing_results["recommendation_actions"][
+                recommendation_id
+            ] = action_data
+
+            # Update flow with new data_cleansing_results
+            existing_data["data_cleansing_results"] = data_cleansing_results
+            flow.crewai_state_data = existing_data
+
+            # Ensure SQLAlchemy detects the JSONB field change
+            from sqlalchemy.orm.attributes import flag_modified
+
+            flag_modified(flow, "crewai_state_data")
+            db.add(flow)
+
+            await db.commit()
+            await db.refresh(flow)
+
+            logger.info(
+                f"Stored recommendation action in crewai_state_data (fallback) "
+                f"for recommendation {recommendation_id}"
             )
 
         logger.info(f"Database commit successful for flow {flow_id}")
@@ -589,10 +603,10 @@ async def apply_recommendation(
 
         return ApplyRecommendationResponse(
             success=True,
-            message=f"Recommendation {request.action}ed successfully",
+            message=f"Recommendation {action_status} successfully",
             recommendation_id=recommendation_id,
             action=request.action,
-            applied_at=applied_at,
+            applied_at=applied_at_iso,  # Return ISO string for API response
         )
 
     except HTTPException as he:

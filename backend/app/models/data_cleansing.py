@@ -5,7 +5,7 @@ Stores recommendations with stable primary keys instead of deterministic IDs
 
 import uuid
 
-from sqlalchemy import JSON, Column, ForeignKey, String, Text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -52,7 +52,7 @@ class DataCleansingRecommendation(Base, TimestampMixin):
     )  # 'pending', 'applied', 'rejected'
     action_notes = Column(Text, nullable=True)
     applied_by_user_id = Column(String(255), nullable=True)
-    applied_at = Column(Text, nullable=True)  # ISO format timestamp
+    applied_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp with timezone
 
     # Multi-tenant isolation (for audit and filtering)
     client_account_id = Column(UUID(as_uuid=True), nullable=False, index=True)
