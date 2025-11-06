@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.asset import Asset, AssetStatus
 from ..helpers import get_smart_asset_name, convert_numeric_fields
+from ..child_table_helpers import create_child_records_if_needed
 from .hierarchical_lookup import find_existing_asset_hierarchical
 from .merge_strategies import enrich_asset, overwrite_asset
 
@@ -274,10 +275,6 @@ async def create_new_asset(
         # Create child table records if data exists (PR #884)
         # Build RequestContext from service_instance for tenant extraction
         if service_instance._request_context:
-            from app.services.asset_service.child_table_helpers import (
-                create_child_records_if_needed,
-            )
-
             await create_child_records_if_needed(
                 service_instance.db,
                 created_asset,

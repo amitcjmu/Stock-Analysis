@@ -88,7 +88,12 @@ def parse_boolean(value: Any) -> bool:
 
     # Numeric format (1=True, 0=False)
     if isinstance(value, (int, float)):
-        return bool(value)
+        if value == 1:
+            return True
+        if value == 0:
+            return False
+        logger.warning(f"Unknown numeric boolean value: '{value}', treating as None")
+        return None
 
     # Unknown format
     logger.warning(
