@@ -152,11 +152,12 @@ ensure_init_sql_link() {
     fi
 }
 
-# Function to stop orphaned observability containers
+# Function to stop orphaned containers
 stop_orphaned_containers() {
     echo -e "${YELLOW}🔍 Checking for orphaned observability containers...${NC}"
 
-    local orphans=$(docker ps -a --filter "name=migration_grafana" --filter "name=migration_loki" --filter "name=migration_prometheus" --filter "name=migration_tempo" --filter "name=migration_alloy" --format "{{.Names}}" 2>/dev/null || true)
+    local orphans
+    orphans=$(docker ps -a --filter "name=migration_grafana" --filter "name=migration_loki" --filter "name=migration_prometheus" --filter "name=migration_tempo" --filter "name=migration_alloy" --format "{{.Names}}" 2>/dev/null || true)
 
     if [ ! -z "$orphans" ]; then
         echo -e "${YELLOW}⚠️  Found orphaned observability containers. Stopping them...${NC}"
