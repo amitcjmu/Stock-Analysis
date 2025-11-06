@@ -230,9 +230,21 @@ async def list_assets_paginated_fallback(
 
 
 async def _get_assets_from_db(
-    db: AsyncSession, context: RequestContext, page: int, page_size: int
+    db: AsyncSession,
+    context: RequestContext,
+    page: int,
+    page_size: int,
+    flow_id: Optional[str] = None,
 ):
-    """Fetch assets from database with pagination."""
+    """Fetch assets from database with pagination.
+
+    Args:
+        db: Database session
+        context: Request context with tenant information
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+        flow_id: Optional discovery flow ID to filter assets
+    """
     from sqlalchemy import func, select
     from sqlalchemy.orm import selectinload
     from app.models.asset import Asset
@@ -249,6 +261,10 @@ async def _get_assets_from_db(
         .order_by(Asset.created_at.desc())
     )
 
+    # Add flow_id filter if provided
+    if flow_id:
+        query = query.where(Asset.discovery_flow_id == flow_id)
+
     # Get total count with proper context filtering
     count_query = (
         select(func.count())
@@ -258,6 +274,11 @@ async def _get_assets_from_db(
             Asset.engagement_id == context.engagement_id,
         )
     )
+
+    # Add flow_id filter to count query if provided
+    if flow_id:
+        count_query = count_query.where(Asset.discovery_flow_id == flow_id)
+
     count_result = await db.execute(count_query)
     total_items = count_result.scalar() or 0
 
@@ -281,16 +302,31 @@ async def list_assets_paginated(
     page: int = Query(1, gt=0),
     page_size: int = Query(20, gt=0, le=100),
     per_page: int = Query(None),  # Support both page_size and per_page
+    flow_id: Optional[str] = Query(
+        None, description="Optional discovery flow ID to filter assets"
+    ),
 ):
-    """Get paginated list of assets for the current context."""
+    """Get paginated list of assets for the current context.
+
+    Args:
+        db: Database session
+        context: Request context with tenant information
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+        per_page: Alternative parameter for page_size (for compatibility)
+        flow_id: Optional discovery flow ID to filter assets by specific flow
+
+    Returns:
+        Paginated asset list with summary statistics
+    """
     try:
         # Support both page_size and per_page parameters
         if per_page is not None:
             page_size = per_page
 
-        # Fetch assets from database
+        # Fetch assets from database with optional flow_id filter
         assets, total_items, total_pages = await _get_assets_from_db(
-            db, context, page, page_size
+            db, context, page, page_size, flow_id
         )
 
         # Convert assets to dictionaries

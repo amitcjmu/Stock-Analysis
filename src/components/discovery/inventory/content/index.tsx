@@ -76,7 +76,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [needsClassification, setNeedsClassification] = useState(false);
   const [isReclassifying, setIsReclassifying] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(!flowId ? 'all' : 'current_flow');
+  // Toggle defaults to 'all' when no flowId, 'current_flow' when flowId is present
+  const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(flowId ? 'current_flow' : 'all');
   const [hasFlowId, setHasFlowId] = useState<boolean>(Boolean(flowId));
 
   // Asset conflict resolution state

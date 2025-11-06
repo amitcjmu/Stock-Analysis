@@ -43,10 +43,11 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   // First try route params (e.g., /path/:flowId)
   const { flowId: routeFlowId } = useParams<{ flowId?: string }>();
 
-  // Also check query params (e.g., ?flow_id=...)
+  // Also check query params (e.g., ?flow_id=... or ?flowId=...)
+  // Support both snake_case (flow_id) and camelCase (flowId) for backward compatibility
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const queryFlowId = queryParams.get('flow_id');
+  const queryFlowId = queryParams.get('flow_id') || queryParams.get('flowId');
 
   // Normalize and validate IDs before use (trim whitespace and validate format)
   const normalizeFlowId = (id: string | null | undefined): string | undefined => {
