@@ -32,10 +32,13 @@ def upgrade() -> None:
             -- Clean existing test data from phase_results
             -- Remove any phase_results entries containing "Test error" string
             UPDATE migration.assessment_flows
-            SET phase_results = (
-                SELECT jsonb_object_agg(key, value)
-                FROM jsonb_each(phase_results)
-                WHERE NOT (value::text LIKE '%Test error%')
+            SET phase_results = COALESCE(
+                (
+                    SELECT jsonb_object_agg(key, value)
+                    FROM jsonb_each(phase_results)
+                    WHERE NOT (value::text LIKE '%Test error%')
+                ),
+                '{}'::jsonb
             )
             WHERE phase_results IS NOT NULL
               AND phase_results::text LIKE '%Test error%';

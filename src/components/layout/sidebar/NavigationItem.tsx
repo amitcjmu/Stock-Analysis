@@ -10,8 +10,22 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   const Icon = item.icon;
   const location = useLocation();
 
-  // Preserve query parameters when navigating between flow pages
-  const pathWithParams = `${item.path}${location.search}`;
+  // Preserve query parameters only when navigating within the same section
+  // to avoid leaking flow context (flow_id, engagement_id) between different sections
+  const getNavigationPath = () => {
+    const currentSection = location.pathname.split('/')[1];
+    const targetSection = item.path.split('/')[1];
+
+    // Only preserve query params if navigating within the same top-level section
+    // (e.g., /decommission/* → /decommission/*, but NOT /decommission/* → /assessment/*)
+    if (currentSection === targetSection && location.search) {
+      return `${item.path}${location.search}`;
+    }
+
+    return item.path;
+  };
+
+  const pathWithParams = getNavigationPath();
 
   const baseClasses = "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200";
   const activeClasses = isSubItem
