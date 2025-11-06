@@ -1,295 +1,569 @@
+/**
+ * Decommission Planning Page (Issue #943)
+ *
+ * Provides:
+ * - Dependency analysis results
+ * - Risk assessment scores
+ * - Cost estimation breakdown
+ * - Compliance validation checklist
+ * - Approve/Reject planning buttons
+ *
+ * Per ADR-027: Uses snake_case field names and phase name 'decommission_planning'
+ * Per ADR-006: MFO pattern with HTTP polling (5s active, 15s paused)
+ */
 
-import React, { useState } from 'react'
-import Sidebar from '../../components/Sidebar';
-import { Filter, AlertTriangle, Users } from 'lucide-react'
-import { FileText, Search, Download, CheckCircle, Clock } from 'lucide-react'
+import React, { useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import {
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Network,
+  DollarSign,
+  Shield,
+  TrendingUp,
+  Server,
+} from 'lucide-react';
+import Sidebar from '../../components/layout/sidebar/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import {
+  useDecommissionFlowStatus,
+  useUpdatePhaseStatus,
+  useCancelDecommissionFlow,
+  useEligibleSystems,
+  getPhaseDisplayName,
+} from '../../hooks/decommissionFlow/useDecommissionFlow';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
-const DecommissionPlanning = (): JSX.Element => {
-  const [selectedFilter, setSelectedFilter] = useState('all');
+interface DependencyItem {
+  id: string;
+  name: string;
+  type: string;
+  impact: 'high' | 'medium' | 'low';
+  mitigated: boolean;
+}
 
-  const planningMetrics = [
-    { label: 'Systems Identified', value: '120', color: 'text-blue-600' },
-    { label: 'Dependencies Mapped', value: '89', color: 'text-purple-600' },
-    { label: 'Risk Assessments', value: '67', color: 'text-orange-600' },
-    { label: 'Approval Pending', value: '23', color: 'text-red-600' },
-  ];
+interface ComplianceItem {
+  id: string;
+  requirement: string;
+  status: 'compliant' | 'non_compliant' | 'pending';
+  notes: string;
+}
 
-  const systemsForDecommission = [
-    {
-      id: 'SYS001',
-      name: 'Legacy Billing System',
-      type: 'Application',
-      department: 'Finance',
-      criticality: 'Low',
-      dependencies: 3,
-      riskLevel: 'Medium',
-      businessImpact: 'Low',
-      status: 'Assessment Complete',
-      estimatedSavings: '$85,000/year',
-      lastUsed: '2024-06-15'
-    },
-    {
-      id: 'SYS002',
-      name: 'Old Email Server',
-      type: 'Infrastructure',
-      department: 'IT',
-      criticality: 'Medium',
-      dependencies: 8,
-      riskLevel: 'High',
-      businessImpact: 'Medium',
-      status: 'Under Review',
-      estimatedSavings: '$45,000/year',
-      lastUsed: '2024-12-01'
-    },
-    {
-      id: 'SYS003',
-      name: 'Mainframe Database',
-      type: 'Database',
-      department: 'Operations',
-      criticality: 'High',
-      dependencies: 15,
-      riskLevel: 'Very High',
-      businessImpact: 'High',
-      status: 'Planning',
-      estimatedSavings: '$200,000/year',
-      lastUsed: '2024-11-20'
-    },
-    {
-      id: 'SYS004',
-      name: 'Legacy CRM',
-      type: 'Application',
-      department: 'Sales',
-      criticality: 'Medium',
-      dependencies: 5,
-      riskLevel: 'Low',
-      businessImpact: 'Medium',
-      status: 'Approved',
-      estimatedSavings: '$65,000/year',
-      lastUsed: '2024-08-30'
-    },
-  ];
+const DecommissionPlanning: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { engagement, isLoading: isAuthLoading } = useAuth();
 
-  const decommissionSteps = [
-    {
-      step: 1,
-      title: 'System Identification',
-      description: 'Identify legacy systems, applications, and infrastructure components',
-      status: 'completed',
-      tasks: [
-        'Inventory all IT assets',
-        'Identify redundant systems',
-        'Document system specifications'
-      ]
-    },
-    {
-      step: 2,
-      title: 'Dependency Analysis',
-      description: 'Map system dependencies and interconnections',
-      status: 'in-progress',
-      tasks: [
-        'Document data flows',
-        'Identify integration points',
-        'Map user dependencies'
-      ]
-    },
-    {
-      step: 3,
-      title: 'Risk Assessment',
-      description: 'Evaluate risks associated with system decommission',
-      status: 'in-progress',
-      tasks: [
-        'Assess business impact',
-        'Identify technical risks',
-        'Document mitigation strategies'
-      ]
-    },
-    {
-      step: 4,
-      title: 'Stakeholder Approval',
-      description: 'Obtain necessary approvals from business stakeholders',
-      status: 'pending',
-      tasks: [
-        'Present decommission plan',
-        'Gather stakeholder feedback',
-        'Obtain formal approval'
-      ]
+  const flowId = searchParams.get('flow_id');
+
+  // API hooks - only enable when we have both flowId AND engagement context
+  // Per security requirement: middleware needs X-Engagement-ID header
+  // CRITICAL: Also wait for auth loading to complete to avoid race condition
+  const { data: flowStatus, isLoading, error } = useDecommissionFlowStatus(flowId, {
+    enabled: !!flowId && !isAuthLoading && !!engagement?.id,
+  });
+  const { data: eligibleSystems, isLoading: isLoadingSystems } = useEligibleSystems({
+    enabled: !!flowId && !isAuthLoading && !!engagement?.id,
+  });
+  const updatePhaseMutation = useUpdatePhaseStatus();
+  const cancelFlowMutation = useCancelDecommissionFlow();
+
+  // Get details for selected systems (regardless of current eligibility status)
+  // Users can override eligibility - show all selected systems with status indicators
+  const selectedSystemsDetails = useMemo(() => {
+    if (!flowStatus?.selected_systems || !eligibleSystems) return [];
+
+    // selected_systems is an array of UUID strings
+    const selectedIds = new Set(flowStatus.selected_systems);
+
+    // First, try to match with eligible systems (these will have full details)
+    const matchedSystems = eligibleSystems.filter(system => selectedIds.has(system.asset_id));
+
+    // For any selected systems not in eligibleSystems, create placeholder entries
+    // This handles the case where systems were selected but no longer meet eligibility criteria
+    const matchedIds = new Set(matchedSystems.map(s => s.asset_id));
+    const unmatchedIds = flowStatus.selected_systems.filter(id => !matchedIds.has(id));
+
+    // Add placeholder entries for unmatched systems (they exist but aren't "eligible")
+    const placeholders = unmatchedIds.map(asset_id => ({
+      asset_id,
+      asset_name: `System ${asset_id.slice(0, 8)}...`, // Show partial UUID
+      six_r_strategy: null,
+      annual_cost: 0,
+      decommission_eligible: false,
+      grace_period_end: null,
+      retirement_reason: 'Selected for decommission (eligibility criteria not met)',
+    }));
+
+    return [...matchedSystems, ...placeholders];
+  }, [flowStatus?.selected_systems, eligibleSystems]);
+
+  // Redirect if no flow_id
+  useEffect(() => {
+    if (!flowId) {
+      toast({
+        title: 'No flow selected',
+        description: 'Please initialize a decommission flow first',
+        variant: 'destructive',
+      });
+      navigate('/decommission');
     }
+  }, [flowId, navigate, toast]);
+
+  // Mock planning data (TODO: Extract from flowStatus.runtime_state when available)
+  const dependencies: DependencyItem[] = [
+    {
+      id: 'dep-001',
+      name: 'Customer Portal API',
+      type: 'Upstream Dependency',
+      impact: 'high',
+      mitigated: true,
+    },
+    {
+      id: 'dep-002',
+      name: 'Reporting Database',
+      type: 'Data Consumer',
+      impact: 'medium',
+      mitigated: true,
+    },
+    {
+      id: 'dep-003',
+      name: 'Legacy File Server',
+      type: 'Storage Dependency',
+      impact: 'low',
+      mitigated: false,
+    },
   ];
 
-  const filteredSystems = selectedFilter === 'all' ? systemsForDecommission :
-                         systemsForDecommission.filter(system => system.status.toLowerCase().includes(selectedFilter));
+  const riskAssessment = {
+    overall_score: 72,
+    business_impact: 'medium',
+    technical_complexity: 'high',
+    data_sensitivity: 'medium',
+    rollback_feasibility: 'high',
+  };
+
+  const costEstimation = {
+    decommission_cost: 45000,
+    annual_savings: 120000,
+    roi_months: 4.5,
+    payback_period: '5 months',
+  };
+
+  const complianceChecklist: ComplianceItem[] = [
+    {
+      id: 'comp-001',
+      requirement: 'Data retention policy documented',
+      status: 'compliant',
+      notes: '7-year retention approved',
+    },
+    {
+      id: 'comp-002',
+      requirement: 'Stakeholder sign-offs obtained',
+      status: 'compliant',
+      notes: 'All stakeholders approved',
+    },
+    {
+      id: 'comp-003',
+      requirement: 'Security clearance for data archival',
+      status: 'pending',
+      notes: 'Awaiting InfoSec review',
+    },
+    {
+      id: 'comp-004',
+      requirement: 'Backup verification completed',
+      status: 'compliant',
+      notes: 'Full backup verified on 2025-01-15',
+    },
+  ];
+
+  const handleApprovePlanning = async () => {
+    if (!flowId) return;
+
+    try {
+      await updatePhaseMutation.mutateAsync({
+        flowId,
+        phaseName: 'decommission_planning',
+        params: {
+          phase_status: 'completed',
+          phase_data: { planning_approved: true },
+        },
+      });
+
+      toast({
+        title: 'Planning approved',
+        description: 'Moving to Data Migration phase',
+      });
+
+      navigate(`/decommission/data-migration?flow_id=${flowId}`);
+    } catch (error) {
+      toast({
+        title: 'Failed to approve planning',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRejectPlanning = async () => {
+    if (!flowId) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to reject this planning? The flow will be cancelled.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await cancelFlowMutation.mutateAsync(flowId);
+
+      toast({
+        title: 'Planning rejected',
+        description: 'Decommission flow has been cancelled',
+      });
+
+      navigate('/decommission');
+    } catch (error) {
+      toast({
+        title: 'Failed to reject planning',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Show loading state if auth is still initializing or engagement context is not yet available
+  // Per security requirement: we need engagement context before making API calls
+  // CRITICAL: Must wait for both isAuthLoading=false AND engagement?.id to be set
+  if (isAuthLoading || !engagement?.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">
+              {isAuthLoading ? 'Initializing authentication...' : 'Loading engagement context...'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading planning data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !flowStatus) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <div className="text-center">
+            <XCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <p className="text-gray-600">Failed to load flow data</p>
+            <button
+              onClick={() => navigate('/decommission')}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Back to Overview
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentPhase = flowStatus.current_phase;
+  const phaseProgress = flowStatus.phase_progress?.decommission_planning || 'pending';
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
+          <ContextBreadcrumbs />
           <div className="max-w-7xl mx-auto">
+            {/* Header */}
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Decommission Planning</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    Decommission Planning
+                  </h1>
                   <p className="text-lg text-gray-600">
-                    Plan and assess systems for safe decommissioning
+                    Review dependencies, risks, and costs before proceeding
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
-                    Coming Soon: CloudBridge automated dependency mapping
+                    Flow ID: {flowStatus.flow_id} | Phase:{' '}
+                    {getPhaseDisplayName(currentPhase)} | Status: {phaseProgress}
                   </p>
                 </div>
                 <div className="flex space-x-3">
-                  <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
-                    <Download className="h-5 w-5" />
-                    <span>Export Plan</span>
+                  <button
+                    onClick={handleRejectPlanning}
+                    disabled={cancelFlowMutation.isPending}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    Reject Planning
                   </button>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                    <FileText className="h-5 w-5" />
-                    <span>Create Assessment</span>
+                  <button
+                    onClick={handleApprovePlanning}
+                    disabled={updatePhaseMutation.isPending}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    Approve & Continue
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Planning Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {planningMetrics.map((metric, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{metric.label}</p>
-                      <p className={`text-2xl font-bold ${metric.color}`}>
-                        {metric.value}
-                      </p>
-                    </div>
-                  </div>
+            {/* Selected Systems Section */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <div className="mb-4">
+                <div className="flex items-center space-x-3 mb-2">
+                  <Server className="h-6 w-6 text-blue-600" />
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Selected Systems ({flowStatus.selected_systems?.length || 0})
+                  </h2>
                 </div>
-              ))}
-            </div>
-
-            {/* Planning Steps */}
-            <div className="bg-white rounded-lg shadow-md mb-8">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Planning Process</h3>
+                <p className="text-sm text-gray-600 ml-9">
+                  Systems can be decommissioned regardless of 6R strategy or migration status.
+                  Systems marked <span className="px-1 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800 border border-yellow-300">OVERRIDE</span> don't meet standard eligibility criteria.
+                </p>
               </div>
-              <div className="p-6">
-                <div className="space-y-6">
-                  {decommissionSteps.map((step) => (
-                    <div key={step.step} className="flex space-x-4">
-                      <div className="flex flex-col items-center">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          step.status === 'completed' ? 'bg-green-500 text-white' :
-                          step.status === 'in-progress' ? 'bg-blue-500 text-white' :
-                          'bg-gray-300 text-gray-600'
-                        }`}>
-                          {step.status === 'completed' ? (
-                            <CheckCircle className="h-5 w-5" />
-                          ) : step.status === 'in-progress' ? (
-                            <Clock className="h-5 w-5" />
-                          ) : (
-                            <span className="text-sm font-bold">{step.step}</span>
+
+              {isLoadingSystems ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                  <span className="ml-3 text-gray-600">Loading system details...</span>
+                </div>
+              ) : selectedSystemsDetails.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No systems found for this flow.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {selectedSystemsDetails.map((system) => (
+                    <div
+                      key={system.asset_id}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900 flex-1">
+                          {system.asset_name}
+                        </h3>
+                        <div className="flex gap-2">
+                          {!system.decommission_eligible && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">
+                              OVERRIDE
+                            </span>
+                          )}
+                          {system.six_r_strategy && system.six_r_strategy.toLowerCase().includes('retire') && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                              RETIRE
+                            </span>
                           )}
                         </div>
-                        {step.step < decommissionSteps.length && (
-                          <div className="w-px h-16 bg-gray-300 mt-2"></div>
-                        )}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h4>
-                        <p className="text-gray-600 mb-3">{step.description}</p>
-                        <ul className="space-y-1">
-                          {step.tasks.map((task, index) => (
-                            <li key={index} className="text-sm text-gray-500 flex items-center space-x-2">
-                              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                              <span>{task}</span>
-                            </li>
-                          ))}
-                        </ul>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">6R Strategy:</span>
+                          <span className="font-medium text-gray-900">
+                            {system.six_r_strategy || 'Not assessed'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Annual Cost:</span>
+                          <span className="font-medium text-green-600">
+                            ${system.annual_cost?.toLocaleString() || '0'}
+                          </span>
+                        </div>
+
+                        {system.retirement_reason && (
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <p className="text-xs text-gray-600 italic">
+                              {system.retirement_reason}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            {/* Risk Assessment Summary */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <div className="flex items-center space-x-3 mb-4">
+                <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Risk Assessment</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Overall Score</p>
+                  <p className="text-2xl font-bold text-gray-900">{riskAssessment.overall_score}/100</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Business Impact</p>
+                  <p className="text-lg font-semibold text-yellow-600 capitalize">
+                    {riskAssessment.business_impact}
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Technical Complexity</p>
+                  <p className="text-lg font-semibold text-red-600 capitalize">
+                    {riskAssessment.technical_complexity}
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Data Sensitivity</p>
+                  <p className="text-lg font-semibold text-yellow-600 capitalize">
+                    {riskAssessment.data_sensitivity}
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Rollback Feasibility</p>
+                  <p className="text-lg font-semibold text-green-600 capitalize">
+                    {riskAssessment.rollback_feasibility}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Systems Assessment Table */}
-            <div className="bg-white rounded-lg shadow-md">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">Systems Assessment</h3>
-                  <div className="flex space-x-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <input
-                        type="text"
-                        placeholder="Search systems..."
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <select
-                      value={selectedFilter}
-                      onChange={(e) => setSelectedFilter(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="assessment">Assessment Complete</option>
-                      <option value="review">Under Review</option>
-                      <option value="planning">Planning</option>
-                      <option value="approved">Approved</option>
-                    </select>
+            {/* Cost Estimation */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <div className="flex items-center space-x-3 mb-4">
+                <DollarSign className="h-6 w-6 text-green-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Cost Estimation</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Decommission Cost</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    ${costEstimation.decommission_cost.toLocaleString()}
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Annual Savings</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ${costEstimation.annual_savings.toLocaleString()}
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">ROI</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {costEstimation.roi_months.toFixed(1)}x
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Payback Period</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {costEstimation.payback_period}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Dependency Analysis */}
+              <div className="bg-white rounded-lg shadow-md">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <Network className="h-6 w-6 text-blue-600" />
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Dependency Analysis
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-4">
+                    {dependencies.map((dep) => (
+                      <div key={dep.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium text-gray-900">{dep.name}</h3>
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              dep.impact === 'high'
+                                ? 'bg-red-100 text-red-800'
+                                : dep.impact === 'medium'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {dep.impact.toUpperCase()} IMPACT
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{dep.type}</p>
+                        <div className="flex items-center space-x-2">
+                          {dep.mitigated ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <span className="text-sm text-green-600">Mitigated</span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                              <span className="text-sm text-yellow-600">
+                                Mitigation Required
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Level</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dependencies</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredSystems.map((system) => (
-                      <tr key={system.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{system.name}</div>
-                            <div className="text-sm text-gray-500">{system.id}</div>
+
+              {/* Compliance Validation */}
+              <div className="bg-white rounded-lg shadow-md">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <Shield className="h-6 w-6 text-purple-600" />
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Compliance Checklist
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-4">
+                    {complianceChecklist.map((item) => (
+                      <div key={item.id} className="border rounded-lg p-4">
+                        <div className="flex items-start space-x-3 mb-2">
+                          {item.status === 'compliant' ? (
+                            <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                          ) : item.status === 'non_compliant' ? (
+                            <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                          ) : (
+                            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          )}
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{item.requirement}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{item.notes}</p>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{system.type}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{system.department}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            system.riskLevel === 'Very High' ? 'bg-red-100 text-red-800' :
-                            system.riskLevel === 'High' ? 'bg-orange-100 text-orange-800' :
-                            system.riskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {system.riskLevel}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{system.dependencies}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            system.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                            system.status === 'Assessment Complete' ? 'bg-blue-100 text-blue-800' :
-                            system.status === 'Under Review' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {system.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                          {system.estimatedSavings}
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

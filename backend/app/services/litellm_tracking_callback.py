@@ -92,19 +92,41 @@ class LLMUsageCallback(CustomLogger):
                 "feature_context", "crewai"
             )
 
-            # Log asynchronously
-            asyncio.create_task(
-                self._log_usage(
-                    provider=provider,
-                    model=model,
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
-                    total_tokens=total_tokens,
-                    response_time_ms=response_time_ms,
-                    feature_context=feature_context,
-                    success=True,
+            # Log asynchronously - handle both sync and async contexts
+            # (CrewAI may call from either context)
+            try:
+                asyncio.get_running_loop()
+                # We're in an async context - create task
+                asyncio.create_task(
+                    self._log_usage(
+                        provider=provider,
+                        model=model,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        total_tokens=total_tokens,
+                        response_time_ms=response_time_ms,
+                        feature_context=feature_context,
+                        success=True,
+                    )
                 )
-            )
+            except RuntimeError:
+                # No running event loop - we're in sync context
+                # Use asyncio.run() to execute in new loop
+                try:
+                    asyncio.run(
+                        self._log_usage(
+                            provider=provider,
+                            model=model,
+                            input_tokens=input_tokens,
+                            output_tokens=output_tokens,
+                            total_tokens=total_tokens,
+                            response_time_ms=response_time_ms,
+                            feature_context=feature_context,
+                            success=True,
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to log usage in sync context: {e}")
 
             logger.debug(
                 f"LiteLLM success: {provider}/{model}, "
@@ -131,21 +153,42 @@ class LLMUsageCallback(CustomLogger):
                 "feature_context", "crewai"
             )
 
-            # Log asynchronously
-            asyncio.create_task(
-                self._log_usage(
-                    provider=provider,
-                    model=model,
-                    input_tokens=0,
-                    output_tokens=0,
-                    total_tokens=0,
-                    response_time_ms=response_time_ms,
-                    feature_context=feature_context,
-                    success=False,
-                    error_type=error_type,
-                    error_message=error_message,
+            # Log asynchronously - handle both sync and async contexts
+            try:
+                asyncio.get_running_loop()
+                asyncio.create_task(
+                    self._log_usage(
+                        provider=provider,
+                        model=model,
+                        input_tokens=0,
+                        output_tokens=0,
+                        total_tokens=0,
+                        response_time_ms=response_time_ms,
+                        feature_context=feature_context,
+                        success=False,
+                        error_type=error_type,
+                        error_message=error_message,
+                    )
                 )
-            )
+            except RuntimeError:
+                # No running event loop - use asyncio.run()
+                try:
+                    asyncio.run(
+                        self._log_usage(
+                            provider=provider,
+                            model=model,
+                            input_tokens=0,
+                            output_tokens=0,
+                            total_tokens=0,
+                            response_time_ms=response_time_ms,
+                            feature_context=feature_context,
+                            success=False,
+                            error_type=error_type,
+                            error_message=error_message,
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to log failure in sync context: {e}")
 
             logger.warning(
                 f"LiteLLM failure: {provider}/{model}, "

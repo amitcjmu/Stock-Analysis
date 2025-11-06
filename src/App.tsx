@@ -96,6 +96,11 @@ import {
   LazyDataRetention,
   LazyDecommissionExecution,
   LazyDecommissionValidation,
+  LazyDecommissionFlowOverview,
+  LazyDecommissionFlowPlanning,
+  LazyDecommissionDataMigration,
+  LazyDecommissionShutdown,
+  LazyDecommissionExport,
   LazyCloudComparison,
   LazySavingsAnalysis,
   LazyCostAnalysis,
@@ -460,26 +465,46 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/modernize/rewrite" element={<LazyRewrite />} />
       <Route path="/modernize/progress" element={<LazyProgress />} />
 
-      <Route path="/decommission" element={<LazyDecommission />} />
+      {/* Decom routes - renamed from Decommission per Issue #930 */}
+      <Route path="/decom" element={<LazyDecommission />} />
       <Route
-        path="/decommission/overview"
+        path="/decom/overview"
         element={<LazyDecommissionIndex />}
       />
       <Route
-        path="/decommission/planning"
+        path="/decom/planning"
         element={<LazyDecommissionPlanning />}
       />
       <Route
-        path="/decommission/data-retention"
+        path="/decom/data-retention"
         element={<LazyDataRetention />}
       />
       <Route
-        path="/decommission/execution"
+        path="/decom/execution"
         element={<LazyDecommissionExecution />}
       />
       <Route
-        path="/decommission/validation"
+        path="/decom/validation"
         element={<LazyDecommissionValidation />}
+      />
+
+      {/* Decommission Flow routes (Issue #942-946 - v2.5.0) */}
+      <Route path="/decommission" element={<LazyDecommissionFlowOverview />} />
+      <Route
+        path="/decommission/planning"
+        element={<LazyDecommissionFlowPlanning />}
+      />
+      <Route
+        path="/decommission/data-migration"
+        element={<LazyDecommissionDataMigration />}
+      />
+      <Route
+        path="/decommission/shutdown"
+        element={<LazyDecommissionShutdown />}
+      />
+      <Route
+        path="/decommission/export"
+        element={<LazyDecommissionExport />}
       />
 
       <Route path="/finops" element={<LazyFinOps />} />

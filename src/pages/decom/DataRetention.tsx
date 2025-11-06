@@ -3,7 +3,7 @@ import Sidebar from '../../components/Sidebar';
 import { Database, Shield, Calendar, AlertTriangle, FileText, HardDrive } from 'lucide-react'
 import { Archive, Download, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
-import { useDataRetention, useCreateArchiveJob, useUpdateRetentionPolicy } from '@/hooks/decommission/useDataRetention';
+import { useDataRetention, useCreateArchiveJob, useUpdateRetentionPolicy } from '@/hooks/decom/useDataRetention';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
