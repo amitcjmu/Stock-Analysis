@@ -210,17 +210,52 @@ async def create_new_asset(
             description=asset_data.get("description", "Discovered by agent"),
             hostname=asset_data.get("hostname"),
             ip_address=asset_data.get("ip_address"),
+            fqdn=asset_data.get("fqdn"),
+            mac_address=asset_data.get("mac_address"),
             environment=asset_data.get("environment", "Unknown"),
+            location=asset_data.get("location"),
+            datacenter=asset_data.get("datacenter"),
+            rack_location=asset_data.get("rack_location"),
+            availability_zone=asset_data.get("availability_zone"),
             operating_system=asset_data.get("operating_system"),
+            os_version=asset_data.get("os_version"),
             **numeric_fields,
-            business_owner=asset_data.get("business_unit")
-            or asset_data.get("owner")
-            or asset_data.get("business_owner"),
-            technical_owner=asset_data.get("technical_owner")
-            or asset_data.get("owner"),
+            business_owner=asset_data.get("business_owner"),
+            technical_owner=asset_data.get("technical_owner"),
             department=asset_data.get("department"),
+            application_name=asset_data.get("application_name"),
+            technology_stack=asset_data.get("technology_stack"),
             criticality=asset_data.get("criticality", "Medium"),
             business_criticality=asset_data.get("business_criticality", "Medium"),
+            migration_complexity=asset_data.get("migration_complexity"),
+            # CMDB Fields (PR #884)
+            business_unit=asset_data.get("business_unit"),
+            vendor=asset_data.get("vendor"),
+            application_type=asset_data.get("application_type"),
+            lifecycle=asset_data.get("lifecycle"),
+            hosting_model=asset_data.get("hosting_model"),
+            server_role=asset_data.get("server_role"),
+            asset_tags=asset_data.get("asset_tags"),  # JSONB array format
+            security_zone=asset_data.get("security_zone"),
+            database_type=asset_data.get("database_type"),
+            database_version=asset_data.get("database_version"),
+            database_size_gb=asset_data.get("database_size_gb"),
+            pii_flag=asset_data.get("pii_flag"),
+            application_data_classification=asset_data.get(
+                "application_data_classification"
+            ),
+            cpu_utilization_percent_max=asset_data.get("cpu_utilization_percent_max"),
+            memory_utilization_percent_max=asset_data.get(
+                "memory_utilization_percent_max"
+            ),
+            storage_free_gb=asset_data.get("storage_free_gb"),
+            has_saas_replacement=asset_data.get("has_saas_replacement"),
+            risk_level=asset_data.get("risk_level"),
+            tshirt_size=asset_data.get("tshirt_size"),
+            proposed_treatmentplan_rationale=asset_data.get(
+                "proposed_treatmentplan_rationale"
+            ),
+            annual_cost_estimate=asset_data.get("annual_cost_estimate"),
             status=AssetStatus.DISCOVERED,
             migration_status=AssetStatus.DISCOVERED,
             created_at=datetime.utcnow(),
@@ -230,8 +265,25 @@ async def create_new_asset(
             discovery_method="service_api",
             discovery_source=asset_data.get("discovery_source", "Service API"),
             discovery_timestamp=datetime.utcnow(),
+            imported_by=asset_data.get("imported_by"),
+            imported_at=asset_data.get("imported_at"),
+            source_filename=asset_data.get("source_filename"),
             raw_data=asset_data,
         )
+
+        # Create child table records if data exists (PR #884)
+        # Build RequestContext from service_instance for tenant extraction
+        if service_instance._request_context:
+            from app.services.asset_service.child_table_helpers import (
+                create_child_records_if_needed,
+            )
+
+            await create_child_records_if_needed(
+                service_instance.db,
+                created_asset,
+                asset_data,
+                service_instance._request_context,
+            )
 
         return created_asset
 

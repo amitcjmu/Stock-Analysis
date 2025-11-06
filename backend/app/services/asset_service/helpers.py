@@ -56,25 +56,19 @@ def convert_numeric_fields(asset_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convert numeric string fields to proper numeric types.
 
+    Uses the comprehensive NUMERIC_FIELD_CONVERTERS mapping which includes
+    safe NaN/Infinity checks per memory [[memory:10700746]].
+
     Returns a dictionary of converted numeric fields ready for asset creation.
     """
-    numeric_conversions = {
-        "vcpu_cores": int,
-        "memory_gb": float,
-        "storage_gb": float,
-        "network_bandwidth_mbps": float,
-        "iops": int,
-    }
-
     converted = {}
-    for field, converter in numeric_conversions.items():
-        if field in asset_data and asset_data[field]:
-            try:
-                converted[field] = converter(asset_data[field])
-            except (ValueError, TypeError):
-                logger.warning(
-                    f"⚠️ Could not convert {field}={asset_data[field]} to {converter.__name__}"
-                )
+
+    # Use comprehensive NUMERIC_FIELD_CONVERTERS for all numeric fields
+    for field_name, converter_func in NUMERIC_FIELD_CONVERTERS.items():
+        if field_name in asset_data and asset_data[field_name] is not None:
+            converted_value = converter_func(asset_data[field_name])
+            if converted_value is not None:
+                converted[field_name] = converted_value
 
     return converted
 
@@ -188,19 +182,31 @@ NUMERIC_FIELD_CONVERTERS = {
     "cpu_cores": safe_int_convert,
     "migration_priority": safe_int_convert,
     "migration_wave": safe_int_convert,
-    # FLOAT fields
+    # FLOAT fields - System metrics
     "memory_gb": safe_float_convert,
     "storage_gb": safe_float_convert,
+    "storage_free_gb": safe_float_convert,
+    "storage_used_gb": safe_float_convert,
+    # FLOAT fields - Performance metrics
     "cpu_utilization_percent": safe_float_convert,
     "memory_utilization_percent": safe_float_convert,
+    "cpu_utilization_percent_max": safe_float_convert,
+    "memory_utilization_percent_max": safe_float_convert,
+    # FLOAT fields - Network and I/O
     "disk_iops": safe_float_convert,
     "network_throughput_mbps": safe_float_convert,
+    # FLOAT fields - Database
+    "database_size_gb": safe_float_convert,
+    # FLOAT fields - Assessment and quality scores
     "completeness_score": safe_float_convert,
     "quality_score": safe_float_convert,
     "confidence_score": safe_float_convert,
+    "complexity_score": safe_float_convert,
+    "assessment_readiness_score": safe_float_convert,
+    # FLOAT fields - Cost estimates
     "current_monthly_cost": safe_float_convert,
     "estimated_cloud_cost": safe_float_convert,
-    "assessment_readiness_score": safe_float_convert,
+    "annual_cost_estimate": safe_float_convert,
 }
 
 
