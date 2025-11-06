@@ -4,14 +4,21 @@ Core analysis logic for performing data cleansing analysis.
 """
 
 import logging
+import re
 import uuid
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.data_cleansing import (
+    DataCleansingRecommendation as DBRecommendation,
+)
 from app.models.data_import.core import RawImportRecord
+from app.models.discovery_flow import DiscoveryFlow
 
 from .base import DataCleansingAnalysis, DataQualityIssue, DataCleansingRecommendation
 
@@ -38,9 +45,6 @@ def _analyze_raw_data_quality(
 
     Returns a dict mapping field names to their quality statistics.
     """
-    import re
-    from collections import defaultdict
-
     field_stats = defaultdict(
         lambda: {
             "missing_count": 0,
@@ -216,10 +220,6 @@ async def _apply_stored_resolutions(
     and updates the quality issues with their resolution status.
     """
     try:
-        # Get the flow to check for stored resolutions
-        from app.models.discovery_flow import DiscoveryFlow
-        from sqlalchemy import select
-
         # Get the flow directly from the database using the provided session
         # First, expire any cached instances to force a fresh read from the database
         db_session.expire_all()
@@ -285,7 +285,7 @@ async def _apply_stored_resolutions(
         return updated_issues
 
     except Exception as e:
-        logger.error(f"Failed to apply stored resolutions: {e}")
+        logger.exception("Failed to apply stored resolutions")
         # Return original issues if resolution application fails
         return quality_issues
 
@@ -300,12 +300,6 @@ async def _load_recommendations_from_database(
     Returns empty list if table doesn't exist or if there's an error.
     """
     try:
-        from app.models.data_cleansing import (
-            DataCleansingRecommendation as DBRecommendation,
-        )
-        from sqlalchemy import select
-        from uuid import UUID
-
         # Query database for recommendations
         # If table doesn't exist, this will raise an exception which we'll catch
         flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
@@ -316,11 +310,11 @@ async def _load_recommendations_from_database(
         # Convert database models to Pydantic models
         recommendations = []
         for db_rec in db_recommendations:
-               # Ensure fields_affected is always a list
+            # Ensure fields_affected is always a list
             fields_affected = db_rec.fields_affected
             if not isinstance(fields_affected, list):
                 fields_affected = [] if fields_affected is None else [fields_affected]
-            
+
             recommendations.append(
                 DataCleansingRecommendation(
                     id=str(db_rec.id),
@@ -341,12 +335,7 @@ async def _load_recommendations_from_database(
         return recommendations
 
     except Exception as e:
-        logger.warning(
-            f"Failed to load recommendations from database (table may not exist): {e}"
-        )
-        import traceback
-
-        logger.debug(f"Traceback: {traceback.format_exc()}")
+        logger.exception("Failed to load recommendations from database (table may not exist)")
         return []
 
 
@@ -363,12 +352,6 @@ async def _store_recommendations_to_database(
     Creates or updates database records for recommendations.
     """
     try:
-        from app.models.data_cleansing import (
-            DataCleansingRecommendation as DBRecommendation,
-        )
-        from sqlalchemy import select
-        from uuid import UUID
-
         # Get existing recommendations for this flow
         flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
         query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
@@ -414,9 +397,9 @@ async def _store_recommendations_to_database(
         )
 
     except Exception as e:
-        logger.error(f"Failed to store recommendations to database: {e}")
+        logger.exception("Failed to store recommendations to database")
         await db_session.rollback()
-        raise
+        raise RuntimeError("Failed to store recommendations to database") from e
 
 
 async def _perform_data_cleansing_analysis(  # noqa: C901
@@ -466,9 +449,7 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                     f"No database session provided, using total_records field: {total_records}"
                 )
         except Exception as e:
-            logger.warning(
-                f"Failed to get actual record count: {e}, using total_records field"
-            )
+            logger.exception("Failed to get actual record count, using total_records field")
             total_records = data_import.total_records if data_import else 0
 
     total_fields = len(field_mappings)
@@ -520,16 +501,13 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
             else:
                 logger.warning(f"No raw records found for data import {data_import.id}")
         except Exception as e:
-            logger.error(f"Failed to analyze raw data for quality issues: {e}")
+            logger.exception("Failed to analyze raw data for quality issues")
             # Continue with empty quality issues if analysis fails
 
         # Load existing recommendations from database or create new ones
         try:
-            from app.models.discovery_flow import DiscoveryFlow
-            from uuid import UUID as UUIDType
-
             # Convert flow_id to UUID if it's a string
-            flow_uuid = UUIDType(flow_id) if isinstance(flow_id, str) else flow_id
+            flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
             flow_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
             flow_result = await db_session.execute(flow_query)
             flow = flow_result.scalar_one_or_none()
@@ -590,16 +568,16 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                                 str(flow.engagement_id),
                             )
                         except Exception as store_error:
-                            logger.warning(
-                                f"Failed to store recommendations to database "
-                                f"(table may not exist yet): {store_error}. "
-                                f"Recommendations will still be returned but not persisted."
+                            logger.exception(
+                                "Failed to store recommendations to database "
+                                "(table may not exist yet). "
+                                "Recommendations will still be returned but not persisted."
                             )
                             # Continue without storing - recommendations are still in memory
                 except Exception as load_error:
-                    logger.warning(
-                        f"Failed to load recommendations from database (table may not exist yet): {load_error}. "
-                        f"Creating new sample recommendations instead."
+                    logger.exception(
+                        "Failed to load recommendations from database (table may not exist yet). "
+                        "Creating new sample recommendations instead."
                     )
                     # Create sample recommendations as fallback
                     new_recommendations = [
@@ -663,9 +641,7 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                 recommendations.extend(new_recommendations)
         except Exception as e:
             # Fallback: create sample recommendations if anything goes wrong
-            logger.error(
-                f"Error loading/creating recommendations: {e}. Creating fallback recommendations."
-            )
+            logger.exception("Error loading/creating recommendations. Creating fallback recommendations.")
             fallback_recommendations = [
                 DataCleansingRecommendation(
                     id=str(uuid.uuid4()),

@@ -4,16 +4,23 @@ Core data cleansing operations including analysis, stats, and triggering.
 """
 
 import logging
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.client_account import User
-from app.models.data_import.core import DataImport
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.data_cleansing import (
+    DataCleansingRecommendation as DBRecommendation,
+)
+from app.models.data_import.core import DataImport, RawImportRecord
 from app.models.data_import.mapping import ImportFieldMapping
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
@@ -76,11 +83,11 @@ async def get_data_cleansing_analysis(
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"❌ Failed to retrieve flow {flow_id}: {str(e)}")
+            logger.exception("Failed to retrieve flow")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to access flow: {str(e)}",
-            )
+            ) from e
 
         # Log current flow status for debugging
         logger.info(
@@ -91,8 +98,6 @@ async def get_data_cleansing_analysis(
         # This endpoint should never modify flow status or trigger execution
 
         # Get data import for this flow using the same logic as import storage handler
-        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-
         # First try to get data import via discovery flow's data_import_id
         data_import = None
         if flow.data_import_id:
@@ -185,13 +190,11 @@ async def get_data_cleansing_analysis(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"❌ Failed to get data cleansing analysis for flow {flow_id}: {str(e)}"
-        )
+        logger.exception("Failed to get data cleansing analysis")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get data cleansing analysis: {str(e)}",
-        )
+        ) from e
 
 
 @router.get(
@@ -238,9 +241,6 @@ async def get_data_cleansing_stats(
         data_import = data_imports[0]
 
         # Get actual count of raw import records from the database
-        from sqlalchemy import func
-        from app.models.data_import.core import RawImportRecord
-
         total_records = 0
         try:
             count_query = select(func.count(RawImportRecord.id)).where(
@@ -259,9 +259,7 @@ async def get_data_cleansing_stats(
                 f"total_records field={data_import.total_records}, using={total_records}"
             )
         except Exception as e:
-            logger.warning(
-                f"Failed to get actual record count: {e}, using total_records field"
-            )
+            logger.exception("Failed to get actual record count, using total_records field")
             total_records = (
                 data_import.total_records if data_import.total_records else 0
             )
@@ -287,13 +285,11 @@ async def get_data_cleansing_stats(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"❌ Failed to get data cleansing stats for flow {flow_id}: {str(e)}"
-        )
+        logger.exception("Failed to get data cleansing stats")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get data cleansing stats: {str(e)}",
-        )
+        ) from e
 
 
 @router.patch(
@@ -317,8 +313,6 @@ async def resolve_quality_issue(
     with audit trail information (user_id, timestamp, resolution status).
     """
     try:
-        from datetime import datetime
-
         logger.info(
             f"Resolving quality issue {issue_id} for flow {flow_id} with status: {resolution.status}"
         )
@@ -372,8 +366,6 @@ async def resolve_quality_issue(
         flow.crewai_state_data = existing_data
 
         # Ensure SQLAlchemy detects the JSONB field change
-        from sqlalchemy.orm.attributes import flag_modified
-
         flag_modified(flow, "crewai_state_data")
 
         # Ensure the flow object is properly tracked by the session
@@ -402,19 +394,13 @@ async def resolve_quality_issue(
         )
 
     except HTTPException as he:
-        logger.error(f"❌ HTTP Exception in resolve endpoint: {he.detail}")
         raise he
     except Exception as e:
-        logger.error(
-            f"❌ Failed to resolve quality issue {issue_id} for flow {flow_id}: {str(e)}"
-        )
-        import traceback
-
-        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
+        logger.exception("Failed to resolve quality issue")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to resolve quality issue: {str(e)}",
-        )
+        ) from e
 
 
 @router.patch(
@@ -438,8 +424,6 @@ async def apply_recommendation(
     with audit trail information (user_id, timestamp, action status).
     """
     try:
-        from datetime import datetime, timezone
-
         logger.info(
             f"Processing recommendation {recommendation_id} for flow {flow_id} with action: {request.action}"
         )
@@ -472,12 +456,6 @@ async def apply_recommendation(
         # Legacy flows use deterministic UUID5-based IDs that may not exist in the new table
         db_rec = None
         try:
-            from app.models.data_cleansing import (
-                DataCleansingRecommendation as DBRecommendation,
-            )
-            from sqlalchemy import select
-            import uuid
-
             # Try to convert recommendation_id to UUID (non-blocking for backward compatibility)
             recommendation_uuid = None
             try:
@@ -535,16 +513,16 @@ async def apply_recommendation(
                         db_rec = None  # Ensure we fall through to JSONB storage
                     else:
                         # Re-raise if it's a different error
-                        logger.error(f"Database error during recommendation lookup: {db_error}")
-                        raise
+                        logger.exception("Database error during recommendation lookup")
+                        raise RuntimeError("Database error during recommendation lookup") from db_error
 
         except HTTPException:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
             # If database operation fails for other reasons, log and fall back to JSONB
-            logger.warning(
-                f"Failed to update recommendation in database: {e}. "
+            logger.exception(
+                f"Failed to update recommendation in database. "
                 f"Falling back to JSONB storage for recommendation {recommendation_id}"
             )
             db_rec = None  # Ensure we fall through to JSONB storage
@@ -582,8 +560,6 @@ async def apply_recommendation(
             flow.crewai_state_data = existing_data
 
             # Ensure SQLAlchemy detects the JSONB field change
-            from sqlalchemy.orm.attributes import flag_modified
-
             flag_modified(flow, "crewai_state_data")
             db.add(flow)
 
@@ -610,16 +586,10 @@ async def apply_recommendation(
         )
 
     except HTTPException as he:
-        logger.error(f"❌ HTTP Exception in apply recommendation endpoint: {he.detail}")
         raise he
     except Exception as e:
-        logger.error(
-            f"❌ Failed to {request.action} recommendation {recommendation_id} for flow {flow_id}: {str(e)}"
-        )
-        import traceback
-
-        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
+        logger.exception("Failed to process recommendation")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to {request.action} recommendation: {str(e)}",
-        )
+        ) from e
