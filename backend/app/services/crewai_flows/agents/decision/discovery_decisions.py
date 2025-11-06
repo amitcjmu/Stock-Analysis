@@ -353,17 +353,28 @@ class DiscoveryDecisionLogic:
         """
         from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
-        asset_inventory_results = analysis.get("asset_inventory_results", {})
-        assets_created_count = asset_inventory_results.get("assets_created", 0)
+        asset_inventory_results = analysis.get("asset_inventory_results")
+        assets_created_count = 0
+        reasoning_message = "Asset inventory phase completed."
 
-        # Calculate completion confidence based on asset creation success
+        # Build confidence factors based on available data
+        confidence_factors = {
+            "phase_completed_successfully": 1.0,
+            "discovery_objectives_met": 1.0,
+            "terminal_phase_reached": 1.0,  # This is the final phase
+        }
+
+        # If asset inventory results are available, factor them into confidence
+        if asset_inventory_results is not None:
+            assets_created_count = asset_inventory_results.get("assets_created", 0)
+            confidence_factors["assets_in_inventory"] = (
+                1.0 if assets_created_count > 0 else 0.5
+            )
+            reasoning_message = f"Asset inventory phase completed. Created {assets_created_count} assets."
+
+        # Calculate completion confidence based on available data
         completion_confidence = ConfidenceCalculator.weighted_average(
-            {
-                "phase_completed_successfully": 1.0,
-                "assets_in_inventory": 1.0 if assets_created_count > 0 else 0.5,
-                "discovery_objectives_met": 1.0,
-                "terminal_phase_reached": 1.0,  # This is the final phase
-            }
+            confidence_factors
         )
 
         # Get next phase from registry (will be None or "completed" for terminal phase)
@@ -382,7 +393,7 @@ class DiscoveryDecisionLogic:
             next_phase=next_phase,  # Empty string = no next phase to execute
             confidence=completion_confidence,
             reasoning=(
-                f"Asset inventory phase completed. Created {assets_created_count} assets. "
+                f"{reasoning_message} "
                 "Discovery v3.0.0 flow is now complete (per ADR-027: asset_inventory is the terminal phase). "
                 "Dependency analysis and tech debt assessment have moved to Assessment flow."
             ),
