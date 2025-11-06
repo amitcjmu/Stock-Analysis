@@ -301,11 +301,18 @@ if [ "$NO_CACHE" = true ]; then
     echo -e "${BLUE}🔍 Verifying environment configuration...${NC}"
 
     # Check if we need sudo for docker commands
-    if groups | grep -q docker; then
-        DEEPINFRA_CHECK=$(docker exec migration_backend env 2>/dev/null | grep "^DEEPINFRA_API_KEY=" || echo "NOT_FOUND")
-    else
-        # Script was run with sudo, use sudo for docker exec too
+    # Use SUDO_USER to detect if script was invoked with sudo, or check if running as root
+    if [ -n "$SUDO_USER" ] || [ "$(id -u)" -eq 0 ]; then
+        # Script was run with sudo or as root, use sudo for docker exec
         DEEPINFRA_CHECK=$(sudo docker exec migration_backend env 2>/dev/null | grep "^DEEPINFRA_API_KEY=" || echo "NOT_FOUND")
+    else
+        # Check if user has docker group access or socket write permission
+        if groups | grep -q docker || [ -w /var/run/docker.sock ]; then
+            DEEPINFRA_CHECK=$(docker exec migration_backend env 2>/dev/null | grep "^DEEPINFRA_API_KEY=" || echo "NOT_FOUND")
+        else
+            # Fallback to sudo if user lacks docker permissions
+            DEEPINFRA_CHECK=$(sudo docker exec migration_backend env 2>/dev/null | grep "^DEEPINFRA_API_KEY=" || echo "NOT_FOUND")
+        fi
     fi
 
     if [ "$DEEPINFRA_CHECK" != "NOT_FOUND" ] && [ ! -z "$DEEPINFRA_CHECK" ]; then
