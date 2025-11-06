@@ -49,22 +49,22 @@ for arg in "$@"; do
     esac
 done
 
-# Build compose file list
-COMPOSE_FILES="-f config/docker/docker-compose.yml"
+# Build compose file list and command args
+COMPOSE_ARGS=(-f config/docker/docker-compose.yml)
 if [ "$INCLUDE_OBSERVABILITY" = true ]; then
-    COMPOSE_FILES="$COMPOSE_FILES -f config/docker/docker-compose.observability.yml"
+    COMPOSE_ARGS+=(-f config/docker/docker-compose.observability.yml)
     echo -e "${YELLOW}📊 Including observability stack in shutdown${NC}"
 fi
 
 # Stop the services
 echo "📦 Stopping services..."
-DOCKER_COMMAND="docker-compose $COMPOSE_FILES down"
+STOP_ARGS=(down)
 
 if [ "$INCLUDE_OBSERVABILITY" = true ]; then
-    DOCKER_COMMAND="$DOCKER_COMMAND --remove-orphans"
+    STOP_ARGS+=(--remove-orphans)
 fi
 
-if eval $DOCKER_COMMAND; then
+if docker-compose "${COMPOSE_ARGS[@]}" "${STOP_ARGS[@]}"; then
     echo -e "${GREEN}✅ Services stopped${NC}"
 else
     echo -e "${YELLOW}⚠️  Services may not be running${NC}"
@@ -74,7 +74,7 @@ fi
 if [ "$CLEAN_VOLUMES" = true ]; then
     echo ""
     echo -e "${YELLOW}🗑️  Removing volumes (database data will be lost)...${NC}"
-    docker-compose $COMPOSE_FILES down -v
+    docker-compose "${COMPOSE_ARGS[@]}" down -v
     echo -e "${GREEN}✅ Volumes removed${NC}"
 fi
 
@@ -82,7 +82,7 @@ fi
 if [ "$CLEAN_ALL" = true ]; then
     echo ""
     echo -e "${YELLOW}🗑️  Removing all containers, volumes, and images...${NC}"
-    docker-compose $COMPOSE_FILES down -v --rmi all --remove-orphans
+    docker-compose "${COMPOSE_ARGS[@]}" down -v --rmi all --remove-orphans
     echo -e "${GREEN}✅ All resources cleaned${NC}"
 fi
 

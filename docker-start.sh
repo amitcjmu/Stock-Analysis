@@ -186,14 +186,14 @@ fi
 
 echo ""
 
-# Build compose file list
-COMPOSE_FILES="-f config/docker/docker-compose.yml"
+# Build compose file list as array
+COMPOSE_ARGS=(-f config/docker/docker-compose.yml)
 if [ "$INCLUDE_OBSERVABILITY" = true ]; then
     if [ ! -f "config/docker/docker-compose.observability.yml" ]; then
         echo -e "${RED}❌ Observability compose file not found${NC}"
         exit 1
     fi
-    COMPOSE_FILES="$COMPOSE_FILES -f config/docker/docker-compose.observability.yml"
+    COMPOSE_ARGS+=(-f config/docker/docker-compose.observability.yml)
     echo -e "${BLUE}📊 Including observability stack (Grafana, Loki, Prometheus, Tempo)${NC}"
     echo ""
 fi
@@ -203,13 +203,13 @@ if [ "$FORCE_REBUILD" = true ]; then
     echo "🔨 Rebuilding containers..."
     echo ""
 
-    BUILD_ARGS=""
+    BUILD_ARGS=(build)
     if [ "$NO_CACHE" = true ]; then
         echo -e "${YELLOW}⚡ Building without cache (this will take longer but ensures clean build)${NC}"
-        BUILD_ARGS="--no-cache"
+        BUILD_ARGS+=(--no-cache)
     fi
 
-    if docker-compose $COMPOSE_FILES build $BUILD_ARGS; then
+    if docker-compose "${COMPOSE_ARGS[@]}" "${BUILD_ARGS[@]}"; then
         echo ""
         echo -e "${GREEN}✅ Containers rebuilt successfully${NC}"
     else
@@ -224,22 +224,22 @@ echo "📦 Starting services..."
 echo ""
 
 # Start the services
-START_ARGS="-d"
+START_ARGS=(up -d)
 if [ "$FORCE_REBUILD" = true ]; then
-    START_ARGS="$START_ARGS --force-recreate"
+    START_ARGS+=(--force-recreate)
 fi
 
 if [ "$INCLUDE_OBSERVABILITY" = false ]; then
-    START_ARGS="$START_ARGS --remove-orphans"
+    START_ARGS+=(--remove-orphans)
 fi
 
-if docker-compose $COMPOSE_FILES up $START_ARGS "$@"; then
+if docker-compose "${COMPOSE_ARGS[@]}" "${START_ARGS[@]}"; then
     echo ""
     echo -e "${GREEN}✅ Services started successfully!${NC}"
 else
     echo ""
     echo -e "${RED}❌ Failed to start services. Checking logs...${NC}"
-    docker-compose $COMPOSE_FILES logs --tail=50
+    docker-compose "${COMPOSE_ARGS[@]}" logs --tail=50
     exit 1
 fi
 
@@ -248,13 +248,13 @@ sleep 3
 
 echo ""
 echo "📊 Service Status:"
-docker-compose $COMPOSE_FILES ps
+docker-compose "${COMPOSE_ARGS[@]}" ps
 
 # Check if all services are running
-if docker-compose $COMPOSE_FILES ps | grep -q "Exit\|exited"; then
+if docker-compose "${COMPOSE_ARGS[@]}" ps | grep -q "Exit\|exited"; then
     echo ""
     echo -e "${RED}❌ Some services failed to start. Checking logs...${NC}"
-    docker-compose $COMPOSE_FILES logs --tail=50
+    docker-compose "${COMPOSE_ARGS[@]}" logs --tail=50
     echo ""
     echo -e "${YELLOW}💡 Troubleshooting tips:${NC}"
     echo "  1. Check if ports 8000, 8081, 5433, 6379 are already in use"
@@ -267,12 +267,15 @@ echo ""
 echo -e "${GREEN}🎉 All services are running!${NC}"
 echo ""
 echo "📋 Available commands:"
-echo "  • View logs:   docker-compose $COMPOSE_FILES logs -f [service]"
-echo "  • Stop:        ./docker-stop.sh"
 if [ "$INCLUDE_OBSERVABILITY" = true ]; then
+    echo "  • View logs:   docker-compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.observability.yml logs -f [service]"
     echo "  • Stop (all):  ./docker-stop.sh --with-observability"
+    echo "  • Status:      docker-compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.observability.yml ps"
+else
+    echo "  • View logs:   docker-compose -f config/docker/docker-compose.yml logs -f [service]"
+    echo "  • Stop:        ./docker-stop.sh"
+    echo "  • Status:      docker-compose -f config/docker/docker-compose.yml ps"
 fi
-echo "  • Status:      docker-compose $COMPOSE_FILES ps"
 echo ""
 echo "🌐 Access your application:"
 echo "  • Frontend:    http://localhost:8081"
