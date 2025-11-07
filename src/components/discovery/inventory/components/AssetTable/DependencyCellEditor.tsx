@@ -33,18 +33,35 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
     console.log('[DependencyCellEditor] handleClose called, cancel:', cancel);
     console.log('[DependencyCellEditor] selectedAssets:', selectedAssets);
     console.log('[DependencyCellEditor] props.api exists:', !!props.api);
+    console.log('[DependencyCellEditor] props.node exists:', !!props.node);
 
     if (cancel) {
       setIsCancelled(true);
+      // Stop editing without saving
+      if (props.api) {
+        props.api.stopEditing(true); // Pass true to cancel
+      }
+      return;
     }
-    // Use AG Grid API to stop editing - this will trigger getValue()
+
+    // CC FIX: For popup editors, manually set the cell value before stopping editing
+    // This ensures AG Grid detects the value change and triggers onCellEditingStopped
+    if (props.node && props.colDef.field) {
+      const newValue = selectedAssets.length > 0 ? selectedAssets.join(',') : null;
+      console.log('[DependencyCellEditor] Setting cell value directly:', newValue);
+
+      // Set the value on the node's data
+      props.node.setDataValue(props.colDef.field, newValue);
+    }
+
+    // Now stop editing
     if (props.api) {
       console.log('[DependencyCellEditor] Calling props.api.stopEditing()');
       props.api.stopEditing();
     } else {
       console.error('[DependencyCellEditor] props.api is undefined!');
     }
-  }, [props.api, selectedAssets]);
+  }, [props.api, props.node, props.colDef.field, selectedAssets]);
 
   // Parse initial value (comma-separated asset IDs - can be numbers or UUIDs)
   useEffect(() => {
