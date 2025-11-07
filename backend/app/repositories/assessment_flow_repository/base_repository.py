@@ -61,8 +61,8 @@ class AssessmentFlowRepository(ContextAwareRepository):
     def __init__(
         self,
         db: AsyncSession,
-        client_account_id: int,
-        engagement_id: Optional[int] = None,
+        client_account_id: str,
+        engagement_id: Optional[str] = None,
         user_id: Optional[str] = None,
     ):
         # Pass the AssessmentFlow model class to the parent constructor
