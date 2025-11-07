@@ -102,26 +102,13 @@ def upgrade() -> None:
                 ON migration.adaptive_questionnaires(engagement_id, asset_id)
                 WHERE asset_id IS NOT NULL;
 
-                RAISE NOTICE 'Added unique constraint on (engagement_id, asset_id)';
+                RAISE NOTICE 'Added unique constraint and index on (engagement_id, asset_id)';
             ELSE
-                RAISE NOTICE 'Unique constraint already exists, skipping';
+                RAISE NOTICE 'Unique constraint and index on (engagement_id, asset_id) already exists, skipping';
             END IF;
 
-            -- 4. Add composite index for efficient lookups
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_indexes
-                WHERE schemaname = 'migration'
-                AND tablename = 'adaptive_questionnaires'
-                AND indexname = 'idx_adaptive_questionnaires_engagement_asset'
-            ) THEN
-                CREATE INDEX idx_adaptive_questionnaires_engagement_asset
-                ON migration.adaptive_questionnaires(engagement_id, asset_id)
-                WHERE asset_id IS NOT NULL;
-
-                RAISE NOTICE 'Added composite index on (engagement_id, asset_id)';
-            ELSE
-                RAISE NOTICE 'Composite index already exists, skipping';
-            END IF;
+            -- Note: Unique index above also serves for efficient lookups
+            -- No need for separate non-unique index on same columns
 
         END $$;
         """
@@ -145,12 +132,19 @@ def upgrade() -> None:
                 WHERE q.asset_id IS NULL
                 AND cf.collection_config IS NOT NULL
             LOOP
-                -- Extract selected_asset_ids from collection_config
-                selected_assets := ARRAY(
-                    SELECT jsonb_array_elements_text(
-                        questionnaire_record.collection_config->'selected_asset_ids'
-                    )::UUID
-                );
+                -- Extract selected_asset_ids from collection_config with error handling
+                BEGIN
+                    selected_assets := ARRAY(
+                        SELECT jsonb_array_elements_text(
+                            questionnaire_record.collection_config->'selected_asset_ids'
+                        )::UUID
+                    );
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        RAISE NOTICE 'Skipping questionnaire % (malformed collection_config or invalid UUID): %',
+                            questionnaire_record.id, SQLERRM;
+                        CONTINUE;  -- Skip to next iteration
+                END;
 
                 asset_count := array_length(selected_assets, 1);
 

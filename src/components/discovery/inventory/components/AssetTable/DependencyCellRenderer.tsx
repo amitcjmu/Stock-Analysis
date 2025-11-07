@@ -14,14 +14,20 @@ interface DependencyCellRendererProps extends ICellRendererParams {
   value: string | null | undefined;
 }
 
-export const DependencyCellRenderer: React.FC<DependencyCellRendererProps> = ({ value }) => {
-  if (!value) {
+export const DependencyCellRenderer: React.FC<DependencyCellRendererProps> = ({ value, data }) => {
+  console.log('[DependencyCellRenderer] Rendering with value:', value);
+  console.log('[DependencyCellRenderer] Asset data.dependencies:', data?.dependencies);
+
+  // Early return for empty or whitespace-only values (avoids unnecessary string operations)
+  const trimmedValue = value?.toString().trim();
+  if (!trimmedValue) {
     return <span className="text-xs text-gray-400">No dependencies</span>;
   }
 
   // Parse comma-separated IDs (can be numbers or UUIDs)
-  const parts = value.toString().split(',').map(p => p.trim()).filter(p => p.length > 0);
+  const parts = trimmedValue.split(',').map(p => p.trim()).filter(p => p.length > 0);
   const count = parts.length;
+  console.log('[DependencyCellRenderer] Parsed count:', count);
 
   if (count === 0) {
     return <span className="text-xs text-gray-400">No dependencies</span>;

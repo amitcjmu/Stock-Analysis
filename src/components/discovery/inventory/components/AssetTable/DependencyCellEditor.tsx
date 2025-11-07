@@ -33,6 +33,8 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   const handleClose = useCallback((cancel = false) => {
     console.log('[DependencyCellEditor] handleClose called, cancel:', cancel);
     console.log('[DependencyCellEditor] selectedAssets:', selectedAssets);
+    console.log('[DependencyCellEditor] props.updateField exists?', !!props.updateField);
+    console.log('[DependencyCellEditor] typeof props.updateField:', typeof props.updateField);
 
     if (cancel) {
       setIsCancelled(true);
@@ -43,14 +45,17 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
       return;
     }
 
-    // CC FIX: Update UI first, then save to backend
+    // CC FIX: Update UI first using AG Grid transaction API, then save to backend
     const newValue = selectedAssets.length > 0 ? selectedAssets.join(',') : null;
     console.log('[DependencyCellEditor] Updating with value:', newValue);
+    console.log('[DependencyCellEditor] Field name:', props.colDef.field);
+    console.log('[DependencyCellEditor] Current node data:', props.node?.data);
 
-    // STEP 1: Update the node's data immediately so the cell renderer updates
-    if (props.node && props.colDef.field) {
-      props.node.setDataValue(props.colDef.field, newValue);
-      console.log('[DependencyCellEditor] Updated node data value');
+    // STEP 1: Update the node's data using applyTransaction (more reliable than setDataValue for popup editors)
+    if (props.api && props.node && props.colDef.field && props.data) {
+      const updatedData = { ...props.data, [props.colDef.field]: newValue };
+      const result = props.api.applyTransaction({ update: [updatedData] });
+      console.log('[DependencyCellEditor] Applied transaction:', result);
     }
 
     // STEP 2: Close the editor so user sees the update immediately
@@ -92,12 +97,12 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
       const ids: (number | string)[] = [];
 
       parts.forEach(part => {
-        // Try to parse as number (ID)
-        const numId = parseInt(part);
-        if (!isNaN(numId)) {
-          ids.push(numId);
+        // Check if the part is a valid integer string (not UUID starting with digits)
+        // Use regex to ensure it's ONLY digits to avoid misinterpreting UUIDs
+        if (/^\d+$/.test(part)) {
+          ids.push(parseInt(part, 10));
         } else if (part.length > 0) {
-          // Treat as UUID string
+          // Treat as UUID or other string-based ID
           ids.push(part);
         }
       });

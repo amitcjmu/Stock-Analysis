@@ -64,6 +64,9 @@ async def _start_agent_generation(
         # Get-or-create questionnaire for each selected asset
         questionnaire_responses = []
 
+        # Optimize asset lookup: Create dictionary for O(1) access instead of O(N) filtering
+        assets_by_id = {asset.id: asset for asset in existing_assets}
+
         for asset_id in selected_asset_ids:
             # Check for existing questionnaire (scoped by engagement_id + asset_id)
             existing = await get_existing_questionnaire_for_asset(
@@ -121,14 +124,20 @@ async def _start_agent_generation(
             )
 
             # Start background generation task for this asset
+            # Use dictionary for O(1) lookup instead of O(N) filtering
+            target_asset = assets_by_id.get(asset_id)
+            if not target_asset:
+                logger.warning(
+                    f"Asset {asset_id} selected in flow but not found in existing_assets list. Skipping generation."
+                )
+                continue
+
             task = asyncio.create_task(
                 _background_generate(
                     questionnaire_id,
                     flow_id,
                     flow,
-                    [
-                        asset for asset in existing_assets if asset.id == asset_id
-                    ],  # Pass only this asset
+                    [target_asset],  # Pass only this asset (O(1) lookup)
                     context,
                 )
             )

@@ -45,13 +45,16 @@ async def get_existing_questionnaire_for_asset(
         existing = result.scalar_one_or_none()
 
         if existing:
+            # Note: IDs logged for debugging only - ensure production logs are scrubbed
             logger.info(
-                f"♻️ Found existing questionnaire {existing.id} for asset {asset_id} "
+                f"♻️ Found existing questionnaire {str(existing.id)[:8]}... for asset {str(asset_id)[:8]}... "
                 f"(status: {existing.completion_status})"
             )
             return existing
 
-        logger.info(f"🆕 No existing questionnaire found for asset {asset_id}")
+        logger.info(
+            f"🆕 No existing questionnaire found for asset {str(asset_id)[:8]}..."
+        )
         return None
 
     except Exception as e:
