@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ICellRendererParams } from 'ag-grid-community';
+import type { ICellRendererParams } from 'ag-grid-community';
 import { Badge } from '@/components/ui/badge';
 import { Server, Database, Layers, ExternalLink } from 'lucide-react';
 import { AssetAPI } from '@/lib/api/assets';
@@ -37,11 +37,29 @@ export const DependencyCellRenderer: React.FC<DependencyCellRendererProps> = ({ 
           return;
         }
 
-        // Fetch all assets and filter by IDs
+        // Fetch all assets with pagination (backend max is 200 per page)
         // Note: In production, you might want a batch endpoint like GET /assets?ids=1,2,3
-        const response = await AssetAPI.getAssets({ page_size: 1000 });
-        const matchedAssets = response.assets.filter(asset => ids.includes(asset.id));
+        const allAssets: Asset[] = [];
+        let page = 1;
+        let hasMore = true;
+        const pageSize = 200; // Backend maximum
 
+        // Fetch assets in batches until we find all needed IDs or run out of pages
+        while (hasMore && allAssets.filter(a => ids.includes(a.id)).length < ids.length) {
+          const response = await AssetAPI.getAssets({
+            page: page,
+            page_size: pageSize
+          });
+
+          allAssets.push(...response.assets);
+          hasMore = response.assets.length === pageSize;
+          page++;
+
+          // Safety limit
+          if (page > 20) break;
+        }
+
+        const matchedAssets = allAssets.filter(asset => ids.includes(asset.id));
         setAssets(matchedAssets);
       } catch (error) {
         console.error('Failed to fetch dependency assets:', error);

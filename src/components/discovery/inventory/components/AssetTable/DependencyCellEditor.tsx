@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { ICellEditorParams } from 'ag-grid-community';
+import type { ICellEditorParams } from 'ag-grid-community';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,17 +53,39 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
     parseInitialValue();
   }, [props.value]);
 
-  // Fetch available assets
+  // Fetch available assets with pagination (backend max is 200 per page)
   useEffect(() => {
     const fetchAssets = async () => {
       try {
         setIsLoading(true);
-        // Fetch all assets (no pagination limit)
-        const response = await AssetAPI.getAssets({ page_size: 1000 });
+        const allAssets: Asset[] = [];
+        let page = 1;
+        let hasMore = true;
+        const pageSize = 200; // Backend maximum
+
+        // Fetch all assets in batches of 200
+        while (hasMore) {
+          const response = await AssetAPI.getAssets({
+            page: page,
+            page_size: pageSize
+          });
+
+          allAssets.push(...response.assets);
+
+          // Check if there are more pages
+          hasMore = response.assets.length === pageSize;
+          page++;
+
+          // Safety limit to prevent infinite loops
+          if (page > 20) { // Max 4000 assets (20 pages * 200)
+            console.warn('Reached maximum page limit (20 pages) for asset fetching');
+            break;
+          }
+        }
 
         // Exclude the current asset from the list
         const currentAssetId = props.data?.id;
-        const filtered = response.assets.filter(asset =>
+        const filtered = allAssets.filter(asset =>
           !asset.is_deleted && asset.id !== currentAssetId
         );
 
