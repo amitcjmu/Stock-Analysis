@@ -30,14 +30,21 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
 
   // Handle closing the editor
   const handleClose = useCallback((cancel = false) => {
+    console.log('[DependencyCellEditor] handleClose called, cancel:', cancel);
+    console.log('[DependencyCellEditor] selectedAssets:', selectedAssets);
+    console.log('[DependencyCellEditor] props.api exists:', !!props.api);
+
     if (cancel) {
       setIsCancelled(true);
     }
     // Use AG Grid API to stop editing - this will trigger getValue()
     if (props.api) {
+      console.log('[DependencyCellEditor] Calling props.api.stopEditing()');
       props.api.stopEditing();
+    } else {
+      console.error('[DependencyCellEditor] props.api is undefined!');
     }
-  }, [props.api]);
+  }, [props.api, selectedAssets]);
 
   // Parse initial value (comma-separated asset IDs or names)
   useEffect(() => {
@@ -116,12 +123,20 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   // Expose getValue method to AG Grid
   useImperativeHandle(ref, () => ({
     getValue: () => {
+      console.log('[DependencyCellEditor] getValue called');
+      console.log('[DependencyCellEditor] isCancelled:', isCancelled);
+      console.log('[DependencyCellEditor] selectedAssets:', selectedAssets);
+      console.log('[DependencyCellEditor] original value:', props.value);
+
       // If cancelled, return original value
       if (isCancelled) {
+        console.log('[DependencyCellEditor] Returning original value (cancelled)');
         return props.value;
       }
       // Return comma-separated asset IDs
-      return selectedAssets.length > 0 ? selectedAssets.join(',') : null;
+      const result = selectedAssets.length > 0 ? selectedAssets.join(',') : null;
+      console.log('[DependencyCellEditor] Returning new value:', result);
+      return result;
     },
     isCancelBeforeStart: () => false,
     isCancelAfterEnd: () => false,
