@@ -300,14 +300,16 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
             {filteredAssets.map(asset => (
               <div
                 key={asset.id}
-                className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer"
-                onClick={() => toggleAsset(asset.id)}
+                className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded"
               >
                 <Checkbox
                   checked={selectedAssets.includes(asset.id)}
                   onCheckedChange={() => toggleAsset(asset.id)}
                 />
-                <div className="flex items-center gap-2 flex-1">
+                <div
+                  className="flex items-center gap-2 flex-1 cursor-pointer"
+                  onClick={() => toggleAsset(asset.id)}
+                >
                   {getAssetIcon(asset.asset_type)}
                   <div className="flex-1">
                     <div className="font-medium text-sm">{asset.name}</div>
