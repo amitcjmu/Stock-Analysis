@@ -206,18 +206,9 @@ class CriticalAttributesDefinition:
                 "description": "Configuration complexity (environment variables, settings)",
                 "required": False,
             },
-            "security_compliance_requirements": {
-                "category": "application",
-                "priority": 1,
-                "asset_fields": [
-                    "compliance",
-                    "custom_attributes.compliance",
-                    "custom_attributes.compliance_requirements",
-                    "compliance_flags.compliance_scopes",  # PHASE 2 Bug #679
-                ],
-                "description": "Security and compliance requirements (PCI, HIPAA, GDPR, SOX)",
-                "required": True,
-            },
+            # "security_compliance_requirements" - REMOVED: Duplicate of compliance_constraints
+            # Consolidated into compliance_constraints in Business Context section
+            # Per CrewAI tool alignment - compliance is asked once for better UX
             # ==========================================
             # Business Context Attributes (4)
             # ==========================================
