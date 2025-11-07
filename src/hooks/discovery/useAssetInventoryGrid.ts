@@ -342,30 +342,23 @@ export const useAssetInventoryGrid = (): {
       return AssetAPI.updateAssetField(asset_id, field_name, field_value);
     },
     onMutate: async ({ asset_id, field_name, field_value }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['assets'] });
-
-      // Optimistically update cached data
-      queryClient.setQueriesData<Asset[]>({ queryKey: ['assets'] }, (old) => {
-        if (!old) return old;
-        return old.map(asset =>
-          asset.id === asset_id
-            ? { ...asset, [field_name]: field_value }
-            : asset
-        );
-      });
+      // No optimistic updates - let React Query refetch after success
+      console.log('[useAssetInventoryGrid] onMutate - no optimistic update, will refetch on success');
     },
     onSuccess: (_data, variables) => {
-      toast.success(`Updated ${variables.field_name} successfully`);
+      // CC FIX: Refetch assets to update AG Grid with backend data
+      // Use correct query key prefix to match useInventoryData's ['discovery-assets', ...] pattern
+      queryClient.invalidateQueries({ queryKey: ['discovery-assets'] });
+
+      // Show toast for non-dependency fields
+      if (variables.field_name !== 'dependencies' && variables.field_name !== 'dependents') {
+        toast.success(`Updated ${variables.field_name} successfully`);
+      }
     },
     onError: (error: Error, variables) => {
       toast.error(`Failed to update ${variables.field_name}: ${error.message}`);
-      // Refetch to revert optimistic update
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-    },
-    onSettled: () => {
-      // Always refetch after mutation
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      // Refetch to revert any UI changes
+      queryClient.invalidateQueries({ queryKey: ['discovery-assets'] });
     }
   });
 
@@ -398,7 +391,7 @@ export const useAssetInventoryGrid = (): {
     },
     onSuccess: (data, variables) => {
       toast.success(`Updated ${variables.field_name} for ${data.updated_count} assets`);
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['discovery-assets'] });
     },
     onError: (error: Error, variables) => {
       toast.error(`Failed to bulk update ${variables.field_name}: ${error.message}`);

@@ -11,6 +11,9 @@ class DiscoveryFieldsMixin:
     dependencies = Column(
         JSON, comment="A JSON array of assets that this asset depends on."
     )
+    dependents = Column(
+        JSON, comment="A JSON array of assets that depend on this asset (Issue #962)."
+    )
     related_assets = Column(
         JSON, comment="A JSON array of other related assets or CIs."
     )

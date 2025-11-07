@@ -346,6 +346,9 @@ class AssetListHandler:
                 if getattr(asset, "discovery_timestamp", None)
                 else None
             ),
+            # CC FIX (Issue #962): Dependencies multi-select - include relationship fields
+            "dependencies": getattr(asset, "dependencies", None),
+            "dependents": getattr(asset, "dependents", None),
         }
 
 

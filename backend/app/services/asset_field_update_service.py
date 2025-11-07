@@ -86,6 +86,9 @@ ALLOWED_EDITABLE_FIELDS: Set[str] = {
     "annual_cost_estimate",
     "backup_policy",
     "tshirt_size",
+    # Relationships (CC FIX: Issue #962 - dependencies multi-select)
+    "dependencies",
+    "dependents",
 }
 
 
