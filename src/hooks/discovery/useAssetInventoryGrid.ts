@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 /**
  * Column type for validation and rendering
  */
-export type ColumnType = 'text' | 'number' | 'dropdown' | 'boolean';
+export type ColumnType = 'text' | 'number' | 'dropdown' | 'boolean' | 'multi-select';
 
 /**
  * Editable column configuration
@@ -218,13 +218,14 @@ export const EDITABLE_COLUMNS: EditableColumn[] = [
   {
     field_name: 'dependencies',
     display_name: 'Dependencies',
-    column_type: 'text',
+    column_type: 'multi-select',
     editable: true,
     validation: {
       custom: (value: string): boolean | string => {
         if (!value) return true; // Optional field
-        // Allow comma-separated list of asset names or IDs
-        if (value.length > 1000) return 'Dependencies list too long (max 1000 characters)';
+        // Value is comma-separated asset IDs
+        const ids = value.toString().split(',').map(id => id.trim());
+        if (ids.length > 50) return 'Too many dependencies (max 50)';
         return true;
       }
     }
@@ -232,13 +233,14 @@ export const EDITABLE_COLUMNS: EditableColumn[] = [
   {
     field_name: 'dependents',
     display_name: 'Dependents',
-    column_type: 'text',
+    column_type: 'multi-select',
     editable: true,
     validation: {
       custom: (value: string): boolean | string => {
         if (!value) return true; // Optional field
-        // Allow comma-separated list of asset names or IDs
-        if (value.length > 1000) return 'Dependents list too long (max 1000 characters)';
+        // Value is comma-separated asset IDs
+        const ids = value.toString().split(',').map(id => id.trim());
+        if (ids.length > 50) return 'Too many dependents (max 50)';
         return true;
       }
     }

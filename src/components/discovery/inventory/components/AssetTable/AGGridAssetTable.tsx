@@ -38,6 +38,8 @@ import type { Asset } from '@/types/asset';
 import { AssetTableFilters } from './AssetTableFilters';
 import { AssetTablePagination } from './AssetTablePagination';
 import { ColumnSelector } from './ColumnSelector';
+import { DependencyCellEditor } from './DependencyCellEditor';
+import { DependencyCellRenderer } from './DependencyCellRenderer';
 import { getReadinessColor, getTypeIcon } from '../../utils/iconHelpers';
 import { useAssetInventoryGrid } from '@/hooks/discovery/useAssetInventoryGrid';
 import { useAssetSoftDelete } from '@/hooks/discovery/useAssetSoftDelete';
@@ -303,6 +305,12 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
       } else if (column === 'last_updated' || column === 'deleted_at') {
         colDef.cellRenderer = dateRenderer;
         colDef.width = 150;
+      } else if (column === 'dependencies' || column === 'dependents') {
+        // CC FIX: Custom multi-select editor for dependencies
+        colDef.cellRenderer = DependencyCellRenderer;
+        colDef.cellEditor = DependencyCellEditor;
+        colDef.cellEditorPopup = true; // Show as popup for better UX
+        colDef.width = 250;
       }
 
       cols.push(colDef);
