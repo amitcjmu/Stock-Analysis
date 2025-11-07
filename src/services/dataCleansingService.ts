@@ -66,6 +66,10 @@ export interface DataCleansingRecommendation {
   impact: string;
   effort_estimate: string;
   fields_affected: string[];
+  // Additional fields for frontend compatibility (Issue #875, #876)
+  confidence?: number;  // 0.0 to 1.0 range
+  status?: 'pending' | 'applied' | 'rejected';
+  agent_source?: string;
   implementation_steps?: string[];
 }
 

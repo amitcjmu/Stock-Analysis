@@ -156,13 +156,10 @@ export class AssetAPI {
     field_value: string | number | boolean | null
   ): Promise<Asset> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/fields/${field_name}`;
-    // CC FIX: Pass body as raw object, not pre-stringified
-    // apiClient.executeRequest will handle JSON.stringify in the proper order
+
     return await apiCall(endpoint, {
       method: 'PATCH',
-      body: {
-        value: field_value
-      }
+      body: { value: field_value }
     });
   }
 

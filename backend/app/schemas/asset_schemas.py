@@ -87,6 +87,10 @@ class AssetResponse(AssetBase):
     contacts: Optional[List[Dict[str, Any]]] = []
     eol_assessments: Optional[List[Dict[str, Any]]] = []
 
+    # CC FIX (Issue #962): Dependencies multi-select - stored as JSON string
+    dependencies: Optional[Any] = None  # JSON field - can be string or null
+    dependents: Optional[Any] = None  # JSON field - can be string or null
+
 
 class PaginatedAssetResponse(BaseModel):
     total: int

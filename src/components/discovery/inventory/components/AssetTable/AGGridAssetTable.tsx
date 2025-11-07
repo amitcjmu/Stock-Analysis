@@ -136,6 +136,13 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
     (event: CellEditingStoppedEvent<Asset>) => {
       if (event.oldValue !== event.newValue && event.data) {
         const fieldName = event.colDef.field;
+
+        // CC FIX: Skip dependencies/dependents fields - they handle their own updates via DependencyCellEditor
+        if (fieldName === 'dependencies' || fieldName === 'dependents') {
+          console.log(`[AGGridAssetTable] Skipping handleCellEditingStopped for ${fieldName} (handled by cell editor)`);
+          return;
+        }
+
         if (fieldName) {
           updateField({
             asset_id: event.data.id,
@@ -310,6 +317,9 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
         colDef.cellRenderer = DependencyCellRenderer;
         colDef.cellEditor = DependencyCellEditor;
         colDef.cellEditorPopup = true; // Show as popup for better UX
+        colDef.cellEditorParams = {
+          updateField, // Pass updateField function so cell editor can update directly
+        };
         colDef.width = 250;
       }
 
