@@ -25,15 +25,19 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   const [availableAssets, setAvailableAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
+  const [isCancelled, setIsCancelled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Handle closing the editor
-  const handleClose = useCallback(() => {
-    // AG Grid will call getValue() when the editor stops
-    if (props.stopEditing) {
-      props.stopEditing();
+  const handleClose = useCallback((cancel = false) => {
+    if (cancel) {
+      setIsCancelled(true);
     }
-  }, [props]);
+    // Use AG Grid API to stop editing - this will trigger getValue()
+    if (props.api) {
+      props.api.stopEditing();
+    }
+  }, [props.api]);
 
   // Parse initial value (comma-separated asset IDs or names)
   useEffect(() => {
@@ -112,12 +116,16 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   // Expose getValue method to AG Grid
   useImperativeHandle(ref, () => ({
     getValue: () => {
+      // If cancelled, return original value
+      if (isCancelled) {
+        return props.value;
+      }
       // Return comma-separated asset IDs
       return selectedAssets.length > 0 ? selectedAssets.join(',') : null;
     },
     isCancelBeforeStart: () => false,
     isCancelAfterEnd: () => false,
-  }));
+  }), [isCancelled, selectedAssets, props.value]);
 
   // Toggle asset selection
   const toggleAsset = (assetId: number) => {
@@ -291,17 +299,14 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              setSelectedAssets([]);
-              handleClose();
-            }}
+            onClick={() => handleClose(true)}
           >
             Cancel
           </Button>
           <Button
             variant="default"
             size="sm"
-            onClick={handleClose}
+            onClick={() => handleClose(false)}
           >
             Done
           </Button>
