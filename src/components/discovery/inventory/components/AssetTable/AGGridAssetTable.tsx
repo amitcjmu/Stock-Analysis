@@ -343,14 +343,42 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
     []
   );
 
+  // CC FIX: Store AG Grid API reference for column state management
+  const gridApiRef = React.useRef<GridReadyEvent<Asset>['api'] | null>(null);
+
   const onGridReady = useCallback((params: GridReadyEvent<Asset>) => {
+    gridApiRef.current = params.api;
+
     // Set initial selection based on selectedAssets prop
     params.api.forEachNode((node) => {
       if (node.data && selectedAssets.includes(node.data.id)) {
         node.setSelected(true);
       }
     });
+
+    // CC FIX: Restore column state from localStorage if available
+    try {
+      const savedState = localStorage.getItem('ag-grid-column-state');
+      if (savedState) {
+        const columnState = JSON.parse(savedState);
+        params.api.applyColumnState({ state: columnState, applyOrder: true });
+      }
+    } catch (error) {
+      console.error('Failed to restore column state:', error);
+    }
   }, [selectedAssets]);
+
+  // CC FIX: Save column state whenever columns are moved or resized
+  const handleColumnEvent = useCallback(() => {
+    if (gridApiRef.current) {
+      const columnState = gridApiRef.current.getColumnState();
+      try {
+        localStorage.setItem('ag-grid-column-state', JSON.stringify(columnState));
+      } catch (error) {
+        console.error('Failed to save column state:', error);
+      }
+    }
+  }, []);
 
   return (
     <Card>
@@ -409,6 +437,9 @@ export const AGGridAssetTable: React.FC<AGGridAssetTableProps> = ({
               onGridReady={onGridReady}
               onCellEditingStopped={handleCellEditingStopped}
               onSelectionChanged={handleSelectionChanged}
+              onColumnMoved={handleColumnEvent}
+              onColumnResized={handleColumnEvent}
+              onColumnVisible={handleColumnEvent}
               getRowId={(params) => String(params.data.id)}
               enableCellTextSelection={true}
               ensureDomOrder={true}

@@ -39,9 +39,9 @@ import { exportAssets } from '../utils/exportHelpers';
 import type { InventoryContentProps } from '../types/inventory.types';
 
 const DEFAULT_COLUMNS = [
-  'asset_name', 'asset_type', 'environment', 'operating_system',
-  'location', 'status', 'business_criticality', 'risk_score',
-  'migration_readiness', 'dependencies', 'last_updated'
+  'name', 'asset_type', 'environment', 'operating_system',
+  'location', 'business_criticality', 'dependencies', 'hostname',
+  'ip_address', 'cpu_cores', 'memory_gb', 'storage_gb', 'created_at'
 ];
 
 const RECORDS_PER_PAGE = 10;
@@ -274,6 +274,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     };
 
     checkForConflicts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowId, flow?.phase_state]);
 
   // Handle conflict resolution completion
