@@ -146,14 +146,21 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   });
 
   // Get all available columns
+  // CC FIX: Always include DEFAULT_COLUMNS, even if not present in API response
+  // This ensures critical columns like 'dependencies' are available even when empty/null
   const allColumns = useMemo(() => {
-    if (assets.length === 0) return [];
-    const columns = new Set<string>();
-    assets.forEach(asset => {
-      Object.keys(asset).forEach(key => {
-        if (key !== 'id') columns.add(key);
+    // Start with DEFAULT_COLUMNS to ensure critical fields are always available
+    const columns = new Set<string>(DEFAULT_COLUMNS);
+
+    // Add any additional columns from actual asset data
+    if (assets.length > 0) {
+      assets.forEach(asset => {
+        Object.keys(asset).forEach(key => {
+          if (key !== 'id') columns.add(key);
+        });
       });
-    });
+    }
+
     return Array.from(columns).sort();
   }, [assets]);
 
