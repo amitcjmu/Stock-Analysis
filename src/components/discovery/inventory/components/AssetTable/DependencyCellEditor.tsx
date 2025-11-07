@@ -5,7 +5,7 @@
  * Shows selected dependencies as badges and provides filtering by asset type.
  */
 
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import type { ICellEditorParams } from 'ag-grid-community';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,14 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Handle closing the editor
+  const handleClose = useCallback(() => {
+    // AG Grid will call getValue() when the editor stops
+    if (props.stopEditing) {
+      props.stopEditing();
+    }
+  }, [props]);
 
   // Parse initial value (comma-separated asset IDs or names)
   useEffect(() => {
@@ -273,10 +281,31 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
         )}
       </div>
 
-      {/* Footer with count */}
-      <div className="p-3 border-t bg-gray-50 text-sm text-gray-600">
-        {selectedAssets.length} asset{selectedAssets.length !== 1 ? 's' : ''} selected
-        {filteredAssets.length > 0 && ` • ${filteredAssets.length} available`}
+      {/* Footer with action buttons */}
+      <div className="p-3 border-t bg-gray-50 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          {selectedAssets.length} asset{selectedAssets.length !== 1 ? 's' : ''} selected
+          {filteredAssets.length > 0 && ` • ${filteredAssets.length} available`}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSelectedAssets([]);
+              handleClose();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleClose}
+          >
+            Done
+          </Button>
+        </div>
       </div>
     </div>
   );
