@@ -56,13 +56,17 @@ class QuestionnaireGenerationTool(BaseTool):
         return create_basic_info_section()
 
     def _process_missing_fields(
-        self, missing_fields: dict, business_context: dict = None
+        self,
+        missing_fields: dict,
+        business_context: dict = None,
+        existing_field_values: dict = None,
     ) -> list:
         """Process missing fields and generate sections with asset context.
 
         Args:
             missing_fields: Dict mapping asset_id -> list of missing attribute names
             business_context: Business context including existing_assets with OS data
+            existing_field_values: Dict mapping asset_id -> {attr_name: value} for pre-fill
 
         Returns:
             List of section dictionaries with categorized questions
@@ -87,9 +91,15 @@ class QuestionnaireGenerationTool(BaseTool):
                     f"for OS-aware question generation"
                 )
 
+            # Fix #3: Log existing_field_values for verification field pre-fill
+            if existing_field_values:
+                logger.info(
+                    f"Found {len(existing_field_values)} assets with verification fields for pre-fill"
+                )
+
             # Group missing attributes by category with asset context
             attrs_by_category = group_attributes_by_category(
-                missing_fields, attribute_mapping, assets_data
+                missing_fields, attribute_mapping, assets_data, existing_field_values
             )
 
             # Create organized sections by category
@@ -154,9 +164,12 @@ class QuestionnaireGenerationTool(BaseTool):
                 )
 
             if missing_fields:
+                # Fix #3: Extract existing_field_values for verification field pre-fill
+                existing_field_values = data_gaps.get("existing_field_values")
+
                 # Pass business_context for OS-aware question generation
                 missing_field_sections = self._process_missing_fields(
-                    missing_fields, business_context
+                    missing_fields, business_context, existing_field_values
                 )
                 sections.extend(missing_field_sections)
 

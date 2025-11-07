@@ -39,9 +39,9 @@ import { exportAssets } from '../utils/exportHelpers';
 import type { InventoryContentProps } from '../types/inventory.types';
 
 const DEFAULT_COLUMNS = [
-  'asset_name', 'asset_type', 'environment', 'operating_system',
-  'location', 'status', 'business_criticality', 'risk_score',
-  'migration_readiness', 'dependencies', 'last_updated'
+  'name', 'asset_type', 'environment', 'operating_system',
+  'location', 'business_criticality', 'dependencies', 'hostname',
+  'ip_address', 'cpu_cores', 'memory_gb', 'storage_gb', 'created_at'
 ];
 
 const RECORDS_PER_PAGE = 10;
@@ -146,14 +146,21 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   });
 
   // Get all available columns
+  // CC FIX: Always include DEFAULT_COLUMNS, even if not present in API response
+  // This ensures critical columns like 'dependencies' are available even when empty/null
   const allColumns = useMemo(() => {
-    if (assets.length === 0) return [];
-    const columns = new Set<string>();
-    assets.forEach(asset => {
-      Object.keys(asset).forEach(key => {
-        if (key !== 'id') columns.add(key);
+    // Start with DEFAULT_COLUMNS to ensure critical fields are always available
+    const columns = new Set<string>(DEFAULT_COLUMNS);
+
+    // Add any additional columns from actual asset data
+    if (assets.length > 0) {
+      assets.forEach(asset => {
+        Object.keys(asset).forEach(key => {
+          if (key !== 'id') columns.add(key);
+        });
       });
-    });
+    }
+
     return Array.from(columns).sort();
   }, [assets]);
 
@@ -274,6 +281,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     };
 
     checkForConflicts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowId, flow?.phase_state]);
 
   // Handle conflict resolution completion

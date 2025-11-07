@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 /**
  * Column type for validation and rendering
  */
-export type ColumnType = 'text' | 'number' | 'dropdown' | 'boolean';
+export type ColumnType = 'text' | 'number' | 'dropdown' | 'boolean' | 'multi-select';
 
 /**
  * Editable column configuration
@@ -26,7 +26,7 @@ export interface EditableColumn {
     min?: number;
     max?: number;
     pattern?: RegExp;
-    custom?: (value: any) => boolean | string;
+    custom?: (value: unknown) => boolean | string;
   };
   dropdown_options?: Array<{ value: string; label: string }>;
 }
@@ -87,14 +87,14 @@ const SIXR_STRATEGY_OPTIONS = [
  */
 export const EDITABLE_COLUMNS: EditableColumn[] = [
   {
-    field_name: 'asset_name',  // CC FIX: Use 'asset_name' to match Asset type field
+    field_name: 'name',  // CC FIX: Use 'name' to match Asset type field (not asset_name or application_name)
     display_name: 'Asset Name',
     column_type: 'text',
     editable: true,
     validation: {
       required: true,
-      pattern: /^[a-zA-Z0-9\s\-_\.]+$/,
-      custom: (value: string) => {
+      pattern: /^[a-zA-Z0-9\s\-_.]+$/,
+      custom: (value: string): boolean | string => {
         if (value.length < 2) return 'Name must be at least 2 characters';
         if (value.length > 255) return 'Name cannot exceed 255 characters';
         return true;
@@ -138,7 +138,7 @@ export const EDITABLE_COLUMNS: EditableColumn[] = [
     column_type: 'text',
     editable: true,
     validation: {
-      pattern: /^[a-zA-Z0-9\-\.]+$/
+      pattern: /^[a-zA-Z0-9\-.]+$/
     }
   },
   {
@@ -148,7 +148,7 @@ export const EDITABLE_COLUMNS: EditableColumn[] = [
     editable: true,
     validation: {
       pattern: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-      custom: (value: string) => {
+      custom: (value: string): boolean | string => {
         if (!value) return true; // Optional field
         const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
         return ipRegex.test(value) || 'Invalid IP address format';
@@ -214,6 +214,36 @@ export const EDITABLE_COLUMNS: EditableColumn[] = [
     display_name: 'Location',
     column_type: 'text',
     editable: true
+  },
+  {
+    field_name: 'dependencies',
+    display_name: 'Dependencies',
+    column_type: 'multi-select',
+    editable: true,
+    validation: {
+      custom: (value: string): boolean | string => {
+        if (!value) return true; // Optional field
+        // Value is comma-separated asset IDs
+        const ids = value.toString().split(',').map(id => id.trim());
+        if (ids.length > 50) return 'Too many dependencies (max 50)';
+        return true;
+      }
+    }
+  },
+  {
+    field_name: 'dependents',
+    display_name: 'Dependents',
+    column_type: 'multi-select',
+    editable: true,
+    validation: {
+      custom: (value: string): boolean | string => {
+        if (!value) return true; // Optional field
+        // Value is comma-separated asset IDs
+        const ids = value.toString().split(',').map(id => id.trim());
+        if (ids.length > 50) return 'Too many dependents (max 50)';
+        return true;
+      }
+    }
   }
 ];
 
@@ -222,7 +252,7 @@ export const EDITABLE_COLUMNS: EditableColumn[] = [
  */
 export const validateFieldValue = (
   column: EditableColumn,
-  value: any
+  value: unknown
 ): { valid: boolean; error?: string } => {
   if (!column.validation) {
     return { valid: true };
@@ -275,7 +305,13 @@ export const validateFieldValue = (
 /**
  * Hook for managing asset inventory grid with inline editing
  */
-export const useAssetInventoryGrid = () => {
+export const useAssetInventoryGrid = (): {
+  editableColumns: EditableColumn[];
+  updateField: (variables: { asset_id: number; field_name: string; field_value: unknown }) => void;
+  bulkUpdateField: (variables: { asset_ids: number[]; field_name: string; field_value: unknown }) => void;
+  isUpdating: boolean;
+  validateFieldValue: (column: EditableColumn, value: unknown) => { valid: boolean; error?: string };
+} => {
   const queryClient = useQueryClient();
 
   /**
@@ -289,7 +325,7 @@ export const useAssetInventoryGrid = () => {
     }: {
       asset_id: number;
       field_name: string;
-      field_value: any;
+      field_value: unknown;
     }) => {
       // Find column configuration
       const column = EDITABLE_COLUMNS.find(col => col.field_name === field_name);
@@ -344,7 +380,7 @@ export const useAssetInventoryGrid = () => {
     }: {
       asset_ids: number[];
       field_name: string;
-      field_value: any;
+      field_value: unknown;
     }) => {
       // Find column configuration
       const column = EDITABLE_COLUMNS.find(col => col.field_name === field_name);

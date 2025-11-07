@@ -36,61 +36,131 @@ async def _start_agent_generation(
     """
     Start agent generation in background and return pending questionnaire record.
 
-    Creates a pending questionnaire record in database and starts background task
-    to generate actual questionnaires. Returns immediately with pending status.
+    Uses get-or-create pattern: Checks for existing questionnaire by asset_id before creating new one.
+    Supports multi-asset selection - generates/reuses questionnaire per asset.
     """
-    try:
-        # Create pending questionnaire record with tenant fields
-        questionnaire_id = uuid4()
-        pending_questionnaire = AdaptiveQuestionnaire(
-            id=questionnaire_id,
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id,
-            collection_flow_id=flow.id,  # Use .id (PRIMARY KEY) for FK relationship
-            title="AI-Generated Data Collection Questionnaire",
-            description="Generating tailored questionnaire using AI agent analysis...",
-            template_name="agent_generated",
-            template_type="detailed",
-            version="2.0",
-            applicable_tiers=["tier_1", "tier_2", "tier_3", "tier_4"],
-            question_set={},
-            questions=[],
-            validation_rules={},
-            completion_status="pending",
-            responses_collected={},
-            is_active=True,
-            is_template=False,
-            created_at=datetime.now(timezone.utc),
-        )
+    from .deduplication import (
+        get_existing_questionnaire_for_asset,
+        should_reuse_questionnaire,
+        log_questionnaire_reuse,
+        log_questionnaire_creation,
+    )
 
-        # Insert pending record with tenant isolation
-        db.add(pending_questionnaire)
-        await db.commit()
-        await db.refresh(pending_questionnaire)
+    try:
+        # Extract selected_asset_ids from flow metadata
+        selected_asset_ids = []
+        if flow.flow_metadata and isinstance(flow.flow_metadata, dict):
+            raw_ids = flow.flow_metadata.get("selected_asset_ids", [])
+            selected_asset_ids = [
+                UUID(aid) if isinstance(aid, str) else aid for aid in raw_ids
+            ]
+
+        if not selected_asset_ids:
+            logger.warning(
+                f"No selected_asset_ids in flow {flow_id} metadata, falling back to existing_assets"
+            )
+            selected_asset_ids = [asset.id for asset in existing_assets]
+
+        # Get-or-create questionnaire for each selected asset
+        questionnaire_responses = []
+
+        # Optimize asset lookup: Create dictionary for O(1) access instead of O(N) filtering
+        assets_by_id = {asset.id: asset for asset in existing_assets}
+
+        for asset_id in selected_asset_ids:
+            # Check for existing questionnaire (scoped by engagement_id + asset_id)
+            existing = await get_existing_questionnaire_for_asset(
+                context.engagement_id,
+                asset_id,
+                db,
+            )
+
+            if existing:
+                # Decide whether to reuse based on completion status
+                should_reuse, reason = await should_reuse_questionnaire(existing)
+
+                if should_reuse:
+                    log_questionnaire_reuse(existing, flow.id, asset_id)
+                    questionnaire_responses.append(
+                        collection_serializers.build_questionnaire_response(existing)
+                    )
+                    continue  # Skip creation for this asset
+
+            # No existing questionnaire or needs regeneration - create new
+            log_questionnaire_creation(
+                asset_id, flow.id, "No existing questionnaire found"
+            )
+
+            questionnaire_id = uuid4()
+            pending_questionnaire = AdaptiveQuestionnaire(
+                id=questionnaire_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                collection_flow_id=flow.id,  # Audit trail: which flow triggered creation
+                asset_id=asset_id,  # CRITICAL: Asset-based deduplication key
+                title="AI-Generated Data Collection Questionnaire",
+                description="Generating tailored questionnaire using AI agent analysis...",
+                template_name="agent_generated",
+                template_type="detailed",
+                version="2.0",
+                applicable_tiers=["tier_1", "tier_2", "tier_3", "tier_4"],
+                question_set={},
+                questions=[],
+                validation_rules={},
+                completion_status="pending",
+                responses_collected={},
+                is_active=True,
+                is_template=False,
+                created_at=datetime.now(timezone.utc),
+            )
+
+            # Insert pending record with tenant isolation
+            db.add(pending_questionnaire)
+            await db.commit()
+            await db.refresh(pending_questionnaire)
+
+            logger.info(
+                f"Created pending questionnaire {questionnaire_id} for asset {asset_id} in flow {flow_id}"
+            )
+
+            # Start background generation task for this asset
+            # Use dictionary for O(1) lookup instead of O(N) filtering
+            target_asset = assets_by_id.get(asset_id)
+            if not target_asset:
+                logger.warning(
+                    f"Asset {asset_id} selected in flow but not found in existing_assets list. Skipping generation."
+                )
+                continue
+
+            task = asyncio.create_task(
+                _background_generate(
+                    questionnaire_id,
+                    flow_id,
+                    flow,
+                    [target_asset],  # Pass only this asset (O(1) lookup)
+                    context,
+                )
+            )
+
+            # Add task to background tasks set and remove when done
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
+
+            questionnaire_responses.append(
+                collection_serializers.build_questionnaire_response(
+                    pending_questionnaire
+                )
+            )
+
+        if not questionnaire_responses:
+            logger.warning(f"No questionnaires generated or reused for flow {flow_id}")
+            raise Exception("No questionnaires could be generated or reused")
 
         logger.info(
-            f"Created pending questionnaire {questionnaire_id} for flow {flow_id}"
+            f"Returning {len(questionnaire_responses)} questionnaire(s) for flow {flow_id} "
+            f"({len(selected_asset_ids)} assets processed)"
         )
-
-        # Start background generation task
-        task = asyncio.create_task(
-            _background_generate(
-                questionnaire_id,
-                flow_id,
-                flow,
-                existing_assets,
-                context,
-            )
-        )
-
-        # Add task to background tasks set and remove when done
-        _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
-
-        # Return pending questionnaire immediately
-        return [
-            collection_serializers.build_questionnaire_response(pending_questionnaire)
-        ]
+        return questionnaire_responses
 
     except Exception as e:
         logger.error(

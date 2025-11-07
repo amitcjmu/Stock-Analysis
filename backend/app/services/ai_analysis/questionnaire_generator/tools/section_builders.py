@@ -5,7 +5,7 @@ Contains logic for building questionnaire sections and organizing questions by c
 """
 
 import logging
-from typing import Dict, Optional, Tuple, List
+from typing import Any, Dict, Optional, Tuple, List
 
 from .intelligent_options import (
     get_security_vulnerabilities_options,
@@ -120,6 +120,7 @@ def build_question_from_attribute(
     attr_config: dict,
     asset_ids: list,
     asset_context: Optional[Dict] = None,
+    existing_value: Optional[Any] = None,
 ) -> dict:
     """Build a question object from an attribute definition.
 
@@ -128,6 +129,7 @@ def build_question_from_attribute(
         attr_config: Configuration from CriticalAttributesDefinition
         asset_ids: List of asset IDs that need this attribute
         asset_context: Optional dict with asset data for intelligent option generation
+        existing_value: Optional pre-filled value for verification fields
 
     Returns:
         Question dictionary with proper category assignment
@@ -166,6 +168,13 @@ def build_question_from_attribute(
     if options:
         question["options"] = options
 
+    # Fix #3: Add pre-filled value for verification fields (e.g., operating_system)
+    # User can confirm or change the discovered value
+    if existing_value is not None:
+        question["default_value"] = existing_value
+        question["metadata"]["pre_filled"] = True
+        question["metadata"]["verification_required"] = True
+
     return question
 
 
@@ -173,6 +182,7 @@ def group_attributes_by_category(
     missing_fields: dict,
     attribute_mapping: dict,
     assets_data: Optional[List[Dict]] = None,
+    existing_field_values: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> dict:
     """Group missing attributes by category, one question per unique attribute.
 
@@ -180,6 +190,7 @@ def group_attributes_by_category(
         missing_fields: Dict mapping asset_id to list of missing attribute names
         attribute_mapping: Dict mapping attribute names to their configurations
         assets_data: Optional list of asset data dicts with context (eol_technology, etc.)
+        existing_field_values: Optional dict mapping asset_id -> {attr_name: value} for pre-fill
 
     Returns:
         Dict mapping category names to lists of question dicts
@@ -220,9 +231,19 @@ def group_attributes_by_category(
                 first_asset_id = asset_ids[0]
                 asset_context = asset_context_by_id.get(first_asset_id)
 
+            # Fix #3: Check for existing value for pre-fill (verification fields)
+            # e.g., operating_system_version with discovered "AIX 7.2" -> pre-select in dropdown
+            existing_value = None
+            if existing_field_values and asset_ids:
+                first_asset_id = asset_ids[0]
+                if first_asset_id in existing_field_values:
+                    existing_value = existing_field_values[first_asset_id].get(
+                        attr_name
+                    )
+
             # Pass all asset IDs that need this attribute + asset context for intelligent options
             question = build_question_from_attribute(
-                attr_name, attr_config, asset_ids, asset_context
+                attr_name, attr_config, asset_ids, asset_context, existing_value
             )
             attrs_by_category[category].append(question)
 

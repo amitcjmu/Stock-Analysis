@@ -9,6 +9,7 @@ backward compatibility. All public APIs remain the same.
 # Import all public functions to maintain backward compatibility
 from .queries import (
     get_adaptive_questionnaires,
+    get_questionnaire_by_asset,
 )
 
 # Track background tasks to prevent memory leaks (shared across modules)
@@ -17,5 +18,6 @@ from .commands import _background_tasks
 # Export the main public API
 __all__ = [
     "get_adaptive_questionnaires",
+    "get_questionnaire_by_asset",  # Asset-based questionnaire lookup
     "_background_tasks",  # For external access if needed
 ]

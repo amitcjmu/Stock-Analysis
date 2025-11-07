@@ -43,7 +43,8 @@ class CriticalAttributesDefinition:
         "user_load_patterns",
         "business_logic_complexity",
         "configuration_complexity",
-        "security_compliance_requirements",
+        # "security_compliance_requirements" - REMOVED: Duplicate of compliance_constraints (business category)
+        # Compliance is now asked once in Business Context section for better UX
     ]
 
     BUSINESS_CONTEXT_ATTRIBUTES = [
@@ -171,12 +172,9 @@ class CriticalAttributesDefinition:
                 "required": False,
                 "category": "application",
             },
-            "security_compliance_requirements": {
-                "asset_fields": ["security_compliance_requirements"],
-                "patterns": ["compliance", "security", "pci", "hipaa", "gdpr", "sox"],
-                "required": True,
-                "category": "application",
-            },
+            # "security_compliance_requirements" - REMOVED: Consolidate with compliance_constraints
+            # Both asked the same question with identical options (HIPAA, PCI-DSS, SOX, etc.)
+            # Keeping compliance_constraints in business category as single source of truth
             # Business Context Attributes
             "business_criticality_score": {
                 "asset_fields": ["business_criticality", "criticality"],
