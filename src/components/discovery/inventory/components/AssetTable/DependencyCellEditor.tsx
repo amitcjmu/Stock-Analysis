@@ -17,6 +17,7 @@ import type { Asset } from '@/types/asset';
 
 interface DependencyCellEditorProps extends ICellEditorParams {
   value: string | null | undefined;
+  updateField?: (params: { asset_id: string | number; field_name: string; field_value: any }) => void;
 }
 
 export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps, ref) => {
@@ -32,8 +33,6 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   const handleClose = useCallback((cancel = false) => {
     console.log('[DependencyCellEditor] handleClose called, cancel:', cancel);
     console.log('[DependencyCellEditor] selectedAssets:', selectedAssets);
-    console.log('[DependencyCellEditor] props.api exists:', !!props.api);
-    console.log('[DependencyCellEditor] props.node exists:', !!props.node);
 
     if (cancel) {
       setIsCancelled(true);
@@ -44,24 +43,41 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
       return;
     }
 
-    // CC FIX: For popup editors, manually set the cell value before stopping editing
-    // This ensures AG Grid detects the value change and triggers onCellEditingStopped
-    if (props.node && props.colDef.field) {
-      const newValue = selectedAssets.length > 0 ? selectedAssets.join(',') : null;
-      console.log('[DependencyCellEditor] Setting cell value directly:', newValue);
+    // CC FIX: Update UI first, then save to backend
+    const newValue = selectedAssets.length > 0 ? selectedAssets.join(',') : null;
+    console.log('[DependencyCellEditor] Updating with value:', newValue);
 
-      // Set the value on the node's data
+    // STEP 1: Update the node's data immediately so the cell renderer updates
+    if (props.node && props.colDef.field) {
       props.node.setDataValue(props.colDef.field, newValue);
+      console.log('[DependencyCellEditor] Updated node data value');
     }
 
-    // Now stop editing
+    // STEP 2: Close the editor so user sees the update immediately
     if (props.api) {
       console.log('[DependencyCellEditor] Calling props.api.stopEditing()');
       props.api.stopEditing();
-    } else {
-      console.error('[DependencyCellEditor] props.api is undefined!');
     }
-  }, [props.api, props.node, props.colDef.field, selectedAssets]);
+
+    // STEP 3: Save to backend (async, happens after close)
+    if (props.updateField && props.data && props.colDef.field) {
+      // Use setTimeout to ensure this runs after the editor closes
+      setTimeout(() => {
+        props.updateField!({
+          asset_id: props.data!.id,
+          field_name: props.colDef.field!,
+          field_value: newValue,
+        });
+        console.log('[DependencyCellEditor] Called updateField to save to backend');
+      }, 0);
+    } else {
+      console.error('[DependencyCellEditor] Missing required props:', {
+        hasUpdateField: !!props.updateField,
+        hasData: !!props.data,
+        hasField: !!props.colDef.field,
+      });
+    }
+  }, [props.api, props.node, props.colDef.field, props.data, props.updateField, selectedAssets]);
 
   // Parse initial value (comma-separated asset IDs - can be numbers or UUIDs)
   useEffect(() => {
