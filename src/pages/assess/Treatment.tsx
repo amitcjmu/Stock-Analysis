@@ -29,9 +29,6 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { assessmentFlowApi } from '@/lib/api/assessmentFlow';
 import type { AssessmentFlowStatusResponse } from '@/lib/api/assessmentFlow';
 
-// Planning Flow Initialization Wizard
-import { PlanningInitializationWizard } from '@/components/plan/PlanningInitializationWizard';
-
 // Main component
 export const Treatment: React.FC = () => {
   // Local UI state
@@ -44,9 +41,6 @@ export const Treatment: React.FC = () => {
   // TODO: Remove gap filling modal logic in favor of Assessment Flow's built-in pause point handling
   const [showGapModal, setShowGapModal] = useState(false);
   const [blockedAnalysis, setBlockedAnalysis] = useState<AssessmentFlowStatusResponse | null>(null);
-
-  // Planning Flow Wizard state
-  const [isPlanningWizardOpen, setIsPlanningWizardOpen] = useState(false);
 
   // Get engagement_id from context (default to 1 for now)
   // TODO: Replace with actual engagement context when available
@@ -298,30 +292,30 @@ export const Treatment: React.FC = () => {
                 isLoading={isLoadingApps}
               />
 
-              {/* Start Planning Button - Shown when applications are selected */}
+              {/* Start Assessment Button - Shown when applications are selected */}
               {selectedApplicationIds.length > 0 && (
                 <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                        Ready to Plan Migration
+                        Ready to Start Assessment
                       </h3>
                       <p className="text-sm text-blue-800 mb-3">
                         You have selected {selectedApplicationIds.length} application{selectedApplicationIds.length !== 1 ? 's' : ''}.
-                        Start planning your migration waves and create a detailed timeline.
+                        Start your 6R assessment to analyze cloud readiness and receive migration strategy recommendations.
                       </p>
                       <p className="text-xs text-blue-700">
-                        Create wave planning and timeline for selected applications
+                        Create assessment flow for 6R analysis and recommendations
                       </p>
                     </div>
                     <button
-                      onClick={() => setIsPlanningWizardOpen(true)}
+                      onClick={() => handleStartAnalysis(selectedApplicationIds)}
                       className="ml-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center gap-2 whitespace-nowrap"
                       disabled={isAnalysisLoading}
-                      title="Create wave planning and timeline for selected applications"
+                      title="Create assessment flow for 6R analysis and recommendations"
                     >
                       <Rocket className="h-5 w-5" />
-                      Start Planning with {selectedApplicationIds.length} application{selectedApplicationIds.length !== 1 ? 's' : ''}
+                      Start Assessment with {selectedApplicationIds.length} application{selectedApplicationIds.length !== 1 ? 's' : ''}
                     </button>
                   </div>
                 </div>
@@ -384,15 +378,6 @@ export const Treatment: React.FC = () => {
         {/* DEPRECATED - Two-Tier Inline Gap-Filling Modal (PR #816) */}
         {/* Assessment Flow handles gaps via asset_application_resolution phase */}
         {/* Kept for backward compatibility but should be removed in future */}
-
-        {/* Planning Flow Initialization Wizard */}
-        <PlanningInitializationWizard
-          open={isPlanningWizardOpen}
-          onOpenChange={setIsPlanningWizardOpen}
-          engagement_id={engagement_id}
-          preSelectedApplicationIds={selectedApplicationIds}
-          preSelectedApplications={selectedApplications}
-        />
       </div>
     </div>
   );
