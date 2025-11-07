@@ -38,6 +38,11 @@ services:
       - GF_SERVER_CERT_FILE=${GF_SERVER_CERT_FILE:-}
       - GF_SERVER_CERT_KEY=${GF_SERVER_CERT_KEY:-}
 
+      # Azure Front Door path-based routing configuration
+      # These settings enable Grafana to work behind Azure Front Door at /grafana path
+      # Set GF_SERVER_SERVE_FROM_SUB_PATH=true in .env.observability to activate
+      - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-false}
+
       # Database settings (internal SQLite)
       - GF_DATABASE_TYPE=sqlite3
       - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
@@ -47,10 +52,12 @@ services:
       - GF_LOG_LEVEL=info
 
       # Security
-      - GF_SECURITY_ALLOW_EMBEDDING=false
+      - GF_SECURITY_ALLOW_EMBEDDING=${GF_SECURITY_ALLOW_EMBEDDING:-false}
       - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=${GF_SECURITY_COOKIE_SAMESITE:-lax}
       - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
       - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY_TEMPLATE=${GF_SECURITY_CONTENT_SECURITY_POLICY_TEMPLATE:-}
 
       # Features
       - GF_FEATURE_TOGGLES_ENABLE=tempoSearch,tempoServiceGraph
