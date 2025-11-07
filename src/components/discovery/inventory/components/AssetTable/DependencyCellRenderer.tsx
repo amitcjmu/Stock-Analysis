@@ -29,8 +29,19 @@ export const DependencyCellRenderer: React.FC<DependencyCellRendererProps> = ({ 
 
       try {
         setIsLoading(true);
-        // Parse comma-separated IDs
-        const ids = value.toString().split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+        // Parse comma-separated IDs (can be numbers or UUIDs)
+        const parts = value.toString().split(',').map(p => p.trim()).filter(p => p.length > 0);
+        const ids: (number | string)[] = [];
+
+        parts.forEach(part => {
+          const numId = parseInt(part);
+          if (!isNaN(numId)) {
+            ids.push(numId);
+          } else {
+            // Treat as UUID string
+            ids.push(part);
+          }
+        });
 
         if (ids.length === 0) {
           setAssets([]);

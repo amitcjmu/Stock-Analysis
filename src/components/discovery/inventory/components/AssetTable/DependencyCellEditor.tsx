@@ -21,7 +21,7 @@ interface DependencyCellEditorProps extends ICellEditorParams {
 
 export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAssets, setSelectedAssets] = useState<number[]>([]);
+  const [selectedAssets, setSelectedAssets] = useState<(number | string)[]>([]); // CC FIX: Support both number IDs and UUID strings
   const [availableAssets, setAvailableAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
@@ -46,7 +46,7 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
     }
   }, [props.api, selectedAssets]);
 
-  // Parse initial value (comma-separated asset IDs or names)
+  // Parse initial value (comma-separated asset IDs - can be numbers or UUIDs)
   useEffect(() => {
     const parseInitialValue = () => {
       if (!props.value) {
@@ -54,15 +54,18 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
         return;
       }
 
-      // Value could be comma-separated IDs or names
+      // Value could be comma-separated numeric IDs or UUIDs
       const parts = props.value.toString().split(',').map(p => p.trim());
-      const ids: number[] = [];
+      const ids: (number | string)[] = [];
 
       parts.forEach(part => {
         // Try to parse as number (ID)
-        const id = parseInt(part);
-        if (!isNaN(id)) {
-          ids.push(id);
+        const numId = parseInt(part);
+        if (!isNaN(numId)) {
+          ids.push(numId);
+        } else if (part.length > 0) {
+          // Treat as UUID string
+          ids.push(part);
         }
       });
 
@@ -142,8 +145,8 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
     isCancelAfterEnd: () => false,
   }), [isCancelled, selectedAssets, props.value]);
 
-  // Toggle asset selection
-  const toggleAsset = (assetId: number) => {
+  // Toggle asset selection (support both number and UUID string IDs)
+  const toggleAsset = (assetId: number | string) => {
     setSelectedAssets(prev =>
       prev.includes(assetId)
         ? prev.filter(id => id !== assetId)
@@ -152,7 +155,7 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   };
 
   // Remove selected asset
-  const removeAsset = (assetId: number) => {
+  const removeAsset = (assetId: number | string) => {
     setSelectedAssets(prev => prev.filter(id => id !== assetId));
   };
 
