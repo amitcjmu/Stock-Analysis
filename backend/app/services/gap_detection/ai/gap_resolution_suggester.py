@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 from app.models.asset import Asset
-from app.models.application_enrichment import ApplicationEnrichment
+from app.models.canonical_applications import CanonicalApplication
 from app.services.gap_detection.schemas import ComprehensiveGapReport, FieldGap
 from app.services.multi_model_service import TaskComplexity, multi_model_service
 
@@ -53,7 +53,7 @@ class GapResolutionSuggester:
         self,
         gap_report: ComprehensiveGapReport,
         asset: Asset,
-        application: Optional[ApplicationEnrichment],
+        application: Optional[CanonicalApplication],
         client_account_id: UUID,
         engagement_id: UUID,
     ) -> Dict:
@@ -63,7 +63,7 @@ class GapResolutionSuggester:
         Args:
             gap_report: Comprehensive gap analysis report
             asset: Asset entity
-            application: Application enrichment (optional)
+            application: CanonicalApplication (optional)
             client_account_id: Client account UUID
             engagement_id: Engagement UUID
 
@@ -119,7 +119,7 @@ class GapResolutionSuggester:
         self,
         gap_report: ComprehensiveGapReport,
         asset: Asset,
-        application: Optional[ApplicationEnrichment],
+        application: Optional[CanonicalApplication],
     ) -> Dict:
         """Build context dict for LLM prompt."""
         return {

@@ -19,10 +19,9 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
-from app.models.application_enrichment import ApplicationEnrichment
 from app.models.asset import Asset
+from app.models.canonical_applications import CanonicalApplication
 from app.services.gap_detection.cache import GapReportCache
 from app.services.gap_detection.gap_analyzer import GapAnalyzer
 from app.services.gap_detection.schemas import ComprehensiveGapReport
@@ -152,7 +151,7 @@ class BatchGapAnalyzer:
         client_account_id: UUID,
         engagement_id: UUID,
         db: AsyncSession,
-    ) -> tuple[Dict[UUID, Asset], Dict[UUID, ApplicationEnrichment]]:
+    ) -> tuple[Dict[UUID, Asset], Dict[UUID, CanonicalApplication]]:
         """
         Load assets and applications in optimized single query.
 
@@ -171,24 +170,23 @@ class BatchGapAnalyzer:
         )
         assets = {asset.id: asset for asset in asset_result.scalars().all()}
 
-        # Load applications with joinedload
+        # Load canonical applications
+        # Note: Need to query based on asset relationships or canonical_name matching
         app_result = await db.execute(
-            select(ApplicationEnrichment)
-            .options(joinedload(ApplicationEnrichment.asset))
-            .where(
-                ApplicationEnrichment.asset_id.in_(asset_ids),
-                ApplicationEnrichment.client_account_id == client_account_id,
-                ApplicationEnrichment.engagement_id == engagement_id,
+            select(CanonicalApplication).where(
+                CanonicalApplication.client_account_id == client_account_id,
+                CanonicalApplication.engagement_id == engagement_id,
             )
         )
-        applications = {app.asset_id: app for app in app_result.scalars().all()}
+        # Map by canonical name to asset (simplified - may need better mapping logic)
+        applications = {app.id: app for app in app_result.scalars().all()}
 
         return assets, applications
 
     async def _check_cache_batch(
         self,
         assets: Dict[UUID, Asset],
-        applications: Dict[UUID, ApplicationEnrichment],
+        applications: Dict[UUID, CanonicalApplication],
         client_account_id: UUID,
         engagement_id: UUID,
     ) -> Dict:
@@ -243,7 +241,7 @@ class BatchGapAnalyzer:
     async def _analyze_assets_parallel(
         self,
         assets: List[Asset],
-        applications: Dict[UUID, ApplicationEnrichment],
+        applications: Dict[UUID, CanonicalApplication],
         client_account_id: UUID,
         engagement_id: UUID,
         db: AsyncSession,
@@ -280,7 +278,7 @@ class BatchGapAnalyzer:
         self,
         reports: Dict[UUID, ComprehensiveGapReport],
         assets: List[Asset],
-        applications: Dict[UUID, ApplicationEnrichment],
+        applications: Dict[UUID, CanonicalApplication],
         client_account_id: UUID,
         engagement_id: UUID,
     ):

@@ -5,8 +5,34 @@ All schemas use Field constraints to ensure JSON safety (GPT-5 Rec #8).
 Completeness scores are clamped to [0.0, 1.0] to prevent NaN/Infinity issues.
 """
 
-from typing import Dict, List
+from enum import Enum
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
+
+
+class GapPriority(str, Enum):
+    """Priority levels for gaps - determines order of resolution."""
+
+    CRITICAL = "critical"  # Blocks assessment
+    HIGH = "high"  # Important for assessment
+    MEDIUM = "medium"  # Nice to have
+    LOW = "low"  # Optional
+
+
+class FieldGap(BaseModel):
+    """Represents a single missing or incomplete field."""
+
+    field_name: str = Field(description="Name of the missing field")
+    layer: str = Field(
+        description="Data layer (column, enrichment, jsonb, application, standards)"
+    )
+    priority: GapPriority = Field(description="Priority level")
+    reason: Optional[str] = Field(
+        None, description="Why this field is missing/incomplete"
+    )
+
+    class Config:
+        use_enum_values = True
 
 
 class DataRequirements(BaseModel):
@@ -335,6 +361,10 @@ class ComprehensiveGapReport(BaseModel):
     medium_priority_gaps: List[str] = Field(
         default_factory=list,
         description="Priority 3 missing fields (nice to have)",
+    )
+    all_gaps: List[FieldGap] = Field(
+        default_factory=list,
+        description="Complete list of all gaps across all layers",
     )
 
     # Assessment readiness

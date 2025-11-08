@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
-from app.models.application_enrichment import ApplicationEnrichment
+from app.models.canonical_applications import CanonicalApplication
 from app.services.ai_analysis.questionnaire_generator.tools.generation import (
     QuestionnaireGenerationTool,
 )
@@ -83,12 +83,12 @@ async def prepare_gap_data_with_analyzer(
             logger.warning(f"Asset {asset_id} not found, skipping")
             continue
 
-        # Load application enrichment if available
+        # Load canonical application if available (match by asset name)
         app_result = await db.execute(
-            select(ApplicationEnrichment).where(
-                ApplicationEnrichment.asset_id == asset_id,
-                ApplicationEnrichment.client_account_id == context.client_account_id,
-                ApplicationEnrichment.engagement_id == context.engagement_id,
+            select(CanonicalApplication).where(
+                CanonicalApplication.canonical_name == asset.name,
+                CanonicalApplication.client_account_id == context.client_account_id,
+                CanonicalApplication.engagement_id == context.engagement_id,
             )
         )
         application = app_result.scalar_one_or_none()

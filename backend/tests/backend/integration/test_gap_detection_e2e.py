@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
-from app.models.application_enrichment import ApplicationEnrichment
+from app.models.canonical_applications import CanonicalApplication
 from app.models.assessment_flow import EngagementArchitectureStandard
 from app.services.child_flow_services.questionnaire_helpers_gap_analyzer import (
     analyze_and_generate_questionnaires,
@@ -35,7 +35,9 @@ class MockChildFlow:
 class TestGapDetectionE2E:
     """End-to-end test suite for gap detection system."""
 
-    async def test_complete_pipeline_minimal_asset(self, db_session: AsyncSession):
+    async def test_complete_pipeline_minimal_asset(
+        self, async_db_session: AsyncSession
+    ):
         """Test complete pipeline with minimal asset data (maximum gaps)."""
         # Arrange
         client_account_id = uuid4()
@@ -56,12 +58,12 @@ class TestGapDetectionE2E:
             name="minimal-app",
             asset_type="application",
         )
-        db_session.add(asset)
-        await db_session.commit()
+        async_db_session.add(asset)
+        await async_db_session.commit()
 
         # Act: Run complete pipeline
         result = await analyze_and_generate_questionnaires(
-            db=db_session,
+            db=async_db_session,
             context=context,
             asset_ids=[asset_id],
             child_flow=MockChildFlow(flow_id),
@@ -101,13 +103,16 @@ class TestGapDetectionE2E:
         )
         db_session.add(asset)
 
-        # Create partial application enrichment
-        app = ApplicationEnrichment(
-            asset_id=asset_id,
+        # Create partial canonical application
+        app = CanonicalApplication(
+            id=uuid4(),
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            database_version="PostgreSQL 14",
-            # Missing: backup_frequency, compliance_requirements, etc.
+            canonical_name="enriched-app",
+            normalized_name="enriched_app",
+            name_hash="hash_enriched_app",
+            business_criticality="high",
+            # Missing: description, technology_stack, etc.
         )
         db_session.add(app)
         await db_session.commit()
@@ -333,13 +338,16 @@ class TestGapDetectionE2E:
         )
         db_session.add(asset)
 
-        # Create enrichment with most fields filled
-        app = ApplicationEnrichment(
-            asset_id=asset_id,
+        # Create canonical application with most fields filled
+        app = CanonicalApplication(
+            id=uuid4(),
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            database_version="PostgreSQL 14",
-            backup_frequency="daily",
+            canonical_name="priority-test-app",
+            normalized_name="priority_test_app",
+            name_hash="hash_priority_test_app",
+            business_criticality="critical",
+            description="Well-documented application",
             # Only missing low-priority fields
         )
         db_session.add(app)
@@ -381,12 +389,15 @@ class TestGapDetectionE2E:
             operating_system="Linux",
             ip_address="10.0.1.1",
         )
-        ready_app = ApplicationEnrichment(
-            asset_id=ready_asset.id,
+        ready_app = CanonicalApplication(
+            id=uuid4(),
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            database_version="PostgreSQL 14",
-            backup_frequency="daily",
+            canonical_name="ready-app",
+            normalized_name="ready_app",
+            name_hash="hash_ready_app",
+            business_criticality="high",
+            description="Comprehensive application documentation",
             # Well-filled data
         )
 
