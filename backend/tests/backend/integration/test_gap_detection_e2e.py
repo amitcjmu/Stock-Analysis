@@ -36,7 +36,7 @@ class TestGapDetectionE2E:
     """End-to-end test suite for gap detection system."""
 
     async def test_complete_pipeline_minimal_asset(
-        self, async_db_session: AsyncSession
+        self, async_async_db_session: AsyncSession
     ):
         """Test complete pipeline with minimal asset data (maximum gaps)."""
         # Arrange
@@ -58,12 +58,12 @@ class TestGapDetectionE2E:
             name="minimal-app",
             asset_type="application",
         )
-        async_db_session.add(asset)
-        await async_db_session.commit()
+        async_async_db_session.add(asset)
+        await async_async_db_session.commit()
 
         # Act: Run complete pipeline
         result = await analyze_and_generate_questionnaires(
-            db=async_db_session,
+            db=async_async_db_session,
             context=context,
             asset_ids=[asset_id],
             child_flow=MockChildFlow(flow_id),
@@ -78,7 +78,9 @@ class TestGapDetectionE2E:
         assert metadata["total_questions"] > 10  # Should have many questions
         assert metadata["assets_analyzed"] == 1
 
-    async def test_complete_pipeline_with_enrichment(self, db_session: AsyncSession):
+    async def test_complete_pipeline_with_enrichment(
+        self, async_db_session: AsyncSession
+    ):
         """Test pipeline with partially enriched asset data."""
         # Arrange
         client_account_id = uuid4()
@@ -101,7 +103,7 @@ class TestGapDetectionE2E:
             operating_system="Linux",
             ip_address="10.0.1.5",
         )
-        db_session.add(asset)
+        async_db_session.add(asset)
 
         # Create partial canonical application
         app = CanonicalApplication(
@@ -114,12 +116,12 @@ class TestGapDetectionE2E:
             business_criticality="high",
             # Missing: description, technology_stack, etc.
         )
-        db_session.add(app)
-        await db_session.commit()
+        async_db_session.add(app)
+        await async_db_session.commit()
 
         # Act
         result = await analyze_and_generate_questionnaires(
-            db=db_session,
+            db=async_db_session,
             context=context,
             asset_ids=[asset_id],
             child_flow=MockChildFlow(flow_id),
@@ -131,7 +133,9 @@ class TestGapDetectionE2E:
         metadata = result["metadata"]
         assert metadata["total_questions"] < 20  # Fewer gaps due to enrichment
 
-    async def test_complete_pipeline_with_standards(self, db_session: AsyncSession):
+    async def test_complete_pipeline_with_standards(
+        self, async_db_session: AsyncSession
+    ):
         """Test pipeline with architecture standards enforcement."""
         # Arrange
         client_account_id = uuid4()
@@ -152,7 +156,7 @@ class TestGapDetectionE2E:
             name="standards-app",
             asset_type="application",
         )
-        db_session.add(asset)
+        async_db_session.add(asset)
 
         # Create multiple architecture standards
         standards = [
@@ -174,12 +178,12 @@ class TestGapDetectionE2E:
             ),
         ]
         for std in standards:
-            db_session.add(std)
-        await db_session.commit()
+            async_db_session.add(std)
+        await async_db_session.commit()
 
         # Act
         result = await analyze_and_generate_questionnaires(
-            db=db_session,
+            db=async_db_session,
             context=context,
             asset_ids=[asset_id],
             child_flow=MockChildFlow(flow_id),
@@ -195,7 +199,9 @@ class TestGapDetectionE2E:
             for title in section_titles
         )
 
-    async def test_complete_pipeline_multiple_assets(self, db_session: AsyncSession):
+    async def test_complete_pipeline_multiple_assets(
+        self, async_db_session: AsyncSession
+    ):
         """Test pipeline with multiple assets (batch processing)."""
         # Arrange
         client_account_id = uuid4()
@@ -219,12 +225,12 @@ class TestGapDetectionE2E:
                 operating_system="Linux" if i % 2 == 0 else None,
                 ip_address=f"10.0.1.{i+1}" if i % 3 == 0 else None,
             )
-            db_session.add(asset)
-        await db_session.commit()
+            async_db_session.add(asset)
+        await async_db_session.commit()
 
         # Act
         result = await analyze_and_generate_questionnaires(
-            db=db_session,
+            db=async_db_session,
             context=context,
             asset_ids=asset_ids,
             child_flow=MockChildFlow(flow_id),
@@ -236,7 +242,9 @@ class TestGapDetectionE2E:
         assert metadata["assets_analyzed"] == 5
         assert metadata["total_questions"] > 0
 
-    async def test_gap_analyzer_performance_target(self, db_session: AsyncSession):
+    async def test_gap_analyzer_performance_target(
+        self, async_db_session: AsyncSession
+    ):
         """Test that gap analysis meets <50ms per asset performance target."""
         import time
 
@@ -252,8 +260,8 @@ class TestGapDetectionE2E:
             name="perf-test-app",
             asset_type="application",
         )
-        db_session.add(asset)
-        await db_session.commit()
+        async_db_session.add(asset)
+        await async_db_session.commit()
 
         # Act
         gap_analyzer = GapAnalyzer()
@@ -263,7 +271,7 @@ class TestGapDetectionE2E:
             application=None,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            db=db_session,
+            db=async_db_session,
         )
         elapsed_ms = (time.time() - start_time) * 1000
 
@@ -272,7 +280,7 @@ class TestGapDetectionE2E:
         assert elapsed_ms < 50, f"Gap analysis took {elapsed_ms:.2f}ms, target is <50ms"
 
     async def test_questionnaire_generation_backward_compatibility(
-        self, db_session: AsyncSession
+        self, async_db_session: AsyncSession
     ):
         """Test that new system maintains backward compatibility with legacy format."""
         # Arrange
@@ -293,12 +301,12 @@ class TestGapDetectionE2E:
             name="compat-app",
             asset_type="application",
         )
-        db_session.add(asset)
-        await db_session.commit()
+        async_db_session.add(asset)
+        await async_db_session.commit()
 
         # Act
         result = await analyze_and_generate_questionnaires(
-            db=db_session,
+            db=async_db_session,
             context=context,
             asset_ids=[asset_id],
             child_flow=MockChildFlow(flow_id),
@@ -319,7 +327,7 @@ class TestGapDetectionE2E:
                 assert "question_id" in question
                 assert "question_text" in question
 
-    async def test_priority_gap_filtering(self, db_session: AsyncSession):
+    async def test_priority_gap_filtering(self, async_db_session: AsyncSession):
         """Test that only critical/high priority gaps generate questions."""
         # Arrange
         client_account_id = uuid4()
@@ -336,7 +344,7 @@ class TestGapDetectionE2E:
             operating_system="Linux",
             ip_address="10.0.1.1",
         )
-        db_session.add(asset)
+        async_db_session.add(asset)
 
         # Create canonical application with most fields filled
         app = CanonicalApplication(
@@ -350,8 +358,8 @@ class TestGapDetectionE2E:
             description="Well-documented application",
             # Only missing low-priority fields
         )
-        db_session.add(app)
-        await db_session.commit()
+        async_db_session.add(app)
+        await async_db_session.commit()
 
         # Act
         gap_analyzer = GapAnalyzer()
@@ -360,7 +368,7 @@ class TestGapDetectionE2E:
             application=app,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            db=db_session,
+            db=async_db_session,
         )
 
         # Assert
@@ -373,7 +381,9 @@ class TestGapDetectionE2E:
         # Well-filled asset should have minimal critical/high gaps
         assert len(critical_gaps) + len(high_gaps) < len(gap_report.all_gaps)
 
-    async def test_assessment_readiness_calculation(self, db_session: AsyncSession):
+    async def test_assessment_readiness_calculation(
+        self, async_db_session: AsyncSession
+    ):
         """Test assessment readiness determination based on gap analysis."""
         # Arrange
         client_account_id = uuid4()
@@ -410,10 +420,10 @@ class TestGapDetectionE2E:
             # Minimal data
         )
 
-        db_session.add(ready_asset)
-        db_session.add(ready_app)
-        db_session.add(not_ready_asset)
-        await db_session.commit()
+        async_db_session.add(ready_asset)
+        async_db_session.add(ready_app)
+        async_db_session.add(not_ready_asset)
+        await async_db_session.commit()
 
         # Act
         gap_analyzer = GapAnalyzer()
@@ -423,7 +433,7 @@ class TestGapDetectionE2E:
             application=ready_app,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            db=db_session,
+            db=async_db_session,
         )
 
         not_ready_report = await gap_analyzer.analyze_asset(
@@ -431,7 +441,7 @@ class TestGapDetectionE2E:
             application=None,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            db=db_session,
+            db=async_db_session,
         )
 
         # Assert

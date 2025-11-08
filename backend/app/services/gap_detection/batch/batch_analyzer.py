@@ -170,16 +170,11 @@ class BatchGapAnalyzer:
         )
         assets = {asset.id: asset for asset in asset_result.scalars().all()}
 
-        # Load canonical applications
-        # Note: Need to query based on asset relationships or canonical_name matching
-        app_result = await db.execute(
-            select(CanonicalApplication).where(
-                CanonicalApplication.client_account_id == client_account_id,
-                CanonicalApplication.engagement_id == engagement_id,
-            )
-        )
-        # Map by canonical name to asset (simplified - may need better mapping logic)
-        applications = {app.id: app for app in app_result.scalars().all()}
+        # Note: CanonicalApplication is a name registry, not an enrichment table.
+        # Application-level enrichment is not yet implemented in the data model.
+        # For now, we return empty dict and analyzers will run with application=None.
+        # TODO: Implement ApplicationEnrichment model or use Asset.application_metadata JSONB field
+        applications = {}
 
         return assets, applications
 
@@ -205,7 +200,7 @@ class BatchGapAnalyzer:
         assets_to_analyze = []
 
         for asset_id, asset in assets.items():
-            application = applications.get(asset_id)
+            # application = applications.get(asset_id)  # Not used yet
 
             asset_data = {
                 "operating_system": asset.operating_system,
@@ -214,14 +209,9 @@ class BatchGapAnalyzer:
                 "environment": asset.environment,
             }
 
-            app_data = (
-                {
-                    "database_version": application.database_version,
-                    "backup_frequency": application.backup_frequency,
-                }
-                if application
-                else {}
-            )
+            # Application enrichment not yet implemented - use empty dict
+            # TODO: Implement ApplicationEnrichment model with database_version, backup_frequency, etc.
+            app_data = {}
 
             cached_report = await self._cache.get(
                 client_account_id=client_account_id,
@@ -298,15 +288,10 @@ class BatchGapAnalyzer:
                 "environment": asset.environment,
             }
 
-            application = applications.get(asset.id)
-            app_data = (
-                {
-                    "database_version": application.database_version,
-                    "backup_frequency": application.backup_frequency,
-                }
-                if application
-                else {}
-            )
+            # application = applications.get(asset.id)  # Not used yet
+            # Application enrichment not yet implemented - use empty dict
+            # TODO: Implement ApplicationEnrichment model with database_version, backup_frequency, etc.
+            app_data = {}
 
             cache_tasks.append(
                 self._cache.set(
