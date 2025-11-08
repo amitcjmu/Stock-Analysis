@@ -289,6 +289,17 @@ async def create_collection_flow(
                 else flow_data.assessment_flow_id
             )
 
+        # Bug Fix: Extract asset IDs from missing_attributes and add to collection_config
+        # This ensures flows created from Assessment "Collect Missing Data" have pre-selected assets
+        collection_config = flow_data.collection_config or {}
+        if flow_data.missing_attributes:
+            # Extract unique asset IDs from missing_attributes dict keys
+            selected_asset_ids = list(flow_data.missing_attributes.keys())
+            collection_config["selected_application_ids"] = selected_asset_ids
+            logger.info(
+                f"Pre-selected {len(selected_asset_ids)} assets from missing_attributes for flow"
+            )
+
         collection_flow = CollectionFlow(
             flow_id=flow_id,
             flow_name=collection_utils.format_flow_display_name(),
@@ -299,7 +310,7 @@ async def create_collection_flow(
             # Per ADR-012: asset_selection phase requires PAUSED status (user input needed)
             status=CollectionFlowStatus.PAUSED.value,
             automation_tier=flow_data.automation_tier,
-            collection_config=flow_data.collection_config or {},
+            collection_config=collection_config,
             flow_metadata={
                 "use_agent_generation": True
             },  # Enable CrewAI agent generation

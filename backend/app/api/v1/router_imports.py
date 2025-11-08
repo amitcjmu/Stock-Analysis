@@ -141,6 +141,18 @@ except ImportError:
 # assessment_flow_router is imported from endpoints package at line 16
 ASSESSMENT_FLOW_AVAILABLE = True
 
+# Assessment Flow Readiness endpoints (Issue #980 - Gap Detection Integration)
+assessment_flow_readiness_router: Optional[APIRouter]
+try:
+    from app.api.v1.endpoints.assessment_flow_readiness import (
+        router as assessment_flow_readiness_router,
+    )
+
+    ASSESSMENT_FLOW_READINESS_AVAILABLE = True
+except ImportError:
+    ASSESSMENT_FLOW_READINESS_AVAILABLE = False
+    assessment_flow_readiness_router = None
+
 # Wave Planning endpoints
 wave_planning_router: Optional[APIRouter]
 try:
@@ -494,6 +506,8 @@ __all__ = [
     "clarifications_router",
     "ASSESS_AVAILABLE",
     "assess_router",
+    "ASSESSMENT_FLOW_READINESS_AVAILABLE",
+    "assessment_flow_readiness_router",
     "WAVE_PLANNING_AVAILABLE",
     "wave_planning_router",
     "PLAN_AVAILABLE",
