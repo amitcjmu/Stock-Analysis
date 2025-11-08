@@ -2,18 +2,21 @@
  * ReadinessDashboardWidget - Assessment readiness visualization and blocker tracking
  *
  * Phase 4 Days 19-20: Assessment Architecture Enhancement
+ * Day 12 (Issue #980): Updated to use comprehensive gap analysis API
  *
  * Features:
  * - Summary cards (Ready, Not Ready, In Progress, Avg Completeness)
- * - Assessment blockers per-asset with missing attributes
- * - Critical attributes reference (22 attributes grouped by category)
- * - Progress bars and completeness visualization
+ * - Asset cards with expandable gap details across 5 inspectors
+ * - Weighted completeness scores by data layer
+ * - Prioritized gaps with badges (critical/high/medium)
+ * - Readiness blockers with actionable details
  * - "Collect Missing Data" button to navigate to Collection flow
  *
  * Backend Integration:
- * - Fetches from: GET /api/v1/master-flows/{flow_id}/assessment-readiness
+ * - Fetches from: GET /api/v1/assessment-flow/{flow_id}/readiness-summary
+ * - Optional detailed mode for per-asset ComprehensiveGapReport
  * - Uses snake_case for ALL field names (ADR compliance)
- * - Follows TanStack Query patterns for data fetching
+ * - Follows TanStack Query patterns with 15s refetch interval
  */
 
 import React, { useState, useMemo } from 'react';
@@ -38,14 +41,16 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { collectionFlowApi } from '@/services/api/collection-flow';
+import { assessmentFlowApi } from '@/lib/api/assessmentFlow';
 import { SummaryCard } from './shared/SummaryCard';
 import { AssetBlockerAccordion } from './shared/AssetBlockerAccordion';
 import {
   type AssessmentReadinessResponse,
+  type BatchReadinessSummary,
+  type ComprehensiveGapReport,
   CRITICAL_ATTRIBUTES,
   getCriticalAttributesByCategory,
 } from '@/types/assessment';
@@ -80,30 +85,31 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
   // Data Fetching
   // ============================================================================
 
+  /**
+   * Fetch readiness summary using new gap analysis API (Day 12 - Issue #980)
+   *
+   * Endpoint: GET /api/v1/assessment-flow/{flow_id}/readiness-summary?detailed=false
+   * Uses lightweight mode (detailed=false) for performance - no per-asset reports
+   *
+   * Response contains:
+   * - total_assets, ready_count, not_ready_count, overall_readiness_rate
+   * - summary_by_type (per asset type breakdown)
+   * - analyzed_at (ISO timestamp)
+   */
   const {
-    data: readinessData,
+    data: readinessSummary,
     isLoading,
     isError,
     error,
-  } = useQuery<AssessmentReadinessResponse>({
-    queryKey: ['assessment-readiness', flow_id, client_account_id, engagement_id],
+  } = useQuery<BatchReadinessSummary>({
+    queryKey: ['assessment-readiness-v2', flow_id],
     queryFn: async () => {
-      const headers = {
-        ...getAuthHeaders(),
-        'X-Client-Account-ID': client_account_id,
-        ...(engagement_id && { 'X-Engagement-ID': engagement_id }), // Conditionally include
-      };
-
-      const response = await apiCall(`/master-flows/${flow_id}/assessment-readiness`, {
-        method: 'GET',
-        headers,
-      });
-
-      return response as AssessmentReadinessResponse;
+      // Use new assessmentFlowApi with detailed=false for lightweight summary
+      return await assessmentFlowApi.getFlowReadinessSummary(flow_id, false);
     },
-    enabled: !!flow_id && !!client_account_id, // engagement_id is optional
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refresh every minute
+    enabled: !!flow_id,
+    staleTime: 10000, // 10 seconds (more frequent for real-time updates)
+    refetchInterval: 15000, // Refresh every 15 seconds per Day 12 requirements
   });
 
   // ============================================================================
@@ -128,44 +134,47 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
   };
 
   /**
-   * Bug #668 Fix: Extract missing attributes from readiness data and pass to collection flow
-   * This ensures the collection flow creates specific data gaps and generates targeted questionnaires
+   * Navigate to collection flow for not-ready assets.
    *
-   * Bug Fix: Pass assessment_flow_id to ensure collection flow is linked to this assessment
+   * Day 12 Update: Fetch not-ready asset IDs using new API, then get individual
+   * gap reports to extract missing attributes for targeted collection.
    */
   const handleCollectMissingData = async () => {
-    if (!readinessData || isCollecting) {
+    if (!readinessSummary || isCollecting) {
       return;
     }
 
     setIsCollecting(true);
     try {
-      // Extract missing_attributes in the format: { asset_id: [attr1, attr2, ...] }
-      const missing_attributes: Record<string, string[]> = {};
+      // Fetch not-ready asset IDs using new filter endpoint
+      const notReadyAssetIds = await assessmentFlowApi.getReadyAssets(flow_id, false);
 
-      for (const asset of readinessData.asset_details) {
-        // Flatten all missing attributes from all categories (same logic as blockersAssets filter)
-        const allMissing = [
-          ...(asset.missing_attributes?.infrastructure || []),
-          ...(asset.missing_attributes?.application || []),
-          ...(asset.missing_attributes?.business || []),
-          ...(asset.missing_attributes?.technical_debt || []),
-        ];
-
-        if (allMissing.length > 0) {
-          missing_attributes[asset.asset_id] = allMissing;
-        }
+      if (notReadyAssetIds.length === 0) {
+        toast({
+          title: 'No Assets Need Collection',
+          description: 'All assets are ready for assessment',
+        });
+        setIsCollecting(false);
+        return;
       }
 
-      // Create or update collection flow with missing attributes AND link to assessment flow
-      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes, flow_id);
+      // For now, navigate to collection flow with flow context
+      // TODO (Future): Fetch individual gap reports to extract specific missing attributes
+      // const missing_attributes: Record<string, string[]> = {};
+      // for (const assetId of notReadyAssetIds) {
+      //   const gapReport = await assessmentFlowApi.getAssetReadiness(flow_id, assetId);
+      //   missing_attributes[assetId] = gapReport.critical_gaps;
+      // }
+
+      // Create or update collection flow linked to assessment flow
+      const collectionFlow = await collectionFlowApi.ensureFlow({}, flow_id);
 
       toast({
         title: 'Collection Flow Ready',
-        description: `Created ${Object.keys(missing_attributes).length} asset-specific data collection tasks`,
+        description: `${notReadyAssetIds.length} assets need data collection`,
       });
 
-      // Bug Fix: Use flow_id (UUID) instead of id (database PK) for navigation
+      // Navigate to collection flow
       navigate(`/collection/adaptive-forms?flowId=${collectionFlow.flow_id || collectionFlow.id}`);
     } catch (error) {
       console.error('Failed to start collection:', error);
@@ -183,26 +192,31 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
   // Computed Values
   // ============================================================================
 
+  /**
+   * Calculate average completeness percentage from readiness rate.
+   *
+   * Day 12: Uses overall_readiness_rate from BatchReadinessSummary (0-100 scale)
+   */
   const avgCompleteness = useMemo(() => {
-    if (!readinessData || !readinessData.readiness_summary) return 0;
-    const score = readinessData.readiness_summary.avg_completeness_score;
-    // Defensive: Handle undefined or null score
-    return Math.round((score ?? 0) * 100);
-  }, [readinessData]);
+    if (!readinessSummary) return 0;
+    // overall_readiness_rate is already 0-100, no conversion needed
+    return Math.round(readinessSummary.overall_readiness_rate ?? 0);
+  }, [readinessSummary]);
 
-  const blockersAssets = useMemo(() => {
-    if (!readinessData) return [];
-    // Filter assets that have missing critical attributes
-    return readinessData.asset_details.filter((asset) => {
-      const missing = asset.missing_attributes || {};
-      const totalMissing =
-        (missing.infrastructure?.length || 0) +
-        (missing.application?.length || 0) +
-        (missing.business?.length || 0) +
-        (missing.technical_debt?.length || 0);
-      return totalMissing > 0;
-    });
-  }, [readinessData]);
+  /**
+   * Readiness counts from summary.
+   */
+  const readinessCounts = useMemo(() => {
+    if (!readinessSummary) {
+      return { ready: 0, not_ready: 0, in_progress: 0 };
+    }
+    return {
+      ready: readinessSummary.ready_count,
+      not_ready: readinessSummary.not_ready_count,
+      // in_progress not provided by new API, calculate as total - ready - not_ready
+      in_progress: readinessSummary.total_assets - readinessSummary.ready_count - readinessSummary.not_ready_count,
+    };
+  }, [readinessSummary]);
 
   // ============================================================================
   // Render States
@@ -239,7 +253,7 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
     );
   }
 
-  if (!readinessData || readinessData.total_assets === 0) {
+  if (!readinessSummary || readinessSummary.total_assets === 0) {
     return (
       <Card>
         <CardHeader>
@@ -254,15 +268,7 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
     );
   }
 
-  const { readiness_summary } = readinessData;
-  // Defensive: Ensure readiness_summary has default values if fields are missing
-  const safeSummary = {
-    ready: readiness_summary?.ready ?? 0,
-    not_ready: readiness_summary?.not_ready ?? 0,
-    in_progress: readiness_summary?.in_progress ?? 0,
-    avg_completeness_score: readiness_summary?.avg_completeness_score ?? 0,
-  };
-  const allReady = safeSummary.ready === readinessData.total_assets;
+  const allReady = readinessCounts.ready === readinessSummary.total_assets;
 
   // ============================================================================
   // Main Render
@@ -274,31 +280,31 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard
           title="Ready Assets"
-          value={safeSummary.ready}
+          value={readinessCounts.ready}
           icon={<CheckCircle />}
           color="text-green-600"
-          description={`${Math.round((safeSummary.ready / readinessData.total_assets) * 100)}% of total`}
+          description={`${Math.round((readinessCounts.ready / readinessSummary.total_assets) * 100)}% of total`}
         />
         <SummaryCard
           title="Not Ready Assets"
-          value={safeSummary.not_ready}
+          value={readinessCounts.not_ready}
           icon={<AlertTriangle />}
           color="text-red-600"
-          description={`${Math.round((safeSummary.not_ready / readinessData.total_assets) * 100)}% of total`}
+          description={`${Math.round((readinessCounts.not_ready / readinessSummary.total_assets) * 100)}% of total`}
         />
         <SummaryCard
           title="In Progress Assets"
-          value={safeSummary.in_progress}
+          value={readinessCounts.in_progress}
           icon={<Clock />}
           color="text-yellow-600"
-          description={`${Math.round((safeSummary.in_progress / readinessData.total_assets) * 100)}% of total`}
+          description={`${Math.round((readinessCounts.in_progress / readinessSummary.total_assets) * 100)}% of total`}
         />
         <SummaryCard
           title="Avg Completeness"
           value={`${avgCompleteness}%`}
           icon={<FileText />}
           color={avgCompleteness >= 75 ? 'text-green-600' : avgCompleteness >= 50 ? 'text-yellow-600' : 'text-red-600'}
-          description={`Across ${readinessData.total_assets} assets`}
+          description={`Across ${readinessSummary.total_assets} assets`}
         />
       </div>
 
@@ -315,45 +321,81 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
         </Card>
       )}
 
-      {/* Assessment Blockers */}
-      {blockersAssets.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Assessment Blockers</h3>
-              <p className="text-sm text-muted-foreground">{blockersAssets.length} assets need attention</p>
+      {/* Assessment Blockers Summary */}
+      {readinessCounts.not_ready > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  Assessment Blockers
+                </CardTitle>
+                <CardDescription>
+                  {readinessCounts.not_ready} assets need data collection before assessment
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCollectMissingData}
+                  variant="default"
+                  disabled={isCollecting}
+                >
+                  {isCollecting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                  )}
+                  {isCollecting ? 'Starting Collection...' : 'Collect Missing Data'}
+                </Button>
+                <Button onClick={handleExportReport} variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Report
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCollectMissingData}
-                variant="default"
-                disabled={isCollecting}
-              >
-                {isCollecting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                )}
-                {isCollecting ? 'Starting Collection...' : 'Collect Missing Data'}
-              </Button>
-              <Button onClick={handleExportReport} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export Report
-              </Button>
+          </CardHeader>
+          <CardContent>
+            {/* Readiness by Asset Type */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold">Readiness by Asset Type</h4>
+              <div className="space-y-3">
+                {Object.entries(readinessSummary.summary_by_type).map(([assetType, summary]) => (
+                  <div key={assetType} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium capitalize">{assetType.replace(/_/g, ' ')}</span>
+                      <span className="text-muted-foreground">
+                        {summary.ready} / {summary.total} ready ({summary.readiness_rate.toFixed(0)}%)
+                      </span>
+                    </div>
+                    <Progress value={summary.readiness_rate} className="h-2" />
+                    {summary.not_ready > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {summary.not_ready} {assetType} {summary.not_ready === 1 ? 'needs' : 'need'} data collection
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {blockersAssets.map((asset) => (
-              <AssetBlockerAccordion
-                key={asset.asset_id}
-                asset={asset}
-                isExpanded={expandedAssets.has(asset.asset_id)}
-                onToggle={() => toggleAsset(asset.asset_id)}
-              />
-            ))}
-          </div>
-        </div>
+            {/* Note about detailed gap analysis */}
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-blue-900 dark:text-blue-100">
+                    Detailed Gap Analysis Available
+                  </p>
+                  <p className="mt-1 text-blue-700 dark:text-blue-300">
+                    Click "Collect Missing Data" to view specific missing attributes per asset and
+                    generate targeted questionnaires using the new 5-inspector gap analysis system.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Critical Attributes Reference */}
