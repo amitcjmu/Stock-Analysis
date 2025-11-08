@@ -284,3 +284,128 @@ class StandardsGapReport(BaseModel):
                 "completeness_score": 0.75,
             }
         }
+
+
+class ComprehensiveGapReport(BaseModel):
+    """
+    Comprehensive gap analysis across all data layers.
+
+    Orchestrates all 5 inspectors (column, enrichment, JSONB, application, standards)
+    to produce a complete picture of asset data completeness.
+
+    Performance: <50ms per asset (target from implementation plan)
+    Part of Issue #980: Intelligent Multi-Layer Gap Detection System
+    """
+
+    # Inspector reports
+    column_gaps: ColumnGapReport = Field(
+        description="Gap report for Asset SQLAlchemy columns"
+    )
+    enrichment_gaps: EnrichmentGapReport = Field(
+        description="Gap report for enrichment tables"
+    )
+    jsonb_gaps: JSONBGapReport = Field(description="Gap report for JSONB fields")
+    application_gaps: ApplicationGapReport = Field(
+        description="Gap report for CanonicalApplication metadata"
+    )
+    standards_gaps: StandardsGapReport = Field(
+        description="Gap report for architecture standards"
+    )
+
+    # Weighted completeness
+    overall_completeness: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Weighted completeness score [0.0-1.0] across all layers",
+    )
+    weighted_scores: Dict[str, float] = Field(
+        default_factory=dict,
+        description="Individual weighted scores by layer (e.g., {'columns': 0.85, 'enrichments': 0.70})",
+    )
+
+    # Prioritized gaps
+    critical_gaps: List[str] = Field(
+        default_factory=list,
+        description="Priority 1 missing fields (blocks assessment)",
+    )
+    high_priority_gaps: List[str] = Field(
+        default_factory=list,
+        description="Priority 2 missing fields (important for assessment)",
+    )
+    medium_priority_gaps: List[str] = Field(
+        default_factory=list,
+        description="Priority 3 missing fields (nice to have)",
+    )
+
+    # Assessment readiness
+    is_ready_for_assessment: bool = Field(
+        description="Whether asset has sufficient data for assessment"
+    )
+    readiness_blockers: List[str] = Field(
+        default_factory=list,
+        description="Reasons why asset is not ready for assessment",
+    )
+    completeness_threshold: float = Field(
+        default=0.75,
+        ge=0.0,
+        le=1.0,
+        description="Minimum completeness score required for assessment readiness",
+    )
+
+    # Metadata
+    asset_id: str = Field(description="Asset UUID")
+    asset_name: str = Field(description="Asset name for display")
+    asset_type: str = Field(description="Asset type (server, application, etc.)")
+    analyzed_at: str = Field(description="ISO 8601 timestamp of analysis")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "column_gaps": {
+                    "missing_attributes": ["cpu_cores", "memory_gb"],
+                    "empty_attributes": ["technology_stack"],
+                    "null_attributes": [],
+                    "completeness_score": 0.75,
+                },
+                "enrichment_gaps": {
+                    "missing_tables": ["resilience", "compliance_flags"],
+                    "incomplete_tables": {},
+                    "completeness_score": 0.60,
+                },
+                "jsonb_gaps": {
+                    "missing_keys": {"custom_attributes": ["environment"]},
+                    "empty_values": {},
+                    "completeness_score": 0.85,
+                },
+                "application_gaps": {
+                    "missing_metadata": ["business_unit"],
+                    "incomplete_tech_stack": [],
+                    "missing_business_context": [],
+                    "completeness_score": 0.90,
+                },
+                "standards_gaps": {
+                    "violated_standards": [],
+                    "missing_mandatory_data": [],
+                    "override_required": False,
+                    "completeness_score": 1.0,
+                },
+                "overall_completeness": 0.76,
+                "weighted_scores": {
+                    "columns": 0.75,
+                    "enrichments": 0.60,
+                    "jsonb": 0.85,
+                    "application": 0.90,
+                    "standards": 1.0,
+                },
+                "critical_gaps": ["cpu_cores", "memory_gb"],
+                "high_priority_gaps": ["resilience", "compliance_flags"],
+                "medium_priority_gaps": ["environment"],
+                "is_ready_for_assessment": True,
+                "readiness_blockers": [],
+                "completeness_threshold": 0.75,
+                "asset_id": "123e4567-e89b-12d3-a456-426614174000",
+                "asset_name": "app-server-01",
+                "asset_type": "server",
+                "analyzed_at": "2025-11-08T10:30:00Z",
+            }
+        }

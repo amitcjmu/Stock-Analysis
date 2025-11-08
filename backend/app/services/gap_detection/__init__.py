@@ -12,14 +12,28 @@ Part of Issue #980: Intelligent Multi-Layer Gap Detection System
 All 8 GPT-5 recommendations incorporated.
 """
 
+from .gap_analyzer import GapAnalyzer
 from .schemas import (
-    DataRequirements,
+    ApplicationGapReport,
     ColumnGapReport,
+    ComprehensiveGapReport,
+    DataRequirements,
     EnrichmentGapReport,
+    JSONBGapReport,
+    StandardsGapReport,
+    StandardViolation,
 )
 
 __all__ = [
+    # Main orchestrator
+    "GapAnalyzer",
+    # Schema models
     "DataRequirements",
     "ColumnGapReport",
     "EnrichmentGapReport",
+    "JSONBGapReport",
+    "ApplicationGapReport",
+    "StandardsGapReport",
+    "StandardViolation",
+    "ComprehensiveGapReport",
 ]
