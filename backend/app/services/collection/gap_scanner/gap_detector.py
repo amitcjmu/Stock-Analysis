@@ -1,10 +1,22 @@
 """
 Gap Detection Logic - Identifies missing critical attributes.
 
-Handles asset-type-specific attribute checking and questionnaire response validation.
+⚠️ DEPRECATION NOTICE (Day 13 - Issue #980):
+This module is deprecated. Use app.services.gap_detection.GapAnalyzer instead.
 
-PHASE 2 (Bug #679): Checks enriched asset data from unified assets table and canonical_applications
-before generating gaps. Queries assets table with asset_type filters (server, database, application).
+ProgrammaticGapScanner has been refactored to use GapAnalyzer orchestrator with 5 shared inspectors:
+- ColumnInspector: Asset SQLAlchemy columns
+- EnrichmentInspector: Enrichment tables (resilience, compliance, etc.)
+- JSONBInspector: JSONB fields (custom_attributes, technical_details)
+- ApplicationInspector: CanonicalApplication metadata
+- StandardsInspector: Architecture standards validation
+
+This module is retained for backward compatibility with legacy code paths but will be removed
+in a future refactoring. New code should NOT use these functions.
+
+Legacy functionality:
+- Handles asset-type-specific attribute checking
+- PHASE 2 (Bug #679): Checks enriched asset data from unified assets table and canonical_applications
 """
 
 import logging
