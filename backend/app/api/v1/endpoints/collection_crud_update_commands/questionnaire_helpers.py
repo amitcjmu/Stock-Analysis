@@ -312,6 +312,7 @@ async def _update_asset_readiness(
                     )
 
                     # Update asset readiness fields
+                    # ✅ FIX (Issue #980 QA): Also update sixr_ready field for Assessment Flow UI
                     update_stmt = (
                         update(Asset)
                         .where(
@@ -331,6 +332,9 @@ async def _update_asset_readiness(
                                 if gap_report.readiness_blockers
                                 else []
                             ),
+                            # ✅ FIX: Update sixr_ready for Assessment Flow UI
+                            # Assessment Flow queries this field to display readiness status
+                            sixr_ready=gap_report.is_ready_for_assessment,
                         )
                     )
                     await db.execute(update_stmt)
