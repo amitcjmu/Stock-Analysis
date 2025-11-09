@@ -206,7 +206,7 @@ class OrchestrationMixin:
             completeness_threshold=requirements.completeness_threshold,
             # Metadata
             asset_id=str(asset.id),
-            asset_name=getattr(asset, "asset_name", "Unknown"),
+            asset_name=getattr(asset, "name", getattr(asset, "asset_name", "Unknown")),
             asset_type=getattr(asset, "asset_type", "other"),
             analyzed_at=datetime.utcnow().isoformat() + "Z",
         )

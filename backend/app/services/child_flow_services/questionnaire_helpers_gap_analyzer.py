@@ -122,7 +122,7 @@ async def prepare_gap_data_with_analyzer(
             "name": asset.name,
             "type": asset.asset_type,
             "completeness": gap_report.overall_completeness,
-            "assessment_ready": gap_report.assessment_ready,
+            "assessment_ready": gap_report.is_ready_for_assessment,
         }
 
         # Aggregate gap counts

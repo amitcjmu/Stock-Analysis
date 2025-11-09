@@ -24,7 +24,7 @@ git log --oneline --after="2025-11-06" | grep "collection flow"
 
 # Check questionnaire generation timestamp
 docker exec -it migration_postgres psql -U postgres -d migration_db -c \
-  "SELECT id, created_at, completion_status FROM migration.adaptive_questionnaires 
+  "SELECT id, created_at, completion_status FROM migration.adaptive_questionnaires
    WHERE created_at > '2025-11-06 22:00:00' ORDER BY created_at DESC LIMIT 5;"
 ```
 
@@ -44,9 +44,9 @@ docker exec -it migration_postgres psql -U postgres -d migration_db -c \
 
 ```sql
 -- Check questionnaire timestamps vs commit timestamp
-SELECT 
-    id, 
-    created_at, 
+SELECT
+    id,
+    created_at,
     completion_status,
     question_count,
     updated_at
@@ -65,13 +65,13 @@ LIMIT 10;
 -- Commit: 694cc51ae at 2025-11-06 23:06:38+00
 
 -- Step 2: Count questionnaires before cutoff
-SELECT COUNT(*) 
-FROM migration.adaptive_questionnaires 
+SELECT COUNT(*)
+FROM migration.adaptive_questionnaires
 WHERE created_at < '2025-11-06 23:06:00+00';
 -- Result: 64 questionnaires
 
 -- Step 3: Delete pre-fix questionnaires
-DELETE FROM migration.adaptive_questionnaires 
+DELETE FROM migration.adaptive_questionnaires
 WHERE created_at < '2025-11-06 23:06:00+00';
 -- Deleted 64 rows
 
@@ -105,14 +105,14 @@ git log --format="%H %ai" -1 | awk '{print $1, $2, $3}'
 
 # Step 2: Delete questionnaires created before commit
 docker exec -it migration_postgres psql -U postgres -d migration_db -c "
-DELETE FROM migration.adaptive_questionnaires 
+DELETE FROM migration.adaptive_questionnaires
 WHERE created_at < '2025-11-06 23:06:00+00'
 RETURNING id, created_at;
 "
 
 # Step 3: Verify clean slate
 docker exec -it migration_postgres psql -U postgres -d migration_db -c "
-SELECT COUNT(*) as remaining_questionnaires 
+SELECT COUNT(*) as remaining_questionnaires
 FROM migration.adaptive_questionnaires;
 "
 ```
@@ -130,11 +130,11 @@ DO \$\$
 DECLARE
     deleted_count INT;
 BEGIN
-    DELETE FROM migration.adaptive_questionnaires 
+    DELETE FROM migration.adaptive_questionnaires
     WHERE created_at < '${COMMIT_TIMESTAMP}'::timestamp;
-    
+
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
-    RAISE NOTICE 'Deleted % cached questionnaires created before %', 
+    RAISE NOTICE 'Deleted % cached questionnaires created before %',
                  deleted_count, '${COMMIT_TIMESTAMP}';
 END \$\$;
 EOF
@@ -219,7 +219,7 @@ git log -1 --format="%ai"
 
 # 2. Check questionnaire timestamp
 docker exec -it migration_postgres psql -U postgres -d migration_db -c "
-SELECT created_at FROM migration.adaptive_questionnaires 
+SELECT created_at FROM migration.adaptive_questionnaires
 ORDER BY created_at DESC LIMIT 1;
 "
 

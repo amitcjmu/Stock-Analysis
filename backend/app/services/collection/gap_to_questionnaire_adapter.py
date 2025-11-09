@@ -99,7 +99,7 @@ class GapToQuestionnaireAdapter:
             },
             "gap_analysis_metadata": {
                 "overall_completeness": gap_report.overall_completeness,
-                "assessment_ready": gap_report.assessment_ready,
+                "assessment_ready": gap_report.is_ready_for_assessment,
                 "total_gaps_found": len(gap_report.all_gaps),
                 "critical_gaps": len(
                     [

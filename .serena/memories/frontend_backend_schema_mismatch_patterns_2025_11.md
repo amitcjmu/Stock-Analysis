@@ -3,8 +3,8 @@
 ## Common Symptom Patterns
 
 ### 1. NaN% in UI
-**Symptom**: Percentage displays show "NaN%"  
-**Root Cause**: `Math.round(undefined * 100)` when backend field missing  
+**Symptom**: Percentage displays show "NaN%"
+**Root Cause**: `Math.round(undefined * 100)` when backend field missing
 **Example**: Issue #875 - Data cleansing confidence scores
 
 **Detection**:
@@ -32,14 +32,14 @@ class Recommendation(BaseModel):
     confidence: Optional[float] = 0.85  # Prevents NaN
 
 # Frontend: Add defensive null check
-{rec.confidence !== undefined && rec.confidence !== null 
-  ? `${Math.round(rec.confidence * 100)}%` 
+{rec.confidence !== undefined && rec.confidence !== null
+  ? `${Math.round(rec.confidence * 100)}%`
   : 'N/A'}
 ```
 
 ### 2. Buttons Always Disabled
-**Symptom**: Interactive buttons grayed out, cannot click  
-**Root Cause**: `disabled={rec.field !== 'expected'}` when field undefined  
+**Symptom**: Interactive buttons grayed out, cannot click
+**Root Cause**: `disabled={rec.field !== 'expected'}` when field undefined
 **Example**: Issue #876 - Apply/Reject buttons
 
 **Detection**:
@@ -68,7 +68,7 @@ disabled={rec.status !== 'pending' || !rec.status}
 ```
 
 ### 3. Empty Lists/Tables
-**Symptom**: "No items" despite data existing  
+**Symptom**: "No items" despite data existing
 **Root Cause**: Frontend maps over undefined array field
 
 **Detection**:
@@ -126,7 +126,7 @@ class MyModel(BaseModel):
     # Existing fields
     id: str
     title: str
-    
+
     # Add missing fields that frontend expects
     confidence: Optional[float] = None  # Optional if sometimes missing
     status: str = 'pending'  # Required with default
@@ -195,12 +195,12 @@ interface DataModel {
 def test_model_has_required_fields():
     """Ensure model matches frontend expectations."""
     model = MyModel(id="1", title="Test")
-    
+
     # Assert frontend-expected fields exist
     assert hasattr(model, 'confidence')
     assert hasattr(model, 'status')
     assert hasattr(model, 'items')
-    
+
     # Assert defaults work
     assert model.status == 'pending'
     assert model.items == []
@@ -298,7 +298,7 @@ class DataCleansingRecommendation(BaseModel):
     category: str
     title: str
     # ... existing fields ...
-    
+
     # ✅ Added missing fields
     confidence: Optional[float] = 0.85
     status: str = 'pending'
@@ -349,8 +349,8 @@ interface MyModel {
 }
 
 # 4. Frontend defensive check
-{model.newField !== undefined 
-  ? `${model.newField}` 
+{model.newField !== undefined
+  ? `${model.newField}`
   : 'N/A'}
 ```
 

@@ -1,7 +1,7 @@
 # Dependencies Column API Serialization Bug - Lessons Learned (Issue #962)
 
-**Date**: November 2025  
-**Issue**: Dependencies multi-select feature saved correctly to database but API never returned the fields, causing UI to show "No dependencies"  
+**Date**: November 2025
+**Issue**: Dependencies multi-select feature saved correctly to database but API never returned the fields, causing UI to show "No dependencies"
 **Resolution**: 5-layer investigation revealed custom serialization bypassing Pydantic schema
 
 ---
@@ -51,7 +51,7 @@ When you add fields to:
 
 #### Layer 5: Custom Serializer Excludes Fields ✅ (ROOT CAUSE)
 - **Symptom**: Direct API test showed NO dependencies field in JSON response
-- **Investigation**: 
+- **Investigation**:
   - Found endpoint delegates to `asset_list_handler.py`
   - Found `_transform_asset_to_dict()` method with 60+ hardcoded fields
   - **Dependencies and dependents were NOT in the list**
@@ -183,7 +183,7 @@ When reviewing PRs that add new fields:
 ## Summary: The Five-Layer Bug
 
 1. **React Query cache** - Real issue, but not the root cause
-2. **Backend allowed fields** - Real issue, but not the root cause  
+2. **Backend allowed fields** - Real issue, but not the root cause
 3. **Double updateField calls** - Real issue, but not the root cause
 4. **Pydantic schema** - Added but BYPASSED by custom serializer
 5. **Custom serializer** - THE ROOT CAUSE ✅
