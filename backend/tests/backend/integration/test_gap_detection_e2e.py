@@ -11,6 +11,7 @@ Author: CC (Claude Code)
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import uuid4
 
 from app.core.context import RequestContext
@@ -39,6 +40,8 @@ class TestGapDetectionE2E:
     @pytest_asyncio.fixture
     async def test_user(self, async_db_session: AsyncSession) -> User:
         """Create test user for E2E tests."""
+        from sqlalchemy.orm import selectinload
+
         user_id = uuid4()
         user = User(
             id=user_id,
@@ -49,7 +52,12 @@ class TestGapDetectionE2E:
         )
         async_db_session.add(user)
         await async_db_session.commit()
-        await async_db_session.refresh(user)
+
+        # Explicitly load relationships to prevent lazy loading issues during RBAC checks
+        result = await async_db_session.execute(
+            select(User).options(selectinload(User.roles)).where(User.id == user_id)
+        )
+        user = result.scalar_one()
         return user
 
     @pytest_asyncio.fixture

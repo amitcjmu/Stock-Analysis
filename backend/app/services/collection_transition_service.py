@@ -198,6 +198,7 @@ class CollectionTransitionService:
             asset_ids = []
             canonical_app_ids = []
             application_groups_dict = []
+            dedup_results = []  # Initialize to avoid UnboundLocalError
 
             if (
                 hasattr(collection_flow, "collection_config")
