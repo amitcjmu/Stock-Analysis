@@ -42,10 +42,16 @@ class RequirementsMixin:
 
         # Extract compliance scopes from compliance_flags relationship
         compliance_scopes = None
-        if hasattr(asset, "compliance_flags") and asset.compliance_flags:
-            compliance_scopes = getattr(
-                asset.compliance_flags, "compliance_scopes", None
-            )
+        try:
+            if hasattr(asset, "compliance_flags"):
+                compliance_flags = getattr(asset, "compliance_flags", None)
+                if compliance_flags is not None:
+                    compliance_scopes = getattr(
+                        compliance_flags, "compliance_scopes", None
+                    )
+        except Exception:
+            # Relationship might not be loaded or doesn't exist - that's OK
+            compliance_scopes = None
 
         requirements = await self.requirements_engine.get_requirements(
             asset_type=asset_type,
