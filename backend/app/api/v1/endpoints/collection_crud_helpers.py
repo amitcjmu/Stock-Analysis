@@ -95,7 +95,9 @@ async def fetch_and_index_gaps(
                 f"Gap {gap.id} has invalid field_name: '{gap.field_name}' - skipping"
             )
 
-    logger.info(f"Indexed {len(gap_index)} pending gaps by field_name")
+    logger.info(
+        f"Indexed {len(gap_index)} pending gaps by field_name: {list(gap_index.keys())}"
+    )
     return gap_index
 
 
@@ -248,6 +250,13 @@ async def resolve_data_gaps(
     """Mark gaps as resolved for fields that received responses."""
     gaps_resolved = 0
 
+    # 🔍 DIAGNOSTIC LOGGING (Issue #980): Compare gap field names vs response field names
+    logger.info(
+        f"🔍 Gap Resolution - Comparing field names:\n"
+        f"  Gap index has {len(gap_index)} fields: {list(gap_index.keys())}\n"
+        f"  Form responses has {len(form_responses)} fields: {list(form_responses.keys())}"
+    )
+
     # Check which gaps should be marked as resolved based on form responses
     for field_name, value in form_responses.items():
         # Skip empty responses
@@ -291,6 +300,14 @@ async def resolve_data_gaps(
                     logger.debug(
                         f"Extracted field from composite ID: {field_name} -> {extracted_field}"
                     )
+
+        # 🔍 DIAGNOSTIC: Log match/mismatch for each field
+        if not gap:
+            logger.warning(
+                f"🔍 NO MATCH: Response field '{field_name}' not found in gap_index. "
+                f"Tried: exact match, custom_attributes prefix, composite ID extraction"
+            )
+
         if gap:
             # Mark gap as resolved
             gap.resolution_status = "resolved"
