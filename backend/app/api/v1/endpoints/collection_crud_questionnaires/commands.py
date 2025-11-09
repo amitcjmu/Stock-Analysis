@@ -248,7 +248,9 @@ async def _background_generate(
     context: RequestContext,
 ) -> None:
     """
-    Background task to generate questionnaires using AI agent.
+    Background task to generate questionnaires using AI agent with Issue #980 gap detection.
+
+    ✅ FIX 0.5 (Issue #980): Passes database session for gap detection integration.
 
     This runs in background and updates the pending questionnaire record
     when generation is complete or fails.
@@ -258,27 +260,28 @@ async def _background_generate(
     try:
         logger.info(f"Starting background questionnaire generation for {flow_id}")
 
-        # Use agent generation
-        from .agents import _generate_agent_questionnaires
+        # ✅ FIX 0.5: Create database session for gap detection
+        async with AsyncSessionLocal() as db:
+            # Use agent generation with Issue #980 gap detection
+            from .agents import _generate_agent_questionnaires
 
-        questionnaires = await _generate_agent_questionnaires(
-            flow_id, existing_assets, context
-        )
-
-        if questionnaires:
-            # Extract questions from ALL questionnaire sections (not just first one)
-            # Bug fix: Previously took only questionnaires[0].questions, losing 83% of questions
-            questions = []
-            for section in questionnaires:
-                if hasattr(section, "questions") and section.questions:
-                    questions.extend(section.questions)
-
-            logger.info(
-                f"Collected {len(questions)} total questions from {len(questionnaires)} sections"
+            questionnaires = await _generate_agent_questionnaires(
+                flow_id, existing_assets, context, db
             )
 
-            # Update questionnaire with generated questions AND progress flow status
-            async with AsyncSessionLocal() as db:
+            if questionnaires:
+                # Extract questions from ALL questionnaire sections (not just first one)
+                # Bug fix: Previously took only questionnaires[0].questions, losing 83% of questions
+                questions = []
+                for section in questionnaires:
+                    if hasattr(section, "questions") and section.questions:
+                        questions.extend(section.questions)
+
+                logger.info(
+                    f"Collected {len(questions)} total questions from {len(questionnaires)} sections"
+                )
+
+                # Update questionnaire with generated questions AND progress flow status
                 await _update_questionnaire_status(
                     questionnaire_id,
                     "ready",  # FIX BUG#801: Set to "ready" when questions are generated for frontend display
@@ -316,19 +319,18 @@ async def _background_generate(
                         f"Progressed flow {flow_id} to manual_collection phase with status=paused"
                     )
 
-            logger.info(
-                f"Successfully generated {len(questions)} questions for flow {flow_id}"
-            )
-        else:
-            # No questionnaires generated - mark as failed
-            async with AsyncSessionLocal() as db:
+                logger.info(
+                    f"Successfully generated {len(questions)} questions for flow {flow_id}"
+                )
+            else:
+                # No questionnaires generated - mark as failed
                 await _update_questionnaire_status(
                     questionnaire_id,
                     "failed",
                     error_message="No questionnaires could be generated",
                     db=db,
                 )
-            logger.warning(f"No questionnaires generated for flow {flow_id}")
+                logger.warning(f"No questionnaires generated for flow {flow_id}")
 
     except Exception as e:
         # Log full exception with stack trace for debugging

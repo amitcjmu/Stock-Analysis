@@ -144,15 +144,18 @@ async def _process_agent_results(
 
 
 async def _generate_agent_questionnaires(
-    flow_id: str, existing_assets: List[Asset], context: RequestContext
+    flow_id: str, existing_assets: List[Asset], context: RequestContext, db=None
 ) -> List[AdaptiveQuestionnaireResponse]:
     """
-    Generate questionnaires using persistent agent with fallback to service.
+    Generate questionnaires using persistent agent with Issue #980 gap detection.
+
+    ✅ FIX 0.5 (Issue #980): Integrated database-backed gap analysis.
 
     Args:
         flow_id: Collection flow ID
         existing_assets: List of available assets
         context: Request context with tenant information
+        db: Database session (required for Issue #980 gap detection)
 
     Returns:
         List of generated questionnaires
@@ -165,8 +168,11 @@ async def _generate_agent_questionnaires(
             f"Starting agent questionnaire generation for flow {flow_id} with {len(existing_assets)} assets"
         )
 
-        # Analyze selected assets for gaps and context
-        selected_assets, asset_analysis = _analyze_selected_assets(existing_assets)
+        # ✅ FIX 0.5: Analyze selected assets using Issue #980's gap detection
+        # Reads from collection_data_gaps table instead of legacy asset inspection
+        selected_assets, asset_analysis = _analyze_selected_assets(
+            existing_assets, flow_id, db
+        )
 
         if not selected_assets:
             logger.warning("No assets available for questionnaire generation")
