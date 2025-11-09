@@ -296,10 +296,23 @@ async def resolve_data_gaps(
             gap.resolution_status = "resolved"
             gap.resolved_at = datetime.utcnow()
             gap.resolved_by = "manual_submission"
+
+            # ✅ FIX 0.1: Populate resolved_value (Issue #980 - Critical Bug Fix)
+            # Store the actual response value so downstream writeback can use it
+            import json
+
+            if isinstance(value, dict):
+                gap.resolved_value = json.dumps(value.get("value", value))
+            elif isinstance(value, list):
+                gap.resolved_value = json.dumps(value)
+            else:
+                gap.resolved_value = str(value) if value is not None else ""
+
             gaps_resolved += 1
 
             logger.info(
-                f"Resolved gap {gap.id} ({gap.field_name}) through manual submission"
+                f"Resolved gap {gap.id} ({gap.field_name}) through manual submission "
+                f"with value: {gap.resolved_value[:50]}..."
             )
 
     if gaps_resolved > 0:

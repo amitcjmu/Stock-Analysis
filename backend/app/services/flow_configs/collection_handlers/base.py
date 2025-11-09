@@ -93,7 +93,12 @@ def get_question_template(gap_type: str) -> str:
 
 
 def build_field_updates_from_rows(rows) -> Dict[str, Any]:
-    """Extract last-write-wins mapping of field_name -> value from resolved rows."""
+    """
+    Extract last-write-wins mapping of field_name -> value from resolved rows.
+
+    ✅ FIX 0.2: Field Name Normalization (Issue #980 - Critical Bug Fix)
+    Handles composite field IDs and JSONB prefixes to enable proper asset writeback.
+    """
     updates: Dict[str, Any] = {}
     for row in rows:
         val = getattr(row, "response_value", None)
@@ -101,7 +106,37 @@ def build_field_updates_from_rows(rows) -> Dict[str, Any]:
             val = val["value"]
         field_name = getattr(row, "field_name", None)
         if field_name:
-            updates[field_name] = val
+            # ✅ FIX 0.2: Normalize field name to match Asset model fields
+            # Strategy 1: Strip composite field ID prefix (format: {asset_id}__{field_name})
+            # Example: "55f62e1b-1234-5678-90ab-cdef12345678__environment" → "environment"
+            normalized_field = field_name
+            if "__" in field_name:
+                parts = field_name.split("__", 1)
+                if len(parts) == 2:
+                    normalized_field = parts[1]
+                    logger.debug(
+                        f"Normalized composite field ID: {field_name} → {normalized_field}"
+                    )
+
+            # Strategy 2: Strip JSONB prefixes (format: {jsonb_field}.{key})
+            # Example: "custom_attributes.stakeholder_impact" → "stakeholder_impact"
+            # Example: "technical_details.architecture_pattern" → "architecture_pattern"
+            if "." in normalized_field:
+                jsonb_prefixes = ["custom_attributes", "technical_details", "metadata"]
+                for prefix in jsonb_prefixes:
+                    if normalized_field.startswith(f"{prefix}."):
+                        normalized_field = normalized_field.replace(f"{prefix}.", "", 1)
+                        logger.debug(
+                            f"Normalized JSONB prefix: {field_name} → {normalized_field}"
+                        )
+                        break
+
+            updates[normalized_field] = val
+            logger.debug(
+                f"Field update: {normalized_field} = {str(val)[:50]}{'...' if len(str(val)) > 50 else ''}"
+            )
+
+    logger.info(f"Built {len(updates)} field updates from {len(rows)} resolved rows")
     return updates
 
 
