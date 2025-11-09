@@ -101,12 +101,24 @@ class ColumnInspector(BaseInspector):
                 )
                 continue
 
-            # Check if attribute exists
+            # Check if attribute exists as direct column
             if not hasattr(asset, col_name):
-                missing.append(col_name)
-                continue
+                # CRITICAL FIX: Also check JSONB fields (technical_details, custom_attributes)
+                # This handles fields like architecture_pattern that are stored in JSONB
+                value = None
+                for jsonb_field in ["technical_details", "custom_attributes"]:
+                    if hasattr(asset, jsonb_field):
+                        jsonb_data = getattr(asset, jsonb_field)
+                        if isinstance(jsonb_data, dict) and col_name in jsonb_data:
+                            value = jsonb_data[col_name]
+                            break
 
-            value = getattr(asset, col_name, None)
+                # If still not found in JSONB, mark as missing
+                if value is None:
+                    missing.append(col_name)
+                    continue
+            else:
+                value = getattr(asset, col_name, None)
 
             # Categorize the gap
             if value is None:

@@ -173,6 +173,20 @@ class StandardsInspector(BaseInspector):
 
         Checks minimum_requirements dict against asset and application attributes.
 
+        CRITICAL: Only validates requirements that correspond to actual data fields.
+        Standards may contain metadata keys (e.g., "rationale", "cloud_support", "migration_path")
+        which are architectural guidelines, not data field requirements. These are skipped.
+
+        Per ADR-030 and ADR-034: The system checks extended attributes including:
+        - Asset SQLAlchemy columns (handled by ColumnInspector)
+        - JSONB fields: custom_attributes, technical_details (handled by JSONBInspector)
+        - Enrichment tables: AssetResilience, AssetComplianceFlags, etc. (handled by EnrichmentInspector)
+        - CanonicalApplication metadata (handled by ApplicationInspector)
+
+        StandardsInspector only validates standards that require SPECIFIC DATA FIELDS.
+        Architectural guidelines (like "java_versions" standard requiring Java 11+) are
+        compliance issues, not missing data fields, and should be handled separately.
+
         Args:
             asset: Asset to validate
             application: Optional CanonicalApplication (fallback for fields)
@@ -183,23 +197,90 @@ class StandardsInspector(BaseInspector):
         """
         minimum_requirements = standard.minimum_requirements or {}
 
-        # Check each requirement
+        # Known metadata keys that are NOT data fields (architectural guidelines)
+        # These should be skipped - they're not data field requirements
+        METADATA_KEYS = {
+            "rationale",
+            "cloud_support",
+            "migration_path",
+            "security_benefits",
+            "compatibility_notes",
+            "language_features",
+            "performance_improvements",
+            "required_features",
+            "required_patterns",
+            "deprecated_patterns",
+            "compliance_frameworks",
+            "implementation_guidelines",
+            "monitoring",
+            "authorization",
+            "rate_limiting",
+            "authentication",
+            "input_validation",
+            "security_headers",
+            "vulnerability_management",
+            "orchestration",
+            "best_practices",
+            "container_requirements",
+            "versioning",
+            "documentation",
+            "error_handling",
+            "design_principles",
+            "key_management",
+            "encryption_at_rest",
+            "encryption_in_transit",
+            "compliance_requirements",
+        }
+
+        # Get override_available safely (field may not exist on model)
+        override_available = False
+        if (
+            hasattr(standard, "override_available")
+            and standard.override_available is not None
+        ):
+            override_available = bool(standard.override_available)
+
+        # Check each requirement - only validate actual data field requirements
         for req_key, req_value in minimum_requirements.items():
-            # Try to get value from asset first, then application
-            asset_value = getattr(asset, req_key, None)
+            # Skip metadata keys - these are architectural guidelines, not data field requirements
+            if req_key in METADATA_KEYS or isinstance(req_value, (dict, list)):
+                logger.debug(
+                    f"Skipping metadata key '{req_key}' in standard '{standard.standard_name}' "
+                    f"(architectural guideline, not data field requirement)"
+                )
+                continue
 
+            # Try to get value from multiple sources (per ADR-030: extended attributes)
+            asset_value = None
+
+            # 1. Check Asset SQLAlchemy columns
+            if hasattr(asset, req_key):
+                asset_value = getattr(asset, req_key, None)
+
+            # 2. Check JSONB fields (custom_attributes, technical_details)
+            if asset_value is None:
+                for jsonb_field in ["custom_attributes", "technical_details"]:
+                    if hasattr(asset, jsonb_field):
+                        jsonb_data = getattr(asset, jsonb_field)
+                        if isinstance(jsonb_data, dict) and req_key in jsonb_data:
+                            asset_value = jsonb_data[req_key]
+                            break
+
+            # 3. Check CanonicalApplication (fallback)
             if asset_value is None and application:
-                asset_value = getattr(application, req_key, None)
+                if hasattr(application, req_key):
+                    asset_value = getattr(application, req_key, None)
 
-            # Get override_available safely (field may not exist on model)
-            override_available = False
-            if (
-                hasattr(standard, "override_available")
-                and standard.override_available is not None
-            ):
-                override_available = bool(standard.override_available)
+            # If field doesn't exist anywhere, skip it - it's not a data field requirement
+            # (The other inspectors will handle missing data fields as gaps)
+            if asset_value is None:
+                logger.debug(
+                    f"Skipping requirement '{req_key}' in standard '{standard.standard_name}' "
+                    f"(not found in asset columns, JSONB fields, or application - likely architectural guideline)"
+                )
+                continue
 
-            # Validate based on requirement type
+            # Validate based on requirement type (only for actual data fields)
             if isinstance(req_value, bool):
                 # Boolean requirement (e.g., encryption_enabled: True)
                 if asset_value != req_value:
@@ -243,5 +324,5 @@ class StandardsInspector(BaseInspector):
                         override_available=override_available,
                     )
 
-        # All requirements passed
+        # All requirements passed (or no valid data field requirements found)
         return None

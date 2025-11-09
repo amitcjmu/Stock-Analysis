@@ -25,6 +25,9 @@ async def handle_gap_analysis_phase(
 ) -> Dict[str, Any]:
     """Handle gap_analysis phase progression without triggering MFO agents.
 
+    OPTION 3 IMPLEMENTATION: Auto-advance from gap_analysis to questionnaire
+    when flow came from assessment flow (assessment_flow_id present).
+
     Args:
         collection_flow: The collection flow model instance
         flow_id: Collection flow ID for logging
@@ -37,7 +40,54 @@ async def handle_gap_analysis_phase(
     from app.models.collection_data_gap import CollectionDataGap
 
     try:
-        # Check for unresolved gaps using direct query
+        # OPTION 3: Check if flow came from assessment flow
+        # If assessment_flow_id is present and missing_attributes exist,
+        # auto-advance to questionnaire (skip gap analysis page)
+        assessment_flow_id = collection_flow.assessment_flow_id
+        collection_config = collection_flow.collection_config or {}
+        missing_attributes = collection_config.get("missing_attributes", {})
+
+        should_skip_gap_analysis = bool(assessment_flow_id and missing_attributes)
+
+        if should_skip_gap_analysis:
+            logger.info(
+                safe_log_format(
+                    "Auto-advancing from gap_analysis to questionnaire for "
+                    "assessment flow {assessment_flow_id} (gaps already identified)",
+                    flow_id=flow_id,
+                    assessment_flow_id=str(assessment_flow_id),
+                )
+            )
+
+            # Auto-advance to next phase (questionnaire_generation or manual_collection)
+            next_phase = collection_flow.get_next_phase()
+            if next_phase:
+                collection_flow.current_phase = next_phase
+                collection_flow.status = CollectionFlowStatus.RUNNING
+                collection_flow.updated_at = datetime.now(timezone.utc)
+                await db.commit()
+
+                return {
+                    "status": "success",
+                    "message": "Auto-advanced from gap_analysis to questionnaire (assessment flow)",
+                    "flow_id": flow_id,
+                    "action_status": "auto_advanced",
+                    "action_description": (
+                        f"Gap analysis skipped - progressed directly to {next_phase} "
+                        "(gaps already identified from assessment flow)"
+                    ),
+                    "current_phase": next_phase,
+                    "flow_status": CollectionFlowStatus.RUNNING,
+                    "has_applications": has_applications,
+                    "mfo_execution_triggered": False,
+                    "mfo_result": {
+                        "status": "auto_advanced",
+                        "reason": "Assessment flow - gaps already identified",
+                    },
+                    "skipped_gap_analysis": True,
+                }
+
+        # Normal gap analysis flow - check for unresolved gaps
         unresolved_count_stmt = (
             select(func.count())
             .select_from(CollectionDataGap)

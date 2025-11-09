@@ -177,6 +177,7 @@ class OrchestrationMixin:
 
         # Step 5.5: Aggregate all gaps from inspector reports into FieldGap objects
         all_gaps = self._aggregate_all_gaps(
+            asset=asset,
             column_gaps=column_gaps,
             enrichment_gaps=enrichment_gaps,
             jsonb_gaps=jsonb_gaps,
@@ -228,6 +229,7 @@ class OrchestrationMixin:
 
     def _aggregate_all_gaps(
         self,
+        asset: Any,
         column_gaps,
         enrichment_gaps,
         jsonb_gaps,
@@ -308,15 +310,45 @@ class OrchestrationMixin:
                     )
                 )
 
-        # From JSONB gaps (MEDIUM - required keys missing)
+        # From JSONB gaps - check if they're required fields
+        # CRITICAL FIX: Required JSONB keys should be HIGH priority, not MEDIUM
+        # This ensures they're included in questionnaires for required fields
+        # Get asset type to check requirements
+        asset_type = getattr(asset, "asset_type", "other")
+        from app.services.gap_detection.requirements.asset_type_matrix import (
+            ASSET_TYPE_REQUIREMENTS,
+        )
+
         for jsonb_field, keys in jsonb_gaps.missing_keys.items():
             for key in keys:
+                # Check if this JSONB key is in the required_jsonb_keys for this asset type
+                # If it's required, mark as HIGH priority; otherwise MEDIUM
+                jsonb_key_path = f"{jsonb_field}.{key}"
+                is_required = False
+
+                # Check if this JSONB key is required for this asset type
+                if asset_type in ASSET_TYPE_REQUIREMENTS:
+                    required_jsonb = ASSET_TYPE_REQUIREMENTS[asset_type].get(
+                        "required_jsonb_keys", {}
+                    )
+                    if (
+                        jsonb_field in required_jsonb
+                        and key in required_jsonb[jsonb_field]
+                    ):
+                        is_required = True
+
                 all_gaps.append(
                     FieldGap(
-                        field_name=f"{jsonb_field}.{key}",
+                        field_name=jsonb_key_path,
                         layer="jsonb",
-                        priority=GapPriority.MEDIUM,
-                        reason=f"Required JSONB key missing in {jsonb_field}",
+                        priority=(
+                            GapPriority.HIGH if is_required else GapPriority.MEDIUM
+                        ),
+                        reason=(
+                            f"Required JSONB key missing in {jsonb_field}"
+                            if is_required
+                            else f"JSONB key missing in {jsonb_field}"
+                        ),
                     )
                 )
 
@@ -343,30 +375,20 @@ class OrchestrationMixin:
                 )
             )
 
-        # From standards gaps (CRITICAL - mandatory violations block assessment)
-        for standard_name in standards_gaps.missing_mandatory_data:
-            all_gaps.append(
-                FieldGap(
-                    field_name=standard_name,
-                    layer="standards",
-                    priority=GapPriority.CRITICAL,
-                    reason="Mandatory architecture standard violated",
-                )
-            )
-
-        # From standards gaps (HIGH/MEDIUM - violated standards)
-        for violation in standards_gaps.violated_standards:
-            priority = (
-                GapPriority.HIGH if violation.is_mandatory else GapPriority.MEDIUM
-            )
-            all_gaps.append(
-                FieldGap(
-                    field_name=violation.standard_name,
-                    layer="standards",
-                    priority=priority,
-                    reason=violation.violation_details,
-                )
-            )
+        # NOTE: Standards violations are NOT treated as data gaps
+        # Standards violations (e.g., java_versions, dotnet_versions, api_design) are
+        # compliance issues, not missing data fields. They should be handled separately
+        # through the assessment flow's standards validation, not through data collection.
+        #
+        # If a standard requires specific data (e.g., "minimum_tls_version" field),
+        # that requirement should be added to the requirements matrices, not treated
+        # as a standards violation gap.
+        #
+        # Standards violations are logged but not added to all_gaps for data collection.
+        logger.debug(
+            f"Standards violations found: {len(standards_gaps.violated_standards)} "
+            f"(not treated as data gaps - compliance issues, not missing data)"
+        )
 
         logger.debug(
             f"Aggregated {len(all_gaps)} gaps across all layers",

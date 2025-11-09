@@ -41,7 +41,39 @@ class AssetHandlers(CollectionHandlerBase):
                 None,
                 "",
             ):
-                update_payload[dst_field] = field_updates[src_field]
+                value = field_updates[src_field]
+                # CRITICAL FIX: Handle list values - extract first element for single-value fields
+                if isinstance(value, list):
+                    if len(value) == 0:
+                        continue  # Skip empty lists
+                    # For integer fields (cpu_cores, memory_gb, storage_gb), extract first element
+                    if dst_field in ["cpu_cores", "memory_gb", "storage_gb"]:
+                        try:
+                            update_payload[dst_field] = (
+                                int(value[0]) if value[0] else None
+                            )
+                        except (ValueError, TypeError):
+                            logger.warning(f"Invalid value for {dst_field}: {value[0]}")
+                            continue
+                    # For string fields (technology_stack, business_owner), join list or take first
+                    elif dst_field in [
+                        "technology_stack",
+                        "business_owner",
+                        "department",
+                        "application_name",
+                    ]:
+                        # Join list with comma for multi-value fields, or take first element
+                        if len(value) > 1:
+                            update_payload[dst_field] = ", ".join(str(v) for v in value)
+                        else:
+                            update_payload[dst_field] = (
+                                str(value[0]) if value[0] else None
+                            )
+                    else:
+                        # Default: take first element
+                        update_payload[dst_field] = value[0]
+                else:
+                    update_payload[dst_field] = value
 
         # Build technical_details JSON for architecture and availability
         technical_details = {}
@@ -121,20 +153,29 @@ class AssetHandlers(CollectionHandlerBase):
             raise RuntimeError("Invalid tenant identifiers for write-back scope")
         audit_enabled = True
 
+        # CRITICAL FIX: Also query responses that don't have gap_id linked
+        # This handles cases where responses were created but gap_id wasn't set
         resolved_rows = await db.execute(
             text(
-                "SELECT g.field_name, r.response_value, "
+                "SELECT DISTINCT "
+                "COALESCE(g.field_name, r.question_id) AS field_name, "
+                "r.response_value, "
+                "r.asset_id, "
                 "(g.metadata->>'asset_id') AS asset_id_hint, "
                 "(g.metadata->>'application_name') AS app_name_hint "
-                "FROM migration.collection_data_gaps g "
-                "JOIN migration.collection_questionnaire_responses r ON g.id = r.gap_id "
-                "WHERE g.collection_flow_id = :flow_id "
-                "AND g.resolution_status = 'resolved'"
+                "FROM migration.collection_questionnaire_responses r "
+                "LEFT JOIN migration.collection_data_gaps g ON g.id = r.gap_id "
+                "WHERE r.collection_flow_id = :flow_id "
+                "AND (g.resolution_status = 'resolved' OR r.gap_id IS NULL)"
+                "AND r.response_value IS NOT NULL"
             ),
             {"flow_id": collection_flow_id},
         )
         resolved = resolved_rows.fetchall()
         if not resolved:
+            logger.warning(
+                f"No resolved gaps or responses found for flow {collection_flow_id}"
+            )
             return
 
         field_updates = build_field_updates_from_rows(resolved)
@@ -223,11 +264,16 @@ class AssetHandlers(CollectionHandlerBase):
     async def _resolve_target_asset_ids(
         self, db: AsyncSession, resolved_rows, context: Dict[str, Any]
     ) -> List[uuid.UUID]:
-        """Resolve target asset IDs from gap metadata hints (asset_id/app_name)."""
+        """Resolve target asset IDs from gap metadata hints (asset_id/app_name) or response asset_id."""
         from app.models.asset import Asset
 
         hinted_asset_ids = set()
         for row in resolved_rows:
+            # CRITICAL FIX: Check both asset_id from responses and asset_id_hint from gaps
+            asset_id_from_response = getattr(row, "asset_id", None)
+            if asset_id_from_response:
+                hinted_asset_ids.add(str(asset_id_from_response))
+
             hint = getattr(row, "asset_id_hint", None)
             if hint:
                 hinted_asset_ids.add(hint)

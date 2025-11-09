@@ -220,8 +220,31 @@ def group_attributes_by_category(
 
     # Generate ONE question per unique attribute
     for attr_name, asset_ids in attr_to_assets.items():
+        # CRITICAL FIX: Check both direct key match AND asset_fields match
+        # Gap field names (e.g., "description", "application_type") might not match
+        # critical attribute names (e.g., "business_criticality_score") directly,
+        # but they might be in the asset_fields list of a critical attribute
+        attr_config = None
+        matched_attr_name = None
+
+        # First, try direct key match
         if attr_name in attribute_mapping:
             attr_config = attribute_mapping[attr_name]
+            matched_attr_name = attr_name
+        else:
+            # Second, search through all attributes to find one where attr_name is in asset_fields
+            for critical_attr_name, config in attribute_mapping.items():
+                asset_fields = config.get("asset_fields", [])
+                if attr_name in asset_fields:
+                    attr_config = config
+                    matched_attr_name = critical_attr_name
+                    logger.debug(
+                        f"Matched gap field '{attr_name}' to critical attribute '{critical_attr_name}' "
+                        f"via asset_fields: {asset_fields}"
+                    )
+                    break
+
+        if attr_config:
             category = attr_config.get("category", "application")
 
             # Get asset context for the first asset (for intelligent options)
@@ -242,9 +265,58 @@ def group_attributes_by_category(
                     )
 
             # Pass all asset IDs that need this attribute + asset context for intelligent options
+            # Use matched_attr_name (critical attribute name) for question generation,
+            # but field_id will be set to attr_name (gap field name) in build_question_from_attribute
             question = build_question_from_attribute(
-                attr_name, attr_config, asset_ids, asset_context, existing_value
+                matched_attr_name, attr_config, asset_ids, asset_context, existing_value
             )
+            # CRITICAL FIX: Override field_id to use the gap field name, not the critical attribute name
+            # This ensures the question maps back to the correct database column
+            question["field_id"] = attr_name
+            attrs_by_category[category].append(question)
+        else:
+            # CRITICAL FIX: Create fallback question for gaps that don't match any critical attribute
+            # These are still important gaps that need to be collected
+            logger.warning(
+                f"Gap field '{attr_name}' not found in critical attributes mapping. "
+                f"Creating fallback question for {len(asset_ids)} asset(s)."
+            )
+            # Determine category based on field name heuristics
+            category = "application"  # Default
+            if any(
+                x in attr_name.lower()
+                for x in ["resilience", "availability", "disaster"]
+            ):
+                category = "infrastructure"
+            elif any(
+                x in attr_name.lower()
+                for x in ["business", "owner", "stakeholder", "criticality"]
+            ):
+                category = "business"
+            elif any(
+                x in attr_name.lower() for x in ["debt", "quality", "maintenance"]
+            ):
+                category = "technical_debt"
+
+            # Create a simple question for this unmapped gap
+            field_type, options = determine_field_type_and_options(attr_name, None)
+            question = {
+                "field_id": attr_name,
+                "question_text": f"What is the {attr_name.replace('_', ' ').title()}?",
+                "field_type": field_type,
+                "required": True,  # Gaps are required by definition
+                "category": category,
+                "metadata": {
+                    "asset_ids": asset_ids,
+                    "gap_field_name": attr_name,
+                    "unmapped_gap": True,  # Flag to indicate this is an unmapped gap
+                    "applies_to_count": len(asset_ids),
+                },
+                "help_text": f"Please provide the {attr_name.replace('_', ' ').lower()} for this asset.",
+            }
+            if options:
+                question["options"] = options
+
             attrs_by_category[category].append(question)
 
     return attrs_by_category

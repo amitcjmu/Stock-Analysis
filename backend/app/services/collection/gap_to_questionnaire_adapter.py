@@ -43,6 +43,281 @@ class GapToQuestionnaireAdapter:
         """Initialize the adapter."""
         pass
 
+    async def generate_questionnaire_from_gaps(
+        self,
+        gap_report: ComprehensiveGapReport,
+        context: RequestContext,
+        db: AsyncSession,
+    ) -> Dict[str, Any]:
+        """
+        Generate questionnaire DIRECTLY from GapAnalyzer gaps (Issue #980).
+
+        This bypasses the critical attributes mapping system and generates questions
+        directly from the gaps identified by GapAnalyzer. This ensures that ALL gaps
+        blocking assessment readiness are included in the questionnaire.
+
+        Args:
+            gap_report: Comprehensive gap analysis report from GapAnalyzer
+            context: Request context with tenant scoping
+            db: Database session for additional lookups
+
+        Returns:
+            Questionnaire generation result with sections and questions
+        """
+        logger.info(
+            f"Generating questionnaire DIRECTLY from gaps for asset {gap_report.asset_id} "
+            f"with {len(gap_report.all_gaps)} total gaps"
+        )
+
+        # CRITICAL: Use ALL gaps that block assessment readiness, not just CRITICAL/HIGH
+        # Filter to gaps that actually block assessment (based on readiness_blockers)
+        blocking_gaps = [
+            gap
+            for gap in gap_report.all_gaps
+            if gap.field_name in (gap_report.readiness_blockers or [])
+            or gap.priority in [GapPriority.CRITICAL, GapPriority.HIGH]
+        ]
+
+        if not blocking_gaps:
+            logger.warning(
+                f"No blocking gaps found for asset {gap_report.asset_id}. "
+                f"Using all gaps as fallback."
+            )
+            blocking_gaps = gap_report.all_gaps
+
+        logger.info(
+            f"Generating questions for {len(blocking_gaps)} blocking gaps "
+            f"(out of {len(gap_report.all_gaps)} total gaps)"
+        )
+
+        # Get asset info for context
+        from sqlalchemy import select
+        from app.models.asset import Asset
+
+        asset_result = await db.execute(
+            select(Asset).where(Asset.id == gap_report.asset_id)
+        )
+        asset = asset_result.scalar_one_or_none()
+        asset_name = str(gap_report.asset_id)
+        asset_type = "application"
+        if asset:
+            asset_name = asset.name or asset.asset_name or str(gap_report.asset_id)
+            asset_type = asset.asset_type or "application"
+
+        # Group gaps by category based on layer and field name
+        sections = self._build_sections_from_gaps(
+            blocking_gaps, gap_report.asset_id, asset_name, asset_type
+        )
+
+        # Build result structure
+        all_questions = []
+        for section in sections:
+            all_questions.extend(section.get("questions", []))
+
+        result = {
+            "status": "success",
+            "questionnaires": sections,
+            "metadata": {
+                "total_sections": len(sections),
+                "total_questions": len(all_questions),
+                "asset_id": str(gap_report.asset_id),
+                "asset_name": asset_name,
+                "gaps_processed": len(blocking_gaps),
+                "total_gaps": len(gap_report.all_gaps),
+            },
+        }
+
+        logger.info(
+            f"✅ Generated {len(sections)} sections with {len(all_questions)} questions "
+            f"directly from {len(blocking_gaps)} gaps"
+        )
+
+        return result
+
+    def _build_sections_from_gaps(
+        self,
+        gaps: List[FieldGap],
+        asset_id: UUID,
+        asset_name: str,
+        asset_type: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        Build questionnaire sections directly from gap field names.
+
+        Groups gaps by layer/category and creates questions for each gap.
+        """
+        # Group gaps by layer
+        sections_by_layer = {
+            "column": [],
+            "jsonb": [],
+            "enrichment": [],
+            "application": [],
+            "standards": [],
+        }
+
+        for gap in gaps:
+            layer = gap.layer or "column"
+            if layer not in sections_by_layer:
+                layer = "column"  # Default fallback
+            sections_by_layer[layer].append(gap)
+
+        sections = []
+
+        # Create section for each layer that has gaps
+        layer_configs = {
+            "column": {
+                "section_id": "asset_fields",
+                "section_title": "Asset Information",
+                "section_description": "Basic asset fields required for assessment",
+            },
+            "jsonb": {
+                "section_id": "technical_details",
+                "section_title": "Technical Details",
+                "section_description": "Technical specifications and configuration details",
+            },
+            "enrichment": {
+                "section_id": "enrichment_data",
+                "section_title": "Enrichment Data",
+                "section_description": "Additional enrichment data for assessment",
+            },
+            "application": {
+                "section_id": "application_metadata",
+                "section_title": "Application Metadata",
+                "section_description": "Application-level metadata and information",
+            },
+            "standards": {
+                "section_id": "compliance_standards",
+                "section_title": "Compliance & Standards",
+                "section_description": "Compliance and architectural standards information",
+            },
+        }
+
+        for layer, layer_gaps in sections_by_layer.items():
+            if not layer_gaps:
+                continue
+
+            config = layer_configs.get(layer, layer_configs["column"])
+            questions = []
+
+            for gap in layer_gaps:
+                question = self._build_question_from_gap(
+                    gap, asset_id, asset_name, asset_type
+                )
+                questions.append(question)
+
+            sections.append(
+                {
+                    "section_id": config["section_id"],
+                    "section_title": config["section_title"],
+                    "section_description": config["section_description"],
+                    "questions": questions,
+                }
+            )
+
+        return sections
+
+    def _build_question_from_gap(
+        self,
+        gap: FieldGap,
+        asset_id: UUID,
+        asset_name: str,
+        asset_type: str,
+    ) -> Dict[str, Any]:
+        """
+        Build a question object directly from a gap.
+
+        Uses gap metadata (field_name, priority, reason, layer) to create
+        appropriate question text and field type.
+        """
+        field_name = gap.field_name
+        readable_name = field_name.replace("_", " ").replace(".", " ").title()
+
+        # Determine field type based on field name patterns
+        field_type = "text"
+        options = None
+
+        # Check for common field patterns
+        if any(x in field_name.lower() for x in ["criticality", "priority", "status"]):
+            field_type = "select"
+            options = self._get_options_for_field(field_name, asset_type)
+        elif any(
+            x in field_name.lower() for x in ["type", "category", "classification"]
+        ):
+            field_type = "select"
+            options = self._get_options_for_field(field_name, asset_type)
+        elif "version" in field_name.lower() or "version" in readable_name.lower():
+            field_type = "text"  # Versions are free-form
+        elif field_name in ["description", "notes", "comments"]:
+            field_type = "textarea"
+        elif any(
+            x in field_name.lower() for x in ["count", "number", "cores", "gb", "mb"]
+        ):
+            field_type = "number"
+        elif field_name.endswith("_id") or "uuid" in field_name.lower():
+            field_type = "text"  # IDs are text
+
+        # Build question text from gap reason if available
+        question_text = gap.reason or f"What is the {readable_name}?"
+        if not question_text.endswith("?"):
+            question_text = f"{question_text}?"
+
+        question = {
+            "field_id": f"{asset_id}__{field_name}",  # Composite ID for asset-specific fields
+            "question_text": question_text,
+            "field_type": field_type,
+            "required": gap.priority in [GapPriority.CRITICAL, GapPriority.HIGH],
+            "category": gap.layer or "application",
+            "metadata": {
+                "asset_id": str(asset_id),
+                "asset_name": asset_name,
+                "gap_field_name": field_name,
+                "gap_priority": (
+                    gap.priority.value
+                    if isinstance(gap.priority, GapPriority)
+                    else str(gap.priority)
+                ),
+                "gap_layer": gap.layer,
+                "gap_reason": gap.reason,
+            },
+            "help_text": f"Please provide the {readable_name.lower()} for {asset_name}.",
+        }
+
+        if options:
+            question["options"] = options
+
+        return question
+
+    def _get_options_for_field(
+        self, field_name: str, asset_type: str
+    ) -> List[Dict[str, str]]:
+        """Get options for select/dropdown fields based on field name."""
+        field_lower = field_name.lower()
+
+        if "criticality" in field_lower:
+            return [
+                {"value": "critical", "label": "Critical"},
+                {"value": "high", "label": "High"},
+                {"value": "medium", "label": "Medium"},
+                {"value": "low", "label": "Low"},
+            ]
+        elif "type" in field_lower and "application" in field_lower:
+            return [
+                {"value": "web_application", "label": "Web Application"},
+                {"value": "api_service", "label": "API Service"},
+                {"value": "batch_job", "label": "Batch Job"},
+                {"value": "database", "label": "Database"},
+                {"value": "other", "label": "Other"},
+            ]
+        elif "status" in field_lower:
+            return [
+                {"value": "active", "label": "Active"},
+                {"value": "inactive", "label": "Inactive"},
+                {"value": "deprecated", "label": "Deprecated"},
+                {"value": "decommissioned", "label": "Decommissioned"},
+            ]
+
+        return None
+
     async def transform_to_questionnaire_input(
         self,
         gap_report: ComprehensiveGapReport,
@@ -52,8 +327,8 @@ class GapToQuestionnaireAdapter:
         """
         Transform ComprehensiveGapReport into questionnaire generation inputs.
 
-        This method extracts critical and high-priority gaps from the comprehensive
-        report and formats them for the IntelligentQuestionnaireGenerator.
+        DEPRECATED: This method uses the old critical attributes mapping system.
+        Use generate_questionnaire_from_gaps() instead for Issue #980 compliance.
 
         Args:
             gap_report: Comprehensive gap analysis report from GapAnalyzer
@@ -66,6 +341,11 @@ class GapToQuestionnaireAdapter:
 
         Performance: O(n) where n = total gaps, target <10ms for typical reports
         """
+        logger.warning(
+            "Using deprecated transform_to_questionnaire_input() - "
+            "consider using generate_questionnaire_from_gaps() for Issue #980 compliance"
+        )
+
         logger.info(
             f"Transforming gap report for asset {gap_report.asset_id} "
             f"with {len(gap_report.all_gaps)} total gaps"
@@ -86,6 +366,21 @@ class GapToQuestionnaireAdapter:
             "assets_with_gaps": [str(gap_report.asset_id)],
         }
 
+        # CRITICAL FIX: Get actual asset name from database for questionnaire context
+        from sqlalchemy import select
+        from app.models.asset import Asset
+
+        asset_name = str(gap_report.asset_id)  # Fallback to UUID
+        asset_type = "application"  # Default
+
+        asset_result = await db.execute(
+            select(Asset).where(Asset.id == gap_report.asset_id)
+        )
+        asset = asset_result.scalar_one_or_none()
+        if asset:
+            asset_name = asset.name or asset.asset_name or str(gap_report.asset_id)
+            asset_type = asset.asset_type or "application"
+
         # Build business context
         business_context = {
             "client_account_id": str(context.client_account_id),
@@ -93,8 +388,8 @@ class GapToQuestionnaireAdapter:
             "total_assets": 1,  # Single asset for now
             "assets": {
                 str(gap_report.asset_id): {
-                    "name": gap_report.asset_id,  # Will be resolved by questionnaire tool
-                    "type": "application",  # Default, can be enhanced
+                    "name": asset_name,  # CRITICAL FIX: Use actual asset name, not UUID
+                    "type": asset_type,  # Use actual asset type
                 }
             },
             "gap_analysis_metadata": {

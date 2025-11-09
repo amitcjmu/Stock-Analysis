@@ -183,20 +183,16 @@ class ReportTransformer:
                 }
             )
 
-        # Extract gaps from standards report (violations)
-        for violation in report.standards_gaps.violated_standards:
-            gaps.append(
-                {
-                    "asset_id": asset_id,
-                    "asset_name": asset_name,
-                    "field_name": violation.standard_name,
-                    "gap_type": "standards_violation",
-                    "gap_category": "standards",
-                    "priority": 1 if violation.is_mandatory else 2,
-                    "current_value": None,
-                    "suggested_resolution": violation.violation_details,
-                    "confidence_score": None,
-                }
+        # NOTE: Standards violations are NOT treated as data gaps
+        # Standards violations (e.g., java_versions, dotnet_versions, api_design) are
+        # compliance issues, not missing data fields. They should be handled separately
+        # through the assessment flow's standards validation, not through data collection.
+        #
+        # Standards violations are logged but not added to gaps for data collection.
+        if report.standards_gaps.violated_standards:
+            logger.debug(
+                f"Skipping {len(report.standards_gaps.violated_standards)} standards violations "
+                f"(not data gaps - compliance issues, not missing data)"
             )
 
         return gaps

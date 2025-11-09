@@ -105,7 +105,28 @@ class ApplicationInspector(BaseInspector):
         # Check metadata fields
         for field in self.METADATA_FIELDS:
             value = getattr(application, field, None)
-            if value is None or (isinstance(value, str) and not value.strip()):
+
+            # Special handling for canonical_name: check if asset already has a name
+            if field == "canonical_name":
+                # If canonical_name is missing, check if asset has a name
+                asset_name = getattr(asset, "name", None) or getattr(
+                    asset, "asset_name", None
+                )
+                if (
+                    value is None or (isinstance(value, str) and not value.strip())
+                ) and not asset_name:
+                    # Only flag as missing if both canonical_name and asset name are missing
+                    missing_metadata.append(field)
+                elif asset_name:
+                    # Asset has a name, so canonical_name is not truly missing
+                    logger.debug(
+                        f"Asset '{asset_name}' already has a name, skipping canonical_name gap",
+                        extra={
+                            "asset_id": str(asset.id) if hasattr(asset, "id") else None,
+                            "asset_name": asset_name,
+                        },
+                    )
+            elif value is None or (isinstance(value, str) and not value.strip()):
                 missing_metadata.append(field)
 
         # Check tech stack fields

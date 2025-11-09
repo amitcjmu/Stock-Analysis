@@ -243,11 +243,12 @@ async def create_assessment_flow(  # noqa: C901
     )
 
     # STEP 2: Create child flow with correct master_flow_id FK reference
+    # CRITICAL FIX: AssessmentFlow model does NOT have a flow_id field
+    # It only has: id (primary key), master_flow_id (FK), and other fields
     flow_record = AssessmentFlow(
         client_account_id=self.client_account_id,
         engagement_id=engagement_id,
         master_flow_id=UUID(master_flow_id),  # Correct FK to master flow
-        flow_id=UUID(master_flow_id),  # Match master flow ID for consistency
         flow_name=f"Assessment Flow - {len(selected_application_ids)} Applications",
         configuration={
             "selected_application_ids": selected_application_ids,

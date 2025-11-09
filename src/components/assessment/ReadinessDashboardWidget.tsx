@@ -158,23 +158,51 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
         return;
       }
 
-      // For now, navigate to collection flow with flow context
-      // TODO (Future): Fetch individual gap reports to extract specific missing attributes
-      // const missing_attributes: Record<string, string[]> = {};
-      // for (const assetId of notReadyAssetIds) {
-      //   const gapReport = await assessmentFlowApi.getAssetReadiness(flow_id, assetId);
-      //   missing_attributes[assetId] = gapReport.critical_gaps;
-      // }
+      // Fetch gap reports to extract specific missing attributes for each asset
+      // This ensures the collection flow knows exactly what data to collect
+      const missing_attributes: Record<string, string[]> = {};
+      try {
+        // Fetch detailed readiness summary to get gap information
+        const detailedSummary = await assessmentFlowApi.getFlowReadinessSummary(flow_id, true);
+
+        // Extract missing attributes from asset reports if available
+        if (detailedSummary.asset_reports && detailedSummary.asset_reports.length > 0) {
+          for (const report of detailedSummary.asset_reports) {
+            const assetId = report.asset_id;
+            if (notReadyAssetIds.includes(assetId)) {
+              // Collect all gap field IDs from critical and high priority gaps
+              const gapFields = [
+                ...(report.critical_gaps || []).map((gap: any) => gap.field_id || gap.field_name),
+                ...(report.high_priority_gaps || []).map((gap: any) => gap.field_id || gap.field_name),
+              ].filter(Boolean);
+              missing_attributes[assetId] = gapFields;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch detailed gap reports, using asset IDs only:', error);
+      }
+
+      // If we don't have specific missing attributes, create a dict with empty arrays
+      // The backend will still pre-select these assets based on the keys
+      for (const assetId of notReadyAssetIds) {
+        if (!missing_attributes[assetId]) {
+          missing_attributes[assetId] = [];
+        }
+      }
 
       // Create or update collection flow linked to assessment flow
-      const collectionFlow = await collectionFlowApi.ensureFlow({}, flow_id);
+      // Pass assessment_flow_id as second parameter to link the flows
+      // Pass missing_attributes to pre-select assets and create data gaps
+      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes, flow_id);
 
       toast({
         title: 'Collection Flow Ready',
         description: `${notReadyAssetIds.length} assets need data collection`,
       });
 
-      // Navigate to collection flow
+      // Navigate to collection flow with the flow ID
+      // The assets should be pre-selected based on missing_attributes keys
       navigate(`/collection/adaptive-forms?flowId=${collectionFlow.flow_id || collectionFlow.id}`);
     } catch (error) {
       console.error('Failed to start collection:', error);
@@ -360,22 +388,26 @@ export const ReadinessDashboardWidget: React.FC<ReadinessDashboardWidgetProps> =
             <div className="space-y-4">
               <h4 className="text-sm font-semibold">Readiness by Asset Type</h4>
               <div className="space-y-3">
-                {Object.entries(readinessSummary.summary_by_type).map(([assetType, summary]) => (
-                  <div key={assetType} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium capitalize">{assetType.replace(/_/g, ' ')}</span>
-                      <span className="text-muted-foreground">
-                        {summary.ready} / {summary.total} ready ({summary.readiness_rate.toFixed(0)}%)
-                      </span>
+                {Object.entries(readinessSummary.summary_by_type).map(([assetType, summary]) => {
+                  const total = (summary.ready || 0) + (summary.not_ready || 0);
+                  const readinessRate = total > 0 ? ((summary.ready || 0) / total) * 100 : 0;
+                  return (
+                    <div key={assetType} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium capitalize">{assetType.replace(/_/g, ' ')}</span>
+                        <span className="text-muted-foreground">
+                          {summary.ready || 0} / {total} ready ({readinessRate.toFixed(0)}%)
+                        </span>
+                      </div>
+                      <Progress value={readinessRate} className="h-2" />
+                      {summary.not_ready > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {summary.not_ready} {assetType} {summary.not_ready === 1 ? 'needs' : 'need'} data collection
+                        </p>
+                      )}
                     </div>
-                    <Progress value={summary.readiness_rate} className="h-2" />
-                    {summary.not_ready > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {summary.not_ready} {assetType} {summary.not_ready === 1 ? 'needs' : 'need'} data collection
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

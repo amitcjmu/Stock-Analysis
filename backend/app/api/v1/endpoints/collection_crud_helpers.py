@@ -160,15 +160,44 @@ async def create_response_records(
                     f"Extracted asset_id from composite field ID: {potential_asset_id}"
                 )
 
-        # Lookup gap by field_name to establish gap_id linkage
-        gap = gap_index.get(field_id)
+        # CRITICAL FIX: Lookup gap by field_name, handling composite field IDs
+        # Extract actual field name from composite ID (format: {asset_id}__{field_name})
+        actual_field_name = field_id
+        if "__" in field_id:
+            parts = field_id.split("__", 1)
+            if len(parts) == 2:
+                # Try the extracted field name first
+                actual_field_name = parts[1]
+                # Also try removing any trailing asset_id suffix (e.g., "data_quality_778f9a98..." -> "data_quality")
+                if actual_field_name and actual_field_name.count("_") > 2:
+                    # Might have asset_id suffix, try base field name
+                    base_field = (
+                        actual_field_name.rsplit("_", 1)[0]
+                        if "_" in actual_field_name
+                        else actual_field_name
+                    )
+                    gap = (
+                        gap_index.get(base_field)
+                        or gap_index.get(actual_field_name)
+                        or gap_index.get(field_id)
+                    )
+                else:
+                    gap = gap_index.get(actual_field_name) or gap_index.get(field_id)
+            else:
+                gap = gap_index.get(field_id)
+        else:
+            gap = gap_index.get(field_id)
+
         gap_id = gap.id if gap else None
 
         if gap:
-            logger.info(f"Linking response for field '{field_id}' to gap {gap_id}")
+            logger.info(
+                f"Linking response for field '{field_id}' (actual: '{actual_field_name}') to gap {gap_id}"
+            )
         else:
             logger.debug(
-                f"No pending gap found for field '{field_id}' - creating unlinked response"
+                f"No pending gap found for field '{field_id}' "
+                f"(tried: '{actual_field_name}') - creating unlinked response"
             )
 
         # Create response record with proper gap_id linkage

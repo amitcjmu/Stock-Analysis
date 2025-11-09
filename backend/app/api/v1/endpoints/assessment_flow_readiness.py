@@ -20,7 +20,7 @@ import logging
 from typing import Any, Dict, List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.api_tags import APITags
@@ -33,8 +33,7 @@ from app.services.gap_detection.schemas import ComprehensiveGapReport
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/api/v1/assessment-flow",
-    tags=[APITags.ASSESSMENT_FLOW_READINESS],
+    prefix="/assessment-flow",
 )
 
 
@@ -59,6 +58,7 @@ async def get_asset_readiness(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     client_account_id: str = Depends(verify_client_access),
+    engagement_id: str = Header(..., alias="X-Engagement-ID"),
 ) -> ComprehensiveGapReport:
     """
     Get comprehensive gap analysis for a single asset.
@@ -69,6 +69,7 @@ async def get_asset_readiness(
         db: Database session (injected)
         current_user: Authenticated user (injected)
         client_account_id: Tenant client account ID (injected)
+        engagement_id: Engagement ID from header
 
     Returns:
         ComprehensiveGapReport with full gap analysis across all 5 inspectors
@@ -78,14 +79,6 @@ async def get_asset_readiness(
         HTTPException 500: If analysis fails
     """
     try:
-        # Extract engagement_id from current_user
-        engagement_id = str(getattr(current_user, "engagement_id", None))
-
-        if not engagement_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Engagement ID not found in user context",
-            )
 
         logger.info(
             f"GET /assessment-flow/{flow_id}/asset-readiness/{asset_id}",
@@ -167,6 +160,7 @@ async def get_readiness_summary(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     client_account_id: str = Depends(verify_client_access),
+    engagement_id: str = Header(..., alias="X-Engagement-ID"),
 ) -> Dict[str, Any]:
     """
     Get batch readiness analysis for all flow assets.
@@ -196,15 +190,6 @@ async def get_readiness_summary(
         HTTPException 500: If analysis fails
     """
     try:
-        # Extract engagement_id from current_user
-        engagement_id = str(getattr(current_user, "engagement_id", None))
-
-        if not engagement_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Engagement ID not found in user context",
-            )
-
         logger.info(
             f"GET /assessment-flow/{flow_id}/readiness-summary?detailed={detailed}",
             extra={
@@ -284,6 +269,7 @@ async def get_ready_assets(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     client_account_id: str = Depends(verify_client_access),
+    engagement_id: str = Header(..., alias="X-Engagement-ID"),
 ) -> List[str]:
     """
     Get list of asset IDs filtered by readiness status.
@@ -294,6 +280,7 @@ async def get_ready_assets(
         db: Database session (injected)
         current_user: Authenticated user (injected)
         client_account_id: Tenant client account ID (injected)
+        engagement_id: Engagement ID from header
 
     Returns:
         List of asset UUIDs (as strings) matching readiness filter
@@ -303,14 +290,6 @@ async def get_ready_assets(
         HTTPException 500: If filtering fails
     """
     try:
-        # Extract engagement_id from current_user
-        engagement_id = str(getattr(current_user, "engagement_id", None))
-
-        if not engagement_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Engagement ID not found in user context",
-            )
 
         logger.info(
             f"GET /assessment-flow/{flow_id}/ready-assets?ready_only={ready_only}",

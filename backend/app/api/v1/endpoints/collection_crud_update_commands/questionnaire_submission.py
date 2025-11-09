@@ -153,6 +153,61 @@ async def submit_questionnaire_response(
             db,
         )
 
+        # CRITICAL UX FIX: Extract asset_ids from response records (they have the correct asset_id per field)
+        # Response records extract asset_id from composite field IDs (format: {asset_id}__{field_id})
+        asset_ids_to_reanalyze = set()
+        for response_record in response_records:
+            if response_record.asset_id:
+                asset_ids_to_reanalyze.add(response_record.asset_id)
+
+        # Fallback: Extract asset_id from validated_asset if available
+        if not asset_ids_to_reanalyze and validated_asset:
+            asset_ids_to_reanalyze.add(validated_asset.id)
+
+        # Fallback: Extract asset_id from form_metadata
+        if not asset_ids_to_reanalyze and asset_id:
+            try:
+                asset_ids_to_reanalyze.add(
+                    UUID(asset_id) if isinstance(asset_id, str) else asset_id
+                )
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid asset_id in form_metadata: {asset_id}")
+
+        # Fallback: Extract asset_ids from composite field IDs (format: {asset_id}__{field_id})
+        if not asset_ids_to_reanalyze:
+            for field_id in form_responses.keys():
+                if "__" in field_id:
+                    parts = field_id.split("__", 1)
+                    if len(parts) == 2:
+                        potential_asset_id = parts[0]
+                        try:
+                            asset_uuid = UUID(potential_asset_id)
+                            asset_ids_to_reanalyze.add(asset_uuid)
+                        except (ValueError, TypeError):
+                            # Not a UUID, skip
+                            pass
+
+        # Fallback: Check if flow has selected assets
+        if not asset_ids_to_reanalyze and flow.flow_metadata:
+            selected_asset_ids = flow.flow_metadata.get("selected_asset_ids", [])
+            if selected_asset_ids:
+                try:
+                    for aid in selected_asset_ids[:5]:  # Limit to 5 for performance
+                        asset_ids_to_reanalyze.add(
+                            UUID(aid) if isinstance(aid, str) else aid
+                        )
+                except (ValueError, TypeError):
+                    logger.warning(
+                        f"Invalid asset IDs in flow metadata: {selected_asset_ids}"
+                    )
+
+        # Convert set to list for iteration
+        asset_ids_to_reanalyze = list(asset_ids_to_reanalyze)
+        logger.info(
+            f"📋 Extracted {len(asset_ids_to_reanalyze)} asset ID(s) "
+            f"for readiness re-analysis: {[str(aid) for aid in asset_ids_to_reanalyze]}"
+        )
+
         # Update flow status based on completion
         update_flow_progress(flow, form_metadata, flow_id)
 
@@ -215,19 +270,107 @@ async def submit_questionnaire_response(
         logger.info(f"Committing {len(response_records)} response records to database")
         await db.commit()
 
+        readiness_updated = False
+        if asset_ids_to_reanalyze and request_data.save_type == "submit_complete":
+            try:
+                logger.info(
+                    f"🔄 Re-analyzing readiness for {len(asset_ids_to_reanalyze)} asset(s) "
+                    f"after questionnaire submission"
+                )
+
+                from app.services.assessment.asset_readiness_service import (
+                    AssetReadinessService,
+                )
+
+                readiness_service = AssetReadinessService()
+
+                # Re-analyze each asset and update readiness
+                for asset_uuid in asset_ids_to_reanalyze:
+                    try:
+                        gap_report = await readiness_service.analyze_asset_readiness(
+                            asset_id=asset_uuid,
+                            client_account_id=str(context.client_account_id),
+                            engagement_id=str(context.engagement_id),
+                            db=db,
+                        )
+
+                        # Update asset readiness fields
+                        from sqlalchemy import update
+                        from app.models.asset import Asset
+
+                        update_stmt = (
+                            update(Asset)
+                            .where(
+                                Asset.id == asset_uuid,
+                                Asset.client_account_id == context.client_account_id,
+                                Asset.engagement_id == context.engagement_id,
+                            )
+                            .values(
+                                assessment_readiness=(
+                                    "ready"
+                                    if gap_report.is_ready_for_assessment
+                                    else "not_ready"
+                                ),
+                                assessment_readiness_score=gap_report.overall_completeness,
+                                assessment_blockers=(
+                                    gap_report.readiness_blockers
+                                    if gap_report.readiness_blockers
+                                    else []
+                                ),
+                            )
+                        )
+                        await db.execute(update_stmt)
+                        readiness_updated = True
+
+                        logger.info(
+                            f"✅ Updated readiness for asset {asset_uuid}: "
+                            f"ready={gap_report.is_ready_for_assessment}, "
+                            f"completeness={gap_report.overall_completeness:.2f}"
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to re-analyze readiness for asset {asset_uuid}: {e}"
+                        )
+                        continue
+
+                if readiness_updated:
+                    await db.commit()
+                    logger.info(
+                        "✅ Asset readiness updated after questionnaire submission"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"Failed to re-analyze readiness after submission: {e}",
+                    exc_info=True,
+                )
+                # Don't fail the submission if readiness update fails
+
         logger.info(
             f"Successfully saved {len(response_records)} questionnaire responses for flow {flow_id} "
             f"by user {current_user.id}. Flow progress: {flow.progress_percentage}%, Status: {flow.status}"
         )
 
-        return {
+        # Build response with assessment flow redirect info
+        response_data = {
             "status": "success",
             "message": f"Successfully saved {len(response_records)} responses",
             "questionnaire_id": questionnaire_id,
             "flow_id": str(flow.flow_id),  # Fixed: Return flow_id UUID, not database ID
             "progress": flow.progress_percentage,
             "responses_saved": len(response_records),
+            "readiness_updated": readiness_updated,
         }
+
+        # CRITICAL UX FIX: Return assessment_flow_id if collection came from assessment flow
+        # This allows frontend to redirect back to assessment flow
+        if flow.assessment_flow_id:
+            response_data["assessment_flow_id"] = str(flow.assessment_flow_id)
+            response_data["redirect_to_assessment"] = True
+            logger.info(
+                f"📋 Collection flow came from assessment flow {flow.assessment_flow_id} - will redirect back"
+            )
+
+        return response_data
 
     except HTTPException as he:
         logger.warning(

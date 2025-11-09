@@ -89,8 +89,11 @@ def register_conditional_routers(api_router: APIRouter):
         )
 
         if ASSESSMENT_FLOW_READINESS_AVAILABLE:
-            # Note: No prefix needed - router already includes /api/v1/assessment-flow
-            api_router.include_router(assessment_flow_readiness_router)
+            # Router has prefix /assessment-flow, main router has /api/v1, so final path is /api/v1/assessment-flow
+            api_router.include_router(
+                assessment_flow_readiness_router,
+                tags=[APITags.ASSESSMENT_FLOW_READINESS],
+            )
             logger.info(
                 "✅ Assessment Flow Readiness API router included at "
                 "/assessment-flow/{flow_id}/asset-readiness/* (Issue #980)"

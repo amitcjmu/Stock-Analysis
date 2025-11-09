@@ -19,12 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.asset import Asset
 from app.models.canonical_applications import CanonicalApplication
-from app.services.ai_analysis.questionnaire_generator.tools.generation import (
-    QuestionnaireGenerationTool,
-)
-from app.services.collection.gap_to_questionnaire_adapter import (
-    GapToQuestionnaireAdapter,
-)
 from app.services.gap_detection.gap_analyzer import GapAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -60,15 +54,18 @@ async def prepare_gap_data_with_analyzer(
 
     # Initialize services
     gap_analyzer = GapAnalyzer()
-    adapter = GapToQuestionnaireAdapter()
+
+    # CRITICAL FIX (Issue #980): Import GapPriority for direct gap counting
+    from app.services.gap_detection.schemas import GapPriority
 
     # Aggregate gaps from all assets
-    all_missing_fields = {}
     all_assets_data = {}
     total_critical_gaps = 0
     total_high_gaps = 0
+    gap_reports = []  # Store gap reports for direct questionnaire generation
 
     for asset_id in asset_ids:
+        asset_id_str = str(asset_id)  # Define early for use in all_assets_data
         # Load asset and application data
         asset_result = await db.execute(
             select(Asset).where(
@@ -102,21 +99,9 @@ async def prepare_gap_data_with_analyzer(
             db=db,
         )
 
-        # Transform report to questionnaire input
-        asset_data_gaps, asset_business_context = (
-            await adapter.transform_to_questionnaire_input(
-                gap_report=gap_report,
-                context=context,
-                db=db,
-            )
-        )
-
-        # Merge into aggregate structures
-        asset_id_str = str(asset_id)
-        if asset_id_str in asset_data_gaps.get("missing_critical_fields", {}):
-            all_missing_fields[asset_id_str] = asset_data_gaps[
-                "missing_critical_fields"
-            ][asset_id_str]
+        # CRITICAL FIX (Issue #980): Store gap_reports directly instead of transforming
+        # This allows direct gap-to-questionnaire generation without critical attributes mapping
+        gap_reports.append(gap_report)
 
         all_assets_data[asset_id_str] = {
             "name": asset.name,
@@ -125,27 +110,30 @@ async def prepare_gap_data_with_analyzer(
             "assessment_ready": gap_report.is_ready_for_assessment,
         }
 
-        # Aggregate gap counts
-        metadata = asset_business_context.get("gap_analysis_metadata", {})
-        total_critical_gaps += metadata.get("critical_gaps", 0)
-        total_high_gaps += metadata.get("high_gaps", 0)
+        # Aggregate gap counts directly from gap_report
+        critical_gaps = [
+            g for g in gap_report.all_gaps if g.priority == GapPriority.CRITICAL
+        ]
+        high_gaps = [g for g in gap_report.all_gaps if g.priority == GapPriority.HIGH]
+        total_critical_gaps += len(critical_gaps)
+        total_high_gaps += len(high_gaps)
 
-    # Build consolidated data_gaps structure
+    # CRITICAL FIX (Issue #980): Build data_gaps with gap_reports for direct generation
     data_gaps = {
-        "missing_critical_fields": all_missing_fields,
-        "data_quality_issues": {},  # Can be enhanced with enrichment gaps
-        "assets_with_gaps": [
-            str(aid) for aid in asset_ids if str(aid) in all_missing_fields
-        ],
+        "gap_reports": gap_reports,  # Pass gap reports directly for Issue #980 compliance
+        "assets_with_gaps": [str(aid) for aid in asset_ids],  # All analyzed assets
     }
 
     # Build consolidated business context
+    # CRITICAL FIX (Issue #980): Include context and db for direct gap generation
     business_context = {
         "client_account_id": str(context.client_account_id),
         "engagement_id": str(context.engagement_id),
         "collection_flow_id": str(child_flow.id),
         "total_assets": len(asset_ids),
         "assets": all_assets_data,
+        "context": context,  # Pass context for direct gap generation
+        "db": db,  # Pass db for direct gap generation
         "gap_analysis_metadata": {
             "analyzer_version": "GapAnalyzer-v1.0",
             "total_assets_analyzed": len(asset_ids),
@@ -169,36 +157,75 @@ async def generate_questionnaires_from_analyzer(
     data_gaps: Dict[str, Any], business_context: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Generate questionnaires using QuestionnaireGenerationTool with GapAnalyzer data.
+    Generate questionnaires DIRECTLY from GapAnalyzer gaps (Issue #980).
 
-    This is a wrapper around the existing QuestionnaireGenerationTool that accepts
-    data from GapAnalyzer. No changes needed to the tool itself - the adapter
-    ensures format compatibility.
+    This bypasses the critical attributes mapping system and generates questions
+    directly from the gaps identified by GapAnalyzer. This ensures that ALL gaps
+    blocking assessment readiness are included in the questionnaire.
 
     Args:
-        data_gaps: Data gaps dictionary from GapAnalyzer
+        data_gaps: Data gaps dictionary from GapAnalyzer (contains gap_reports)
         business_context: Business context dictionary
 
     Returns:
         Generation result dictionary with sections and questions
     """
-    logger.info(
-        "Generating questionnaires from GapAnalyzer data "
-        f"({len(data_gaps.get('missing_critical_fields', {}))} assets with gaps)"
-    )
+    logger.info("Generating questionnaires DIRECTLY from GapAnalyzer gaps (Issue #980)")
 
-    tool = QuestionnaireGenerationTool()
-    result = await tool._arun(
-        data_gaps=data_gaps,
-        business_context=business_context,
-    )
+    # CRITICAL FIX: Use direct gap-to-questionnaire generation
+    # Check if we have gap_reports (from GapAnalyzer) or missing_critical_fields (old format)
+    if "gap_reports" in data_gaps:
+        # New format: Direct gap reports from GapAnalyzer
+        from app.services.collection.gap_to_questionnaire_adapter import (
+            GapToQuestionnaireAdapter,
+        )
 
-    logger.info(
-        f"Generated {result.get('metadata', {}).get('total_sections', 0)} sections "
-        f"with {result.get('metadata', {}).get('total_questions', 0)} questions"
-    )
+        adapter = GapToQuestionnaireAdapter()
 
-    return result
+        # Process each gap report
+        all_sections = []
+        total_questions = 0
+
+        for gap_report in data_gaps["gap_reports"]:
+            result = await adapter.generate_questionnaire_from_gaps(
+                gap_report=gap_report,
+                context=business_context.get("context"),  # Extract context if embedded
+                db=business_context.get("db"),  # Extract db if embedded
+            )
+            all_sections.extend(result.get("questionnaires", []))
+            total_questions += result.get("metadata", {}).get("total_questions", 0)
+
+        return {
+            "status": "success",
+            "questionnaires": all_sections,
+            "metadata": {
+                "total_sections": len(all_sections),
+                "total_questions": total_questions,
+                "generation_method": "direct_gap_analysis",  # Flag for Issue #980
+            },
+        }
+    else:
+        # Fallback to old critical attributes system (for backward compatibility)
+        logger.warning(
+            "Using deprecated QuestionnaireGenerationTool with critical attributes mapping. "
+            "Consider migrating to direct gap analysis (Issue #980)."
+        )
+        from app.services.ai_analysis.questionnaire_generator.tools.generation import (
+            QuestionnaireGenerationTool,
+        )
+
+        tool = QuestionnaireGenerationTool()
+        result = await tool._arun(
+            data_gaps=data_gaps,
+            business_context=business_context,
+        )
+
+        logger.info(
+            f"Generated {result.get('metadata', {}).get('total_sections', 0)} sections "
+            f"with {result.get('metadata', {}).get('total_questions', 0)} questions"
+        )
+
+        return result
 
 
 async def analyze_and_generate_questionnaires(

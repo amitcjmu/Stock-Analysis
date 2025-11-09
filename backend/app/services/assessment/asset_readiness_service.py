@@ -21,9 +21,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
 from app.models.assessment_flow import AssessmentFlow
-from app.models.canonical_applications.canonical_application import (
-    CanonicalApplication,
-)
 from app.services.gap_detection import GapAnalyzer
 from app.services.gap_detection.schemas import ComprehensiveGapReport
 
@@ -75,14 +72,9 @@ class AssetReadinessService:
             )
 
         # Query linked application (if any)
+        # Note: Assets don't have direct canonical_application_id - they're linked via CollectionFlowApplication
+        # For gap analysis, we don't need the application, so we skip this lookup
         application = None
-        if asset.canonical_application_id:
-            stmt = select(CanonicalApplication).where(
-                CanonicalApplication.id == asset.canonical_application_id,
-                CanonicalApplication.client_account_id == UUID(client_account_id),
-            )
-            result = await db.execute(stmt)
-            application = result.scalar_one_or_none()
 
         # Run gap analysis (GapAnalyzer orchestrates all 5 inspectors)
         logger.info(
@@ -142,7 +134,7 @@ class AssetReadinessService:
         """
         # Query assessment flow with tenant scoping
         stmt = select(AssessmentFlow).where(
-            AssessmentFlow.flow_id == flow_id,
+            AssessmentFlow.id == flow_id,
             AssessmentFlow.client_account_id == UUID(client_account_id),
             AssessmentFlow.engagement_id == UUID(engagement_id),
         )
@@ -156,12 +148,16 @@ class AssetReadinessService:
                 f"engagement_id={engagement_id})"
             )
 
-        # Get selected application IDs from flow
-        selected_app_ids = flow.selected_application_ids or []
+        # Get selected asset IDs from flow
+        # Note: selected_application_ids is deprecated and actually stores asset UUIDs
+        # Use selected_asset_ids if available, fallback to selected_application_ids for backward compatibility
+        selected_asset_ids = (
+            flow.selected_asset_ids or flow.selected_application_ids or []
+        )
 
-        if not selected_app_ids:
+        if not selected_asset_ids:
             logger.warning(
-                f"Assessment flow {flow_id} has no selected applications",
+                f"Assessment flow {flow_id} has no selected assets",
                 extra={"flow_id": str(flow_id), "client_account_id": client_account_id},
             )
             return {
@@ -175,10 +171,13 @@ class AssetReadinessService:
                 "analyzed_at": datetime.utcnow().isoformat(),
             }
 
-        # Query all assets linked to selected applications
+        # Query all selected assets directly by their IDs
         stmt = select(Asset).where(
-            Asset.canonical_application_id.in_(
-                [UUID(app_id) for app_id in selected_app_ids]
+            Asset.id.in_(
+                [
+                    UUID(asset_id) if isinstance(asset_id, str) else asset_id
+                    for asset_id in selected_asset_ids
+                ]
             ),
             Asset.client_account_id == UUID(client_account_id),
             Asset.engagement_id == UUID(engagement_id),
@@ -191,7 +190,7 @@ class AssetReadinessService:
             extra={
                 "flow_id": str(flow_id),
                 "total_assets": len(assets),
-                "selected_applications": len(selected_app_ids),
+                "selected_applications": len(selected_asset_ids),
                 "detailed": detailed,
             },
         )
@@ -322,7 +321,7 @@ class AssetReadinessService:
         """
         # Query assessment flow with tenant scoping
         stmt = select(AssessmentFlow).where(
-            AssessmentFlow.flow_id == flow_id,
+            AssessmentFlow.id == flow_id,
             AssessmentFlow.client_account_id == UUID(client_account_id),
             AssessmentFlow.engagement_id == UUID(engagement_id),
         )
@@ -337,16 +336,47 @@ class AssetReadinessService:
             )
 
         # Get selected application IDs from flow
-        selected_app_ids = flow.selected_application_ids or []
+        # Get selected asset IDs from flow
+        # Note: selected_application_ids is deprecated and actually stores asset UUIDs
+        # Use selected_asset_ids if available, fallback to selected_application_ids for backward compatibility
+        selected_asset_ids = (
+            flow.selected_asset_ids or flow.selected_application_ids or []
+        )
 
-        if not selected_app_ids:
+        if not selected_asset_ids:
             return []
 
-        # Query all assets linked to selected applications
+        # Query all selected assets directly by their IDs
+        # Convert asset IDs to UUIDs, filtering out invalid ones
+        asset_uuids = []
+        for asset_id in selected_asset_ids:
+            try:
+                if isinstance(asset_id, str):
+                    if asset_id.strip():  # Skip empty strings
+                        asset_uuids.append(UUID(asset_id))
+                elif asset_id is not None:
+                    asset_uuids.append(
+                        asset_id if isinstance(asset_id, UUID) else UUID(str(asset_id))
+                    )
+            except (ValueError, AttributeError) as e:
+                logger.warning(
+                    f"Invalid asset ID in selected_asset_ids: {asset_id} (error: {e})",
+                    extra={"flow_id": str(flow_id), "asset_id": str(asset_id)},
+                )
+                continue
+
+        if not asset_uuids:
+            logger.warning(
+                f"No valid asset IDs found in selected_asset_ids for flow {flow_id}",
+                extra={
+                    "flow_id": str(flow_id),
+                    "selected_asset_ids": selected_asset_ids,
+                },
+            )
+            return []
+
         stmt = select(Asset).where(
-            Asset.canonical_application_id.in_(
-                [UUID(app_id) for app_id in selected_app_ids]
-            ),
+            Asset.id.in_(asset_uuids),
             Asset.client_account_id == UUID(client_account_id),
             Asset.engagement_id == UUID(engagement_id),
         )
