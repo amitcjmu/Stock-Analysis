@@ -218,7 +218,7 @@ async def _fetch_gaps_from_database(
     return gaps_by_asset
 
 
-def _analyze_selected_assets(
+async def _analyze_selected_assets(
     existing_assets: List[Asset],
     flow_id: Optional[str] = None,
     db: Optional[Any] = None,
@@ -272,13 +272,9 @@ def _analyze_selected_assets(
     # ✅ FIX 0.5: Use Issue #980's gap detection instead of legacy code
     # Read from collection_data_gaps table (created by GapAnalyzer with 5 inspectors)
     if flow_id and db:
-        import asyncio
-
-        # Run async query synchronously
+        # Use await instead of run_until_complete (we're already in async context)
         try:
-            gaps_by_asset = asyncio.get_event_loop().run_until_complete(
-                _fetch_gaps_from_database(flow_id, db, asset_analysis)
-            )
+            gaps_by_asset = await _fetch_gaps_from_database(flow_id, db, asset_analysis)
 
             # Populate missing_critical_fields from database gaps
             for asset_id_str, field_names in gaps_by_asset.items():

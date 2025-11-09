@@ -170,7 +170,7 @@ async def _generate_agent_questionnaires(
 
         # ✅ FIX 0.5: Analyze selected assets using Issue #980's gap detection
         # Reads from collection_data_gaps table instead of legacy asset inspection
-        selected_assets, asset_analysis = _analyze_selected_assets(
+        selected_assets, asset_analysis = await _analyze_selected_assets(
             existing_assets, flow_id, db
         )
 
