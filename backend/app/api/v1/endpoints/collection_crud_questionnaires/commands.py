@@ -11,7 +11,6 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update, select
-from sqlalchemy.dialects.postgresql import insert
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
@@ -115,31 +114,44 @@ async def _start_agent_generation(
                 "created_at": datetime.now(timezone.utc),
             }
 
-            # ✅ FIX: Use UPSERT to handle race conditions (phantom duplicate key errors)
+            # ✅ FIX: Handle race conditions with try/except for IntegrityError
             # If another request created the same questionnaire between our check and INSERT,
-            # PostgreSQL's ON CONFLICT will handle it gracefully instead of throwing IntegrityError
-            stmt = insert(AdaptiveQuestionnaire).values(**questionnaire_data)
+            # catch the unique constraint violation and fetch the existing record
+            # Note: We have a UNIQUE INDEX (not constraint) so ON CONFLICT won't work
+            try:
+                # Attempt to insert the new questionnaire
+                pending_questionnaire = AdaptiveQuestionnaire(**questionnaire_data)
+                db.add(pending_questionnaire)
+                await db.commit()
+                await db.refresh(pending_questionnaire)
 
-            # On conflict (engagement_id + asset_id already exists), do nothing and return existing
-            # CRITICAL FIX (Issue #980): asyncpg doesn't support index_where in ON CONFLICT
-            # Remove index_where parameter - asyncpg will automatically use the partial unique index
-            # See: https://github.com/sqlalchemy/sqlalchemy/discussions/7858
-            stmt = stmt.on_conflict_do_nothing(
-                index_elements=["engagement_id", "asset_id"],
-            )
+            except Exception as insert_error:
+                # Roll back the failed transaction
+                await db.rollback()
 
-            # Execute UPSERT
-            await db.execute(stmt)
-            await db.commit()
+                # Check if it's a unique constraint violation
+                if (
+                    "duplicate key" in str(insert_error).lower()
+                    or "unique" in str(insert_error).lower()
+                ):
+                    # Race condition: Another request created this questionnaire
+                    logger.info(
+                        f"Questionnaire already exists for engagement {context.engagement_id} "
+                        f"and asset {asset_id}, fetching existing record"
+                    )
 
-            # Fetch the actual record (either newly inserted or existing from race condition)
-            result = await db.execute(
-                select(AdaptiveQuestionnaire).where(
-                    AdaptiveQuestionnaire.engagement_id == context.engagement_id,
-                    AdaptiveQuestionnaire.asset_id == asset_id,
-                )
-            )
-            pending_questionnaire = result.scalar_one()
+                    # Fetch the existing questionnaire
+                    result = await db.execute(
+                        select(AdaptiveQuestionnaire).where(
+                            AdaptiveQuestionnaire.engagement_id
+                            == context.engagement_id,
+                            AdaptiveQuestionnaire.asset_id == asset_id,
+                        )
+                    )
+                    pending_questionnaire = result.scalar_one()
+                else:
+                    # Different error, re-raise
+                    raise
 
             logger.info(
                 f"Created pending questionnaire {questionnaire_id} for asset {asset_id} in flow {flow_id}"
