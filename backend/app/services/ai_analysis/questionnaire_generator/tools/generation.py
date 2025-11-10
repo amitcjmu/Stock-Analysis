@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 from .section_builders import (
     create_basic_info_section,
     create_category_sections,
-    create_fallback_section,
     group_attributes_by_category,
 )
 
@@ -110,12 +109,17 @@ class QuestionnaireGenerationTool(BaseTool):
             )
 
         except ImportError as e:
-            logger.warning(
-                f"Critical attributes system not available, using fallback: {e}"
+            # ❌ REMOVED: Legacy fallback that generated generic text questions
+            # Issue #980 intelligent builders are now integrated into section_builders.py
+            # If CriticalAttributesDefinition import fails, it's a configuration error that should be fixed
+            logger.error(
+                f"CRITICAL: CriticalAttributesDefinition import failed - questionnaire generation cannot proceed: {e}",
+                exc_info=True,
             )
-            fallback_section = create_fallback_section(missing_fields)
-            if fallback_section:
-                sections.append(fallback_section)
+            raise ImportError(
+                "Critical attributes system is required for questionnaire generation. "
+                "Check that app.services.crewai_flows.tools.critical_attributes_tool is available."
+            ) from e
 
         return sections
 

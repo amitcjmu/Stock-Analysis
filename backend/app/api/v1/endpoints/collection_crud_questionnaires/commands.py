@@ -10,7 +10,8 @@ from typing import List, Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update
+from sqlalchemy import update, select
+from sqlalchemy.dialects.postgresql import insert
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
@@ -92,32 +93,54 @@ async def _start_agent_generation(
             )
 
             questionnaire_id = uuid4()
-            pending_questionnaire = AdaptiveQuestionnaire(
-                id=questionnaire_id,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                collection_flow_id=flow.id,  # Audit trail: which flow triggered creation
-                asset_id=asset_id,  # CRITICAL: Asset-based deduplication key
-                title="AI-Generated Data Collection Questionnaire",
-                description="Generating tailored questionnaire using AI agent analysis...",
-                template_name="agent_generated",
-                template_type="detailed",
-                version="2.0",
-                applicable_tiers=["tier_1", "tier_2", "tier_3", "tier_4"],
-                question_set={},
-                questions=[],
-                validation_rules={},
-                completion_status="pending",
-                responses_collected={},
-                is_active=True,
-                is_template=False,
-                created_at=datetime.now(timezone.utc),
+            questionnaire_data = {
+                "id": questionnaire_id,
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "collection_flow_id": flow.id,  # Audit trail: which flow triggered creation
+                "asset_id": asset_id,  # CRITICAL: Asset-based deduplication key
+                "title": "AI-Generated Data Collection Questionnaire",
+                "description": "Generating tailored questionnaire using AI agent analysis...",
+                "template_name": "agent_generated",
+                "template_type": "detailed",
+                "version": "2.0",
+                "applicable_tiers": ["tier_1", "tier_2", "tier_3", "tier_4"],
+                "question_set": {},
+                "questions": [],
+                "validation_rules": {},
+                "completion_status": "pending",
+                "responses_collected": {},
+                "is_active": True,
+                "is_template": False,
+                "created_at": datetime.now(timezone.utc),
+            }
+
+            # ✅ FIX: Use UPSERT to handle race conditions (phantom duplicate key errors)
+            # If another request created the same questionnaire between our check and INSERT,
+            # PostgreSQL's ON CONFLICT will handle it gracefully instead of throwing IntegrityError
+            stmt = insert(AdaptiveQuestionnaire).values(**questionnaire_data)
+
+            # On conflict (engagement_id + asset_id already exists), do nothing and return existing
+            # CRITICAL: uq_questionnaire_per_asset_per_engagement is a PARTIAL UNIQUE INDEX (not constraint)
+            # with WHERE asset_id IS NOT NULL. Must use index_elements + index_where, NOT constraint name.
+            # PostgreSQL partial indexes cannot be referenced by name in ON CONFLICT ON CONSTRAINT.
+            stmt = stmt.on_conflict_do_nothing(
+                index_elements=["engagement_id", "asset_id"],
+                index_where=(AdaptiveQuestionnaire.asset_id.isnot(None)),
             )
 
-            # Insert pending record with tenant isolation
-            db.add(pending_questionnaire)
+            # Execute UPSERT
+            await db.execute(stmt)
             await db.commit()
-            await db.refresh(pending_questionnaire)
+
+            # Fetch the actual record (either newly inserted or existing from race condition)
+            result = await db.execute(
+                select(AdaptiveQuestionnaire).where(
+                    AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+                    AdaptiveQuestionnaire.asset_id == asset_id,
+                )
+            )
+            pending_questionnaire = result.scalar_one()
 
             logger.info(
                 f"Created pending questionnaire {questionnaire_id} for asset {asset_id} in flow {flow_id}"

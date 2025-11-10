@@ -2,6 +2,9 @@
 Section Builder Functions
 Extracted from generation.py for modularization.
 Contains logic for building questionnaire sections and organizing questions by category.
+
+✅ Issue #980 Integration: Uses intelligent MCQ question builders for all gap types.
+Removed all legacy fallback code that generated generic text questions.
 """
 
 import logging
@@ -17,6 +20,15 @@ from .intelligent_options import (
     get_dependencies_options,
     infer_field_type_from_config,
     get_fallback_field_type_and_options,
+)
+
+# ✅ Issue #980: Import intelligent question builders for all gap types
+from .question_builders import (
+    generate_missing_field_question,
+    generate_data_quality_question,
+    generate_dependency_question,
+    generate_generic_technical_question,
+    generate_generic_question,
 )
 
 logger = logging.getLogger(__name__)
@@ -74,6 +86,9 @@ def determine_field_type_and_options(
     attr_name: str, asset_context: Optional[Dict] = None
 ) -> Tuple[str, List]:
     """Determine field type and options based on attribute name and asset context.
+
+    ✅ NOTE: This function is ONLY used for MAPPED critical attributes (the good path).
+    For unmapped gaps, Issue #980 intelligent builders are now used instead.
 
     Uses FIELD_OPTIONS from config.py as single source of truth.
     Falls back to heuristics only for unmapped fields.
@@ -178,7 +193,7 @@ def build_question_from_attribute(
     return question
 
 
-def group_attributes_by_category(
+def group_attributes_by_category(  # noqa: C901
     missing_fields: dict,
     attribute_mapping: dict,
     assets_data: Optional[List[Dict]] = None,
@@ -195,11 +210,16 @@ def group_attributes_by_category(
     Returns:
         Dict mapping category names to lists of question dicts
     """
+    # ✅ FIX: Added missing categories used by Issue #980 intelligent builders
+    # QA Bug #1: KeyError when intelligent builders assigned to 'dependencies', 'data_validation', 'technical_details'
     attrs_by_category = {
         "infrastructure": [],
         "application": [],
         "business": [],
         "technical_debt": [],
+        "dependencies": [],  # Used by generate_dependency_question()
+        "data_validation": [],  # Used by generate_data_quality_question()
+        "technical_details": [],  # Used by generate_generic_technical_question()
     }
 
     # Track which attributes are needed and which assets need them
@@ -275,47 +295,88 @@ def group_attributes_by_category(
             question["field_id"] = attr_name
             attrs_by_category[category].append(question)
         else:
-            # CRITICAL FIX: Create fallback question for gaps that don't match any critical attribute
-            # These are still important gaps that need to be collected
-            logger.warning(
-                f"Gap field '{attr_name}' not found in critical attributes mapping. "
-                f"Creating fallback question for {len(asset_ids)} asset(s)."
+            # ✅ Issue #980: Use intelligent MCQ question builders for gaps without critical attribute mapping
+            # Instead of generic fallback, route to appropriate intelligent builder based on gap type
+            logger.info(
+                f"Gap field '{attr_name}' using Issue #980 intelligent builder for {len(asset_ids)} asset(s)"
             )
-            # Determine category based on field name heuristics
-            category = "application"  # Default
+
+            # Build asset_context for intelligent builders (using first asset that has this gap)
+            asset_context = {
+                "field_name": attr_name,
+                "asset_name": "the asset",  # Generic, will be made specific per asset
+                "asset_id": asset_ids[0] if asset_ids else "unknown",
+            }
+
+            # Add asset-specific context if available
+            if asset_ids and asset_context_by_id:
+                first_asset_context = asset_context_by_id.get(asset_ids[0])
+                if first_asset_context:
+                    asset_context["asset_name"] = first_asset_context.get(
+                        "asset_name", "the asset"
+                    )
+                    asset_context["operating_system"] = first_asset_context.get(
+                        "operating_system"
+                    )
+                    asset_context["eol_technology"] = first_asset_context.get(
+                        "eol_technology"
+                    )
+
+            # Route to appropriate Issue #980 intelligent builder based on field name patterns
+            question = None
+
+            # Dependency-related gaps
             if any(
                 x in attr_name.lower()
-                for x in ["resilience", "availability", "disaster"]
+                for x in ["dependency", "dependencies", "integration"]
             ):
-                category = "infrastructure"
+                question = generate_dependency_question({}, asset_context)
+                category = "dependencies"
+
+            # Data quality gaps (low confidence from gap detection)
+            elif "quality" in attr_name.lower() or "confidence" in attr_name.lower():
+                asset_context["quality_issue"] = (
+                    f"Low confidence in {attr_name.replace('_', ' ')}"
+                )
+                question = generate_data_quality_question({}, asset_context)
+                category = "data_validation"
+
+            # Technical/architecture gaps
             elif any(
                 x in attr_name.lower()
-                for x in ["business", "owner", "stakeholder", "criticality"]
+                for x in ["technical", "architecture", "tech_debt", "modernization"]
             ):
-                category = "business"
-            elif any(
-                x in attr_name.lower() for x in ["debt", "quality", "maintenance"]
-            ):
-                category = "technical_debt"
+                question = generate_generic_technical_question(asset_context)
+                category = "technical_details"
 
-            # Create a simple question for this unmapped gap
-            field_type, options = determine_field_type_and_options(attr_name, None)
-            question = {
-                "field_id": attr_name,
-                "question_text": f"What is the {attr_name.replace('_', ' ').title()}?",
-                "field_type": field_type,
-                "required": True,  # Gaps are required by definition
-                "category": category,
-                "metadata": {
-                    "asset_ids": asset_ids,
-                    "gap_field_name": attr_name,
-                    "unmapped_gap": True,  # Flag to indicate this is an unmapped gap
-                    "applies_to_count": len(asset_ids),
-                },
-                "help_text": f"Please provide the {attr_name.replace('_', ' ').lower()} for this asset.",
-            }
-            if options:
-                question["options"] = options
+            # Business/ownership gaps
+            elif any(
+                x in attr_name.lower() for x in ["business", "owner", "stakeholder"]
+            ):
+                question = generate_missing_field_question({}, asset_context)
+                category = "business"
+
+            # Infrastructure gaps
+            elif any(
+                x in attr_name.lower()
+                for x in ["resilience", "availability", "disaster", "infrastructure"]
+            ):
+                question = generate_missing_field_question({}, asset_context)
+                category = "infrastructure"
+
+            # Generic gaps - use intelligent generic builder (MCQ with status options)
+            else:
+                question = generate_generic_question(attr_name, asset_context)
+                category = "application"
+
+            # Update field_id to non-composite format (single question for all assets)
+            # Issue #980 builders use composite {asset_id}__{field},
+            # but for cross-asset questions we use simple field_id
+            question["field_id"] = attr_name
+
+            # Update metadata to include all assets that need this field
+            question["metadata"]["asset_ids"] = asset_ids
+            question["metadata"]["applies_to_count"] = len(asset_ids)
 
             attrs_by_category[category].append(question)
 
@@ -323,7 +384,10 @@ def group_attributes_by_category(
 
 
 def create_category_sections(attrs_by_category: dict) -> list:
-    """Create sections organized by category."""
+    """Create sections organized by category.
+
+    ✅ FIX: Added new categories from Issue #980 intelligent builders.
+    """
     category_config = {
         "infrastructure": {
             "title": "Infrastructure Information",
@@ -351,11 +415,38 @@ def create_category_sections(attrs_by_category: dict) -> list:
                 "technology lifecycle assessment"
             ),
         },
+        "dependencies": {
+            "title": "Dependencies & Integrations",
+            "description": (
+                "System dependencies, integrations, and architectural complexity"
+            ),
+        },
+        "data_validation": {
+            "title": "Data Quality Verification",
+            "description": (
+                "Verify accuracy and completeness of discovered information"
+            ),
+        },
+        "technical_details": {
+            "title": "Technical Details",
+            "description": (
+                "Additional technical specifications and modernization readiness"
+            ),
+        },
     }
 
     sections = []
-    for category in ["infrastructure", "application", "business", "technical_debt"]:
-        if attrs_by_category[category]:
+    # Process all categories (not just the original 4)
+    for category in [
+        "infrastructure",
+        "application",
+        "business",
+        "technical_debt",
+        "dependencies",
+        "data_validation",
+        "technical_details",
+    ]:
+        if attrs_by_category.get(category):  # Use .get() for safety
             config = category_config[category]
             sections.append(
                 {
@@ -369,27 +460,8 @@ def create_category_sections(attrs_by_category: dict) -> list:
     return sections
 
 
-def create_fallback_section(missing_fields: dict) -> dict:
-    """Create fallback section when critical attributes system is unavailable."""
-    critical_questions = []
-    for asset_id, fields in missing_fields.items():
-        for field in fields:
-            critical_questions.append(
-                {
-                    "field_id": field,
-                    "question_text": f"Please provide {field.replace('_', ' ').title()}",
-                    "field_type": "text",
-                    "required": True,
-                    "category": "critical_field",
-                    "metadata": {"asset_id": asset_id},
-                }
-            )
-
-    if critical_questions:
-        return {
-            "section_id": "critical_fields",
-            "section_title": "Critical Missing Information",
-            "section_description": "Please provide the following critical information",
-            "questions": critical_questions,
-        }
-    return None
+# ❌ REMOVED: create_fallback_section() - Legacy function that generated generic text questions
+# Issue #980 intelligent MCQ builders are now fully integrated (see lines 291-355).
+# All gap types now use proper MCQ questions with user-friendly text.
+# If you see an error about missing create_fallback_section, it means legacy code is trying to use it.
+# Solution: Update the calling code to use Issue #980's intelligent builders instead.
