@@ -56,9 +56,25 @@ def _extract_from_agent_output(agent_result: dict) -> Optional[list]:
     # CRITICAL FIX: agent_output can be a JSON STRING, parse it first
     if isinstance(agent_output, str):
         try:
+            # FIX 0.8 (QA Bug #4): Agent wraps JSON in markdown code fence (```json ... ```)
+            # Strip markdown wrapper before parsing
+            agent_output_cleaned = agent_output.strip()
+            if agent_output_cleaned.startswith("```json"):
+                # Remove ```json from start and ``` from end
+                agent_output_cleaned = agent_output_cleaned[7:]  # Remove ```json
+                if agent_output_cleaned.endswith("```"):
+                    agent_output_cleaned = agent_output_cleaned[:-3]  # Remove ```
+                agent_output_cleaned = agent_output_cleaned.strip()
+            elif agent_output_cleaned.startswith("```"):
+                # Remove generic ``` wrapper
+                agent_output_cleaned = agent_output_cleaned[3:]
+                if agent_output_cleaned.endswith("```"):
+                    agent_output_cleaned = agent_output_cleaned[:-3]
+                agent_output_cleaned = agent_output_cleaned.strip()
+
             # FIX 0.7 (QA Bug #3): Agent returns Python booleans (True/False) instead of JSON (true/false)
             # Replace Python booleans with JSON booleans before parsing
-            agent_output_fixed = re.sub(r"\bTrue\b", "true", agent_output)
+            agent_output_fixed = re.sub(r"\bTrue\b", "true", agent_output_cleaned)
             agent_output_fixed = re.sub(r"\bFalse\b", "false", agent_output_fixed)
             agent_output = json.loads(agent_output_fixed)
         except json.JSONDecodeError as e:
