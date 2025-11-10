@@ -121,12 +121,11 @@ async def _start_agent_generation(
             stmt = insert(AdaptiveQuestionnaire).values(**questionnaire_data)
 
             # On conflict (engagement_id + asset_id already exists), do nothing and return existing
-            # CRITICAL: uq_questionnaire_per_asset_per_engagement is a PARTIAL UNIQUE INDEX (not constraint)
-            # with WHERE asset_id IS NOT NULL. Must use index_elements + index_where, NOT constraint name.
-            # PostgreSQL partial indexes cannot be referenced by name in ON CONFLICT ON CONSTRAINT.
+            # CRITICAL FIX (Issue #980): asyncpg doesn't support index_where in ON CONFLICT
+            # Remove index_where parameter - asyncpg will automatically use the partial unique index
+            # See: https://github.com/sqlalchemy/sqlalchemy/discussions/7858
             stmt = stmt.on_conflict_do_nothing(
                 index_elements=["engagement_id", "asset_id"],
-                index_where=(AdaptiveQuestionnaire.asset_id.isnot(None)),
             )
 
             # Execute UPSERT
