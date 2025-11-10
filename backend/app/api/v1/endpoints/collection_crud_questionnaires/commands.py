@@ -174,7 +174,7 @@ async def _start_agent_generation(
                     questionnaire_id,
                     flow_id,
                     flow,
-                    [target_asset],  # Pass only this asset (O(1) lookup)
+                    [str(target_asset.id)],
                     context,
                 )
             )
@@ -277,11 +277,57 @@ async def _do_update_questionnaire_status(
         raise
 
 
+async def _load_assets_for_background(
+    db: AsyncSession,
+    context: RequestContext,
+    flow_id: str,
+    asset_ids: List[str],
+) -> List[Asset]:
+    """Reload assets inside the background session to avoid detached objects."""
+    if not asset_ids:
+        return []
+
+    try:
+        asset_uuid_list = [UUID(str(aid)) for aid in asset_ids]
+    except Exception as exc:
+        logger.error(
+            "Failed to parse asset IDs for background questionnaire generation: %s",
+            exc,
+        )
+        return []
+
+    client_uuid = (
+        UUID(str(context.client_account_id))
+        if isinstance(context.client_account_id, str)
+        else context.client_account_id
+    )
+    engagement_uuid = (
+        UUID(str(context.engagement_id))
+        if isinstance(context.engagement_id, str)
+        else context.engagement_id
+    )
+
+    assets_result = await db.execute(
+        select(Asset)
+        .where(Asset.id.in_(asset_uuid_list))
+        .where(Asset.client_account_id == client_uuid)
+        .where(Asset.engagement_id == engagement_uuid)
+    )
+    assets = list(assets_result.scalars().all())
+
+    logger.info(
+        "Reloaded %s asset(s) inside background session for flow %s",
+        len(assets),
+        flow_id,
+    )
+    return assets
+
+
 async def _background_generate(
     questionnaire_id: UUID,
     flow_id: str,
     flow: CollectionFlow,
-    existing_assets: List[Asset],
+    asset_ids: List[str],
     context: RequestContext,
 ) -> None:
     """
@@ -299,6 +345,24 @@ async def _background_generate(
 
         # ✅ FIX 0.5: Create database session for gap detection
         async with AsyncSessionLocal() as db:
+            existing_assets = await _load_assets_for_background(
+                db, context, flow_id, asset_ids
+            )
+
+            if not existing_assets:
+                logger.warning(
+                    "No assets reloaded for questionnaire generation in flow %s; "
+                    "marking questionnaire as failed",
+                    flow_id,
+                )
+                await _update_questionnaire_status(
+                    questionnaire_id,
+                    "failed",
+                    error_message="No assets available for questionnaire generation",
+                    db=db,
+                )
+                return
+
             # Use agent generation with Issue #980 gap detection
             from .agents import _generate_agent_questionnaires
 

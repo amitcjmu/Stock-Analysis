@@ -1,3 +1,29 @@
+## [1.21.1] - 2025-11-10
+
+### 🎯 **🐛 Fix - Collection Flow Agent Stability**
+
+This release stabilizes collection gap analysis and questionnaire generation by aligning flow identifier handling with tenant-scoped primary keys and rehydrating assets inside background agent sessions.
+
+### 🚀 **Stability Improvements**
+
+#### **Gap analysis ID normalization**
+- **Change Type**: Backend fix
+- **Impact**: Gap analysis now resolves both primary keys and business `flow_id` values, preventing ValueError crashes and allowing gaps to persist.
+- **Technical Details**: `resolve_collection_flow_id` queries `collection_flows.id` before falling back to `flow_id` and `master_flow_id`, retaining tenant scoping.
+
+#### **Agent questionnaire rehydration**
+- **Change Type**: Backend fix
+- **Impact**: Eliminates `greenlet_spawn` errors so background questionnaire generation completes reliably for selected assets.
+- **Technical Details**: Background tasks now pass asset IDs, reload scoped assets inside their session, and fail gracefully when nothing is available.
+
+### 📊 **Business Impact**
+- **Collection flow reliability**: Questionnaire generation completes without manual retries for tenant flows that previously stalled.
+- **Gap analysis continuity**: Automation tiers can persist detected gaps without operator intervention.
+
+### 🎯 **Success Metrics**
+- **Gap analysis completion rate**: ≥95 % of executions without identifier resolution failures.
+- **Questionnaire generation success**: 0 runtime `greenlet_spawn` errors observed during collection flow runs.
+
 ## [2025-10-31] - Intelligent Context-Aware Questionnaire Generation
 
 ### 🚀 Enhancement - Intelligent Questionnaire Generation (PR #890)

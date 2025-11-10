@@ -1,7 +1,7 @@
 {
   "name": "ai-modernize-migration-platform",
   "private": true,
-  "version": "1.21.0",
+  "version": "1.21.1",
   "description": "AI-powered cloud migration management platform with intelligent automation and comprehensive workflow orchestration",
   "type": "module",
   "repository": {
