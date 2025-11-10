@@ -149,13 +149,43 @@ class AgentWrapper:
             else:
                 # Legacy path - no field mappings provided
                 from crewai import Task
+                import json
 
-                # Create a task description based on data type and agent role
-                data_summary = self._create_data_summary(data)
-                task_description = (
-                    f"Process and analyze the provided data for {self._agent_type} "
-                    f"operations.\n\n{data_summary}"
-                )
+                # CRITICAL FIX: For questionnaire_generator, provide FULL data to LLM
+                # The LLM needs complete gap data to decide how to use the questionnaire_generation tool
+                # Other agents can use summaries since they work with record-level data
+                if self._agent_type == "questionnaire_generator":
+                    # Provide complete data structure for questionnaire generation
+                    try:
+                        # Pretty-print the full data so LLM can see all details
+                        data_json = json.dumps(data, indent=2, default=str)
+                        task_description = (
+                            f"Generate an adaptive questionnaire based on the following data gaps and context.\n\n"
+                            f"Use your questionnaire_generation tool with this data:\n\n"
+                            f"```json\n{data_json}\n```\n\n"
+                            f"The tool expects:\n"
+                            f"- data_gaps: Dict with missing_critical_fields, "
+                            f"unmapped_attributes, data_quality_issues\n"
+                            f"- business_context: Dict with engagement_id, "
+                            f"client_account_id, asset information\n\n"
+                            f"Call the questionnaire_generation tool with the data above "
+                            f"to generate intelligent, context-aware MCQ questions that "
+                            f"resolve the identified data gaps."
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to serialize questionnaire data: {e}")
+                        data_summary = self._create_data_summary(data)
+                        task_description = (
+                            f"Process and analyze the provided data for {self._agent_type} "
+                            f"operations.\n\n{data_summary}"
+                        )
+                else:
+                    # Create a task description based on data type and agent role
+                    data_summary = self._create_data_summary(data)
+                    task_description = (
+                        f"Process and analyze the provided data for {self._agent_type} "
+                        f"operations.\n\n{data_summary}"
+                    )
 
                 # Create a task for the agent to process the data
                 # CRITICAL FIX: Pass unwrapped agent to satisfy Pydantic validation
