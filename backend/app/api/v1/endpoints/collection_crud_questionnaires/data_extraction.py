@@ -115,11 +115,13 @@ def _extract_questionnaire_data(
     questionnaires_data, sections_data = _find_questionnaires_in_result(agent_result)
 
     # Determine which data to process
+    # CRITICAL: Fallback disabled to diagnose LLM flow issues
+    # If this fails, we need to fix the agent's LLM output, not mask with fallback
     data_to_process = (
         questionnaires_data
         or sections_data
         or _extract_from_agent_output(agent_result)
-        or _generate_from_gap_analysis(agent_result)
+        # FALLBACK DISABLED: or _generate_from_gap_analysis(agent_result)
     )
 
     if not data_to_process:
