@@ -1,3 +1,34 @@
+## [1.21.2] - 2025-11-10
+
+### 🎯 **🐛 Fix - Agentic Questionnaire Persistence**
+
+This release restores the full agentic questionnaire pipeline by hardening CrewAI output parsing, eliminating fallback responses, and persisting the complete gap analysis payload on each collection flow.
+
+### 🚀 **Agent Intelligence Stabilization**
+
+#### **Crew output normalization**
+- **Change Type**: Backend fix
+- **Impact**: Questionnaire generation now consumes the structured payload returned by CrewAI instead of falling back to basic forms.
+- **Technical Details**: `_normalize_agent_output` coerces `CrewOutput` objects, parses `raw_text` fallbacks, and extracts `questionnaires`/`sections` before handing results to downstream serializers.
+
+#### **Questionnaire extraction resilience**
+- **Change Type**: Backend fix
+- **Impact**: Agent-provided MCQ sections survive markdown fences, Python literals, and diagnostic wrappers.
+- **Technical Details**: `_extract_from_agent_output` unwraps `raw_text` dictionaries, normalizes booleans, and retries parsing with `ast.literal_eval` when JSON decoding fails.
+
+#### **Gap analysis state persistence**
+- **Change Type**: Backend enhancement
+- **Impact**: The UI consistently receives the 22 critical gaps surfaced by Tier 2 analysis instead of reverting to default placeholders.
+- **Technical Details**: `GapAnalysisService` now writes summaries, gaps, and questionnaire metadata into `collection_flows.gap_analysis_results` after each run while retaining tenant scoping.
+
+### 📊 **Business Impact**
+- **Agentic continuity**: Users stay on the intelligent questionnaire path without triggering basic fallback forms.
+- **Data integrity**: Persisted gap analysis payload keeps asset gap counts in sync between backend and UI refreshes.
+
+### 🎯 **Success Metrics**
+- **Agent questionnaire success rate**: ≥95 % of Tier 2 runs yield structured questionnaires with no parsing errors.
+- **Gap analysis persistence**: 100 % of post-analysis flows contain `gap_analysis_results` JSON for reuse downstream.
+
 ## [1.21.1] - 2025-11-10
 
 ### 🎯 **🐛 Fix - Collection Flow Agent Stability**

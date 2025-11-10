@@ -3,13 +3,83 @@ Data extraction utilities for collection questionnaires.
 Functions for extracting and processing agent-generated questionnaire data.
 """
 
+import ast
+import json
 import logging
+import re
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from app.schemas.collection_flow import AdaptiveQuestionnaireResponse
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_agent_output_string(raw: str) -> Optional[dict]:
+    if not raw:
+        return None
+
+    candidate = raw.strip()
+    if candidate.startswith("```json"):
+        candidate = candidate[7:]
+        if candidate.endswith("```"):
+            candidate = candidate[:-3]
+        candidate = candidate.strip()
+    elif candidate.startswith("```"):
+        candidate = candidate[3:]
+        if candidate.endswith("```"):
+            candidate = candidate[:-3]
+        candidate = candidate.strip()
+
+    literal_candidate = candidate
+    candidate = re.sub(r"\bTrue\b", "true", candidate)
+    candidate = re.sub(r"\bFalse\b", "false", candidate)
+
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        try:
+            return ast.literal_eval(literal_candidate)
+        except (ValueError, SyntaxError):
+            return None
+
+
+def _resolve_agent_output(agent_output) -> Optional[dict]:
+    if isinstance(agent_output, dict):
+        raw_text = agent_output.get("raw_text")
+        if isinstance(raw_text, str):
+            parsed = _parse_agent_output_string(raw_text)
+            if isinstance(parsed, dict):
+                return parsed
+        return agent_output
+
+    if isinstance(agent_output, str):
+        parsed = _parse_agent_output_string(agent_output)
+        if isinstance(parsed, dict):
+            return parsed
+        return None
+
+    return None
+
+
+def _extract_sections_from_agent_output(agent_output: dict) -> Optional[list]:
+    questionnaires = agent_output.get("questionnaires") or agent_output.get(
+        "questionnaire", []
+    )
+    if questionnaires:
+        return questionnaires
+
+    sections = agent_output.get("sections", [])
+    if sections:
+        return sections
+
+    result_data = _try_extract_from_wrapper(agent_output, "result")
+    if result_data:
+        sections = result_data.get("sections", [])
+        if sections:
+            return sections
+
+    return None
 
 
 def _try_extract_from_wrapper(agent_result: dict, key: str) -> Optional[dict]:
@@ -48,64 +118,13 @@ def _find_questionnaires_in_result(agent_result: dict) -> Tuple[list, list]:
 
 def _extract_from_agent_output(agent_result: dict) -> Optional[list]:
     """Extract sections from agent_output field."""
-    import json
-    import re
+    agent_output = _resolve_agent_output(agent_result.get("agent_output", {}))
 
-    agent_output = agent_result.get("agent_output", {})
-
-    # CRITICAL FIX: agent_output can be a JSON STRING, parse it first
-    if isinstance(agent_output, str):
-        try:
-            # FIX 0.8 (QA Bug #4): Agent wraps JSON in markdown code fence (```json ... ```)
-            # Strip markdown wrapper before parsing
-            agent_output_cleaned = agent_output.strip()
-            if agent_output_cleaned.startswith("```json"):
-                # Remove ```json from start and ``` from end
-                agent_output_cleaned = agent_output_cleaned[7:]  # Remove ```json
-                if agent_output_cleaned.endswith("```"):
-                    agent_output_cleaned = agent_output_cleaned[:-3]  # Remove ```
-                agent_output_cleaned = agent_output_cleaned.strip()
-            elif agent_output_cleaned.startswith("```"):
-                # Remove generic ``` wrapper
-                agent_output_cleaned = agent_output_cleaned[3:]
-                if agent_output_cleaned.endswith("```"):
-                    agent_output_cleaned = agent_output_cleaned[:-3]
-                agent_output_cleaned = agent_output_cleaned.strip()
-
-            # FIX 0.7 (QA Bug #3): Agent returns Python booleans (True/False) instead of JSON (true/false)
-            # Replace Python booleans with JSON booleans before parsing
-            agent_output_fixed = re.sub(r"\bTrue\b", "true", agent_output_cleaned)
-            agent_output_fixed = re.sub(r"\bFalse\b", "false", agent_output_fixed)
-            agent_output = json.loads(agent_output_fixed)
-        except json.JSONDecodeError as e:
-            logger.warning(
-                f"Failed to parse agent_output as JSON: {str(e)[:100]} - {agent_output[:200]}"
-            )
-            return None
-
-    if not isinstance(agent_output, dict):
+    if not agent_output:
         return None
 
-    # FIX 0.7 (QA Bug #3): Check for both "questionnaire" (singular) and "questionnaires" (plural)
-    # Agent may return either format
-    questionnaires = agent_output.get("questionnaires") or agent_output.get(
-        "questionnaire", []
-    )
-    if questionnaires:
-        return questionnaires
-
-    sections = agent_output.get("sections", [])
-    if sections:
-        return sections
-
-    # Check result.sections in agent_output
-    result_data = _try_extract_from_wrapper(agent_output, "result")
-    if result_data:
-        sections = result_data.get("sections", [])
-        if sections:
-            return sections
-
-    return None
+    agent_result["agent_output"] = agent_output
+    return _extract_sections_from_agent_output(agent_output)
 
 
 def _generate_from_gap_analysis(agent_result: dict) -> Optional[list]:
@@ -160,10 +179,7 @@ def _extract_questionnaire_data(
     # CRITICAL: Fallback disabled to diagnose LLM flow issues
     # If this fails, we need to fix the agent's LLM output, not mask with fallback
     data_to_process = (
-        questionnaires_data
-        or sections_data
-        or _extract_from_agent_output(agent_result)
-        # FALLBACK DISABLED: or _generate_from_gap_analysis(agent_result)
+        questionnaires_data or sections_data or _extract_from_agent_output(agent_result)
     )
 
     if not data_to_process:

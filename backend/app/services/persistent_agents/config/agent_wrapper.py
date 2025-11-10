@@ -4,7 +4,9 @@ Agent Wrapper Module
 Provides the AgentWrapper class for CrewAI agent compatibility.
 """
 
+import ast
 import asyncio
+import json
 import logging
 from typing import Any, Dict, List
 
@@ -21,6 +23,153 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_string_output(raw_text: str) -> Any:
+    if not raw_text:
+        return None
+
+    cleaned = raw_text.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        try:
+            return ast.literal_eval(cleaned)
+        except (ValueError, SyntaxError):
+            return None
+
+
+def _coerce_to_dict(candidate: Any) -> Any:
+    if isinstance(candidate, (dict, list)):
+        return candidate
+
+    if hasattr(candidate, "model_dump"):
+        try:
+            dumped = candidate.model_dump()
+            if isinstance(dumped, (dict, list)):
+                return dumped
+        except Exception as exc:  # pragma: no cover - debug aid
+            logger.debug(
+                "model_dump failed for %s: %s",
+                type(candidate).__name__,
+                exc,
+            )
+
+    if hasattr(candidate, "json_dict"):
+        try:
+            dumped = candidate.json_dict
+            if isinstance(dumped, (dict, list)):
+                return dumped
+        except Exception:
+            pass
+
+    if hasattr(candidate, "raw") and isinstance(candidate.raw, str):
+        parsed = _parse_string_output(candidate.raw)
+        if parsed is not None:
+            return parsed
+
+    if hasattr(candidate, "__dict__"):
+        candidate_dict = {
+            key: value
+            for key, value in vars(candidate).items()
+            if not key.startswith("_")
+        }
+        if candidate_dict:
+            return candidate_dict
+
+    parsed = _parse_string_output(str(candidate))
+    return parsed if parsed is not None else candidate
+
+
+def _parse_questionnaire_candidate(value: Any) -> Any:
+    if isinstance(value, str):
+        value = _parse_string_output(value)
+
+    if isinstance(value, dict):
+        if "questionnaires" in value or "sections" in value:
+            return value
+        nested = value.get("final_output")
+        if nested:
+            parsed = _parse_questionnaire_candidate(nested)
+            if parsed:
+                return parsed
+        agent_output = value.get("agent_output")
+        if isinstance(agent_output, dict):
+            parsed = _parse_questionnaire_candidate(agent_output)
+            if parsed:
+                return parsed
+
+    if isinstance(value, list):
+        for item in value:
+            parsed = _parse_questionnaire_candidate(item)
+            if parsed:
+                return parsed
+
+    return None
+
+
+def _extract_questionnaire_payload(data: Any) -> Any:
+    if not isinstance(data, dict):
+        return None
+
+    for key in ("agent_output", "final_output", "result", "data", "output"):
+        parsed = _parse_questionnaire_candidate(data.get(key))
+        if parsed:
+            return parsed
+
+    tasks_output = data.get("tasks_output") or data.get("outputs")
+    parsed = _parse_questionnaire_candidate(tasks_output)
+    if parsed:
+        return parsed
+
+    raw_output = data.get("raw_output") or data.get("raw")
+    return _parse_questionnaire_candidate(raw_output)
+
+
+def _ensure_agent_output_dict(normalized: Any) -> Any:
+    if isinstance(normalized, str):
+        parsed_normalized = _parse_string_output(normalized)
+        return (
+            parsed_normalized
+            if isinstance(parsed_normalized, (dict, list))
+            else {"raw_text": normalized}
+        )
+
+    if isinstance(normalized, dict):
+        agent_output_value = normalized.get("agent_output")
+        if isinstance(agent_output_value, str):
+            parsed_agent_output = _parse_string_output(agent_output_value)
+            if isinstance(parsed_agent_output, dict):
+                normalized["agent_output"] = parsed_agent_output
+        elif (
+            isinstance(agent_output_value, dict)
+            and "raw_text" in agent_output_value
+            and isinstance(agent_output_value["raw_text"], str)
+        ):
+            parsed_agent_output = _parse_string_output(agent_output_value["raw_text"])
+            if isinstance(parsed_agent_output, dict):
+                normalized["agent_output"] = parsed_agent_output
+
+        if not isinstance(normalized.get("agent_output"), dict) and (
+            "questionnaires" in normalized or "sections" in normalized
+        ):
+            questionnaires = normalized.get("questionnaires") or normalized.get(
+                "sections"
+            )
+            normalized["agent_output"] = {"questionnaires": questionnaires}
+
+    return normalized
 
 
 class AgentWrapper:
@@ -216,12 +365,13 @@ class AgentWrapper:
 
                 crew = create_crew(agents=[self._agent], tasks=[task], verbose=False)
                 result = crew.kickoff()
+                normalized_output = self._normalize_agent_output(result)
 
                 # Return structured response
                 return {
                     "status": "success",
                     "processed_data": data,
-                    "agent_output": str(result),
+                    "agent_output": normalized_output,
                     "agent_type": self._agent_type,
                     "insights": getattr(self._agent, "insights", []),
                     "classifications": getattr(self._agent, "classifications", {}),
@@ -240,6 +390,33 @@ class AgentWrapper:
                 ),
                 "execution_method": "process_adapter_fallback",
             }
+
+    def _normalize_agent_output(self, result: Any) -> Any:
+        """
+        Normalize raw crew results into a JSON-serializable structure that
+        exposes questionnaire data at the top level.
+        """
+
+        normalized = _coerce_to_dict(result)
+        normalized = _ensure_agent_output_dict(normalized)
+        payload = _extract_questionnaire_payload(normalized)
+
+        if isinstance(payload, dict):
+            logger.debug(
+                "Agent %s normalized output keys: %s",
+                self._agent_type,
+                list(payload.keys()),
+            )
+            return payload
+
+        logger.warning(
+            "Agent %s returned output without questionnaire payload (type=%s); "
+            "wrapping raw output for diagnostics",
+            self._agent_type,
+            type(result).__name__,
+        )
+
+        return {"raw_text": normalized if isinstance(normalized, str) else str(result)}
 
     def _apply_field_mappings(
         self, raw_records: List[Dict[str, Any]], field_mappings: Dict[str, str]

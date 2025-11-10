@@ -51,26 +51,34 @@ async def _start_agent_generation(
         flow_db_id = flow.id
 
         # Extract selected_asset_ids from flow metadata
-        selected_asset_ids = []
+        selected_asset_ids: List[UUID] = []
+        selected_asset_ids_str: List[str] = []
         if flow.flow_metadata and isinstance(flow.flow_metadata, dict):
             raw_ids = flow.flow_metadata.get("selected_asset_ids", [])
-            selected_asset_ids = [
-                UUID(aid) if isinstance(aid, str) else aid for aid in raw_ids
-            ]
+            for aid in raw_ids:
+                asset_uuid = UUID(aid) if isinstance(aid, str) else aid
+                selected_asset_ids.append(asset_uuid)
+                selected_asset_ids_str.append(str(asset_uuid))
 
         if not selected_asset_ids:
             logger.warning(
                 f"No selected_asset_ids in flow {flow_id} metadata, falling back to existing_assets"
             )
             selected_asset_ids = [asset.id for asset in existing_assets]
+            selected_asset_ids_str = [str(asset.id) for asset in existing_assets]
 
         # Get-or-create questionnaire for each selected asset
         questionnaire_responses = []
 
         # Optimize asset lookup: Create dictionary for O(1) access instead of O(N) filtering
-        assets_by_id = {asset.id: asset for asset in existing_assets}
+        assets_by_id = {str(asset.id): asset for asset in existing_assets}
 
-        for asset_id in selected_asset_ids:
+        for index, asset_id in enumerate(selected_asset_ids):
+            asset_id_str = (
+                selected_asset_ids_str[index]
+                if index < len(selected_asset_ids_str)
+                else str(asset_id)
+            )
             # Check for existing questionnaire (scoped by engagement_id + asset_id)
             existing = await get_existing_questionnaire_for_asset(
                 context.engagement_id,
@@ -162,10 +170,10 @@ async def _start_agent_generation(
 
             # Start background generation task for this asset
             # Use dictionary for O(1) lookup instead of O(N) filtering
-            target_asset = assets_by_id.get(asset_id)
+            target_asset = assets_by_id.get(asset_id_str)
             if not target_asset:
                 logger.warning(
-                    f"Asset {asset_id} selected in flow but not found in existing_assets list. Skipping generation."
+                    f"Asset {asset_id_str} selected in flow but not found in existing_assets list. Skipping generation."
                 )
                 continue
 
@@ -174,7 +182,7 @@ async def _start_agent_generation(
                     questionnaire_id,
                     flow_id,
                     flow,
-                    [str(target_asset.id)],
+                    [asset_id_str],
                     context,
                 )
             )
