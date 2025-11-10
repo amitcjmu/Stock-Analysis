@@ -55,61 +55,41 @@ async def _setup_persistent_agent(
 async def _execute_questionnaire_tool(
     questionnaire_agent: Any, agent_inputs: dict, flow_id: str
 ) -> Any:
-    """Execute questionnaire generation tool or fallback to generic process."""
-    logger.info("Executing persistent questionnaire agent with tools")
-    questionnaire_tool = None
-    for tool in questionnaire_agent.tools:
-        if hasattr(tool, "name") and "questionnaire_generation" in tool.name.lower():
-            questionnaire_tool = tool
-            break
+    """Execute questionnaire agent using proper CrewAI workflow.
 
-    if questionnaire_tool:
-        # Execute questionnaire generation tool directly
-        # Build data_gaps from the gap_analysis data
-        gap_analysis = agent_inputs.get("gap_analysis", {})
-        data_gaps = {
-            "missing_critical_fields": gap_analysis.get("missing_critical_fields", {}),
-            "unmapped_attributes": gap_analysis.get("unmapped_attributes", {}),
-            "data_quality_issues": gap_analysis.get("data_quality_issues", {}),
-            "assets_with_gaps": gap_analysis.get("assets_with_gaps", []),
-        }
-        result = await questionnaire_tool._arun(
-            data_gaps=data_gaps,
-            business_context=agent_inputs["business_context"],
-        )
-        logger.info(f"🔍 Tool _arun returned type: {type(result)}")
-        logger.info(
-            f"🔍 Tool _arun returned keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}"
-        )
-        logger.info(f"🔍 Tool _arun returned value: {result}")
-        # Ensure result is a dict
-        if isinstance(result, str):
-            # Try to parse as JSON if it's a string
-            import json
+    IMPORTANT: This method should let the agent decide how to use its tools,
+    not bypass the agent by calling tool methods directly. The agent uses its
+    LLM to make intelligent decisions about question generation.
+    """
+    logger.info(
+        "🤖 Executing questionnaire agent via CrewAI (agent will decide tool usage)"
+    )
 
-            try:
-                result = json.loads(result)
-            except json.JSONDecodeError:
-                # If not JSON, wrap in a dict
-                result = {"status": "success", "message": result, "questionnaires": []}
-        return result
-    else:
-        logger.warning(
-            f"No questionnaire generation tool found on agent for flow {flow_id}, using generic process"
-        )
-        result = await questionnaire_agent.process(agent_inputs)
-        logger.info(f"Agent process returned type: {type(result)}, value: {result}")
-        # Ensure result is a dict
-        if isinstance(result, str):
-            # Try to parse as JSON if it's a string
-            import json
+    # Let the agent process the inputs using its role, goal, and backstory
+    # The agent will decide whether and how to use the questionnaire_generation tool
+    result = await questionnaire_agent.process(agent_inputs)
 
-            try:
-                result = json.loads(result)
-            except json.JSONDecodeError:
-                # If not JSON, wrap in a dict
-                result = {"status": "success", "message": result, "questionnaires": []}
-        return result
+    logger.info(f"🔍 Agent process returned type: {type(result)}")
+    if isinstance(result, dict):
+        logger.info(f"🔍 Agent process returned keys: {list(result.keys())}")
+    logger.info(f"🔍 Agent process result: {result}")
+
+    # Parse result if it's a string (agent might return JSON string)
+    if isinstance(result, str):
+        import json
+
+        try:
+            parsed_result = json.loads(result)
+            logger.info("✅ Successfully parsed agent response from JSON string")
+            return parsed_result
+        except json.JSONDecodeError:
+            logger.warning(
+                "⚠️ Agent returned non-JSON string, wrapping in success response"
+            )
+            # If agent returns plain text, wrap it as a success message
+            return {"status": "success", "message": result, "questionnaires": []}
+
+    return result
 
 
 async def _process_agent_results(
