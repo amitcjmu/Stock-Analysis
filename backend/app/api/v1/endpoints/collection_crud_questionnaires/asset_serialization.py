@@ -252,7 +252,8 @@ async def _analyze_selected_assets(
 
     # Process each asset to build selected_assets list and initial analysis
     for asset in existing_assets:
-        # Extract OS and tech stack for EOL determination
+        # Eagerly load SQLAlchemy attributes to avoid MissingGreenlet errors
+        # getattr() forces attribute loading while session is active
         operating_system = getattr(asset, "operating_system", None) or ""
         os_version = getattr(asset, "os_version", None) or ""
         technology_stack = getattr(asset, "technology_stack", [])

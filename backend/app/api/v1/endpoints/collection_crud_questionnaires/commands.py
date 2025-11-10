@@ -83,7 +83,7 @@ async def _start_agent_generation(
                 should_reuse, reason = await should_reuse_questionnaire(existing)
 
                 if should_reuse:
-                    log_questionnaire_reuse(existing, flow.id, asset_id)
+                    log_questionnaire_reuse(existing, flow_db_id, asset_id)
                     questionnaire_responses.append(
                         collection_serializers.build_questionnaire_response(existing)
                     )
