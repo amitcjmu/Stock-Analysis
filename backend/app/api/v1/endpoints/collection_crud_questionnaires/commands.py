@@ -47,6 +47,9 @@ async def _start_agent_generation(
     )
 
     try:
+        # Eagerly load flow.id to avoid SQLAlchemy lazy-loading issues
+        flow_db_id = flow.id
+
         # Extract selected_asset_ids from flow metadata
         selected_asset_ids = []
         if flow.flow_metadata and isinstance(flow.flow_metadata, dict):
@@ -88,7 +91,7 @@ async def _start_agent_generation(
 
             # No existing questionnaire or needs regeneration - create new
             log_questionnaire_creation(
-                asset_id, flow.id, "No existing questionnaire found"
+                asset_id, flow_db_id, "No existing questionnaire found"
             )
 
             questionnaire_id = uuid4()
@@ -96,7 +99,7 @@ async def _start_agent_generation(
                 "id": questionnaire_id,
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id,
-                "collection_flow_id": flow.id,  # Audit trail: which flow triggered creation
+                "collection_flow_id": flow_db_id,  # Audit trail: which flow triggered creation
                 "asset_id": asset_id,  # CRITICAL: Asset-based deduplication key
                 "title": "AI-Generated Data Collection Questionnaire",
                 "description": "Generating tailored questionnaire using AI agent analysis...",
