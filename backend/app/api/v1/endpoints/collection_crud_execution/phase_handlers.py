@@ -23,10 +23,11 @@ async def handle_gap_analysis_phase(
     has_applications: bool,
     db: AsyncSession,
 ) -> Dict[str, Any]:
-    """Handle gap_analysis phase progression without triggering MFO agents.
+    """Handle gap_analysis phase progression AND execute gap detection.
 
-    OPTION 3 IMPLEMENTATION: Auto-advance from gap_analysis to questionnaire
-    when flow came from assessment flow (assessment_flow_id present).
+    CRITICAL FIX (Issue #980): This function now EXECUTES gap detection for standalone flows.
+    - Assessment-initiated flows: Skip gap scan (gaps already provided)
+    - Standalone collection flows: Run GapAnalysisService to detect gaps dynamically
 
     Args:
         collection_flow: The collection flow model instance
@@ -87,7 +88,65 @@ async def handle_gap_analysis_phase(
                     "skipped_gap_analysis": True,
                 }
 
-        # Normal gap analysis flow - check for unresolved gaps
+        # CRITICAL FIX: For standalone collection flows, EXECUTE gap detection
+        # This was the missing piece - we were checking for gaps without ever generating them!
+        logger.info(
+            safe_log_format(
+                "Executing gap detection for standalone collection flow {flow_id}",
+                flow_id=flow_id,
+            )
+        )
+
+        # Execute gap analysis using GapAnalysisService
+        from app.services.collection.gap_analysis import GapAnalysisService
+
+        # Get selected asset IDs from collection_config
+        selected_asset_ids = collection_config.get("selected_application_ids", [])
+
+        if not selected_asset_ids:
+            logger.warning(
+                safe_log_format(
+                    "No assets selected for gap analysis - flow {flow_id}",
+                    flow_id=flow_id,
+                )
+            )
+            # Still allow progression - user can select assets later
+        else:
+            try:
+                # Create GapAnalysisService instance with tenant scoping
+                gap_service = GapAnalysisService(
+                    client_account_id=str(collection_flow.client_account_id),
+                    engagement_id=str(collection_flow.engagement_id),
+                    collection_flow_id=str(collection_flow.id),
+                )
+
+                # Execute gap analysis - this populates collection_data_gaps table
+                automation_tier = collection_flow.automation_tier or "tier_2"
+                gap_result = await gap_service.analyze_and_generate_questionnaire(
+                    selected_asset_ids=selected_asset_ids,
+                    db=db,
+                    automation_tier=automation_tier,
+                )
+
+                logger.info(
+                    safe_log_format(
+                        "Gap analysis completed for flow {flow_id}: {summary}",
+                        flow_id=flow_id,
+                        summary=gap_result.get("summary", {}),
+                    )
+                )
+            except Exception as gap_exec_error:
+                logger.error(
+                    safe_log_format(
+                        "Gap analysis execution failed for flow {flow_id}: {error}",
+                        flow_id=flow_id,
+                        error=str(gap_exec_error),
+                    ),
+                    exc_info=True,
+                )
+                # Continue anyway - gaps are recommendations, not blockers
+
+        # Now check for unresolved gaps (after execution)
         unresolved_count_stmt = (
             select(func.count())
             .select_from(CollectionDataGap)
