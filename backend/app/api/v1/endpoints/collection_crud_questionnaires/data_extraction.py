@@ -49,24 +49,32 @@ def _find_questionnaires_in_result(agent_result: dict) -> Tuple[list, list]:
 def _extract_from_agent_output(agent_result: dict) -> Optional[list]:
     """Extract sections from agent_output field."""
     import json
+    import re
 
     agent_output = agent_result.get("agent_output", {})
 
     # CRITICAL FIX: agent_output can be a JSON STRING, parse it first
     if isinstance(agent_output, str):
         try:
-            agent_output = json.loads(agent_output)
-        except json.JSONDecodeError:
+            # FIX 0.7 (QA Bug #3): Agent returns Python booleans (True/False) instead of JSON (true/false)
+            # Replace Python booleans with JSON booleans before parsing
+            agent_output_fixed = re.sub(r"\bTrue\b", "true", agent_output)
+            agent_output_fixed = re.sub(r"\bFalse\b", "false", agent_output_fixed)
+            agent_output = json.loads(agent_output_fixed)
+        except json.JSONDecodeError as e:
             logger.warning(
-                f"Failed to parse agent_output as JSON: {agent_output[:200]}"
+                f"Failed to parse agent_output as JSON: {str(e)[:100]} - {agent_output[:200]}"
             )
             return None
 
     if not isinstance(agent_output, dict):
         return None
 
-    # Check for questionnaires key (new format from agent)
-    questionnaires = agent_output.get("questionnaires", [])
+    # FIX 0.7 (QA Bug #3): Check for both "questionnaire" (singular) and "questionnaires" (plural)
+    # Agent may return either format
+    questionnaires = agent_output.get("questionnaires") or agent_output.get(
+        "questionnaire", []
+    )
     if questionnaires:
         return questionnaires
 
