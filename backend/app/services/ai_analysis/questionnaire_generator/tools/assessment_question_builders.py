@@ -180,40 +180,84 @@ def generate_generic_technical_question(
 def generate_generic_question(
     gap_type: str, asset_context: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Generate generic question for unknown gap types with MCQ format."""
+    """Generate data collection question for unknown gap types with intelligent MCQ options.
+
+    CRITICAL FIX (FIX 0.6 - QA Bug #2): This generates questions to COLLECT ACTUAL DATA VALUES,
+    not to assess data availability status.
+
+    QA Bug #2: Questions were asking "What is the status of X?" (available/partial/not_available)
+    instead of "What is X?" with actual value options.
+    """
     asset_name = asset_context.get("asset_name", "the asset")
     asset_id = asset_context.get("asset_id", "unknown")
 
-    # ✅ FIX 0.4: Use composite field_id format (Issue #980)
-    return {
+    # Map common field names to intelligent MCQ options
+    field_options = {
+        "application_type": {
+            "type": "select",
+            "options": [
+                {"value": "web_application", "label": "Web Application"},
+                {"value": "api_service", "label": "API Service / REST API"},
+                {"value": "database", "label": "Database"},
+                {"value": "batch_processing", "label": "Batch Processing / ETL"},
+                {"value": "microservice", "label": "Microservice"},
+                {"value": "monolithic", "label": "Monolithic Application"},
+                {"value": "middleware", "label": "Middleware / Integration Layer"},
+                {"value": "mobile_backend", "label": "Mobile Backend"},
+                {"value": "desktop_application", "label": "Desktop Application"},
+                {"value": "other", "label": "Other - Please Specify"},
+            ],
+        },
+        "canonical_name": {
+            "type": "text",
+            "options": None,
+            "help_text": "Enter the official/canonical name for this asset (e.g., 'CustomerOrderingService')",
+        },
+        "description": {
+            "type": "textarea",
+            "options": None,
+            "help_text": "Provide a brief description of this asset's purpose and functionality",
+        },
+        "business_criticality": {
+            "type": "select",
+            "options": [
+                {
+                    "value": "mission_critical",
+                    "label": "Mission Critical (Revenue Generating)",
+                },
+                {
+                    "value": "business_critical",
+                    "label": "Business Critical (Operations Dependent)",
+                },
+                {"value": "important", "label": "Important (Business Supporting)"},
+                {"value": "standard", "label": "Standard (Operational Support)"},
+                {
+                    "value": "low",
+                    "label": "Low Priority (Development/Testing)",
+                },
+            ],
+        },
+    }
+
+    # Get field-specific configuration or use text input as default
+    field_config = field_options.get(
+        gap_type,
+        {
+            "type": "text",
+            "options": None,
+            "help_text": f"Provide {gap_type.replace('_', ' ')} information for {asset_name}",
+        },
+    )
+
+    question = {
         "field_id": f"{asset_id}__{gap_type}",
-        "question_text": f"What is the status of {gap_type.replace('_', ' ')} for {asset_name}?",
-        "field_type": "select",
+        "question_text": f"What is the {gap_type.replace('_', ' ')} for {asset_name}?",
+        "field_type": field_config["type"],
         "required": True,
         "category": "general",
-        "options": [
-            {
-                "value": "available",
-                "label": "Available - Information exists and is accessible",
-            },
-            {
-                "value": "partial",
-                "label": "Partially Available - Some information exists but incomplete",
-            },
-            {
-                "value": "not_available",
-                "label": "Not Available - Information needs to be gathered",
-            },
-            {
-                "value": "not_applicable",
-                "label": "Not Applicable - This attribute doesn't apply to this asset",
-            },
-            {
-                "value": "unknown",
-                "label": "Unknown - Assessment not yet completed",
-            },
-        ],
-        "help_text": f"Assess the availability status of {gap_type.replace('_', ' ')} information",
+        "help_text": field_config.get(
+            "help_text", f"Provide details about {gap_type.replace('_', ' ')}"
+        ),
         "priority": "medium",
         "gap_type": gap_type,
         "asset_specific": True,
@@ -224,6 +268,11 @@ def generate_generic_question(
             "gap_category": gap_type,
         },
     }
+
+    if field_config["options"]:
+        question["options"] = field_config["options"]
+
+    return question
 
 
 def generate_fallback_question(
