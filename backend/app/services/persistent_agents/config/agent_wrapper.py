@@ -160,7 +160,15 @@ class AgentWrapper:
                         # Pretty-print the full data so LLM can see all details
                         data_json = json.dumps(data, indent=2, default=str)
                         task_description = (
-                            f"Generate an adaptive questionnaire based on the following data gaps and context.\n\n"
+                            f"Generate an adaptive questionnaire based on the following "
+                            f"data gaps and context.\n\n"
+                            f"CRITICAL REQUIREMENTS:\n"
+                            f"1. Questions MUST be in MCQ (multiple choice) format with "
+                            f"clear, self-explanatory options\n"
+                            f"2. NO free-form text fields allowed\n"
+                            f"3. Question text must be clear and specific (not vague like "
+                            f"'provide compliance flags')\n"
+                            f"4. Each question should help resolve specific data gaps\n\n"
                             f"Use your questionnaire_generation tool with this data:\n\n"
                             f"```json\n{data_json}\n```\n\n"
                             f"The tool expects:\n"
@@ -168,9 +176,9 @@ class AgentWrapper:
                             f"unmapped_attributes, data_quality_issues\n"
                             f"- business_context: Dict with engagement_id, "
                             f"client_account_id, asset information\n\n"
-                            f"Call the questionnaire_generation tool with the data above "
-                            f"to generate intelligent, context-aware MCQ questions that "
-                            f"resolve the identified data gaps."
+                            f"Call the questionnaire_generation tool with the data above. "
+                            f"The tool will generate properly structured MCQ questions with "
+                            f"clear options for users to select from."
                         )
                     except Exception as e:
                         logger.warning(f"Failed to serialize questionnaire data: {e}")
