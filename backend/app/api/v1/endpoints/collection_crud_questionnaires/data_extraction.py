@@ -48,9 +48,27 @@ def _find_questionnaires_in_result(agent_result: dict) -> Tuple[list, list]:
 
 def _extract_from_agent_output(agent_result: dict) -> Optional[list]:
     """Extract sections from agent_output field."""
+    import json
+
     agent_output = agent_result.get("agent_output", {})
+
+    # CRITICAL FIX: agent_output can be a JSON STRING, parse it first
+    if isinstance(agent_output, str):
+        try:
+            agent_output = json.loads(agent_output)
+        except json.JSONDecodeError:
+            logger.warning(
+                f"Failed to parse agent_output as JSON: {agent_output[:200]}"
+            )
+            return None
+
     if not isinstance(agent_output, dict):
         return None
+
+    # Check for questionnaires key (new format from agent)
+    questionnaires = agent_output.get("questionnaires", [])
+    if questionnaires:
+        return questionnaires
 
     sections = agent_output.get("sections", [])
     if sections:
