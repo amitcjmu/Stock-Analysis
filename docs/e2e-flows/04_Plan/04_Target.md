@@ -1,8 +1,9 @@
 # Data Flow Analysis Report: Target Architecture Page
 
-**Analysis Date:** 2025-10-29
-**Previous Version:** 2024-07-29 (Placeholder Analysis)
-**Status:** Scope Under Review - May Belong to Execute Phase
+**Analysis Date:** 2025-11-10
+**Previous Version:** 2025-10-29 (Architectural Review)
+**Status:** ARCHITECTURAL DECISION - RECOMMENDED FOR EXECUTE PHASE
+**Decision Date:** 2025-11-10
 
 ---
 
@@ -192,14 +193,61 @@ async def design_target_architecture(
 
 ---
 
-## Decision Required
+## Architectural Decision (November 2025)
 
-**Action Item:** Product/architecture team needs to decide:
+**RECOMMENDATION: Move Target Architecture to Execute Phase**
 
-1. **Should target architecture be in Planning or Execute phase?**
-2. **If Planning:** Allocate development effort for database schema, service layer, agent integration
-3. **If Execute:** Remove `Target.tsx` from planning phase, add to Execute phase planning
-4. **If Separate:** Create new Architecture phase between Planning and Execute
+### Rationale
+
+After comprehensive review of the Planning Flow implementation (November 2025), the following factors support moving target architecture to the Execute phase:
+
+1. **Planning Flow Completeness**: Planning phase successfully provides:
+   - Wave planning with dependency analysis
+   - Resource allocation with role-based staffing
+   - Timeline generation with critical path
+   - Cost estimation with contingency planning
+   - **Conclusion**: High-level planning is sufficient without detailed architecture
+
+2. **Agile Methodology Alignment**:
+   - Current implementation follows iterative, phased approach
+   - Target architecture naturally emerges during execution
+   - Allows for experimentation and adjustment based on real-world constraints
+   - Aligns with cloud-native best practices (infrastructure as code, DevOps)
+
+3. **Assessment Phase Coverage**:
+   - 6R strategy already determined per application (Rehost, Replatform, Refactor, etc.)
+   - High-level cloud readiness assessed
+   - Sufficient for cost estimation and resource planning
+
+4. **Execute Phase Natural Fit**:
+   - Detailed technical implementation requires architecture decisions
+   - Architecture design, technical spikes, POCs belong in execution
+   - Architecture review and approval workflow fits execution gate checks
+
+### Implementation Actions
+
+1. ✅ **Keep `Target.tsx` as placeholder** in Planning phase (low priority)
+2. ⚠️ **Create Target Architecture module** in Execute phase (future work)
+3. ⚠️ **Document transition** in Execute phase E2E flow documentation
+4. ✅ **Update Planning documentation** to clarify scope boundaries (this document)
+
+### Planning Phase Scope (Final Definition)
+
+The Planning phase focuses on **WHEN and HOW MUCH**, NOT **HOW**:
+
+- **WHEN**: Timeline generation (which applications migrate when, wave sequencing)
+- **HOW MUCH**: Resource allocation (how many people, what roles, what cost)
+- **NOT HOW**: Detailed architecture (which cloud services, architecture patterns, technical design)
+
+### Execute Phase Scope (Future Definition)
+
+The Execute phase will focus on **HOW**, including:
+
+- Detailed architecture design per application
+- Cloud service selection based on 6R strategy
+- Technical spike and proof-of-concept
+- Architecture review and approval
+- Implementation, testing, deployment
 
 ---
 

@@ -1,8 +1,8 @@
 # Data Flow Analysis Report: Timeline Page
 
-**Analysis Date:** 2025-10-29
-**Previous Version:** 2024-07-29 (Placeholder Analysis)
-**Status:** Real Backend Data Available, Frontend Integration Pending
+**Analysis Date:** 2025-11-10
+**Previous Version:** 2025-10-29 (Backend Complete)
+**Status:** Backend COMPLETE with TimelineGenerationSpecialist Agent, Frontend Integration Pending
 
 ---
 
@@ -218,14 +218,75 @@ const ganttTasks = timeline.phases.map(phase => ({
 
 ---
 
+## CrewAI Agent Integration (November 2025)
+
+### TimelineGenerationSpecialist Agent
+
+**Agent ID:** `timeline_generation_specialist` (registered in `agent_registry/managers/planning.py`)
+
+**Activation Trigger:** Automatic after resource allocation phase completes
+
+**Agent Capabilities:**
+- Critical Path Method (CPM) scheduling
+- Resource-constrained planning
+- Duration estimation based on resource allocations
+- Buffer and contingency planning (risk-adjusted buffering)
+- Milestone definition (business milestone alignment)
+- Gantt chart data generation
+
+**Execution Flow:**
+```
+Resource Allocation Complete
+  ↓
+PlanningCrew.execute_timeline_generation()
+  ↓
+TimelineGenerationSpecialist Agent
+  ├─ CPM Analysis (critical path identification)
+  ├─ Resource-Constrained Scheduling (based on available capacity)
+  └─ Buffer Calculation (risk buffer percentage from config)
+  ↓
+Save to planning_flows.timeline_data (JSONB)
+  ↓
+Create normalized records:
+  ├─ project_timelines (master timeline)
+  ├─ timeline_phases (wave-linked phases)
+  └─ timeline_milestones (key deliverables)
+```
+
+**Agent Inputs:**
+- Wave plan data (wave dependencies, estimated durations)
+- Resource allocation data (team capacity, working hours)
+- Planning config:
+  - `start_date`: Project start date
+  - `working_days_per_week`: 5 (default)
+  - `hours_per_working_day`: 8 (default)
+  - `risk_buffer_percentage`: 20 (default)
+  - `milestone_frequency`: "bi-weekly" (default)
+
+**Agent Outputs:**
+- Overall project start/end dates
+- Timeline phases per wave with planned dates
+- Milestones with target dates and descriptions
+- Critical path identification
+- Optimization score (0-1 scale)
+
+**Memory Management (ADR-024):**
+- Agent uses `memory=False` (no CrewAI built-in memory)
+- Learnings stored via TenantMemoryManager:
+  - Pattern type: `"timeline_generation"`
+  - Scope: `LearningScope.ENGAGEMENT`
+  - Pattern data: Optimal phase durations, buffer effectiveness, critical path patterns
+
 ## Summary
 
-The Timeline page backend is **FULLY IMPLEMENTED** with real data from migration 113 tables. Frontend integration is **PENDING**. Priority is to replace placeholder UI with actual API polling and Gantt chart visualization.
+The Timeline page backend is **FULLY IMPLEMENTED** with real data from migration 113 tables and **TimelineGenerationSpecialist CrewAI agent**. Frontend integration is **PENDING**. Priority is to replace placeholder UI with actual API polling and Gantt chart visualization.
 
-**Key Changes from July 2024:**
+**Key Changes from October 2025:**
 
-- Backend now uses real database queries (not placeholder)
-- Timeline data stored in normalized tables + JSONB
-- Agent-driven timeline generation implemented
-- Multi-tenant scoping enforced
-- MFO integration complete
+- ✅ Backend uses real database queries (not placeholder)
+- ✅ Timeline data stored in normalized tables + JSONB
+- ✅ Agent-driven timeline generation FULLY IMPLEMENTED with TimelineGenerationSpecialist
+- ✅ Multi-tenant scoping enforced
+- ✅ MFO integration complete
+- ✅ Agent registered in agent_registry with full capabilities documentation
+- ⚠️ Agent wiring to `/execute-phase` endpoint pending (structure exists)

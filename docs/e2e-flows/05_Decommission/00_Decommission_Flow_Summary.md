@@ -1,7 +1,8 @@
 # Decommission Flow - Architecture Summary
 
-**Last Updated:** 2025-11-06
+**Last Updated:** 2025-11-10
 **Purpose:** Quick reference guide for understanding the Decommission flow architecture before making code changes
+**Status:** Documentation updated to reflect November 2025 implementation reality
 
 ## 🚧 Implementation Status
 
@@ -21,11 +22,16 @@
 - Flow initialization and system selection UI
 
 ### ⚠️ In Progress (Partial Implementation)
-- Agent integration with TenantScopedAgentPool (7 agents defined, execution partially implemented)
+- Agent integration with TenantScopedAgentPool (**7 specialized agents defined** per `agent_configs.py`)
+  - System Analysis Agent, Dependency Mapper Agent, Data Retention Agent
+  - Compliance Agent, Shutdown Orchestrator Agent, Validation Agent, Rollback Agent
+  - All agents use ADR-024 pattern: `memory_enabled=False` with TenantMemoryManager
+  - Agent pool structure exists at `backend/app/services/agents/decommission/agent_pool/`
 - UI refinements and bug fixes:
-  - [Bug #960](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues/960): Planning page not displaying selected systems (data in DB, display issue)
+  - [Bug #960](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues/960): Planning page not displaying selected systems (RESOLVED Nov 2025)
   - [Bug #961](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues/961): Export page flow_id context handling
-- Phase execution logic (stub implementations exist)
+- Phase execution logic (basic child_flow_service execution implemented)
+- MFO transaction patterns fixed (Nov 2025): Explicit commit pattern, no nested transactions
 - Data retention and archival workflows (models exist, execution pending)
 
 ### ❌ Not Yet Implemented
@@ -293,20 +299,27 @@ system_shutdown_completed_at TIMESTAMP WITH TIME ZONE
 
 ## 🛠️ Critical Code Patterns
 
-### ✅ Correct Patterns
+### ✅ Correct Patterns (November 2025 Reality)
 
 ```python
-# MFO Flow Creation (Primary Pattern)
+# MFO Flow Creation with Phase Update Pattern
+# Per Serena memory: decommission_flow_mfo_transaction_patterns_2025_11
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.services.child_flow_services import DecommissionChildFlowService
 
-async with db.begin():
+# CRITICAL: FastAPI's get_db() already manages transaction context
+# Do NOT use nested `async with db.begin()` - causes 500 errors
+async def create_decommission_flow(...):
+    # Atomic transaction for master + child creation
+    # Note: FastAPI's get_db() dependency manages the transaction context
     mfo = MasterFlowOrchestrator(db, context)
     master_flow_id = await mfo.create_flow(
         flow_type="decommission",
         configuration=config,
-        atomic=True  # MUST be true for proper FK handling
+        atomic=True  # Prevents internal commits
     )
-    await db.flush()  # Makes ID available for child flow
+
+    await db.flush()  # Makes master_flow_id available for FK
 
     # Create child flow with master reference
     child_flow_service = DecommissionChildFlowService(db, context)
@@ -314,10 +327,28 @@ async with db.begin():
         master_flow_id=master_flow_id,
         selected_system_ids=system_ids
     )
+
+    # Explicit commit (FastAPI's get_db handles this automatically on success)
     await db.commit()
 
+    # Refresh both objects to ensure they're attached to session
+    await db.refresh(master_flow)
+    await db.refresh(child_flow)
+
+    return master_flow_id
+
+# Phase Update Pattern (November 2025)
+# New dedicated endpoint for updating phase status
+# POST /api/v1/decommission-flow/{flow_id}/phases/{phase_name}
+await update_decommission_phase_via_mfo(
+    flow_id=UUID(flow_id),
+    phase_name="decommission_planning",  # Must match FlowTypeConfig
+    phase_status="completed",
+    phase_data={"planning_approved": True},
+    db=db
+)
+
 # Always use master_flow_id for operations
-await mfo.execute_phase(master_flow_id, phase_input)
 await mfo.get_flow_status(master_flow_id)
 await mfo.pause_flow(master_flow_id)
 
@@ -333,29 +364,47 @@ result = await child_flow_service.execute_phase(
 )
 ```
 
-### ❌ Incorrect Patterns
+### ❌ Incorrect Patterns (November 2025 Anti-Patterns)
 
 ```python
+# DON'T use nested transaction blocks with FastAPI (causes 500 errors)
+async def resume_decommission_flow(..., db: AsyncSession):
+    async with db.begin():  # ❌ WRONG! FastAPI get_db() already manages transactions
+        # ... operations ...
+
+# DON'T call resume endpoint for running flows
+await resume_flow(flow_id)  # ❌ WRONG! Resume is only for paused flows
+
 # DON'T use child flow IDs for operations
-decommission_flow_id = get_decommission_flow_id()  # WRONG!
-await some_operation(decommission_flow_id)         # WRONG!
+decommission_flow_id = get_decommission_flow_id()  # ❌ WRONG!
+await some_operation(decommission_flow_id)         # ❌ WRONG!
 
 # DON'T bypass MFO for flow operations
-await direct_database_update(flow_id)              # WRONG!
+await direct_database_update(flow_id)              # ❌ WRONG!
 
 # DON'T reference child flow IDs in APIs/UI
-return {"decommission_flow_id": child_id}          # WRONG!
+return {"decommission_flow_id": child_id}          # ❌ WRONG!
 
 # DON'T use old crew_class pattern (deprecated per ADR-025)
-crew = Crew(agents=[...])                          # WRONG!
-await crew.kickoff()                               # WRONG!
+crew = Crew(agents=[...])                          # ❌ WRONG!
+await crew.kickoff()                               # ❌ WRONG!
+
+# DON'T enable CrewAI memory (per ADR-024)
+agent = Agent(role="...", memory=True)             # ❌ WRONG!
 
 # Always use master_flow_id instead
-return {"master_flow_id": master_flow_id}          # CORRECT!
+return {"master_flow_id": master_flow_id}          # ✅ CORRECT!
+
+# Always use dedicated phase update endpoint
+POST /decommission-flow/{flow_id}/phases/{phase_name}  # ✅ CORRECT!
 
 # Always use child_flow_service
-service = DecommissionChildFlowService(db, context)  # CORRECT!
-await service.execute_phase(...)                     # CORRECT!
+service = DecommissionChildFlowService(db, context)  # ✅ CORRECT!
+await service.execute_phase(...)                     # ✅ CORRECT!
+
+# Always use TenantMemoryManager for agent memory
+memory_manager = TenantMemoryManager(...)            # ✅ CORRECT!
+await memory_manager.store_learning(...)             # ✅ CORRECT!
 ```
 
 ### ⚠️ Common Mistakes to Avoid
@@ -508,6 +557,102 @@ Before modifying Decommission flow code:
 - Phase status queries filter at database level
 - Array containment queries for system ID lookups
 
+## 🤖 CrewAI Agent Architecture (November 2025 Reality)
+
+### 7 Specialized Decommission Agents
+
+**Implementation**: `backend/app/services/agents/decommission/agent_pool/agent_configs.py`
+
+All agents configured with **`memory_enabled=False`** per ADR-024, using **TenantMemoryManager** for enterprise-grade learning.
+
+#### 1. System Analysis Agent
+- **Role**: System Dependency Analysis Specialist
+- **Goal**: Identify all system dependencies to prevent cascade failures
+- **Tools**: `cmdb_query`, `network_discovery`, `api_dependency_mapper`
+- **Expertise**: 15+ years analyzing system dependencies, hidden integrations
+
+#### 2. Dependency Mapper Agent
+- **Role**: System Relationship Mapping Specialist
+- **Goal**: Map complex system relationships and integration points
+- **Tools**: `dependency_graph_builder`, `integration_analyzer`, `critical_path_finder`
+- **Expertise**: 20+ years mapping Fortune 500 system integrations
+
+#### 3. Data Retention Agent
+- **Role**: Data Retention and Archival Compliance Specialist
+- **Goal**: Ensure data retention compliance before decommissioning
+- **Tools**: `compliance_policy_lookup`, `data_classifier`, `archive_calculator`
+- **Expertise**: GDPR, SOX, HIPAA, PCI-DSS compliance for regulated industries
+
+#### 4. Compliance Agent
+- **Role**: Regulatory Compliance Validation Specialist
+- **Goal**: Ensure all decommission activities meet regulatory requirements
+- **Tools**: `compliance_checker`, `regulatory_validator`, `audit_trail_generator`
+- **Expertise**: Multi-jurisdiction compliance frameworks, zero compliance gaps
+
+#### 5. Shutdown Orchestrator Agent
+- **Role**: Safe System Shutdown Orchestration Specialist
+- **Goal**: Execute graceful shutdowns with zero data loss
+- **Tools**: `service_controller`, `health_monitor`, `rollback_orchestrator`
+- **Expertise**: 1000+ enterprise systems decommissioned, 100% success rate
+
+#### 6. Validation Agent
+- **Role**: Post-Decommission Verification and Cleanup Specialist
+- **Goal**: Verify successful completion and resource cleanup
+- **Tools**: `access_verifier`, `resource_scanner`, `compliance_auditor`
+- **Expertise**: Detecting residual configurations and orphaned resources
+
+#### 7. Rollback Agent
+- **Role**: Decommission Rollback and Recovery Specialist
+- **Goal**: Handle rollback scenarios for failed decommissions
+- **Tools**: `backup_validator`, `state_restorer`, `recovery_orchestrator`
+- **Expertise**: Disaster recovery, point-in-time restoration
+
+### Agent Pool Architecture
+
+```python
+# Persistent agent pool pattern (NOT per-call Crew instantiation)
+from app.services.agents.decommission.agent_pool import DecommissionAgentPool
+
+agent_pool = DecommissionAgentPool(
+    client_account_id=context.client_account_id,
+    engagement_id=context.engagement_id
+)
+
+# Agents initialized once per tenant, reused across phases
+planning_crew = agent_pool.get_planning_crew()  # Uses agents 1-4
+migration_crew = agent_pool.get_migration_crew()  # Uses agents 3-4
+shutdown_crew = agent_pool.get_shutdown_crew()  # Uses agents 5-7
+```
+
+### TenantMemoryManager Integration
+
+Per ADR-024, all agent learning uses TenantMemoryManager instead of CrewAI memory:
+
+```python
+from app.services.crewai_flows.memory.tenant_memory_manager import (
+    TenantMemoryManager,
+    LearningScope
+)
+
+# After agent completes dependency analysis
+memory_manager = TenantMemoryManager(
+    crewai_service=crewai_service,
+    database_session=db
+)
+
+await memory_manager.store_learning(
+    client_account_id=client_account_id,
+    engagement_id=engagement_id,
+    scope=LearningScope.ENGAGEMENT,
+    pattern_type="decommission_dependency",
+    pattern_data={
+        "system_id": system_id,
+        "dependencies_identified": dependencies,
+        "confidence": 0.95
+    }
+)
+```
+
 ## 🎓 Learning from Other Flows
 
 ### Similarities with Assessment Flow
@@ -522,6 +667,7 @@ Before modifying Decommission flow code:
 - Generates **audit trail** for compliance
 - Tracks **cost savings** and compliance metrics
 - Supports **rollback** during planning and migration phases
+- Uses **7 specialized agents** (Assessment uses 6)
 
 ---
 

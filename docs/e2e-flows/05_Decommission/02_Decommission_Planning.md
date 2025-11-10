@@ -1,10 +1,11 @@
 # Decommission Flow - Phase 1: Decommission Planning
 
-**Last Updated:** 2025-11-06
+**Last Updated:** 2025-11-10
 **Phase Name**: `decommission_planning` (per ADR-027 FlowTypeConfig)
 **Estimated Duration**: 45 minutes
+**Status**: Documentation updated to reflect November 2025 implementation reality
 
-> **⚠️ IMPLEMENTATION STATUS**: This phase is **PARTIALLY IMPLEMENTED**. Core structure, database models, and API endpoints exist. Agent execution has stub implementations with basic logic. Full AI-powered dependency analysis, risk assessment, and cost calculation are still in development. UI has known display bug ([Issue #960](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues/960)). See [Milestone #952](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues/952) for current status.
+> **⚠️ IMPLEMENTATION STATUS**: This phase is **PARTIALLY IMPLEMENTED**. Core structure exists with **7 specialized CrewAI agents defined** in `agent_configs.py`. All agents use ADR-024 pattern (`memory_enabled=False` with TenantMemoryManager). Agent execution has basic child_flow_service implementation. Full AI-powered dependency analysis, risk assessment, and cost calculation are still in development. MFO transaction patterns fixed (November 2025). UI display bug ([Issue #960](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues/960)) **RESOLVED Nov 2025**. See [Milestone #952](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues/952) for current status.
 >
 > **⚠️ HUMAN-IN-THE-LOOP WORKFLOW**: This phase REQUIRES manual user input, approvals, and artifact collection. The current implementation provides database structure and API endpoints, but does NOT include:
 > - User input forms for manual data entry
@@ -135,55 +136,87 @@ async def _execute_decommission_planning(
     }
 ```
 
-### CrewAI Agent Configuration
+### CrewAI Agent Configuration (November 2025 Reality)
 
-**Dependency Analyzer Agent**:
+**Implementation**: `backend/app/services/agents/decommission/agent_pool/agent_configs.py`
+
+All agents use **ADR-024 pattern**: `memory_enabled=False`, with TenantMemoryManager for enterprise-grade learning.
+
+**Agents Used in Planning Phase** (4 out of 7 total agents):
+
+#### 1. System Analysis Agent
 ```python
 {
-    "role": "Dependency Analyzer",
-    "goal": "Map all system dependencies to prevent cascade failures during decommission",
-    "backstory": "Expert in system architecture and dependency analysis with 15 years of experience",
-    "tools": [
-        "get_asset_dependencies",      # Database lookup
-        "analyze_network_connections",  # CMDB integration
-        "identify_api_consumers"        # Code analysis
-    ],
-    "memory": False,  # Per ADR-024: Use TenantMemoryManager instead
-    "verbose": False
+    "role": "System Dependency Analysis Specialist",
+    "goal": "Identify all system dependencies and impact zones to prevent downstream failures",
+    "backstory": """Expert in enterprise architecture with 15+ years analyzing system dependencies.
+        Creates comprehensive dependency maps to ensure safe decommissioning.""",
+    "tools": ["cmdb_query", "network_discovery", "api_dependency_mapper"],
+    "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager
+    "llm_config": {
+        "provider": "deepinfra",
+        "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+    }
 }
 ```
 
-**Risk Assessor Agent**:
+#### 2. Dependency Mapper Agent
 ```python
 {
-    "role": "Risk Assessor",
-    "goal": "Identify and quantify decommission risks with mitigation strategies",
-    "backstory": "Cybersecurity and compliance expert specializing in safe system retirement",
+    "role": "System Relationship Mapping Specialist",
+    "goal": "Map complex system relationships and integration points",
+    "backstory": """20+ years in IT architecture, specialized in mapping complex integrations.
+        Creates dependency maps used by Fortune 500 companies.""",
     "tools": [
-        "assess_data_sensitivity",
-        "check_compliance_requirements",
-        "evaluate_business_impact"
+        "dependency_graph_builder",
+        "integration_analyzer",
+        "critical_path_finder"
     ],
-    "memory": False,
-    "verbose": False
+    "memory_enabled": False,  # Per ADR-024
+    "llm_config": {
+        "provider": "deepinfra",
+        "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+    }
 }
 ```
 
-**Cost Analyst Agent**:
+#### 3. Data Retention Agent
 ```python
 {
-    "role": "Cost Analyst",
-    "goal": "Calculate accurate cost savings from system decommissioning",
-    "backstory": "Financial analyst with expertise in IT cost optimization",
-    "tools": [
-        "get_system_costs",        # Annual and lifecycle costs
-        "calculate_maintenance_savings",
-        "estimate_migration_costs"  # One-time costs to decommission
-    ],
-    "memory": False,
-    "verbose": False
+    "role": "Data Retention and Archival Compliance Specialist",
+    "goal": "Ensure data retention compliance and secure archival before decommissioning",
+    "backstory": """Compliance expert with deep knowledge of GDPR, SOX, HIPAA, PCI-DSS.
+        15+ years managing enterprise data archival for regulated industries.""",
+    "tools": ["compliance_policy_lookup", "data_classifier", "archive_calculator"],
+    "memory_enabled": False,  # Per ADR-024
+    "llm_config": {
+        "provider": "deepinfra",
+        "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+    }
 }
 ```
+
+#### 4. Compliance Agent
+```python
+{
+    "role": "Regulatory Compliance Validation Specialist",
+    "goal": "Ensure all decommission activities meet regulatory compliance requirements",
+    "backstory": """Regulatory compliance officer with expertise in multi-jurisdiction frameworks.
+        Works closely with legal teams to ensure zero compliance gaps.""",
+    "tools": [
+        "compliance_checker",
+        "regulatory_validator",
+        "audit_trail_generator"
+    ],
+    "memory_enabled": False,  # Per ADR-024
+    "llm_config": {
+        "provider": "deepinfra",
+        "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+    }
+}
+```
+
+**Note**: Planning phase uses agents 1-4. Agents 5-7 (Shutdown Orchestrator, Validation, Rollback) are used in later phases.
 
 ### CrewAI Task Flow
 
