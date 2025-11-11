@@ -88,7 +88,7 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
 
             if existing:
                 # Decide whether to reuse based on completion status
-                should_reuse, reason = should_reuse_questionnaire(existing)
+                should_reuse, reason = await should_reuse_questionnaire(existing)
 
                 if should_reuse:
                     log_questionnaire_reuse(existing, flow_db_id, asset_id)
