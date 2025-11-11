@@ -1,10 +1,18 @@
 # Data Flow Analysis Report: Assessment Overview Page
 
-**Analysis Date:** October 16, 2025
-**Status:** ✅ PRODUCTION READY (Updated for PR #600)
+**Analysis Date:** November 10, 2025
+**Status:** ✅ PRODUCTION READY (Updated November 2025 - Post-6R Migration)
 
-**Key Changes from Previous Version (2024-07-29)**:
-- Replaced mock data with real API endpoints and database integration
+**Key Changes from Previous Version (October 2025 PR #600)**:
+- **6R Analysis Deprecated**: `/api/v1/6r/*` endpoints return HTTP 410 Gone (October 2025)
+- **Assessment Flow is 6R Authority**: All 6R strategy recommendations now through Assessment Flow
+- **CrewAI Strategy Crew Renamed**: `SixRStrategyCrew` → `AssessmentStrategyCrew` (Phase 6 migration)
+- **MFO-Integrated Architecture**: All flows managed via Master Flow Orchestrator (ADR-006)
+- **Three-Phase Workflow**: Architecture Standards → Tech Debt → 6R Recommendations
+- **TenantScopedAgentPool Integration**: Persistent agents per ADR-015, memory disabled per ADR-024
+- **Export Functionality**: PDF/Excel/JSON export for assessment reports
+
+**October 2025 Enhancements (PR #600)**:
 - Added **ApplicationGroupsWidget** for canonical application grouping
 - Added **ReadinessDashboardWidget** for assessment readiness visualization
 - Implemented pre-computed data path with on-the-fly fallback
@@ -511,3 +519,234 @@ query = select(Asset).where(
 5. **AssessmentApplicationResolver**: Single service responsible for asset-to-application resolution (separation of concerns)
 6. **Collection Flow Integration**: Assessment depends on Collection flow's canonical application mapping
 7. **MFO-Only Access**: All endpoints via Master Flow Orchestrator pattern (no direct `/api/v1/discovery/*` calls)
+8. **Assessment is 6R Authority**: Deprecated standalone 6R Analysis; all strategy recommendations via Assessment Flow
+
+---
+
+## 10. Assessment Flow Three-Phase Workflow (November 2025)
+
+### Overview
+Assessment Flow follows a three-phase execution pattern orchestrated by the Master Flow Orchestrator:
+
+```
+Phase 1: Architecture Standards → Phase 2: Tech Debt Assessment → Phase 3: 6R Recommendations
+```
+
+### Phase 1: Architecture Standards
+**Endpoint**: `/api/v1/assessment-flow/{master_flow_id}/architecture-standards`
+**CrewAI Crew**: Architecture Standards Crew
+**Purpose**: Establish cloud architecture patterns and compliance requirements
+
+**Agents**:
+- **readiness_assessor** (Architecture Standards Agent)
+  - Uses AWS Well-Architected Framework and Azure CAF
+  - Tools: `asset_intelligence`, `data_validation`, `critical_attributes`
+  - Assesses migration readiness by architecture domain
+
+**Inputs**:
+- Selected canonical applications
+- Asset inventory data
+- Critical attributes (22 attributes across 4 categories)
+
+**Outputs**:
+- Architecture standards documentation
+- Readiness scores by application
+- Compliance gap analysis
+
+### Phase 2: Tech Debt Assessment
+**Endpoint**: `/api/v1/assessment-flow/{master_flow_id}/tech-debt-analysis`
+**CrewAI Crew**: Tech Debt Analysis Crew
+**Purpose**: Identify technical debt and modernization opportunities
+
+**Agents**:
+- **complexity_analyst** (Tech Debt Analysis Agent)
+  - Tools: `dependency_analysis`, `asset_intelligence`, `data_validation`
+  - Analyzes code quality, last updates, test coverage
+  - Evaluates modernization complexity
+
+**Inputs**:
+- Architecture standards (from Phase 1)
+- Asset technical attributes
+- Dependency analysis results
+
+**Outputs**:
+- Technical debt catalog
+- Modernization priority scores
+- Component-level complexity analysis
+
+### Phase 3: 6R Strategy Recommendations
+**Endpoint**: `/api/v1/assessment-flow/{master_flow_id}/sixr-decisions`
+**CrewAI Crew**: AssessmentStrategyCrew (formerly SixRStrategyCrew)
+**Purpose**: Determine optimal migration strategy per application component
+
+**Agents**:
+- **risk_assessor** (Risk Assessment Agent)
+  - Tools: `dependency_analysis`, `critical_attributes`, `asset_intelligence`
+  - Evaluates migration risks and mitigation strategies
+
+- **recommendation_generator** (6R Strategy Agent)
+  - Tools: `asset_intelligence`, `dependency_analysis`, `critical_attributes`
+  - Synthesizes assessments into 6R recommendations
+
+**6R Strategies**:
+1. **Rehost** (Lift-and-Shift): Minimal changes, fastest migration
+2. **Replatform** (Lift-Tinker-Shift): Optimize for cloud without rearchitecting
+3. **Refactor** (Re-architect): Redesign for cloud-native patterns
+4. **Repurchase** (Replace): Switch to SaaS alternative
+5. **Retire**: Decommission unused applications
+6. **Retain**: Keep on-premises (not ready for migration)
+
+**Inputs**:
+- Architecture standards (Phase 1)
+- Tech debt analysis (Phase 2)
+- Business priorities and constraints
+- Resource availability
+
+**Outputs**:
+- Component-level 6R recommendations
+- Confidence scores and rationale
+- Move group hints for wave planning
+- Risk factors and mitigation plans
+
+### CrewAI Integration Architecture
+
+**TenantScopedAgentPool** (ADR-015):
+- Singleton agent pool per tenant (client_account_id + engagement_id)
+- Lazy initialization on first phase execution
+- Agents reused across all three phases (94% performance improvement)
+
+**Memory Management** (ADR-024):
+- CrewAI built-in memory **DISABLED** (`memory=False`)
+- TenantMemoryManager handles all agent learning
+- Multi-tenant isolation with engagement/client/global scopes
+- PostgreSQL + pgvector for native embeddings
+
+**Agent Configuration** (`agent_pool_constants.py`):
+```python
+AGENT_TYPE_CONFIGS = {
+    "readiness_assessor": {
+        "role": "Migration Readiness Assessment Agent",
+        "tools": ["asset_intelligence", "data_validation", "critical_attributes"],
+        "memory": False  # Per ADR-024
+    },
+    "complexity_analyst": {
+        "role": "Migration Complexity Analysis Agent",
+        "tools": ["dependency_analysis", "asset_intelligence", "data_validation"],
+        "memory": False
+    },
+    "risk_assessor": {
+        "role": "Migration Risk Assessment Agent",
+        "tools": ["dependency_analysis", "critical_attributes", "asset_intelligence"],
+        "memory": False
+    },
+    "recommendation_generator": {
+        "role": "Migration Recommendation Generation Agent",
+        "tools": ["asset_intelligence", "dependency_analysis", "critical_attributes"],
+        "memory": False
+    }
+}
+```
+
+### Database Schema
+
+**Assessment Flows Table** (`migration.assessment_flows`):
+```sql
+CREATE TABLE migration.assessment_flows (
+    id UUID PRIMARY KEY,
+    flow_id UUID NOT NULL,
+    master_flow_id UUID REFERENCES migration.crewai_flow_state_extensions(flow_id),
+    client_account_id UUID NOT NULL,
+    engagement_id UUID NOT NULL,
+
+    -- Flow state
+    status VARCHAR(50),  -- initialized, running, completed, failed
+    current_phase VARCHAR(100),  -- architecture_standards, tech_debt, sixr_decisions
+
+    -- Pre-computed data (PR #600)
+    application_asset_groups JSONB,  -- ApplicationAssetGroup[]
+    readiness_summary JSONB,         -- ReadinessSummary
+    enrichment_status JSONB,         -- EnrichmentStatus
+
+    -- Phase results
+    phase_results JSONB,  -- { "architecture_standards": {...}, "tech_debt": {...}, "sixr_decisions": {...} }
+
+    -- Indexes for performance
+    INDEX idx_assessment_flow_master (master_flow_id),
+    INDEX idx_assessment_flow_tenant (client_account_id, engagement_id)
+);
+```
+
+**Master Flow Orchestrator Table** (`migration.crewai_flow_state_extensions`):
+```sql
+CREATE TABLE migration.crewai_flow_state_extensions (
+    flow_id UUID PRIMARY KEY,
+    flow_type VARCHAR(50) NOT NULL,  -- 'assessment'
+    flow_status VARCHAR(50) NOT NULL,  -- running, paused, completed
+    client_account_id UUID NOT NULL,
+    engagement_id UUID NOT NULL,
+    flow_configuration JSONB,
+    flow_persistence_data JSONB,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+### API Endpoints
+
+All Assessment Flow operations use MFO-integrated endpoints:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `POST` | `/api/v1/master-flows` | Create new assessment flow |
+| `GET` | `/api/v1/master-flows/{flow_id}/status` | Get flow status |
+| `POST` | `/api/v1/master-flows/{flow_id}/resume` | Resume flow with user input |
+| `POST` | `/api/v1/master-flows/{flow_id}/execute` | Execute specific phase |
+| `PUT` | `/api/v1/assessment-flow/{flow_id}/architecture-standards` | Save architecture standards |
+| `PUT` | `/api/v1/assessment-flow/{flow_id}/tech-debt-analysis` | Save tech debt results |
+| `PUT` | `/api/v1/assessment-flow/{flow_id}/sixr-decisions` | Save 6R recommendations |
+| `POST` | `/api/v1/master-flows/{flow_id}/complete` | Finalize assessment |
+| `GET` | `/api/v1/assessment-flow/{flow_id}/export` | Export as PDF/Excel/JSON |
+
+**Deprecated Endpoints** (HTTP 410 Gone):
+- `/api/v1/6r/*` - All 6R Analysis endpoints deprecated October 2025
+- Use Assessment Flow endpoints instead
+
+---
+
+## 11. Deprecation: 6R Analysis Endpoints
+
+### Context
+In October 2025, standalone 6R Analysis was deprecated and replaced by Assessment Flow integration:
+
+**Reason for Deprecation**:
+- Duplicate code paths (6R Analysis + Assessment Flow both doing 6R recommendations)
+- Assessment Flow provides superior context (architecture + tech debt)
+- MFO integration provides better state management
+- Single source of truth for 6R strategies
+
+**Migration Path**:
+```
+Old: POST /api/v1/6r/analyze → New: POST /api/v1/master-flows (flow_type='assessment')
+Old: GET /api/v1/6r/{id}     → New: GET /api/v1/master-flows/{flow_id}/status
+Old: PUT /api/v1/6r/{id}/parameters → New: PUT /api/v1/assessment-flow/{flow_id}/architecture-standards
+```
+
+**Affected Tables** (Archived October 2025):
+- `migration.sixr_analyses_archive` - Historical 6R analysis data
+- `migration.sixr_iterations_archive` - Historical iteration data
+- `migration.sixr_recommendations_archive` - Historical recommendations
+
+**Database Migration**: `111_remove_sixr_analysis_tables.py`
+- Tables archived before dropping
+- Data preserved in `*_archive` tables
+- No downgrade path (Assessment Flow is replacement)
+
+**Code Changes**:
+- `SixRStrategyCrew` renamed to `AssessmentStrategyCrew`
+- `sixr_tools` module deleted (Issue #840)
+- Assessment Flow now single authority for 6R strategies
+
+**Frontend Impact**:
+- Treatment page (`02_Treatment.md`) continues to function
+- Now uses Assessment Flow backend APIs
+- UI terminology unchanged (6R remains user-facing term)

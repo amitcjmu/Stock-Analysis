@@ -101,7 +101,23 @@ async def resolve_collection_flow_id(
         UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id
     )
 
-    # First try: Is this a collection flow_id (business identifier)?
+    # First try: Is this the collection flow primary key (id)?
+    stmt = select(CollectionFlow).where(
+        CollectionFlow.id == flow_uuid,
+        CollectionFlow.client_account_id == client_uuid,
+        CollectionFlow.engagement_id == engagement_uuid,
+    )
+    result = await db.execute(stmt)
+    collection_flow = result.scalar_one_or_none()
+
+    if collection_flow:
+        logger.debug(
+            f"✅ Input {flow_id} is a collection flow primary key, "
+            f"returning PK {collection_flow.id} for FK storage"
+        )
+        return str(collection_flow.id)
+
+    # Second try: Is this a collection flow_id (business identifier)?
     # Query by flow_id with multi-tenant scoping, return id (PK)
     stmt = select(CollectionFlow).where(
         CollectionFlow.flow_id == flow_uuid,
@@ -118,7 +134,7 @@ async def resolve_collection_flow_id(
         )
         return str(collection_flow.id)  # Return PK for FK relationships
 
-    # Second try: Is this a master_flow_id? Look up child collection flow
+    # Third try: Is this a master_flow_id? Look up child collection flow
     stmt = select(CollectionFlow).where(
         CollectionFlow.master_flow_id == flow_uuid,
         CollectionFlow.client_account_id == client_uuid,

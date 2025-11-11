@@ -1,8 +1,8 @@
 # Data Flow Analysis Report: Resource Page
 
-**Analysis Date:** 2025-10-29
-**Previous Version:** 2024-07-29 (Placeholder Analysis)
-**Status:** Backend Fully Implemented, Frontend Placeholder
+**Analysis Date:** 2025-11-10
+**Previous Version:** 2025-10-29 (Backend Complete)
+**Status:** Backend COMPLETE with ResourceAllocationSpecialist Agent, Frontend Integration Pending
 
 ---
 
@@ -274,23 +274,102 @@ interface ResourceAllocationData {
 
 ---
 
+## CrewAI Agent Integration (November 2025)
+
+### ResourceAllocationSpecialist Agent
+
+**Agent ID:** `resource_allocation_specialist` (registered in `agent_registry/managers/planning.py`)
+
+**Activation Trigger:** Automatic after wave planning phase completes
+
+**Agent Capabilities:**
+- Role-based resource analysis (Cloud Architect, DevOps Engineer, QA Engineer, etc.)
+- Workload estimation based on application complexity
+- Resource leveling and optimization across waves
+- Cost-aware allocation considering hourly rates
+- Capacity planning with utilization forecasting
+- AI-driven baseline allocations with manual override support
+- Learning from human adjustments via TenantMemoryManager
+
+**Execution Flow:**
+```
+Wave Planning Complete
+  ↓
+PlanningCrew.execute_resource_allocation()
+  ↓
+ResourceAllocationSpecialist Agent
+  ├─ Complexity Analysis (per application in each wave)
+  ├─ Role-Based Requirements (calculate hours per role)
+  ├─ Skill Gap Detection (identify missing skills)
+  └─ Cost Optimization (balance efficiency with budget)
+  ↓
+Save to planning_flows.resource_allocation_data (JSONB)
+  ↓
+Create normalized records:
+  ├─ resource_allocations (role assignments per wave)
+  └─ resource_skills (skill requirements and gaps)
+```
+
+**Agent Inputs:**
+- Wave plan data (application complexity, wave sizes)
+- Resource pools (available roles, hourly rates, capacity)
+- Planning configuration:
+  - `required_roles`: List of roles (default: Solution Architect, Cloud Engineer, QA Engineer)
+  - `hourly_rates`: Cost per role
+  - `resource_availability`: Team capacity constraints
+  - `budget_limit`: Maximum budget (0 = no limit)
+
+**Agent Outputs:**
+- Resource allocations per wave with:
+  - Role name (e.g., "Cloud Architect")
+  - Allocated hours
+  - Hourly rate
+  - Estimated cost
+  - `is_ai_suggested`: true (AI-generated baseline)
+  - `ai_confidence_score`: 0-100 scale
+  - `manual_override`: false (until user modifies)
+- Skill gaps with:
+  - Skill name (e.g., "Kubernetes")
+  - Severity: `low`, `medium`, `high`, `critical`
+  - Required hours vs available hours
+  - Mitigation plan
+  - Training/external hire indicators
+- Total cost estimate across all waves
+
+**Memory Management (ADR-024):**
+- Agent uses `memory=False` (no CrewAI built-in memory)
+- Learnings stored via TenantMemoryManager:
+  - Pattern type: `"resource_allocation"`
+  - Scope: `LearningScope.ENGAGEMENT`
+  - Pattern data: Optimal role mixes, effort estimation accuracy, skill gap patterns
+
+**Manual Override Workflow:**
+1. User views AI-suggested allocations in frontend
+2. User modifies allocations (hours, roles, costs)
+3. Frontend calls `/update` endpoint with `manual_override: true`
+4. Backend updates `resource_allocations.manual_override` column
+5. Agent learns from adjustments via TenantMemoryManager
+
 ## Summary
 
-The Resource page backend is **FULLY IMPLEMENTED** with comprehensive database schema (migration 114) and service layer logic. Frontend is **PLACEHOLDER** awaiting integration.
+The Resource page backend is **FULLY IMPLEMENTED** with comprehensive database schema (migration 114), service layer logic, and **ResourceAllocationSpecialist CrewAI agent**. Frontend is **PLACEHOLDER** awaiting integration.
 
 **Key Features:**
 
-- Role-based resource pools (NOT individual contributors per #690)
-- Auto-calculated utilization percentage
-- AI-driven allocation suggestions with confidence scores
-- Skill gap analysis (non-blocking warnings)
-- Manual override capability
-- Multi-tenant scoping throughout
+- ✅ Role-based resource pools (NOT individual contributors per #690)
+- ✅ Auto-calculated utilization percentage (database trigger)
+- ✅ AI-driven allocation suggestions with confidence scores (0-100)
+- ✅ Skill gap analysis (non-blocking warnings with severity levels)
+- ✅ Manual override capability (user can adjust AI suggestions)
+- ✅ Multi-tenant scoping throughout (UUID tenant IDs per migration 115)
+- ✅ Agent registered in agent_registry with full capabilities
+- ⚠️ Agent wiring to `/execute-phase` endpoint pending
 
 **Next Steps:**
 
-1. Create frontend data hooks
-2. Build resource display components
-3. Integrate with planning status endpoint
-4. Add manual override UI
-5. Test with agent-generated data
+1. Wire ResourceAllocationSpecialist to `/execute-phase` endpoint
+2. Create frontend data hooks for real-time polling
+3. Build resource display components with AI confidence visualization
+4. Integrate with planning status endpoint
+5. Add manual override UI with TenantMemoryManager feedback loop
+6. Test with agent-generated data

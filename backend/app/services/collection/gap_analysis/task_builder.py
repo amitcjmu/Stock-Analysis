@@ -331,3 +331,132 @@ RETURN VALID JSON (enhance ALL {len(asset_gaps)} gaps):
 
 CRITICAL: Return ONLY valid JSON, no markdown, no explanations.
 """
+
+
+def build_section_specific_task(
+    asset_data: Dict[str, Any],
+    gaps: List[str],
+    section_id: str,
+    business_context: Dict[str, Any],
+) -> str:
+    """
+    Build agent task for generating ONE section of questions for ONE asset.
+
+    Per ADR-035: Batched generation to avoid 16KB+ JSON truncation.
+    Each call generates ~2KB JSON for a single assessment flow section.
+
+    Args:
+        asset_data: Single asset context (name, type, OS, EOL status, enrichment data)
+        gaps: Gaps relevant to this section only (e.g., ["operating_system", "cpu_cores"])
+        section_id: Which assessment flow section (infrastructure, resilience, compliance, dependencies, tech_debt)
+        business_context: Engagement context for multi-tenant scoping
+
+    Returns:
+        Task prompt for agent (generates ~2KB JSON vs 16KB+ full questionnaire)
+    """
+    # Per ADR-035: Section descriptions aligned with Issue #980 assessment flow
+    section_descriptions = {
+        "infrastructure": "infrastructure specifications (operating system, hardware, network)",
+        "resilience": "high availability, disaster recovery, and backup configurations",
+        "compliance": "regulatory compliance (GDPR, HIPAA, PCI-DSS) and security standards",
+        "dependencies": "system dependencies, integrations, and API connections",
+        "tech_debt": "code quality, security vulnerabilities, and modernization readiness",
+    }
+
+    section_titles = {
+        "infrastructure": "Infrastructure Specifications",
+        "resilience": "Resilience & Availability",
+        "compliance": "Compliance & Security Standards",
+        "dependencies": "Dependencies & Integrations",
+        "tech_debt": "Technical Debt Assessment",
+    }
+
+    # Build gaps list for prompt
+    gaps_text = "\n".join([f"  - {gap}" for gap in gaps])
+
+    return f"""
+Generate intelligent questionnaire questions for the {section_id.upper()} section.
+
+ASSET CONTEXT:
+- Asset ID: {asset_data.get('asset_id', 'unknown')}
+- Asset Name: {asset_data.get('asset_name', 'Unknown Asset')}
+- Asset Type: {asset_data.get('asset_type', 'unknown')}
+- Operating System: {asset_data.get('operating_system', 'Unknown')}
+- OS Version: {asset_data.get('os_version', 'Unknown')}
+- EOL Technology: {asset_data.get('eol_technology', False)}
+
+BUSINESS CONTEXT:
+- Engagement ID: {business_context.get('engagement_id', 'unknown')}
+- Client Account ID: {business_context.get('client_account_id', 'unknown')}
+
+GAPS FOR THIS SECTION ({len(gaps)} gaps):
+{gaps_text}
+
+SECTION TO GENERATE: {section_id}
+- Purpose: Questions about {section_descriptions[section_id]}
+- Return ONLY questions relevant to this section's scope
+
+CRITICAL REQUIREMENTS:
+
+1. INTELLIGENT, CONTEXT-AWARE OPTIONS:
+   - For AIX systems: Include AIX version options (aix_7.3, aix_7.2, aix_7.1)
+   - For Windows systems: Include Windows version options (windows_2019, windows_2022)
+   - For Linux systems: Include Linux distro options (rhel_8, ubuntu_22, centos_7)
+   - For EOL technology: Prioritize modernization/migration questions
+   - For compliance: Include specific compliance frameworks (GDPR, HIPAA, PCI-DSS)
+
+2. KEEP RESPONSE UNDER 2KB:
+   - Maximum 10-15 questions per section
+   - Focus on most critical gaps only
+   - Use concise option labels (avoid verbose descriptions)
+
+3. RETURN VALID JSON ONLY:
+   - No markdown code blocks (no ```json)
+   - No explanatory text before or after JSON
+   - Properly closed brackets and quotes
+
+RETURN JSON FORMAT:
+{{
+  "section_id": "{section_id}",
+  "section_title": "{section_titles[section_id]}",
+  "section_description": "{section_descriptions[section_id]}",
+  "questions": [
+    {{
+      "field_id": "operating_system",
+      "question_text": "What is the Operating System for {asset_data.get('asset_name', 'this asset')}?",
+      "field_type": "select",
+      "options": [
+        {{"value": "aix_7.3", "label": "IBM AIX 7.3"}},
+        {{"value": "aix_7.2", "label": "IBM AIX 7.2"}},
+        {{"value": "aix_7.1", "label": "IBM AIX 7.1"}},
+        {{"value": "windows_2022", "label": "Windows Server 2022"}},
+        {{"value": "windows_2019", "label": "Windows Server 2019"}},
+        {{"value": "rhel_8", "label": "Red Hat Enterprise Linux 8"}},
+        {{"value": "ubuntu_22", "label": "Ubuntu 22.04 LTS"}},
+        {{"value": "other", "label": "Other (specify in notes)"}}
+      ],
+      "required": true,
+      "category": "{section_id}",
+      "metadata": {{
+        "asset_ids": ["{asset_data.get('asset_id', 'unknown')}"],
+        "asset_name": "{asset_data.get('asset_name', 'Unknown Asset')}",
+        "intelligent_options": true,
+        "eol_aware": true
+      }}
+    }}
+  ]
+}}
+
+EXAMPLE for AIX system ({asset_data.get('operating_system', 'Unknown')}):
+If operating_system="AIX", the options array should prioritize AIX versions FIRST, then other OS options.
+If eol_technology=true, add modernization-related questions.
+
+IMPORTANT VALIDATION:
+- field_id must match a gap from the list above
+- question_text should be clear and user-friendly
+- options should be relevant to the detected asset context
+- Each question must have "category": "{section_id}"
+- Metadata must include asset_ids array and asset_name
+
+Return ONLY the JSON structure above. No additional text.
+"""

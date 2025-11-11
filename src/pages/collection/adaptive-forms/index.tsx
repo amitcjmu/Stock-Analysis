@@ -204,6 +204,7 @@ const AdaptiveForms: React.FC = () => {
     isCompleted,
     error,
     flowId: activeFlowId, // Extract flowId from hook return
+    questionnaires, // Get questionnaires array for auto-submit check
     // New polling state fields
     isPolling,
     completionStatus,
@@ -286,8 +287,10 @@ const AdaptiveForms: React.FC = () => {
     // Issue #801: Pass applications to properly resolve asset names (not UUIDs)
     // NOTE: Backend may return empty applications array, but groupQuestionsByAsset
     // will fall back to extracting asset_name from question metadata
+    // CRITICAL FIX: Map both 'id' and 'asset_id' to ensure lookup works correctly
     const applications = currentCollectionFlow?.applications?.map(app => ({
       id: app.asset_id,
+      asset_id: app.asset_id,  // CRITICAL: Also include asset_id for lookup
       name: app.application_name || app.name || app.asset_name
     })) || [];
 
@@ -458,6 +461,93 @@ const AdaptiveForms: React.FC = () => {
     isLoadingFlow,
     activeFlowId,
   ]);
+
+  // Auto-submit asset selection if assets are already pre-selected from assessment flow
+  // CRITICAL FIX: Use ref to prevent multiple auto-submissions
+  const hasAutoSubmittedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (
+      !currentCollectionFlow ||
+      !formData ||
+      !handleSubmit ||
+      isLoadingFlow ||
+      !activeFlowId ||
+      hasAutoSubmittedRef.current // CRITICAL FIX: Prevent multiple submissions
+    ) {
+      return;
+    }
+
+    // Check if assets are pre-selected in collection_config
+    const config = currentCollectionFlow.collection_config || {};
+    const selectedAssetIds =
+      config.selected_application_ids ||
+      config.applications ||
+      config.application_ids ||
+      [];
+
+    // Check if current questionnaire is bootstrap_asset_selection
+    // Get questionnaire ID from formData or from questionnaires array
+    const currentQuestionnaireId =
+      formData?.questionnaires?.[0]?.id ||
+      formData?.questionnaireId ||
+      questionnaires?.[0]?.id ||
+      "";
+    const isAssetSelectionQuestionnaire =
+      currentQuestionnaireId === "bootstrap_asset_selection";
+
+    // Auto-submit if assets are pre-selected and we're on asset selection questionnaire
+    if (
+      Array.isArray(selectedAssetIds) &&
+      selectedAssetIds.length > 0 &&
+      isAssetSelectionQuestionnaire
+    ) {
+      // CRITICAL FIX: Mark as submitted immediately to prevent duplicate calls
+      hasAutoSubmittedRef.current = true;
+
+      debugLog(
+        "🚀 Auto-submitting asset selection with pre-selected assets:",
+        selectedAssetIds,
+      );
+
+      // Create form data with selected assets
+      const autoSubmitData: CollectionFormData = {
+        selected_assets: selectedAssetIds,
+        question_1: selectedAssetIds.map(
+          (id) => `Asset (ID: ${id})`, // Format expected by submit handler
+        ),
+      };
+
+      // Auto-submit after a short delay to ensure form is ready
+      const timer = setTimeout(() => {
+        handleSubmit(autoSubmitData).catch((error) => {
+          debugError("❌ Auto-submit failed:", error);
+          // Reset flag on error so user can retry
+          hasAutoSubmittedRef.current = false;
+          toast({
+            title: "Auto-submit Failed",
+            description:
+              "Failed to automatically submit asset selection. Please submit manually.",
+            variant: "destructive",
+          });
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    currentCollectionFlow,
+    formData,
+    handleSubmit,
+    isLoadingFlow,
+    activeFlowId,
+    questionnaires, // Include questionnaires in dependency array
+  ]);
+
+  // CRITICAL FIX: Reset auto-submit flag when flow ID changes
+  React.useEffect(() => {
+    hasAutoSubmittedRef.current = false;
+  }, [activeFlowId]);
 
   // Reset the hasJustDeleted flag after auto-initialization triggers
   React.useEffect(() => {

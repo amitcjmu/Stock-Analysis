@@ -56,12 +56,44 @@ const CollectionProgress: React.FC = () => {
   // Phase 1 fix: Get the current flow for assessment readiness check
   const currentFlow = flows.find(f => f.id === selectedFlow);
 
+  // CRITICAL UX FIX: Fetch flow details to check if it came from an assessment flow
+  const [flowDetails, setFlowDetails] = React.useState<{ assessment_flow_id?: string } | null>(null);
+
+  React.useEffect(() => {
+    if (selectedFlow && currentFlow) {
+      // Fetch full flow details to get assessment_flow_id
+      collectionFlowApi.getFlow(selectedFlow)
+        .then((details) => {
+          setFlowDetails(details as { assessment_flow_id?: string });
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch flow details:', err);
+          setFlowDetails(null);
+        });
+    } else {
+      setFlowDetails(null);
+    }
+  }, [selectedFlow, currentFlow]);
+
   // Phase 3: Enhanced transition handler with proper error handling
   const handleTransitionToAssessment = async () => {
     try {
       setIsTransitioning(true);
 
-      // Call dedicated transition endpoint
+      // CRITICAL UX FIX: If flow came from assessment flow, navigate directly back
+      if (flowDetails?.assessment_flow_id) {
+        toast({
+          title: 'Returning to Assessment Flow',
+          description: 'Asset readiness has been updated. Returning to assessment...',
+          variant: 'default',
+        });
+
+        // Navigate directly to the existing assessment flow
+        navigate(`/assess/overview?flowId=${flowDetails.assessment_flow_id}`);
+        return;
+      }
+
+      // Otherwise, create a new assessment flow
       const result = await collectionFlowApi.transitionToAssessment(selectedFlow);
 
       toast({
@@ -177,7 +209,9 @@ const CollectionProgress: React.FC = () => {
                 Collection Complete
               </h3>
               <p className="text-green-700 mb-6">
-                Data collection is complete. Proceed to assessment phase to analyze your applications and infrastructure.
+                {flowDetails?.assessment_flow_id
+                  ? 'Data collection is complete. Asset readiness has been updated. Return to assessment flow to continue.'
+                  : 'Data collection is complete. Proceed to assessment phase to analyze your applications and infrastructure.'}
               </p>
 
               <div className="space-y-3">
@@ -187,7 +221,13 @@ const CollectionProgress: React.FC = () => {
                   className="w-full bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                   size="lg"
                 >
-                  {isTransitioning ? 'Creating Assessment...' : 'Start Assessment Phase'}
+                  {isTransitioning
+                    ? flowDetails?.assessment_flow_id
+                      ? 'Returning to Assessment...'
+                      : 'Creating Assessment...'
+                    : flowDetails?.assessment_flow_id
+                    ? 'Return to Assessment Flow'
+                    : 'Start Assessment Phase'}
                 </Button>
 
                 <Button

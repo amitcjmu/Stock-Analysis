@@ -19,12 +19,18 @@ class CollectionDecisionLogic:
     def make_collection_decision(
         current_phase: str, analysis: Dict[str, Any]
     ) -> AgentDecision:
-        """Collection-specific decision logic"""
+        """Collection-specific decision logic
+
+        Per ADR-023: Collection Flow Phase Redesign
+        Phases: asset_selection → auto_enrichment → gap_analysis →
+                questionnaire_generation → manual_collection → synthesis (terminal)
+        """
         from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
-        if current_phase == "platform_detection":
+        # Per ADR-023: Updated phase names to match FlowTypeRegistry
+        if current_phase == "asset_selection":
             return CollectionDecisionLogic._decide_after_platform_detection(analysis)
-        elif current_phase == "automated_collection":
+        elif current_phase == "auto_enrichment":
             return CollectionDecisionLogic._decide_after_automated_collection(analysis)
         elif current_phase == "gap_analysis":
             return CollectionDecisionLogic._decide_after_gap_analysis(analysis)
@@ -38,9 +44,19 @@ class CollectionDecisionLogic:
             return CollectionDecisionLogic._decide_after_synthesis(analysis)
         else:
             # Default progression using flow registry
+            next_phase = DecisionUtils.get_next_phase(current_phase, "collection")
+            if next_phase is None:
+                # Terminal phase reached
+                return AgentDecision(
+                    action=PhaseAction.COMPLETE,
+                    next_phase="",
+                    confidence=0.95,
+                    reasoning=f"Collection flow completed - phase {current_phase} is terminal",
+                    metadata=analysis,
+                )
             return AgentDecision(
                 action=PhaseAction.PROCEED,
-                next_phase=DecisionUtils.get_next_phase(current_phase, "collection"),
+                next_phase=next_phase,
                 confidence=0.8,
                 reasoning=f"Phase {current_phase} completed successfully in collection flow",
                 metadata=analysis,
@@ -77,11 +93,12 @@ class CollectionDecisionLogic:
                 },
             )
 
+        # Per ADR-023: Next phase is auto_enrichment
         return AgentDecision(
             action=PhaseAction.PROCEED,
-            next_phase="automated_collection",
+            next_phase="auto_enrichment",
             confidence=0.9,
-            reasoning=f"Platforms successfully detected ({platforms_detected}). Proceeding to automated collection.",
+            reasoning=f"Platforms successfully detected ({platforms_detected}). Proceeding to auto enrichment.",
             metadata=platform_results,
         )
 
@@ -256,9 +273,10 @@ class CollectionDecisionLogic:
                 },
             )
 
+        # Per ADR-023: synthesis is the terminal phase for collection flows
         return AgentDecision(
-            action=PhaseAction.PROCEED,
-            next_phase="synthesis",  # MFO phase (maps to "finalization" in child flow)
+            action=PhaseAction.COMPLETE,
+            next_phase="",  # Terminal phase - no next phase
             confidence=0.95,
             reasoning="Collection flow completed successfully. Data synthesis meets quality standards.",
             metadata=synthesis_results,

@@ -80,6 +80,29 @@ def register_conditional_routers(api_router: APIRouter):
         logger.error(f"❌ Failed to import Assessment Flow router: {e}")
         logger.info("ℹ️ Assessment Flow endpoints accessed via MFO at /master-flows/*")
 
+    # Assessment Flow Readiness API - NEW: Gap Detection Integration (Issue #980)
+    # Provides asset readiness analysis endpoints using GapAnalyzer
+    try:
+        from app.api.v1.router_imports import (
+            ASSESSMENT_FLOW_READINESS_AVAILABLE,
+            assessment_flow_readiness_router,
+        )
+
+        if ASSESSMENT_FLOW_READINESS_AVAILABLE:
+            # Router has prefix /assessment-flow, main router has /api/v1, so final path is /api/v1/assessment-flow
+            api_router.include_router(
+                assessment_flow_readiness_router,
+                tags=[APITags.ASSESSMENT_FLOW_READINESS],
+            )
+            logger.info(
+                "✅ Assessment Flow Readiness API router included at "
+                "/assessment-flow/{flow_id}/asset-readiness/* (Issue #980)"
+            )
+        else:
+            logger.warning("⚠️ Assessment Flow Readiness API router not available")
+    except ImportError as e:
+        logger.error(f"❌ Failed to import Assessment Flow Readiness router: {e}")
+
     # Collection Gaps API - MUST be registered BEFORE collection_router for correct
     # routing. The gap analysis router has more specific routes
     # (/collection/flows/{id}/gaps, /scan-gaps, etc.) that would otherwise be

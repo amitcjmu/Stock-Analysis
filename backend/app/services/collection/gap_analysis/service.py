@@ -2,8 +2,12 @@
 
 import logging
 from typing import Any, Dict, List
+from uuid import UUID
 
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.collection_flow import CollectionFlow
 
 from .agent_helpers import AgentHelperMixin
 from .data_loader import load_assets, resolve_collection_flow_id
@@ -120,6 +124,10 @@ class GapAnalysisService(
                     assets, actual_collection_flow_id, db
                 )
 
+            await self._store_gap_analysis_results(
+                db, actual_collection_flow_id, result_dict
+            )
+
             logger.info(
                 f"✅ Gap analysis complete: {result_dict['summary'].get('gaps_persisted', 0)} gaps persisted, "
                 f"{len(assets)} assets analyzed, Flow: {self.collection_flow_id}"
@@ -134,3 +142,47 @@ class GapAnalysisService(
                 exc_info=True,
             )
             return self._error_result(str(e))
+
+    async def _store_gap_analysis_results(
+        self,
+        db: AsyncSession,
+        collection_flow_pk: str,
+        result_dict: Dict[str, Any],
+    ) -> None:
+        """Persist gap analysis summary to collection flow record."""
+        payload = {
+            "summary": result_dict.get("summary", {}),
+            "gaps": result_dict.get("gaps", {}),
+            "questionnaire": result_dict.get("questionnaire", {}),
+        }
+
+        try:
+            await db.execute(
+                update(CollectionFlow)
+                .where(CollectionFlow.id == UUID(collection_flow_pk))
+                .values(gap_analysis_results=payload)
+            )
+            await db.commit()
+        except Exception as store_error:
+            logger.error(
+                "Failed to store gap_analysis_results for flow %s: %s",
+                collection_flow_pk,
+                store_error,
+                exc_info=True,
+            )
+
+    async def _load_assets(
+        self, selected_asset_ids: List[str], db: AsyncSession
+    ) -> List[Any]:
+        """
+        Backward-compatible helper retained for integration tests.
+
+        Delegates to module-level load_assets with the service's tenant context.
+        """
+
+        return await load_assets(
+            selected_asset_ids,
+            self.client_account_id,
+            self.engagement_id,
+            db,
+        )

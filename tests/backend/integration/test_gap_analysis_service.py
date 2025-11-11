@@ -19,6 +19,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.collection_data_gap import CollectionDataGap
 from app.models.collection_flow import CollectionFlow
+from app.models.collection_flow.schemas import CollectionFlowStatus
 from app.services.collection.gap_analysis_service import GapAnalysisService
 
 
@@ -42,7 +43,7 @@ async def test_collection_flow(db_session: AsyncSession):
         flow_name="Test Gap Analysis Flow",
         automation_tier="tier_2",  # Add automation_tier (required field)
         current_phase="gap_analysis",
-        status="gap_analysis",
+        status=CollectionFlowStatus.RUNNING,
     )
     db_session.add(flow)
     await db_session.commit()

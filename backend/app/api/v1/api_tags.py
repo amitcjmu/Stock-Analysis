@@ -56,6 +56,7 @@ class APITags:
 
     # Assessment & Workflow
     ASSESSMENT_FLOW_MANAGEMENT = "Assessment Flow Management"
+    ASSESSMENT_FLOW_READINESS = "Assessment Flow - Readiness"
     ASSESSMENT_FLOW_RECOMMENDATIONS = "Assessment Flow - Recommendations"
     ASSESSMENT_FLOW_EXPORT = "Assessment Flow - Export"
     ARCHITECTURE_STANDARDS = "Architecture Standards"

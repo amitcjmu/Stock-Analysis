@@ -74,8 +74,31 @@ main() {
 # Handle different scenarios based on command
 case "${1}" in
     "uvicorn")
-        # Normal startup
-        main "$@"
+        # Build uvicorn command with optional --reload flag
+        # Only enable reload if UVICORN_RELOAD_ENABLED=true in environment
+        # This prevents data loss from mid-execution restarts during long-running flows
+        UVICORN_ARGS=("$@")
+
+        if [ "${UVICORN_RELOAD_ENABLED}" = "true" ]; then
+            echo "⚠️  WARNING: HMR (Hot Module Reload) is ENABLED"
+            echo "   This will restart the server on file changes, potentially causing:"
+            echo "   - Long-running flows to abort mid-execution"
+            echo "   - Database transactions to be left in inconsistent state"
+            echo "   - CrewAI agent context and progress to be lost"
+            echo "   - SSE connections to drop"
+            echo ""
+            echo "   Only use this in local development when NOT testing long-running flows!"
+            echo "   Set UVICORN_RELOAD_ENABLED=false to disable."
+            echo ""
+            UVICORN_ARGS+=("--reload")
+        else
+            echo "✅ HMR (Hot Module Reload) is DISABLED (safe for long-running flows)"
+            echo "   To enable for local development convenience, set UVICORN_RELOAD_ENABLED=true"
+            echo ""
+        fi
+
+        # Normal startup with conditional reload
+        main "${UVICORN_ARGS[@]}"
         ;;
     *)
         # Allows running other commands like `bash` for debugging

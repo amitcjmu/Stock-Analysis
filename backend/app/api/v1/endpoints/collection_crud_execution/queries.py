@@ -188,7 +188,85 @@ async def ensure_collection_flow(
             # Bug #668 Fix: Add missing attributes as gaps even when reusing flow
             if missing_attributes:
                 await _add_gaps_to_existing_flow(db, existing, missing_attributes)
+
+            # Bug Fix: Update collection_config with selected_application_ids from missing_attributes
+            # This ensures assets are pre-selected when navigating from assessment flow
+            if missing_attributes:
+                from sqlalchemy.orm.attributes import flag_modified
+
+                selected_asset_ids = list(missing_attributes.keys())
+                collection_config = existing.collection_config or {}
+                collection_config["selected_application_ids"] = selected_asset_ids
+                existing.collection_config = collection_config
+                # CRITICAL: Flag JSONB field as modified so SQLAlchemy detects the change
+                flag_modified(existing, "collection_config")
+                await db.commit()
+                await db.refresh(existing)
+                logger.info(
+                    f"Updated existing flow {existing.flow_id} with {len(selected_asset_ids)} pre-selected assets"
+                )
+
             return collection_serializers.build_collection_flow_response(existing)
+
+        # CRITICAL FIX: If assessment_flow_id was provided but no flow found with that ID,
+        # check for any existing active flow and reuse it by linking it to this assessment flow
+        # This prevents 409 conflicts when there's an active flow without assessment_flow_id
+        if assessment_flow_id:
+            assessment_uuid = (
+                UUID(assessment_flow_id)
+                if isinstance(assessment_flow_id, str)
+                else assessment_flow_id
+            )
+
+            # Check for any active flow (without assessment_flow_id filter)
+            general_query_conditions = [
+                CollectionFlow.client_account_id == context.client_account_id,
+                CollectionFlow.engagement_id == context.engagement_id,
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.COMPLETED.value,
+                        CollectionFlowStatus.CANCELLED.value,
+                    ]
+                ),
+            ]
+
+            general_result = await db.execute(
+                select(CollectionFlow)
+                .where(*general_query_conditions)
+                .order_by(CollectionFlow.created_at.desc())
+                .limit(1)
+            )
+            general_existing = general_result.scalar_one_or_none()
+
+            if general_existing:
+                # Link this existing flow to the assessment flow
+                general_existing.assessment_flow_id = assessment_uuid
+
+                # Add missing attributes as gaps
+                if missing_attributes:
+                    await _add_gaps_to_existing_flow(
+                        db, general_existing, missing_attributes
+                    )
+
+                    # Update collection_config with selected_application_ids
+                    from sqlalchemy.orm.attributes import flag_modified
+
+                    selected_asset_ids = list(missing_attributes.keys())
+                    collection_config = general_existing.collection_config or {}
+                    collection_config["selected_application_ids"] = selected_asset_ids
+                    general_existing.collection_config = collection_config
+                    flag_modified(general_existing, "collection_config")
+
+                await db.commit()
+                await db.refresh(general_existing)
+                logger.info(
+                    f"Reused existing flow {general_existing.flow_id} "
+                    f"and linked to assessment flow {assessment_flow_id}"
+                )
+
+                return collection_serializers.build_collection_flow_response(
+                    general_existing
+                )
 
         # Otherwise, create a new one (delegates to existing create logic)
         # Import locally to avoid circular import

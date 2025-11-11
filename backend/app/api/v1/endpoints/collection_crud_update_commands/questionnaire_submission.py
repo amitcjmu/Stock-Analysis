@@ -14,19 +14,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models import User
-from app.models.collection_flow import CollectionFlow, AdaptiveQuestionnaire
+from app.models.collection_flow import CollectionFlow
 
 # Import modular helper functions
 from ..collection_crud_helpers import (
     validate_asset_access,
     fetch_and_index_gaps,
     create_response_records,
-    resolve_data_gaps,
-    apply_asset_writeback,
     update_flow_progress,
 )
 
-from .assessment_validation import check_and_set_assessment_ready
+# Import refactored helper functions for Issue #980
+from .questionnaire_helpers import (
+    _flush_response_records,
+    _extract_asset_ids_for_reanalysis,
+    _resolve_gaps_and_update_flow,
+    _commit_with_writeback,
+    _update_asset_readiness,
+)
 
 if TYPE_CHECKING:
     from app.schemas.collection_flow import QuestionnaireSubmissionRequest
@@ -153,81 +158,68 @@ async def submit_questionnaire_response(
             db,
         )
 
+        # ✅ CRITICAL FIX (Issue #980): Flush response records to database immediately
+        await _flush_response_records(db, response_records, flow.id)
+
+        # CRITICAL UX FIX: Extract asset_ids from response records for readiness re-analysis
+        asset_ids_to_reanalyze = await _extract_asset_ids_for_reanalysis(
+            response_records, validated_asset, asset_id, form_responses, flow
+        )
+
         # Update flow status based on completion
         update_flow_progress(flow, form_metadata, flow_id)
 
         # Update flow metadata
         flow.updated_at = datetime.utcnow()
 
-        # Mark gaps as resolved for fields that received responses
-        gaps_resolved = 0
-        if response_records:
-            gaps_resolved = await resolve_data_gaps(gap_index, form_responses, db)
-
-        # CRITICAL FIX: Mark questionnaire as completed after successful submission
-        # This prevents the same questionnaire from being returned in a loop
-        questionnaire_result = await db.execute(
-            select(AdaptiveQuestionnaire)
-            .where(
-                AdaptiveQuestionnaire.id == questionnaire_uuid
-            )  # Use normalized UUID
-            .where(AdaptiveQuestionnaire.collection_flow_id == flow.id)
+        # Mark gaps as resolved and update questionnaire completion status
+        gaps_resolved = await _resolve_gaps_and_update_flow(
+            response_records,
+            gap_index,
+            form_responses,
+            flow,
+            questionnaire_uuid,
+            request_data,
+            context,
+            db,
         )
-        questionnaire = questionnaire_result.scalar_one_or_none()
 
-        if questionnaire:
-            # CRITICAL FIX (Issue #692): Check save_type to determine completion status
-            # - save_progress: Keep as in_progress, skip assessment check
-            # - submit_complete: Mark as completed, trigger assessment check
-            if request_data.save_type == "submit_complete":
-                questionnaire.completion_status = "completed"
-                questionnaire.completed_at = datetime.utcnow()
-                logger.info(
-                    f"✅ FIX#692: Marking questionnaire {questionnaire_id} as completed "
-                    f"(save_type={request_data.save_type})"
-                )
+        # Apply asset writeback and commit all changes atomically
+        await _commit_with_writeback(
+            gaps_resolved, flow, context, current_user, response_records, db
+        )
 
-                # Check if collection is complete and ready for assessment
-                # Required attributes: business_criticality, environment
-                await check_and_set_assessment_ready(
-                    flow, form_responses, db, context, logger
-                )
-            else:
-                # save_progress: Keep as in_progress
-                questionnaire.completion_status = "in_progress"
-                logger.info(
-                    f"💾 FIX#692: Saving progress for questionnaire {questionnaire_id} "
-                    f"(save_type={request_data.save_type}, status=in_progress)"
-                )
-
-            # Always update responses_collected for both save types
-            questionnaire.responses_collected = form_responses
-        else:
-            logger.warning(
-                f"⚠️ Could not find questionnaire {questionnaire_id} to mark as completed"
-            )
-
-        # Apply resolved gaps to assets via write-back service before commit
-        # This preserves atomicity - both DB changes and writeback succeed or both fail
-        await apply_asset_writeback(gaps_resolved, flow, context, current_user, db)
-
-        # Commit all changes (including writeback updates) atomically
-        logger.info(f"Committing {len(response_records)} response records to database")
-        await db.commit()
+        # Re-analyze asset readiness after successful submission
+        readiness_updated = await _update_asset_readiness(
+            asset_ids_to_reanalyze, request_data, context, db
+        )
 
         logger.info(
             f"Successfully saved {len(response_records)} questionnaire responses for flow {flow_id} "
             f"by user {current_user.id}. Flow progress: {flow.progress_percentage}%, Status: {flow.status}"
         )
 
-        return {
+        # Build response with assessment flow redirect info
+        response_data = {
             "status": "success",
             "message": f"Successfully saved {len(response_records)} responses",
             "questionnaire_id": questionnaire_id,
             "flow_id": str(flow.flow_id),  # Fixed: Return flow_id UUID, not database ID
             "progress": flow.progress_percentage,
             "responses_saved": len(response_records),
+            "readiness_updated": readiness_updated,
         }
+
+        # CRITICAL UX FIX: Return assessment_flow_id if collection came from assessment flow
+        # This allows frontend to redirect back to assessment flow
+        if flow.assessment_flow_id:
+            response_data["assessment_flow_id"] = str(flow.assessment_flow_id)
+            response_data["redirect_to_assessment"] = True
+            logger.info(
+                f"📋 Collection flow came from assessment flow {flow.assessment_flow_id} - will redirect back"
+            )
+
+        return response_data
 
     except HTTPException as he:
         logger.warning(
