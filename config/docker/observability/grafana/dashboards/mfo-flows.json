@@ -107,7 +107,8 @@
               "legend": false
             }
           },
-          "mappings": []
+          "mappings": [],
+          "unit": "short"
         },
         "overrides": []
       },
@@ -128,10 +129,15 @@
             "percent"
           ]
         },
-        "pieType": "donut",
+        "pieType": "pie",
         "tooltip": {
           "mode": "single",
           "sort": "none"
+        },
+        "reduceOptions": {
+          "values": true,
+          "fields": "",
+          "calcs": []
         }
       },
       "targets": [
@@ -143,7 +149,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  flow_type AS metric,\n  COUNT(*)::float AS value\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\nGROUP BY flow_type\nORDER BY value DESC;",
+          "rawSql": "SELECT\n  flow_type,\n  COUNT(*) AS count\nFROM migration.crewai_flow_state_extensions\nWHERE $__timeFilter(created_at)\nGROUP BY flow_type\nORDER BY count DESC;",
           "refId": "A"
         }
       ],
@@ -270,7 +276,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  'discovery' AS flow_type,\n  current_phase,\n  client_account_id,\n  engagement_id,\n  COUNT(*) AS count\nFROM migration.discovery_flows\nWHERE $__timeFilter(created_at)\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'assessment',\n  current_phase,\n  client_account_id,\n  engagement_id,\n  COUNT(*)\nFROM migration.assessment_flows\nWHERE $__timeFilter(created_at)\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'collection',\n  current_phase::text,\n  client_account_id,\n  engagement_id,\n  COUNT(*)\nFROM migration.collection_flows\nWHERE $__timeFilter(created_at)\nGROUP BY 1,2,3,4\nORDER BY flow_type, count DESC;",
+          "rawSql": "SELECT\n  'discovery' AS flow_type,\n  df.current_phase,\n  ca.name AS client_name,\n  e.name AS engagement_name,\n  COUNT(*) AS count\nFROM migration.discovery_flows df\nLEFT JOIN migration.client_accounts ca ON df.client_account_id = ca.id\nLEFT JOIN migration.engagements e ON df.engagement_id = e.id\nWHERE $__timeFilter(df.created_at)\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'assessment',\n  af.current_phase,\n  ca.name,\n  e.name,\n  COUNT(*)\nFROM migration.assessment_flows af\nLEFT JOIN migration.client_accounts ca ON af.client_account_id = ca.id\nLEFT JOIN migration.engagements e ON af.engagement_id = e.id\nWHERE $__timeFilter(af.created_at)\nGROUP BY 1,2,3,4\nUNION ALL\nSELECT\n  'collection',\n  cf.current_phase::text,\n  ca.name,\n  e.name,\n  COUNT(*)\nFROM migration.collection_flows cf\nLEFT JOIN migration.client_accounts ca ON cf.client_account_id = ca.id\nLEFT JOIN migration.engagements e ON cf.engagement_id = e.id\nWHERE $__timeFilter(cf.created_at)\nGROUP BY 1,2,3,4\nORDER BY flow_type, count DESC;",
           "refId": "A"
         }
       ],

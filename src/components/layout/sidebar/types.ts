@@ -73,6 +73,7 @@ export interface ExpandedStates {
   execute: boolean;
   modernize: boolean;
   decommission: boolean;
+  decom: boolean;
   finops: boolean;
   observability: boolean;
   admin: boolean;

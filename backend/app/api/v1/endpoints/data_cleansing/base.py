@@ -63,7 +63,11 @@ class DataCleansingRecommendation(BaseModel):
     impact: str
     effort_estimate: str
     fields_affected: List[str]
-    status: Optional[str] = None  # 'pending', 'applied', 'rejected'
+    # Additional fields for frontend compatibility (Issue #875, #876)
+    confidence: Optional[float] = 0.85  # 0.0 to 1.0 range, default 85% confidence
+    status: str = "pending"  # 'pending' | 'applied' | 'rejected'
+    agent_source: Optional[str] = "Data Quality Agent"
+    implementation_steps: Optional[List[str]] = []
 
 
 class DataCleansingAnalysis(BaseModel):

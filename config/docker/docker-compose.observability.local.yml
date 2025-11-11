@@ -1,0 +1,15 @@
+# Local Development Observability Override
+# Purpose: Override settings for macOS/Windows local development
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.observability.yml -f docker-compose.observability.local.yml --env-file .env.observability up -d
+#
+# Key Differences from Production (Azure/Railway):
+# 1. Alloy runs as root (workaround for macOS Docker socket permissions)
+# 2. Init containers disabled (not needed for local dev)
+# 3. Simplified volume permissions
+
+services:
+  # Override Alloy to run as root for Docker socket access on macOS
+  alloy:
+    user: "0:0"  # Run as root - LOCAL DEV ONLY, NOT FOR PRODUCTION
+    environment:
+      - ALLOY_ENVIRONMENT=local

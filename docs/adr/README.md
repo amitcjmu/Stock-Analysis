@@ -25,7 +25,7 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-017](017-redis-backed-failure-journal-and-dlq.md) | Redis-Backed Failure Journal and DLQ | Accepted | 2025 |
 | [ADR-018](018-service-registry-for-crewai-tools.md) | Service Registry for CrewAI Tools | Proposed | 2025-01-13 |
 | [ADR-019](019-crewai-deepinfra-embeddings-monkey-patch.md) | CrewAI DeepInfra Embeddings Monkey Patch | Fully Superseded | 2025-08-14 |
-| [ADR-020](020-flow-type-aware-phase-transitions.md) | Flow-Type Aware Phase Transition Architecture | Proposed | 2025-08-22 |
+| [ADR-020](020-flow-type-aware-phase-transitions.md) | Flow-Type Aware Phase Transition Architecture | Accepted | 2025-08-22 |
 | [ADR-021](021-flow-endpoint-plural-convention.md) | Flow Endpoint Plural Convention Consolidation | Accepted | 2025-08-29 |
 | [ADR-022](022-asset-inventory-persistent-agent-architecture.md) | Asset Inventory Persistent Agent Architecture | Implemented | 2025-09-10 |
 | [ADR-023](023-collection-flow-phase-redesign.md) | Collection Flow Phase Redesign | Accepted | 2025-09-25 |
@@ -35,9 +35,10 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-028](028-eliminate-collection-phase-state-duplication.md) | Eliminate Collection Phase State Duplication | Accepted | 2025-10-20 |
 | [ADR-029](029-llm-output-json-sanitization-pattern.md) | LLM Output JSON Sanitization Pattern | Accepted | 2025-10-22 |
 | [ADR-030](030-collection-flow-adaptive-questionnaire-architecture.md) | Collection Flow Adaptive Questionnaire Architecture | Accepted | 2025-10-25 |
-| [ADR-031](031-environment-based-observability-architecture.md) | Enterprise Observability Architecture with Grafana Stack | Proposed | 2025-10-30 |
+| [ADR-031](031-environment-based-observability-architecture.md) | Enterprise Observability Architecture with Grafana Stack | Accepted | 2025-10-30 |
 | [ADR-032](032-jwt-refresh-token-security-architecture.md) | JWT Refresh Token Security Architecture | Accepted | 2025-10-30 |
 | [ADR-033](033-context-establishment-service-modularization.md) | Context Establishment Service Modularization | Accepted | 2025-10-30 |
+| [ADR-034](034-asset-centric-questionnaire-deduplication.md) | Asset-Centric Questionnaire Deduplication | Accepted | 2025-11-06 |
 
 ## ADR Template
 
@@ -101,10 +102,11 @@ For new team members, we recommend reading ADRs in this order:
 20. **ADR-028** - Eliminate Collection Phase State Duplication - Reducing state management complexity
 21. **ADR-029** - LLM Output JSON Sanitization Pattern - Handling LLM JSON parsing
 22. **ADR-030** - Collection Flow Adaptive Questionnaire Architecture - Intelligent questionnaire generation
-23. **ADR-023** - Collection Flow Phase Redesign - Removing unimplemented platform detection phases
-24. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
-25. **ADR-031** - Enterprise Observability Architecture - Grafana stack for Azure/Railway environments
-26. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
+23. **ADR-034** - Asset-Centric Questionnaire Deduplication - Questionnaires bound to assets, not flows
+24. **ADR-023** - Collection Flow Phase Redesign - Removing unimplemented platform detection phases
+25. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
+26. **ADR-031** - Enterprise Observability Architecture - Grafana stack for Azure/Railway environments
+27. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
 
 ### Legacy Context
 27. **ADR-005** - Database Consolidation Architecture - Historical database decisions

@@ -109,6 +109,65 @@ async def _get_existing_assets(
     return list(assets_result.scalars().all())
 
 
+async def get_questionnaire_by_asset(
+    engagement_id: UUID,
+    asset_id: UUID,
+    db: AsyncSession,
+    context: RequestContext,
+) -> AdaptiveQuestionnaireResponse:
+    """
+    Get questionnaire for a specific asset in an engagement.
+
+    Uses asset-based deduplication: returns the same questionnaire across flows
+    for the same asset. Enables questionnaire reuse and prevents duplicate data entry.
+
+    Args:
+        engagement_id: Engagement ID (tenant scope)
+        asset_id: Asset ID to look up
+        db: Database session
+        context: Request context for authorization
+
+    Returns:
+        AdaptiveQuestionnaireResponse for the asset
+
+    Raises:
+        HTTPException(404): If no questionnaire found for this asset
+    """
+    from .deduplication import get_existing_questionnaire_for_asset
+
+    try:
+        # Check for existing questionnaire (scoped by engagement_id + asset_id)
+        existing = await get_existing_questionnaire_for_asset(
+            engagement_id,
+            asset_id,
+            db,
+        )
+
+        if not existing:
+            logger.warning(
+                f"No questionnaire found for asset {asset_id} in engagement {engagement_id}"
+            )
+            raise HTTPException(
+                status_code=404,
+                detail=f"No questionnaire found for asset {asset_id}. Please create a collection flow first.",
+            )
+
+        logger.info(
+            f"Found questionnaire {existing.id} for asset {asset_id} "
+            f"(status: {existing.completion_status})"
+        )
+
+        return collection_serializers.build_questionnaire_response(existing)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Error getting questionnaire for asset {asset_id}: {e}", exc_info=True
+        )
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def get_adaptive_questionnaires(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> List[AdaptiveQuestionnaireResponse]:

@@ -1,0 +1,362 @@
+"""
+Helper functions for questionnaire submission operations.
+
+Extracted to reduce file length and complexity while preserving all
+error handling and logging for Issue #980.
+"""
+
+import logging
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict
+from uuid import UUID
+
+from fastapi import HTTPException
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
+from app.models import User
+from app.models.collection_flow import CollectionFlow, AdaptiveQuestionnaire
+from app.models.asset import Asset
+
+# Import modular helper functions
+from ..collection_crud_helpers import (
+    apply_asset_writeback,
+    resolve_data_gaps,
+)
+
+from .assessment_validation import check_and_set_assessment_ready
+
+if TYPE_CHECKING:
+    from app.schemas.collection_flow import QuestionnaireSubmissionRequest
+
+logger = logging.getLogger(__name__)
+
+
+async def _flush_response_records(
+    db: AsyncSession, response_records: list, flow_id: int
+) -> None:
+    """Flush response records to database immediately.
+
+    The async session has autoflush=False (backend/app/core/database.py).
+    Without explicit flush, downstream queries run against stale state.
+    """
+    try:
+        await db.flush()
+        logger.info(
+            f"✅ Flushed {len(response_records)} response records to database: "
+            f"IDs={[str(r.id) for r in response_records]}, "
+            f"collection_flow_id={flow_id}"
+        )
+    except Exception as flush_error:
+        logger.error(
+            f"❌ FLUSH FAILED for collection_flow_id={flow_id}: {flush_error}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to persist questionnaire responses: {flush_error}",
+        ) from flush_error
+
+
+def _extract_from_response_records(response_records: list) -> set:
+    """Extract asset IDs from response records."""
+    return {r.asset_id for r in response_records if r.asset_id}
+
+
+def _extract_from_validated_asset(validated_asset: Any) -> set:
+    """Extract asset ID from validated asset."""
+    return {validated_asset.id} if validated_asset else set()
+
+
+def _extract_from_asset_id(asset_id: Any) -> set:
+    """Extract asset ID from form metadata."""
+    if not asset_id:
+        return set()
+    try:
+        return {UUID(asset_id) if isinstance(asset_id, str) else asset_id}
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid asset_id in form_metadata: {asset_id}")
+        return set()
+
+
+def _extract_from_composite_field_ids(form_responses: Dict[str, Any]) -> set:
+    """Extract asset IDs from composite field IDs (format: {asset_id}__{field_id})."""
+    asset_ids = set()
+    for field_id in form_responses.keys():
+        if "__" in field_id:
+            parts = field_id.split("__", 1)
+            if len(parts) == 2:
+                try:
+                    asset_ids.add(UUID(parts[0]))
+                except (ValueError, TypeError):
+                    pass  # Not a UUID, skip
+    return asset_ids
+
+
+def _extract_from_flow_metadata(flow: CollectionFlow) -> set:
+    """Extract asset IDs from flow metadata."""
+    if not flow.flow_metadata:
+        return set()
+
+    selected_asset_ids = flow.flow_metadata.get("selected_asset_ids", [])
+    if not selected_asset_ids:
+        return set()
+
+    asset_ids = set()
+    try:
+        for aid in selected_asset_ids[:5]:  # Limit to 5 for performance
+            asset_ids.add(UUID(aid) if isinstance(aid, str) else aid)
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid asset IDs in flow metadata: {selected_asset_ids}")
+
+    return asset_ids
+
+
+async def _extract_asset_ids_for_reanalysis(
+    response_records: list,
+    validated_asset: Any,
+    asset_id: Any,
+    form_responses: Dict[str, Any],
+    flow: CollectionFlow,
+) -> list:
+    """Extract asset IDs from response records for readiness re-analysis.
+
+    Response records extract asset_id from composite field IDs (format: {asset_id}__{field_id}).
+    Uses cascading fallback strategy to find asset IDs from multiple sources.
+    """
+    # Try primary source first
+    asset_ids = _extract_from_response_records(response_records)
+
+    # Fallback sources if primary source is empty
+    if not asset_ids:
+        asset_ids = _extract_from_validated_asset(validated_asset)
+    if not asset_ids:
+        asset_ids = _extract_from_asset_id(asset_id)
+    if not asset_ids:
+        asset_ids = _extract_from_composite_field_ids(form_responses)
+    if not asset_ids:
+        asset_ids = _extract_from_flow_metadata(flow)
+
+    # Convert to list and log
+    asset_ids_list = list(asset_ids)
+    logger.info(
+        f"📋 Extracted {len(asset_ids_list)} asset ID(s) "
+        f"for readiness re-analysis: {[str(aid) for aid in asset_ids_list]}"
+    )
+
+    return asset_ids_list
+
+
+async def _resolve_gaps_and_update_flow(
+    response_records: list,
+    gap_index: Dict[str, Any],
+    form_responses: Dict[str, Any],
+    flow: CollectionFlow,
+    questionnaire_uuid: UUID,
+    request_data: "QuestionnaireSubmissionRequest",
+    context: RequestContext,
+    db: AsyncSession,
+) -> int:
+    """Mark gaps as resolved and update questionnaire completion status.
+
+    Returns the number of gaps resolved.
+    """
+    gaps_resolved = 0
+
+    if response_records:
+        # ✅ CRITICAL FIX (Issue #980): Flush before resolve_data_gaps
+        # resolve_data_gaps modifies gap objects (resolution_status, resolved_value)
+        # We need to flush response_records first so gaps can reference them
+        try:
+            await db.flush()
+            logger.debug(
+                f"Flushed before resolve_data_gaps for collection_flow_id={flow.id}"
+            )
+        except Exception as flush_error:
+            logger.error(
+                f"❌ FLUSH FAILED before resolve_data_gaps: {flush_error}",
+                exc_info=True,
+            )
+            raise
+
+        gaps_resolved = await resolve_data_gaps(gap_index, form_responses, db)
+
+    # CRITICAL FIX: Mark questionnaire as completed after successful submission
+    # This prevents the same questionnaire from being returned in a loop
+    questionnaire_result = await db.execute(
+        select(AdaptiveQuestionnaire)
+        .where(AdaptiveQuestionnaire.id == questionnaire_uuid)
+        .where(AdaptiveQuestionnaire.collection_flow_id == flow.id)
+    )
+    questionnaire = questionnaire_result.scalar_one_or_none()
+
+    if questionnaire:
+        # CRITICAL FIX (Issue #692): Check save_type to determine completion status
+        # - save_progress: Keep as in_progress, skip assessment check
+        # - submit_complete: Mark as completed, trigger assessment check
+        if request_data.save_type == "submit_complete":
+            questionnaire.completion_status = "completed"
+            questionnaire.completed_at = datetime.utcnow()
+            logger.info(
+                f"✅ FIX#692: Marking questionnaire {questionnaire_uuid} as completed "
+                f"(save_type={request_data.save_type})"
+            )
+
+            # Check if collection is complete and ready for assessment
+            # Required attributes: business_criticality, environment
+            await check_and_set_assessment_ready(
+                flow, form_responses, db, context, logger
+            )
+        else:
+            # save_progress: Keep as in_progress
+            questionnaire.completion_status = "in_progress"
+            logger.info(
+                f"💾 FIX#692: Saving progress for questionnaire {questionnaire_uuid} "
+                f"(save_type={request_data.save_type}, status=in_progress)"
+            )
+
+        # Always update responses_collected for both save types
+        questionnaire.responses_collected = form_responses
+    else:
+        logger.warning(
+            f"⚠️ Could not find questionnaire {questionnaire_uuid} to mark as completed"
+        )
+
+    return gaps_resolved
+
+
+async def _commit_with_writeback(
+    gaps_resolved: int,
+    flow: CollectionFlow,
+    context: RequestContext,
+    current_user: User,
+    response_records: list,
+    db: AsyncSession,
+) -> None:
+    """Apply asset writeback and commit all changes atomically."""
+    # Apply resolved gaps to assets via write-back service before commit
+    # This preserves atomicity - both DB changes and writeback succeed or both fail
+    try:
+        await apply_asset_writeback(gaps_resolved, flow, context, current_user, db)
+        logger.info(f"✅ Asset writeback completed for {gaps_resolved} resolved gaps")
+    except Exception as writeback_error:
+        logger.error(
+            f"❌ WRITEBACK FAILED for collection_flow_id={flow.id}: {writeback_error}",
+            exc_info=True,
+        )
+        raise
+
+    # Commit all changes (including writeback updates) atomically
+    try:
+        # Check transaction is still active before committing
+        if not db.in_transaction():
+            logger.error(
+                f"❌ Transaction NOT ACTIVE before commit for collection_flow_id={flow.id}"
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Transaction rolled back unexpectedly - cannot commit responses",
+            )
+
+        logger.info(
+            f"Committing {len(response_records)} response records to database "
+            f"(collection_flow_id={flow.id}, response_ids={[str(r.id) for r in response_records[:5]]}...)"
+        )
+        await db.commit()
+        logger.info(
+            f"✅ COMMIT SUCCESSFUL for collection_flow_id={flow.id} - "
+            f"{len(response_records)} responses persisted"
+        )
+    except Exception as commit_error:
+        logger.error(
+            f"❌ COMMIT FAILED for collection_flow_id={flow.id}: {commit_error}",
+            exc_info=True,
+        )
+        raise
+
+
+async def _update_asset_readiness(
+    asset_ids_to_reanalyze: list,
+    request_data: "QuestionnaireSubmissionRequest",
+    context: RequestContext,
+    db: AsyncSession,
+) -> bool:
+    """Re-analyze asset readiness after questionnaire submission.
+
+    Returns True if any asset readiness was updated.
+
+    IMPORTANT: This function does NOT commit changes - the caller must manage
+    the transaction to ensure atomicity with other operations.
+    """
+    readiness_updated = False
+
+    if not (asset_ids_to_reanalyze and request_data.save_type == "submit_complete"):
+        return False
+
+    try:
+        logger.info(
+            f"🔄 Re-analyzing readiness for {len(asset_ids_to_reanalyze)} asset(s) "
+            f"after questionnaire submission"
+        )
+
+        from app.services.assessment.asset_readiness_service import (
+            AssetReadinessService,
+        )
+
+        readiness_service = AssetReadinessService()
+
+        # Re-analyze each asset and update readiness
+        for asset_uuid in asset_ids_to_reanalyze:
+            gap_report = await readiness_service.analyze_asset_readiness(
+                asset_id=asset_uuid,
+                client_account_id=str(context.client_account_id),
+                engagement_id=str(context.engagement_id),
+                db=db,
+            )
+
+            # Update asset readiness fields
+            # ✅ FIX (Issue #980 QA): Also update sixr_ready field for Assessment Flow UI
+            update_stmt = (
+                update(Asset)
+                .where(
+                    Asset.id == asset_uuid,
+                    Asset.client_account_id == context.client_account_id,
+                    Asset.engagement_id == context.engagement_id,
+                )
+                .values(
+                    assessment_readiness=(
+                        "ready" if gap_report.is_ready_for_assessment else "not_ready"
+                    ),
+                    assessment_readiness_score=gap_report.overall_completeness,
+                    assessment_blockers=(
+                        gap_report.readiness_blockers
+                        if gap_report.readiness_blockers
+                        else []
+                    ),
+                    # ✅ FIX: Update sixr_ready for Assessment Flow UI
+                    # Assessment Flow queries this field to display readiness status
+                    sixr_ready=gap_report.is_ready_for_assessment,
+                )
+            )
+            await db.execute(update_stmt)
+            readiness_updated = True
+
+            logger.info(
+                f"✅ Staged readiness update for asset {asset_uuid}: "
+                f"ready={gap_report.is_ready_for_assessment}, "
+                f"completeness={gap_report.overall_completeness:.2f}"
+            )
+
+        if readiness_updated:
+            logger.info("✅ Asset readiness updates staged for commit.")
+
+    except Exception as e:
+        logger.error(
+            f"Failed to re-analyze readiness after submission: {e}",
+            exc_info=True,
+        )
+        # Re-raise to ensure transaction is rolled back
+        raise
+
+    return readiness_updated

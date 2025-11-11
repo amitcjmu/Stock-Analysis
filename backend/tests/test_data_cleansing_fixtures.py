@@ -142,5 +142,14 @@ class DataCleansingTestFixtures:
                 impact="Improves data consistency",
                 effort_estimate="2-4 hours",
                 fields_affected=["hostname"],
+                confidence=0.90,
+                status="pending",
+                agent_source="Data Standardization Specialist",
+                implementation_steps=[
+                    "Identify hostname format variations",
+                    "Define standard naming convention",
+                    "Apply transformation rules",
+                    "Validate results",
+                ],
             )
         ]

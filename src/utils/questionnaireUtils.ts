@@ -189,7 +189,8 @@ export function groupQuestionsByAsset(
   const groups: AssetQuestionGroup[] = [];
 
   for (const [assetId, assetQuestions] of assetMap.entries()) {
-    const asset = assets?.find(a => a.id === assetId);
+    // CRITICAL FIX: Check both 'id' and 'asset_id' fields for lookup compatibility
+    const asset = assets?.find(a => a.id === assetId || (a as any).asset_id === assetId);
     const allQuestions = [...globalQuestions, ...assetQuestions];
 
     // Issue #801: Extract asset name from question metadata if assets array doesn't have it

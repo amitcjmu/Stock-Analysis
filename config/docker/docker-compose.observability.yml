@@ -38,6 +38,11 @@ services:
       - GF_SERVER_CERT_FILE=${GF_SERVER_CERT_FILE:-}
       - GF_SERVER_CERT_KEY=${GF_SERVER_CERT_KEY:-}
 
+      # Azure Front Door path-based routing configuration
+      # These settings enable Grafana to work behind Azure Front Door at /grafana path
+      # Set GF_SERVER_SERVE_FROM_SUB_PATH=true in .env.observability to activate
+      - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-false}
+
       # Database settings (internal SQLite)
       - GF_DATABASE_TYPE=sqlite3
       - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
@@ -47,10 +52,12 @@ services:
       - GF_LOG_LEVEL=info
 
       # Security
-      - GF_SECURITY_ALLOW_EMBEDDING=false
+      - GF_SECURITY_ALLOW_EMBEDDING=${GF_SECURITY_ALLOW_EMBEDDING:-false}
       - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=${GF_SECURITY_COOKIE_SAMESITE:-lax}
       - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
       - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY_TEMPLATE=${GF_SECURITY_CONTENT_SECURITY_POLICY_TEMPLATE:-}
 
       # Features
       - GF_FEATURE_TOGGLES_ENABLE=tempoSearch,tempoServiceGraph
@@ -78,22 +85,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Loki init - Fix volume permissions for Azure VM
-  loki-init:
-    image: alpine:3.19
-    container_name: migration_loki_init
-    command: >
-      sh -c "
-      mkdir -p /loki/chunks /loki/rules /loki/boltdb-shipper-active /loki/boltdb-shipper-cache /loki/wal /loki/tsdb-index /loki/tsdb-cache /loki/compactor &&
-      chown -R 10001:10001 /loki &&
-      chmod -R 755 /loki
-      "
-    volumes:
-      - ./observability/data/loki:/loki
-    networks:
-      - migration_network
-    restart: "no"
-
   # Loki - Log aggregation and storage
   loki:
     image: grafana/loki:2.9.3
@@ -103,15 +94,17 @@ services:
       - "3100:3100"  # HTTP API
     environment:
       - LOKI_RETENTION_DAYS=${LOKI_RETENTION_DAYS:-14}
-    command: -config.file=/etc/loki/loki-config.yaml
+    # Use entrypoint to ensure directories exist before starting Loki
+    entrypoint: >
+      sh -c "
+      mkdir -p /loki/chunks /loki/rules /loki/boltdb-shipper-active /loki/boltdb-shipper-cache /loki/wal /loki/tsdb-index /loki/tsdb-cache /loki/compactor &&
+      exec /usr/bin/loki -config.file=/etc/loki/loki-config.yaml
+      "
     volumes:
       - ./observability/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - ./observability/data/loki:/loki
     networks:
       - migration_network
-    depends_on:
-      loki-init:
-        condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:3100/ready"]
@@ -119,22 +112,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  # Tempo init - Fix volume permissions for Azure VM
-  tempo-init:
-    image: alpine:3.19
-    container_name: migration_tempo_init
-    command: >
-      sh -c "
-      mkdir -p /var/tempo &&
-      chown -R 10001:10001 /var/tempo &&
-      chmod -R 755 /var/tempo
-      "
-    volumes:
-      - ./observability/data/tempo:/var/tempo
-    networks:
-      - migration_network
-    restart: "no"
 
   # Tempo - Distributed tracing (replaces Jaeger)
   tempo:
@@ -146,15 +123,17 @@ services:
       # Note: 4317/4318 not exposed - Alloy forwards OTLP data internally
     environment:
       - TEMPO_RETENTION_DAYS=${TEMPO_RETENTION_DAYS:-7}
-    command: -config.file=/etc/tempo/tempo-config.yaml
+    # Use entrypoint to ensure directories exist before starting Tempo
+    entrypoint: >
+      sh -c "
+      mkdir -p /var/tempo &&
+      exec /tempo -config.file=/etc/tempo/tempo-config.yaml
+      "
     volumes:
       - ./observability/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
       - ./observability/data/tempo:/var/tempo
     networks:
       - migration_network
-    depends_on:
-      tempo-init:
-        condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:3200/ready"]
@@ -191,22 +170,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Alloy init - Fix volume permissions for Azure VM
-  alloy-init:
-    image: alpine:3.19
-    container_name: migration_alloy_init
-    command: >
-      sh -c "
-      mkdir -p /var/lib/alloy/data &&
-      chown -R 472:472 /var/lib/alloy &&
-      chmod -R 755 /var/lib/alloy
-      "
-    volumes:
-      - ./observability/data/alloy:/var/lib/alloy
-    networks:
-      - migration_network
-    restart: "no"
-
   # Alloy - Unified telemetry collector (logs, traces, metrics)
   # Replaces: Promtail (EOL March 2026), Grafana Agent, OTel Collector
   alloy:
@@ -217,11 +180,12 @@ services:
       - "12345:12345"  # Alloy HTTP API and UI
       - "4317:4317"    # OTLP gRPC receiver
       - "4318:4318"    # OTLP HTTP receiver
-    command:
-      - run
-      - --server.http.listen-addr=0.0.0.0:12345
-      - --storage.path=/var/lib/alloy/data
-      - /etc/alloy/config.alloy
+    # Use entrypoint to ensure directories exist before starting Alloy
+    entrypoint: >
+      sh -c "
+      mkdir -p /var/lib/alloy/data &&
+      exec /bin/alloy run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+      "
     volumes:
       - ./observability/alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker log scraping
@@ -231,8 +195,6 @@ services:
     networks:
       - migration_network
     depends_on:
-      alloy-init:
-        condition: service_completed_successfully
       loki:
         condition: service_started
       tempo:

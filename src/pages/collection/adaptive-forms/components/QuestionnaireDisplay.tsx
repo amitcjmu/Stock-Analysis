@@ -140,11 +140,23 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
 
   // Filter form data to show only selected asset's questions
   const filteredFormData = React.useMemo(() => {
-    if (!formData || !selectedAssetId || assetGroups.length <= 1) {
-      return formData; // No filtering needed for single asset or no selection
+    if (!formData) {
+      return formData;
     }
 
-    const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId);
+    // CRITICAL FIX: Always update applicationName from assetGroups, even for single asset
+    // This ensures asset name is displayed correctly instead of UUID
+    const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId) || assetGroups[0];
+    const assetName = selectedGroup?.asset_name || selectedGroup?.asset_id || formData.applicationName;
+
+    // For single asset or no selection, just update applicationName
+    if (!selectedAssetId || assetGroups.length <= 1) {
+      return {
+        ...formData,
+        applicationName: assetName, // CRITICAL FIX: Always set asset name from assetGroups
+      };
+    }
+
     if (!selectedGroup) return formData;
 
     // Filter sections to only include selected asset's questions
@@ -162,7 +174,7 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
     // FIX: Update applicationName to match selected asset
     let finalFormData = {
       ...formData,
-      applicationName: selectedGroup.asset_name || selectedGroup.asset_id, // Update asset name when selection changes
+      applicationName: assetName, // Use asset name from assetGroups
       sections: filteredSections
     };
 

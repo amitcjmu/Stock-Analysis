@@ -652,7 +652,16 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                     impact="Improves data consistency and query performance",
                     effort_estimate="2-4 hours",
                     fields_affected=["created_date", "modified_date", "last_seen"],
+                    confidence=0.92,
                     status="pending",
+                    agent_source="Data Standardization Specialist",
+                    implementation_steps=[
+                        "Analyze all date fields to identify format variations",
+                        "Create transformation rules for common date patterns",
+                        "Apply ISO 8601 format (YYYY-MM-DD) to all date fields",
+                        "Validate transformed dates for accuracy",
+                        "Update field mappings to reflect standardized format",
+                    ],
                 ),
                 DataCleansingRecommendation(
                     id=str(uuid.uuid4()),
@@ -663,7 +672,16 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                     impact="Ensures proper asset identification",
                     effort_estimate="1-2 hours",
                     fields_affected=["server_name", "hostname"],
+                    confidence=0.87,
                     status="pending",
+                    agent_source="Data Quality Agent",
+                    implementation_steps=[
+                        "Identify server names with invalid characters or patterns",
+                        "Define naming convention standards (e.g., alphanumeric, hyphens only)",
+                        "Create transformation rules to sanitize server names",
+                        "Apply validation rules to ensure consistency",
+                        "Review transformed names for accuracy",
+                    ],
                 ),
             ]
             recommendations.extend(fallback_recommendations)

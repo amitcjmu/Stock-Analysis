@@ -104,14 +104,11 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
                         {rec.priority.toUpperCase()}
                       </span>
                       <span className="text-sm font-medium text-gray-900">{rec.title}</span>
-                      {rec.confidence !== undefined && (
-                        <span className="text-xs text-gray-500">({Math.round(rec.confidence * 100)}% confidence)</span>
-                      )}
-                      {rec.category && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                          {rec.category}
-                        </span>
-                      )}
+                      <span className="text-xs text-gray-500">
+                        ({rec.confidence !== undefined && rec.confidence !== null
+                          ? `${Math.round(rec.confidence * 100)}%`
+                          : 'N/A'} confidence)
+                      </span>
                     </div>
                     <p className="text-sm text-gray-700 mb-2">{rec.description}</p>
                     <div className="text-xs text-gray-600">

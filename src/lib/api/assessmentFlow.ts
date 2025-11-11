@@ -10,6 +10,10 @@
  */
 
 import { apiClient } from '@/lib/api/apiClient';
+import type {
+  ComprehensiveGapReport,
+  BatchReadinessSummary,
+} from '@/types/assessment';
 
 // =============================================================================
 // Request/Response Types (Using snake_case per CLAUDE.md field naming convention)
@@ -399,6 +403,112 @@ export class AssessmentFlowApiClient {
       await apiClient.post(`/assessment-flow/${flowId}/finalize`, {});
     } catch (error) {
       console.error('Failed to finalize assessment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get comprehensive gap analysis for a single asset.
+   *
+   * Endpoint: GET /api/v1/assessment-flow/{flow_id}/asset-readiness/{asset_id}
+   * Returns: ComprehensiveGapReport
+   *
+   * Part of Issue #980: Intelligent Multi-Layer Gap Detection System (Day 12)
+   *
+   * @param flowId - Assessment flow identifier
+   * @param assetId - Asset identifier to analyze
+   * @returns Comprehensive gap report with all inspector results
+   *
+   * @example
+   * const gapReport = await assessmentFlowApi.getAssetReadiness(
+   *   'flow-uuid',
+   *   'asset-uuid'
+   * );
+   * console.log(`Completeness: ${gapReport.overall_completeness}`);
+   * console.log(`Ready: ${gapReport.is_ready_for_assessment}`);
+   */
+  async getAssetReadiness(
+    flowId: string,
+    assetId: string
+  ): Promise<ComprehensiveGapReport> {
+    try {
+      const response = await apiClient.get<ComprehensiveGapReport>(
+        `/assessment-flow/${flowId}/asset-readiness/${assetId}`
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Failed to get asset readiness:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get readiness summary for all assets in a flow.
+   *
+   * Endpoint: GET /api/v1/assessment-flow/{flow_id}/readiness-summary?detailed={bool}
+   * Returns: BatchReadinessSummary
+   *
+   * Part of Issue #980: Intelligent Multi-Layer Gap Detection System (Day 12)
+   *
+   * @param flowId - Assessment flow identifier
+   * @param detailed - If true, include full reports per asset (default: false for performance)
+   * @returns Batch readiness summary with counts and optional detailed reports
+   *
+   * @example
+   * // Lightweight summary for status checks
+   * const summary = await assessmentFlowApi.getFlowReadinessSummary('flow-uuid', false);
+   *
+   * // Detailed summary with per-asset reports
+   * const detailedSummary = await assessmentFlowApi.getFlowReadinessSummary('flow-uuid', true);
+   */
+  async getFlowReadinessSummary(
+    flowId: string,
+    detailed: boolean = false
+  ): Promise<BatchReadinessSummary> {
+    try {
+      const response = await apiClient.get<BatchReadinessSummary>(
+        `/assessment-flow/${flowId}/readiness-summary?detailed=${detailed}`
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Failed to get flow readiness summary:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get list of ready/not-ready asset IDs.
+   *
+   * Endpoint: GET /api/v1/assessment-flow/{flow_id}/ready-assets?ready_only={bool}
+   * Returns: string[] (asset UUIDs)
+   *
+   * Part of Issue #980: Intelligent Multi-Layer Gap Detection System (Day 12)
+   *
+   * @param flowId - Assessment flow identifier
+   * @param readyOnly - If true, return only ready assets; if false, return not ready (default: true)
+   * @returns Array of asset UUID strings matching readiness filter
+   *
+   * @example
+   * // Get ready assets to proceed with assessment
+   * const readyAssets = await assessmentFlowApi.getReadyAssets('flow-uuid', true);
+   *
+   * // Get not-ready assets that need data collection
+   * const notReadyAssets = await assessmentFlowApi.getReadyAssets('flow-uuid', false);
+   */
+  async getReadyAssets(
+    flowId: string,
+    readyOnly: boolean = true
+  ): Promise<string[]> {
+    try {
+      const response = await apiClient.get<string[]>(
+        `/assessment-flow/${flowId}/ready-assets?ready_only=${readyOnly}`
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Failed to get ready assets:', error);
       throw error;
     }
   }

@@ -226,6 +226,39 @@ export function useSubmitHandler({
         }
       }
 
+      // CRITICAL UX FIX: Show processing state and handle assessment flow redirect
+      const assessmentFlowId = submitResponse.assessment_flow_id;
+      const redirectToAssessment = submitResponse.redirect_to_assessment === true;
+      const readinessUpdated = submitResponse.readiness_updated === true;
+
+      if (redirectToAssessment && assessmentFlowId) {
+        // Collection flow came from assessment flow - show processing and redirect back
+        toast({
+          title: "Processing Your Answers",
+          description: "Updating asset readiness and analyzing gaps...",
+        });
+
+        // Show loading state
+        setState((prev) => ({ ...prev, isLoading: true }));
+
+        // Wait for backend processing (gap re-analysis and readiness update)
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        toast({
+          title: "Collection Complete",
+          description: readinessUpdated
+            ? "Asset readiness has been updated. Returning to assessment flow..."
+            : "Your answers have been saved. Returning to assessment flow...",
+        });
+
+        // Redirect back to assessment flow
+        setTimeout(() => {
+          window.location.href = `/assess/overview?flowId=${assessmentFlowId}`;
+        }, 2000);
+
+        return; // Exit early - don't check for more questionnaires
+      }
+
       toast({
         title: "Adaptive Form Submitted Successfully",
         description:

@@ -1,5 +1,12 @@
 export interface SixRParameters {
-  [key: string]: unknown;
+  business_value: number;
+  technical_complexity: number;
+  migration_urgency: number;
+  compliance_requirements: number;
+  cost_sensitivity: number;
+  risk_tolerance: number;
+  innovation_priority: number;
+  application_type: 'custom' | 'cots' | 'hybrid';
 }
 
 export interface SixRRecommendation {
@@ -371,4 +378,154 @@ export function countCriticalAttributesByCategory(): Record<string, number> {
     business: getCriticalAttributesByCategory('business').length,
     technical_debt: getCriticalAttributesByCategory('technical_debt').length,
   };
+}
+
+// ============================================================================
+// Day 12 - Comprehensive Gap Analysis Types (Issue #980)
+// ============================================================================
+
+/**
+ * Column gap report from ColumnInspector.
+ *
+ * Categorizes missing data in Asset SQLAlchemy columns:
+ * - missing_attributes: Required columns that don't exist
+ * - empty_attributes: Columns with empty strings/lists/dicts
+ * - null_attributes: Columns with None/NULL values
+ */
+export interface ColumnGapReport {
+  missing_attributes: string[];
+  empty_attributes: string[];
+  null_attributes: string[];
+  completeness_score: number; // 0.0-1.0
+}
+
+/**
+ * Enrichment gap report from EnrichmentInspector.
+ *
+ * Checks 7 enrichment tables:
+ * - resilience, compliance_flags, vulnerabilities, tech_debt,
+ *   dependencies, performance_metrics, cost_optimization
+ */
+export interface EnrichmentGapReport {
+  missing_tables: string[];
+  incomplete_tables: Record<string, string[]>; // table_name -> [missing_fields]
+  completeness_score: number; // 0.0-1.0
+}
+
+/**
+ * JSONB gap report from JSONBInspector.
+ *
+ * Checks JSONB fields: custom_attributes, technical_details, metadata
+ * Supports nested key checking with dot notation.
+ */
+export interface JSONBGapReport {
+  missing_keys: Record<string, string[]>; // field_name -> [missing_keys]
+  empty_values: Record<string, string[]>; // field_name -> [empty_keys]
+  completeness_score: number; // 0.0-1.0
+}
+
+/**
+ * Application gap report from ApplicationInspector.
+ *
+ * Checks CanonicalApplication metadata:
+ * - Application metadata (name, description, type, business unit)
+ * - Technology stack completeness
+ * - Business context fields (owners, stakeholders, user base)
+ */
+export interface ApplicationGapReport {
+  missing_metadata: string[];
+  incomplete_tech_stack: string[];
+  missing_business_context: string[];
+  completeness_score: number; // 0.0-1.0
+}
+
+/**
+ * Standards violation details.
+ *
+ * Represents a failure to meet an EngagementArchitectureStandard.
+ */
+export interface StandardViolation {
+  standard_name: string;
+  requirement_type: string; // security, performance, compliance
+  violation_details: string; // Expected vs actual values
+  is_mandatory: boolean;
+  override_available: boolean;
+}
+
+/**
+ * Standards gap report from StandardsInspector.
+ *
+ * Validates asset against EngagementArchitectureStandard records.
+ * Uses tenant-scoped database queries (client_account_id + engagement_id).
+ */
+export interface StandardsGapReport {
+  violated_standards: StandardViolation[];
+  missing_mandatory_data: string[];
+  override_required: boolean;
+  completeness_score: number; // 0.0-1.0
+}
+
+/**
+ * Comprehensive gap analysis across all data layers.
+ *
+ * Orchestrates all 5 inspectors (column, enrichment, JSONB, application, standards)
+ * to produce a complete picture of asset data completeness.
+ *
+ * Performance: <50ms per asset
+ * Part of Issue #980: Intelligent Multi-Layer Gap Detection System
+ */
+export interface ComprehensiveGapReport {
+  // Inspector reports
+  column_gaps: ColumnGapReport;
+  enrichment_gaps: EnrichmentGapReport;
+  jsonb_gaps: JSONBGapReport;
+  application_gaps: ApplicationGapReport;
+  standards_gaps: StandardsGapReport;
+
+  // Weighted completeness
+  overall_completeness: number; // 0.0-1.0 weighted score
+  weighted_scores: Record<string, number>; // Layer name -> score
+
+  // Prioritized gaps
+  critical_gaps: string[]; // Priority 1 missing fields (blocks assessment)
+  high_priority_gaps: string[]; // Priority 2 missing fields
+  medium_priority_gaps: string[]; // Priority 3 missing fields
+
+  // Assessment readiness
+  is_ready_for_assessment: boolean;
+  readiness_blockers: string[]; // Reasons why not ready
+  completeness_threshold: number; // Minimum score for readiness (default 0.75)
+
+  // Metadata
+  asset_id: string;
+  asset_name: string;
+  asset_type: string;
+  analyzed_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Batch readiness summary for all flow assets.
+ *
+ * Lightweight or detailed mode for performance optimization.
+ */
+export interface BatchReadinessSummary {
+  flow_id: string;
+  total_assets: number;
+  ready_count: number;
+  not_ready_count: number;
+  overall_readiness_rate: number; // Percentage 0-100
+  asset_reports?: Record<string, ComprehensiveGapReport>; // Optional detailed reports (detailed=true)
+  summary_by_type: Record<string, TypeReadinessSummary>;
+  analyzed_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Readiness summary grouped by asset type.
+ */
+export interface TypeReadinessSummary {
+  asset_type: string;
+  total: number;
+  ready: number;
+  not_ready: number;
+  readiness_rate: number; // Percentage 0-100
 }

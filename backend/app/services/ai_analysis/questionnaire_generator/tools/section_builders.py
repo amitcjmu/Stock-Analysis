@@ -2,10 +2,13 @@
 Section Builder Functions
 Extracted from generation.py for modularization.
 Contains logic for building questionnaire sections and organizing questions by category.
+
+✅ Issue #980 Integration: Uses intelligent MCQ question builders for all gap types.
+Removed all legacy fallback code that generated generic text questions.
 """
 
 import logging
-from typing import Dict, Optional, Tuple, List
+from typing import Any, Dict, Optional, Tuple, List
 
 from .intelligent_options import (
     get_security_vulnerabilities_options,
@@ -17,6 +20,14 @@ from .intelligent_options import (
     get_dependencies_options,
     infer_field_type_from_config,
     get_fallback_field_type_and_options,
+)
+
+# ✅ Issue #980: Import intelligent question builders for all gap types
+from .question_builders import (
+    generate_missing_field_question,
+    generate_dependency_question,
+    generate_generic_technical_question,
+    generate_generic_question,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,6 +86,9 @@ def determine_field_type_and_options(
 ) -> Tuple[str, List]:
     """Determine field type and options based on attribute name and asset context.
 
+    ✅ NOTE: This function is ONLY used for MAPPED critical attributes (the good path).
+    For unmapped gaps, Issue #980 intelligent builders are now used instead.
+
     Uses FIELD_OPTIONS from config.py as single source of truth.
     Falls back to heuristics only for unmapped fields.
 
@@ -120,6 +134,7 @@ def build_question_from_attribute(
     attr_config: dict,
     asset_ids: list,
     asset_context: Optional[Dict] = None,
+    existing_value: Optional[Any] = None,
 ) -> dict:
     """Build a question object from an attribute definition.
 
@@ -128,6 +143,7 @@ def build_question_from_attribute(
         attr_config: Configuration from CriticalAttributesDefinition
         asset_ids: List of asset IDs that need this attribute
         asset_context: Optional dict with asset data for intelligent option generation
+        existing_value: Optional pre-filled value for verification fields
 
     Returns:
         Question dictionary with proper category assignment
@@ -166,13 +182,21 @@ def build_question_from_attribute(
     if options:
         question["options"] = options
 
+    # Fix #3: Add pre-filled value for verification fields (e.g., operating_system)
+    # User can confirm or change the discovered value
+    if existing_value is not None:
+        question["default_value"] = existing_value
+        question["metadata"]["pre_filled"] = True
+        question["metadata"]["verification_required"] = True
+
     return question
 
 
-def group_attributes_by_category(
+def group_attributes_by_category(  # noqa: C901
     missing_fields: dict,
     attribute_mapping: dict,
     assets_data: Optional[List[Dict]] = None,
+    existing_field_values: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> dict:
     """Group missing attributes by category, one question per unique attribute.
 
@@ -180,15 +204,19 @@ def group_attributes_by_category(
         missing_fields: Dict mapping asset_id to list of missing attribute names
         attribute_mapping: Dict mapping attribute names to their configurations
         assets_data: Optional list of asset data dicts with context (eol_technology, etc.)
+        existing_field_values: Optional dict mapping asset_id -> {attr_name: value} for pre-fill
 
     Returns:
         Dict mapping category names to lists of question dicts
     """
+    # Per ADR-035: Align with Issue #980 assessment flow sections
+    # Categories match what assessment flow expects for 6R recommendations
     attrs_by_category = {
-        "infrastructure": [],
-        "application": [],
-        "business": [],
-        "technical_debt": [],
+        "infrastructure": [],  # Hardware, OS, network
+        "resilience": [],  # HA, DR, backup
+        "compliance": [],  # GDPR, HIPAA, PCI-DSS, security
+        "dependencies": [],  # Integrations, APIs
+        "tech_debt": [],  # Code quality, vulnerabilities, modernization
     }
 
     # Track which attributes are needed and which assets need them
@@ -209,8 +237,31 @@ def group_attributes_by_category(
 
     # Generate ONE question per unique attribute
     for attr_name, asset_ids in attr_to_assets.items():
+        # CRITICAL FIX: Check both direct key match AND asset_fields match
+        # Gap field names (e.g., "description", "application_type") might not match
+        # critical attribute names (e.g., "business_criticality_score") directly,
+        # but they might be in the asset_fields list of a critical attribute
+        attr_config = None
+        matched_attr_name = None
+
+        # First, try direct key match
         if attr_name in attribute_mapping:
             attr_config = attribute_mapping[attr_name]
+            matched_attr_name = attr_name
+        else:
+            # Second, search through all attributes to find one where attr_name is in asset_fields
+            for critical_attr_name, config in attribute_mapping.items():
+                asset_fields = config.get("asset_fields", [])
+                if attr_name in asset_fields:
+                    attr_config = config
+                    matched_attr_name = critical_attr_name
+                    logger.debug(
+                        f"Matched gap field '{attr_name}' to critical attribute '{critical_attr_name}' "
+                        f"via asset_fields: {asset_fields}"
+                    )
+                    break
+
+        if attr_config:
             category = attr_config.get("category", "application")
 
             # Get asset context for the first asset (for intelligent options)
@@ -220,49 +271,195 @@ def group_attributes_by_category(
                 first_asset_id = asset_ids[0]
                 asset_context = asset_context_by_id.get(first_asset_id)
 
+            # Fix #3: Check for existing value for pre-fill (verification fields)
+            # e.g., operating_system_version with discovered "AIX 7.2" -> pre-select in dropdown
+            existing_value = None
+            if existing_field_values and asset_ids:
+                first_asset_id = asset_ids[0]
+                if first_asset_id in existing_field_values:
+                    existing_value = existing_field_values[first_asset_id].get(
+                        attr_name
+                    )
+
             # Pass all asset IDs that need this attribute + asset context for intelligent options
+            # Use matched_attr_name (critical attribute name) for question generation,
+            # but field_id will be set to attr_name (gap field name) in build_question_from_attribute
             question = build_question_from_attribute(
-                attr_name, attr_config, asset_ids, asset_context
+                matched_attr_name, attr_config, asset_ids, asset_context, existing_value
             )
+            # CRITICAL FIX: Override field_id to use the gap field name, not the critical attribute name
+            # This ensures the question maps back to the correct database column
+            question["field_id"] = attr_name
+            attrs_by_category[category].append(question)
+        else:
+            # ✅ Issue #980: Use intelligent MCQ question builders for gaps without critical attribute mapping
+            # Instead of generic fallback, route to appropriate intelligent builder based on gap type
+            logger.info(
+                f"Gap field '{attr_name}' using Issue #980 intelligent builder for {len(asset_ids)} asset(s)"
+            )
+
+            # Build asset_context for intelligent builders (using first asset that has this gap)
+            asset_context = {
+                "field_name": attr_name,
+                "asset_name": "the asset",  # Generic, will be made specific per asset
+                "asset_id": asset_ids[0] if asset_ids else "unknown",
+            }
+
+            # Add asset-specific context if available
+            if asset_ids and asset_context_by_id:
+                first_asset_context = asset_context_by_id.get(asset_ids[0])
+                if first_asset_context:
+                    asset_context["asset_name"] = first_asset_context.get(
+                        "asset_name", "the asset"
+                    )
+                    asset_context["operating_system"] = first_asset_context.get(
+                        "operating_system"
+                    )
+                    asset_context["eol_technology"] = first_asset_context.get(
+                        "eol_technology"
+                    )
+
+            # Route to appropriate Issue #980 intelligent builder based on field name patterns
+            question = None
+
+            # Per ADR-035: Route gaps to assessment flow categories
+            # Dependency-related gaps
+            if any(
+                x in attr_name.lower()
+                for x in ["dependency", "dependencies", "integration", "api"]
+            ):
+                question = generate_dependency_question({}, asset_context)
+                category = "dependencies"
+
+            # Resilience gaps (HA, DR, backup)
+            elif any(
+                x in attr_name.lower()
+                for x in [
+                    "resilience",
+                    "availability",
+                    "disaster",
+                    "backup",
+                    "failover",
+                    "rto",
+                    "rpo",
+                ]
+            ):
+                question = generate_missing_field_question({}, asset_context)
+                category = "resilience"
+
+            # Compliance/Security gaps
+            elif any(
+                x in attr_name.lower()
+                for x in [
+                    "compliance",
+                    "security",
+                    "gdpr",
+                    "hipaa",
+                    "pci",
+                    "encryption",
+                    "audit",
+                ]
+            ):
+                question = generate_missing_field_question({}, asset_context)
+                category = "compliance"
+
+            # Tech debt gaps (code quality, vulnerabilities, modernization)
+            elif any(
+                x in attr_name.lower()
+                for x in [
+                    "technical_debt",
+                    "tech_debt",
+                    "vulnerability",
+                    "code_quality",
+                    "modernization",
+                    "eol",
+                ]
+            ):
+                question = generate_generic_technical_question(asset_context)
+                category = "tech_debt"
+
+            # Infrastructure gaps (OS, hardware, network)
+            elif any(
+                x in attr_name.lower()
+                for x in [
+                    "infrastructure",
+                    "operating_system",
+                    "cpu",
+                    "memory",
+                    "storage",
+                    "network",
+                ]
+            ):
+                question = generate_missing_field_question({}, asset_context)
+                category = "infrastructure"
+
+            # Generic gaps - default to infrastructure for unknown types
+            else:
+                question = generate_generic_question(attr_name, asset_context)
+                category = "infrastructure"  # Per ADR-035: Default to infrastructure
+
+            # Update field_id to non-composite format (single question for all assets)
+            # Issue #980 builders use composite {asset_id}__{field},
+            # but for cross-asset questions we use simple field_id
+            question["field_id"] = attr_name
+
+            # Update metadata to include all assets that need this field
+            question["metadata"]["asset_ids"] = asset_ids
+            question["metadata"]["applies_to_count"] = len(asset_ids)
+
             attrs_by_category[category].append(question)
 
     return attrs_by_category
 
 
 def create_category_sections(attrs_by_category: dict) -> list:
-    """Create sections organized by category."""
+    """Create sections organized by assessment flow categories.
+
+    Per ADR-035: Align with Issue #980 assessment flow sections.
+    Sections match what assessment flow expects for 6R recommendations.
+    """
+    # Per ADR-035: Assessment flow section configuration
     category_config = {
         "infrastructure": {
-            "title": "Infrastructure Information",
+            "title": "Infrastructure Specifications",
             "description": (
-                "Infrastructure specifications and resource details "
-                "needed for 6R assessment"
+                "Hardware, operating system, and network infrastructure details"
             ),
         },
-        "application": {
-            "title": "Application Architecture",
+        "resilience": {
+            "title": "Resilience & Availability",
             "description": (
-                "Application architecture, technology stack, and integration details"
+                "High availability, disaster recovery, and backup configurations"
             ),
         },
-        "business": {
-            "title": "Business Context",
+        "compliance": {
+            "title": "Compliance & Security Standards",
             "description": (
-                "Business criticality, compliance requirements, and stakeholder information"
+                "Regulatory compliance (GDPR, HIPAA, PCI-DSS) and security standards"
             ),
         },
-        "technical_debt": {
-            "title": "Technical Assessment",
+        "dependencies": {
+            "title": "Dependencies & Integrations",
+            "description": ("System dependencies, integrations, and API connections"),
+        },
+        "tech_debt": {
+            "title": "Technical Debt Assessment",
             "description": (
-                "Code quality, security vulnerabilities, and "
-                "technology lifecycle assessment"
+                "Code quality, security vulnerabilities, and modernization readiness"
             ),
         },
     }
 
     sections = []
-    for category in ["infrastructure", "application", "business", "technical_debt"]:
-        if attrs_by_category[category]:
+    # Per ADR-035: Process assessment flow categories in priority order
+    for category in [
+        "infrastructure",
+        "resilience",
+        "compliance",
+        "dependencies",
+        "tech_debt",
+    ]:
+        if attrs_by_category.get(category):  # Use .get() for safety
             config = category_config[category]
             sections.append(
                 {
@@ -270,33 +467,15 @@ def create_category_sections(attrs_by_category: dict) -> list:
                     "section_title": config["title"],
                     "section_description": config["description"],
                     "questions": attrs_by_category[category],
+                    "category": category,  # Per ADR-035: Explicit category for aggregation
                 }
             )
 
     return sections
 
 
-def create_fallback_section(missing_fields: dict) -> dict:
-    """Create fallback section when critical attributes system is unavailable."""
-    critical_questions = []
-    for asset_id, fields in missing_fields.items():
-        for field in fields:
-            critical_questions.append(
-                {
-                    "field_id": field,
-                    "question_text": f"Please provide {field.replace('_', ' ').title()}",
-                    "field_type": "text",
-                    "required": True,
-                    "category": "critical_field",
-                    "metadata": {"asset_id": asset_id},
-                }
-            )
-
-    if critical_questions:
-        return {
-            "section_id": "critical_fields",
-            "section_title": "Critical Missing Information",
-            "section_description": "Please provide the following critical information",
-            "questions": critical_questions,
-        }
-    return None
+# ❌ REMOVED: create_fallback_section() - Legacy function that generated generic text questions
+# Issue #980 intelligent MCQ builders are now fully integrated (see lines 291-355).
+# All gap types now use proper MCQ questions with user-friendly text.
+# If you see an error about missing create_fallback_section, it means legacy code is trying to use it.
+# Solution: Update the calling code to use Issue #980's intelligent builders instead.

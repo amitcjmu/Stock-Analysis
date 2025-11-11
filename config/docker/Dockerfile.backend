@@ -74,5 +74,6 @@ RUN adduser --disabled-password --gecos '' appuser \
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Default command
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Default command (without --reload for safety)
+# Use UVICORN_RELOAD_ENABLED=true in docker-compose to enable HMR in local dev
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -95,7 +95,9 @@ async def fetch_and_index_gaps(
                 f"Gap {gap.id} has invalid field_name: '{gap.field_name}' - skipping"
             )
 
-    logger.info(f"Indexed {len(gap_index)} pending gaps by field_name")
+    logger.info(
+        f"Indexed {len(gap_index)} pending gaps by field_name: {list(gap_index.keys())}"
+    )
     return gap_index
 
 
@@ -160,15 +162,44 @@ async def create_response_records(
                     f"Extracted asset_id from composite field ID: {potential_asset_id}"
                 )
 
-        # Lookup gap by field_name to establish gap_id linkage
-        gap = gap_index.get(field_id)
+        # CRITICAL FIX: Lookup gap by field_name, handling composite field IDs
+        # Extract actual field name from composite ID (format: {asset_id}__{field_name})
+        actual_field_name = field_id
+        if "__" in field_id:
+            parts = field_id.split("__", 1)
+            if len(parts) == 2:
+                # Try the extracted field name first
+                actual_field_name = parts[1]
+                # Also try removing any trailing asset_id suffix (e.g., "data_quality_778f9a98..." -> "data_quality")
+                if actual_field_name and actual_field_name.count("_") > 2:
+                    # Might have asset_id suffix, try base field name
+                    base_field = (
+                        actual_field_name.rsplit("_", 1)[0]
+                        if "_" in actual_field_name
+                        else actual_field_name
+                    )
+                    gap = (
+                        gap_index.get(base_field)
+                        or gap_index.get(actual_field_name)
+                        or gap_index.get(field_id)
+                    )
+                else:
+                    gap = gap_index.get(actual_field_name) or gap_index.get(field_id)
+            else:
+                gap = gap_index.get(field_id)
+        else:
+            gap = gap_index.get(field_id)
+
         gap_id = gap.id if gap else None
 
         if gap:
-            logger.info(f"Linking response for field '{field_id}' to gap {gap_id}")
+            logger.info(
+                f"Linking response for field '{field_id}' (actual: '{actual_field_name}') to gap {gap_id}"
+            )
         else:
             logger.debug(
-                f"No pending gap found for field '{field_id}' - creating unlinked response"
+                f"No pending gap found for field '{field_id}' "
+                f"(tried: '{actual_field_name}') - creating unlinked response"
             )
 
         # Create response record with proper gap_id linkage
@@ -219,6 +250,13 @@ async def resolve_data_gaps(
     """Mark gaps as resolved for fields that received responses."""
     gaps_resolved = 0
 
+    # 🔍 DIAGNOSTIC LOGGING (Issue #980): Compare gap field names vs response field names
+    logger.info(
+        f"🔍 Gap Resolution - Comparing field names:\n"
+        f"  Gap index has {len(gap_index)} fields: {list(gap_index.keys())}\n"
+        f"  Form responses has {len(form_responses)} fields: {list(form_responses.keys())}"
+    )
+
     # Check which gaps should be marked as resolved based on form responses
     for field_name, value in form_responses.items():
         # Skip empty responses
@@ -262,15 +300,36 @@ async def resolve_data_gaps(
                     logger.debug(
                         f"Extracted field from composite ID: {field_name} -> {extracted_field}"
                     )
+
+        # 🔍 DIAGNOSTIC: Log match/mismatch for each field
+        if not gap:
+            logger.warning(
+                f"🔍 NO MATCH: Response field '{field_name}' not found in gap_index. "
+                f"Tried: exact match, custom_attributes prefix, composite ID extraction"
+            )
+
         if gap:
             # Mark gap as resolved
             gap.resolution_status = "resolved"
             gap.resolved_at = datetime.utcnow()
             gap.resolved_by = "manual_submission"
+
+            # ✅ FIX 0.1: Populate resolved_value (Issue #980 - Critical Bug Fix)
+            # Store the actual response value so downstream writeback can use it
+            import json
+
+            if isinstance(value, dict):
+                gap.resolved_value = json.dumps(value.get("value", value))
+            elif isinstance(value, list):
+                gap.resolved_value = json.dumps(value)
+            else:
+                gap.resolved_value = str(value) if value is not None else ""
+
             gaps_resolved += 1
 
             logger.info(
-                f"Resolved gap {gap.id} ({gap.field_name}) through manual submission"
+                f"Resolved gap {gap.id} ({gap.field_name}) through manual submission "
+                f"with value: {gap.resolved_value[:50]}..."
             )
 
     if gaps_resolved > 0:

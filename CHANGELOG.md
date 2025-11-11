@@ -1,3 +1,60 @@
+## [1.21.2] - 2025-11-10
+
+### 🎯 **🐛 Fix - Agentic Questionnaire Persistence**
+
+This release restores the full agentic questionnaire pipeline by hardening CrewAI output parsing, eliminating fallback responses, and persisting the complete gap analysis payload on each collection flow.
+
+### 🚀 **Agent Intelligence Stabilization**
+
+#### **Crew output normalization**
+- **Change Type**: Backend fix
+- **Impact**: Questionnaire generation now consumes the structured payload returned by CrewAI instead of falling back to basic forms.
+- **Technical Details**: `_normalize_agent_output` coerces `CrewOutput` objects, parses `raw_text` fallbacks, and extracts `questionnaires`/`sections` before handing results to downstream serializers.
+
+#### **Questionnaire extraction resilience**
+- **Change Type**: Backend fix
+- **Impact**: Agent-provided MCQ sections survive markdown fences, Python literals, and diagnostic wrappers.
+- **Technical Details**: `_extract_from_agent_output` unwraps `raw_text` dictionaries, normalizes booleans, and retries parsing with `ast.literal_eval` when JSON decoding fails.
+
+#### **Gap analysis state persistence**
+- **Change Type**: Backend enhancement
+- **Impact**: The UI consistently receives the 22 critical gaps surfaced by Tier 2 analysis instead of reverting to default placeholders.
+- **Technical Details**: `GapAnalysisService` now writes summaries, gaps, and questionnaire metadata into `collection_flows.gap_analysis_results` after each run while retaining tenant scoping.
+
+### 📊 **Business Impact**
+- **Agentic continuity**: Users stay on the intelligent questionnaire path without triggering basic fallback forms.
+- **Data integrity**: Persisted gap analysis payload keeps asset gap counts in sync between backend and UI refreshes.
+
+### 🎯 **Success Metrics**
+- **Agent questionnaire success rate**: ≥95 % of Tier 2 runs yield structured questionnaires with no parsing errors.
+- **Gap analysis persistence**: 100 % of post-analysis flows contain `gap_analysis_results` JSON for reuse downstream.
+
+## [1.21.1] - 2025-11-10
+
+### 🎯 **🐛 Fix - Collection Flow Agent Stability**
+
+This release stabilizes collection gap analysis and questionnaire generation by aligning flow identifier handling with tenant-scoped primary keys and rehydrating assets inside background agent sessions.
+
+### 🚀 **Stability Improvements**
+
+#### **Gap analysis ID normalization**
+- **Change Type**: Backend fix
+- **Impact**: Gap analysis now resolves both primary keys and business `flow_id` values, preventing ValueError crashes and allowing gaps to persist.
+- **Technical Details**: `resolve_collection_flow_id` queries `collection_flows.id` before falling back to `flow_id` and `master_flow_id`, retaining tenant scoping.
+
+#### **Agent questionnaire rehydration**
+- **Change Type**: Backend fix
+- **Impact**: Eliminates `greenlet_spawn` errors so background questionnaire generation completes reliably for selected assets.
+- **Technical Details**: Background tasks now pass asset IDs, reload scoped assets inside their session, and fail gracefully when nothing is available.
+
+### 📊 **Business Impact**
+- **Collection flow reliability**: Questionnaire generation completes without manual retries for tenant flows that previously stalled.
+- **Gap analysis continuity**: Automation tiers can persist detected gaps without operator intervention.
+
+### 🎯 **Success Metrics**
+- **Gap analysis completion rate**: ≥95 % of executions without identifier resolution failures.
+- **Questionnaire generation success**: 0 runtime `greenlet_spawn` errors observed during collection flow runs.
+
 ## [2025-10-31] - Intelligent Context-Aware Questionnaire Generation
 
 ### 🚀 Enhancement - Intelligent Questionnaire Generation (PR #890)

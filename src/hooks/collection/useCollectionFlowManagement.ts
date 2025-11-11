@@ -50,6 +50,7 @@ export interface CollectionFlow {
   collection_config?: CollectionConfig;
   gaps_identified?: number;
   can_resume?: boolean;
+  assessment_flow_id?: string; // CRITICAL UX FIX: Track if flow came from assessment flow
 }
 
 export interface CleanupOptions {

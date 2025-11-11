@@ -19,6 +19,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.application import Application
 from app.models.asset import Asset
 from app.models.collection_flow import CollectionFlow
+from app.models.collection_flow.schemas import CollectionFlowStatus
 from app.models.database import Database
 from app.models.server import Server
 from app.services.collection.programmatic_gap_scanner import ProgrammaticGapScanner
@@ -44,7 +45,7 @@ async def test_collection_flow(db_session: AsyncSession):
         flow_name="Test Gap Analysis Enrichment Flow (Bug #679)",
         automation_tier="tier_2",
         current_phase="gap_analysis",
-        status="gap_analysis",
+        status=CollectionFlowStatus.RUNNING,
         flow_metadata={"selected_asset_ids": []},  # Will be populated by test
     )
     db_session.add(flow)

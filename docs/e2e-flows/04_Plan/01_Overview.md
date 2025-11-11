@@ -2,9 +2,9 @@
 
 This document provides a complete, end-to-end data flow analysis for the `Plan Overview` page of the AI Modernize Migration Platform.
 
-**Analysis Date:** 2025-10-29
-**Previous Version:** 2024-07-29 (Placeholder Analysis)
-**Status:** Actively Implemented with Partial Real Data
+**Analysis Date:** 2025-11-10
+**Previous Version:** 2025-10-29 (Partial Implementation)
+**Status:** Backend COMPLETE, Frontend Integration Pending
 
 ---
 
@@ -52,14 +52,22 @@ The Plan Overview page serves as the central dashboard for the migration plannin
 
 ### Current API Integration
 
-**Status:** NO API calls implemented in this component (as of October 2025).
+**Status (November 2025):** MFO endpoints IMPLEMENTED, frontend integration PENDING
 
-**Expected API Calls** (to be implemented):
+**Available API Endpoints:**
 
-| # | Method | Endpoint                                        | Trigger            | Description                                      |
-|---|--------|-------------------------------------------------|--------------------|--------------------------------------------------|
-| 1 | `GET`  | `/api/v1/master-flows/planning/summary`         | `useQuery` on load | Fetches planning summary metrics for dashboard   |
-| 2 | `GET`  | `/api/v1/master-flows/planning/ai-insights`     | `useQuery` on load | Fetches latest AI-generated planning insights    |
+| # | Method | Endpoint                                           | Status      | Description                                      |
+|---|--------|---------------------------------------------------|-------------|--------------------------------------------------|
+| 1 | `POST` | `/api/v1/master-flows/planning/initialize`        | ✅ ACTIVE   | Creates master + child planning flow             |
+| 2 | `GET`  | `/api/v1/master-flows/planning/status/{flow_id}`  | ✅ ACTIVE   | Fetches complete planning flow state             |
+| 3 | `POST` | `/api/v1/master-flows/planning/execute-phase`     | ⚠️ PARTIAL  | Triggers phase execution (agent wiring pending)  |
+| 4 | `PUT`  | `/api/v1/master-flows/planning/update`            | ✅ ACTIVE   | Updates planning flow data                       |
+| 5 | `GET`  | `/api/v1/master-flows/planning/export/{flow_id}`  | ✅ ACTIVE   | Exports planning data (report generation pending)|
+
+**Frontend Integration TODO:**
+- Replace hard-coded dashboard data in `Index.tsx` (lines 19-36)
+- Call `/status/{flow_id}` endpoint for real-time polling
+- Extract AI insights from `agent_execution_log` JSONB field
 
 ---
 

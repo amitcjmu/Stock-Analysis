@@ -290,9 +290,20 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             else:
                 state = flow_state
 
+            # Extract flow_type from runtime context instead of using self.flow_type default
+            # Per ADR-023/ADR-028: Flow type must be determined from actual flow state
+            flow_type = (
+                agent_context.get("flow_type")  # First priority: explicit context
+                or phase_result.get("flow_type")  # Second: phase result metadata
+                or getattr(state, "flow_type", None)  # Third: flow state attribute
+                or self.flow_type  # Fallback: agent default (discovery)
+            )
+
+            logger.info(f"🔍 Extracted flow_type for phase transition: {flow_type}")
+
             # Analyze the phase result and determine next steps
             analysis = self._analyze_current_state(
-                phase_name, phase_result, state, self.flow_type
+                phase_name, phase_result, state, flow_type
             )
 
             # Check if phase was successful based on result
@@ -341,7 +352,7 @@ class PhaseTransitionAgent(BaseDecisionAgent):
                 )
 
             # Phase successful, determine next phase
-            decision = self._make_transition_decision(phase_name, analysis)
+            decision = self._make_transition_decision(phase_name, analysis, flow_type)
 
             logger.info(
                 f"✅ PhaseTransitionAgent post-execution decision: {decision.action.value} -> {decision.next_phase}"

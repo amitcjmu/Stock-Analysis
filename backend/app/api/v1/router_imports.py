@@ -50,7 +50,7 @@ except ImportError:
     ANALYSIS_QUEUES_AVAILABLE = False
     analysis_queues_router = None
 
-# Decommission endpoints
+# Decommission endpoints (legacy - deprecated)
 decommission_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.decommission import router as decommission_router
@@ -59,6 +59,18 @@ try:
 except ImportError:
     DECOMMISSION_AVAILABLE = False
     decommission_router = None
+
+# Decommission Flow endpoints (MFO-integrated per ADR-006)
+decommission_flow_router: Optional[APIRouter]
+try:
+    from app.api.v1.endpoints.decommission_flow import (
+        router as decommission_flow_router,
+    )
+
+    DECOMMISSION_FLOW_AVAILABLE = True
+except ImportError:
+    DECOMMISSION_FLOW_AVAILABLE = False
+    decommission_flow_router = None
 
 # Admin endpoints
 platform_admin_router: Optional[APIRouter]
@@ -128,6 +140,18 @@ except ImportError:
 # Assessment Flow endpoints (already imported above)
 # assessment_flow_router is imported from endpoints package at line 16
 ASSESSMENT_FLOW_AVAILABLE = True
+
+# Assessment Flow Readiness endpoints (Issue #980 - Gap Detection Integration)
+assessment_flow_readiness_router: Optional[APIRouter]
+try:
+    from app.api.v1.endpoints.assessment_flow_readiness import (
+        router as assessment_flow_readiness_router,
+    )
+
+    ASSESSMENT_FLOW_READINESS_AVAILABLE = True
+except ImportError:
+    ASSESSMENT_FLOW_READINESS_AVAILABLE = False
+    assessment_flow_readiness_router = None
 
 # Wave Planning endpoints
 wave_planning_router: Optional[APIRouter]
@@ -482,6 +506,8 @@ __all__ = [
     "clarifications_router",
     "ASSESS_AVAILABLE",
     "assess_router",
+    "ASSESSMENT_FLOW_READINESS_AVAILABLE",
+    "assessment_flow_readiness_router",
     "WAVE_PLANNING_AVAILABLE",
     "wave_planning_router",
     "PLAN_AVAILABLE",
