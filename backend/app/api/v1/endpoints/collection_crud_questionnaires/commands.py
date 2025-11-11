@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 _background_tasks: set = set()
 
 
-async def _start_agent_generation(
+async def _start_agent_generation(  # noqa: C901 - Complexity needed for error handling
     flow_id: str,
     flow: CollectionFlow,
     existing_assets: List[Asset],
@@ -78,8 +78,9 @@ async def _start_agent_generation(
                 if index < len(selected_asset_ids_str)
                 else str(asset_id)
             )
-            # Check for existing questionnaire (scoped by engagement_id + asset_id)
+            # Check for existing questionnaire (scoped by client_account_id + engagement_id + asset_id)
             existing = await get_existing_questionnaire_for_asset(
+                context.client_account_id,
                 context.engagement_id,
                 asset_id,
                 db,
@@ -96,7 +97,64 @@ async def _start_agent_generation(
                     )
                     continue  # Skip creation for this asset
 
-            # No existing questionnaire or needs regeneration - create new
+            # Check if a FAILED questionnaire exists (filtered out by get_existing above)
+            # If so, UPDATE it to pending instead of creating duplicate
+            failed_result = await db.execute(
+                select(AdaptiveQuestionnaire).where(
+                    AdaptiveQuestionnaire.client_account_id
+                    == context.client_account_id,
+                    AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+                    AdaptiveQuestionnaire.asset_id == asset_id,
+                    AdaptiveQuestionnaire.completion_status == "failed",
+                )
+            )
+            failed_questionnaire = failed_result.scalar_one_or_none()
+
+            if failed_questionnaire:
+                # Reset failed questionnaire to pending for retry
+                logger.info(
+                    f"Found failed questionnaire {failed_questionnaire.id} for asset {asset_id}, "
+                    f"resetting to pending for retry (flow {flow.id})"
+                )
+                failed_questionnaire.completion_status = "pending"
+                failed_questionnaire.updated_at = datetime.now(timezone.utc)
+                failed_questionnaire.collection_flow_id = (
+                    flow.id
+                )  # Update to current flow
+                failed_questionnaire.description = (
+                    "Generating tailored questionnaire using AI agent analysis..."
+                )
+                await db.commit()
+                await db.refresh(failed_questionnaire)
+                questionnaire_id = failed_questionnaire.id
+
+                # Start background generation for the updated questionnaire
+                target_asset = assets_by_id.get(asset_id_str)
+                if target_asset:
+                    task = asyncio.create_task(
+                        _background_generate(
+                            questionnaire_id,
+                            flow_id,
+                            master_flow_id,
+                            [asset_id_str],
+                            context,
+                        )
+                    )
+                    _background_tasks.add(task)
+                    task.add_done_callback(_background_tasks.discard)
+                else:
+                    logger.warning(
+                        f"Asset {asset_id_str} selected in flow but not found in existing_assets list"
+                    )
+
+                questionnaire_responses.append(
+                    collection_serializers.build_questionnaire_response(
+                        failed_questionnaire
+                    )
+                )
+                continue  # Skip creating new questionnaire
+
+            # No existing questionnaire - create new
             log_questionnaire_creation(
                 asset_id, flow_db_id, "No existing questionnaire found"
             )

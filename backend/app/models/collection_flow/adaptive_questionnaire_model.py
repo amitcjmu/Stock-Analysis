@@ -95,7 +95,7 @@ class AdaptiveQuestionnaire(Base):
     # Response tracking
     completion_status = Column(
         String(50), nullable=False, default="pending"
-    )  # pending, in_progress, completed, failed
+    )  # pending, ready, in_progress, completed, failed
     responses_collected = Column(JSONB, nullable=False, default=dict)
 
     # Template metadata
