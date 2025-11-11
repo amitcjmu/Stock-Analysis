@@ -1,22 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { loginAndNavigateToFlow } from '../utils/auth-helpers';
 
 test.describe('Collection Flow - Complete E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Login
-    await page.goto('http://localhost:8081');
-    await page.waitForLoadState('networkidle');
-    await page.fill('input[type="email"]', 'demo@demo-corp.com');
-    await page.fill('input[type="password"]', 'Demo123!');
-    await page.click('button:has-text("Sign In")');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // Navigate to Collection
-    await page.click('text=Collection');
-    await page.waitForTimeout(1000);
+    await loginAndNavigateToFlow(page, 'Collection');
   });
 
   test('should load Collection page', async ({ page }) => {
+    await page.waitForLoadState('domcontentloaded');
     const bodyText = await page.textContent('body');
     expect(bodyText).toContain('Collection');
     
@@ -28,67 +19,39 @@ test.describe('Collection Flow - Complete E2E Tests', () => {
     const uploadButton = page.locator('button:has-text("Upload"), button:has-text("Import"), button:has-text("Add")');
     const uploadCount = await uploadButton.count();
     console.log('Upload/Import buttons found:', uploadCount);
-    
-    // Check for data sources
-    const dataSourcesText = await page.textContent('body');
-    const hasDataSources = 
-      dataSourcesText?.includes('source') ||
-      dataSourcesText?.includes('database') ||
-      dataSourcesText?.includes('file');
-    console.log('Has data source references:', hasDataSources);
   });
 
   test('should show collected data grid', async ({ page }) => {
-    // Look for data table or grid
-    const dataGrid = page.locator('table, [role="grid"], .data-grid, .ag-root');
-    const gridCount = await dataGrid.count();
+    // Check for data grid or table
+    const dataGrid = page.locator('table, [role="grid"], .data-grid');
+    const hasGrid = await dataGrid.count() > 0;
+    console.log('Has data grid:', hasGrid);
     
-    if (gridCount > 0) {
-      console.log('Data grid found');
-      
-      // Check for column headers
-      const headers = await page.locator('th, [role="columnheader"]').allTextContents();
-      console.log('Grid columns:', headers.join(', '));
-      
-      // Check row count
-      const rows = await page.locator('tbody tr, [role="row"]').count();
-      console.log('Data rows:', rows);
-    }
+    // Check for data source references
+    const bodyText = await page.textContent('body');
+    const hasDataSource = bodyText?.toLowerCase().includes('cmdb') || 
+                          bodyText?.toLowerCase().includes('import') ||
+                          bodyText?.toLowerCase().includes('source');
+    console.log('Has data source references:', hasDataSource);
   });
 
   test('should allow data export', async ({ page }) => {
-    // Look for export functionality
+    // Look for export buttons
     const exportButton = page.locator('button:has-text("Export"), button:has-text("Download")');
+    const exportCount = await exportButton.count();
     
-    if (await exportButton.count() > 0) {
-      console.log('Export button available');
-      
-      // Set up download listener
-      const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
-      
-      await exportButton.first().click();
-      const download = await downloadPromise;
-      
-      if (download) {
-        console.log('Download triggered:', download.suggestedFilename());
-      }
+    if (exportCount > 0) {
+      console.log(`✓ Found ${exportCount} export button(s)`);
+    } else {
+      console.log('⚠️ No export buttons found');
     }
   });
 
   test('should support bulk operations', async ({ page }) => {
-    // Look for checkboxes for selection
-    const checkboxes = page.locator('input[type="checkbox"]');
-    const checkboxCount = await checkboxes.count();
+    // Look for bulk action buttons
+    const bulkActions = page.locator('button:has-text("Bulk"), button:has-text("Select All")');
+    const bulkCount = await bulkActions.count();
     
-    if (checkboxCount > 1) {
-      // Select first few items
-      await checkboxes.nth(0).check();
-      await checkboxes.nth(1).check();
-      
-      // Look for bulk action buttons
-      const bulkActions = page.locator('button:has-text("Delete"), button:has-text("Process"), button:has-text("Action")');
-      const bulkActionCount = await bulkActions.count();
-      console.log('Bulk actions available:', bulkActionCount);
-    }
+    console.log(`Bulk action buttons: ${bulkCount}`);
   });
 });

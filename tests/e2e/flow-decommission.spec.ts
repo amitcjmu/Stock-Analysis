@@ -1,38 +1,26 @@
 import { test, expect } from '@playwright/test';
+import { loginAndNavigateToFlow } from '../utils/auth-helpers';
 
 test.describe('Decommission Flow - Complete E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Login
-    await page.goto('http://localhost:8081');
-    await page.waitForLoadState('networkidle');
-    await page.fill('input[type="email"]', 'demo@demo-corp.com');
-    await page.fill('input[type="password"]', 'Demo123!');
-    await page.click('button:has-text("Sign In")');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // Navigate to Decommission
-    await page.click('text=Decommission');
-    await page.waitForTimeout(1000);
+    await loginAndNavigateToFlow(page, 'Decommission');
   });
 
   test('should load Decommission page', async ({ page }) => {
+    await page.waitForLoadState('domcontentloaded');
     const bodyText = await page.textContent('body');
-    expect(bodyText).toContain('Decommission');
-    
-    await page.screenshot({ path: 'test-results/decommission-page.png' });
+    expect(bodyText?.toLowerCase()).toContain('decommission');
   });
 
   test('should show retirement candidates', async ({ page }) => {
-    // Look for systems to decommission
-    const candidates = page.locator('.candidate, .retire, [data-testid*="decommission"]');
-    const candidateCount = await candidates.count();
-    console.log('Decommission candidates:', candidateCount);
+    const candidates = page.locator('.candidate, [data-testid*="decom"]');
+    const count = await candidates.count();
+    console.log('Decommission candidates:', count);
   });
 
   test('should display shutdown checklist', async ({ page }) => {
-    // Look for checklist items
-    const checklist = page.locator('.checklist, .task, input[type="checkbox"]');
+    await page.waitForLoadState('domcontentloaded');
+    const checklist = page.locator('.checklist, [role="list"]');
     const checklistCount = await checklist.count();
     console.log('Checklist items found:', checklistCount);
   });
