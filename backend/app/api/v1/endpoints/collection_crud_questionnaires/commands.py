@@ -47,8 +47,10 @@ async def _start_agent_generation(
     )
 
     try:
-        # Eagerly load flow.id to avoid SQLAlchemy lazy-loading issues
+        # Eagerly load flow attributes to avoid SQLAlchemy lazy-loading issues
         flow_db_id = flow.id
+        # CC FIX Bug #5: Eagerly load master_flow_id before passing to background task
+        master_flow_id = str(flow.master_flow_id) if flow.master_flow_id else flow_id
 
         # Extract selected_asset_ids from flow metadata
         selected_asset_ids: List[UUID] = []
@@ -181,7 +183,7 @@ async def _start_agent_generation(
                 _background_generate(
                     questionnaire_id,
                     flow_id,
-                    flow,
+                    master_flow_id,  # CC FIX Bug #5: Pass master_flow_id instead of flow object
                     [asset_id_str],
                     context,
                 )
@@ -334,7 +336,7 @@ async def _load_assets_for_background(
 async def _background_generate(
     questionnaire_id: UUID,
     flow_id: str,
-    flow: CollectionFlow,
+    master_flow_id: str,  # CC FIX: Accept master flow ID as parameter to avoid detached object access
     asset_ids: List[str],
     context: RequestContext,
 ) -> None:
@@ -342,11 +344,16 @@ async def _background_generate(
     Background task to generate questionnaires using AI agent with Issue #980 gap detection.
 
     ✅ FIX 0.5 (Issue #980): Passes database session for gap detection integration.
+    ✅ FIX Bug #5: Accept master_flow_id as parameter to avoid SQLAlchemy detached instance errors.
 
     This runs in background and updates the pending questionnaire record
     when generation is complete or fails.
     """
     from app.core.database import AsyncSessionLocal
+    from sqlalchemy import (
+        select,
+        update as sql_update,
+    )  # CC FIX: Move import to top level for error handler access
 
     try:
         logger.info(f"Starting background questionnaire generation for {flow_id}")
@@ -371,11 +378,11 @@ async def _background_generate(
                 )
                 return
 
-            # Use agent generation with Issue #980 gap detection
-            from .agents import _generate_agent_questionnaires
+            # Per ADR-035: Use per-asset, per-section generation with Redis caching
+            from ._generate_per_section import _generate_questionnaires_per_section
 
-            questionnaires = await _generate_agent_questionnaires(
-                flow_id, existing_assets, context, db
+            questionnaires = await _generate_questionnaires_per_section(
+                flow_id, master_flow_id, existing_assets, context, db
             )
 
             if questionnaires:
@@ -399,8 +406,6 @@ async def _background_generate(
                 )
 
                 # Progress flow to manual_collection phase now that questionnaire is ready
-                from sqlalchemy import select, update as sql_update
-
                 flow_result = await db.execute(
                     select(CollectionFlow).where(
                         CollectionFlow.flow_id == UUID(flow_id)
@@ -456,9 +461,35 @@ async def _background_generate(
                 await _update_questionnaire_status(
                     questionnaire_id, "failed", error_message=error_msg, db=db
                 )
+
+                # Per ADR-035: Surface error to flow status (no silent failures)
+                # Update flow status to show questionnaire generation failed
+                flow_result = await db.execute(
+                    select(CollectionFlow).where(
+                        CollectionFlow.flow_id == UUID(flow_id)
+                    )
+                )
+                current_flow = flow_result.scalar_one_or_none()
+
+                if current_flow:
+                    await db.execute(
+                        sql_update(CollectionFlow)
+                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        .values(
+                            status="failed",  # Mark flow as failed
+                            current_phase="questionnaire_generation",  # Show which phase failed
+                            updated_at=datetime.now(timezone.utc),
+                        )
+                    )
+                    await db.commit()
+                    logger.error(
+                        f"Marked flow {flow_id} as failed due to questionnaire generation error"
+                    )
+
         except Exception as update_error:
             logger.error(
-                f"Failed to update questionnaire status: {update_error}", exc_info=True
+                f"Failed to update questionnaire/flow status: {update_error}",
+                exc_info=True,
             )
     finally:
         logger.info(f"Background generation completed for flow {flow_id}")
