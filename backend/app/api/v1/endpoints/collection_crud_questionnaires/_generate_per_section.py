@@ -20,6 +20,7 @@ Benefits:
 import asyncio
 import logging
 from typing import List, Optional
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,7 +54,7 @@ ASSESSMENT_FLOW_SECTIONS = [
 
 async def _generate_questionnaires_per_section(  # noqa: C901
     flow_id: str,
-    master_flow_id: str,
+    flow_db_id: UUID,
     existing_assets: List[Asset],
     context: RequestContext,
     db: AsyncSession,
@@ -66,7 +67,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
 
     Args:
         flow_id: Child collection flow ID (for logging)
-        master_flow_id: Master flow ID (for gap analysis per ADR-028)
+        flow_db_id: Collection flow primary key (for gap analysis per ADR-025)
         existing_assets: List of Asset objects to generate questionnaires for
         context: RequestContext with client_account_id, engagement_id
         db: Database session for gap analysis
@@ -84,13 +85,15 @@ async def _generate_questionnaires_per_section(  # noqa: C901
         logger.info(
             f"Starting per-section questionnaire generation for "
             f"{len(existing_assets)} asset(s) in flow {flow_id} "
-            f"(master: {master_flow_id})"
+            f"(flow_db_id: {flow_db_id})"
         )
 
         gap_scanner = ProgrammaticGapScanner()
+        # CC FIX Issue #2: Pass flow_db_id (collection_flows.id PK) instead of master_flow_id
+        # Per ADR-025: Use collection_flows.id for foreign keys and background jobs
         gap_results = await gap_scanner.scan_assets_for_gaps(
             selected_asset_ids=[str(asset.id) for asset in existing_assets],
-            collection_flow_id=master_flow_id,  # CC FIX: Use master flow ID per ADR-028
+            collection_flow_id=str(flow_db_id),  # Use primary key, not master flow UUID
             client_account_id=str(context.client_account_id),
             engagement_id=str(context.engagement_id),
             db=db,

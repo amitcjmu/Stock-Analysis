@@ -33,8 +33,10 @@ export interface QuestionnairePollingOptions {
   onFailed?: (_errorMessage: string) => void;
 }
 
-const POLLING_INTERVAL_MS = 5000; // 5 seconds (CRITICAL: Fast polling to catch questionnaire ready status)
-const TOTAL_POLLING_TIMEOUT_MS = 12 * 60 * 1000; // 12 minutes total timeout
+// CC FIX Issue #3: User-specified polling parameters (max 6 refreshes, 60-second intervals)
+const POLLING_INTERVAL_MS = 60 * 1000; // 60 seconds between polls
+const MAX_POLL_COUNT = 6; // Maximum 6 polling attempts
+const TOTAL_POLLING_TIMEOUT_MS = MAX_POLL_COUNT * POLLING_INTERVAL_MS; // 6 minutes total (6 × 60s)
 const MAX_RETRY_ATTEMPTS = 3; // Allow up to 3 manual retries
 const RETRY_DELAY_BASE = 2000; // Base delay for exponential backoff
 
@@ -51,6 +53,7 @@ export const useQuestionnairePolling = ({
   const [completionStatus, setCompletionStatus] = useState<"pending" | "ready" | "fallback" | "failed" | null>(null);
   const [statusLine, setStatusLine] = useState<string | null>(null);
   const pollStartTimeRef = useRef<number | null>(null);
+  const pollCountRef = useRef<number>(0); // CC FIX Issue #3: Track poll count for max 6 refreshes
   const [retryCount, setRetryCount] = useState(0);
   const callbacksRef = useRef({ onReady, onFallback, onFailed });
 
@@ -228,6 +231,7 @@ export const useQuestionnairePolling = ({
     queryFn: fetchQuestionnaires,
     enabled: shouldEnablePolling,
     // Polling configuration based on completion status
+    // CC FIX Issue #3: Use poll count instead of elapsed time (max 6 refreshes)
     refetchInterval: () => {
       // CRITICAL FIX (Issue #863): Continue polling while isPolling is true
       // The completionStatus state may be stale (from previous fetch), so we rely on
@@ -236,20 +240,19 @@ export const useQuestionnairePolling = ({
         // Initialize polling start time on first poll
         if (pollStartTimeRef.current === null) {
           pollStartTimeRef.current = Date.now();
+          pollCountRef.current = 0;
         }
 
-        // Calculate elapsed time
-        const elapsedTime = Date.now() - pollStartTimeRef.current;
+        // Increment poll count
+        pollCountRef.current += 1;
 
-        // Check if we're still within the total timeout
-        if (elapsedTime < TOTAL_POLLING_TIMEOUT_MS) {
-          const elapsedSeconds = Math.round(elapsedTime / 1000);
-          const totalSeconds = TOTAL_POLLING_TIMEOUT_MS / 1000;
-          console.log(`📊 Polling (elapsed: ${elapsedSeconds}s / ${totalSeconds}s) @ useQuestionnairePolling`);
-          return POLLING_INTERVAL_MS;
+        // Check if we've exceeded max poll count
+        if (pollCountRef.current <= MAX_POLL_COUNT) {
+          console.log(`📊 Polling (attempt ${pollCountRef.current}/${MAX_POLL_COUNT}) @ useQuestionnairePolling`);
+          return POLLING_INTERVAL_MS; // 60 seconds
         } else {
-          // We've reached the total timeout, stop polling
-          console.log('⏰ Total polling timeout reached, stopping polling');
+          // We've reached the max poll count, stop polling
+          console.log(`⏰ Max poll count (${MAX_POLL_COUNT}) reached, stopping polling`);
           return false;
         }
       }
@@ -282,21 +285,21 @@ export const useQuestionnairePolling = ({
     }
 
     if (enabled && flowId && !questionnaires.length) {
-      // Check if polling has timed out based on elapsed time
+      // CC FIX Issue #3: Check if polling has exceeded max poll count
       if (isPolling && pollStartTimeRef.current !== null) {
-        const elapsedTime = Date.now() - pollStartTimeRef.current;
-        if (elapsedTime >= TOTAL_POLLING_TIMEOUT_MS) {
-          console.log('⏰ Polling timeout reached after', Math.round(elapsedTime / 1000), 'seconds');
+        if (pollCountRef.current >= MAX_POLL_COUNT) {
+          console.log(`⏰ Max poll count (${MAX_POLL_COUNT}) reached after ${pollCountRef.current} attempts`);
           setIsPolling(false);
           setCompletionStatus('failed');
-          setStatusLine('Questionnaire generation timed out. Please try again.');
+          setStatusLine('Questionnaire generation timed out after 6 minutes. Please try again.');
           setError(new Error('Questionnaire generation timed out'));
-          callbacksRef.current.onFailed?.('Questionnaire generation timed out. Please try again.');
+          callbacksRef.current.onFailed?.('Questionnaire generation timed out after 6 minutes. Please try again.');
         }
       } else if (!isPolling && pollStartTimeRef.current === null) {
         // Start polling if not already polling
         console.log('🔄 Starting questionnaire polling for flow:', flowId);
         pollStartTimeRef.current = Date.now();
+        pollCountRef.current = 0; // CC FIX Issue #3: Initialize poll count
         setIsPolling(true);
         setError(null);
         setCompletionStatus('pending');
@@ -309,6 +312,7 @@ export const useQuestionnairePolling = ({
   useEffect(() => {
     console.log('🔄 Flow ID changed, resetting polling state for:', flowId);
     pollStartTimeRef.current = null;  // Reset polling start time
+    pollCountRef.current = 0;  // CC FIX Issue #3: Reset poll count on flow change
     setRetryCount(0);  // Reset retry count on flow change
     setIsPolling(false);
     setError(null);
@@ -329,6 +333,7 @@ export const useQuestionnairePolling = ({
       console.log(`🔄 Retrying questionnaire polling (attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
       setRetryCount(prev => prev + 1);
       pollStartTimeRef.current = null;  // Reset polling start time for retry
+      pollCountRef.current = 0;  // CC FIX Issue #3: Reset poll count for retry
       setError(null);
       setIsPolling(true);
       setCompletionStatus('pending');

@@ -37,10 +37,18 @@ def _parse_agent_output_string(raw: str) -> Optional[dict]:
 
     try:
         return json.loads(candidate)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as json_err:
+        logger.warning(f"⚠️ JSON parse failed: {str(json_err)[:200]}")
         try:
-            return ast.literal_eval(literal_candidate)
-        except (ValueError, SyntaxError):
+            result = ast.literal_eval(literal_candidate)
+            logger.info("✅ ast.literal_eval succeeded as fallback")
+            return result
+        except (ValueError, SyntaxError) as ast_err:
+            logger.error(
+                "❌ Both JSON and ast.literal_eval failed. "
+                f"JSON error: {str(json_err)[:100]}, "
+                f"AST error: {str(ast_err)[:100]}"
+            )
             return None
 
 
@@ -48,9 +56,17 @@ def _resolve_agent_output(agent_output) -> Optional[dict]:
     if isinstance(agent_output, dict):
         raw_text = agent_output.get("raw_text")
         if isinstance(raw_text, str):
+            logger.info(f"🔍 Parsing raw_text of length: {len(raw_text)}")
             parsed = _parse_agent_output_string(raw_text)
             if isinstance(parsed, dict):
+                logger.info(
+                    f"✅ Successfully parsed raw_text, result keys: {list(parsed.keys())}"
+                )
                 return parsed
+            else:
+                logger.warning(
+                    f"⚠️ Failed to parse raw_text, returned type: {type(parsed)}"
+                )
         return agent_output
 
     if isinstance(agent_output, str):
@@ -118,11 +134,38 @@ def _find_questionnaires_in_result(agent_result: dict) -> Tuple[list, list]:
 
 def _extract_from_agent_output(agent_result: dict) -> Optional[list]:
     """Extract sections from agent_output field."""
-    agent_output = _resolve_agent_output(agent_result.get("agent_output", {}))
+    raw_agent_output = agent_result.get("agent_output", {})
+    keys_info = (
+        list(raw_agent_output.keys()) if isinstance(raw_agent_output, dict) else "N/A"
+    )
+    logger.info(
+        f"🔍 Raw agent_output type: {type(raw_agent_output)}, keys: {keys_info}"
+    )
+
+    agent_output = _resolve_agent_output(raw_agent_output)
+    has_sections = (
+        agent_output.get("sections") if isinstance(agent_output, dict) else "N/A"
+    )
+    logger.info(
+        f"🔍 Resolved agent_output type: {type(agent_output)}, "
+        f"has sections: {has_sections}"
+    )
 
     if not agent_output:
+        logger.warning("⚠️ agent_output resolved to None")
         return None
 
+    # BUG FIX #996: The agent_output now contains the parsed JSON from raw_text
+    # Check if it directly has sections (which is the case after parsing raw_text)
+    if isinstance(agent_output, dict) and agent_output.get("sections"):
+        logger.info(
+            f"✅ Found sections directly in parsed agent_output: {len(agent_output['sections'])} sections"
+        )
+        return agent_output["sections"]
+
+    logger.info(
+        "🔍 No sections found directly, " "trying _extract_sections_from_agent_output"
+    )
     agent_result["agent_output"] = agent_output
     return _extract_sections_from_agent_output(agent_output)
 
@@ -178,8 +221,14 @@ def _extract_questionnaire_data(
     # Determine which data to process
     # CRITICAL: Fallback disabled to diagnose LLM flow issues
     # If this fails, we need to fix the agent's LLM output, not mask with fallback
+    # BUG FIX #996: Use explicit empty-check to ensure _extract_from_agent_output is called
+    # when questionnaires_data and sections_data are empty lists (not just falsy)
     data_to_process = (
-        questionnaires_data or sections_data or _extract_from_agent_output(agent_result)
+        questionnaires_data
+        if questionnaires_data
+        else (
+            sections_data if sections_data else _extract_from_agent_output(agent_result)
+        )
     )
 
     if not data_to_process:

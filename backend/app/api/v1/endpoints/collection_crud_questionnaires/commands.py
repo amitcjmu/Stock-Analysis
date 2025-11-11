@@ -1,16 +1,13 @@
-"""
-Command operations for collection questionnaires.
-Write operations and background task management for questionnaire generation.
-"""
+"""Command operations for collection questionnaires (writes, background tasks)."""
 
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update, select
+from sqlalchemy import select
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
@@ -19,6 +16,11 @@ from app.schemas.collection_flow import AdaptiveQuestionnaireResponse
 
 # Import modular functions
 from app.api.v1.endpoints import collection_serializers
+from .database_helpers import (
+    update_questionnaire_status,
+    load_assets_for_background,
+    get_flow_db_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +35,7 @@ async def _start_agent_generation(
     context: RequestContext,
     db: AsyncSession,
 ) -> List[AdaptiveQuestionnaireResponse]:
-    """
-    Start agent generation in background and return pending questionnaire record.
-
-    Uses get-or-create pattern: Checks for existing questionnaire by asset_id before creating new one.
-    Supports multi-asset selection - generates/reuses questionnaire per asset.
-    """
+    """Start agent generation in background (get-or-create by asset_id, multi-asset support)."""
     from .deduplication import (
         get_existing_questionnaire_for_asset,
         should_reuse_questionnaire,
@@ -153,15 +150,25 @@ async def _start_agent_generation(
                         f"and asset {asset_id}, fetching existing record"
                     )
 
-                    # Fetch the existing questionnaire
+                    # CC FIX Issue #1: Filter out failed questionnaires to avoid data loss
+                    # Fetch the existing questionnaire that isn't failed
                     result = await db.execute(
                         select(AdaptiveQuestionnaire).where(
                             AdaptiveQuestionnaire.engagement_id
                             == context.engagement_id,
                             AdaptiveQuestionnaire.asset_id == asset_id,
+                            AdaptiveQuestionnaire.completion_status != "failed",
                         )
                     )
-                    pending_questionnaire = result.scalar_one()
+                    pending_questionnaire = result.scalar_one_or_none()
+
+                    # CC FIX Issue #1: If no valid questionnaire exists, re-raise the original error
+                    if pending_questionnaire is None:
+                        logger.error(
+                            f"No valid (non-failed) questionnaire found for "
+                            f"engagement {context.engagement_id} and asset {asset_id}"
+                        )
+                        raise insert_error
                 else:
                     # Different error, re-raise
                     raise
@@ -221,116 +228,7 @@ async def _start_agent_generation(
         raise
 
 
-async def _update_questionnaire_status(
-    questionnaire_id: UUID,
-    status: str,
-    questions: Optional[List[dict]] = None,
-    error_message: Optional[str] = None,
-    db: Optional[AsyncSession] = None,
-) -> None:
-    """Update questionnaire status and optionally add questions."""
-    from app.core.database import AsyncSessionLocal
-
-    # Use provided db session or create new one
-    if db is None:
-        async with AsyncSessionLocal() as session:
-            await _do_update_questionnaire_status(
-                session, questionnaire_id, status, questions, error_message
-            )
-    else:
-        await _do_update_questionnaire_status(
-            db, questionnaire_id, status, questions, error_message
-        )
-
-
-async def _do_update_questionnaire_status(
-    db: AsyncSession,
-    questionnaire_id: UUID,
-    status: str,
-    questions: Optional[List[dict]] = None,
-    error_message: Optional[str] = None,
-) -> None:
-    """Internal helper to update questionnaire status."""
-    try:
-        update_data = {
-            "completion_status": status,
-            "updated_at": datetime.now(timezone.utc),
-        }
-
-        if questions:
-            update_data["questions"] = questions
-            update_data["question_count"] = len(
-                questions
-            )  # Update question_count column
-            update_data["description"] = (
-                f"AI-Generated questionnaire with {len(questions)} targeted questions"
-            )
-
-        if error_message:
-            update_data["description"] = f"Generation failed: {error_message}"
-
-        await db.execute(
-            update(AdaptiveQuestionnaire)
-            .where(AdaptiveQuestionnaire.id == questionnaire_id)
-            .values(**update_data)
-        )
-        await db.commit()
-
-        logger.info(f"Updated questionnaire {questionnaire_id} status to {status}")
-    except Exception as e:
-        logger.error(
-            f"Error updating questionnaire {questionnaire_id} status: {e}",
-            exc_info=True,
-        )
-        logger.error(f"Update error type: {type(e).__name__}")
-        logger.error(f"Update error details: {str(e)}")
-        raise
-
-
-async def _load_assets_for_background(
-    db: AsyncSession,
-    context: RequestContext,
-    flow_id: str,
-    asset_ids: List[str],
-) -> List[Asset]:
-    """Reload assets inside the background session to avoid detached objects."""
-    if not asset_ids:
-        return []
-
-    try:
-        asset_uuid_list = [UUID(str(aid)) for aid in asset_ids]
-    except Exception as exc:
-        logger.error(
-            "Failed to parse asset IDs for background questionnaire generation: %s",
-            exc,
-        )
-        return []
-
-    client_uuid = (
-        UUID(str(context.client_account_id))
-        if isinstance(context.client_account_id, str)
-        else context.client_account_id
-    )
-    engagement_uuid = (
-        UUID(str(context.engagement_id))
-        if isinstance(context.engagement_id, str)
-        else context.engagement_id
-    )
-
-    assets_result = await db.execute(
-        select(Asset)
-        .where(Asset.id.in_(asset_uuid_list))
-        .where(Asset.client_account_id == client_uuid)
-        .where(Asset.engagement_id == engagement_uuid)
-    )
-    assets = list(assets_result.scalars().all())
-
-    logger.info(
-        "Reloaded %s asset(s) inside background session for flow %s",
-        len(assets),
-        flow_id,
-    )
-    return assets
+# DB helpers in database_helpers.py: update_questionnaire_status, load_assets_for_background, get_flow_db_id
 
 
 async def _background_generate(
@@ -340,15 +238,7 @@ async def _background_generate(
     asset_ids: List[str],
     context: RequestContext,
 ) -> None:
-    """
-    Background task to generate questionnaires using AI agent with Issue #980 gap detection.
-
-    ✅ FIX 0.5 (Issue #980): Passes database session for gap detection integration.
-    ✅ FIX Bug #5: Accept master_flow_id as parameter to avoid SQLAlchemy detached instance errors.
-
-    This runs in background and updates the pending questionnaire record
-    when generation is complete or fails.
-    """
+    """Background task for AI questionnaire generation with Issue #980 gap detection."""
     from app.core.database import AsyncSessionLocal
     from sqlalchemy import (
         select,
@@ -360,7 +250,20 @@ async def _background_generate(
 
         # ✅ FIX 0.5: Create database session for gap detection
         async with AsyncSessionLocal() as db:
-            existing_assets = await _load_assets_for_background(
+            # CC FIX Issue #2: Get flow_db_id (collection_flows.id PK)
+            flow_db_id = await get_flow_db_id(db, flow_id)
+
+            if not flow_db_id:
+                logger.error(f"Collection flow {flow_id} not found in background task")
+                await update_questionnaire_status(
+                    questionnaire_id,
+                    "failed",
+                    error_message="Collection flow not found",
+                    db=db,
+                )
+                return
+
+            existing_assets = await load_assets_for_background(
                 db, context, flow_id, asset_ids
             )
 
@@ -370,7 +273,7 @@ async def _background_generate(
                     "marking questionnaire as failed",
                     flow_id,
                 )
-                await _update_questionnaire_status(
+                await update_questionnaire_status(
                     questionnaire_id,
                     "failed",
                     error_message="No assets available for questionnaire generation",
@@ -381,8 +284,9 @@ async def _background_generate(
             # Per ADR-035: Use per-asset, per-section generation with Redis caching
             from ._generate_per_section import _generate_questionnaires_per_section
 
+            # CC FIX Issue #2: Pass flow_db_id (collection_flows.id PK) for gap analysis
             questionnaires = await _generate_questionnaires_per_section(
-                flow_id, master_flow_id, existing_assets, context, db
+                flow_id, flow_db_id, existing_assets, context, db
             )
 
             if questionnaires:
@@ -398,7 +302,7 @@ async def _background_generate(
                 )
 
                 # Update questionnaire with generated questions AND progress flow status
-                await _update_questionnaire_status(
+                await update_questionnaire_status(
                     questionnaire_id,
                     "ready",  # FIX BUG#801: Set to "ready" when questions are generated for frontend display
                     questions,
@@ -438,7 +342,7 @@ async def _background_generate(
                 )
             else:
                 # No questionnaires generated - mark as failed
-                await _update_questionnaire_status(
+                await update_questionnaire_status(
                     questionnaire_id,
                     "failed",
                     error_message="No questionnaires could be generated",
@@ -458,7 +362,7 @@ async def _background_generate(
             # Mark questionnaire as failed with detailed error
             error_msg = f"{type(e).__name__}: {str(e)}"
             async with AsyncSessionLocal() as db:
-                await _update_questionnaire_status(
+                await update_questionnaire_status(
                     questionnaire_id, "failed", error_message=error_msg, db=db
                 )
 

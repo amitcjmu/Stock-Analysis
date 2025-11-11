@@ -25,7 +25,6 @@ from .intelligent_options import (
 # ✅ Issue #980: Import intelligent question builders for all gap types
 from .question_builders import (
     generate_missing_field_question,
-    generate_data_quality_question,
     generate_dependency_question,
     generate_generic_technical_question,
     generate_generic_question,
@@ -210,16 +209,14 @@ def group_attributes_by_category(  # noqa: C901
     Returns:
         Dict mapping category names to lists of question dicts
     """
-    # ✅ FIX: Added missing categories used by Issue #980 intelligent builders
-    # QA Bug #1: KeyError when intelligent builders assigned to 'dependencies', 'data_validation', 'technical_details'
+    # Per ADR-035: Align with Issue #980 assessment flow sections
+    # Categories match what assessment flow expects for 6R recommendations
     attrs_by_category = {
-        "infrastructure": [],
-        "application": [],
-        "business": [],
-        "technical_debt": [],
-        "dependencies": [],  # Used by generate_dependency_question()
-        "data_validation": [],  # Used by generate_data_quality_question()
-        "technical_details": [],  # Used by generate_generic_technical_question()
+        "infrastructure": [],  # Hardware, OS, network
+        "resilience": [],  # HA, DR, backup
+        "compliance": [],  # GDPR, HIPAA, PCI-DSS, security
+        "dependencies": [],  # Integrations, APIs
+        "tech_debt": [],  # Code quality, vulnerabilities, modernization
     }
 
     # Track which attributes are needed and which assets need them
@@ -325,49 +322,81 @@ def group_attributes_by_category(  # noqa: C901
             # Route to appropriate Issue #980 intelligent builder based on field name patterns
             question = None
 
+            # Per ADR-035: Route gaps to assessment flow categories
             # Dependency-related gaps
             if any(
                 x in attr_name.lower()
-                for x in ["dependency", "dependencies", "integration"]
+                for x in ["dependency", "dependencies", "integration", "api"]
             ):
                 question = generate_dependency_question({}, asset_context)
                 category = "dependencies"
 
-            # Data quality gaps (low confidence from gap detection)
-            elif "quality" in attr_name.lower() or "confidence" in attr_name.lower():
-                asset_context["quality_issue"] = (
-                    f"Low confidence in {attr_name.replace('_', ' ')}"
-                )
-                question = generate_data_quality_question({}, asset_context)
-                category = "data_validation"
-
-            # Technical/architecture gaps
+            # Resilience gaps (HA, DR, backup)
             elif any(
                 x in attr_name.lower()
-                for x in ["technical", "architecture", "tech_debt", "modernization"]
-            ):
-                question = generate_generic_technical_question(asset_context)
-                category = "technical_details"
-
-            # Business/ownership gaps
-            elif any(
-                x in attr_name.lower() for x in ["business", "owner", "stakeholder"]
+                for x in [
+                    "resilience",
+                    "availability",
+                    "disaster",
+                    "backup",
+                    "failover",
+                    "rto",
+                    "rpo",
+                ]
             ):
                 question = generate_missing_field_question({}, asset_context)
-                category = "business"
+                category = "resilience"
 
-            # Infrastructure gaps
+            # Compliance/Security gaps
             elif any(
                 x in attr_name.lower()
-                for x in ["resilience", "availability", "disaster", "infrastructure"]
+                for x in [
+                    "compliance",
+                    "security",
+                    "gdpr",
+                    "hipaa",
+                    "pci",
+                    "encryption",
+                    "audit",
+                ]
+            ):
+                question = generate_missing_field_question({}, asset_context)
+                category = "compliance"
+
+            # Tech debt gaps (code quality, vulnerabilities, modernization)
+            elif any(
+                x in attr_name.lower()
+                for x in [
+                    "technical_debt",
+                    "tech_debt",
+                    "vulnerability",
+                    "code_quality",
+                    "modernization",
+                    "eol",
+                ]
+            ):
+                question = generate_generic_technical_question(asset_context)
+                category = "tech_debt"
+
+            # Infrastructure gaps (OS, hardware, network)
+            elif any(
+                x in attr_name.lower()
+                for x in [
+                    "infrastructure",
+                    "operating_system",
+                    "cpu",
+                    "memory",
+                    "storage",
+                    "network",
+                ]
             ):
                 question = generate_missing_field_question({}, asset_context)
                 category = "infrastructure"
 
-            # Generic gaps - use intelligent generic builder (MCQ with status options)
+            # Generic gaps - default to infrastructure for unknown types
             else:
                 question = generate_generic_question(attr_name, asset_context)
-                category = "application"
+                category = "infrastructure"  # Per ADR-035: Default to infrastructure
 
             # Update field_id to non-composite format (single question for all assets)
             # Issue #980 builders use composite {asset_id}__{field},
@@ -384,67 +413,51 @@ def group_attributes_by_category(  # noqa: C901
 
 
 def create_category_sections(attrs_by_category: dict) -> list:
-    """Create sections organized by category.
+    """Create sections organized by assessment flow categories.
 
-    ✅ FIX: Added new categories from Issue #980 intelligent builders.
+    Per ADR-035: Align with Issue #980 assessment flow sections.
+    Sections match what assessment flow expects for 6R recommendations.
     """
+    # Per ADR-035: Assessment flow section configuration
     category_config = {
         "infrastructure": {
-            "title": "Infrastructure Information",
+            "title": "Infrastructure Specifications",
             "description": (
-                "Infrastructure specifications and resource details "
-                "needed for 6R assessment"
+                "Hardware, operating system, and network infrastructure details"
             ),
         },
-        "application": {
-            "title": "Application Architecture",
+        "resilience": {
+            "title": "Resilience & Availability",
             "description": (
-                "Application architecture, technology stack, and integration details"
+                "High availability, disaster recovery, and backup configurations"
             ),
         },
-        "business": {
-            "title": "Business Context",
+        "compliance": {
+            "title": "Compliance & Security Standards",
             "description": (
-                "Business criticality, compliance requirements, and stakeholder information"
-            ),
-        },
-        "technical_debt": {
-            "title": "Technical Assessment",
-            "description": (
-                "Code quality, security vulnerabilities, and "
-                "technology lifecycle assessment"
+                "Regulatory compliance (GDPR, HIPAA, PCI-DSS) and security standards"
             ),
         },
         "dependencies": {
             "title": "Dependencies & Integrations",
-            "description": (
-                "System dependencies, integrations, and architectural complexity"
-            ),
+            "description": ("System dependencies, integrations, and API connections"),
         },
-        "data_validation": {
-            "title": "Data Quality Verification",
+        "tech_debt": {
+            "title": "Technical Debt Assessment",
             "description": (
-                "Verify accuracy and completeness of discovered information"
-            ),
-        },
-        "technical_details": {
-            "title": "Technical Details",
-            "description": (
-                "Additional technical specifications and modernization readiness"
+                "Code quality, security vulnerabilities, and modernization readiness"
             ),
         },
     }
 
     sections = []
-    # Process all categories (not just the original 4)
+    # Per ADR-035: Process assessment flow categories in priority order
     for category in [
         "infrastructure",
-        "application",
-        "business",
-        "technical_debt",
+        "resilience",
+        "compliance",
         "dependencies",
-        "data_validation",
-        "technical_details",
+        "tech_debt",
     ]:
         if attrs_by_category.get(category):  # Use .get() for safety
             config = category_config[category]
@@ -454,6 +467,7 @@ def create_category_sections(attrs_by_category: dict) -> list:
                     "section_title": config["title"],
                     "section_description": config["description"],
                     "questions": attrs_by_category[category],
+                    "category": category,  # Per ADR-035: Explicit category for aggregation
                 }
             )
 
