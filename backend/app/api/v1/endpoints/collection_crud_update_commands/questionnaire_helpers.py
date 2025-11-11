@@ -285,80 +285,78 @@ async def _update_asset_readiness(
     """Re-analyze asset readiness after questionnaire submission.
 
     Returns True if any asset readiness was updated.
+
+    IMPORTANT: This function does NOT commit changes - the caller must manage
+    the transaction to ensure atomicity with other operations.
     """
     readiness_updated = False
 
-    if asset_ids_to_reanalyze and request_data.save_type == "submit_complete":
-        try:
+    if not (asset_ids_to_reanalyze and request_data.save_type == "submit_complete"):
+        return False
+
+    try:
+        logger.info(
+            f"🔄 Re-analyzing readiness for {len(asset_ids_to_reanalyze)} asset(s) "
+            f"after questionnaire submission"
+        )
+
+        from app.services.assessment.asset_readiness_service import (
+            AssetReadinessService,
+        )
+
+        readiness_service = AssetReadinessService()
+
+        # Re-analyze each asset and update readiness
+        for asset_uuid in asset_ids_to_reanalyze:
+            gap_report = await readiness_service.analyze_asset_readiness(
+                asset_id=asset_uuid,
+                client_account_id=str(context.client_account_id),
+                engagement_id=str(context.engagement_id),
+                db=db,
+            )
+
+            # Update asset readiness fields
+            # ✅ FIX (Issue #980 QA): Also update sixr_ready field for Assessment Flow UI
+            update_stmt = (
+                update(Asset)
+                .where(
+                    Asset.id == asset_uuid,
+                    Asset.client_account_id == context.client_account_id,
+                    Asset.engagement_id == context.engagement_id,
+                )
+                .values(
+                    assessment_readiness=(
+                        "ready" if gap_report.is_ready_for_assessment else "not_ready"
+                    ),
+                    assessment_readiness_score=gap_report.overall_completeness,
+                    assessment_blockers=(
+                        gap_report.readiness_blockers
+                        if gap_report.readiness_blockers
+                        else []
+                    ),
+                    # ✅ FIX: Update sixr_ready for Assessment Flow UI
+                    # Assessment Flow queries this field to display readiness status
+                    sixr_ready=gap_report.is_ready_for_assessment,
+                )
+            )
+            await db.execute(update_stmt)
+            readiness_updated = True
+
             logger.info(
-                f"🔄 Re-analyzing readiness for {len(asset_ids_to_reanalyze)} asset(s) "
-                f"after questionnaire submission"
+                f"✅ Staged readiness update for asset {asset_uuid}: "
+                f"ready={gap_report.is_ready_for_assessment}, "
+                f"completeness={gap_report.overall_completeness:.2f}"
             )
 
-            from app.services.assessment.asset_readiness_service import (
-                AssetReadinessService,
-            )
+        if readiness_updated:
+            logger.info("✅ Asset readiness updates staged for commit.")
 
-            readiness_service = AssetReadinessService()
-
-            # Re-analyze each asset and update readiness
-            for asset_uuid in asset_ids_to_reanalyze:
-                try:
-                    gap_report = await readiness_service.analyze_asset_readiness(
-                        asset_id=asset_uuid,
-                        client_account_id=str(context.client_account_id),
-                        engagement_id=str(context.engagement_id),
-                        db=db,
-                    )
-
-                    # Update asset readiness fields
-                    # ✅ FIX (Issue #980 QA): Also update sixr_ready field for Assessment Flow UI
-                    update_stmt = (
-                        update(Asset)
-                        .where(
-                            Asset.id == asset_uuid,
-                            Asset.client_account_id == context.client_account_id,
-                            Asset.engagement_id == context.engagement_id,
-                        )
-                        .values(
-                            assessment_readiness=(
-                                "ready"
-                                if gap_report.is_ready_for_assessment
-                                else "not_ready"
-                            ),
-                            assessment_readiness_score=gap_report.overall_completeness,
-                            assessment_blockers=(
-                                gap_report.readiness_blockers
-                                if gap_report.readiness_blockers
-                                else []
-                            ),
-                            # ✅ FIX: Update sixr_ready for Assessment Flow UI
-                            # Assessment Flow queries this field to display readiness status
-                            sixr_ready=gap_report.is_ready_for_assessment,
-                        )
-                    )
-                    await db.execute(update_stmt)
-                    readiness_updated = True
-
-                    logger.info(
-                        f"✅ Updated readiness for asset {asset_uuid}: "
-                        f"ready={gap_report.is_ready_for_assessment}, "
-                        f"completeness={gap_report.overall_completeness:.2f}"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Failed to re-analyze readiness for asset {asset_uuid}: {e}"
-                    )
-                    continue
-
-            if readiness_updated:
-                await db.commit()
-                logger.info("✅ Asset readiness updated after questionnaire submission")
-        except Exception as e:
-            logger.error(
-                f"Failed to re-analyze readiness after submission: {e}",
-                exc_info=True,
-            )
-            # Don't fail the submission if readiness update fails
+    except Exception as e:
+        logger.error(
+            f"Failed to re-analyze readiness after submission: {e}",
+            exc_info=True,
+        )
+        # Re-raise to ensure transaction is rolled back
+        raise
 
     return readiness_updated

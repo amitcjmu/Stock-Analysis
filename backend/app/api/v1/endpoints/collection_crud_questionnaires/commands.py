@@ -124,7 +124,7 @@ async def _start_agent_generation(
                 "created_at": datetime.now(timezone.utc),
             }
 
-            # ✅ FIX: Handle race conditions with try/except for IntegrityError
+            # ✅ FIX: Handle race conditions with explicit IntegrityError
             # If another request created the same questionnaire between our check and INSERT,
             # catch the unique constraint violation and fetch the existing record
             # Note: We have a UNIQUE INDEX (not constraint) so ON CONFLICT won't work
@@ -139,8 +139,10 @@ async def _start_agent_generation(
                 # Roll back the failed transaction
                 await db.rollback()
 
-                # Check if it's a unique constraint violation
-                if (
+                # Check if it's an IntegrityError (unique constraint violation)
+                from sqlalchemy.exc import IntegrityError
+
+                if isinstance(insert_error, IntegrityError) or (
                     "duplicate key" in str(insert_error).lower()
                     or "unique" in str(insert_error).lower()
                 ):
@@ -162,13 +164,20 @@ async def _start_agent_generation(
                     )
                     pending_questionnaire = result.scalar_one_or_none()
 
-                    # CC FIX Issue #1: If no valid questionnaire exists, re-raise the original error
+                    # If no valid questionnaire exists, it's safe to proceed with creating a new one
+                    # The original insert failed, so we can now re-attempt it
                     if pending_questionnaire is None:
-                        logger.error(
-                            f"No valid (non-failed) questionnaire found for "
-                            f"engagement {context.engagement_id} and asset {asset_id}"
+                        logger.warning(
+                            f"A failed questionnaire exists for asset {asset_id}. "
+                            f"Proceeding to create a new one."
                         )
-                        raise insert_error
+                        # Create a new questionnaire (the failed one will remain in DB for audit)
+                        pending_questionnaire = AdaptiveQuestionnaire(
+                            **questionnaire_data
+                        )
+                        db.add(pending_questionnaire)
+                        await db.commit()
+                        await db.refresh(pending_questionnaire)
                 else:
                     # Different error, re-raise
                     raise

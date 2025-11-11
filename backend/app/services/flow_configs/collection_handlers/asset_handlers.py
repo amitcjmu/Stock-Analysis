@@ -37,15 +37,20 @@ class AssetHandlers(CollectionHandlerBase):
             logger.warning(f"Invalid value for {dst_field}: {value[0]}")
             return None
 
-    def _handle_string_field(self, value: list) -> Optional[str]:
+    def _handle_string_field(self, value: list, dst_field: str) -> Optional[Any]:
         """Extract string value from list, joining multiple values with comma.
 
         Args:
             value: List containing string values
+            dst_field: The destination field name to check if it supports lists
 
         Returns:
-            Comma-joined string or first element
+            List for array-type fields, comma-joined string or first element for others
         """
+        # For fields that are actual list types in the model, return the list
+        if dst_field in ["technology_stack"]:
+            return value
+
         if len(value) > 1:
             return ", ".join(str(v) for v in value)
         return str(value[0]) if value[0] else None
@@ -74,7 +79,7 @@ class AssetHandlers(CollectionHandlerBase):
             "department",
             "application_name",
         ]:
-            return self._handle_string_field(value)
+            return self._handle_string_field(value, dst_field)
 
         # Default: take first element
         return value[0]
@@ -190,6 +195,7 @@ class AssetHandlers(CollectionHandlerBase):
 
         # CRITICAL FIX: Also query responses that don't have gap_id linked
         # This handles cases where responses were created but gap_id wasn't set
+        # SECURITY FIX: Add tenant scoping to prevent data leaks
         resolved_rows = await db.execute(
             text(
                 "SELECT DISTINCT "
@@ -201,10 +207,16 @@ class AssetHandlers(CollectionHandlerBase):
                 "FROM migration.collection_questionnaire_responses r "
                 "LEFT JOIN migration.collection_data_gaps g ON g.id = r.gap_id "
                 "WHERE r.collection_flow_id = :flow_id "
+                "AND r.client_account_id = :client_account_id "
+                "AND r.engagement_id = :engagement_id "
                 "AND (g.resolution_status = 'resolved' OR r.gap_id IS NULL)"
                 "AND r.response_value IS NOT NULL"
             ),
-            {"flow_id": collection_flow_id},
+            {
+                "flow_id": collection_flow_id,
+                "client_account_id": client_uuid,
+                "engagement_id": engagement_uuid,
+            },
         )
         resolved = resolved_rows.fetchall()
         if not resolved:
