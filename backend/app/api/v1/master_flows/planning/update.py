@@ -156,15 +156,14 @@ async def update_wave_plan(
                 detail="At least one field must be provided for update",
             )
 
-        # Update planning flow (atomic transaction)
-        async with db.begin():
-            updated_flow = await repo.update_planning_flow(
-                planning_flow_id=planning_flow_uuid,
-                client_account_id=client_account_uuid,
-                engagement_id=engagement_uuid,
-                **update_data,
-            )
-            await db.flush()
+        # Update planning flow (repository manages transaction atomically)
+        updated_flow = await repo.update_planning_flow(
+            planning_flow_id=planning_flow_uuid,
+            client_account_id=client_account_uuid,
+            engagement_id=engagement_uuid,
+            **update_data,
+        )
+        await db.commit()
 
         logger.info(
             f"Updated planning flow {request.planning_flow_id}: {updated_fields} "

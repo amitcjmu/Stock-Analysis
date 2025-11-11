@@ -235,8 +235,11 @@ async def _get_assets_from_db(
     page: int,
     page_size: int,
     flow_id: Optional[str] = None,
+    search: Optional[str] = None,
+    environment: Optional[str] = None,
+    business_criticality: Optional[str] = None,
 ):
-    """Fetch assets from database with pagination.
+    """Fetch assets from database with pagination and filtering.
 
     Args:
         db: Database session
@@ -244,6 +247,9 @@ async def _get_assets_from_db(
         page: Page number (1-indexed)
         page_size: Number of items per page
         flow_id: Optional discovery flow ID to filter assets
+        search: Optional search term to filter by asset name (case-insensitive)
+        environment: Optional environment filter
+        business_criticality: Optional business criticality filter
     """
     from sqlalchemy import func, select
     from sqlalchemy.orm import selectinload
@@ -259,6 +265,18 @@ async def _get_assets_from_db(
     # Add flow_id filter if provided
     if flow_id:
         filter_conditions.append(Asset.discovery_flow_id == flow_id)
+
+    # Add search filter if provided (case-insensitive name search)
+    if search and search.strip():
+        filter_conditions.append(Asset.name.ilike(f"%{search.strip()}%"))
+
+    # Add environment filter if provided
+    if environment:
+        filter_conditions.append(Asset.environment == environment)
+
+    # Add business_criticality filter if provided
+    if business_criticality:
+        filter_conditions.append(Asset.business_criticality == business_criticality)
 
     # Build base query with shared filter conditions
     query = (
@@ -303,6 +321,13 @@ async def list_assets_paginated(
         "(3) Maintains backward compatibility with non-UUID flow IDs, "
         "(4) SQLAlchemy safely handles type conversion for database queries.",
     ),
+    search: Optional[str] = Query(
+        None, description="Search assets by name (case-insensitive)"
+    ),
+    environment: Optional[str] = Query(None, description="Filter by environment"),
+    business_criticality: Optional[str] = Query(
+        None, description="Filter by business criticality"
+    ),
 ):
     """Get paginated list of assets for the current context.
 
@@ -322,9 +347,16 @@ async def list_assets_paginated(
         if per_page is not None:
             page_size = per_page
 
-        # Fetch assets from database with optional flow_id filter
+        # Fetch assets from database with optional filters
         assets, total_items, total_pages = await _get_assets_from_db(
-            db, context, page, page_size, flow_id
+            db,
+            context,
+            page,
+            page_size,
+            flow_id,
+            search,
+            environment,
+            business_criticality,
         )
 
         # Convert assets to dictionaries
