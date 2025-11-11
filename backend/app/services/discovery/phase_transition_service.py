@@ -39,7 +39,7 @@ class DiscoveryPhaseTransitionService:
         try:
             # First get the flow to extract client_account_id and engagement_id
             flow_result = await self.db.execute(
-                select(DiscoveryFlow).where(DiscoveryFlow.id == flow_id)
+                select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
             )
             flow = flow_result.scalar_one_or_none()
 
@@ -51,7 +51,7 @@ class DiscoveryPhaseTransitionService:
             approved_mappings = await self.db.execute(
                 select(ImportFieldMapping)
                 .where(ImportFieldMapping.master_flow_id == flow_id)
-                .where(ImportFieldMapping.is_approved.is_(True))
+                .where(ImportFieldMapping.is_approved == True)  # noqa: E712
             )
             approved_count = len(approved_mappings.scalars().all())
 
@@ -151,7 +151,7 @@ class DiscoveryPhaseTransitionService:
         try:
             # Get the discovery flow
             result = await self.db.execute(
-                select(DiscoveryFlow).where(DiscoveryFlow.id == flow_id)
+                select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
             )
             flow = result.scalar_one_or_none()
 
