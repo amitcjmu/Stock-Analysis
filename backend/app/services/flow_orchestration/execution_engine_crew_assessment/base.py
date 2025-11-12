@@ -16,6 +16,7 @@ from .dependency_executor import DependencyExecutorMixin
 from .tech_debt_executor import TechDebtExecutorMixin
 from .risk_executor import RiskExecutorMixin
 from .recommendation_executor import RecommendationExecutorMixin
+from .recommendation_executor_asset_update import AssetUpdateMixin  # ISSUE-999
 
 logger = get_logger(__name__)
 
@@ -27,6 +28,7 @@ class ExecutionEngineAssessmentCrews(
     TechDebtExecutorMixin,
     RiskExecutorMixin,
     RecommendationExecutorMixin,
+    AssetUpdateMixin,  # ISSUE-999: Asset table updates
 ):
     """
     Assessment flow CrewAI execution handlers using persistent agents.
@@ -244,8 +246,11 @@ class ExecutionEngineAssessmentCrews(
                 master_flow.engagement_id,
             )
 
+            # CRITICAL FIX (ISSUE-999): Save results to ASSESSMENT FLOW, not master flow!
+            # Per ADR-012: Assessment flow is the child flow that stores operational data
+            assessment_flow_id = phase_input.get("flow_id", str(master_flow.flow_id))
             await persistence.save_phase_results(
-                str(master_flow.flow_id), phase_config.name, result
+                assessment_flow_id, phase_config.name, result
             )
 
             # Add metadata about persistent agent usage and result persistence

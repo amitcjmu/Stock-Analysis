@@ -9,6 +9,9 @@ from typing import Any, Dict
 
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.services.crewai_flows.handlers.callback_handler_integration import (
+    CallbackHandlerIntegration,
+)
 
 logger = get_logger(__name__)
 
@@ -35,8 +38,10 @@ class ReadinessExecutorMixin:
         try:
 
             # Build phase-specific input
+            # CRITICAL FIX (ISSUE-999): Use assessment flow ID, not master flow ID!
+            assessment_flow_id = phase_input.get("flow_id", str(master_flow.flow_id))
             crew_inputs = await input_builders.build_readiness_input(
-                str(master_flow.flow_id), phase_input
+                assessment_flow_id, phase_input
             )
 
             # Log readiness input preparation
@@ -82,6 +87,29 @@ Return results as valid JSON with keys: readiness_score, blockers, recommendatio
             # Convert context dict to JSON string (CrewAI expects string context)
             context_str = json.dumps(crew_inputs)
 
+            # CC Phase 3: Setup callback handler for observability
+            callback_handler = CallbackHandlerIntegration.create_callback_handler(
+                flow_id=str(master_flow.flow_id),
+                context={
+                    "client_account_id": str(master_flow.client_account_id),
+                    "engagement_id": str(master_flow.engagement_id),
+                    "flow_type": "assessment",
+                    "phase": "readiness",
+                },
+            )
+            callback_handler.setup_callbacks()
+
+            # Register task start
+            callback_handler._step_callback(
+                {
+                    "type": "starting",
+                    "status": "starting",
+                    "agent": "readiness_assessor",
+                    "task": "readiness_assessment",
+                    "content": f"Starting readiness assessment for {app_count} applications",
+                }
+            )
+
             # CRITICAL FIX: task.execute_async() returns concurrent.futures.Future (threading)
             # Must use asyncio.wrap_future() to convert to awaitable asyncio.Future
             import asyncio
@@ -113,6 +141,18 @@ Return results as valid JSON with keys: readiness_score, blockers, recommendatio
 
             # Per ADR-029: Sanitize LLM output to remove NaN/Infinity before JSON serialization
             parsed_result = sanitize_for_json(parsed_result)
+
+            # CC Phase 3: Register task completion
+            callback_handler._task_completion_callback(
+                {
+                    "agent": "readiness_assessor",
+                    "task_name": "readiness_assessment",
+                    "status": "completed",
+                    "task_id": "readiness_task",
+                    "output": parsed_result,
+                    "duration": execution_time,
+                }
+            )
 
             logger.info(f"✅ Readiness assessment completed in {execution_time:.2f}s")
 

@@ -37,9 +37,14 @@ async def continue_assessment_flow(
     try:
         logger.info(
             safe_log_format(
-                "🚀 Starting agent execution for assessment flow {flow_id} phase {phase_value}",
+                "[ISSUE-999] 🚀 BACKGROUND TASK STARTED: Assessment flow agent execution "
+                "for flow_id={flow_id}, phase={phase_value}, "
+                "client={client_id}, engagement={eng_id}, user={user_id}",
                 flow_id=flow_id,
                 phase_value=phase.value,
+                client_id=client_account_id,
+                eng_id=engagement_id,
+                user_id=user_id,
             )
         )
 
@@ -139,7 +144,8 @@ async def continue_assessment_flow(
 
                 logger.info(
                     safe_log_format(
-                        "✅ Assessment flow {flow_id} phase {phase_value} completed successfully",
+                        "[ISSUE-999] ✅ BACKGROUND TASK COMPLETED: Assessment flow {flow_id} "
+                        "phase {phase_value} completed successfully. Agents executed and results stored.",
                         flow_id=flow_id,
                         phase_value=phase.value,
                     )

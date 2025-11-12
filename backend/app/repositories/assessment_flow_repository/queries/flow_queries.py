@@ -176,3 +176,34 @@ class FlowQueries:
             .order_by(AssessmentFlow.updated_at.desc())
         )
         return result.scalars().all()
+
+    async def get_by_flow_id(self, flow_id: str) -> Optional[AssessmentFlow]:
+        """
+        Get raw AssessmentFlow model by flow ID.
+
+        Used for lightweight operations like zombie detection where
+        full state object is not needed.
+
+        Args:
+            flow_id: UUID string of the flow
+
+        Returns:
+            AssessmentFlow model or None if not found
+
+        Note:
+            Respects multi-tenant isolation via self.client_account_id
+        """
+        from uuid import UUID
+
+        # Convert string to UUID if needed
+        flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
+        result = await self.db.execute(
+            select(AssessmentFlow).where(
+                and_(
+                    AssessmentFlow.id == flow_uuid,
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                )
+            )
+        )
+        return result.scalar_one_or_none()

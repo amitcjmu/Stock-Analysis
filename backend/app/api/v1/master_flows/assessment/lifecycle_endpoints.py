@@ -92,29 +92,78 @@ async def resume_assessment_flow_via_mfo(
         logger.info(f"Resuming assessment flow {flow_id} with user_input: {user_input}")
 
         repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
+
+        # [ISSUE-999] AUTO-RECOVERY: Check for zombie flow BEFORE resuming
+        assessment_flow = await repo.get_by_flow_id(flow_id)
+        if assessment_flow:
+            is_zombie = (
+                assessment_flow.progress >= 80
+                and (
+                    not assessment_flow.phase_results
+                    or assessment_flow.phase_results == {}
+                )
+                and (
+                    not assessment_flow.agent_insights
+                    or assessment_flow.agent_insights == []
+                )
+            )
+
+            if is_zombie:
+                logger.warning(
+                    f"[ISSUE-999-ZOMBIE] 🧟 AUTO-RECOVERY: Detected zombie flow {flow_id} "
+                    f"at {assessment_flow.progress}% with EMPTY results. "
+                    f"Current phase: {assessment_flow.current_phase}. "
+                    f"Will force agent re-execution..."
+                )
+
         result = await repo.resume_flow(flow_id, user_input)
 
         # Get current phase to trigger agent execution
         current_phase_str = result.get("current_phase")
+
+        # FIX FOR ISSUE #999: Ensure background task is ALWAYS added for agent execution
+        # unless we're at the finalization phase (which has no agents to run)
+        logger.info(
+            f"[ISSUE-999] Resume flow result: flow_id={flow_id}, "
+            f"phase={current_phase_str}, status={result.get('status')}, "
+            f"progress={result.get('progress_percentage')}%"
+        )
+
         if current_phase_str:
             try:
                 current_phase = AssessmentPhase(current_phase_str)
-                # Trigger background task for agent execution
-                background_tasks.add_task(
-                    assessment_flow_processors.continue_assessment_flow,
-                    flow_id,
-                    client_account_id,
-                    engagement_id,
-                    current_phase,
-                    context.user_id,
+
+                # Skip background task for finalization phase (no agents needed)
+                if current_phase == AssessmentPhase.FINALIZATION:
+                    logger.info(
+                        "[ISSUE-999] Skipping agent execution for finalization phase"
+                    )
+                else:
+                    # Trigger background task for agent execution
+                    logger.info(
+                        f"[ISSUE-999] Adding background task for phase {current_phase.value}"
+                    )
+                    background_tasks.add_task(
+                        assessment_flow_processors.continue_assessment_flow,
+                        flow_id,
+                        str(client_account_id),  # Ensure string type
+                        str(engagement_id),  # Ensure string type
+                        current_phase,
+                        str(context.user_id),  # Ensure string type
+                    )
+                    logger.info(
+                        f"[ISSUE-999] ✅ Successfully queued background agent execution for phase {current_phase.value}"
+                    )
+            except ValueError as e:
+                logger.error(
+                    f"[ISSUE-999] Invalid phase '{current_phase_str}' - ValueError: {e}. "
+                    f"This will prevent agent execution! Please check phase enum values."
                 )
-                logger.info(
-                    f"Queued background agent execution for phase {current_phase.value}"
-                )
-            except ValueError:
-                logger.warning(
-                    f"Invalid phase '{current_phase_str}' - skipping agent execution"
-                )
+        else:
+            logger.warning(
+                f"[ISSUE-999] No current_phase in result - cannot trigger agent execution. "
+                f"Result keys: {list(result.keys())}"
+            )
 
         return sanitize_for_json(
             {
