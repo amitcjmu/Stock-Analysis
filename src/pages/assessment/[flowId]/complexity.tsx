@@ -48,17 +48,26 @@ const ComplexityPage: React.FC = () => {
     return state.selectedApplications.find(app => app.application_id === selectedApp);
   }, [selectedApp, state.selectedApplications]);
 
-  // Calculate complexity metrics (placeholder until backend provides real data)
+  // Calculate architectural complexity metrics from CMDB/Discovery data
   const complexityMetrics = useMemo(() => {
     if (!currentApp) return null;
 
-    // TODO: Replace with actual complexity data from backend
+    // Architectural complexity based on CMDB data (NOT code metrics)
+    const componentCount = currentApp.technology_stack?.length || 0;
+    const hasDatabase = currentApp.technology_stack?.some((tech: string) =>
+      tech.toLowerCase().includes('database') ||
+      tech.toLowerCase().includes('sql') ||
+      tech.toLowerCase().includes('oracle') ||
+      tech.toLowerCase().includes('postgres')
+    ) || false;
+
     return {
-      cyclomaticComplexity: currentApp.complexity_score * 10 || 0,
-      maintainabilityIndex: Math.max(0, 100 - (currentApp.complexity_score * 8)) || 0,
-      linesOfCode: Math.floor(Math.random() * 100000) + 10000,
-      technicalDebtRatio: currentApp.complexity_score * 5 || 0,
-      codeSmells: Math.floor(currentApp.complexity_score * 3) || 0,
+      architectureType: currentApp.architecture_type || 'Monolithic',
+      componentCount: componentCount,
+      integrationCount: currentApp.integration_count || 0,
+      customizationLevel: currentApp.customization_level || 'Medium',
+      migrationGroup: currentApp.migration_group || 'Not Assigned',
+      hasDatabase: hasDatabase,
     };
   }, [currentApp]);
 
@@ -111,11 +120,16 @@ const ComplexityPage: React.FC = () => {
     return 'text-green-600';
   };
 
-  const getMaintainabilityColor = (score: number): string => {
-    if (score >= 75) return 'text-green-600';
-    if (score >= 50) return 'text-yellow-600';
-    if (score >= 25) return 'text-orange-600';
-    return 'text-red-600';
+  const getArchitectureTypeColor = (type: string): string => {
+    if (type.toLowerCase().includes('microservice')) return 'text-orange-600';
+    if (type.toLowerCase().includes('soa')) return 'text-yellow-600';
+    return 'text-blue-600';  // Monolithic
+  };
+
+  const getCustomizationLevelColor = (level: string): string => {
+    if (level.toLowerCase() === 'high') return 'text-red-600';
+    if (level.toLowerCase() === 'medium') return 'text-yellow-600';
+    return 'text-green-600';
   };
 
   if (state.selectedApplicationIds.length === 0) {
@@ -139,10 +153,10 @@ const ComplexityPage: React.FC = () => {
           {/* Header */}
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-gray-900">
-              Complexity Analysis
+              Migration Complexity Analysis
             </h1>
             <p className="text-gray-600">
-              Analyze code complexity metrics, maintainability index, and cyclomatic complexity
+              Analyze architectural complexity, integration points, and migration readiness (based on CMDB data, not code scanning)
             </p>
           </div>
 
@@ -159,7 +173,7 @@ const ComplexityPage: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
                 <p className="text-sm text-blue-600">
-                  AI agents are analyzing code complexity...
+                  AI agents are analyzing architectural migration complexity...
                 </p>
               </div>
             </div>
@@ -186,84 +200,79 @@ const ComplexityPage: React.FC = () => {
 
           {selectedApp && currentApp && complexityMetrics && (
             <>
-              {/* Complexity Overview Card */}
+              {/* Migration Complexity Overview Card */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <BarChart3 className="h-5 w-5" />
-                    <span>Complexity Overview</span>
+                    <span>Migration Complexity Overview</span>
                   </CardTitle>
                   <CardDescription>
-                    Key complexity metrics for {currentApp.application_name}
+                    Architectural complexity analysis for {currentApp.application_name}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Complexity Score */}
+                    {/* Overall Migration Complexity */}
                     <div className="text-center p-4 border rounded-lg">
                       <Code2 className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                       <div className={`text-3xl font-bold ${getComplexityColor(currentApp.complexity_score)}`}>
                         {currentApp.complexity_score}/10
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">Complexity Score</div>
+                      <div className="text-sm text-gray-600 mt-1">Migration Complexity</div>
                       <Badge variant={currentApp.complexity_score >= 7 ? 'destructive' : 'secondary'} className="mt-2">
                         {currentApp.complexity_score >= 7 ? 'High' : currentApp.complexity_score >= 4 ? 'Medium' : 'Low'}
                       </Badge>
                     </div>
 
-                    {/* Maintainability Index */}
+                    {/* Architecture Type */}
                     <div className="text-center p-4 border rounded-lg">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                      <div className={`text-3xl font-bold ${getMaintainabilityColor(complexityMetrics.maintainabilityIndex)}`}>
-                        {Math.round(complexityMetrics.maintainabilityIndex)}
+                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                      <div className={`text-2xl font-bold ${getArchitectureTypeColor(complexityMetrics.architectureType)}`}>
+                        {complexityMetrics.architectureType}
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">Maintainability Index</div>
-                      <Badge
-                        variant={complexityMetrics.maintainabilityIndex >= 50 ? 'secondary' : 'destructive'}
-                        className="mt-2"
-                      >
-                        {complexityMetrics.maintainabilityIndex >= 75 ? 'Excellent' :
-                         complexityMetrics.maintainabilityIndex >= 50 ? 'Good' :
-                         complexityMetrics.maintainabilityIndex >= 25 ? 'Fair' : 'Poor'}
+                      <div className="text-sm text-gray-600 mt-1">Architecture Type</div>
+                      <Badge variant="outline" className="mt-2">
+                        {complexityMetrics.hasDatabase ? 'With Database' : 'Stateless'}
                       </Badge>
                     </div>
 
-                    {/* Cyclomatic Complexity */}
+                    {/* Customization Level */}
                     <div className="text-center p-4 border rounded-lg">
                       <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-                      <div className="text-3xl font-bold text-orange-600">
-                        {Math.round(complexityMetrics.cyclomaticComplexity)}
+                      <div className={`text-2xl font-bold ${getCustomizationLevelColor(complexityMetrics.customizationLevel)}`}>
+                        {complexityMetrics.customizationLevel}
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">Cyclomatic Complexity</div>
-                      <Badge variant="outline" className="mt-2">
-                        Avg per Function
+                      <div className="text-sm text-gray-600 mt-1">Customization Level</div>
+                      <Badge variant={complexityMetrics.customizationLevel === 'High' ? 'destructive' : 'outline'} className="mt-2">
+                        Custom Code Impact
                       </Badge>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Detailed Metrics */}
+              {/* Architectural Details */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Detailed Metrics</CardTitle>
+                  <CardTitle>Architectural Details</CardTitle>
                   <CardDescription>
-                    Code quality and technical debt indicators
+                    Component and integration complexity indicators
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium">Lines of Code</span>
-                      <span className="text-sm font-semibold">{complexityMetrics.linesOfCode.toLocaleString()}</span>
+                      <span className="text-sm font-medium">Technology Components</span>
+                      <span className="text-sm font-semibold">{complexityMetrics.componentCount} components</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium">Technical Debt Ratio</span>
-                      <span className="text-sm font-semibold">{complexityMetrics.technicalDebtRatio.toFixed(1)}%</span>
+                      <span className="text-sm font-medium">Integration Points</span>
+                      <span className="text-sm font-semibold">{complexityMetrics.integrationCount} integrations</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium">Code Smells</span>
-                      <span className="text-sm font-semibold">{complexityMetrics.codeSmells}</span>
+                      <span className="text-sm font-medium">Migration Group</span>
+                      <span className="text-sm font-semibold">{complexityMetrics.migrationGroup}</span>
                     </div>
                   </div>
                 </CardContent>
