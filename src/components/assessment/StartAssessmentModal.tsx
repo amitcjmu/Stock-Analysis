@@ -146,7 +146,37 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error('Failed to create assessment:', err);
-      setError(err.message || 'Failed to create assessment. Please try again.');
+
+      // Extract detailed error from backend response
+      // FastAPI HTTPException wraps errors in a 'detail' property
+      // Backend returns: detail: { error: string, message: string, action: string }
+      if (err.response?.detail) {
+        const errorData = err.response.detail;
+
+        if (errorData.error && errorData.message) {
+          // Build user-friendly error message with guidance
+          const errorParts = [errorData.message];
+          if (errorData.action) {
+            errorParts.push(errorData.action);
+          }
+          setError(errorParts.join('\n\n'));
+        } else if (errorData.message) {
+          // Fallback if only message exists
+          setError(errorData.message);
+        } else if (typeof errorData === 'string') {
+          // Detail is a plain string
+          setError(errorData);
+        } else {
+          // Last resort fallback
+          setError(err.message || 'Failed to create assessment. Please try again.');
+        }
+      } else if (err.response?.message) {
+        // Some endpoints return message directly
+        setError(err.response.message);
+      } else {
+        // No structured response - use generic error
+        setError(err.message || 'Failed to create assessment. Please try again.');
+      }
     } finally {
       setCreating(false);
     }
