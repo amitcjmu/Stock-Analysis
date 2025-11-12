@@ -86,12 +86,67 @@ This is NOT over-engineering - it's REQUIRED for enterprise resilience
 
 ### Critical Architecture Patterns
 
+#### ⚠️ CRITICAL: MFO Flow ID Pattern (READ THIS FIRST!)
+
+**This is a RECURRING BUG pattern** - read before implementing ANY flow endpoints!
+
+The MFO uses a **two-table pattern** with **TWO DIFFERENT UUIDs** per flow:
+- **Master Flow ID**: Internal MFO routing (`crewai_flow_state_extensions.flow_id`)
+- **Child Flow ID**: User-facing identifier (`assessment_flows.id`, `discovery_flows.id`, etc.)
+
+**THE GOLDEN RULES**:
+1. **URL paths receive CHILD flow IDs** (user-facing: `/execute/{flow_id}`)
+2. **MFO methods expect MASTER flow IDs** (`orchestrator.execute_phase(master_id, ...)`)
+3. **ALWAYS resolve master_flow_id from child table BEFORE calling MFO**
+4. **Include child flow_id in phase_input** for persistence
+
+**CORRECT PATTERN** (copy this verbatim):
+```python
+@router.post("/execute/{flow_id}")  # ← Child ID from URL
+async def execute_something(flow_id: str, db: AsyncSession, context: RequestContext):
+    # Step 1: Query child flow table using child ID
+    stmt = select(AssessmentFlow).where(
+        AssessmentFlow.id == UUID(flow_id),  # ← Child ID
+        AssessmentFlow.client_account_id == context.client_account_id,
+        AssessmentFlow.engagement_id == context.engagement_id,
+    )
+    result = await db.execute(stmt)
+    child_flow = result.scalar_one_or_none()
+
+    if not child_flow or not child_flow.master_flow_id:
+        raise HTTPException(status_code=404, detail="Flow not found")
+
+    # Step 2: Extract master flow ID
+    master_flow_id = child_flow.master_flow_id  # ← FK to master flow
+
+    # Step 3: Call MFO with MASTER ID, pass CHILD ID in phase_input
+    orchestrator = MasterFlowOrchestrator(db, context)
+    result = await orchestrator.execute_phase(
+        str(master_flow_id),  # ← MASTER flow ID (MFO routing)
+        "phase_name",
+        {"flow_id": flow_id}  # ← CHILD flow ID (persistence)
+    )
+
+    return {"success": True, "flow_id": flow_id}  # Return child ID
+```
+
+**Reference**: See Serena memory `mfo_two_table_flow_id_pattern_critical` for full details.
+
+**Example Files**:
+- `backend/app/api/v1/endpoints/assessment_flow/mfo_integration/create.py`
+- `backend/app/api/v1/endpoints/collection_flow/lifecycle.py`
+
+**Common Mistakes**:
+- ❌ Passing child ID to `MFO.execute_phase()` → "Flow not found" errors
+- ❌ Querying `AssessmentFlow.flow_id` → AttributeError (use `.id`)
+- ❌ Missing `flow_id` in `phase_input` → Phase results won't persist
+
 #### Master Flow Orchestrator (MFO) Pattern
 The MFO is the single source of truth for all workflow operations:
 - **Entry Point**: `/api/v1/master-flows/*` endpoints ONLY
-- **Two-Table Architecture**:
+- **Two-Table Architecture** (see critical pattern above):
   - `crewai_flow_state_extensions`: Master flow lifecycle (running/paused/completed)
-  - `discovery_flows`: Child flow operational data (phases, UI state)
+  - `assessment_flows` / `discovery_flows` / `collection_flows`: Child flow operational data
 - **Never** call legacy `/api/v1/discovery/*` endpoints directly
 
 #### State Management Flow
