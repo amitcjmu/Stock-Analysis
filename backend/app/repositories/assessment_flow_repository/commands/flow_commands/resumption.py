@@ -46,14 +46,41 @@ async def resume_flow(self, flow_id: str, user_input: Dict[str, Any]) -> Dict[st
         raise ValueError(f"Assessment flow {flow_id} not found")
 
     current_phase = flow.current_phase
+    user_expected_phase = user_input.get("phase")
 
     # ENHANCED LOGGING for bug #724 investigation
     logger.info(
         f"[BUG-724] resume_flow START - flow_id={flow_id}, "
         f"current_phase='{current_phase}', "
+        f"user_expected_phase='{user_expected_phase}', "
         f"status={flow.status}, "
         f"progress={flow.progress}"
     )
+
+    # CRITICAL FIX: Validate that user's expected phase matches database current phase
+    # This prevents the flow from auto-progressing ahead of user interaction
+    if user_expected_phase and user_expected_phase != current_phase:
+        logger.warning(
+            f"[PHASE-MISMATCH] User expected phase '{user_expected_phase}' "
+            f"but database shows '{current_phase}'. Resetting flow to user's phase."
+        )
+        # Reset flow to the phase the user thinks they're on
+        await self.db.execute(
+            update(AssessmentFlow)
+            .where(
+                and_(
+                    AssessmentFlow.id == flow_id,
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                )
+            )
+            .values(
+                current_phase=user_expected_phase,
+                updated_at=datetime.utcnow(),
+            )
+        )
+        await self.db.commit()
+        current_phase = user_expected_phase
+        logger.info(f"[PHASE-MISMATCH] Reset flow {flow_id} to phase '{current_phase}'")
 
     # Normalize legacy phase names to ADR-027 canonical names
     try:
