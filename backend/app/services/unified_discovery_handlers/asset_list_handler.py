@@ -12,9 +12,13 @@ This handler follows the established architectural patterns:
 """
 
 import logging
+from datetime import date, datetime
+from decimal import Decimal
+from enum import Enum
 from typing import Any, Dict, Optional
+from uuid import UUID
 
-from sqlalchemy import and_, select, func, or_
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -22,6 +26,15 @@ from app.core.security.secure_logging import mask_id, safe_log_format
 from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
+
+INTERNAL_FIELDS = {
+    "raw_import_records_id",
+    "raw_data",
+    "created_by",
+    "updated_by",
+    "deleted_by",
+    "phase_context",
+}
 
 
 class AssetListHandler:
@@ -31,6 +44,26 @@ class AssetListHandler:
         """Initialize the handler with database session and request context."""
         self.db = db
         self.context = context
+
+    @staticmethod
+    def _serialize_value(value: Any) -> Any:
+        """Normalize SQLAlchemy column values for JSON responses."""
+        if value is None:
+            return None
+
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+
+        if isinstance(value, UUID):
+            return str(value)
+
+        if isinstance(value, Decimal):
+            return float(value)
+
+        if isinstance(value, Enum):
+            return value.value
+
+        return value
 
     async def list_assets(
         self,
@@ -285,71 +318,45 @@ class AssetListHandler:
 
     def _transform_asset_to_dict(self, asset: Asset) -> Dict[str, Any]:
         """Transform Asset model to dict with comprehensive field coverage."""
-        return {
-            "id": str(asset.id),
-            "name": asset.name or "Unknown Asset",
-            "asset_name": asset.asset_name or asset.name,
-            "asset_type": asset.asset_type or "unknown",
-            "asset_subtype": getattr(asset, "asset_subtype", None),
-            "hostname": getattr(asset, "hostname", None),
-            "ip_address": getattr(asset, "ip_address", None),
-            "fqdn": getattr(asset, "fqdn", None),
-            "mac_address": getattr(asset, "mac_address", None),
-            "operating_system": getattr(asset, "operating_system", None),
-            "os_version": getattr(asset, "os_version", None),
-            "cpu_cores": getattr(asset, "cpu_cores", None),
-            "memory_gb": getattr(asset, "memory_gb", None),
-            "storage_gb": getattr(asset, "storage_gb", None),
-            "location": getattr(asset, "location", None),
-            "datacenter": getattr(asset, "datacenter", None),
-            "rack_location": getattr(asset, "rack_location", None),
-            "availability_zone": getattr(asset, "availability_zone", None),
-            "business_owner": getattr(asset, "business_owner", None),
-            "technical_owner": getattr(asset, "technical_owner", None),
-            "department": getattr(asset, "department", None),
-            "application_name": getattr(asset, "application_name", None),
-            "technology_stack": getattr(asset, "technology_stack", None),
-            "status": asset.status or "unknown",
-            "discovery_status": getattr(asset, "discovery_status", "not_started"),
-            "mapping_status": getattr(asset, "mapping_status", "not_started"),
-            "assessment_readiness": getattr(asset, "assessment_readiness", "not_ready"),
-            "environment": getattr(asset, "environment", None),
-            "criticality": getattr(asset, "criticality", None),
-            "business_criticality": getattr(asset, "business_criticality", None),
-            "migration_priority": getattr(asset, "migration_priority", None),
-            "migration_complexity": getattr(asset, "migration_complexity", None),
-            "migration_wave": getattr(asset, "migration_wave", None),
-            "six_r_strategy": getattr(asset, "six_r_strategy", None),
-            "sixr_ready": getattr(asset, "sixr_ready", False),
-            "quality_score": getattr(asset, "quality_score", None),
-            "confidence_score": getattr(asset, "confidence_score", None),
-            "completeness_score": getattr(asset, "completeness_score", None),
-            "cpu_utilization_percent": getattr(asset, "cpu_utilization_percent", None),
-            "memory_utilization_percent": getattr(
-                asset, "memory_utilization_percent", None
-            ),
-            "disk_iops": getattr(asset, "disk_iops", None),
-            "network_throughput_mbps": getattr(asset, "network_throughput_mbps", None),
-            "current_monthly_cost": getattr(asset, "current_monthly_cost", None),
-            "estimated_cloud_cost": getattr(asset, "estimated_cloud_cost", None),
-            "discovery_flow_id": (
-                str(asset.discovery_flow_id) if asset.discovery_flow_id else None
-            ),
-            "master_flow_id": (
-                str(asset.master_flow_id) if asset.master_flow_id else None
-            ),
-            "flow_id": str(asset.flow_id) if asset.flow_id else None,
-            "created_at": (asset.created_at.isoformat() if asset.created_at else None),
-            "updated_at": (asset.updated_at.isoformat() if asset.updated_at else None),
-            "discovery_timestamp": (
-                asset.discovery_timestamp.isoformat()
-                if getattr(asset, "discovery_timestamp", None)
-                else None
-            ),
-            # CC FIX (Issue #962): Dependencies multi-select - include relationship fields
-            "dependencies": getattr(asset, "dependencies", None),
-            "dependents": getattr(asset, "dependents", None),
-        }
+        # Serialize every column on the Asset model
+        asset_dict: Dict[str, Any] = {}
+        for column in Asset.__table__.columns:  # type: ignore[attr-defined]
+            column_name = column.name
+            if column_name in INTERNAL_FIELDS:
+                continue
+            value = getattr(asset, column_name, None)
+            asset_dict[column_name] = self._serialize_value(value)
+
+        # Provide backwards-compatible defaults and derived fields
+        asset_dict["name"] = asset_dict.get("name") or getattr(
+            asset, "name", "Unknown Asset"
+        )
+        asset_dict["asset_name"] = asset_dict.get("asset_name") or asset_dict["name"]
+        asset_dict["asset_type"] = asset_dict.get("asset_type") or getattr(
+            asset, "asset_type", "unknown"
+        )
+        asset_dict["status"] = asset_dict.get("status") or getattr(
+            asset, "status", "unknown"
+        )
+        asset_dict["discovery_status"] = asset_dict.get("discovery_status") or getattr(
+            asset, "discovery_status", "not_started"
+        )
+        asset_dict["mapping_status"] = asset_dict.get("mapping_status") or getattr(
+            asset, "mapping_status", "not_started"
+        )
+        asset_dict["assessment_readiness"] = asset_dict.get(
+            "assessment_readiness"
+        ) or getattr(asset, "assessment_readiness", "not_ready")
+
+        # Preserve legacy/derived fields that are not explicit columns
+        if "asset_subtype" not in asset_dict:
+            asset_dict["asset_subtype"] = getattr(asset, "asset_subtype", None)
+
+        # Relationships and JSON fields should remain as-is
+        asset_dict["dependencies"] = getattr(asset, "dependencies", None)
+        asset_dict["dependents"] = getattr(asset, "dependents", None)
+
+        return asset_dict
 
 
 async def create_asset_list_handler(
