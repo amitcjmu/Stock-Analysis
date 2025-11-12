@@ -104,14 +104,19 @@ const ComplexityPage: React.FC = () => {
     setIsSaving(true);
 
     try {
+      // CRITICAL: Per CLAUDE.md - PUT requests MUST use request body, NOT query parameters
       const response = await fetch(
-        `/api/v1/master-flows/${flowId}/applications/${selectedApp}/complexity-metrics?` +
-        `complexity_score=${complexityScore}&architecture_type=${encodeURIComponent(architectureType)}&customization_level=${encodeURIComponent(customizationLevel)}`,
+        `/api/v1/master-flows/${flowId}/applications/${selectedApp}/complexity-metrics`,
         {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            complexity_score: complexityScore,
+            architecture_type: architectureType,
+            customization_level: customizationLevel,
+          }),
         }
       );
 

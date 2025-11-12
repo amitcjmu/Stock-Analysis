@@ -9,7 +9,7 @@ import logging
 from typing import Any, Dict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
@@ -362,11 +362,11 @@ async def get_assessment_progress(
 async def update_complexity_metrics(
     flow_id: str,
     app_id: str,
-    complexity_score: int,
-    architecture_type: str,
-    customization_level: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
+    complexity_score: int = Body(..., ge=1, le=10),
+    architecture_type: str = Body(...),
+    customization_level: str = Body(...),
 ) -> Dict[str, Any]:
     """
     Update complexity metrics for an application in assessment flow.
@@ -375,17 +375,16 @@ async def update_complexity_metrics(
     - complexity_score (1-10) in assets.complexity_score
     - architecture_type in assets.application_type
     - customization_level in asset_custom_attributes.attributes
+
+    CRITICAL: Per CLAUDE.md - PUT requests use request body, NOT query parameters.
     """
     from sqlalchemy import select, update
     from app.models.asset import Asset
     from app.models.collection_flow.asset_custom_attributes import AssetCustomAttribute
 
     try:
-        # Validate inputs
-        if not (1 <= complexity_score <= 10):
-            raise HTTPException(
-                status_code=400, detail="complexity_score must be between 1 and 10"
-            )
+        # Validate architecture_type and customization_level
+        # (complexity_score already validated by Body(..., ge=1, le=10))
 
         valid_arch_types = [
             "Monolithic",
