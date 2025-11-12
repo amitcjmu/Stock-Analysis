@@ -175,9 +175,7 @@ class AssetRepository(ContextAwareRepository[Asset]):
         self, asset_ids: List[int], phase: str, status: str
     ) -> int:
         """Bulk update workflow status for multiple assets."""
-        return await self.commands.bulk_update_workflow_status(
-            asset_ids, phase, status
-        )
+        return await self.commands.bulk_update_workflow_status(asset_ids, phase, status)
 
     async def calculate_assessment_readiness(self, asset_id: int) -> str:
         """Calculate and update assessment readiness for an asset."""
@@ -187,9 +185,7 @@ class AssetRepository(ContextAwareRepository[Asset]):
         self, asset_id: int, new_phase: str, notes: str = None
     ) -> bool:
         """Update asset phase progression with tracking."""
-        return await self.commands.update_phase_progression(
-            asset_id, new_phase, notes
-        )
+        return await self.commands.update_phase_progression(asset_id, new_phase, notes)
 
     async def update_six_r_strategy_from_assessment(
         self,

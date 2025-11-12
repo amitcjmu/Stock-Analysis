@@ -19,18 +19,17 @@ Options:
 
 import asyncio
 import sys
-from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
-# Add backend to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal
+# Add backend to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from app.core.database import AsyncSessionLocal  # noqa: E402
 
 
 def detect_provider_from_model(model_name: str) -> str:
@@ -95,7 +94,7 @@ async def get_model_pricing(
     return None
 
 
-async def backfill_costs(
+async def backfill_costs(  # noqa: C901
     days: Optional[int] = None, dry_run: bool = False
 ) -> dict:
     """

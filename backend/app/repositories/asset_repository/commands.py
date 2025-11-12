@@ -15,7 +15,7 @@ from sqlalchemy import and_, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.asset import Asset, AssetDependency, WorkflowProgress
+from app.models.asset import Asset, WorkflowProgress
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,7 @@ class AssetCommands:
         if not hasattr(Asset, field_name):
             return False
 
-        stmt = (
-            update(Asset)
-            .where(Asset.id == asset_id)
-            .values(**{field_name: status})
-        )
+        stmt = update(Asset).where(Asset.id == asset_id).values(**{field_name: status})
         result = await self.db.execute(stmt)
         return result.rowcount > 0
 
@@ -59,9 +55,7 @@ class AssetCommands:
             return 0
 
         stmt = (
-            update(Asset)
-            .where(Asset.id.in_(asset_ids))
-            .values(**{field_name: status})
+            update(Asset).where(Asset.id.in_(asset_ids)).values(**{field_name: status})
         )
         result = await self.db.execute(stmt)
         return result.rowcount
