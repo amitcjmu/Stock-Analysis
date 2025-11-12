@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { BulkActionsProps } from './types';
 
 const BulkActions: React.FC<BulkActionsProps> = ({
@@ -15,9 +15,11 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   processingMappings,
   lastBulkOperationTime,
   client,
-  engagement
+  engagement,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
-  if (buckets.autoMapped.length === 0) {
+  if (buckets.autoMapped.length === 0 && !canContinueToDataCleansing) {
     return null;
   }
 
@@ -46,25 +48,41 @@ const BulkActions: React.FC<BulkActionsProps> = ({
     <div className="bg-white p-4 rounded-lg border">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-gray-700">
-          Bulk Actions for {buckets.autoMapped.length} auto-mapped fields
+          {buckets.autoMapped.length > 0 
+            ? `Bulk Actions for ${buckets.autoMapped.length} auto-mapped fields`
+            : 'Actions'
+          }
         </span>
         <div className="flex gap-2">
-          <button
-            onClick={handleBulkApprove}
-            disabled={isDisabled}
-            className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <CheckCircle className="h-4 w-4" />
-            {getButtonText('approve')}
-          </button>
-          <button
-            onClick={handleBulkReject}
-            disabled={isDisabled}
-            className="flex items-center gap-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <XCircle className="h-4 w-4" />
-            {getButtonText('reject')}
-          </button>
+          {buckets.autoMapped.length > 0 && (
+            <>
+              <button
+                onClick={handleBulkApprove}
+                disabled={isDisabled}
+                className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <CheckCircle className="h-4 w-4" />
+                {getButtonText('approve')}
+              </button>
+              <button
+                onClick={handleBulkReject}
+                disabled={isDisabled}
+                className="flex items-center gap-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <XCircle className="h-4 w-4" />
+                {getButtonText('reject')}
+              </button>
+            </>
+          )}
+          {canContinueToDataCleansing && onContinueToDataCleansing && (
+            <button
+              onClick={onContinueToDataCleansing}
+              className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm"
+            >
+              <span>Continue to Data Cleansing</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity, CheckCircle } from 'lucide-react';
+import { RefreshCw, Zap, AlertCircle, Wifi, WifiOff, Activity, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AttributeMappingState } from '../types';
@@ -12,11 +12,9 @@ interface AttributeMappingHeaderProps {
     critical_mapped: number;
   };
   isAgenticLoading: boolean;
-  canContinueToDataCleansing: boolean;
   onRefetch: () => void;
   onTriggerAnalysis: () => void;
   onBulkApproveNeedsReview: () => void;
-  onContinueToDataCleansing: () => void;
   onReprocessMappings?: () => void;
   flowStatus?: string;
   hasFieldMappings?: boolean;
@@ -29,11 +27,9 @@ interface AttributeMappingHeaderProps {
 export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   mappingProgress,
   isAgenticLoading,
-  canContinueToDataCleansing,
   onRefetch,
   onTriggerAnalysis,
   onBulkApproveNeedsReview,
-  onContinueToDataCleansing,
   onReprocessMappings,
   flowStatus,
   hasFieldMappings,
@@ -164,16 +160,6 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
           >
             <RefreshCw className="h-4 w-4" />
             <span>Reprocess Mappings</span>
-          </Button>
-        )}
-
-        {canContinueToDataCleansing && (
-          <Button
-            onClick={onContinueToDataCleansing}
-            className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
-          >
-            <span>Continue to Data Cleansing</span>
-            <ArrowRight className="h-4 w-4" />
           </Button>
         )}
         </div>

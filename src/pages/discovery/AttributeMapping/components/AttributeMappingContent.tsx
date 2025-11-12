@@ -31,6 +31,9 @@ interface AttributeMappingContentProps {
   // NEW AGENTIC PROPS: SSE integration
   flowUpdates?: unknown;
   sseLastUpdate?: Date | null;
+  // Continue to data cleansing props
+  canContinueToDataCleansing?: boolean;
+  onContinueToDataCleansing?: () => void;
 }
 
 export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = ({
@@ -45,7 +48,9 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
   refetchAgentic,
   refetchCriticalAttributes,
   flowUpdates,
-  sseLastUpdate
+  sseLastUpdate,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
   const {
     agenticData,
@@ -285,6 +290,9 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
           learnedMappings={learnedMappings}
           clientAccountId={client?.id?.toString()}
           engagementId={engagement?.id?.toString()}
+          // Continue to data cleansing props
+          canContinueToDataCleansing={canContinueToDataCleansing}
+          onContinueToDataCleansing={onContinueToDataCleansing}
         />
       </div>
 

@@ -20,7 +20,9 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   onBulkLearnMappings,
   learnedMappings,
   clientAccountId,
-  engagementId
+  engagementId,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
   // Use cached field options instead of fetching every time
   const { availableFields, isLoading: fieldsLoading } = useFieldOptions();
@@ -69,6 +71,9 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         learnedMappings={learnedMappings}
         clientAccountId={clientAccountId}
         engagementId={engagementId}
+        // Continue to data cleansing props
+        canContinueToDataCleansing={canContinueToDataCleansing}
+        onContinueToDataCleansing={onContinueToDataCleansing}
       />
     </div>
   );

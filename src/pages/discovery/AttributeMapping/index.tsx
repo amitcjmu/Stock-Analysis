@@ -178,11 +178,9 @@ const AttributeMappingContainer: React.FC = () => {
                 <AttributeMappingHeader
                   mappingProgress={mappingProgress}
                   isAgenticLoading={isAgenticLoading}
-                  canContinueToDataCleansing={canContinueToDataCleansing()}
                   onRefetch={refetchAgentic}
                   onTriggerAnalysis={handleTriggerFieldMappingCrew}
                   onBulkApproveNeedsReview={handleBulkApproveNeedsReview}
-                  onContinueToDataCleansing={handleContinueToDataCleansing}
                   flowStatus={flowState?.status}
                   hasFieldMappings={fieldMappings && fieldMappings.length > 0}
                   fieldMappings={fieldMappings}
@@ -200,6 +198,8 @@ const AttributeMappingContainer: React.FC = () => {
                   onDataImportSelection={handleDataImportSelection}
                   refetchAgentic={refetchAgentic}
                   refetchCriticalAttributes={refetchCriticalAttributes}
+                  canContinueToDataCleansing={canContinueToDataCleansing()}
+                  onContinueToDataCleansing={handleContinueToDataCleansing}
                 />
 
 

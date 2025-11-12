@@ -36,6 +36,9 @@ interface AttributeMappingTabContentProps {
   learnedMappings?: Set<string>;
   clientAccountId?: string;
   engagementId?: string;
+  // Continue to data cleansing props
+  canContinueToDataCleansing?: boolean;
+  onContinueToDataCleansing?: () => void;
 }
 
 const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
@@ -57,7 +60,9 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   onBulkLearnMappings,
   learnedMappings,
   clientAccountId,
-  engagementId
+  engagementId,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
   const renderTabContent = (): JSX.Element => {
     switch (activeTab) {
@@ -84,6 +89,9 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
               learnedMappings={learnedMappings}
               clientAccountId={clientAccountId}
               engagementId={engagementId}
+              // Continue to data cleansing props
+              canContinueToDataCleansing={canContinueToDataCleansing}
+              onContinueToDataCleansing={onContinueToDataCleansing}
             />
           </FieldMappingErrorBoundary>
         );

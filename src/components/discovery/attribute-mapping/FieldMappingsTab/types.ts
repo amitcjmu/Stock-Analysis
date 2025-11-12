@@ -24,6 +24,9 @@ export interface FieldMappingsTabProps {
   learnedMappings?: Set<string>;
   clientAccountId?: string;
   engagementId?: string;
+  // Continue to data cleansing props
+  canContinueToDataCleansing?: boolean;
+  onContinueToDataCleansing?: () => void;
 }
 
 export interface RejectionDialogProps {
