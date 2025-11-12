@@ -9,7 +9,8 @@ import logging
 from typing import Any, Dict
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context_dependency
@@ -358,15 +359,27 @@ async def get_assessment_progress(
         )
 
 
+class ComplexityMetricsUpdate(BaseModel):
+    """Request body for complexity metrics update."""
+
+    complexity_score: int = Field(
+        ..., ge=1, le=10, description="Complexity score from 1-10"
+    )
+    architecture_type: str = Field(
+        ..., description="Architecture type (Monolithic, Microservices, etc.)"
+    )
+    customization_level: str = Field(
+        ..., description="Customization level (Low, Medium, High)"
+    )
+
+
 @router.put("/{flow_id}/applications/{app_id}/complexity-metrics")
 async def update_complexity_metrics(
     flow_id: str,
     app_id: str,
+    metrics: ComplexityMetricsUpdate,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
-    complexity_score: int = Body(..., ge=1, le=10),
-    architecture_type: str = Body(...),
-    customization_level: str = Body(...),
 ) -> Dict[str, Any]:
     """
     Update complexity metrics for an application in assessment flow.
@@ -384,7 +397,7 @@ async def update_complexity_metrics(
 
     try:
         # Validate architecture_type and customization_level
-        # (complexity_score already validated by Body(..., ge=1, le=10))
+        # (complexity_score already validated by Field(..., ge=1, le=10))
 
         valid_arch_types = [
             "Monolithic",
@@ -394,14 +407,14 @@ async def update_complexity_metrics(
             "Event-Driven",
             "Layered",
         ]
-        if architecture_type not in valid_arch_types:
+        if metrics.architecture_type not in valid_arch_types:
             raise HTTPException(
                 status_code=400,
                 detail=f"architecture_type must be one of: {', '.join(valid_arch_types)}",
             )
 
         valid_custom_levels = ["Low", "Medium", "High"]
-        if customization_level not in valid_custom_levels:
+        if metrics.customization_level not in valid_custom_levels:
             raise HTTPException(
                 status_code=400,
                 detail=f"customization_level must be one of: {', '.join(valid_custom_levels)}",
@@ -420,8 +433,8 @@ async def update_complexity_metrics(
                 Asset.engagement_id == engagement_uuid,
             )
             .values(
-                complexity_score=float(complexity_score),
-                application_type=architecture_type,
+                complexity_score=float(metrics.complexity_score),
+                application_type=metrics.architecture_type,
             )
         )
 
@@ -438,7 +451,7 @@ async def update_complexity_metrics(
         if custom_attr:
             # Update existing attributes
             attributes = custom_attr.attributes or {}
-            attributes["customization_level"] = customization_level
+            attributes["customization_level"] = metrics.customization_level
             await db.execute(
                 update(AssetCustomAttribute)
                 .where(AssetCustomAttribute.id == custom_attr.id)
@@ -454,7 +467,7 @@ async def update_complexity_metrics(
                 engagement_id=engagement_uuid,
                 asset_id=app_uuid,
                 asset_type="application",
-                attributes={"customization_level": customization_level},
+                attributes={"customization_level": metrics.customization_level},
                 source="assessment_flow_complexity",
             )
             db.add(new_attr)
@@ -463,15 +476,15 @@ async def update_complexity_metrics(
 
         logger.info(
             f"Updated complexity metrics for app {app_id}: "
-            f"score={complexity_score}, arch={architecture_type}, custom={customization_level}"
+            f"score={metrics.complexity_score}, arch={metrics.architecture_type}, custom={metrics.customization_level}"
         )
 
         return {
             "success": True,
             "app_id": app_id,
-            "complexity_score": complexity_score,
-            "architecture_type": architecture_type,
-            "customization_level": customization_level,
+            "complexity_score": metrics.complexity_score,
+            "architecture_type": metrics.architecture_type,
+            "customization_level": metrics.customization_level,
         }
 
     except HTTPException:
