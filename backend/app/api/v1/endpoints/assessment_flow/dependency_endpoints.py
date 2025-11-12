@@ -234,31 +234,30 @@ async def execute_dependency_analysis(
         master_flow_id = child_flow.master_flow_id  # ← FK to master flow
 
         # ============================================
-        # STEP 3: Call MFO with MASTER ID
+        # STEP 3: Use MFO resume pattern (like complexity page)
         # ============================================
-        # NOTE: MasterFlowOrchestrator should be imported here, but based on
-        # the codebase structure, we'll use the child flow service pattern
-        # which internally handles MFO integration.
+        # Import MFO lifecycle operations
+        from app.api.v1.endpoints.assessment_flow.mfo_integration import (
+            resume_assessment_flow,
+        )
 
-        # For now, we'll use a direct approach similar to other assessment endpoints
-        # that delegate to service layer for actual MFO execution
-
-        # Import MFO service here to avoid circular imports
-        from app.services.crewai_flows.lifecycle_commands import execute_phase_command
-
-        execution_result = await execute_phase_command(
-            master_flow_id=str(master_flow_id),  # ← MASTER flow ID (MFO routing)
-            phase_name="dependency_analysis",
-            phase_input={
-                # CRITICAL: Include CHILD flow ID for persistence!
-                "flow_id": flow_id,  # ← PhaseResultsPersistence uses this
-                "selected_application_ids": child_flow.selected_application_ids,
-                "trigger": "manual",
-                "source": "assessment_ui",
-            },
+        # Resume flow at dependency_analysis phase
+        # This triggers MFO to execute the phase via ExecutionEngineAssessmentCrews
+        resume_result = await resume_assessment_flow(
+            flow_id=master_flow_id,  # MFO expects master flow ID
             db=db,
             context=context,
+            phase="dependency_analysis",  # Canonical phase name (ADR-027)
         )
+
+        execution_result = {
+            "status": resume_result.get("status", "running"),
+            "phase": "dependency_analysis",
+            "message": "Dependency analysis phase execution started",
+            "flow_id": flow_id,  # Return child ID
+            "master_flow_id": str(master_flow_id),
+            "current_phase": resume_result.get("current_phase"),
+        }
 
         # ============================================
         # STEP 4: Return response with CHILD ID
