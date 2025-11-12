@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
+import { assessmentDependencyApi } from '@/lib/api/assessmentDependencyApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,31 +54,55 @@ const DependencyPage: React.FC = () => {
     }
   }, [flowId, navigate]);
 
+  // Fetch dependency analysis with React Query
+  const { data: dependencyData, isLoading: isDependencyLoading, refetch } = useQuery({
+    queryKey: ['assessment-dependency', flowId],
+    queryFn: () => assessmentDependencyApi.getDependencyAnalysis(flowId),
+    enabled: !!flowId && flowId !== 'XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX',
+    refetchInterval: (data) => {
+      // BUG FIX: Use proper comparison (NOT !!status === 'completed')
+      // Poll every 5s if phase is running, 15s otherwise, stop when completed
+      if (!data) return 5000;
+      const status = data.agent_results?.status;
+      if (status === 'completed') return false; // Stop polling when complete
+      // BUG FIX: Check for 'running' status (NOT 'processing')
+      return status === 'running' ? 5000 : 15000;
+    },
+    staleTime: 0, // Always fresh for status checks
+  });
+
   // Prevent rendering until flow is hydrated
   if (!flowId || state.status === 'idle') {
     return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
   }
 
-  // TODO: Replace with actual dependency data from backend
-  const dependencyData = null;
-  const isDependencyAnalysisComplete = false;
-
   // Extract dependency information from dependencyData
-  const appServerDependencies = dependencyData?.app_server_mapping || [];
-  const appAppDependencies = dependencyData?.cross_application_mapping || [];
-  const dependencyRelationships = dependencyData?.dependency_relationships || [];
-  const criticalDependencies = dependencyData?.critical_dependencies || [];
+  const dependencyGraph = dependencyData?.dependency_graph;
+  const appServerDependencies = dependencyData?.app_server_dependencies || [];
+  const appAppDependencies = dependencyData?.app_app_dependencies || [];
+  const agentResults = dependencyData?.agent_results;
+
+  // BUG FIX: Use proper status check (status === 'completed' NOT !!status === 'completed')
+  const isDependencyAnalysisComplete = agentResults?.status === 'completed';
 
   const handleRefresh = () => {
     console.log('[DependencyPage] Refresh dependency analysis');
-    // TODO: Implement refresh logic
+    refetch();
   };
 
-  const handleExecuteDependencyAnalysis = () => {
+  const handleExecuteDependencyAnalysis = async () => {
     console.log('[DependencyPage] Execute dependency analysis');
     setIsAnalyzing(true);
-    // TODO: Trigger dependency analysis
-    setTimeout(() => setIsAnalyzing(false), 2000);
+    try {
+      await assessmentDependencyApi.executeDependencyAnalysis(flowId);
+      // Refetch to get updated status
+      await refetch();
+    } catch (error) {
+      console.error('[DependencyPage] Failed to execute dependency analysis:', error);
+      alert(`Failed to start analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleSubmit = async (): void => {
@@ -152,9 +178,9 @@ const DependencyPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleRefresh}
-                disabled={state.isLoading}
+                disabled={isDependencyLoading}
               >
-                <RefreshCw className={`mr-2 h-4 w-4 ${state.isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`mr-2 h-4 w-4 ${isDependencyLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
               {!isDependencyAnalysisComplete && (
@@ -177,7 +203,8 @@ const DependencyPage: React.FC = () => {
             </div>
           )}
 
-          {state.status === 'processing' && (
+          {/* BUG FIX: Check for 'running' status instead of 'processing' */}
+          {agentResults?.status === 'running' && (
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
@@ -189,7 +216,7 @@ const DependencyPage: React.FC = () => {
           )}
 
           {/* Real-time Progress */}
-          {state.status === 'processing' && (
+          {agentResults?.status === 'running' && (
             <RealTimeProgressIndicator
               agentUpdates={state.agentUpdates}
               currentPhase="dependency_analysis"
@@ -228,30 +255,75 @@ const DependencyPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Placeholder Info */}
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start">
-                <AlertCircle className="mr-2 h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-blue-900 font-medium">Dependency Analysis Integration</p>
-                  <p className="text-blue-700 text-sm mt-1">
-                    This dependency analysis page is part of the Assessment flow (ADR-027 phase: dependency_analysis).
-                    Integration with backend dependency analysis services is in progress. The page will display:
-                  </p>
-                  <ul className="text-blue-700 text-sm mt-2 list-disc list-inside space-y-1">
-                    <li>Application-Server dependencies (hosting relationships)</li>
-                    <li>Application-Application dependencies (communication patterns)</li>
-                    <li>Inter-application dependencies and integration points</li>
-                    <li>Critical dependencies that impact migration sequencing</li>
-                  </ul>
+          {/* Dependency Statistics */}
+          {dependencyGraph && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Network className="mr-2 h-5 w-5" />
+                  Dependency Overview
+                </CardTitle>
+                <CardDescription>
+                  Summary of application and server dependencies
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {dependencyGraph.metadata.dependency_count}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Dependencies</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {dependencyGraph.metadata.app_count}
+                    </div>
+                    <div className="text-sm text-gray-600">Applications</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {dependencyGraph.metadata.server_count}
+                    </div>
+                    <div className="text-sm text-gray-600">Servers</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {dependencyGraph.metadata.node_count}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Nodes</div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Results */}
-          {isDependencyAnalysisComplete && dependencyData && (
+          {/* Info Card - Show when no data yet */}
+          {!dependencyGraph && !isDependencyLoading && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start">
+                  <AlertCircle className="mr-2 h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-blue-900 font-medium">Dependency Analysis</p>
+                    <p className="text-blue-700 text-sm mt-1">
+                      Click "Start Analysis" to begin AI-powered dependency analysis for the selected applications.
+                      The analysis will identify:
+                    </p>
+                    <ul className="text-blue-700 text-sm mt-2 list-disc list-inside space-y-1">
+                      <li>Application-Server dependencies (hosting relationships)</li>
+                      <li>Application-Application dependencies (communication patterns)</li>
+                      <li>Critical dependencies that impact migration sequencing</li>
+                      <li>Dependency complexity and risk factors</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Results - Show when we have dependency data */}
+          {dependencyData && appServerDependencies.length + appAppDependencies.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* App-Server Dependencies */}
               <Card>
@@ -261,17 +333,24 @@ const DependencyPage: React.FC = () => {
                     Application-Server Dependencies
                   </CardTitle>
                   <CardDescription>
-                    Hosting relationships and resource mappings
+                    Hosting relationships ({appServerDependencies.length} total)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {appServerDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appServerDependencies.slice(0, 5).map((relationship: AppServerDependency, index: number) => (
-                        <div key={`${relationship.application}-${relationship.server}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium">{relationship.application || `App ${index + 1}`}</p>
-                            <p className="text-sm text-gray-600">{relationship.server || `Server ${index + 1}`}</p>
+                      {appServerDependencies.slice(0, 5).map((dep: any, index: number) => (
+                        <div key={dep.dependency_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium">{dep.application_name || 'Unknown Application'}</p>
+                            <p className="text-sm text-gray-600">
+                              {dep.server_info?.hostname || dep.server_info?.name || 'Unknown Server'}
+                            </p>
+                            {dep.dependency_type && (
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {dep.dependency_type}
+                              </Badge>
+                            )}
                           </div>
                           <ArrowRight className="h-4 w-4 text-gray-400" />
                         </div>
@@ -296,19 +375,26 @@ const DependencyPage: React.FC = () => {
                     Application-Application Dependencies
                   </CardTitle>
                   <CardDescription>
-                    Communication patterns and API dependencies
+                    Communication patterns ({appAppDependencies.length} total)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {appAppDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appAppDependencies.slice(0, 5).map((pattern: AppAppDependency, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium">{pattern.source || `Source ${index + 1}`}</p>
-                            <p className="text-sm text-gray-600">{pattern.target || `Target ${index + 1}`}</p>
+                      {appAppDependencies.slice(0, 5).map((dep: any, index: number) => (
+                        <div key={dep.dependency_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium">{dep.source_app_name || 'Unknown Source'}</p>
+                            <p className="text-sm text-gray-600">
+                              → {dep.target_app_info?.application_name || dep.target_app_info?.name || 'Unknown Target'}
+                            </p>
+                            {dep.dependency_type && (
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {dep.dependency_type}
+                              </Badge>
+                            )}
                           </div>
-                          <Badge variant="outline">{pattern.type || 'API'}</Badge>
+                          <ArrowRight className="h-4 w-4 text-gray-400" />
                         </div>
                       ))}
                       {appAppDependencies.length > 5 && (
