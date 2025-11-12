@@ -7,10 +7,12 @@ Handles automatic phase transitions after completion of phase requirements.
 import logging
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import Integer, cast, func, select
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.data_import.mapping import ImportFieldMapping
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
     FlowPhaseManagementCommands,
 )
@@ -37,63 +39,115 @@ class DiscoveryPhaseTransitionService:
             Next phase name if transition occurred, None otherwise
         """
         try:
-            # First get the flow to extract client_account_id and engagement_id
-            flow_result = await self.db.execute(
-                select(DiscoveryFlow).where(DiscoveryFlow.id == flow_id)
+            logger.debug(
+                "Evaluating attribute_mapping transition readiness",
+                extra={"flow_id": flow_id},
             )
-            flow = flow_result.scalar_one_or_none()
+
+            # First get the flow to extract tenant context
+            try:
+                flow_result = await self.db.execute(
+                    select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+                )
+                flow = flow_result.scalar_one_or_none()
+            except SQLAlchemyError:
+                logger.exception(
+                    "Database error retrieving discovery flow during field mapping transition",
+                    extra={"flow_id": flow_id},
+                )
+                await self.db.rollback()
+                return None
 
             if not flow:
-                logger.error(f"Flow {flow_id} not found")
+                logger.error(
+                    "Flow not found when evaluating attribute_mapping transition",
+                    extra={"flow_id": flow_id},
+                )
+                return None
+
+            try:
+                master_status = None
+                if flow.master_flow_id:
+                    master_status_result = await self.db.execute(
+                        select(CrewAIFlowStateExtensions.flow_status).where(
+                            CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
+                        )
+                    )
+                    master_status = master_status_result.scalar_one_or_none()
+
+                if master_status and master_status.lower() != "running":
+                    logger.warning(
+                        "Master flow not in running state, skipping transition",
+                        extra={"flow_id": flow_id, "master_status": master_status},
+                    )
+                    return None
+            except SQLAlchemyError:
+                logger.exception(
+                    "Database error retrieving master flow status during field mapping transition",
+                    extra={"flow_id": flow_id},
+                )
+                await self.db.rollback()
                 return None
 
             # Check if all required field mappings are approved
-            approved_mappings = await self.db.execute(
-                select(ImportFieldMapping)
-                .where(ImportFieldMapping.master_flow_id == flow_id)
-                .where(ImportFieldMapping.is_approved.is_(True))
-            )
-            approved_count = len(approved_mappings.scalars().all())
+            try:
+                counts_query = (
+                    select(
+                        func.count().label("total"),
+                        func.sum(cast(ImportFieldMapping.is_approved, Integer)).label(
+                            "approved"
+                        ),
+                    )
+                    .select_from(ImportFieldMapping)
+                    .where(ImportFieldMapping.master_flow_id == flow_id)
+                )
+                counts_result = await self.db.execute(counts_query)
+                counts_row = counts_result.one()
+                total_count = counts_row.total
+                approved_count = counts_row.approved or 0
+            except SQLAlchemyError:
+                logger.exception(
+                    "Database error counting field mappings for transition",
+                    extra={"flow_id": flow_id},
+                )
+                await self.db.rollback()
+                return None
 
             if approved_count == 0:
                 logger.info(
-                    f"No approved mappings for flow {flow_id}, cannot transition"
+                    "No approved mappings, skipping attribute_mapping transition",
+                    extra={"flow_id": flow_id},
                 )
                 return None
-
-            # Check total mappings that need approval
-            total_mappings = await self.db.execute(
-                select(ImportFieldMapping).where(
-                    ImportFieldMapping.master_flow_id == flow_id
-                )
-            )
-            total_count = len(total_mappings.scalars().all())
 
             # Calculate approval percentage
             approval_percentage = (
                 (approved_count / total_count * 100) if total_count > 0 else 0
             )
 
-            # Log the threshold being used for transparency
-            logger.debug(
-                f"Using field mapping approval threshold: {FIELD_MAPPING_APPROVAL_THRESHOLD}% "
-                f"(configurable via FIELD_MAPPING_APPROVAL_THRESHOLD env var)"
-            )
-
             # Check if approval percentage meets the configurable threshold
             if approval_percentage < FIELD_MAPPING_APPROVAL_THRESHOLD:
                 logger.info(
-                    f"Approval threshold not met for flow {flow_id}: "
-                    f"{approval_percentage:.1f}% approved (need {FIELD_MAPPING_APPROVAL_THRESHOLD}%) "
-                    f"- {approved_count}/{total_count} mappings approved"
+                    "Approval threshold not met for attribute_mapping transition",
+                    extra={
+                        "flow_id": flow_id,
+                        "approved_mappings": approved_count,
+                        "total_mappings": total_count,
+                        "approval_percentage": round(approval_percentage, 2),
+                        "required_percentage": FIELD_MAPPING_APPROVAL_THRESHOLD,
+                    },
                 )
                 return None
 
-            # Log successful threshold achievement
             logger.info(
-                f"Approval threshold met for flow {flow_id}: "
-                f"{approval_percentage:.1f}% approved (threshold: {FIELD_MAPPING_APPROVAL_THRESHOLD}%) "
-                f"- {approved_count}/{total_count} mappings approved"
+                "Approval threshold satisfied for attribute_mapping transition",
+                extra={
+                    "flow_id": flow_id,
+                    "approved_mappings": approved_count,
+                    "total_mappings": total_count,
+                    "approval_percentage": round(approval_percentage, 2),
+                    "required_percentage": FIELD_MAPPING_APPROVAL_THRESHOLD,
+                },
             )
 
             # Create phase management with proper context from the flow
@@ -123,19 +177,31 @@ class DiscoveryPhaseTransitionService:
 
             if not transition_result.success:
                 logger.warning(
-                    f"Phase transition failed for flow {flow_id}: {transition_result.warnings}"
+                    "Field mapping transition failed during phase advancement",
+                    extra={
+                        "flow_id": flow_id,
+                        "warnings": transition_result.warnings,
+                    },
                 )
                 return None
 
             logger.info(
-                f"✅ Successfully transitioned flow {flow_id} from attribute_mapping "
-                f"to data_cleansing ({approved_count}/{total_count} mappings approved)"
+                "✅ Attribute_mapping transitioned to data_cleansing",
+                extra={
+                    "flow_id": flow_id,
+                    "approved_mappings": approved_count,
+                    "total_mappings": total_count,
+                    "approval_percentage": round(approval_percentage, 2),
+                },
             )
 
             return "data_cleansing"
 
-        except Exception as e:
-            logger.error(f"Error in phase transition for flow {flow_id}: {e}")
+        except Exception:
+            logger.exception(
+                "Unexpected error during attribute_mapping transition",
+                extra={"flow_id": flow_id},
+            )
             await self.db.rollback()
             return None
 
@@ -149,18 +215,57 @@ class DiscoveryPhaseTransitionService:
             Next phase name if transition occurred, None otherwise
         """
         try:
-            # Get the discovery flow
-            result = await self.db.execute(
-                select(DiscoveryFlow).where(DiscoveryFlow.id == flow_id)
+            logger.debug(
+                "Evaluating data_cleansing transition readiness",
+                extra={"flow_id": flow_id},
             )
-            flow = result.scalar_one_or_none()
+
+            # Get the discovery flow
+            try:
+                result = await self.db.execute(
+                    select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+                )
+                flow = result.scalar_one_or_none()
+            except SQLAlchemyError:
+                logger.exception(
+                    "Database error retrieving discovery flow during data cleansing transition",
+                    extra={"flow_id": flow_id},
+                )
+                await self.db.rollback()
+                return None
 
             if not flow:
-                logger.error(f"Discovery flow {flow_id} not found")
+                logger.error(
+                    "Discovery flow not found during data cleansing transition",
+                    extra={"flow_id": flow_id},
+                )
+                return None
+
+            try:
+                master_status = None
+                if flow.master_flow_id:
+                    master_status_result = await self.db.execute(
+                        select(CrewAIFlowStateExtensions.flow_status).where(
+                            CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
+                        )
+                    )
+                    master_status = master_status_result.scalar_one_or_none()
+
+                if master_status and master_status.lower() != "running":
+                    logger.warning(
+                        "Master flow not in running state, skipping data cleansing transition",
+                        extra={"flow_id": flow_id, "master_status": master_status},
+                    )
+                    return None
+            except SQLAlchemyError:
+                logger.exception(
+                    "Database error retrieving master flow status during data cleansing transition",
+                    extra={"flow_id": flow_id},
+                )
+                await self.db.rollback()
                 return None
 
             # Check if data cleansing has been marked complete
-            # This would typically be set by the data cleansing completion endpoint
             if flow.data_cleansing_completed:
                 # Transition to asset inventory phase using atomic helper
                 transition_result = await advance_phase(
@@ -169,19 +274,31 @@ class DiscoveryPhaseTransitionService:
 
                 if not transition_result.success:
                     logger.warning(
-                        f"Phase transition failed for flow {flow_id}: {transition_result.warnings}"
+                        "Data cleansing transition failed during phase advancement",
+                        extra={
+                            "flow_id": flow_id,
+                            "warnings": transition_result.warnings,
+                        },
                     )
                     return None
 
                 logger.info(
-                    f"✅ Successfully transitioned flow {flow_id} from data_cleansing to asset_inventory"
+                    "✅ Data_cleansing transitioned to asset_inventory",
+                    extra={"flow_id": flow_id},
                 )
 
                 return "asset_inventory"
 
+            logger.debug(
+                "Data cleansing not yet complete, skipping transition",
+                extra={"flow_id": flow_id},
+            )
             return None
 
-        except Exception as e:
-            logger.error(f"Error in phase transition for flow {flow_id}: {e}")
+        except Exception:
+            logger.exception(
+                "Unexpected error during data cleansing transition",
+                extra={"flow_id": flow_id},
+            )
             await self.db.rollback()
             return None
