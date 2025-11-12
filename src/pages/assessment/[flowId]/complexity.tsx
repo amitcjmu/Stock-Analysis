@@ -47,6 +47,11 @@ const ComplexityPage: React.FC = () => {
     }
   }, [state.selectedApplicationIds, selectedApp]);
 
+  // Get current application data - MUST be defined before useEffect that depends on it
+  const currentApp = useMemo(() => {
+    return state.selectedApplications.find(app => app.application_id === selectedApp);
+  }, [selectedApp, state.selectedApplications]);
+
   // Initialize editable fields from currentApp data
   useEffect(() => {
     if (currentApp) {
@@ -61,11 +66,6 @@ const ComplexityPage: React.FC = () => {
   if (!flowId || state.status === 'idle') {
     return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
   }
-
-  // Get current application data
-  const currentApp = useMemo(() => {
-    return state.selectedApplications.find(app => app.application_id === selectedApp);
-  }, [selectedApp, state.selectedApplications]);
 
   // Calculate architectural complexity metrics from CMDB/Discovery data
   // Uses editable state values that user can adjust
