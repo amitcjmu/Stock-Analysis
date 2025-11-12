@@ -318,7 +318,7 @@ def upgrade():
         )
         SELECT
             gen_random_uuid(),
-            (SELECT id FROM migration.collection_flows WHERE flow_name = 'System Migration - Canonical App Backfill' LIMIT 1),
+            cf.id,  -- FIXED: Use correlated JOIN instead of non-correlated subquery
             oa.asset_id,
             oa.application_name,
             ca.id,
@@ -333,7 +333,11 @@ def upgrade():
         JOIN canonical_apps ca
             ON ca.normalized_name = LOWER(REGEXP_REPLACE(oa.application_name, '[^a-zA-Z0-9]', '', 'g'))
             AND ca.client_account_id = oa.client_account_id
-            AND ca.engagement_id = oa.engagement_id;
+            AND ca.engagement_id = oa.engagement_id
+        JOIN migration.collection_flows cf
+            ON cf.client_account_id = oa.client_account_id
+            AND cf.engagement_id = oa.engagement_id
+            AND cf.flow_name = 'System Migration - Canonical App Backfill';
     """)
 
 def downgrade():

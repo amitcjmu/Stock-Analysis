@@ -121,7 +121,18 @@ async def resume_assessment_flow_endpoint(
                     # FIX FOR ISSUE #999: This endpoint needs engagement_id but doesn't have it
                     # Get it from the MFO state
                     mfo_state = await get_assessment_status_via_mfo(UUID(flow_id), db)
-                    engagement_id = mfo_state.get("engagement_id", "UNKNOWN_ENGAGEMENT")
+                    engagement_id = mfo_state.get("engagement_id")
+
+                    # CRITICAL: Validate engagement_id before queueing background task
+                    if not engagement_id:
+                        logger.error(
+                            f"[ISSUE-999] CRITICAL: Could not retrieve engagement_id for flow {flow_id}. "
+                            f"Aborting background task to prevent multi-tenant scoping violations."
+                        )
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to retrieve engagement_id for flow {flow_id}",
+                        )
 
                     logger.info(
                         f"[ISSUE-999] Adding background task for phase {resume_phase}, "
@@ -131,7 +142,7 @@ async def resume_assessment_flow_endpoint(
                         assessment_flow_processors.continue_assessment_flow,
                         flow_id,
                         str(client_account_id),  # Ensure string type
-                        str(engagement_id),  # Get from flow state
+                        str(engagement_id),  # Validated engagement_id from flow state
                         phase_enum,
                         str(current_user.id),  # Ensure string type
                     )

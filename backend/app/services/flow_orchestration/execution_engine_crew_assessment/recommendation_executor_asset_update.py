@@ -137,13 +137,13 @@ class AssetUpdateMixin:
                             )
                         )
                         .values(
-                            six_r_strategy=six_r_strategy.lower(),
-                            confidence_score=confidence_score,
-                            assessment_flow_id=assessment_flow_id,
-                            # Backfill application_name if empty or missing
-                            application_name=(
-                                app_name if app_name else Asset.application_name
-                            ),
+                            **{
+                                "six_r_strategy": six_r_strategy.lower(),
+                                "confidence_score": confidence_score,
+                                "assessment_flow_id": assessment_flow_id,
+                                # Backfill application_name only if provided
+                                **({"application_name": app_name} if app_name else {}),
+                            }
                         )
                     )
 

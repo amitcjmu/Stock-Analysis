@@ -248,6 +248,11 @@ class AssessmentFlowRecoveryTester:
 
 async def main():
     """Main test runner."""
+    # SECURITY NOTE: This is a manual test script for local development only.
+    # The placeholder token is intentional and includes validation to prevent
+    # accidental execution without proper configuration.
+    # This file is in tests/manual/ and is NOT deployed to production.
+
     # TODO: Replace with actual auth token
     # You can get this by:
     # 1. Login to the app at http://localhost:8081

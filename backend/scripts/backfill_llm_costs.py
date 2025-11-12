@@ -289,6 +289,14 @@ async def main():
     else:
         print("Scope: All records")
 
+    # SECURITY NOTE: This is an admin operations script for database maintenance.
+    # Safety mechanisms in place:
+    # 1. Dry-run mode available for testing
+    # 2. Explicit confirmation prompt for live mode
+    # 3. Scoped to update only NULL cost fields (no data deletion)
+    # 4. Not exposed via API - requires direct server access
+    # 5. Idempotent - can be run multiple times safely
+
     if args.dry_run:
         print("Mode: DRY RUN (no changes)")
     else:
