@@ -8,6 +8,9 @@ import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { AlertCircle, ArrowRight, Loader2, BarChart3, Code2, TrendingUp, AlertTriangle } from 'lucide-react';
 
 /**
@@ -24,6 +27,12 @@ const ComplexityPage: React.FC = () => {
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Editable complexity fields (user can adjust)
+  const [complexityScore, setComplexityScore] = useState<number>(1);
+  const [architectureType, setArchitectureType] = useState<string>('Monolithic');
+  const [customizationLevel, setCustomizationLevel] = useState<string>('Medium');
+  const [integrationCount, setIntegrationCount] = useState<number>(0);
+
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
     if (!flowId) {
@@ -38,6 +47,16 @@ const ComplexityPage: React.FC = () => {
     }
   }, [state.selectedApplicationIds, selectedApp]);
 
+  // Initialize editable fields from currentApp data
+  useEffect(() => {
+    if (currentApp) {
+      setComplexityScore(currentApp.complexity_score || 1);
+      setArchitectureType(currentApp.architecture_type || 'Monolithic');
+      setCustomizationLevel(currentApp.customization_level || 'Medium');
+      setIntegrationCount(currentApp.integration_count || 0);
+    }
+  }, [currentApp]);
+
   // Prevent rendering until flow is hydrated
   if (!flowId || state.status === 'idle') {
     return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
@@ -49,6 +68,7 @@ const ComplexityPage: React.FC = () => {
   }, [selectedApp, state.selectedApplications]);
 
   // Calculate architectural complexity metrics from CMDB/Discovery data
+  // Uses editable state values that user can adjust
   const complexityMetrics = useMemo(() => {
     if (!currentApp) return null;
 
@@ -62,14 +82,15 @@ const ComplexityPage: React.FC = () => {
     ) || false;
 
     return {
-      architectureType: currentApp.architecture_type || 'Monolithic',
+      architectureType: architectureType,  // From editable state
       componentCount: componentCount,
-      integrationCount: currentApp.integration_count || 0,
-      customizationLevel: currentApp.customization_level || 'Medium',
+      integrationCount: integrationCount,  // From editable state
+      customizationLevel: customizationLevel,  // From editable state
       migrationGroup: currentApp.migration_group || 'Not Assigned',
       hasDatabase: hasDatabase,
+      complexityScore: complexityScore,  // From editable state
     };
-  }, [currentApp]);
+  }, [currentApp, architectureType, integrationCount, customizationLevel, complexityScore]);
 
   const handleSubmit = async (): void => {
     console.log('[ComplexityPage] Submitting complexity analysis...');
@@ -216,12 +237,12 @@ const ComplexityPage: React.FC = () => {
                     {/* Overall Migration Complexity */}
                     <div className="text-center p-4 border rounded-lg">
                       <Code2 className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                      <div className={`text-3xl font-bold ${getComplexityColor(currentApp.complexity_score)}`}>
-                        {currentApp.complexity_score}/10
+                      <div className={`text-3xl font-bold ${getComplexityColor(complexityScore)}`}>
+                        {complexityScore}/10
                       </div>
                       <div className="text-sm text-gray-600 mt-1">Migration Complexity</div>
-                      <Badge variant={currentApp.complexity_score >= 7 ? 'destructive' : 'secondary'} className="mt-2">
-                        {currentApp.complexity_score >= 7 ? 'High' : currentApp.complexity_score >= 4 ? 'Medium' : 'Low'}
+                      <Badge variant={complexityScore >= 7 ? 'destructive' : 'secondary'} className="mt-2">
+                        {complexityScore >= 7 ? 'High' : complexityScore >= 4 ? 'Medium' : 'Low'}
                       </Badge>
                     </div>
 
@@ -298,6 +319,91 @@ const ComplexityPage: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Adjust Complexity Metrics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Adjust Complexity Metrics</CardTitle>
+                  <CardDescription>
+                    Update values below to see real-time changes in the tiles above
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Complexity Score Dropdown */}
+                    <div className="space-y-2">
+                      <Label htmlFor="complexity-score">Migration Complexity Score</Label>
+                      <Select
+                        value={complexityScore.toString()}
+                        onValueChange={(value) => setComplexityScore(parseInt(value))}
+                      >
+                        <SelectTrigger id="complexity-score">
+                          <SelectValue placeholder="Select complexity score" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+                            <SelectItem key={score} value={score.toString()}>
+                              {score}/10 - {score >= 7 ? 'High' : score >= 4 ? 'Medium' : 'Low'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Architecture Type Dropdown */}
+                    <div className="space-y-2">
+                      <Label htmlFor="architecture-type">Architecture Type</Label>
+                      <Select
+                        value={architectureType}
+                        onValueChange={setArchitectureType}
+                      >
+                        <SelectTrigger id="architecture-type">
+                          <SelectValue placeholder="Select architecture type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Monolithic">Monolithic</SelectItem>
+                          <SelectItem value="Microservices">Microservices</SelectItem>
+                          <SelectItem value="SOA">SOA (Service-Oriented Architecture)</SelectItem>
+                          <SelectItem value="Serverless">Serverless</SelectItem>
+                          <SelectItem value="Event-Driven">Event-Driven</SelectItem>
+                          <SelectItem value="Layered">Layered</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Customization Level Dropdown */}
+                    <div className="space-y-2">
+                      <Label htmlFor="customization-level">Customization Level</Label>
+                      <Select
+                        value={customizationLevel}
+                        onValueChange={setCustomizationLevel}
+                      >
+                        <SelectTrigger id="customization-level">
+                          <SelectValue placeholder="Select customization level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Low">Low - Minimal custom code</SelectItem>
+                          <SelectItem value="Medium">Medium - Moderate customization</SelectItem>
+                          <SelectItem value="High">High - Extensive custom code</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Integration Count Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="integration-count">Integration Points</Label>
+                      <Input
+                        id="integration-count"
+                        type="number"
+                        min="0"
+                        value={integrationCount}
+                        onChange={(e) => setIntegrationCount(parseInt(e.target.value) || 0)}
+                        placeholder="Number of integration points"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
 
