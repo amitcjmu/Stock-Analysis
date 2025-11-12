@@ -31,7 +31,7 @@ const ComplexityPage: React.FC = () => {
   const [complexityScore, setComplexityScore] = useState<number>(1);
   const [architectureType, setArchitectureType] = useState<string>('Monolithic');
   const [customizationLevel, setCustomizationLevel] = useState<string>('Medium');
-  const [integrationCount, setIntegrationCount] = useState<number>(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -56,9 +56,8 @@ const ComplexityPage: React.FC = () => {
   useEffect(() => {
     if (currentApp) {
       setComplexityScore(currentApp.complexity_score || 1);
-      setArchitectureType(currentApp.architecture_type || 'Monolithic');
+      setArchitectureType(currentApp.application_type || 'Monolithic');
       setCustomizationLevel(currentApp.customization_level || 'Medium');
-      setIntegrationCount(currentApp.integration_count || 0);
     }
   }, [currentApp]);
 
@@ -81,16 +80,58 @@ const ComplexityPage: React.FC = () => {
       tech.toLowerCase().includes('postgres')
     ) || false;
 
+    // Calculate integration count from dependencies array (read-only)
+    const integrationCount = (currentApp.dependencies?.length || 0) + (currentApp.dependents?.length || 0);
+
     return {
       architectureType: architectureType,  // From editable state
       componentCount: componentCount,
-      integrationCount: integrationCount,  // From editable state
+      integrationCount: integrationCount,  // Calculated from dependencies (read-only)
       customizationLevel: customizationLevel,  // From editable state
       migrationGroup: currentApp.migration_group || 'Not Assigned',
       hasDatabase: hasDatabase,
       complexityScore: complexityScore,  // From editable state
     };
-  }, [currentApp, architectureType, integrationCount, customizationLevel, complexityScore]);
+  }, [currentApp, architectureType, customizationLevel, complexityScore]);
+
+  const handleSaveMetrics = async (): Promise<void> => {
+    if (!selectedApp) {
+      console.warn('[ComplexityPage] No application selected');
+      return;
+    }
+
+    console.log('[ComplexityPage] Saving complexity metrics...');
+    setIsSaving(true);
+
+    try {
+      const response = await fetch(
+        `/api/v1/master-flows/${flowId}/applications/${selectedApp}/complexity-metrics?` +
+        `complexity_score=${complexityScore}&architecture_type=${encodeURIComponent(architectureType)}&customization_level=${encodeURIComponent(customizationLevel)}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to save metrics');
+      }
+
+      const result = await response.json();
+      console.log('[ComplexityPage] Metrics saved successfully', result);
+
+      // Show success feedback
+      alert('Complexity metrics saved successfully!');
+    } catch (error) {
+      console.error('[ComplexityPage] Failed to save metrics:', error);
+      alert(`Failed to save metrics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSubmit = async (): void => {
     console.log('[ComplexityPage] Submitting complexity analysis...');
@@ -388,19 +429,27 @@ const ComplexityPage: React.FC = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
 
-                    {/* Integration Count Input */}
-                    <div className="space-y-2">
-                      <Label htmlFor="integration-count">Integration Points</Label>
-                      <Input
-                        id="integration-count"
-                        type="number"
-                        min="0"
-                        value={integrationCount}
-                        onChange={(e) => setIntegrationCount(parseInt(e.target.value) || 0)}
-                        placeholder="Number of integration points"
-                      />
-                    </div>
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-4">
+                    <Button
+                      onClick={handleSaveMetrics}
+                      disabled={isSaving || !selectedApp}
+                      variant="outline"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Metrics
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

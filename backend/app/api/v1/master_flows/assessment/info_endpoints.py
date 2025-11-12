@@ -356,3 +356,130 @@ async def get_assessment_progress(
         raise HTTPException(
             status_code=500, detail=f"Failed to get assessment progress: {str(e)}"
         )
+
+
+@router.put("/{flow_id}/applications/{app_id}/complexity-metrics")
+async def update_complexity_metrics(
+    flow_id: str,
+    app_id: str,
+    complexity_score: int,
+    architecture_type: str,
+    customization_level: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> Dict[str, Any]:
+    """
+    Update complexity metrics for an application in assessment flow.
+
+    Stores:
+    - complexity_score (1-10) in assets.complexity_score
+    - architecture_type in assets.application_type
+    - customization_level in asset_custom_attributes.attributes
+    """
+    from sqlalchemy import select, update
+    from app.models.asset import Asset
+    from app.models.collection_flow.asset_custom_attributes import AssetCustomAttribute
+
+    try:
+        # Validate inputs
+        if not (1 <= complexity_score <= 10):
+            raise HTTPException(
+                status_code=400, detail="complexity_score must be between 1 and 10"
+            )
+
+        valid_arch_types = [
+            "Monolithic",
+            "Microservices",
+            "SOA",
+            "Serverless",
+            "Event-Driven",
+            "Layered",
+        ]
+        if architecture_type not in valid_arch_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"architecture_type must be one of: {', '.join(valid_arch_types)}",
+            )
+
+        valid_custom_levels = ["Low", "Medium", "High"]
+        if customization_level not in valid_custom_levels:
+            raise HTTPException(
+                status_code=400,
+                detail=f"customization_level must be one of: {', '.join(valid_custom_levels)}",
+            )
+
+        app_uuid = ensure_uuid(app_id)
+        client_uuid = ensure_uuid(context.client_account_id)
+        engagement_uuid = ensure_uuid(context.engagement_id)
+
+        # Update assets table: complexity_score and application_type
+        await db.execute(
+            update(Asset)
+            .where(
+                Asset.id == app_uuid,
+                Asset.client_account_id == client_uuid,
+                Asset.engagement_id == engagement_uuid,
+            )
+            .values(
+                complexity_score=float(complexity_score),
+                application_type=architecture_type,
+            )
+        )
+
+        # Update or create asset_custom_attributes for customization_level
+        result = await db.execute(
+            select(AssetCustomAttribute).where(
+                AssetCustomAttribute.asset_id == app_uuid,
+                AssetCustomAttribute.client_account_id == client_uuid,
+                AssetCustomAttribute.engagement_id == engagement_uuid,
+            )
+        )
+        custom_attr = result.scalar_one_or_none()
+
+        if custom_attr:
+            # Update existing attributes
+            attributes = custom_attr.attributes or {}
+            attributes["customization_level"] = customization_level
+            await db.execute(
+                update(AssetCustomAttribute)
+                .where(AssetCustomAttribute.id == custom_attr.id)
+                .values(attributes=attributes)
+            )
+        else:
+            # Create new custom attribute record
+            from uuid import uuid4
+
+            new_attr = AssetCustomAttribute(
+                id=uuid4(),
+                client_account_id=client_uuid,
+                engagement_id=engagement_uuid,
+                asset_id=app_uuid,
+                asset_type="application",
+                attributes={"customization_level": customization_level},
+                source="assessment_flow_complexity",
+            )
+            db.add(new_attr)
+
+        await db.commit()
+
+        logger.info(
+            f"Updated complexity metrics for app {app_id}: "
+            f"score={complexity_score}, arch={architecture_type}, custom={customization_level}"
+        )
+
+        return {
+            "success": True,
+            "app_id": app_id,
+            "complexity_score": complexity_score,
+            "architecture_type": architecture_type,
+            "customization_level": customization_level,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update complexity metrics for {app_id}: {str(e)}")
+        await db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update complexity metrics: {str(e)}"
+        )
