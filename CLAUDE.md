@@ -533,6 +533,137 @@ Before writing ANY code that handles API responses:
 - Use /opt/homebrew/bin/gh for all Git CLI tools and /opt/homebrew/bin/python3.11@ for all Python executions in the app
 - Never attempt to run npm run dev locally as ALL app related testing needs to be done on docker instances locally. The app runs on localhost:8081 NOT on port 3000
 
+### CRITICAL: Observability Enforcement (MANDATORY - November 2025)
+
+**All LLM calls and CrewAI task executions MUST be instrumented for cost tracking and performance monitoring.**
+
+See `/docs/guidelines/OBSERVABILITY_PATTERNS.md` for full documentation.
+
+#### LLM Call Tracking (Automatic)
+
+**All LLM calls are automatically tracked** via `litellm_tracking_callback.py` installed at app startup. No action needed for basic tracking.
+
+**For new code**, use `multi_model_service` for best tenant context:
+```python
+from app.services.multi_model_service import multi_model_service, TaskComplexity
+
+response = await multi_model_service.generate_response(
+    prompt="Your prompt",
+    task_type="analysis",
+    complexity=TaskComplexity.SIMPLE,
+    client_account_id=client_account_id,
+    engagement_id=engagement_id
+)
+# ✅ Automatically logged to llm_usage_logs with costs
+```
+
+**Legacy code** with direct `litellm.completion()` calls:
+- Already tracked via global LiteLLM callback (no changes needed)
+- Add tenant context to metadata if possible:
+```python
+response = litellm.completion(
+    model="deepinfra/llama-4",
+    messages=[...],
+    metadata={
+        "feature_context": "readiness_assessment",
+        "client_account_id": 1,
+        "engagement_id": 123
+    }
+)
+```
+
+#### Agent Task Tracking (Manual Integration Required)
+
+**MANDATORY for all CrewAI task execution** (enforced by pre-commit hooks):
+
+```python
+from app.services.crewai_flows.handlers.callback_handler_integration import (
+    CallbackHandlerIntegration
+)
+
+# 1. Create callback handler with tenant context
+callback_handler = CallbackHandlerIntegration.create_callback_handler(
+    flow_id=str(master_flow.flow_id),
+    context={
+        "client_account_id": str(master_flow.client_account_id),
+        "engagement_id": str(master_flow.engagement_id),
+        "flow_type": "assessment",  # or "discovery", "collection"
+        "phase": "readiness"
+    }
+)
+callback_handler.setup_callbacks()
+
+# 2. Create task
+task = Task(
+    description="Your task description",
+    expected_output="Expected output format",
+    agent=(agent._agent if hasattr(agent, "_agent") else agent)
+)
+
+# 3. Register task start BEFORE execution
+callback_handler._step_callback({
+    "type": "starting",
+    "status": "starting",
+    "agent": "readiness_assessor",
+    "task": "readiness_assessment",
+    "content": "Starting task description"
+})
+
+# 4. Execute task
+future = task.execute_async(context=context_str)
+result = await asyncio.wrap_future(future)
+
+# 5. Mark completion with status
+callback_handler._task_completion_callback({
+    "agent": "readiness_assessor",
+    "task_name": "readiness_assessment",
+    "status": "completed" if result else "failed",
+    "task_id": "readiness_task",
+    "output": result
+})
+```
+
+#### Pre-Commit Enforcement
+
+Pre-commit hooks will **block commits** that violate observability patterns:
+
+**CRITICAL** (blocks commit):
+- `task.execute_async()` without `CallbackHandler` in scope
+
+**ERROR** (blocks commit):
+- Direct `litellm.completion()` calls (use `multi_model_service` instead)
+
+**WARNING** (allows commit):
+- `crew.kickoff()` without `callbacks` parameter
+
+#### Viewing Observability Data
+
+**Grafana Dashboards** (http://localhost:9999):
+- **LLM Costs**: `/d/llm-costs/` - Cost tracking by model/provider
+- **Agent Activity**: `/d/agent-activity/` - Agent performance and usage
+- **CrewAI Flows**: `/d/crewai-flows/` - Flow execution metrics
+
+**Database Tables**:
+- `migration.llm_usage_logs` - All LLM API calls with costs
+- `migration.agent_task_history` - CrewAI task execution tracking
+- `migration.llm_model_pricing` - Cost per 1K tokens by model
+
+#### Why This Matters
+
+1. **Cost Control**: Track LLM spending by model, provider, feature (average $0.50-$2.00 per flow)
+2. **Performance**: Identify slow agents and bottlenecks (target: <5s response time)
+3. **Quality**: Monitor success rates and error patterns (target: >95% success rate)
+4. **Multi-Tenant**: Understand usage per client and engagement for billing
+5. **Debugging**: Trace agent task execution flow with detailed logs
+
+#### Exemptions
+
+Observability NOT required for:
+- Test code (`backend/tests/`)
+- Migration scripts (`backend/alembic/versions/`)
+- Utility scripts (unless they call LLMs)
+- Legacy code before November 2025 (but encouraged to adopt)
+
 ## Architectural Review Guidelines for AI Agents
 
 ### Critical: Before Claiming Something Doesn't Exist

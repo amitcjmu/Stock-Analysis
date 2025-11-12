@@ -5,10 +5,14 @@ import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayo
 import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
+import { apiClient } from '@/lib/api/apiClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ArrowRight, Loader2, BarChart3, Code2, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { AlertCircle, ArrowRight, Loader2, BarChart3, Code2, TrendingUp, AlertTriangle, Save } from 'lucide-react';
 
 /**
  * Complexity Analysis Page
@@ -24,6 +28,12 @@ const ComplexityPage: React.FC = () => {
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Editable complexity fields (user can adjust)
+  const [complexityScore, setComplexityScore] = useState<number>(1);
+  const [architectureType, setArchitectureType] = useState<string>('Monolithic');
+  const [customizationLevel, setCustomizationLevel] = useState<string>('Medium');
+  const [isSaving, setIsSaving] = useState(false);
+
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
     if (!flowId) {
@@ -38,29 +48,85 @@ const ComplexityPage: React.FC = () => {
     }
   }, [state.selectedApplicationIds, selectedApp]);
 
+  // Get current application data - MUST be defined before useEffect that depends on it
+  const currentApp = useMemo(() => {
+    return state.selectedApplications.find(app => app.application_id === selectedApp);
+  }, [selectedApp, state.selectedApplications]);
+
+  // Initialize editable fields from currentApp data
+  useEffect(() => {
+    if (currentApp) {
+      setComplexityScore(currentApp.complexity_score || 1);
+      setArchitectureType(currentApp.application_type || 'Monolithic');
+      setCustomizationLevel(currentApp.customization_level || 'Medium');
+    }
+  }, [currentApp]);
+
   // Prevent rendering until flow is hydrated
   if (!flowId || state.status === 'idle') {
     return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
   }
 
-  // Get current application data
-  const currentApp = useMemo(() => {
-    return state.selectedApplications.find(app => app.application_id === selectedApp);
-  }, [selectedApp, state.selectedApplications]);
-
-  // Calculate complexity metrics (placeholder until backend provides real data)
+  // Calculate architectural complexity metrics from CMDB/Discovery data
+  // Uses editable state values that user can adjust
   const complexityMetrics = useMemo(() => {
     if (!currentApp) return null;
 
-    // TODO: Replace with actual complexity data from backend
+    // Architectural complexity based on CMDB data (NOT code metrics)
+    const componentCount = currentApp.technology_stack?.length || 0;
+    const hasDatabase = currentApp.technology_stack?.some((tech: string) =>
+      tech.toLowerCase().includes('database') ||
+      tech.toLowerCase().includes('sql') ||
+      tech.toLowerCase().includes('oracle') ||
+      tech.toLowerCase().includes('postgres')
+    ) || false;
+
+    // Calculate integration count from dependencies array (read-only)
+    const integrationCount = (currentApp.dependencies?.length || 0) + (currentApp.dependents?.length || 0);
+
     return {
-      cyclomaticComplexity: currentApp.complexity_score * 10 || 0,
-      maintainabilityIndex: Math.max(0, 100 - (currentApp.complexity_score * 8)) || 0,
-      linesOfCode: Math.floor(Math.random() * 100000) + 10000,
-      technicalDebtRatio: currentApp.complexity_score * 5 || 0,
-      codeSmells: Math.floor(currentApp.complexity_score * 3) || 0,
+      architectureType: architectureType,  // From editable state
+      componentCount: componentCount,
+      integrationCount: integrationCount,  // Calculated from dependencies (read-only)
+      customizationLevel: customizationLevel,  // From editable state
+      migrationGroup: currentApp.migration_group || 'Not Assigned',
+      hasDatabase: hasDatabase,
+      complexityScore: complexityScore,  // From editable state
     };
-  }, [currentApp]);
+  }, [currentApp, architectureType, customizationLevel, complexityScore]);
+
+  const handleSaveMetrics = async (): Promise<void> => {
+    if (!selectedApp) {
+      console.warn('[ComplexityPage] No application selected');
+      return;
+    }
+
+    console.log('[ComplexityPage] Saving complexity metrics...');
+    setIsSaving(true);
+
+    try {
+      // CRITICAL: Use apiClient for multi-tenant security headers
+      // Per CLAUDE.md - PUT requests use request body, NOT query parameters
+      const result = await apiClient.put(
+        `/api/v1/master-flows/${flowId}/applications/${selectedApp}/complexity-metrics`,
+        {
+          complexity_score: complexityScore,
+          architecture_type: architectureType,
+          customization_level: customizationLevel,
+        }
+      );
+
+      console.log('[ComplexityPage] Metrics saved successfully', result);
+
+      // Show success feedback
+      alert('Complexity metrics saved successfully!');
+    } catch (error) {
+      console.error('[ComplexityPage] Failed to save metrics:', error);
+      alert(`Failed to save metrics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSubmit = async (): void => {
     console.log('[ComplexityPage] Submitting complexity analysis...');
@@ -111,11 +177,16 @@ const ComplexityPage: React.FC = () => {
     return 'text-green-600';
   };
 
-  const getMaintainabilityColor = (score: number): string => {
-    if (score >= 75) return 'text-green-600';
-    if (score >= 50) return 'text-yellow-600';
-    if (score >= 25) return 'text-orange-600';
-    return 'text-red-600';
+  const getArchitectureTypeColor = (type: string): string => {
+    if (type.toLowerCase().includes('microservice')) return 'text-orange-600';
+    if (type.toLowerCase().includes('soa')) return 'text-yellow-600';
+    return 'text-blue-600';  // Monolithic
+  };
+
+  const getCustomizationLevelColor = (level: string): string => {
+    if (level.toLowerCase() === 'high') return 'text-red-600';
+    if (level.toLowerCase() === 'medium') return 'text-yellow-600';
+    return 'text-green-600';
   };
 
   if (state.selectedApplicationIds.length === 0) {
@@ -139,10 +210,10 @@ const ComplexityPage: React.FC = () => {
           {/* Header */}
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-gray-900">
-              Complexity Analysis
+              Migration Complexity Analysis
             </h1>
             <p className="text-gray-600">
-              Analyze code complexity metrics, maintainability index, and cyclomatic complexity
+              Analyze architectural complexity, integration points, and migration readiness (based on CMDB data, not code scanning)
             </p>
           </div>
 
@@ -159,7 +230,7 @@ const ComplexityPage: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
                 <p className="text-sm text-blue-600">
-                  AI agents are analyzing code complexity...
+                  AI agents are analyzing architectural migration complexity...
                 </p>
               </div>
             </div>
@@ -186,84 +257,79 @@ const ComplexityPage: React.FC = () => {
 
           {selectedApp && currentApp && complexityMetrics && (
             <>
-              {/* Complexity Overview Card */}
+              {/* Migration Complexity Overview Card */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <BarChart3 className="h-5 w-5" />
-                    <span>Complexity Overview</span>
+                    <span>Migration Complexity Overview</span>
                   </CardTitle>
                   <CardDescription>
-                    Key complexity metrics for {currentApp.application_name}
+                    Architectural complexity analysis for {currentApp.application_name}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Complexity Score */}
+                    {/* Overall Migration Complexity */}
                     <div className="text-center p-4 border rounded-lg">
                       <Code2 className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                      <div className={`text-3xl font-bold ${getComplexityColor(currentApp.complexity_score)}`}>
-                        {currentApp.complexity_score}/10
+                      <div className={`text-3xl font-bold ${getComplexityColor(complexityScore)}`}>
+                        {complexityScore}/10
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">Complexity Score</div>
-                      <Badge variant={currentApp.complexity_score >= 7 ? 'destructive' : 'secondary'} className="mt-2">
-                        {currentApp.complexity_score >= 7 ? 'High' : currentApp.complexity_score >= 4 ? 'Medium' : 'Low'}
+                      <div className="text-sm text-gray-600 mt-1">Migration Complexity</div>
+                      <Badge variant={complexityScore >= 7 ? 'destructive' : 'secondary'} className="mt-2">
+                        {complexityScore >= 7 ? 'High' : complexityScore >= 4 ? 'Medium' : 'Low'}
                       </Badge>
                     </div>
 
-                    {/* Maintainability Index */}
+                    {/* Architecture Type */}
                     <div className="text-center p-4 border rounded-lg">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                      <div className={`text-3xl font-bold ${getMaintainabilityColor(complexityMetrics.maintainabilityIndex)}`}>
-                        {Math.round(complexityMetrics.maintainabilityIndex)}
+                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                      <div className={`text-2xl font-bold ${getArchitectureTypeColor(complexityMetrics.architectureType)}`}>
+                        {complexityMetrics.architectureType}
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">Maintainability Index</div>
-                      <Badge
-                        variant={complexityMetrics.maintainabilityIndex >= 50 ? 'secondary' : 'destructive'}
-                        className="mt-2"
-                      >
-                        {complexityMetrics.maintainabilityIndex >= 75 ? 'Excellent' :
-                         complexityMetrics.maintainabilityIndex >= 50 ? 'Good' :
-                         complexityMetrics.maintainabilityIndex >= 25 ? 'Fair' : 'Poor'}
+                      <div className="text-sm text-gray-600 mt-1">Architecture Type</div>
+                      <Badge variant="outline" className="mt-2">
+                        {complexityMetrics.hasDatabase ? 'With Database' : 'Stateless'}
                       </Badge>
                     </div>
 
-                    {/* Cyclomatic Complexity */}
+                    {/* Customization Level */}
                     <div className="text-center p-4 border rounded-lg">
                       <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-                      <div className="text-3xl font-bold text-orange-600">
-                        {Math.round(complexityMetrics.cyclomaticComplexity)}
+                      <div className={`text-2xl font-bold ${getCustomizationLevelColor(complexityMetrics.customizationLevel)}`}>
+                        {complexityMetrics.customizationLevel}
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">Cyclomatic Complexity</div>
-                      <Badge variant="outline" className="mt-2">
-                        Avg per Function
+                      <div className="text-sm text-gray-600 mt-1">Customization Level</div>
+                      <Badge variant={complexityMetrics.customizationLevel === 'High' ? 'destructive' : 'outline'} className="mt-2">
+                        Custom Code Impact
                       </Badge>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Detailed Metrics */}
+              {/* Architectural Details */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Detailed Metrics</CardTitle>
+                  <CardTitle>Architectural Details</CardTitle>
                   <CardDescription>
-                    Code quality and technical debt indicators
+                    Component and integration complexity indicators
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium">Lines of Code</span>
-                      <span className="text-sm font-semibold">{complexityMetrics.linesOfCode.toLocaleString()}</span>
+                      <span className="text-sm font-medium">Technology Components</span>
+                      <span className="text-sm font-semibold">{complexityMetrics.componentCount} components</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium">Technical Debt Ratio</span>
-                      <span className="text-sm font-semibold">{complexityMetrics.technicalDebtRatio.toFixed(1)}%</span>
+                      <span className="text-sm font-medium">Integration Points</span>
+                      <span className="text-sm font-semibold">{complexityMetrics.integrationCount} integrations</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium">Code Smells</span>
-                      <span className="text-sm font-semibold">{complexityMetrics.codeSmells}</span>
+                      <span className="text-sm font-medium">Migration Group</span>
+                      <span className="text-sm font-semibold">{complexityMetrics.migrationGroup}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -289,6 +355,99 @@ const ComplexityPage: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Adjust Complexity Metrics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Adjust Complexity Metrics</CardTitle>
+                  <CardDescription>
+                    Update values below to see real-time changes in the tiles above
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Complexity Score Dropdown */}
+                    <div className="space-y-2">
+                      <Label htmlFor="complexity-score">Migration Complexity Score</Label>
+                      <Select
+                        value={complexityScore.toString()}
+                        onValueChange={(value) => setComplexityScore(parseInt(value))}
+                      >
+                        <SelectTrigger id="complexity-score">
+                          <SelectValue placeholder="Select complexity score" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+                            <SelectItem key={score} value={score.toString()}>
+                              {score}/10 - {score >= 7 ? 'High' : score >= 4 ? 'Medium' : 'Low'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Architecture Type Dropdown */}
+                    <div className="space-y-2">
+                      <Label htmlFor="architecture-type">Architecture Type</Label>
+                      <Select
+                        value={architectureType}
+                        onValueChange={setArchitectureType}
+                      >
+                        <SelectTrigger id="architecture-type">
+                          <SelectValue placeholder="Select architecture type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Monolithic">Monolithic</SelectItem>
+                          <SelectItem value="Microservices">Microservices</SelectItem>
+                          <SelectItem value="SOA">SOA (Service-Oriented Architecture)</SelectItem>
+                          <SelectItem value="Serverless">Serverless</SelectItem>
+                          <SelectItem value="Event-Driven">Event-Driven</SelectItem>
+                          <SelectItem value="Layered">Layered</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Customization Level Dropdown */}
+                    <div className="space-y-2">
+                      <Label htmlFor="customization-level">Customization Level</Label>
+                      <Select
+                        value={customizationLevel}
+                        onValueChange={setCustomizationLevel}
+                      >
+                        <SelectTrigger id="customization-level">
+                          <SelectValue placeholder="Select customization level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Low">Low - Minimal custom code</SelectItem>
+                          <SelectItem value="Medium">Medium - Moderate customization</SelectItem>
+                          <SelectItem value="High">High - Extensive custom code</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end mt-4">
+                    <Button
+                      onClick={handleSaveMetrics}
+                      disabled={isSaving || !selectedApp}
+                      variant="outline"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Metrics
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
 

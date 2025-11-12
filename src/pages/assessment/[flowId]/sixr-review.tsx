@@ -215,6 +215,7 @@ const SixRStrategyReview: React.FC = () => {
     try {
       console.log('[SixRReview] Resuming flow to next phase...');
       const resumeResponse = await resumeFlow({
+        phase: 'risk_assessment',
         action: 'continue',
         data: {
           accepted_recommendations: Array.from(acceptedRecommendations)

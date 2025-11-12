@@ -110,10 +110,10 @@ class AssessmentDataRepository(
         self, flow: AssessmentFlow, phase_name: str
     ) -> Dict[str, Any]:
         """Extract results for a specific phase from flow state."""
-        if not flow or not flow.flow_state:
+        if not flow or not flow.phase_results:
             return {}
 
-        phase_data = flow.flow_state.get(phase_name, {})
+        phase_data = flow.phase_results.get(phase_name, {})
         return phase_data if isinstance(phase_data, dict) else {}
 
     def _extract_business_constraints(self, flow: AssessmentFlow) -> Dict[str, Any]:

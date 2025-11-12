@@ -200,6 +200,17 @@ repos:
         stages: [pre-commit]
         description: "Ensure all database queries include client_account_id and engagement_id filters"
 
+      # LLM Observability Check - Enforce CallbackHandler usage for Grafana dashboards
+      - id: check-llm-observability
+        name: Check LLM Observability (enforce CallbackHandler for CrewAI)
+        entry: /opt/homebrew/bin/python3.12 backend/scripts/check_llm_observability.py
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+        description: "Enforce CallbackHandler usage for CrewAI tasks and prevent direct LLM calls"
+
 # Exclude patterns
 exclude: |
   (?x)^(

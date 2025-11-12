@@ -81,7 +81,10 @@ class ReadinessQueriesMixin:
         try:
             query = select(AssessmentFlow).where(
                 and_(
-                    AssessmentFlow.flow_id == UUID(flow_id),
+                    AssessmentFlow.id
+                    == UUID(
+                        flow_id
+                    ),  # Fixed: AssessmentFlow uses 'id' not 'flow_id' (ISSUE-999)
                     AssessmentFlow.client_account_id == self.client_account_id,
                     AssessmentFlow.engagement_id == self.engagement_id,
                 )
@@ -105,6 +108,63 @@ class ReadinessQueriesMixin:
             return list(result.scalars().all())
         except Exception as e:
             logger.warning(f"Error fetching applications: {e}")
+            return []
+
+    async def _get_selected_applications(
+        self, application_ids: List[Any]
+    ) -> List[CanonicalApplication]:
+        """
+        Get specific applications by IDs with tenant scoping.
+
+        ISSUE-999: Added for per-application 6R strategy generation.
+
+        Args:
+            application_ids: List of canonical application UUIDs
+
+        Returns:
+            List of CanonicalApplication models matching the IDs
+        """
+        try:
+            from uuid import UUID
+
+            # Convert string IDs to UUID objects if needed
+            uuid_ids = []
+            for app_id in application_ids:
+                if isinstance(app_id, str):
+                    uuid_ids.append(UUID(app_id))
+                elif isinstance(app_id, UUID):
+                    uuid_ids.append(app_id)
+                else:
+                    logger.warning(
+                        f"[ISSUE-999] Skipping invalid application ID type: {type(app_id)}"
+                    )
+
+            if not uuid_ids:
+                logger.warning(
+                    "[ISSUE-999] No valid application IDs provided, returning empty list"
+                )
+                return []
+
+            query = select(CanonicalApplication).where(
+                and_(
+                    CanonicalApplication.client_account_id == self.client_account_id,
+                    CanonicalApplication.engagement_id == self.engagement_id,
+                    CanonicalApplication.id.in_(uuid_ids),
+                )
+            )
+            result = await self.db.execute(query)
+            apps = list(result.scalars().all())
+
+            logger.info(
+                f"[ISSUE-999] Retrieved {len(apps)} applications "
+                f"from {len(uuid_ids)} requested IDs"
+            )
+
+            return apps
+        except Exception as e:
+            logger.error(
+                f"[ISSUE-999] Error fetching selected applications: {e}", exc_info=True
+            )
             return []
 
     async def _get_servers(self) -> List[Asset]:

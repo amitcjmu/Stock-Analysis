@@ -126,6 +126,34 @@ async def initialize_assessment_from_canonical(
             f"with 0 assets. These will create empty application groups."
         )
 
+    # Step 3.5: CRITICAL VALIDATION - Verify asset readiness before creating flow
+    # Per user requirement: "ensure pre-requisites are met BEFORE they go through"
+    if all_asset_ids:
+        from app.services.integrations.discovery_integration import (
+            DiscoveryFlowIntegration,
+        )
+
+        discovery_integration = DiscoveryFlowIntegration()
+        try:
+            await discovery_integration.verify_applications_ready_for_assessment(
+                db=db,
+                application_ids=[str(aid) for aid in all_asset_ids],
+                client_account_id=client_account_id,
+            )
+            logger.info(
+                f"✅ Validated {len(all_asset_ids)} assets are ready for assessment"
+            )
+        except ValueError as e:
+            logger.error(f"❌ Asset readiness validation failed: {str(e)}")
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Assets not ready for assessment",
+                    "message": str(e),
+                    "action": "Complete discovery and data collection for all assets before starting assessment",
+                },
+            )
+
     # Step 4: Create assessment flow using existing service
     from app.services.assessment.application_resolver import (
         AssessmentApplicationResolver,

@@ -16,6 +16,7 @@ from .dependency_executor import DependencyExecutorMixin
 from .tech_debt_executor import TechDebtExecutorMixin
 from .risk_executor import RiskExecutorMixin
 from .recommendation_executor import RecommendationExecutorMixin
+from .recommendation_executor_asset_update import AssetUpdateMixin  # ISSUE-999
 
 logger = get_logger(__name__)
 
@@ -27,6 +28,7 @@ class ExecutionEngineAssessmentCrews(
     TechDebtExecutorMixin,
     RiskExecutorMixin,
     RecommendationExecutorMixin,
+    AssetUpdateMixin,  # ISSUE-999: Asset table updates
 ):
     """
     Assessment flow CrewAI execution handlers using persistent agents.
@@ -177,6 +179,102 @@ class ExecutionEngineAssessmentCrews(
             logger.error(f"Failed to get agent for phase {phase_name}: {e}")
             raise
 
+    async def _validate_phase_prerequisites(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        phase_name: str,
+        phase_input: Dict[str, Any],
+    ) -> None:
+        """
+        Validate that prerequisites are met before executing a phase.
+
+        Per user requirement: "ensure pre-requisites are met BEFORE they go through current phase"
+
+        Validates:
+        1. Asset readiness (discovery_status='completed', assessment_readiness='ready')
+        2. Prior phase completion (cannot skip phases)
+        3. Minimum data requirements for phase
+
+        Args:
+            master_flow: Master flow state
+            phase_name: Name of phase to validate
+            phase_input: Input data for the phase
+
+        Raises:
+            ValueError: If prerequisites not met
+        """
+        from app.repositories.assessment_flow_repository import (
+            AssessmentFlowRepository,
+        )
+
+        # Get current flow state
+        repo = AssessmentFlowRepository(
+            db=self.crew_utils.db,
+            client_account_id=master_flow.client_account_id,
+            engagement_id=master_flow.engagement_id,
+            user_id=None,  # Not needed for read operations
+        )
+
+        flow_state = await repo.get_assessment_flow_state(str(master_flow.flow_id))
+        if not flow_state:
+            raise ValueError(f"Assessment flow {master_flow.flow_id} not found")
+
+        # Define phase progression order
+        phase_order = [
+            "initialization",
+            "readiness_assessment",
+            "complexity_analysis",
+            "dependency_analysis",
+            "tech_debt_assessment",
+            "risk_assessment",
+            "recommendation_generation",
+        ]
+
+        # Get current phase index
+        try:
+            current_idx = phase_order.index(phase_name)
+        except ValueError:
+            # Unknown phase - allow execution (may be custom phase)
+            logger.warning(
+                f"Phase '{phase_name}' not in standard progression - skipping prerequisite check"
+            )
+            return
+
+        # Check that prior phases are completed
+        phase_results = flow_state.phase_results or {}
+        for idx, prior_phase in enumerate(phase_order[:current_idx]):
+            if prior_phase not in phase_results:
+                raise ValueError(
+                    f"Cannot execute phase '{phase_name}' - prior phase '{prior_phase}' not completed. "
+                    f"Please complete phases in order: {' → '.join(phase_order)}"
+                )
+
+        # For first phase only: Validate asset readiness
+        if phase_name == "readiness_assessment" or phase_name == "initialization":
+            selected_app_ids = flow_state.selected_application_ids or []
+            if selected_app_ids:
+                from app.services.integrations.discovery_integration import (
+                    DiscoveryFlowIntegration,
+                )
+
+                discovery_integration = DiscoveryFlowIntegration()
+                try:
+                    await discovery_integration.verify_applications_ready_for_assessment(
+                        db=self.crew_utils.db,
+                        application_ids=selected_app_ids,
+                        client_account_id=master_flow.client_account_id,
+                    )
+                    logger.info(
+                        f"✅ Phase prerequisite validation passed: "
+                        f"{len(selected_app_ids)} assets ready for '{phase_name}'"
+                    )
+                except ValueError as e:
+                    raise ValueError(
+                        f"Cannot execute phase '{phase_name}' - asset readiness check failed: {str(e)}"
+                    )
+
+        logger.info(f"✅ All prerequisites met for phase '{phase_name}'")
+
     async def execute_assessment_phase(
         self,
         master_flow: CrewAIFlowStateExtensions,
@@ -202,6 +300,14 @@ class ExecutionEngineAssessmentCrews(
         )
 
         try:
+            # CRITICAL: Validate phase prerequisites before execution
+            # Per user requirement: "ensure pre-requisites are met BEFORE they go through current phase"
+            await self._validate_phase_prerequisites(
+                master_flow=master_flow,
+                phase_name=phase_config.name,
+                phase_input=phase_input,
+            )
+
             # Initialize persistent agent pool for this tenant
             agent_pool = await self.get_agent_pool(master_flow)
 
@@ -244,8 +350,11 @@ class ExecutionEngineAssessmentCrews(
                 master_flow.engagement_id,
             )
 
+            # CRITICAL FIX (ISSUE-999): Save results to ASSESSMENT FLOW, not master flow!
+            # Per ADR-012: Assessment flow is the child flow that stores operational data
+            assessment_flow_id = phase_input.get("flow_id", str(master_flow.flow_id))
             await persistence.save_phase_results(
-                str(master_flow.flow_id), phase_config.name, result
+                assessment_flow_id, phase_config.name, result
             )
 
             # Add metadata about persistent agent usage and result persistence

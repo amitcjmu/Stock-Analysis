@@ -98,7 +98,12 @@ const ArchitecturePage: React.FC = () => {
       await updateArchitectureStandards(standards, overrides);
 
       console.log('[ArchitecturePage] Resuming flow...');
-      const resumeResponse = await resumeFlow({ standards, overrides });
+      const resumeResponse = await resumeFlow({
+        phase: 'readiness_assessment',
+        action: 'continue',
+        standards,
+        overrides
+      });
 
       console.log('[ArchitecturePage] Flow resumed successfully', {
         newPhase: resumeResponse.current_phase,
