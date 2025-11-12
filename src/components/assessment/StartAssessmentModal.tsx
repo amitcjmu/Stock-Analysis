@@ -138,9 +138,11 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
         }
       );
 
-      // Navigate to new assessment flow
+      // Navigate to new assessment flow - directly to architecture phase
+      // Per Bug #999 investigation: Navigate to first phase instead of overview page
+      // Overview page has no "Start Assessment" button, causing users to get stuck
       const flowId = response.flow_id;
-      navigate(`/assessment?flow_id=${flowId}`);
+      navigate(`/assessment/${flowId}/architecture`);
       onClose();
     } catch (err: any) {
       console.error('Failed to create assessment:', err);
