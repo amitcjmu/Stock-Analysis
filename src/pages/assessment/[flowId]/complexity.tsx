@@ -5,6 +5,7 @@ import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayo
 import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
+import { apiClient } from '@/lib/api/apiClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -104,28 +105,17 @@ const ComplexityPage: React.FC = () => {
     setIsSaving(true);
 
     try {
-      // CRITICAL: Per CLAUDE.md - PUT requests MUST use request body, NOT query parameters
-      const response = await fetch(
+      // CRITICAL: Use apiClient for multi-tenant security headers
+      // Per CLAUDE.md - PUT requests use request body, NOT query parameters
+      const result = await apiClient.put(
         `/api/v1/master-flows/${flowId}/applications/${selectedApp}/complexity-metrics`,
         {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            complexity_score: complexityScore,
-            architecture_type: architectureType,
-            customization_level: customizationLevel,
-          }),
+          complexity_score: complexityScore,
+          architecture_type: architectureType,
+          customization_level: customizationLevel,
         }
       );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to save metrics');
-      }
-
-      const result = await response.json();
       console.log('[ComplexityPage] Metrics saved successfully', result);
 
       // Show success feedback
