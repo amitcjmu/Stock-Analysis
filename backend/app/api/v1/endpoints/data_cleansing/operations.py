@@ -4,8 +4,8 @@ Core data cleansing operations including analysis, stats, and triggering.
 """
 
 import logging
-import uuid
 from datetime import datetime, timezone
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -34,9 +34,16 @@ from .base import (
 )
 from .validation import _validate_and_get_flow, _get_data_import_for_flow
 from .analysis import _perform_data_cleansing_analysis
+from .resolution_operations import router as resolution_router
+from .suggestion_operations import router as suggestion_router
+from app.api.v1.api_tags import APITags
 
 # Create operations router
 router = APIRouter()
+
+# Include sub-routers
+router.include_router(resolution_router, tags=[APITags.DATA_CLEANSING_RESOLUTION])
+router.include_router(suggestion_router, tags=[APITags.DATA_CLEANSING_SUGGESTIONS])
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +75,13 @@ async def get_data_cleansing_analysis(
         )
 
         # Get flow repository with proper context
+        # Per ADR-012: Use child flow (DiscoveryFlow) for operational decisions
         flow_repo = DiscoveryFlowRepository(
             db, context.client_account_id, context.engagement_id
         )
 
         # Verify flow exists and user has access (READ-ONLY check)
+        # Returns DiscoveryFlow (child flow) - per ADR-012 for operational state
         try:
             flow = await flow_repo.get_by_flow_id(flow_id)
             if not flow:
@@ -90,6 +99,7 @@ async def get_data_cleansing_analysis(
             ) from e
 
         # Log current flow status for debugging
+        # Per ADR-012: flow.status is child flow operational status (not master flow)
         logger.info(
             f"🔍 Flow {flow_id} current status: {flow.status} (before data lookup)"
         )
@@ -258,8 +268,10 @@ async def get_data_cleansing_stats(
                 f"📊 Stats - Data import {data_import.id}: actual_count={actual_count}, "
                 f"total_records field={data_import.total_records}, using={total_records}"
             )
-        except Exception as e:
-            logger.exception("Failed to get actual record count, using total_records field")
+        except Exception:
+            logger.exception(
+                "Failed to get actual record count, using total_records field"
+            )
             total_records = (
                 data_import.total_records if data_import.total_records else 0
             )
@@ -296,7 +308,7 @@ async def get_data_cleansing_stats(
     "/flows/{flow_id}/data-cleansing/quality-issues/{issue_id}",
     response_model=ResolveQualityIssueResponse,
     summary="Resolve or ignore a quality issue",
-    tags=["Data Cleansing Operations"],
+    tags=[APITags.DATA_CLEANSING_OPERATIONS],
 )
 async def resolve_quality_issue(
     flow_id: str,
@@ -330,8 +342,10 @@ async def resolve_quality_issue(
         )
 
         # Verify flow exists and user has access
+        # Per ADR-012: Returns DiscoveryFlow (child flow) for operational decisions
         flow = await _validate_and_get_flow(flow_id, flow_repo)
 
+        # Per ADR-012: flow.status is child flow operational status
         logger.info(f"Flow {flow_id} found: {flow.flow_name} (status: {flow.status})")
 
         # Prepare resolution data with audit trail
@@ -347,6 +361,7 @@ async def resolve_quality_issue(
         }
 
         # Get existing data_cleansing_results or initialize
+        # Per ADR-012: Store operational state in child flow's crewai_state_data
         existing_data = flow.crewai_state_data or {}
         data_cleansing_results = existing_data.get("data_cleansing_results", {})
 
@@ -407,7 +422,7 @@ async def resolve_quality_issue(
     "/flows/{flow_id}/data-cleansing/recommendations/{recommendation_id}",
     response_model=ApplyRecommendationResponse,
     summary="Apply or reject a cleansing recommendation",
-    tags=["Data Cleansing Operations"],
+    tags=[APITags.DATA_CLEANSING_OPERATIONS],
 )
 async def apply_recommendation(
     flow_id: str,
@@ -441,8 +456,10 @@ async def apply_recommendation(
         )
 
         # Verify flow exists and user has access
+        # Per ADR-012: Returns DiscoveryFlow (child flow) for operational decisions
         flow = await _validate_and_get_flow(flow_id, flow_repo)
 
+        # Per ADR-012: flow.status is child flow operational status
         logger.info(f"Flow {flow_id} found: {flow.flow_name} (status: {flow.status})")
 
         # Prepare action data with audit trail
@@ -484,10 +501,13 @@ async def apply_recommendation(
                         db_rec.status = action_status
                         db_rec.action_notes = request.notes
                         db_rec.applied_by_user_id = str(current_user.id)
-                        db_rec.applied_at = applied_at_datetime  # Use datetime object for database
+                        db_rec.applied_at = (
+                            applied_at_datetime  # Use datetime object for database
+                        )
 
                         logger.info(
-                            f"Updating recommendation {recommendation_id} with action '{request.action}' for flow {flow_id}"
+                            f"Updating recommendation {recommendation_id} "
+                            f"with action '{request.action}' for flow {flow_id}"
                         )
 
                         # Commit changes to database
@@ -504,7 +524,10 @@ async def apply_recommendation(
                 except Exception as db_error:
                     # Check if the error is due to table not existing
                     error_msg = str(db_error)
-                    if "does not exist" in error_msg or "UndefinedTableError" in error_msg:
+                    if (
+                        "does not exist" in error_msg
+                        or "UndefinedTableError" in error_msg
+                    ):
                         # Table doesn't exist - fall back to legacy storage
                         logger.warning(
                             f"Recommendation table does not exist. "
@@ -514,12 +537,14 @@ async def apply_recommendation(
                     else:
                         # Re-raise if it's a different error
                         logger.exception("Database error during recommendation lookup")
-                        raise RuntimeError("Database error during recommendation lookup") from db_error
+                        raise RuntimeError(
+                            "Database error during recommendation lookup"
+                        ) from db_error
 
         except HTTPException:
             # Re-raise HTTP exceptions
             raise
-        except Exception as e:
+        except Exception:
             # If database operation fails for other reasons, log and fall back to JSONB
             logger.exception(
                 f"Failed to update recommendation in database. "
@@ -534,6 +559,7 @@ async def apply_recommendation(
                 f"Storing recommendation action in JSONB (fallback) for recommendation {recommendation_id}"
             )
             # Fall back to legacy storage method
+            # Per ADR-012: Store operational state in child flow's crewai_state_data
             existing_data = flow.crewai_state_data or {}
             data_cleansing_results = existing_data.get("data_cleansing_results", {})
 
