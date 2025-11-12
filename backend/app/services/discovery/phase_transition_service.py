@@ -7,7 +7,7 @@ Handles automatic phase transitions after completion of phase requirements.
 import logging
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select
+from sqlalchemy import Integer, cast, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.discovery_flow import DiscoveryFlow
@@ -65,18 +65,24 @@ class DiscoveryPhaseTransitionService:
                 return None
 
             # Check if all required field mappings are approved
-            approved_count_query = (
-                select(func.count())
-                .select_from(ImportFieldMapping)
-                .where(ImportFieldMapping.master_flow_id == flow_id)
-                .where(ImportFieldMapping.is_approved)
-            )
             try:
-                approved_count_result = await self.db.execute(approved_count_query)
-                approved_count = approved_count_result.scalar_one()
+                counts_query = (
+                    select(
+                        func.count().label("total"),
+                        func.sum(cast(ImportFieldMapping.is_approved, Integer)).label(
+                            "approved"
+                        ),
+                    )
+                    .select_from(ImportFieldMapping)
+                    .where(ImportFieldMapping.master_flow_id == flow_id)
+                )
+                counts_result = await self.db.execute(counts_query)
+                counts_row = counts_result.one()
+                total_count = counts_row.total
+                approved_count = counts_row.approved or 0
             except SQLAlchemyError:
                 logger.exception(
-                    "Database error counting approved field mappings",
+                    "Database error counting field mappings for transition",
                     extra={"flow_id": flow_id},
                 )
                 await self.db.rollback()
@@ -87,23 +93,6 @@ class DiscoveryPhaseTransitionService:
                     "No approved mappings, skipping attribute_mapping transition",
                     extra={"flow_id": flow_id},
                 )
-                return None
-
-            # Check total mappings that need approval
-            total_count_query = (
-                select(func.count())
-                .select_from(ImportFieldMapping)
-                .where(ImportFieldMapping.master_flow_id == flow_id)
-            )
-            try:
-                total_count_result = await self.db.execute(total_count_query)
-                total_count = total_count_result.scalar_one()
-            except SQLAlchemyError:
-                logger.exception(
-                    "Database error counting total field mappings",
-                    extra={"flow_id": flow_id},
-                )
-                await self.db.rollback()
                 return None
 
             # Calculate approval percentage

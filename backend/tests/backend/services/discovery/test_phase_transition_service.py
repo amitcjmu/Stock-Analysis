@@ -39,18 +39,12 @@ async def test_phase_transition_uses_crew_flow_id(monkeypatch):
     flow_result = MagicMock()
     flow_result.scalar_one_or_none.return_value = flow
 
-    approved_count_result = MagicMock()
-    approved_count_result.scalar_one.return_value = 1
-
-    total_count_result = MagicMock()
-    total_count_result.scalar_one.return_value = 1
+    counts_row = MagicMock(total=1, approved=1)
+    counts_result = MagicMock()
+    counts_result.one.return_value = counts_row
 
     db_session = AsyncMock()
-    db_session.execute.side_effect = [
-        flow_result,
-        approved_count_result,
-        total_count_result,
-    ]
+    db_session.execute.side_effect = [flow_result, counts_result]
 
     mock_phase_mgmt = AsyncMock()
     monkeypatch.setattr(
