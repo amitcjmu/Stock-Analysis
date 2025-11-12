@@ -47,6 +47,7 @@ def upgrade():
 
     # Step 1: Create "System Migration" collection flows (one per tenant)
     # Note: collection_flows requires flow_id, user_id, automation_tier, progress_percentage
+    # We use the first available user_id from the users table as a system placeholder
     conn.execute(
         sa.text(
             """
@@ -68,9 +69,9 @@ def upgrade():
             gen_random_uuid(),  -- flow_id (required)
             client_account_id,
             engagement_id,
-            client_account_id,  -- user_id (use client_account_id as placeholder)
+            (SELECT id FROM migration.users LIMIT 1),  -- user_id (required FK to users table)
             'System Migration - Canonical App Backfill',
-            'SEMI_AUTOMATED',  -- automation_tier (required enum)
+            'tier_1',  -- automation_tier (required enum: tier_1, tier_2, tier_3, tier_4)
             'completed',
             100.0,  -- progress_percentage (required, default 0.0)
             NOW(),
@@ -117,27 +118,35 @@ def upgrade():
             created_at,
             updated_at
         )
-        SELECT DISTINCT ON (client_account_id, engagement_id, normalized_name)
+        SELECT DISTINCT ON (orphaned_apps.client_account_id, orphaned_apps.engagement_id, orphaned_apps.name_hash)
             gen_random_uuid(),
-            application_name,
-            LOWER(REGEXP_REPLACE(application_name, '[^a-zA-Z0-9]', '', 'g')),
-            MD5(LOWER(REGEXP_REPLACE(application_name, '[^a-zA-Z0-9]', '', 'g'))),
-            client_account_id,
-            engagement_id,
+            orphaned_apps.application_name,
+            orphaned_apps.normalized_name,
+            orphaned_apps.name_hash,
+            orphaned_apps.client_account_id,
+            orphaned_apps.engagement_id,
             0.5,  -- Lower confidence for backfilled apps
             FALSE,
             1,
             NOW(),
             NOW()
-        FROM migration.assets
-        WHERE application_name IS NOT NULL
-            AND application_name != ''
-            AND NOT EXISTS (
-                SELECT 1
-                FROM migration.collection_flow_applications cfa
-                WHERE cfa.asset_id = assets.id
-            )
-        ON CONFLICT (client_account_id, engagement_id, name_hash)
+        FROM (
+            SELECT DISTINCT
+                application_name,
+                LOWER(REGEXP_REPLACE(application_name, '[^a-zA-Z0-9]', '', 'g')) AS normalized_name,
+                MD5(LOWER(REGEXP_REPLACE(application_name, '[^a-zA-Z0-9]', '', 'g'))) AS name_hash,
+                client_account_id,
+                engagement_id
+            FROM migration.assets
+            WHERE application_name IS NOT NULL
+                AND application_name != ''
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM migration.collection_flow_applications cfa
+                    WHERE cfa.asset_id = assets.id
+                )
+        ) AS orphaned_apps
+        ON CONFLICT (client_account_id, engagement_id, normalized_name)
         DO NOTHING;  -- Idempotent: Don't update existing canonical apps on reruns
     """
         )

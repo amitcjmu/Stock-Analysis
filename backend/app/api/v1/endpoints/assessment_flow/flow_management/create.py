@@ -88,7 +88,7 @@ async def initialize_assessment_flow(
             client_account_id=UUID(client_account_id),
             engagement_id=UUID(engagement_id),
             application_ids=application_ids_uuid,
-            user_id=current_user.id,
+            user_id=str(current_user.id),  # Convert UUID to string for VARCHAR column
             flow_name=request.flow_name if hasattr(request, "flow_name") else None,
             source_collection_id=request.source_collection_id,  # Fix for Issue #861
             db=db,
@@ -110,7 +110,8 @@ async def initialize_assessment_flow(
             flow_id=flow_id,  # Master flow_id from MFO
             status=result["status"],
             current_phase=result["current_phase"],
-            next_phase=AssessmentPhase.ARCHITECTURE_MINIMUMS,
+            # Per ADR-027: Use READINESS_ASSESSMENT not deprecated ARCHITECTURE_MINIMUMS
+            next_phase=AssessmentPhase.READINESS_ASSESSMENT,
             selected_applications=result["selected_applications"],
             message=result["message"],
         )

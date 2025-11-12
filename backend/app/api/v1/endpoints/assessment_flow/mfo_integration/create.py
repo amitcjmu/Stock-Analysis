@@ -68,63 +68,68 @@ async def create_assessment_via_mfo(
     flow_id = uuid4()
 
     try:
-        async with db.begin():
-            # Step 1: Create master flow in crewai_flow_state_extensions
-            # Per ADR-006: Master flow is the single source of truth for lifecycle
-            master_flow = CrewAIFlowStateExtensions(
-                flow_id=flow_id,
-                flow_type="assessment",
-                flow_name=flow_name or f"Assessment Flow {flow_id}",
-                flow_status="running",  # High-level lifecycle status
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                user_id=user_id,
-                flow_configuration={
-                    "application_count": len(application_ids),
-                    "created_via": "assessment_flow_api",
-                    "mfo_integrated": True,
-                },
-                flow_persistence_data={},
-            )
-            db.add(master_flow)
+        # Step 1: Create master flow in crewai_flow_state_extensions
+        # Per ADR-006: Master flow is the single source of truth for lifecycle
+        master_flow = CrewAIFlowStateExtensions(
+            flow_id=flow_id,
+            flow_type="assessment",
+            flow_name=flow_name or f"Assessment Flow {flow_id}",
+            flow_status="running",  # High-level lifecycle status
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            user_id=user_id,
+            flow_configuration={
+                "application_count": len(application_ids),
+                "created_via": "assessment_flow_api",
+                "mfo_integrated": True,
+            },
+            flow_persistence_data={},
+        )
+        db.add(master_flow)
 
-            # Flush to make master_flow.flow_id available for foreign key
-            await db.flush()
+        # Flush to make master_flow.flow_id available for foreign key
+        await db.flush()
 
-            # Step 2: Create child assessment flow in assessment_flows table
-            # Per ADR-012: Child flow contains operational state for UI and agents
+        # Step 2: Create child assessment flow in assessment_flows table
+        # Per ADR-012: Child flow contains operational state for UI and agents
 
-            # Build flow_metadata (Issue #861: Store source_collection for app loading)
-            flow_metadata = {}
-            if source_collection_id:
-                flow_metadata["source_collection"] = {
-                    "collection_flow_id": str(source_collection_id),
-                    "linked_at": datetime.utcnow().isoformat(),
-                }
+        # Build flow_metadata (Issue #861: Store source_collection for app loading)
+        flow_metadata = {}
+        if source_collection_id:
+            flow_metadata["source_collection"] = {
+                "collection_flow_id": str(source_collection_id),
+                "linked_at": datetime.utcnow().isoformat(),
+            }
 
-            child_flow = AssessmentFlow(
-                # AssessmentFlow uses 'id' as PK, not 'flow_id' (CodeRabbit fix)
-                master_flow_id=master_flow.flow_id,  # FK reference for relationship
-                engagement_id=engagement_id,
-                client_account_id=client_account_id,
-                flow_name=flow_name or f"Assessment Flow {flow_id}",
-                status=AssessmentFlowStatus.INITIALIZED.value,
-                current_phase=AssessmentPhase.ARCHITECTURE_MINIMUMS.value,
-                progress=0,
-                selected_application_ids=[str(app_id) for app_id in application_ids],
-                selected_asset_ids=[str(app_id) for app_id in application_ids],
-                flow_metadata=flow_metadata,  # Store source collection link
-                configuration={
-                    "application_count": len(application_ids),
-                    "auto_progression_enabled": True,
-                },
-                runtime_state={
-                    "initialized_at": datetime.utcnow().isoformat(),
-                },
-            )
-            db.add(child_flow)
+        child_flow = AssessmentFlow(
+            # AssessmentFlow uses 'id' as PK, not 'flow_id' (CodeRabbit fix)
+            master_flow_id=master_flow.flow_id,  # FK reference for relationship
+            engagement_id=engagement_id,
+            client_account_id=client_account_id,
+            flow_name=flow_name or f"Assessment Flow {flow_id}",
+            status=AssessmentFlowStatus.INITIALIZED.value,
+            # Per ADR-027: Use INITIALIZATION not deprecated ARCHITECTURE_MINIMUMS
+            current_phase=AssessmentPhase.INITIALIZATION.value,
+            progress=0,
+            selected_application_ids=[str(app_id) for app_id in application_ids],
+            selected_asset_ids=[str(app_id) for app_id in application_ids],
+            flow_metadata=flow_metadata,  # Store source collection link
+            configuration={
+                "application_count": len(application_ids),
+                "auto_progression_enabled": True,
+            },
+            runtime_state={
+                "initialized_at": datetime.utcnow().isoformat(),
+            },
+        )
+        db.add(child_flow)
 
-            # Step 3: Transaction commits automatically on context exit
+        # Step 3: Commit the transaction (FastAPI will handle rollback on error)
+        await db.commit()
+
+        # Refresh instances to get database-generated values
+        await db.refresh(master_flow)
+        await db.refresh(child_flow)
 
         logger.info(
             safe_log_format(
