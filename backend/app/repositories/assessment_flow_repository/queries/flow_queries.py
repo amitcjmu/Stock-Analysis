@@ -6,7 +6,7 @@ import logging
 import uuid
 from typing import List, Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -43,6 +43,8 @@ class FlowQueries:
         # Get main flow record with eager loading
         # Note: Only load relationships that have assessment_flow_id FK in database
         # Per E2E testing Issue #2 fix: Only application_overrides has the FK
+        # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
+        # Frontend/MFO uses master_flow_id, but some code uses child flow ID
         result = await self.db.execute(
             select(AssessmentFlow)
             .options(
@@ -50,7 +52,10 @@ class FlowQueries:
             )
             .where(
                 and_(
-                    AssessmentFlow.id == flow_id,
+                    or_(
+                        AssessmentFlow.id == flow_id,
+                        AssessmentFlow.master_flow_id == flow_id,
+                    ),
                     AssessmentFlow.client_account_id == self.client_account_id,
                 )
             )
@@ -198,10 +203,14 @@ class FlowQueries:
         # Convert string to UUID if needed
         flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
 
+        # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
         result = await self.db.execute(
             select(AssessmentFlow).where(
                 and_(
-                    AssessmentFlow.id == flow_uuid,
+                    or_(
+                        AssessmentFlow.id == flow_uuid,
+                        AssessmentFlow.master_flow_id == flow_uuid,
+                    ),
                     AssessmentFlow.client_account_id == self.client_account_id,
                 )
             )

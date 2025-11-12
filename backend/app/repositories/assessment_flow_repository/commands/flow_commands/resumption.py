@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, or_, select, update
 
 from app.models.assessment_flow import AssessmentFlow
 from app.models.assessment_flow_state import AssessmentFlowStatus
@@ -28,10 +28,14 @@ async def resume_flow(self, flow_id: str, user_input: Dict[str, Any]) -> Dict[st
     flow_config = flow_type_registry.get_flow_config("assessment")
 
     # Get current flow state
+    # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
     result = await self.db.execute(
         select(AssessmentFlow).where(
             and_(
-                AssessmentFlow.id == flow_id,
+                or_(
+                    AssessmentFlow.id == flow_id,
+                    AssessmentFlow.master_flow_id == flow_id,
+                ),
                 AssessmentFlow.client_account_id == self.client_account_id,
             )
         )
