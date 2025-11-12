@@ -93,7 +93,7 @@ def upgrade():
     )
 
     # Step 2: Create canonical applications for orphaned assets
-    # Uses ON CONFLICT to handle duplicates (increments usage_count if already exists)
+    # Uses ON CONFLICT DO NOTHING to ensure idempotency (no updates on reruns)
     conn.execute(
         sa.text(
             """
@@ -131,9 +131,7 @@ def upgrade():
                 WHERE cfa.asset_id = assets.id
             )
         ON CONFLICT (client_account_id, engagement_id, name_hash)
-        DO UPDATE SET
-            usage_count = migration.canonical_applications.usage_count + 1,
-            updated_at = NOW();
+        DO NOTHING;  -- Idempotent: Don't update existing canonical apps on reruns
     """
         )
     )
@@ -202,8 +200,13 @@ def downgrade():
 
     Reverses the upgrade by:
     1. Deleting junction records created by migration
-    2. Deleting System Migration collection flows
-    3. Leaving canonical applications (may be in use by other flows)
+    2. Deleting orphaned canonical applications (no remaining references)
+    3. Deleting System Migration collection flows
+
+    This downgrade is safe and fully reversible:
+    - Only removes canonical apps with ZERO remaining junction records
+    - Preserves canonical apps that were adopted by subsequent flows
+    - No foreign key violations
     """
 
     conn = op.get_bind()
@@ -218,7 +221,25 @@ def downgrade():
         )
     )
 
-    # Step 2: Delete System Migration collection flows
+    # Step 2: Delete orphaned canonical applications
+    # Only delete canonical apps with NO remaining junction records
+    # This preserves canonical apps that were adopted by other flows
+    conn.execute(
+        sa.text(
+            """
+        DELETE FROM migration.canonical_applications
+        WHERE id IN (
+            SELECT ca.id
+            FROM migration.canonical_applications ca
+            LEFT JOIN migration.collection_flow_applications cfa
+                ON ca.id = cfa.canonical_application_id
+            WHERE cfa.id IS NULL  -- No junction records reference this canonical app
+        );
+    """
+        )
+    )
+
+    # Step 3: Delete System Migration collection flows
     conn.execute(
         sa.text(
             """
@@ -227,8 +248,3 @@ def downgrade():
     """
         )
     )
-
-    # Note: We don't delete canonical_applications because:
-    # 1. They may have been matched by subsequent collection flows
-    # 2. Other junction records may reference them
-    # 3. Deleting would violate referential integrity
