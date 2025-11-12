@@ -16,7 +16,7 @@ async def update_planning_flow(self, ...) -> Optional[PlanningFlow]:
     stmt = update(PlanningFlow).where(...).values(**updates)
     await self.db.execute(stmt)
     await self.db.flush()  # ✅ Flushes to DB but doesn't commit
-    
+
     updated_flow = await self.get_planning_flow_by_id(...)
     return updated_flow
 ```
@@ -74,7 +74,7 @@ async def update_entity(self, entity_id: UUID, **updates):
     stmt = update(Entity).where(Entity.id == entity_id).values(**updates)
     await self.db.execute(stmt)
     await self.db.flush()  # Send to DB but don't commit
-    
+
     # Fetch updated entity within same transaction
     updated = await self.get_entity_by_id(entity_id)
     return updated

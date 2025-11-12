@@ -119,7 +119,7 @@ Add to `~/.gitconfig`:
 [alias]
     # Verify branch before creating new one
     safe-branch = "!f() { git checkout main && git pull origin main && git checkout -b \"$1\"; }; f"
-    
+
     # Check if current branch diverged from main
     check-base = "!git log --oneline --graph --decorate --all | head -20"
 ```

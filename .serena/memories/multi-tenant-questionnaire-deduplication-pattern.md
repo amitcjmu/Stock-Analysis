@@ -57,20 +57,20 @@ if failed_questionnaire:
     failed_questionnaire.description = "Generating tailored questionnaire..."
     await db.commit()
     await db.refresh(failed_questionnaire)
-    
+
     # Trigger background regeneration with updated ID
     questionnaire_id = failed_questionnaire.id
     task = asyncio.create_task(_background_generate(questionnaire_id, ...))
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
-    
+
     return  # Skip creating new questionnaire
 ```
 
 ## Multi-Tenant Isolation Levels
 
-**Organization-level**: `client_account_id` (one company's data)  
-**Project-level**: `engagement_id` (one migration project)  
+**Organization-level**: `client_account_id` (one company's data)
+**Project-level**: `engagement_id` (one migration project)
 **Asset-level**: `asset_id` (one application/server/database)
 
 **Unique Constraint**: `(client_account_id, engagement_id, asset_id)`

@@ -12,7 +12,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 import asyncio
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Optional
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
@@ -28,7 +27,6 @@ from app.services.litellm_tracking_callback import (
     is_litellm_tracking_enabled,
     setup_litellm_tracking,
 )
-from app.services.llm_usage_tracker import llm_tracker
 
 
 @pytest.mark.integration
@@ -113,6 +111,7 @@ class TestLLMTrackingIntegration:
         # Call success event handler
         # Use float timestamps to match production behavior
         import time
+
         start_time = time.time()
         end_time = start_time + 0.25  # 250ms
 
@@ -168,6 +167,7 @@ class TestLLMTrackingIntegration:
         # Call failure event handler
         # Use float timestamps to match production behavior
         import time
+
         start_time = time.time()
         end_time = start_time + 0.1  # 100ms
 
@@ -407,10 +407,11 @@ class TestLLMTrackingIntegration:
         crewai_logs = result.scalars().all()
 
         # Should find 2 crewai logs
-        assert len([log for log in crewai_logs if log.id in [l.id for l in test_logs]]) >= 2
+        test_log_ids = [test_log.id for test_log in test_logs]
+        assert len([log for log in crewai_logs if log.id in test_log_ids]) >= 2
 
         # Verify agent metadata
-        crewai_test_logs = [log for log in crewai_logs if log.id in [l.id for l in test_logs]]
+        crewai_test_logs = [log for log in crewai_logs if log.id in test_log_ids]
         agent_names = [
             log.additional_metadata.get("agent_name")
             for log in crewai_test_logs
