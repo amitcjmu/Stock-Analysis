@@ -119,6 +119,8 @@ const TechDebtPage: React.FC = () => {
       }
 
       await resumeFlow({
+        phase: 'tech_debt_assessment',
+        action: 'continue',
         components: state.applicationComponents,
         techDebtAnalysis: state.techDebtAnalysis
       });
