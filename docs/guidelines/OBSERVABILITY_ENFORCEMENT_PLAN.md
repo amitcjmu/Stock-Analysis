@@ -224,60 +224,79 @@ class LLMCallDetector(ast.NodeVisitor):
 
     def __init__(self):
         self.violations = []
-        self.has_callback_handler = False
+        # Track per-function state: whether a handler is created/used
+        self.func_stack = []
+
+    def visit_FunctionDef(self, node):
+        """Track function entry and exit."""
+        # Push new function context
+        self.func_stack.append({
+            "has_handler": False,
+            "called_start": False,
+            "called_completion": False,
+        })
+        self.generic_visit(node)
+        # Pop when done
+        self.func_stack.pop()
+
+    def visit_Assign(self, node):
+        """Detect creation of a callback handler via factory."""
+        try:
+            if isinstance(node.value, ast.Call):
+                func = node.value.func
+                if isinstance(func, ast.Attribute) and func.attr == "create_callback_handler":
+                    if self.func_stack:
+                        self.func_stack[-1]["has_handler"] = True
+        finally:
+            self.generic_visit(node)
 
     def visit_Call(self, node):
         """Check function calls for observability patterns."""
 
-        # Check for task.execute_async() without callback
-        if (hasattr(node.func, 'attr') and
-            node.func.attr == 'execute_async'):
-            # Check if CallbackHandler is in scope
-            if not self.has_callback_handler:
+        # Track step and completion callbacks
+        if isinstance(node.func, ast.Attribute):
+            attr = node.func.attr
+            if self.func_stack:
+                if attr == "_step_callback":
+                    self.func_stack[-1]["called_start"] = True
+                elif attr == "_task_completion_callback":
+                    self.func_stack[-1]["called_completion"] = True
+
+            # Check for task.execute_async() without in-scope handler
+            if attr == "execute_async":
+                ctx = self.func_stack[-1] if self.func_stack else {"has_handler": False, "called_start": False}
+                if not (ctx["has_handler"] and ctx["called_start"]):
+                    self.violations.append((
+                        node.lineno,
+                        "task.execute_async() called without in-scope CallbackHandler start registration",
+                        "CRITICAL"
+                    ))
+
+            # Check for crew.kickoff() without callbacks
+            if attr in ['kickoff', 'kickoff_async']:
+                # Check if callbacks parameter is provided
+                has_callbacks = any(
+                    kw.arg == 'callbacks' for kw in node.keywords
+                )
+                ctx = self.func_stack[-1] if self.func_stack else {"has_handler": False}
+                if not has_callbacks and not ctx["has_handler"]:
+                    self.violations.append((
+                        node.lineno,
+                        "crew.kickoff() called without callbacks parameter or in-scope handler",
+                        "WARNING"
+                    ))
+
+            # Check for direct litellm.completion() calls
+            if (attr == 'completion' and
+                hasattr(node.func, 'value') and
+                hasattr(node.func.value, 'id') and
+                node.func.value.id == 'litellm'):
                 self.violations.append((
                     node.lineno,
-                    "task.execute_async() called without CallbackHandler",
-                    "CRITICAL"
+                    "Direct litellm.completion() call - use multi_model_service instead",
+                    "ERROR"
                 ))
 
-        # Check for direct litellm.completion() calls
-        if (hasattr(node.func, 'attr') and
-            node.func.attr == 'completion' and
-            hasattr(node.func.value, 'id') and
-            node.func.value.id == 'litellm'):
-            self.violations.append((
-                node.lineno,
-                "Direct litellm.completion() call - use multi_model_service instead",
-                "ERROR"
-            ))
-
-        # Check for crew.kickoff() without callbacks
-        if (hasattr(node.func, 'attr') and
-            node.func.attr in ['kickoff', 'kickoff_async']):
-            # Check if callbacks parameter is provided
-            has_callbacks = any(
-                kw.arg == 'callbacks' for kw in node.keywords
-            )
-            if not has_callbacks and not self.has_callback_handler:
-                self.violations.append((
-                    node.lineno,
-                    "crew.kickoff() called without callbacks parameter",
-                    "WARNING"
-                ))
-
-        self.generic_visit(node)
-
-    def visit_Import(self, node):
-        """Track imports of callback handlers."""
-        for alias in node.names:
-            if 'CallbackHandler' in alias.name:
-                self.has_callback_handler = True
-        self.generic_visit(node)
-
-    def visit_ImportFrom(self, node):
-        """Track from imports of callback handlers."""
-        if node.module and 'callback_handler' in node.module:
-            self.has_callback_handler = True
         self.generic_visit(node)
 
 def check_file(file_path: Path) -> List[Tuple[int, str, str]]:

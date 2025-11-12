@@ -391,51 +391,52 @@ async def update_complexity_metrics(
 
     CRITICAL: Per CLAUDE.md - PUT requests use request body, NOT query parameters.
     """
-    from sqlalchemy import select, update
-    from app.models.asset import Asset
+    from uuid import uuid4
+    from sqlalchemy import select, text, update
     from app.models.collection_flow.asset_custom_attributes import AssetCustomAttributes
 
     try:
-        # Validate architecture_type and customization_level
-        # (complexity_score already validated by Field(..., ge=1, le=10))
-
-        valid_arch_types = [
+        if metrics.architecture_type not in [
             "Monolithic",
             "Microservices",
             "SOA",
             "Serverless",
             "Event-Driven",
             "Layered",
-        ]
-        if metrics.architecture_type not in valid_arch_types:
+        ]:
             raise HTTPException(
                 status_code=400,
-                detail=f"architecture_type must be one of: {', '.join(valid_arch_types)}",
+                detail=f"Invalid architecture_type: {metrics.architecture_type}",
             )
-
-        valid_custom_levels = ["Low", "Medium", "High"]
-        if metrics.customization_level not in valid_custom_levels:
+        if metrics.customization_level not in ["Low", "Medium", "High"]:
             raise HTTPException(
                 status_code=400,
-                detail=f"customization_level must be one of: {', '.join(valid_custom_levels)}",
+                detail=f"Invalid customization_level: {metrics.customization_level}",
             )
 
-        app_uuid = ensure_uuid(app_id)
-        client_uuid = ensure_uuid(context.client_account_id)
-        engagement_uuid = ensure_uuid(context.engagement_id)
+        app_uuid, client_uuid, engagement_uuid = (
+            ensure_uuid(app_id),
+            ensure_uuid(context.client_account_id),
+            ensure_uuid(context.engagement_id),
+        )
 
-        # Update assets table: complexity_score and application_type
+        # Update assets table using raw SQL (complexity_score column exists in DB but not in Asset ORM model)
         await db.execute(
-            update(Asset)
-            .where(
-                Asset.id == app_uuid,
-                Asset.client_account_id == client_uuid,
-                Asset.engagement_id == engagement_uuid,
-            )
-            .values(
-                complexity_score=float(metrics.complexity_score),
-                application_type=metrics.architecture_type,
-            )
+            text(
+                """
+                UPDATE migration.assets
+                SET complexity_score = :complexity_score,
+                    application_type = :application_type,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :asset_id
+                  AND client_account_id = :client_account_id
+                  AND engagement_id = :engagement_id
+            """
+            ),
+            # fmt: off
+            {"complexity_score": float(metrics.complexity_score), "application_type": metrics.architecture_type,
+             "asset_id": app_uuid, "client_account_id": client_uuid, "engagement_id": engagement_uuid},
+            # fmt: on
         )
 
         # Update or create asset_custom_attributes for customization_level
@@ -449,18 +450,15 @@ async def update_complexity_metrics(
         custom_attr = result.scalar_one_or_none()
 
         if custom_attr:
-            # Update existing attributes
-            attributes = custom_attr.attributes or {}
-            attributes["customization_level"] = metrics.customization_level
+            (attrs := custom_attr.attributes or {}).update(
+                {"customization_level": metrics.customization_level}
+            )
             await db.execute(
                 update(AssetCustomAttributes)
                 .where(AssetCustomAttributes.id == custom_attr.id)
-                .values(attributes=attributes)
+                .values(attributes=attrs)
             )
         else:
-            # Create new custom attribute record
-            from uuid import uuid4
-
             new_attr = AssetCustomAttributes(
                 id=uuid4(),
                 client_account_id=client_uuid,
@@ -473,25 +471,22 @@ async def update_complexity_metrics(
             db.add(new_attr)
 
         await db.commit()
-
         logger.info(
-            f"Updated complexity metrics for app {app_id}: "
-            f"score={metrics.complexity_score}, arch={metrics.architecture_type}, custom={metrics.customization_level}"
+            f"Updated complexity metrics for app {app_id}: score={metrics.complexity_score}, "
+            f"arch={metrics.architecture_type}, custom={metrics.customization_level}"
         )
 
         return {
-            "success": True,
             "app_id": app_id,
             "complexity_score": metrics.complexity_score,
             "architecture_type": metrics.architecture_type,
             "customization_level": metrics.customization_level,
         }
-
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Failed to update complexity metrics for {app_id}: {str(e)}")
         await db.rollback()
+        if isinstance(e, HTTPException):
+            raise
+        logger.error(f"Failed to update complexity metrics for {app_id}: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to update complexity metrics: {str(e)}"
         )

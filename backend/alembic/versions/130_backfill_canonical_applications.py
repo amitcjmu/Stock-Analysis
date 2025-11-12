@@ -118,7 +118,7 @@ def upgrade():
             created_at,
             updated_at
         )
-        SELECT DISTINCT ON (orphaned_apps.client_account_id, orphaned_apps.engagement_id, orphaned_apps.name_hash)
+        SELECT DISTINCT ON (orphaned_apps.client_account_id, orphaned_apps.engagement_id, orphaned_apps.normalized_name)
             gen_random_uuid(),
             orphaned_apps.application_name,
             orphaned_apps.normalized_name,

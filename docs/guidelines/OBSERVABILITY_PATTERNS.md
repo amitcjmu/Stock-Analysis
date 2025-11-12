@@ -614,26 +614,31 @@ async def execute_complexity_analysis(
         agent=(agent._agent if hasattr(agent, "_agent") else agent)
     )
 
-    # Step 5: Register task start
+    # Step 5: Generate unique task ID per execution (prevents ID collisions)
+    import uuid
+    task_id = str(uuid.uuid4())
+
+    # Step 6: Register task start BEFORE execution
     callback_handler._step_callback({
         "type": "starting",
         "status": "starting",
         "agent": "complexity_analyzer",
         "task": "complexity_analysis",
+        "task_id": task_id,
         "content": f"Analyzing {len(selected_apps)} applications for complexity"
     })
 
-    # Step 6: Execute task
+    # Step 7: Execute task
     try:
         future = task.execute_async(context=str(context_data))
         result = await asyncio.wrap_future(future)
 
-        # Step 7: Mark success
+        # Step 8: Mark success
         callback_handler._task_completion_callback({
             "agent": "complexity_analyzer",
             "task_name": "complexity_analysis",
             "status": "completed",
-            "task_id": f"complexity_{master_flow.flow_id}",
+            "task_id": task_id,
             "output": result
         })
 
@@ -641,12 +646,12 @@ async def execute_complexity_analysis(
         return {"status": "completed", "result": result}
 
     except Exception as e:
-        # Step 8: Mark failure
+        # Step 9: Mark failure
         callback_handler._task_completion_callback({
             "agent": "complexity_analyzer",
             "task_name": "complexity_analysis",
             "status": "failed",
-            "task_id": f"complexity_{master_flow.flow_id}",
+            "task_id": task_id,
             "error": str(e)
         })
         logger.error(f"❌ Complexity analysis failed: {e}")

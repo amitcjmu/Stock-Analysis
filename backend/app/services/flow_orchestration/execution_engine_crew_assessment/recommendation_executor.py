@@ -260,16 +260,22 @@ Base recommendations on EVIDENCE from the assessment results, not assumptions.
             # CC Phase 3: Setup callback handler for observability
             from app.core.context import RequestContext
 
+            # CRITICAL (ISSUE-999): Use assessment flow ID for callbacks/observability
             callback_context = RequestContext(
                 client_account_id=str(master_flow.client_account_id),
                 engagement_id=str(master_flow.engagement_id),
-                flow_id=str(master_flow.flow_id),
+                flow_id=str(assessment_flow_id),
             )
             callback_handler = CallbackHandlerIntegration.create_callback_handler(
-                flow_id=str(master_flow.flow_id),
+                flow_id=str(assessment_flow_id),
                 context=callback_context,
             )
             callback_handler.setup_callbacks()
+
+            # Generate unique task ID for this execution (prevents ID collisions)
+            import uuid
+
+            task_id = str(uuid.uuid4())
 
             # Register task start
             callback_handler._step_callback(
@@ -278,6 +284,7 @@ Base recommendations on EVIDENCE from the assessment results, not assumptions.
                     "status": "starting",
                     "agent": "recommendation_generator",
                     "task": "recommendation_generation",
+                    "task_id": task_id,
                     "content": (
                         f"Starting 6R recommendation generation for {app_count} "
                         f"applications with {obj_count} business objectives"
@@ -315,7 +322,31 @@ Base recommendations on EVIDENCE from the assessment results, not assumptions.
                 logger.error(
                     f"[ISSUE-999] Failed to parse recommendation agent output as JSON: {e}"
                 )
-                parsed_result = {"raw_output": result_str, "parse_error": str(e)}
+                # CRITICAL: Fail fast - abort downstream processing on parse failure
+                callback_handler._task_completion_callback(
+                    {
+                        "agent": "recommendation_generator",
+                        "task_name": "recommendation_generation",
+                        "status": "failed",
+                        "task_id": task_id,
+                        "error": str(e),
+                        "output": {"raw_output": result_str},
+                        "duration": execution_time,
+                    }
+                )
+                return {
+                    "phase": "recommendation_generation",
+                    "status": "failed",
+                    "agent": "recommendation_generator",
+                    "inputs_prepared": True,
+                    "execution_time_seconds": execution_time,
+                    "results": {"raw_output": result_str, "parse_error": str(e)},
+                    "context_data_available": bool(crew_inputs.get("context_data")),
+                    "applications_assessed": 0,
+                    "total_applications": app_count,
+                    "assets_updated": False,
+                    "assets_updated_count": 0,
+                }
 
             # Per ADR-029: Sanitize LLM output to remove NaN/Infinity before JSON serialization
             parsed_result = sanitize_for_json(parsed_result)
@@ -335,7 +366,7 @@ Base recommendations on EVIDENCE from the assessment results, not assumptions.
                         if validation_result["is_valid"]
                         else "completed_with_warnings"
                     ),
-                    "task_id": "recommendation_task",
+                    "task_id": task_id,  # Use the unique task_id generated earlier
                     "output": parsed_result,
                     "duration": execution_time,
                 }

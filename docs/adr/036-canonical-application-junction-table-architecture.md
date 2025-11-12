@@ -341,14 +341,13 @@ def upgrade():
     """)
 
 def downgrade():
-    # Step 1: Remove backfilled junction records
+    # Step 1: Remove only backfilled junction records (created by this migration)
     conn.execute("""
         DELETE FROM migration.collection_flow_applications
         WHERE deduplication_method = 'migration_backfill';
     """)
 
-    # Step 2: Remove orphaned canonical applications
-    # Only delete canonical apps with NO remaining junction records
+    # Step 2: Remove canonical apps that have no remaining junctions after step 1
     conn.execute("""
         DELETE FROM migration.canonical_applications
         WHERE id IN (
@@ -360,10 +359,15 @@ def downgrade():
         );
     """)
 
-    # Step 3: Remove System Migration collection flows
+    # Step 3: Remove only empty System Migration flows (no remaining junctions)
     conn.execute("""
-        DELETE FROM migration.collection_flows
-        WHERE flow_name = 'System Migration - Canonical App Backfill';
+        DELETE FROM migration.collection_flows cf
+        WHERE cf.flow_name = 'System Migration - Canonical App Backfill'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM migration.collection_flow_applications cfa
+            WHERE cfa.collection_flow_id = cf.id
+          );
     """)
 ```
 
