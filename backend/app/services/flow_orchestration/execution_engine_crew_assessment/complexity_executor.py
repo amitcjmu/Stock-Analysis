@@ -93,14 +93,16 @@ Return results as valid JSON with keys: complexity_score, components, integratio
             context_str = json.dumps(crew_inputs)
 
             # CC Phase 3: Setup callback handler for observability
+            from app.core.context import RequestContext
+
+            callback_context = RequestContext(
+                client_account_id=str(master_flow.client_account_id),
+                engagement_id=str(master_flow.engagement_id),
+                flow_id=str(master_flow.flow_id),
+            )
             callback_handler = CallbackHandlerIntegration.create_callback_handler(
                 flow_id=str(master_flow.flow_id),
-                context={
-                    "client_account_id": str(master_flow.client_account_id),
-                    "engagement_id": str(master_flow.engagement_id),
-                    "flow_type": "assessment",
-                    "phase": "complexity",
-                },
+                context=callback_context,
             )
             callback_handler.setup_callbacks()
 
