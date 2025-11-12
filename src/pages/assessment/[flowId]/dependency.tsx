@@ -16,8 +16,7 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
-  RefreshCw,
-  Play
+  RefreshCw
 } from 'lucide-react';
 
 /**
@@ -45,7 +44,6 @@ const DependencyPage: React.FC = () => {
   const { state, resumeFlow } = useAssessmentFlow(flowId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -88,21 +86,6 @@ const DependencyPage: React.FC = () => {
   const handleRefresh = () => {
     console.log('[DependencyPage] Refresh dependency analysis');
     refetch();
-  };
-
-  const handleExecuteDependencyAnalysis = async () => {
-    console.log('[DependencyPage] Execute dependency analysis');
-    setIsAnalyzing(true);
-    try {
-      await assessmentDependencyApi.executeDependencyAnalysis(flowId);
-      // Refetch to get updated status
-      await refetch();
-    } catch (error) {
-      console.error('[DependencyPage] Failed to execute dependency analysis:', error);
-      alert(`Failed to start analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsAnalyzing(false);
-    }
   };
 
   const handleSubmit = async (): void => {
@@ -183,15 +166,6 @@ const DependencyPage: React.FC = () => {
                 <RefreshCw className={`mr-2 h-4 w-4 ${isDependencyLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              {!isDependencyAnalysisComplete && (
-                <Button
-                  onClick={handleExecuteDependencyAnalysis}
-                  disabled={isAnalyzing}
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
-                </Button>
-              )}
             </div>
           </div>
 
@@ -238,7 +212,7 @@ const DependencyPage: React.FC = () => {
                     <Badge variant="secondary">Complete</Badge>
                     <span className="text-green-700">Dependency analysis completed</span>
                   </>
-                ) : isAnalyzing ? (
+                ) : agentResults?.status === 'running' ? (
                   <>
                     <Badge variant="secondary">Running</Badge>
                     <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
@@ -248,7 +222,7 @@ const DependencyPage: React.FC = () => {
                   <>
                     <Badge variant="outline">Pending</Badge>
                     <AlertCircle className="h-4 w-4 text-gray-500" />
-                    <span className="text-gray-700">Ready to start dependency analysis</span>
+                    <span className="text-gray-700">Analysis not yet started</span>
                   </>
                 )}
               </div>
@@ -307,8 +281,8 @@ const DependencyPage: React.FC = () => {
                   <div>
                     <p className="text-blue-900 font-medium">Dependency Analysis</p>
                     <p className="text-blue-700 text-sm mt-1">
-                      Click "Start Analysis" to begin AI-powered dependency analysis for the selected applications.
-                      The analysis will identify:
+                      The dependency analysis phase will automatically execute when you navigate from the complexity page.
+                      The analysis identifies:
                     </p>
                     <ul className="text-blue-700 text-sm mt-2 list-disc list-inside space-y-1">
                       <li>Application-Server dependencies (hosting relationships)</li>

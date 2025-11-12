@@ -6,7 +6,10 @@
  *
  * Endpoints:
  * - GET /api/v1/assessment-flow/{flow_id}/dependency/analysis - Get dependency graph
- * - POST /api/v1/assessment-flow/{flow_id}/dependency/execute - Execute analysis phase
+ *
+ * NOTE: Manual execution endpoint removed per design.
+ * The dependency_analysis phase auto-executes via MFO when navigating from
+ * the complexity page. See complexity.tsx handleSubmit() for resumeFlow() call.
  *
  * Part of Assessment Flow MFO Integration (ADR-006, ADR-027)
  */
@@ -136,21 +139,8 @@ export interface DependencyAnalysisResponse {
   message?: string;
 }
 
-/**
- * Response from POST /dependency/execute endpoint.
- */
-export interface DependencyExecuteResponse {
-  /** Execution success status */
-  success: boolean;
-  /** Child flow ID (user-facing) */
-  flow_id: string;
-  /** Master flow ID (for debugging) */
-  master_flow_id: string;
-  /** Phase execution result */
-  result: any;
-  /** Status message */
-  message: string;
-}
+// NOTE: DependencyExecuteResponse removed - manual execution endpoint deprecated
+// Dependency analysis now auto-executes via MFO flow progression
 
 // =============================================================================
 // API Client Class
@@ -168,12 +158,9 @@ export interface DependencyExecuteResponse {
  * ```typescript
  * import { assessmentDependencyApi } from '@/lib/api/assessmentDependencyApi';
  *
- * // Get dependency analysis
+ * // Get dependency analysis (auto-executed via MFO)
  * const analysis = await assessmentDependencyApi.getDependencyAnalysis('flow-uuid');
  * console.log(`Dependencies: ${analysis.dependency_graph.metadata.dependency_count}`);
- *
- * // Execute analysis phase
- * await assessmentDependencyApi.executeDependencyAnalysis('flow-uuid');
  * ```
  */
 export class AssessmentDependencyApiClient {
@@ -217,55 +204,22 @@ export class AssessmentDependencyApiClient {
   }
 
   /**
-   * Execute dependency analysis phase via MFO.
+   * NOTE: executeDependencyAnalysis() method removed per design.
    *
-   * Triggers AI agent analysis of dependencies:
-   * - Identifies critical dependencies
-   * - Analyzes migration complexity impact
-   * - Generates dependency-based insights
-   * - Updates phase_results in assessment_flows table
+   * The dependency_analysis phase now auto-executes via MFO when the user
+   * clicks "Continue" from the complexity page. The phase execution is
+   * triggered by resumeFlow() which calls the MFO to execute dependency_analysis
+   * before navigating to the dependency page.
    *
-   * CRITICAL: Uses MFO integration per ADR-006
-   * - flowId is child flow ID (user-facing)
-   * - MFO internally resolves to master flow ID
-   * - Results persist to phase_results JSON column
+   * See: src/pages/assessment/[flowId]/complexity.tsx - handleSubmit()
    *
-   * @param flowId - Assessment flow identifier (child flow ID)
-   * @returns Execution response with success status
-   *
-   * @example
-   * const result = await assessmentDependencyApi.executeDependencyAnalysis('flow-uuid');
-   * console.log(`Analysis started: ${result.message}`);
-   *
-   * // Poll for completion
-   * const analysis = await assessmentDependencyApi.getDependencyAnalysis('flow-uuid');
-   * if (analysis.agent_results?.status === 'completed') {
-   *   console.log('Analysis complete!');
-   * }
+   * The auto-execution flow:
+   * 1. User clicks "Continue" on complexity page
+   * 2. resumeFlow({ phase: 'complexity_analysis', action: 'continue' })
+   * 3. MFO executes dependency_analysis phase automatically
+   * 4. Navigation to /assessment/:flowId/dependency
+   * 5. Page polls getDependencyAnalysis() to show results
    */
-  async executeDependencyAnalysis(flowId: string): Promise<DependencyExecuteResponse> {
-    try {
-      console.log('[AssessmentDependencyApi] Executing dependency analysis:', flowId);
-
-      // CRITICAL: Use request body for POST (NOT query parameters)
-      // Per /docs/guidelines/API_REQUEST_PATTERNS.md
-      const response = await apiClient.post<DependencyExecuteResponse>(
-        `/assessment-flow/${flowId}/dependency/execute`,
-        {} // Empty body (flowId comes from URL path)
-      );
-
-      console.log('[AssessmentDependencyApi] Dependency analysis execution started:', {
-        success: response.success,
-        flow_id: response.flow_id,
-        message: response.message,
-      });
-
-      return response;
-    } catch (error) {
-      console.error('[AssessmentDependencyApi] Failed to execute dependency analysis:', error);
-      throw error;
-    }
-  }
 }
 
 // =============================================================================
@@ -279,8 +233,8 @@ export class AssessmentDependencyApiClient {
  * ```typescript
  * import { assessmentDependencyApi } from '@/lib/api/assessmentDependencyApi';
  *
+ * // Get dependency analysis (auto-executed via MFO)
  * const analysis = await assessmentDependencyApi.getDependencyAnalysis('flow-uuid');
- * await assessmentDependencyApi.executeDependencyAnalysis('flow-uuid');
  * ```
  */
 export const assessmentDependencyApi = new AssessmentDependencyApiClient();
