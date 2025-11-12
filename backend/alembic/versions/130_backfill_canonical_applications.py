@@ -46,26 +46,33 @@ def upgrade():
     conn = op.get_bind()
 
     # Step 1: Create "System Migration" collection flows (one per tenant)
+    # Note: collection_flows requires flow_id, user_id, automation_tier, progress_percentage
     conn.execute(
         sa.text(
             """
         INSERT INTO migration.collection_flows (
             id,
+            flow_id,
             client_account_id,
             engagement_id,
+            user_id,
             flow_name,
+            automation_tier,
             status,
-            flow_type,
+            progress_percentage,
             created_at,
             updated_at
         )
         SELECT
             gen_random_uuid(),
+            gen_random_uuid(),  -- flow_id (required)
             client_account_id,
             engagement_id,
+            client_account_id,  -- user_id (use client_account_id as placeholder)
             'System Migration - Canonical App Backfill',
+            'SEMI_AUTOMATED',  -- automation_tier (required enum)
             'completed',
-            'bulk_import',
+            100.0,  -- progress_percentage (required, default 0.0)
             NOW(),
             NOW()
         FROM (
