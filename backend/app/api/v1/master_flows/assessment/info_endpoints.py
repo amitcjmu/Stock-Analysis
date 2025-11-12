@@ -393,7 +393,7 @@ async def update_complexity_metrics(
     """
     from sqlalchemy import select, update
     from app.models.asset import Asset
-    from app.models.collection_flow.asset_custom_attributes import AssetCustomAttribute
+    from app.models.collection_flow.asset_custom_attributes import AssetCustomAttributes
 
     try:
         # Validate architecture_type and customization_level
@@ -440,10 +440,10 @@ async def update_complexity_metrics(
 
         # Update or create asset_custom_attributes for customization_level
         result = await db.execute(
-            select(AssetCustomAttribute).where(
-                AssetCustomAttribute.asset_id == app_uuid,
-                AssetCustomAttribute.client_account_id == client_uuid,
-                AssetCustomAttribute.engagement_id == engagement_uuid,
+            select(AssetCustomAttributes).where(
+                AssetCustomAttributes.asset_id == app_uuid,
+                AssetCustomAttributes.client_account_id == client_uuid,
+                AssetCustomAttributes.engagement_id == engagement_uuid,
             )
         )
         custom_attr = result.scalar_one_or_none()
@@ -453,15 +453,15 @@ async def update_complexity_metrics(
             attributes = custom_attr.attributes or {}
             attributes["customization_level"] = metrics.customization_level
             await db.execute(
-                update(AssetCustomAttribute)
-                .where(AssetCustomAttribute.id == custom_attr.id)
+                update(AssetCustomAttributes)
+                .where(AssetCustomAttributes.id == custom_attr.id)
                 .values(attributes=attributes)
             )
         else:
             # Create new custom attribute record
             from uuid import uuid4
 
-            new_attr = AssetCustomAttribute(
+            new_attr = AssetCustomAttributes(
                 id=uuid4(),
                 client_account_id=client_uuid,
                 engagement_id=engagement_uuid,
