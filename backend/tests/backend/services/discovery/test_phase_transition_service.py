@@ -25,9 +25,12 @@ async def test_phase_transition_uses_crew_flow_id(monkeypatch):
 
     crew_flow_id = uuid4()
 
+    master_flow_id = uuid4()
+
     flow = DiscoveryFlow(
         id=uuid4(),
         flow_id=crew_flow_id,
+        master_flow_id=master_flow_id,
         client_account_id=uuid4(),
         engagement_id=uuid4(),
         user_id="tester",
@@ -39,12 +42,15 @@ async def test_phase_transition_uses_crew_flow_id(monkeypatch):
     flow_result = MagicMock()
     flow_result.scalar_one_or_none.return_value = flow
 
+    master_status_result = MagicMock()
+    master_status_result.scalar_one_or_none.return_value = "running"
+
     counts_row = MagicMock(total=1, approved=1)
     counts_result = MagicMock()
     counts_result.one.return_value = counts_row
 
     db_session = AsyncMock()
-    db_session.execute.side_effect = [flow_result, counts_result]
+    db_session.execute.side_effect = [flow_result, master_status_result, counts_result]
 
     mock_phase_mgmt = AsyncMock()
     monkeypatch.setattr(

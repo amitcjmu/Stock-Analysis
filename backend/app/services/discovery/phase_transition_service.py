@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.data_import.mapping import ImportFieldMapping
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.discovery_flow_repository.commands.flow_phase_management import (
     FlowPhaseManagementCommands,
 )
@@ -62,6 +63,30 @@ class DiscoveryPhaseTransitionService:
                     "Flow not found when evaluating attribute_mapping transition",
                     extra={"flow_id": flow_id},
                 )
+                return None
+
+            try:
+                master_status = None
+                if flow.master_flow_id:
+                    master_status_result = await self.db.execute(
+                        select(CrewAIFlowStateExtensions.flow_status).where(
+                            CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
+                        )
+                    )
+                    master_status = master_status_result.scalar_one_or_none()
+
+                if master_status and master_status.lower() != "running":
+                    logger.warning(
+                        "Master flow not in running state, skipping transition",
+                        extra={"flow_id": flow_id, "master_status": master_status},
+                    )
+                    return None
+            except SQLAlchemyError:
+                logger.exception(
+                    "Database error retrieving master flow status during field mapping transition",
+                    extra={"flow_id": flow_id},
+                )
+                await self.db.rollback()
                 return None
 
             # Check if all required field mappings are approved
@@ -214,6 +239,30 @@ class DiscoveryPhaseTransitionService:
                     "Discovery flow not found during data cleansing transition",
                     extra={"flow_id": flow_id},
                 )
+                return None
+
+            try:
+                master_status = None
+                if flow.master_flow_id:
+                    master_status_result = await self.db.execute(
+                        select(CrewAIFlowStateExtensions.flow_status).where(
+                            CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
+                        )
+                    )
+                    master_status = master_status_result.scalar_one_or_none()
+
+                if master_status and master_status.lower() != "running":
+                    logger.warning(
+                        "Master flow not in running state, skipping data cleansing transition",
+                        extra={"flow_id": flow_id, "master_status": master_status},
+                    )
+                    return None
+            except SQLAlchemyError:
+                logger.exception(
+                    "Database error retrieving master flow status during data cleansing transition",
+                    extra={"flow_id": flow_id},
+                )
+                await self.db.rollback()
                 return None
 
             # Check if data cleansing has been marked complete
