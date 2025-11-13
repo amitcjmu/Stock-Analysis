@@ -492,6 +492,7 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
     quality_issues = []
     recommendations = []
     field_quality_scores = {}
+    field_stats = {}  # Initialize to empty dict to handle cases with no raw records
 
     # Analyze raw import records for quality issues (regardless of field_mappings)
     if include_details and data_import and db_session:
