@@ -8,17 +8,14 @@ import logging
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
-from app.core.context_helpers import (
-    verify_client_access,
-    verify_engagement_access,
-)
+from app.core.context_helpers import verify_client_access
 from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
-from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
+from app.models.assessment_flow import AssessmentFlowStatus
 from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 from app.schemas.assessment_flow import (
     AssessmentApplicationInfo,

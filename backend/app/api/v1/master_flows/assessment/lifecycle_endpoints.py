@@ -26,7 +26,11 @@ async def initialize_assessment_flow_via_mfo(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
-    """Initialize assessment flow through MFO"""
+    """
+    Initialize assessment flow through MFO.
+
+    Per 7-layer architecture: Uses service layer for business logic orchestration.
+    """
 
     client_account_id = context.client_account_id
     engagement_id = context.engagement_id
@@ -34,16 +38,15 @@ async def initialize_assessment_flow_via_mfo(
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     try:
-        from app.repositories.assessment_flow_repository import (
-            AssessmentFlowRepository,
+        from app.services.assessment.assessment_flow_lifecycle_service import (
+            AssessmentFlowLifecycleService,
         )
 
-        repo = AssessmentFlowRepository(
-            db, client_account_id, engagement_id, user_id=context.user_id
-        )
+        # Initialize service layer (handles orchestration)
+        service = AssessmentFlowLifecycleService(db=db, context=context)
 
-        # Create assessment flow with MFO registration
-        assessment_flow_id = await repo.create_assessment_flow(
+        # Create assessment flow via service (not repository)
+        assessment_flow_id = await service.create_assessment_flow(
             engagement_id=engagement_id,
             selected_application_ids=selected_application_ids,
             created_by=context.user_id,
@@ -71,7 +74,11 @@ async def resume_assessment_flow_via_mfo(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
-    """Resume assessment flow phase through MFO"""
+    """
+    Resume assessment flow phase through MFO.
+
+    Per 7-layer architecture: Uses service layer for business logic orchestration.
+    """
 
     client_account_id = context.client_account_id
     engagement_id = context.engagement_id
@@ -81,6 +88,9 @@ async def resume_assessment_flow_via_mfo(
         raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
+        from app.services.assessment.assessment_flow_lifecycle_service import (
+            AssessmentFlowLifecycleService,
+        )
         from app.repositories.assessment_flow_repository import (
             AssessmentFlowRepository,
         )
@@ -91,9 +101,12 @@ async def resume_assessment_flow_via_mfo(
         user_input = request_body.get("user_input", request_body)
         logger.info(f"Resuming assessment flow {flow_id} with user_input: {user_input}")
 
-        repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
+        # Initialize service layer (handles orchestration)
+        service = AssessmentFlowLifecycleService(db=db, context=context)
 
         # [ISSUE-999] AUTO-RECOVERY: Check for zombie flow BEFORE resuming
+        # Repository still provides read access for this check
+        repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
         assessment_flow = await repo.get_by_flow_id(flow_id)
         if assessment_flow:
             is_zombie = (
@@ -116,7 +129,8 @@ async def resume_assessment_flow_via_mfo(
                     f"Will force agent re-execution..."
                 )
 
-        result = await repo.resume_flow(flow_id, user_input)
+        # Resume flow via service (not repository)
+        result = await service.resume_flow(flow_id, user_input)
 
         # Get current phase to trigger agent execution
         current_phase_str = result.get("current_phase")

@@ -15,8 +15,7 @@ from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.services.flow_orchestration import FlowAuditLogger
-from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLevel
+from app.services.flow_contracts import FlowAuditLogger, AuditCategory, AuditLevel
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
 
 from .enums import FlowOperationType

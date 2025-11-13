@@ -194,9 +194,12 @@ async def initialize_mfo_flow_execution(
                 start_collection_phase_loop_background,
             )
 
+            # Create MFO instance to inject into fallback runner
+            mfo = MasterFlowOrchestrator(db, context)
+
             asyncio.create_task(
                 start_collection_phase_loop_background(
-                    master_flow_id, context, initial_state
+                    master_flow_id, context, initial_state, orchestrator=mfo
                 )
             )
             logger.info(

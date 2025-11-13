@@ -1,0 +1,41 @@
+# Cursor Agent Rules - AI Modernize Migration Platform
+
+## 🚨 MANDATORY FIRST STEP - READ BEFORE ANY WORK
+
+**ALL CURSOR AGENTS MUST READ THIS DOCUMENT FIRST:**
+
+`docs/development/CODING_AGENT_KNOWLEDGE_SUMMARY.md`
+
+This document contains:
+- Critical architecture patterns (MFO two-table flow ID pattern, async database patterns, etc.)
+- Common bug patterns and fixes from 300+ Serena memories
+- Testing, security, and database patterns
+- Agent orchestration patterns
+- Development workflow patterns
+
+**Why this is critical:**
+- Prevents recurring bugs that have been fixed before
+- Ensures alignment with established architectural patterns
+- Provides context from 300+ previous development sessions
+- Contains top 10 critical patterns that must be understood before code changes
+
+## Additional Required Reading
+
+Before beginning work, agents should also be familiar with:
+- `docs/development/AI_Force_Migration_Platform_Summary_for_Coding_Agents.md` - Current platform architecture
+- `docs/analysis/Notes/000-lessons.md` - Critical lessons learned
+- `docs/analysis/Notes/coding-agent-guide.md` - Coding agent guidelines
+
+## Workflow
+
+1. **FIRST**: Read `docs/development/CODING_AGENT_KNOWLEDGE_SUMMARY.md` completely
+2. **SECOND**: Review the specific section relevant to your task
+3. **THEN**: Begin implementation following the patterns documented
+
+## Key Principles
+
+- This is an **AGENTIC-FIRST platform** - use CrewAI agents, not hard-coded rules
+- **Docker-First Development** - all work happens in containers
+- **Multi-Tenant Architecture** - all data access must be client account scoped
+- **Modular Service Design** - follow the handler pattern
+- **Always update CHANGELOG.md** after completing tasks
