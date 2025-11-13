@@ -10,10 +10,11 @@ CRITICAL: Follows MFO Flow ID Pattern from mfo_two_table_flow_id_pattern_critica
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,18 @@ from app.repositories.dependency_repository import DependencyRepository
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# =============================================================================
+# Request/Response Models
+# =============================================================================
+
+
+class UpdateDependenciesRequest(BaseModel):
+    """Request model for updating application dependencies."""
+
+    application_id: str
+    dependencies: Optional[str] = None  # Comma-separated asset IDs, None to clear
 
 
 @router.get("/{flow_id}/dependency/analysis")
@@ -376,8 +389,7 @@ async def execute_dependency_analysis(
 @router.put("/{flow_id}/dependency/update")
 async def update_application_dependencies(
     flow_id: str,  # ← CHILD flow ID from URL
-    application_id: str,
-    dependencies: str | None,  # Comma-separated asset IDs
+    request: UpdateDependenciesRequest = Body(...),
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
@@ -388,10 +400,13 @@ async def update_application_dependencies(
     This endpoint allows users to manually manage application dependencies
     via the AG Grid dependency management table.
 
+    **CRITICAL**: Uses request body per API_REQUEST_PATTERNS.md
+    - POST/PUT/DELETE endpoints MUST use request body
+    - NOT query parameters
+
     Args:
         flow_id: Child flow UUID from URL path
-        application_id: Application UUID to update dependencies for
-        dependencies: Comma-separated list of asset UUIDs (or null to clear)
+        request: Request body with application_id and dependencies
         current_user: Authenticated user
         db: Database session
         context: Request context with tenant IDs
@@ -421,11 +436,11 @@ async def update_application_dependencies(
         if not child_flow:
             raise HTTPException(status_code=404, detail="Assessment flow not found")
 
-        # Parse dependency IDs
+        # Parse dependency IDs from request
         dependency_ids = []
-        if dependencies:
+        if request.dependencies:
             dependency_ids = [
-                dep.strip() for dep in dependencies.split(",") if dep.strip()
+                dep.strip() for dep in request.dependencies.split(",") if dep.strip()
             ]
 
         # Update dependencies using DependencyRepository
@@ -442,7 +457,7 @@ async def update_application_dependencies(
         # Create new dependencies
         for target_id in dependency_ids:
             await dependency_repo.create_dependency(
-                source_asset_id=application_id,
+                source_asset_id=request.application_id,
                 target_asset_id=target_id,
                 dependency_type="manual",  # Mark as manually created
                 confidence_score=1.0,  # Manual dependencies have 100% confidence
@@ -453,14 +468,14 @@ async def update_application_dependencies(
         logger.info(
             safe_log_format(
                 "Updated dependencies for application: app_id={app_id}, count={count}",
-                app_id=application_id,
+                app_id=request.application_id,
                 count=len(dependency_ids),
             )
         )
 
         return {
             "success": True,
-            "application_id": application_id,
+            "application_id": request.application_id,
             "dependencies_count": len(dependency_ids),
             "message": f"Updated {len(dependency_ids)} dependencies for application",
         }
