@@ -95,61 +95,66 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
           </div>
         ) : (
           <div className="space-y-4">
-            {recommendations.map((rec) => (
-              <div key={rec.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeClass(rec.priority)}`}>
-                        {rec.priority.toUpperCase()}
-                      </span>
-                      <span className="text-sm font-medium text-gray-900">{rec.title}</span>
-                      <span className="text-xs text-gray-500">
-                        ({rec.confidence !== undefined && rec.confidence !== null
-                          ? `${Math.round(rec.confidence * 100)}%`
-                          : 'N/A'} confidence)
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 mb-2">{rec.description}</p>
-                    <div className="text-xs text-gray-600">
-                      <p><strong>Fields:</strong> {(rec.fields_affected || rec.fields || []).join(', ') || 'N/A'}</p>
-                      {rec.implementation_steps && rec.implementation_steps.length > 0 && (
-                        <>
-                          <p><strong>Steps:</strong></p>
-                          <ul className="list-disc list-inside ml-2 space-y-1">
-                            {rec.implementation_steps.map((step, idx) => (
-                              <li key={idx}>{step}</li>
-                            ))}
-                          </ul>
-                        </>
+            {recommendations.map((rec) => {
+              // Default status to 'pending' to ensure consistent button states
+              const status = rec.status || 'pending';
+              
+              return (
+                <div key={rec.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeClass(rec.priority)}`}>
+                          {rec.priority.toUpperCase()}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">{rec.title}</span>
+                        <span className="text-xs text-gray-500">
+                          ({rec.confidence !== undefined && rec.confidence !== null
+                            ? `${Math.round(rec.confidence * 100)}%`
+                            : 'N/A'} confidence)
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">{rec.description}</p>
+                      <div className="text-xs text-gray-600">
+                        <p><strong>Fields:</strong> {(rec.fields_affected || rec.fields || []).join(', ') || 'N/A'}</p>
+                        {rec.implementation_steps && rec.implementation_steps.length > 0 && (
+                          <>
+                            <p><strong>Steps:</strong></p>
+                            <ul className="list-disc list-inside ml-2 space-y-1">
+                              {rec.implementation_steps.map((step, idx) => (
+                                <li key={idx}>{step}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                      </div>
+                      {rec.agent_source && (
+                        <p className="text-xs text-blue-600 mt-1">Source: {rec.agent_source}</p>
                       )}
                     </div>
-                    {rec.agent_source && (
-                      <p className="text-xs text-blue-600 mt-1">Source: {rec.agent_source}</p>
-                    )}
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    <Button
-                      size="sm"
-                      onClick={() => onApplyRecommendation(rec.id, 'apply')}
-                      disabled={rec.status === 'applied' || rec.status === 'rejected'}
-                      className={rec.status === 'applied' ? 'bg-green-600 hover:bg-green-700' : ''}
-                    >
-                      {rec.status === 'applied' ? 'Applied' : 'Apply'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onApplyRecommendation(rec.id, 'reject')}
-                      disabled={rec.status === 'applied' || rec.status === 'rejected'}
-                      className={rec.status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' : ''}
-                    >
-                      {rec.status === 'rejected' ? 'Rejected' : 'Reject'}
-                    </Button>
+                    <div className="flex space-x-2 ml-4">
+                      <Button
+                        size="sm"
+                        onClick={() => onApplyRecommendation(rec.id, 'apply')}
+                        disabled={status === 'applied' || status === 'rejected'}
+                        className={status === 'applied' ? 'bg-green-600 hover:bg-green-700' : ''}
+                      >
+                        {status === 'applied' ? 'Applied' : 'Apply'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onApplyRecommendation(rec.id, 'reject')}
+                        disabled={status === 'applied' || status === 'rejected'}
+                        className={status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' : ''}
+                      >
+                        {status === 'rejected' ? 'Rejected' : 'Reject'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

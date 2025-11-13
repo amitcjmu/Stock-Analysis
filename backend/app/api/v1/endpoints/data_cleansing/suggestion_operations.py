@@ -94,32 +94,61 @@ async def suggest_missing_values_for_issue(
         def normalize(s: str) -> str:
             return "".join(ch for ch in s.lower() if ch.isalnum())
 
-        # Resolve actual key present in data
+        # Resolve actual key present in data by scanning across all raw records
+        # This ensures we find the field even if the first record is missing it
         resolved_key = field_label
         if raw_records:
-            sample = raw_records[0].raw_data or {}
-            if field_label not in sample:
-                lbl_norm = normalize(field_label)
-                # try normalized match
-                for k in sample.keys():
+            lbl_norm = normalize(field_label)
+            found_key = None
+
+            # Strategy 1: Scan all records for exact match (case-insensitive)
+            for record in raw_records:
+                rd = record.raw_data or {}
+                # Try exact match first
+                if field_label in rd:
+                    found_key = field_label
+                    break
+                # Try normalized match
+                for k in rd.keys():
                     if normalize(k) == lbl_norm:
-                        resolved_key = k
+                        found_key = k
                         break
-                else:
-                    # simple aliasing
-                    alias_map = {
-                        "os": ["operating_system", "os", "os_name"],
-                        "ip": ["ip", "ip_address", "ipaddr", "ipaddress"],
-                    }
-                    for alias, candidates in alias_map.items():
-                        if lbl_norm == alias or any(
-                            normalize(c) == lbl_norm for c in candidates
-                        ):
+                if found_key:
+                    break
+
+            # Strategy 2: If no match found, try alias heuristics across all records
+            if not found_key:
+                alias_map = {
+                    "os": ["operating_system", "os", "os_name"],
+                    "ip": ["ip", "ip_address", "ipaddr", "ipaddress"],
+                }
+                for alias, candidates in alias_map.items():
+                    if lbl_norm == alias or any(
+                        normalize(c) == lbl_norm for c in candidates
+                    ):
+                        # Scan all records for any candidate
+                        for record in raw_records:
+                            rd = record.raw_data or {}
                             for cand in candidates:
-                                if cand in sample:
-                                    resolved_key = cand
+                                if cand in rd:
+                                    found_key = cand
                                     break
+                            if found_key:
+                                break
+                        if found_key:
                             break
+
+            if found_key:
+                resolved_key = found_key
+                logger.info(
+                    f"🔍 [SUGGEST] Resolved field key: '{field_label}' -> '{resolved_key}' "
+                    f"(scanned {len(raw_records)} records)"
+                )
+            else:
+                logger.warning(
+                    f"⚠️ [SUGGEST] Could not resolve field key '{field_label}' "
+                    f"across {len(raw_records)} records, using label as-is"
+                )
 
         suggested_rows = []
         for record in raw_records:

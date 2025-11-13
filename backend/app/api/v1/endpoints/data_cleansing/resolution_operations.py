@@ -138,6 +138,16 @@ async def store_quality_issue_resolution(
                 db, flow_id, issue_id, field_name, flow
             )
 
+            # Commit the raw_record updates (new transaction after previous commit)
+            if updated_count > 0:
+                logger.info(
+                    f"💾 [RESOLUTION] Committing {updated_count} raw_import_record updates..."
+                )
+                await db.commit()
+                logger.info(
+                    f"✅ [RESOLUTION] Successfully committed {updated_count} raw_import_record updates"
+                )
+
             return {
                 "status": "ok",
                 "inserted": inserted,
@@ -477,7 +487,7 @@ async def _insert_resolution_rows(
                     inserted += 1
                 except Exception as e2:
                     await db.execute(text(f"ROLLBACK TO SAVEPOINT {savepoint_name}"))
-                    await db.execute(text(f"RELEASE SAVEPOINT {savepoint_name}"))
+                    # Savepoint is automatically discarded after rollback, no need to release
                     logger.error(
                         f"❌ [RESOLUTION] Both insert methods failed for row {idx + 1}: {str(e2)}"
                     )
@@ -486,7 +496,7 @@ async def _insert_resolution_rows(
         except Exception as e:
             try:
                 await db.execute(text(f"ROLLBACK TO SAVEPOINT {savepoint_name}"))
-                await db.execute(text(f"RELEASE SAVEPOINT {savepoint_name}"))
+                # Savepoint is automatically discarded after rollback, no need to release
             except Exception:
                 pass
             logger.error(

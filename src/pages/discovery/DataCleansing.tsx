@@ -841,10 +841,11 @@ const DataCleansing: React.FC = () => {
                     setCurrentIssueRows([]);
                     await Promise.all([refetchAnalysis(), refresh()]);
                     
-                    alert(`Values stored and automatically applied to ${appliedCount} raw_import_record(s). Issue marked as resolved.`);
+                    // Success: Values stored and applied - modal closed and list refreshed
+                    SecureLogger.info(`Successfully stored and applied ${appliedCount} raw_import_record(s). Issue marked as resolved.`);
                   } catch (err) {
                     SecureLogger.error('Failed to store and apply resolution values', err);
-                    alert('Failed to store and apply values. Please try again.');
+                    // Error logged - user can see issue still in list if operation failed
                   }
                 }}
                 issue={allQualityIssues.find((i) => i.id === currentIssueId) || null}

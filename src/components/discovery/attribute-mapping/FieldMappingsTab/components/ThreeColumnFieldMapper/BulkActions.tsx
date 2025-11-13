@@ -77,7 +77,8 @@ const BulkActions: React.FC<BulkActionsProps> = ({
           {canContinueToDataCleansing && onContinueToDataCleansing && (
             <button
               onClick={onContinueToDataCleansing}
-              className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm"
+              disabled={isDisabled}
+              className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>Continue to Data Cleansing</span>
               <ArrowRight className="h-4 w-4" />

@@ -5,6 +5,7 @@ Helper functions for resolution operations.
 
 import logging
 from sqlalchemy import select, text
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 from app.models.data_import.core import RawImportRecord
@@ -31,14 +32,43 @@ async def ensure_resolution_table_exists(db: AsyncSession):
         logger.info(
             f"📊 [RESOLUTION] Table 'data_quality_resolution' exists: {table_exists}"
         )
-    except Exception as check_err:
+    except OperationalError as op_err:
+        # Transient database connection issues (timeouts, connection lost)
         logger.warning(
-            f"⚠️ [RESOLUTION] Could not check table existence: {str(check_err)}"
+            f"⚠️ [RESOLUTION] Operational error checking table existence (transient): {str(op_err)}"
         )
         try:
             await db.rollback()
-        except Exception:
-            pass
+        except SQLAlchemyError as rollback_err:
+            logger.error(
+                f"❌ [RESOLUTION] Failed to rollback after operational error: {str(rollback_err)}"
+            )
+        # Assume table doesn't exist if we can't check (will attempt creation)
+        table_exists = False
+    except ProgrammingError as prog_err:
+        # Permanent SQL syntax or schema errors
+        logger.error(
+            f"❌ [RESOLUTION] Programming error checking table existence (permanent): {str(prog_err)}"
+        )
+        try:
+            await db.rollback()
+        except SQLAlchemyError as rollback_err:
+            logger.error(
+                f"❌ [RESOLUTION] Failed to rollback after programming error: {str(rollback_err)}"
+            )
+        raise
+    except SQLAlchemyError as db_err:
+        # Other SQLAlchemy errors (generic database errors)
+        logger.error(
+            f"❌ [RESOLUTION] Database error checking table existence: {str(db_err)}"
+        )
+        try:
+            await db.rollback()
+        except SQLAlchemyError as rollback_err:
+            logger.error(
+                f"❌ [RESOLUTION] Failed to rollback after database error: {str(rollback_err)}"
+            )
+        raise
 
     if not table_exists:
         await create_resolution_table(db)
@@ -72,10 +102,12 @@ async def create_resolution_table(db: AsyncSession):
                 "✅ [RESOLUTION] Table created successfully (with uuid_generate_v4)"
             )
             return
-        except Exception as e:
+        except (ProgrammingError, OperationalError, SQLAlchemyError) as e:
+            # Any database error - try fallback
+            error_type = type(e).__name__
             await db.execute(text("ROLLBACK TO SAVEPOINT before_table_creation"))
             logger.warning(
-                f"⚠️ [RESOLUTION] Table creation with uuid_generate_v4 failed: {str(e)}, trying fallback..."
+                f"⚠️ [RESOLUTION] Table creation with uuid_generate_v4 failed ({error_type}): {str(e)}, trying fallback..."
             )
 
             # Fallback: use gen_random_uuid()
@@ -100,10 +132,12 @@ async def create_resolution_table(db: AsyncSession):
                     "✅ [RESOLUTION] Fallback table creation with gen_random_uuid executed"
                 )
                 return
-            except Exception as e2:
+            except (ProgrammingError, OperationalError, SQLAlchemyError) as e2:
+                # Any database error - try final fallback
+                error_type2 = type(e2).__name__
                 await db.execute(text("ROLLBACK TO SAVEPOINT before_table_creation"))
                 logger.warning(
-                    f"⚠️ [RESOLUTION] gen_random_uuid also failed: {str(e2)}, trying final fallback..."
+                    f"⚠️ [RESOLUTION] gen_random_uuid also failed ({error_type2}): {str(e2)}, trying final fallback..."
                 )
 
                 # Final fallback: no default, we'll generate UUIDs in Python
@@ -126,9 +160,10 @@ async def create_resolution_table(db: AsyncSession):
                 logger.info(
                     "✅ [RESOLUTION] Final fallback table creation executed (no default UUID)"
                 )
-    except Exception as sp_err:
+    except OperationalError as sp_op_err:
+        # Transient connection issue during savepoint
         logger.error(
-            f"❌ [RESOLUTION] Savepoint error during table creation: {str(sp_err)}"
+            f"❌ [RESOLUTION] Operational error during savepoint (transient): {str(sp_op_err)}"
         )
         try:
             await db.rollback()
@@ -148,11 +183,35 @@ async def create_resolution_table(db: AsyncSession):
             )
             await db.execute(create_stmt_simple)
             logger.info("✅ [RESOLUTION] Table created after rollback (simple method)")
-        except Exception as final_err:
+        except SQLAlchemyError as final_err:
             logger.error(
                 f"❌ [RESOLUTION] Final table creation attempt failed: {str(final_err)}"
             )
             raise
+    except ProgrammingError as sp_prog_err:
+        # Permanent SQL syntax error during savepoint
+        logger.error(
+            f"❌ [RESOLUTION] Programming error during savepoint (permanent): {str(sp_prog_err)}"
+        )
+        try:
+            await db.rollback()
+        except SQLAlchemyError as rollback_err:
+            logger.error(
+                f"❌ [RESOLUTION] Failed to rollback after programming error: {str(rollback_err)}"
+            )
+        raise
+    except SQLAlchemyError as sp_err:
+        # Other SQLAlchemy errors during savepoint
+        logger.error(
+            f"❌ [RESOLUTION] Database error during savepoint: {str(sp_err)}"
+        )
+        try:
+            await db.rollback()
+        except SQLAlchemyError as rollback_err:
+            logger.error(
+                f"❌ [RESOLUTION] Failed to rollback after database error: {str(rollback_err)}"
+            )
+        raise
 
 
 async def get_resolutions(
@@ -195,11 +254,14 @@ async def get_raw_records(db: AsyncSession, data_import_id):
 
 
 def resolve_field_name_in_cleansed(
-    field_name: str, cleansed_data: dict, raw_data: dict
+    field_name: str, cleansed_data: dict
 ) -> tuple[str, any]:
     """
     Resolve the actual field name in cleansed_data.
     Returns (resolved_field_name, current_value)
+    
+    Note: This function only searches in cleansed_data. If future fallback
+    logic to raw_data is needed, the parameter can be added back.
     """
 
     def normalize(s: str) -> str:
@@ -407,7 +469,7 @@ async def match_record_by_identifier(
         if match_found:
             # Resolve field name and check if empty
             resolved_field_name, cleansed_field_value = resolve_field_name_in_cleansed(
-                res_field_name, cleansed_data, raw_data
+                res_field_name, cleansed_data
             )
 
             is_empty_in_cleansed = cleansed_field_value is None or (
@@ -446,8 +508,21 @@ async def update_cleansed_data(
             f"📝 [RESOLUTION] Full cleansed_data after update: {cleansed_data}"
         )
         return True
-    except Exception as update_err:
+    except OperationalError as op_err:
+        # Transient connection issues during update
         logger.error(
-            f"❌ [RESOLUTION] Failed to update raw_record {matched_record.id}: {str(update_err)}"
+            f"❌ [RESOLUTION] Operational error updating raw_record {matched_record.id} (transient): {str(op_err)}"
+        )
+        raise
+    except ProgrammingError as prog_err:
+        # Permanent SQL or schema errors during update
+        logger.error(
+            f"❌ [RESOLUTION] Programming error updating raw_record {matched_record.id} (permanent): {str(prog_err)}"
+        )
+        raise
+    except SQLAlchemyError as db_err:
+        # Other database errors during update
+        logger.error(
+            f"❌ [RESOLUTION] Database error updating raw_record {matched_record.id}: {str(db_err)}"
         )
         raise

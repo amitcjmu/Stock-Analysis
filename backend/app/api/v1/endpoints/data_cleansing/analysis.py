@@ -25,6 +25,38 @@ from .base import DataCleansingAnalysis, DataQualityIssue, DataCleansingRecommen
 logger = logging.getLogger(__name__)
 
 
+def _ensure_uuid(flow_id: str | UUID | None) -> UUID:
+    """
+    Ensure flow_id is a UUID object for database queries.
+    
+    Converts string to UUID, validates existing UUID objects, and raises
+    ValueError for invalid inputs to prevent silent query failures.
+    
+    Args:
+        flow_id: Flow ID as string, UUID object, or None
+        
+    Returns:
+        UUID object
+        
+    Raises:
+        ValueError: If flow_id is None or cannot be converted to UUID
+        TypeError: If flow_id is an unsupported type
+    """
+    if flow_id is None:
+        raise ValueError("flow_id cannot be None")
+    
+    if isinstance(flow_id, UUID):
+        return flow_id
+    
+    if isinstance(flow_id, str):
+        try:
+            return UUID(flow_id)
+        except (ValueError, AttributeError) as e:
+            raise ValueError(f"Invalid flow_id format: {flow_id}") from e
+    
+    raise TypeError(f"flow_id must be str or UUID, got {type(flow_id).__name__}")
+
+
 def _generate_deterministic_issue_id(field_name: str, issue_type: str) -> str:
     """
     Generate a deterministic ID for a quality issue based on field name and issue type.
@@ -302,7 +334,8 @@ async def _load_recommendations_from_database(
     try:
         # Query database for recommendations
         # If table doesn't exist, this will raise an exception which we'll catch
-        flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+        # Ensure flow_id is a UUID object to prevent silent query failures
+        flow_uuid = _ensure_uuid(flow_id)
         query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
         result = await db_session.execute(query)
         db_recommendations = result.scalars().all()
@@ -353,7 +386,8 @@ async def _store_recommendations_to_database(
     """
     try:
         # Get existing recommendations for this flow
-        flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+        # Ensure flow_id is a UUID object to prevent silent query failures
+        flow_uuid = _ensure_uuid(flow_id)
         query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
         result = await db_session.execute(query)
         existing_recs = {str(rec.id): rec for rec in result.scalars().all()}
