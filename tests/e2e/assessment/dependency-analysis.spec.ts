@@ -145,9 +145,9 @@ test.describe('Assessment Flow - Dependency Analysis Page', () => {
     expect(hasDependencyContent).toBeTruthy();
     console.log('✅ Dependency analysis page loaded successfully');
 
-    // Take screenshot
+    // Take screenshot using relative path
     await page.screenshot({
-      path: '/Users/chocka/CursorProjects/migrate-ui-orchestrator/.playwright-mcp/dependency-page-loaded.png',
+      path: '.playwright-mcp/dependency-page-loaded.png',
       fullPage: true
     });
   });

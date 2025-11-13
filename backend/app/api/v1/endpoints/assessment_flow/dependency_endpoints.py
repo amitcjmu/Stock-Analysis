@@ -522,12 +522,15 @@ async def update_application_dependencies(
         )
 
         # Clear existing dependencies for this application to prevent duplicates
-        deleted_count = await dependency_repo.delete_dependencies_for_application(
+        await dependency_repo.delete_dependencies_for_application(
             application_id=request.application_id
         )
 
         logger.info(
-            f"Deleted {deleted_count} existing dependencies before creating new ones"
+            safe_log_format(
+                "Cleared existing dependencies for application update: app_id={app_id}",
+                app_id=request.application_id,
+            )
         )
 
         # Create new dependencies

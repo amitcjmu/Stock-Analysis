@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlalchemy import and_, delete
 from sqlalchemy.future import select
 
+from app.core.security.secure_logging import safe_log_format
 from app.models.asset import Asset, AssetDependency
 
 logger = logging.getLogger(__name__)
@@ -103,6 +104,8 @@ class GenericCommandMixin:
         Used to clear existing dependencies before creating new ones,
         preventing duplicates when updating dependencies via the UI.
 
+        SECURITY: Multi-tenant isolation enforced via client_account_id and engagement_id.
+
         Args:
             application_id: ID of the application whose dependencies should be deleted
 
@@ -114,14 +117,31 @@ class GenericCommandMixin:
             UUID(application_id) if isinstance(application_id, str) else application_id
         )
 
+        # Convert tenant IDs to UUID
+        client_uuid = UUID(self.client_account_id)
+        engagement_uuid = UUID(self.engagement_id)
+
         # Delete all dependencies where this application is the source
-        stmt = delete(AssetDependency).where(AssetDependency.asset_id == app_uuid)
+        # WITH multi-tenant isolation to prevent cross-tenant deletion
+        stmt = delete(AssetDependency).where(
+            and_(
+                AssetDependency.asset_id == app_uuid,
+                AssetDependency.client_account_id == client_uuid,
+                AssetDependency.engagement_id == engagement_uuid,
+            )
+        )
 
         result = await self.db.execute(stmt)
         deleted_count = result.rowcount
 
         logger.info(
-            f"Deleted {deleted_count} dependencies for application {application_id}"
+            safe_log_format(
+                "Deleted dependencies for application: app_id={app_id}, "
+                "client_id={client_id}, engagement_id={engagement_id}",
+                app_id=application_id,
+                client_id=self.client_account_id,
+                engagement_id=self.engagement_id,
+            )
         )
 
         return deleted_count
