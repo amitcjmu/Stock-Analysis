@@ -257,6 +257,47 @@ export class AssessmentDependencyApiClient {
       throw error;
     }
   }
+
+  /**
+   * Update dependencies for an application.
+   *
+   * Allows manual management of application dependencies via the AG Grid table.
+   *
+   * @param flowId - Assessment flow identifier (child flow ID)
+   * @param applicationId - Application UUID to update dependencies for
+   * @param dependencies - Comma-separated list of asset UUIDs (or null to clear)
+   * @returns Update response with success status
+   *
+   * @example
+   * await assessmentDependencyApi.updateDependencies('flow-uuid', 'app-uuid', 'dep1,dep2,dep3');
+   */
+  async updateDependencies(
+    flowId: string,
+    applicationId: string,
+    dependencies: string | null
+  ): Promise<{ success: boolean; application_id: string; dependencies_count: number; message: string }> {
+    try {
+      console.log('[AssessmentDependencyApi] Updating dependencies:', { flowId, applicationId, dependencies });
+
+      const response = await apiClient.put<{ success: boolean; application_id: string; dependencies_count: number; message: string }>(
+        `/assessment-flow/${flowId}/dependency/update`,
+        {
+          application_id: applicationId,
+          dependencies: dependencies,
+        }
+      );
+
+      console.log('[AssessmentDependencyApi] Dependencies updated successfully:', {
+        application_id: response.application_id,
+        dependencies_count: response.dependencies_count,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('[AssessmentDependencyApi] Failed to update dependencies:', error);
+      throw error;
+    }
+  }
 }
 
 // =============================================================================

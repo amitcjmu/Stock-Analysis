@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
+import { DependencyManagementTable } from '@/components/assessment/DependencyManagementTable';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { assessmentDependencyApi } from '@/lib/api/assessmentDependencyApi';
 import { Button } from '@/components/ui/button';
@@ -107,6 +108,21 @@ const DependencyPage: React.FC = () => {
       alert(`Failed to execute analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleUpdateDependencies = async (applicationId: string, dependencies: string | null) => {
+    console.log('[DependencyPage] Updating dependencies:', { applicationId, dependencies });
+
+    try {
+      await assessmentDependencyApi.updateDependencies(flowId, applicationId, dependencies);
+      console.log('[DependencyPage] Dependencies updated successfully');
+
+      // Refetch to get updated dependency graph
+      refetch();
+    } catch (error) {
+      console.error('[DependencyPage] Failed to update dependencies:', error);
+      alert(`Failed to update dependencies: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -340,6 +356,14 @@ const DependencyPage: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Dependency Management Table */}
+          {dependencyData && dependencyData.applications && dependencyData.applications.length > 0 && (
+            <DependencyManagementTable
+              applications={dependencyData.applications}
+              onUpdateDependencies={handleUpdateDependencies}
+            />
           )}
 
           {/* Results - Show when we have dependency data */}
