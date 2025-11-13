@@ -149,14 +149,31 @@ async def handle_gap_analysis_phase(
                             flow_id=flow_id,
                         )
                     )
+
                     # Mark flow with timeout metadata for retry tracking
-                    if not collection_flow.flow_metadata:
-                        collection_flow.flow_metadata = {}
-                    collection_flow.flow_metadata["gap_analysis_timeout"] = (
-                        datetime.now(timezone.utc).isoformat()
-                    )
-                    collection_flow.flow_metadata["gap_analysis_retry_needed"] = True
-                    await db.commit()
+                    try:
+                        if not collection_flow.flow_metadata:
+                            collection_flow.flow_metadata = {}
+                        collection_flow.flow_metadata["gap_analysis_timeout"] = (
+                            datetime.now(timezone.utc).isoformat()
+                        )
+                        collection_flow.flow_metadata["gap_analysis_retry_needed"] = (
+                            True
+                        )
+                        await db.commit()
+                    except Exception as commit_error:
+                        logger.error(
+                            safe_log_format(
+                                "Failed to commit timeout metadata for flow {flow_id}: {error}",
+                                flow_id=flow_id,
+                                error=commit_error,
+                            )
+                        )
+                        # Attempt rollback to clean state
+                        try:
+                            await db.rollback()
+                        except Exception:
+                            pass  # Rollback failure is non-critical here
 
                     # Return user-friendly response allowing progression or retry
                     raise HTTPException(
