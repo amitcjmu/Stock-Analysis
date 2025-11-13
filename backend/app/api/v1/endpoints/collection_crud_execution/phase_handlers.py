@@ -4,10 +4,12 @@ Phase-specific handlers for collection flow management.
 Extracted from management.py to maintain file length under 400 lines.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict
 
+from fastapi import HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -120,21 +122,78 @@ async def handle_gap_analysis_phase(
                     collection_flow_id=str(collection_flow.id),
                 )
 
-                # Execute gap analysis - this populates collection_data_gaps table
+                # Execute gap analysis with 5-minute timeout
                 automation_tier = collection_flow.automation_tier or "tier_2"
-                gap_result = await gap_service.analyze_and_generate_questionnaire(
-                    selected_asset_ids=selected_asset_ids,
-                    db=db,
-                    automation_tier=automation_tier,
-                )
 
-                logger.info(
-                    safe_log_format(
-                        "Gap analysis completed for flow {flow_id}: {summary}",
-                        flow_id=flow_id,
-                        summary=gap_result.get("summary", {}),
+                try:
+                    gap_result = await asyncio.wait_for(
+                        gap_service.analyze_and_generate_questionnaire(
+                            selected_asset_ids=selected_asset_ids,
+                            db=db,
+                            automation_tier=automation_tier,
+                        ),
+                        timeout=300.0,  # 5 minutes timeout for LLM agent execution
                     )
-                )
+
+                    logger.info(
+                        safe_log_format(
+                            "✅ Gap analysis completed for flow {flow_id}: {summary}",
+                            flow_id=flow_id,
+                            summary=gap_result.get("summary", {}),
+                        )
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(
+                        safe_log_format(
+                            "⏱️ Gap analysis timed out after 300s for flow {flow_id}",
+                            flow_id=flow_id,
+                        )
+                    )
+
+                    # Mark flow with timeout metadata for retry tracking
+                    try:
+                        if not collection_flow.flow_metadata:
+                            collection_flow.flow_metadata = {}
+                        collection_flow.flow_metadata["gap_analysis_timeout"] = (
+                            datetime.now(timezone.utc).isoformat()
+                        )
+                        collection_flow.flow_metadata["gap_analysis_retry_needed"] = (
+                            True
+                        )
+                        await db.commit()
+                    except Exception as commit_error:
+                        logger.error(
+                            safe_log_format(
+                                "Failed to commit timeout metadata for flow {flow_id}: {error}",
+                                flow_id=flow_id,
+                                error=commit_error,
+                            )
+                        )
+                        # Attempt rollback to clean state
+                        try:
+                            await db.rollback()
+                        except Exception:
+                            pass  # Rollback failure is non-critical here
+
+                    # Return user-friendly response allowing progression or retry
+                    raise HTTPException(
+                        status_code=504,
+                        detail={
+                            "error": "gap_analysis_timeout",
+                            "message": (
+                                "Gap analysis is taking longer than expected. "
+                                "You can proceed to manual collection or retry later."
+                            ),
+                            "flow_id": str(flow_id),
+                            "timeout_seconds": 300,
+                            "next_actions": [
+                                "Proceed to manual collection (gaps can be filled later)",
+                                "Retry gap analysis from the flow management page",
+                            ],
+                        },
+                    )
+            except HTTPException:
+                raise  # Re-raise HTTPException to propagate to client
             except Exception as gap_exec_error:
                 logger.error(
                     safe_log_format(

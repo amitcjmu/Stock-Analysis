@@ -4,6 +4,8 @@ import logging
 from typing import Any, Dict, List
 from uuid import UUID
 
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
@@ -62,27 +64,37 @@ async def persist_gaps(
                     gaps_failed += 1
                     continue
 
-                gap_record = CollectionDataGap(
-                    collection_flow_id=UUID(collection_flow_id),
-                    asset_id=UUID(asset_id_str),  # Add asset_id as required column
-                    gap_type=gap.get("gap_type", "missing_field"),
-                    gap_category=gap.get("gap_category", "unknown"),
-                    field_name=gap.get("field_name", "unknown"),
-                    description=gap.get("description", ""),
-                    impact_on_sixr=gap.get("impact_on_sixr", "medium"),
-                    priority=priority_value,
-                    suggested_resolution=gap.get(
+                # Build gap record dictionary for upsert
+                gap_record = {
+                    "collection_flow_id": UUID(collection_flow_id),
+                    "asset_id": UUID(asset_id_str),
+                    "gap_type": gap.get("gap_type", "missing_field"),
+                    "gap_category": gap.get("gap_category", "unknown"),
+                    "field_name": gap.get("field_name", "unknown"),
+                    "description": gap.get("description", ""),
+                    "impact_on_sixr": gap.get("impact_on_sixr", "medium"),
+                    "priority": priority_value,
+                    "suggested_resolution": gap.get(
                         "suggested_resolution",
                         "Manual collection required",
                     ),
-                    resolution_status="pending",
-                    gap_metadata={
-                        "asset_id": asset_id_str,  # Keep in metadata for backward compat
-                        "priority_level": priority_level,
+                    "resolution_status": "pending",
+                }
+
+                # ✅ FIX: Use PostgreSQL upsert with conflict resolution
+                # Matches tier 1 pattern from gap_scanner/persistence.py
+                stmt = insert(CollectionDataGap).values(**gap_record)
+                stmt = stmt.on_conflict_do_update(
+                    constraint="uq_gaps_dedup",
+                    set_={
+                        "priority": gap_record["priority"],
+                        "suggested_resolution": gap_record["suggested_resolution"],
+                        "description": gap_record["description"],
+                        "impact_on_sixr": gap_record["impact_on_sixr"],
+                        "updated_at": func.now(),
                     },
                 )
-
-                db.add(gap_record)
+                await db.execute(stmt)
                 gaps_persisted += 1
 
             except Exception as e:
