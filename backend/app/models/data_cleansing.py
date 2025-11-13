@@ -23,7 +23,6 @@ class DataCleansingRecommendation(Base, TimestampMixin):
     """
 
     __tablename__ = "data_cleansing_recommendations"
-    __table_args__ = {"schema": "migration"}
 
     # Primary key - stable UUID that doesn't change when content changes
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
@@ -31,7 +30,7 @@ class DataCleansingRecommendation(Base, TimestampMixin):
     # Foreign key to discovery flow
     flow_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("discovery_flows.flow_id", ondelete="CASCADE"),
+        ForeignKey("migration.discovery_flows.flow_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

@@ -19,7 +19,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-def table_exists(table_name: str, schema: str = "migration") -> bool:
+def table_exists(table_name: str, schema: str = "public") -> bool:
     """Check if a table exists in the database"""
     bind = op.get_bind()
     result = bind.execute(
@@ -52,7 +52,7 @@ def upgrade() -> None:
             sa.Column(
                 "flow_id",
                 postgresql.UUID(as_uuid=True),
-                sa.ForeignKey("discovery_flows.flow_id", ondelete="CASCADE"),
+                sa.ForeignKey("migration.discovery_flows.flow_id", ondelete="CASCADE"),
                 nullable=False,
             ),
             sa.Column("category", sa.String(100), nullable=False),
@@ -84,7 +84,6 @@ def upgrade() -> None:
                 nullable=False,
                 server_default=sa.text("NOW()"),
             ),
-            schema="migration",
         )
 
         # Create indexes
@@ -92,31 +91,26 @@ def upgrade() -> None:
             "ix_data_cleansing_recommendations_id",
             "data_cleansing_recommendations",
             ["id"],
-            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_flow_id",
             "data_cleansing_recommendations",
             ["flow_id"],
-            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_status",
             "data_cleansing_recommendations",
             ["status"],
-            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_client_account_id",
             "data_cleansing_recommendations",
             ["client_account_id"],
-            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_engagement_id",
             "data_cleansing_recommendations",
             ["engagement_id"],
-            schema="migration",
         )
 
         # Create trigger to update updated_at timestamp
@@ -138,7 +132,7 @@ def upgrade() -> None:
             sa.text(
                 """
                 CREATE TRIGGER update_data_cleansing_recommendations_updated_at
-                    BEFORE UPDATE ON migration.data_cleansing_recommendations
+                    BEFORE UPDATE ON data_cleansing_recommendations
                     FOR EACH ROW
                     EXECUTE FUNCTION update_updated_at_column();
             """
@@ -149,15 +143,15 @@ def upgrade() -> None:
         op.execute(
             sa.text(
                 """
-                COMMENT ON TABLE migration.data_cleansing_recommendations IS
+                COMMENT ON TABLE data_cleansing_recommendations IS
                     'Stores data cleansing recommendations with stable primary keys instead of deterministic IDs';
-                COMMENT ON COLUMN migration.data_cleansing_recommendations.id IS
+                COMMENT ON COLUMN data_cleansing_recommendations.id IS
                     'Stable UUID primary key that does not change when recommendation content changes';
-                COMMENT ON COLUMN migration.data_cleansing_recommendations.flow_id IS
+                COMMENT ON COLUMN data_cleansing_recommendations.flow_id IS
                     'Foreign key to discovery flow this recommendation belongs to';
-                COMMENT ON COLUMN migration.data_cleansing_recommendations.category IS
+                COMMENT ON COLUMN data_cleansing_recommendations.category IS
                     'Recommendation category: standardization, validation, enrichment, deduplication';
-                COMMENT ON COLUMN migration.data_cleansing_recommendations.status IS
+                COMMENT ON COLUMN data_cleansing_recommendations.status IS
                     'Action status: pending, applied, rejected';
             """
             )
@@ -177,13 +171,13 @@ def downgrade() -> None:
             sa.text(
                 """
                 DROP TRIGGER IF EXISTS update_data_cleansing_recommendations_updated_at
-                ON migration.data_cleansing_recommendations;
+                ON data_cleansing_recommendations;
             """
             )
         )
 
         # Drop table
-        op.drop_table("data_cleansing_recommendations", schema="migration")
+        op.drop_table("data_cleansing_recommendations")
         print("Dropped data_cleansing_recommendations table successfully")
     else:
         print("Table data_cleansing_recommendations does not exist, skipping drop")
