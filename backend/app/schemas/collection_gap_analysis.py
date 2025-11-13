@@ -20,7 +20,7 @@ class ScanGapsRequest(BaseModel):
     """Request body for programmatic gap scan (Phase 1)."""
 
     selected_asset_ids: List[str] = Field(
-        ..., description="UUIDs of assets to scan for gaps", min_items=1
+        ..., description="UUIDs of assets to scan for gaps", min_length=1
     )
 
     class Config:
@@ -147,10 +147,21 @@ class ScanGapsResponse(BaseModel):
 class AnalyzeGapsRequest(BaseModel):
     """Request body for AI-enhanced gap analysis (Phase 2)."""
 
-    gaps: List[DataGap] = Field(
-        ..., description="Gaps from programmatic scan to enhance"
+    gaps: Optional[List[DataGap]] = Field(
+        None,
+        description=(
+            "Gaps from programmatic scan. "
+            "If None or empty, will load heuristic gaps from CollectionDataGap table."
+        ),
     )
     selected_asset_ids: List[str] = Field(..., description="Asset UUIDs for context")
+
+    @validator("gaps", pre=True, always=True)
+    def normalize_gaps(cls, v):
+        """Normalize empty list to None for consistent handling."""
+        if v is not None and len(v) == 0:
+            return None
+        return v
 
     class Config:
         json_schema_extra = {
@@ -260,7 +271,7 @@ class UpdateGapsRequest(BaseModel):
     """Request body for updating/resolving gaps."""
 
     updates: List[GapUpdate] = Field(
-        ..., description="List of gap updates", min_items=1
+        ..., description="List of gap updates", min_length=1
     )
 
     class Config:

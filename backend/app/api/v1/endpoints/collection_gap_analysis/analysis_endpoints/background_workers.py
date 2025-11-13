@@ -1,7 +1,10 @@
 """
-Background Workers for Gap Enhancement Jobs
+Background Workers for Gap Analysis Jobs
 
-Handles asynchronous processing of gap enhancement jobs with per-asset persistence.
+Handles asynchronous processing of comprehensive AI gap analysis with per-asset persistence.
+
+CRITICAL: This uses comprehensive analysis (_run_tier_2_ai_analysis), NOT enhancement.
+The AI analyzes the ENTIRE asset to find ALL gaps, not just enhance predetermined ones.
 """
 
 import logging
@@ -15,18 +18,19 @@ logger = logging.getLogger(__name__)
 async def process_gap_enhancement_job(
     job_id: str,
     collection_flow_id: UUID,
-    gaps: list,
     selected_asset_ids: list,
     client_account_id: str,
     engagement_id: str,
 ):
-    """Background worker for gap enhancement with per-asset persistence.
+    """Background worker for comprehensive AI gap analysis.
+
+    Performs full asset analysis without requiring predetermined gaps.
+    This enables comprehensive discovery of all data gaps.
 
     Args:
         job_id: Unique job identifier
         collection_flow_id: Collection flow internal ID (used for all DB operations)
-        gaps: List of gaps to enhance
-        selected_asset_ids: Asset IDs to process
+        selected_asset_ids: Asset IDs to analyze comprehensively
         client_account_id: Client account UUID (primitive, not mutable context)
         engagement_id: Engagement UUID (primitive, not mutable context)
     """
@@ -66,46 +70,16 @@ async def process_gap_enhancement_job(
                 collection_flow_id=str(collection_flow_id),
             )
 
-            # Convert Pydantic gaps to dict format
-            gaps_for_ai = [gap.model_dump() for gap in gaps]
-
-            # Run tier_2 AI analysis WITH per-asset persistence
+            # Run tier_2 comprehensive AI analysis
             logger.info(
-                f"🤖 Job {job_id}: Running AI enhancement "
-                f"for {len(gaps_for_ai)} gaps"
+                f"🤖 Job {job_id}: Running COMPREHENSIVE AI analysis "
+                f"on {len(assets)} assets"
             )
 
-            # Override _update_progress to update job state
-            original_update_progress = (
-                gap_service._update_progress
-                if hasattr(gap_service, "_update_progress")
-                else None
-            )
-
-            async def custom_update_progress(
-                flow_id_param, processed, total, current_asset, redis_client
-            ):
-                await update_job_state(
-                    collection_flow_id,
-                    {
-                        "processed_assets": processed,
-                        "total_assets": total,
-                        "current_asset": current_asset,
-                    },
-                )
-                # Call original if exists
-                if original_update_progress:
-                    await original_update_progress(
-                        flow_id_param, processed, total, current_asset, redis_client
-                    )
-
-            gap_service._update_progress = custom_update_progress
-
-            # Run enhancement with per-asset persistence
-            ai_result = await gap_service._run_tier_2_ai_analysis_with_persist(
+            # Correct - comprehensive analysis on assets only
+            ai_result = await gap_service._run_tier_2_ai_analysis(
                 assets=assets,
                 collection_flow_id=str(collection_flow_id),
-                gaps=gaps_for_ai,
                 db=db,
             )
 

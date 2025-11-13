@@ -4,13 +4,11 @@ Phase-specific handlers for collection flow management.
 Extracted from management.py to maintain file length under 400 lines.
 """
 
-import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict
 
 from fastapi import HTTPException
-from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security.secure_logging import safe_log_format
@@ -40,7 +38,6 @@ async def handle_gap_analysis_phase(
     Returns:
         Response dictionary with phase progression status
     """
-    from app.models.collection_data_gap import CollectionDataGap
 
     try:
         # OPTION 3: Check if flow came from assessment flow
@@ -113,183 +110,143 @@ async def handle_gap_analysis_phase(
                 )
             )
             # Still allow progression - user can select assets later
+        # ✅ Check gap_analysis_results to determine if tier_2 (agentic) analysis completed
+        # This is data-driven approach (recommended by GPT Codex5)
+        gap_results = collection_flow.gap_analysis_results or {}
+        summary = gap_results.get("summary", {})
+        questionnaire = gap_results.get("questionnaire", {})
+
+        # Tier_2 analysis complete if we have both summary data and questionnaire
+        has_tier_2_results = (
+            summary.get("assets_analyzed", 0) > 0
+            and len(questionnaire.get("sections", [])) > 0
+        )
+
+        if has_tier_2_results:
+            logger.info(
+                safe_log_format(
+                    "✅ Agentic gap analysis complete (gap_analysis_results populated). "
+                    "Using AI-generated questionnaire - Flow: {flow_id}",
+                    flow_id=flow_id,
+                )
+            )
+
+            # gap_analysis_results already contains questionnaire - just advance phase
+            next_phase = collection_flow.get_next_phase()
+            if next_phase:
+                collection_flow.current_phase = next_phase
+                collection_flow.status = CollectionFlowStatus.RUNNING
+                collection_flow.updated_at = datetime.now(timezone.utc)
+                await db.commit()
+
+                return {
+                    "status": "success",
+                    "message": "Using AI-generated questionnaire - progressed to next phase",
+                    "flow_id": flow_id,
+                    "action_status": "phase_progressed_with_ai_questionnaire",
+                    "action_description": (
+                        f"AI-enhanced gap analysis complete - progressed to {next_phase} "
+                        "with intelligent questionnaire"
+                    ),
+                    "current_phase": next_phase,
+                    "flow_status": CollectionFlowStatus.RUNNING,
+                    "has_applications": has_applications,
+                    "mfo_execution_triggered": False,
+                    "mfo_result": {
+                        "status": "phase_progressed",
+                        "reason": f"Using AI-generated questionnaire - progressed to {next_phase}",
+                    },
+                    "questionnaire_summary": summary,
+                    "next_steps": [],
+                    "continued_at": datetime.now(timezone.utc).isoformat(),
+                }
+
         else:
+            logger.warning(
+                safe_log_format(
+                    "⚠️ User proceeding without waiting for agentic analysis. "
+                    "Generating basic questionnaire from heuristic gaps - Flow: {flow_id}",
+                    flow_id=flow_id,
+                )
+            )
+
+            # Generate basic questionnaire from heuristic gaps only
+            gap_service = GapAnalysisService(
+                client_account_id=str(collection_flow.client_account_id),
+                engagement_id=str(collection_flow.engagement_id),
+                collection_flow_id=str(collection_flow.id),
+            )
+
             try:
-                # Create GapAnalysisService instance with tenant scoping
-                gap_service = GapAnalysisService(
-                    client_account_id=str(collection_flow.client_account_id),
-                    engagement_id=str(collection_flow.engagement_id),
-                    collection_flow_id=str(collection_flow.id),
+                # Run tier_1 programmatic scan to get basic questionnaire
+                gap_results = await gap_service.analyze_and_generate_questionnaire(
+                    selected_asset_ids=selected_asset_ids,
+                    db=db,
+                    automation_tier="tier_1",  # Use fast heuristic scan only
                 )
 
-                # Execute gap analysis with 5-minute timeout
-                automation_tier = collection_flow.automation_tier or "tier_2"
+                # Store tier_1 results to gap_analysis_results for consistency
+                collection_flow.gap_analysis_results = gap_results
+                await db.flush()  # Ensure it's persisted before phase transition
 
-                try:
-                    gap_result = await asyncio.wait_for(
-                        gap_service.analyze_and_generate_questionnaire(
-                            selected_asset_ids=selected_asset_ids,
-                            db=db,
-                            automation_tier=automation_tier,
+                logger.info(
+                    safe_log_format(
+                        "✅ Basic questionnaire generated from heuristic gaps - Flow: {flow_id}",
+                        flow_id=flow_id,
+                    )
+                )
+
+                # Advance to next phase
+                next_phase = collection_flow.get_next_phase()
+                if next_phase:
+                    collection_flow.current_phase = next_phase
+                    collection_flow.status = CollectionFlowStatus.RUNNING
+                    collection_flow.updated_at = datetime.now(timezone.utc)
+                    await db.commit()
+
+                    return {
+                        "status": "success",
+                        "message": "Basic questionnaire generated - progressed to next phase",
+                        "flow_id": flow_id,
+                        "action_status": "phase_progressed_with_basic_questionnaire",
+                        "action_description": (
+                            f"Basic questionnaire generated from heuristic gaps - "
+                            f"progressed to {next_phase}"
                         ),
-                        timeout=300.0,  # 5 minutes timeout for LLM agent execution
-                    )
-
-                    logger.info(
-                        safe_log_format(
-                            "✅ Gap analysis completed for flow {flow_id}: {summary}",
-                            flow_id=flow_id,
-                            summary=gap_result.get("summary", {}),
-                        )
-                    )
-                except asyncio.TimeoutError:
-                    logger.error(
-                        safe_log_format(
-                            "⏱️ Gap analysis timed out after 300s for flow {flow_id}",
-                            flow_id=flow_id,
-                        )
-                    )
-
-                    # Mark flow with timeout metadata for retry tracking
-                    try:
-                        if not collection_flow.flow_metadata:
-                            collection_flow.flow_metadata = {}
-                        collection_flow.flow_metadata["gap_analysis_timeout"] = (
-                            datetime.now(timezone.utc).isoformat()
-                        )
-                        collection_flow.flow_metadata["gap_analysis_retry_needed"] = (
-                            True
-                        )
-                        await db.commit()
-                    except Exception as commit_error:
-                        logger.error(
-                            safe_log_format(
-                                "Failed to commit timeout metadata for flow {flow_id}: {error}",
-                                flow_id=flow_id,
-                                error=commit_error,
-                            )
-                        )
-                        # Attempt rollback to clean state
-                        try:
-                            await db.rollback()
-                        except Exception:
-                            pass  # Rollback failure is non-critical here
-
-                    # Return user-friendly response allowing progression or retry
-                    raise HTTPException(
-                        status_code=504,
-                        detail={
-                            "error": "gap_analysis_timeout",
-                            "message": (
-                                "Gap analysis is taking longer than expected. "
-                                "You can proceed to manual collection or retry later."
-                            ),
-                            "flow_id": str(flow_id),
-                            "timeout_seconds": 300,
-                            "next_actions": [
-                                "Proceed to manual collection (gaps can be filled later)",
-                                "Retry gap analysis from the flow management page",
-                            ],
+                        "current_phase": next_phase,
+                        "flow_status": CollectionFlowStatus.RUNNING,
+                        "has_applications": has_applications,
+                        "mfo_execution_triggered": False,
+                        "mfo_result": {
+                            "status": "phase_progressed",
+                            "reason": f"Basic questionnaire generated - progressed to {next_phase}",
                         },
-                    )
-            except HTTPException:
-                raise  # Re-raise HTTPException to propagate to client
-            except Exception as gap_exec_error:
+                        "next_steps": [],
+                        "continued_at": datetime.now(timezone.utc).isoformat(),
+                    }
+
+            except Exception as questionnaire_error:
                 logger.error(
                     safe_log_format(
-                        "Gap analysis execution failed for flow {flow_id}: {error}",
+                        "❌ Questionnaire generation failed for flow {flow_id}: {error}",
                         flow_id=flow_id,
-                        error=str(gap_exec_error),
+                        error=str(questionnaire_error),
                     ),
                     exc_info=True,
                 )
-                # Continue anyway - gaps are recommendations, not blockers
-
-        # Now check for unresolved gaps (after execution)
-        unresolved_count_stmt = (
-            select(func.count())
-            .select_from(CollectionDataGap)
-            .where(
-                CollectionDataGap.collection_flow_id == collection_flow.id,
-                CollectionDataGap.resolution_status.in_(["unresolved", "pending"]),
-            )
-        )
-        unresolved_result = await db.execute(unresolved_count_stmt)
-        unresolved_gaps = unresolved_result.scalar() or 0
-
-        # Always allow progression from gap_analysis
-        # Gaps are recommendations, not blockers
-        next_phase = collection_flow.get_next_phase()
-        if next_phase:
-            logger.info(
-                safe_log_format(
-                    "Progressing from gap_analysis to {next_phase} "
-                    "({unresolved_gaps} unresolved gaps remain)",
-                    flow_id=flow_id,
-                    next_phase=next_phase,
-                    unresolved_gaps=unresolved_gaps,
-                )
-            )
-            collection_flow.current_phase = next_phase
-            collection_flow.status = CollectionFlowStatus.RUNNING
-            collection_flow.updated_at = datetime.now(timezone.utc)
-            await db.commit()
-
-            action_status = "phase_progressed"
-            if unresolved_gaps == 0:
-                action_description = (
-                    f"Gap analysis complete - progressed to {next_phase}"
-                )
-            else:
-                action_description = (
-                    f"Proceeding to {next_phase} with {unresolved_gaps} "
-                    f"unresolved gaps (data can be collected manually)"
+                # Still allow progression with warning
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "questionnaire_generation_failed",
+                        "message": (
+                            "Could not generate questionnaire. "
+                            "Please retry or proceed to manual collection."
+                        ),
+                        "flow_id": flow_id,
+                    },
                 )
 
-            logger.info(
-                safe_log_format(
-                    "Returning after gap_analysis progression - "
-                    "phase {next_phase} will be handled on next navigation",
-                    flow_id=flow_id,
-                    next_phase=next_phase,
-                )
-            )
-            return {
-                "status": "success",
-                "message": "Gap analysis complete - progressed to next phase",
-                "flow_id": flow_id,
-                "action_status": action_status,
-                "action_description": action_description,
-                "current_phase": next_phase,
-                "flow_status": CollectionFlowStatus.RUNNING,
-                "has_applications": has_applications,
-                "mfo_execution_triggered": False,
-                "mfo_result": {
-                    "status": "phase_progressed",
-                    "reason": f"Gap analysis complete - progressed from gap_analysis to {next_phase}",
-                },
-                "next_steps": [],
-                "continued_at": datetime.now(timezone.utc).isoformat(),
-                "master_flow_id": (
-                    str(collection_flow.master_flow_id)
-                    if collection_flow.master_flow_id
-                    else None
-                ),
-                "recovery_performed": bool(
-                    collection_flow.flow_metadata
-                    and collection_flow.flow_metadata.get("recovery_info")
-                ),
-                "resume_result": {
-                    "status": "phase_progressed",
-                    "from_phase": "gap_analysis",
-                    "to_phase": next_phase,
-                },
-            }
-        else:
-            return {
-                "action_status": "gap_analysis_complete",
-                "action_description": f"Gap analysis reviewed ({unresolved_gaps} gaps) but no next phase defined",
-            }
     except Exception as gap_check_error:
         logger.warning(
             safe_log_format(

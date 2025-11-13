@@ -153,8 +153,8 @@ pandas==2.3.1
 parso==0.8.4
 passlib==1.7.4
 pathspec==0.12.1
-pdfminer.six==20250506
-pdfplumber==0.11.7
+pdfminer.six==20251107  # Updated to fix HIGH severity vulnerabilities (Dependabot #46-49): insecure deserialization and arbitrary code execution
+pdfplumber==0.11.8  # Updated to support pdfminer.six==20251107 security patch
 pexpect==4.9.0
 pgvector==0.4.1
 pillow==11.3.0
