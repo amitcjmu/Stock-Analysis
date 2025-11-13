@@ -116,16 +116,7 @@ async def store_quality_issue_resolution(
         )
 
         if inserted > 0:
-            logger.info(
-                "💾 [RESOLUTION] Committing transaction for data_quality_resolution..."
-            )
-            await db.commit()
-            logger.info(
-                f"✅ [RESOLUTION] Transaction committed successfully. "
-                f"{inserted} rows stored in data_quality_resolution table"
-            )
-
-            # Verify by counting rows
+            # Verify by counting rows (within same transaction)
             stored_count = await _count_resolution_rows(
                 db, flow_id, issue_id, field_name
             )
@@ -134,19 +125,22 @@ async def store_quality_issue_resolution(
             )
 
             # Automatically apply resolutions to raw_import_records
+            # This is done within the same transaction to ensure atomicity
             updated_count, matched_count = await _apply_resolutions_to_raw_records(
                 db, flow_id, issue_id, field_name, flow
             )
 
-            # Commit the raw_record updates (new transaction after previous commit)
-            if updated_count > 0:
-                logger.info(
-                    f"💾 [RESOLUTION] Committing {updated_count} raw_import_record updates..."
-                )
-                await db.commit()
-                logger.info(
-                    f"✅ [RESOLUTION] Successfully committed {updated_count} raw_import_record updates"
-                )
+            # Commit both resolution insertion and raw_record updates in a single transaction
+            logger.info(
+                f"💾 [RESOLUTION] Committing transaction: {inserted} resolution rows "
+                f"and {updated_count} raw_import_record updates..."
+            )
+            await db.commit()
+            logger.info(
+                f"✅ [RESOLUTION] Transaction committed successfully. "
+                f"{inserted} rows stored in data_quality_resolution table, "
+                f"{updated_count} raw_import_records updated"
+            )
 
             return {
                 "status": "ok",
@@ -172,11 +166,13 @@ async def store_quality_issue_resolution(
         }
     except HTTPException as he:
         logger.error(f"❌ [RESOLUTION] HTTPException: {he.status_code} - {he.detail}")
+        await db.rollback()
         raise
     except Exception as e:
         logger.exception(
             f"❌ [RESOLUTION] Unexpected error in store_quality_issue_resolution: {type(e).__name__}: {str(e)}"
         )
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to store quality issue resolution: {str(e)}",

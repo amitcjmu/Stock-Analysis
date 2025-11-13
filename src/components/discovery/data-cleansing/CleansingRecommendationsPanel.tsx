@@ -28,6 +28,8 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
   onApplyRecommendation,
   isLoading = false
 }) => {
+  // Ensure recommendations is always an array to prevent runtime errors
+  const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
   const getPriorityBadgeClass = (priority: 'high' | 'medium' | 'low'): unknown => {
     switch (priority) {
       case 'high':
@@ -84,18 +86,18 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
       <div className="px-6 py-4 border-b border-gray-200">
         <h3 className="text-lg font-medium text-gray-900">Cleansing Recommendations</h3>
         <p className="text-sm text-gray-600">
-          {recommendations.length} improvement recommendations from the Data Standardization Specialist
+          {safeRecommendations.length} improvement recommendations from the Data Standardization Specialist
         </p>
       </div>
       <div className="p-6">
-        {recommendations.length === 0 ? (
+        {safeRecommendations.length === 0 ? (
           <div className="text-center py-8">
             <Brain className="h-12 w-12 text-blue-600 mx-auto mb-4" />
             <p className="text-gray-600">No recommendations yet. Trigger analysis to get AI-powered suggestions.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {recommendations.map((rec) => {
+            {safeRecommendations.map((rec) => {
               // Default status to 'pending' to ensure consistent button states
               const status = rec.status || 'pending';
               

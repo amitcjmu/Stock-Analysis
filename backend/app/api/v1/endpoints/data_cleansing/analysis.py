@@ -3,6 +3,8 @@ Data Cleansing API - Analysis Module
 Core analysis logic for performing data cleansing analysis.
 """
 
+import hashlib
+import json
 import logging
 import re
 import uuid
@@ -322,6 +324,34 @@ async def _apply_stored_resolutions(
         return quality_issues
 
 
+def _generate_recommendation_key(rec: DataCleansingRecommendation) -> str:
+    """
+    Generate a stable key from recommendation content for de-duplication.
+    
+    Uses category, title, and sorted fields_affected to create a consistent
+    hash that identifies duplicate recommendations regardless of ID or other fields.
+    
+    Args:
+        rec: DataCleansingRecommendation instance
+        
+    Returns:
+        SHA256 hash string representing the recommendation's unique content
+    """
+    # Normalize fields_affected by sorting to ensure consistent key generation
+    fields_affected = sorted(rec.fields_affected or [])
+    
+    # Create a stable representation of the recommendation's identifying content
+    key_data = {
+        "category": rec.category.lower().strip(),
+        "title": rec.title.lower().strip(),
+        "fields_affected": fields_affected,
+    }
+    
+    # Generate hash from JSON representation for stability
+    key_json = json.dumps(key_data, sort_keys=True)
+    return hashlib.sha256(key_json.encode("utf-8")).hexdigest()
+
+
 async def _load_recommendations_from_database(
     flow_id: str, db_session: AsyncSession, client_account_id: str, engagement_id: str
 ) -> List[DataCleansingRecommendation]:
@@ -383,6 +413,8 @@ async def _store_recommendations_to_database(
     Store recommendations to database.
 
     Creates or updates database records for recommendations.
+    De-duplicates recommendations by generating stable keys from their content
+    (category, title, fields_affected) to prevent redundant entries.
     """
     try:
         # Get existing recommendations for this flow
@@ -390,14 +422,41 @@ async def _store_recommendations_to_database(
         flow_uuid = _ensure_uuid(flow_id)
         query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
         result = await db_session.execute(query)
-        existing_recs = {str(rec.id): rec for rec in result.scalars().all()}
+        existing_db_recs = result.scalars().all()
+        existing_recs = {str(rec.id): rec for rec in existing_db_recs}
+
+        # Generate stable keys for existing recommendations to check for duplicates
+        existing_keys = set()
+        for db_rec in existing_db_recs:
+            # Convert DB model to Pydantic model to generate key
+            fields_affected = db_rec.fields_affected
+            if not isinstance(fields_affected, list):
+                fields_affected = [] if fields_affected is None else [fields_affected]
+            
+            existing_rec_pydantic = DataCleansingRecommendation(
+                id=str(db_rec.id),
+                category=db_rec.category,
+                title=db_rec.title,
+                description=db_rec.description,
+                priority=db_rec.priority,
+                impact=db_rec.impact,
+                effort_estimate=db_rec.effort_estimate,
+                fields_affected=fields_affected,
+                status=db_rec.status or "pending",
+            )
+            existing_keys.add(_generate_recommendation_key(existing_rec_pydantic))
+
+        # Track which recommendations are being added vs updated
+        added_count = 0
+        updated_count = 0
+        skipped_count = 0
 
         # Create or update recommendations
         for rec in recommendations:
             rec_id = UUID(rec.id) if isinstance(rec.id, str) else rec.id
 
             if str(rec.id) in existing_recs:
-                # Update existing recommendation
+                # Update existing recommendation by ID
                 db_rec = existing_recs[str(rec.id)]
                 db_rec.category = rec.category
                 db_rec.title = rec.title
@@ -407,8 +466,19 @@ async def _store_recommendations_to_database(
                 db_rec.effort_estimate = rec.effort_estimate
                 db_rec.fields_affected = rec.fields_affected
                 # Note: status is updated separately via apply_recommendation endpoint
+                updated_count += 1
             else:
-                # Create new recommendation
+                # Check for duplicate by content (stable key) before creating new recommendation
+                new_rec_key = _generate_recommendation_key(rec)
+                if new_rec_key in existing_keys:
+                    logger.debug(
+                        f"Skipping duplicate recommendation: {rec.title} "
+                        f"(category: {rec.category}, fields: {rec.fields_affected})"
+                    )
+                    skipped_count += 1
+                    continue
+
+                # Create new recommendation (not a duplicate)
                 db_rec = DBRecommendation(
                     id=rec_id,
                     flow_id=flow_uuid,
@@ -424,10 +494,13 @@ async def _store_recommendations_to_database(
                     engagement_id=UUID(engagement_id),
                 )
                 db_session.add(db_rec)
+                existing_keys.add(new_rec_key)  # Track this key to avoid duplicates within the same batch
+                added_count += 1
 
         await db_session.commit()
         logger.info(
-            f"Stored {len(recommendations)} recommendations to database for flow {flow_id}"
+            f"Stored recommendations to database for flow {flow_id}: "
+            f"{added_count} added, {updated_count} updated, {skipped_count} skipped (duplicates)"
         )
 
     except Exception as e:

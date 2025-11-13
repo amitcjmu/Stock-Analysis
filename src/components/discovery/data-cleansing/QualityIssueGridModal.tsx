@@ -34,37 +34,52 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
   issue,
   rows,
 }) => {
-  const [rowData, setRowData] = useState<Record<string, unknown>[]>(rows || []);
+  // Clone rows prop during state initialization to avoid unintended side effects
+  const [rowData, setRowData] = useState<Record<string, unknown>[]>(() => 
+    (rows || []).map(r => ({ ...r }))
+  );
+
+  // Shared normalization function for consistent key resolution
+  const normalizeFieldName = useCallback((s: string): string => {
+    return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  }, []);
+
+  // Shared key resolution logic - resolves issue field name to actual column key
+  const resolveIssueKey = useCallback((availableKeys: string[], issueFieldLabel?: string): string | null => {
+    if (!issueFieldLabel) return null;
+    const keys = availableKeys;
+    // Exact match
+    if (keys.includes(issueFieldLabel)) return issueFieldLabel;
+    // Normalized equality
+    const labelNorm = normalizeFieldName(issueFieldLabel);
+    for (const k of keys) {
+      if (normalizeFieldName(k) === labelNorm) return k;
+    }
+    // Common aliases
+    const aliases: Record<string, string[]> = {
+      os: ['operating_system', 'os', 'os_name'],
+      ip: ['ip', 'ip_address', 'ipaddr', 'ipaddress'],
+    };
+    for (const [alias, candidates] of Object.entries(aliases)) {
+      if (labelNorm === alias || candidates.some((c) => normalizeFieldName(c) === labelNorm)) {
+        const found = candidates.find((c) => keys.includes(c));
+        if (found) return found;
+      }
+    }
+    // snake_case guess
+    const snake = issueFieldLabel.replace(/\s+/g, '_').replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+    if (keys.includes(snake)) return snake;
+    return issueFieldLabel;
+  }, [normalizeFieldName]);
 
   useEffect(() => {
     // Initialize with rows and auto-populate suggestions for empty issue field values
     const initializeWithSuggestions = (incoming: Record<string, unknown>[], issueFieldLabel?: string) => {
-      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const resolveIssueKey = (sample: Record<string, unknown>, label?: string): string | null => {
+      const norm = (s: string) => normalizeFieldName(s);
+      const resolveIssueKeyLocal = (sample: Record<string, unknown>, label?: string): string | null => {
         if (!label) return null;
         const keys = Object.keys(sample || {});
-        // Exact match
-        if (label in sample) return label;
-        // Normalized equality
-        const labelNorm = norm(label);
-        for (const k of keys) {
-          if (norm(k) === labelNorm) return k;
-        }
-        // Common aliases
-        const aliases: Record<string, string[]> = {
-          os: ['operating_system', 'os', 'os_name'],
-          ip: ['ip', 'ip_address', 'ipaddr', 'ipaddress'],
-        };
-        for (const [alias, candidates] of Object.entries(aliases)) {
-          if (labelNorm === alias || candidates.some((c) => norm(c) === labelNorm)) {
-            const found = candidates.find((c) => c in sample);
-            if (found) return found;
-          }
-        }
-        // snake_case guess
-        const snake = label.replace(/\s+/g, '_').replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
-        if (snake in sample) return snake;
-        return label;
+        return resolveIssueKey(keys, label);
       };
       const getSuggestion = (fieldKey: string, record: Record<string, unknown>): unknown => {
         const fieldNorm = norm(fieldKey);
@@ -89,7 +104,7 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
       };
       if (!incoming || incoming.length === 0) return incoming || [];
       const sample = incoming[0] || {};
-      const issueKey = resolveIssueKey(sample, issueFieldLabel);
+      const issueKey = resolveIssueKeyLocal(sample, issueFieldLabel);
       if (!issueKey) return incoming;
       return incoming.map((rec) => {
         const value = rec[issueKey];
@@ -106,7 +121,7 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
       });
     };
     setRowData(initializeWithSuggestions(rows || [], issue?.field_name));
-  }, [rows, isOpen]);
+  }, [rows, issue?.field_name, normalizeFieldName, resolveIssueKey]);
 
   // Derive columns from data keys; ensure common quality fields are present
   const allKeys = useMemo(() => {
@@ -118,13 +133,17 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
   }, [rowData]);
 
   const columnDefs = useMemo<ColDef<Record<string, unknown>>[]>(() => {
+    // Resolve the actual column key that matches the issue field name using consistent normalization
+    const resolvedIssueKey = issue?.field_name ? resolveIssueKey(allKeys, issue.field_name) : null;
+    
     return allKeys.map((key) => {
       const header =
         key
           .split('_')
           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
           .join(' ');
-      const isIssueField = issue?.field_name === key;
+      // Use the resolved key for consistent highlighting
+      const isIssueField = resolvedIssueKey === key;
       return {
         field: key,
         headerName: header,
@@ -135,7 +154,7 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
         cellClass: isIssueField ? 'bg-yellow-50' : undefined,
       } as ColDef<Record<string, unknown>>;
     });
-  }, [allKeys, issue?.field_name]);
+  }, [allKeys, issue?.field_name, resolveIssueKey]);
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
@@ -163,11 +182,39 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
     []
   );
 
+  // Generate stable row ID for AG Grid virtualization
+  const getRowId = useCallback((params: { data: Record<string, unknown> }) => {
+    const row = params.data;
+    // Try common identifier fields first
+    const identifierFields = ['id', 'ID', 'ip_address', 'IP_Address', 'hostname', 'Hostname'];
+    for (const field of identifierFields) {
+      if (row[field] != null && row[field] !== '') {
+        return String(row[field]);
+      }
+    }
+    // Fallback: generate stable key from row content
+    // Use a combination of key-value pairs for uniqueness
+    const keyParts = Object.entries(row)
+      .filter(([_, value]) => value != null && value !== '')
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}:${String(value)}`)
+      .slice(0, 3); // Use first 3 non-empty fields for performance
+    if (keyParts.length > 0) {
+      return keyParts.join('|');
+    }
+    // Last resort: generate unique ID (shouldn't happen if rows have any data)
+    return `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }, []);
+
   const handleAddRow = () => {
-    // Create an empty row with known keys
-    const newRow: Record<string, unknown> = {};
+    // Create an empty row with known keys and a unique ID
+    const newRow: Record<string, unknown> = {
+      id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
     allKeys.forEach((k) => {
-      newRow[k] = '';
+      if (k !== 'id' && k !== 'ID') {
+        newRow[k] = '';
+      }
     });
     setRowData((prev) => [newRow, ...prev]);
   };
@@ -235,6 +282,9 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
               rowSelection="single"
               ensureDomOrder
               enableCellTextSelection
+              getRowId={getRowId}
+              suppressColumnVirtualisation={false}
+              suppressRowVirtualisation={false}
             />
           </div>
         </div>
