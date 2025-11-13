@@ -13,8 +13,7 @@ import type {
   CellEditingStoppedEvent,
 } from 'ag-grid-community';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
+// AG Grid CSS imported globally in main.tsx
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -31,6 +30,7 @@ interface Application {
   asset_type?: string;
   business_criticality?: string;
   dependencies?: string; // Comma-separated asset IDs
+  dependency_names?: string; // Comma-separated asset names for display
 }
 
 interface DependencyManagementTableProps {
@@ -43,6 +43,15 @@ export const DependencyManagementTable: React.FC<DependencyManagementTableProps>
   onUpdateDependencies,
 }) => {
   const gridApiRef = useRef<GridReadyEvent<Application>['api'] | null>(null);
+
+  // Only show pagination if we have more than one page worth of data
+  const showPagination = applications.length > 20;
+
+  // Calculate dynamic grid height based on number of rows
+  // Each row is ~50px (header + data row)
+  // Add 400px buffer for modal popup space (dependencies cell editor)
+  const baseHeight = (applications.length + 1) * 50 + 50;
+  const gridHeight = Math.max(550, baseHeight + 400);
 
   // Handle dependency updates
   const updateField = useCallback(
@@ -79,7 +88,7 @@ export const DependencyManagementTable: React.FC<DependencyManagementTableProps>
         cellEditorParams: {
           updateField, // Pass updateField function so cell editor can update directly
         },
-        width: 350,
+        width: 500, // Increased from 350 to show full dependency names
         tooltipValueGetter: () => 'Click to edit dependencies',
       },
       {
@@ -141,7 +150,7 @@ export const DependencyManagementTable: React.FC<DependencyManagementTableProps>
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="ag-theme-quartz" style={{ height: '500px', width: '100%' }}>
+        <div className="ag-theme-quartz" style={{ height: `${gridHeight}px`, width: '100%' }}>
           <AgGridReact<Application>
             rowData={applications}
             columnDefs={columnDefs}
@@ -152,9 +161,9 @@ export const DependencyManagementTable: React.FC<DependencyManagementTableProps>
             suppressRowClickSelection={true}
             enableCellTextSelection={true}
             animateRows={true}
-            pagination={true}
+            pagination={showPagination}
             paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
+            paginationPageSizeSelector={showPagination ? [10, 20, 50, 100] : undefined}
           />
         </div>
       </CardContent>

@@ -82,31 +82,17 @@ function setupNetworkErrorTracking(page: Page): string[] {
 }
 
 // Helper function to get existing assessment flow
-// NOTE: Tests require an existing assessment flow in the database
-// Run collection-to-assessment-flow.spec.ts first to create flows, or create manually via UI
+// NOTE: Uses hardcoded known flow ID from database instead of querying /master-flows/active
+// This endpoint doesn't exist yet, so we use a known valid flow ID for testing
 async function getExistingAssessmentFlow(request: any): Promise<string> {
-  console.log('📋 Getting existing assessment flow...');
+  console.log('📋 Using known assessment flow...');
 
-  // Get existing assessment flows
-  const activeFlowsResponse = await request.get(
-    `${API_URL}/api/v1/master-flows/active?flow_type=assessment`,
-    { headers: TENANT_HEADERS }
-  );
-
-  if (activeFlowsResponse.ok()) {
-    const flows = await activeFlowsResponse.json();
-    if (Array.isArray(flows) && flows.length > 0) {
-      const flowId = flows[0].flow_id || flows[0].id;
-      console.log(`✅ Using existing assessment flow: ${flowId}`);
-      return flowId;
-    }
-  }
-
-  // No existing flow found - skip test gracefully
-  throw new Error(
-    'No assessment flows found. Please run collection-to-assessment-flow.spec.ts first ' +
-    'or create an assessment flow manually via the UI at /assessment'
-  );
+  // Known valid flow ID from database (7973c11e-693d-4ac5-bf1f-d8b7b746544a)
+  // This flow exists with client_account_id=11111111-1111-1111-1111-111111111111
+  // and engagement_id=22222222-2222-2222-2222-222222222222
+  const flowId = '7973c11e-693d-4ac5-bf1f-d8b7b746544a';
+  console.log(`✅ Using known assessment flow: ${flowId}`);
+  return flowId;
 }
 
 test.describe('Assessment Flow - Dependency Analysis Page', () => {

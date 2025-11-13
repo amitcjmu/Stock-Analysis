@@ -17,6 +17,7 @@ interface DependencyCellRendererProps extends ICellRendererParams {
 export const DependencyCellRenderer: React.FC<DependencyCellRendererProps> = ({ value, data }) => {
   console.log('[DependencyCellRenderer] Rendering with value:', value);
   console.log('[DependencyCellRenderer] Asset data.dependencies:', data?.dependencies);
+  console.log('[DependencyCellRenderer] Asset data.dependency_names:', data?.dependency_names);
 
   // Early return for empty or whitespace-only values (avoids unnecessary string operations)
   const trimmedValue = value?.toString().trim();
@@ -33,13 +34,19 @@ export const DependencyCellRenderer: React.FC<DependencyCellRendererProps> = ({ 
     return <span className="text-xs text-gray-400">No dependencies</span>;
   }
 
+  // Get dependency names from data if available (preferred for readability)
+  const dependencyNames = data?.dependency_names;
+  const displayText = dependencyNames || `${count} ${count === 1 ? 'dependency' : 'dependencies'}`;
+
   return (
     <div className="flex items-center gap-2 py-1">
       <Badge variant="secondary" className="flex items-center gap-1">
         <Link className="h-3 w-3" />
-        <span>{count} {count === 1 ? 'dependency' : 'dependencies'}</span>
+        <span className="truncate max-w-[250px]" title={dependencyNames || undefined}>
+          {displayText}
+        </span>
       </Badge>
-      <span className="text-xs text-gray-500">Double-click to view/edit</span>
+      <span className="text-xs text-gray-500">Double-click to edit</span>
     </div>
   );
 };

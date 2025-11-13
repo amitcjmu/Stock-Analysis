@@ -31,7 +31,8 @@ interface DependencyGraphProps {
 }
 
 /**
- * Calculate node positions using a simple force-directed layout approximation
+ * Calculate node positions using a hierarchical layout
+ * Source applications on the left, target dependencies on the right
  * For production, consider using dagre or elk for more sophisticated layouts
  */
 function calculateNodePositions(
@@ -39,36 +40,81 @@ function calculateNodePositions(
   edges: DependencyGraphData['edges']
 ): Map<string, { x: number; y: number }> {
   const positions = new Map<string, { x: number; y: number }>();
-  const HORIZONTAL_SPACING = 300;
+  const HORIZONTAL_SPACING = 350;
   const VERTICAL_SPACING = 150;
 
-  // Group nodes by type
-  const applications = nodes.filter(n => n.type === 'application');
-  const servers = nodes.filter(n => n.type === 'server');
-  const databases = nodes.filter(n => n.type === 'database');
+  // Identify pure source nodes (nodes that ONLY have outgoing edges, no incoming)
+  const sourceNodeIds = new Set<string>();
+  const targetNodeIds = new Set<string>();
 
-  // Layout applications in the first column
-  applications.forEach((node, index) => {
+  edges.forEach(edge => {
+    sourceNodeIds.add(edge.source);
+    targetNodeIds.add(edge.target);
+  });
+
+  // Pure source nodes = have outgoing edges AND are NOT targets of any edge
+  const pureSourceNodes = nodes.filter(
+    n => sourceNodeIds.has(n.id) && !targetNodeIds.has(n.id)
+  );
+
+  // All other nodes go to the right column (targets or intermediate nodes)
+  const rightColumnNodes = nodes.filter(
+    n => !pureSourceNodes.some(source => source.id === n.id)
+  );
+
+  // Group right column nodes by type for organized layout
+  const rightApplications = rightColumnNodes.filter(n => n.type === 'application');
+  const rightServers = rightColumnNodes.filter(n => n.type === 'server');
+  const rightDatabases = rightColumnNodes.filter(n => n.type === 'database');
+  const rightOthers = rightColumnNodes.filter(
+    n => n.type !== 'application' && n.type !== 'server' && n.type !== 'database'
+  );
+
+  // Layout pure source nodes in the first column (left side)
+  pureSourceNodes.forEach((node, index) => {
     positions.set(node.id, {
       x: 0,
       y: index * VERTICAL_SPACING,
     });
   });
 
-  // Layout servers in the second column
-  servers.forEach((node, index) => {
+  // Layout right column nodes (targets and intermediates)
+  let rightColumnIndex = 0;
+
+  // Applications first
+  rightApplications.forEach((node) => {
     positions.set(node.id, {
       x: HORIZONTAL_SPACING,
-      y: index * VERTICAL_SPACING,
+      y: rightColumnIndex * VERTICAL_SPACING,
     });
+    rightColumnIndex++;
   });
 
-  // Layout databases in the third column
-  databases.forEach((node, index) => {
+  // Then servers
+  rightServers.forEach((node) => {
     positions.set(node.id, {
-      x: HORIZONTAL_SPACING * 2,
-      y: index * VERTICAL_SPACING,
+      x: HORIZONTAL_SPACING,
+      y: rightColumnIndex * VERTICAL_SPACING,
     });
+    rightColumnIndex++;
+  });
+
+  // Then databases
+  rightDatabases.forEach((node) => {
+    positions.set(node.id, {
+      x: HORIZONTAL_SPACING,
+      y: rightColumnIndex * VERTICAL_SPACING,
+    });
+    rightColumnIndex++;
+  });
+
+  // Finally any other types
+  rightOthers.forEach((node) => {
+    positions.set(node.id, {
+      x: HORIZONTAL_SPACING,
+      y: rightColumnIndex * VERTICAL_SPACING,
+    });
+    rightColumnIndex++;
   });
 
   return positions;

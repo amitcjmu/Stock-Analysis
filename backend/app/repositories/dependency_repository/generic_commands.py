@@ -4,8 +4,9 @@ Generic dependency creation command methods.
 
 import logging
 from typing import Optional
+from uuid import UUID
 
-from sqlalchemy import and_
+from sqlalchemy import and_, delete
 from sqlalchemy.future import select
 
 from app.models.asset import Asset, AssetDependency
@@ -91,3 +92,36 @@ class GenericCommandMixin:
             confidence_score=confidence_score,
             description=description,
         )
+
+    async def delete_dependencies_for_application(
+        self,
+        application_id: str,
+    ) -> int:
+        """
+        Delete all dependencies for a specific application (source asset).
+
+        Used to clear existing dependencies before creating new ones,
+        preventing duplicates when updating dependencies via the UI.
+
+        Args:
+            application_id: ID of the application whose dependencies should be deleted
+
+        Returns:
+            Number of dependencies deleted
+        """
+        # Convert to UUID if string
+        app_uuid = (
+            UUID(application_id) if isinstance(application_id, str) else application_id
+        )
+
+        # Delete all dependencies where this application is the source
+        stmt = delete(AssetDependency).where(AssetDependency.asset_id == app_uuid)
+
+        result = await self.db.execute(stmt)
+        deleted_count = result.rowcount
+
+        logger.info(
+            f"Deleted {deleted_count} dependencies for application {application_id}"
+        )
+
+        return deleted_count
