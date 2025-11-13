@@ -1,7 +1,8 @@
-# Intelligent AI Gap Analysis Caching
+# Simple AI Gap Analysis Status Tracking
 
-**Status**: Design Proposal
+**Status**: Design Proposal - Simplified
 **Created**: 2025-01-13
+**Updated**: 2025-01-13
 **Author**: Claude Code
 **Related PR**: #1043
 
@@ -10,417 +11,522 @@
 AI gap analysis using Llama 4 is expensive and time-consuming:
 - **Cost**: ~$0.50-$2.00 per asset analyzed
 - **Time**: 30-60 seconds per asset
-- **Current Behavior**: Re-analyzes assets even if data hasn't changed
+- **Current Behavior**: Re-analyzes assets even when already completed
 - **Impact**: Unnecessary LLM costs and user wait time
 
-**User Concern**: "We should avoid costly unnecessary repetition of agent calls for the same data over and over again."
+**User Requirement**: "We should avoid costly unnecessary repetition of agent calls for the same data over and over again."
 
 ## Goals
 
-1. **Detect unchanged assets**: Skip AI analysis if asset data hasn't changed
-2. **Return cached results**: Use previously generated gaps and questionnaires
-3. **Detect data changes**: Re-analyze only when asset data changes
-4. **Provide force-refresh**: Allow manual re-analysis when needed
-5. **Maintain accuracy**: Never show stale data
+1. **Track AI analysis completion**: Simple flag per asset to indicate AI analysis status
+2. **Skip completed assets**: Don't re-run AI analysis if already completed successfully
+3. **Allow manual re-analysis**: User can force re-analysis when needed
+4. **Show appropriate UI**: Display AI-specific buttons only when AI analysis completed
+5. **Delay questionnaire access**: Give users time to review gaps before proceeding
 
 ## Solution Design
 
-### 1. Asset Data Fingerprinting
+### 1. Add AI Analysis Status Flag to Assets Table
 
-**Add data hash column** to track asset state:
+**Simple status tracking** using integer flag in `assets` table:
 
 ```sql
--- Migration: Add data_hash column to assets table
+-- Migration: Add ai_gap_analysis_status column to assets table
 ALTER TABLE migration.assets
-ADD COLUMN data_hash VARCHAR(64);
+ADD COLUMN ai_gap_analysis_status INTEGER NOT NULL DEFAULT 0;
 
 -- Create index for fast lookups
-CREATE INDEX idx_assets_data_hash ON migration.assets(data_hash);
+CREATE INDEX idx_assets_ai_analysis_status ON migration.assets(ai_gap_analysis_status);
+
+-- Add comment explaining status codes
+COMMENT ON COLUMN migration.assets.ai_gap_analysis_status IS
+'AI gap analysis status: 0 = not started, 1 = in progress, 2 = completed successfully';
 ```
 
-**Hash calculation** (SHA-256 of critical fields):
+**Status Codes**:
+- `0` = AI analysis not started (default)
+- `1` = AI analysis in progress (job running)
+- `2` = AI analysis completed and results persisted to database
+
+### 2. Backend Logic Changes
+
+#### Check Status Before Running AI Analysis
 
 ```python
-import hashlib
-import json
+# backend/app/api/v1/endpoints/collection_gap_analysis/analysis_endpoints/background_workers.py
 
-def calculate_asset_hash(asset: Asset) -> str:
-    """Calculate SHA-256 hash of asset's critical data fields.
-
-    Includes:
-    - name, asset_type, environment
-    - os_platform, os_version
-    - application_name, application_version
-    - hosting_model, deployment_model
-    - custom_attributes (sorted for consistency)
-    - dependencies (sorted)
-    """
-    hash_data = {
-        "name": asset.name,
-        "type": asset.asset_type,
-        "environment": asset.environment,
-        "os_platform": asset.os_platform,
-        "os_version": asset.os_version,
-        "app_name": asset.application_name,
-        "app_version": asset.application_version,
-        "hosting": asset.hosting_model,
-        "deployment": asset.deployment_model,
-        "custom_attrs": sorted(asset.custom_attributes.items()) if asset.custom_attributes else [],
-        "dependencies": sorted([
-            {"name": d.dependency_name, "type": d.dependency_type}
-            for d in asset.dependencies
-        ], key=lambda x: x["name"]),
-    }
-
-    hash_input = json.dumps(hash_data, sort_keys=True)
-    return hashlib.sha256(hash_input.encode()).hexdigest()
-```
-
-### 2. AI Analysis Cache Table
-
-**Create new table** to track AI analysis history:
-
-```sql
-CREATE TABLE migration.ai_gap_analysis_cache (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- Asset tracking
-    asset_id UUID NOT NULL REFERENCES migration.assets(id) ON DELETE CASCADE,
-    collection_flow_id UUID NOT NULL REFERENCES migration.collection_flows(id) ON DELETE CASCADE,
-
-    -- Data versioning
-    asset_data_hash VARCHAR(64) NOT NULL,
-    analyzed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-
-    -- Analysis metadata
-    ai_model VARCHAR(100) NOT NULL, -- e.g., "meta-llama/Llama-4-Maverick-17B"
-    analysis_tier VARCHAR(20) NOT NULL, -- "tier_1" or "tier_2"
-
-    -- Results references
-    gaps_count INTEGER NOT NULL DEFAULT 0,
-    questionnaire_sections_count INTEGER NOT NULL DEFAULT 0,
-
-    -- Cost tracking
-    input_tokens INTEGER,
-    output_tokens INTEGER,
-    cost_usd DECIMAL(10, 4),
-
-    -- Tenant isolation
-    client_account_id UUID NOT NULL,
-    engagement_id UUID NOT NULL,
-
-    -- Audit
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-
-    -- Constraints
-    UNIQUE(asset_id, asset_data_hash, collection_flow_id),
-
-    -- Indexes
-    INDEX idx_ai_cache_asset_hash (asset_id, asset_data_hash),
-    INDEX idx_ai_cache_flow (collection_flow_id),
-    INDEX idx_ai_cache_tenant (client_account_id, engagement_id)
-);
-```
-
-### 3. Cache Validation Logic
-
-**Check if asset needs re-analysis**:
-
-```python
-async def should_analyze_asset(
-    asset: Asset,
+async def process_gap_enhancement_job(
+    job_id: str,
     collection_flow_id: UUID,
-    db: AsyncSession,
-    force_refresh: bool = False
-) -> bool:
-    """Determine if asset needs AI analysis.
+    selected_asset_ids: list,
+    client_account_id: str,
+    engagement_id: str,
+    force_refresh: bool = False,  # New parameter for manual re-analysis
+):
+    """Background worker for comprehensive AI gap analysis.
 
-    Returns:
-        True: Asset needs analysis (data changed or no cache)
-        False: Use cached results (data unchanged)
+    Skips assets with ai_gap_analysis_status = 2 unless force_refresh = True.
     """
-    if force_refresh:
-        logger.info(f"🔄 Force refresh requested for asset {asset.id}")
-        return True
-
-    # Calculate current asset hash
-    current_hash = calculate_asset_hash(asset)
-
-    # Check if hash changed since last update
-    if asset.data_hash != current_hash:
-        logger.info(
-            f"📊 Asset {asset.id} data changed - "
-            f"old_hash={asset.data_hash[:8]}, new_hash={current_hash[:8]}"
-        )
-        # Update asset hash
-        asset.data_hash = current_hash
-        await db.flush()
-        return True
-
-    # Check if AI analysis exists for this hash
-    from sqlalchemy import select
-    stmt = select(AIGapAnalysisCache).where(
-        AIGapAnalysisCache.asset_id == asset.id,
-        AIGapAnalysisCache.asset_data_hash == current_hash,
-        AIGapAnalysisCache.collection_flow_id == collection_flow_id,
+    # Load assets
+    stmt = select(Asset).where(
+        Asset.id.in_([UUID(aid) for aid in selected_asset_ids]),
+        Asset.client_account_id == UUID(client_account_id),
+        Asset.engagement_id == UUID(engagement_id),
     )
     result = await db.execute(stmt)
-    cache_entry = result.scalar_one_or_none()
+    all_assets = result.scalars().all()
 
-    if cache_entry:
-        logger.info(
-            f"✅ Using cached AI analysis for asset {asset.id} - "
-            f"analyzed_at={cache_entry.analyzed_at}, gaps={cache_entry.gaps_count}"
-        )
-        return False
-
-    logger.info(f"🆕 No AI analysis cache found for asset {asset.id} - analyzing")
-    return True
-```
-
-### 4. Selective Asset Analysis
-
-**Split assets** into cached and needs-analysis groups:
-
-```python
-async def analyze_assets_with_cache(
-    assets: List[Asset],
-    collection_flow_id: UUID,
-    db: AsyncSession,
-    force_refresh: bool = False
-) -> Dict[str, Any]:
-    """Analyze assets with intelligent caching.
-
-    Returns:
-        {
-            "assets_analyzed": [...],  # Assets that needed analysis
-            "assets_cached": [...],     # Assets using cached results
-            "total_cost_saved_usd": 1.25,
-            "analysis_results": {...}
-        }
-    """
-    assets_to_analyze = []
-    assets_cached = []
-
-    # Categorize assets
-    for asset in assets:
-        if await should_analyze_asset(asset, collection_flow_id, db, force_refresh):
-            assets_to_analyze.append(asset)
-        else:
-            assets_cached.append(asset)
-
-    logger.info(
-        f"📊 Asset analysis plan - "
-        f"Analyze: {len(assets_to_analyze)}, "
-        f"Cached: {len(assets_cached)}, "
-        f"Cost saved: ~${len(assets_cached) * 1.5:.2f}"
-    )
-
-    # Run AI analysis only on changed/new assets
-    if assets_to_analyze:
-        analysis_results = await run_tier_2_ai_analysis(
-            assets=assets_to_analyze,
-            collection_flow_id=collection_flow_id,
-            db=db
-        )
-
-        # Store cache entries
-        for asset in assets_to_analyze:
-            cache_entry = AIGapAnalysisCache(
-                asset_id=asset.id,
-                collection_flow_id=collection_flow_id,
-                asset_data_hash=asset.data_hash,
-                analyzed_at=datetime.now(timezone.utc),
-                ai_model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-                analysis_tier="tier_2",
-                gaps_count=len([g for g in analysis_results["gaps"] if g["asset_id"] == str(asset.id)]),
-                questionnaire_sections_count=len(analysis_results.get("questionnaire", {}).get("sections", [])),
-                client_account_id=asset.client_account_id,
-                engagement_id=asset.engagement_id,
-            )
-            db.add(cache_entry)
-
-        await db.commit()
+    # Filter assets based on AI analysis status
+    if force_refresh:
+        # User forced re-analysis - analyze all assets
+        assets_to_analyze = all_assets
+        logger.info(f"🔄 Force refresh enabled - analyzing all {len(all_assets)} assets")
     else:
-        analysis_results = {"gaps": [], "questionnaire": {"sections": []}}
+        # Skip assets that already completed AI analysis (status = 2)
+        assets_to_analyze = [
+            asset for asset in all_assets
+            if asset.ai_gap_analysis_status != 2
+        ]
+        assets_skipped = len(all_assets) - len(assets_to_analyze)
 
-    # Retrieve cached gaps for unchanged assets
-    if assets_cached:
-        cached_gaps = await load_cached_gaps(assets_cached, collection_flow_id, db)
-        analysis_results["gaps"].extend(cached_gaps)
+        logger.info(
+            f"📊 AI analysis plan - "
+            f"Analyze: {len(assets_to_analyze)}, "
+            f"Skipped (already completed): {assets_skipped}"
+        )
 
-    return {
-        "assets_analyzed": len(assets_to_analyze),
-        "assets_cached": len(assets_cached),
-        "total_cost_saved_usd": len(assets_cached) * 1.5,  # Avg cost per asset
-        "analysis_results": analysis_results,
-    }
+    if not assets_to_analyze:
+        logger.info("✅ All assets already have AI analysis - nothing to do")
+        await update_job_state(
+            job_id=job_id,
+            status="completed",
+            progress=100,
+            message="All assets already analyzed"
+        )
+        return
+
+    # Mark assets as in-progress (status = 1)
+    for asset in assets_to_analyze:
+        asset.ai_gap_analysis_status = 1
+    await db.flush()
+
+    try:
+        # Run comprehensive AI analysis
+        ai_result = await gap_service._run_tier_2_ai_analysis(
+            assets=assets_to_analyze,
+            collection_flow_id=str(collection_flow_id),
+            db=db,
+        )
+
+        # Mark assets as completed (status = 2)
+        for asset in assets_to_analyze:
+            asset.ai_gap_analysis_status = 2
+        await db.commit()
+
+        logger.info(f"✅ AI analysis completed for {len(assets_to_analyze)} assets")
+
+    except Exception as e:
+        # Reset status to 0 on failure so analysis can be retried
+        for asset in assets_to_analyze:
+            asset.ai_gap_analysis_status = 0
+        await db.commit()
+
+        logger.error(f"❌ AI analysis failed: {e}")
+        raise
 ```
 
-### 5. Frontend Force Refresh Option
-
-**Add "Force Refresh" checkbox** in UI:
-
-```typescript
-// src/components/collection/DataGapDiscovery.tsx
-
-const [forceRefresh, setForceRefresh] = useState(false);
-
-// Add checkbox in UI
-<div className="flex items-center space-x-2 mb-4">
-  <input
-    type="checkbox"
-    id="force-refresh"
-    checked={forceRefresh}
-    onChange={(e) => setForceRefresh(e.target.checked)}
-    className="rounded border-gray-300"
-  />
-  <label htmlFor="force-refresh" className="text-sm text-gray-700">
-    Force re-analysis (ignore cache)
-    <span className="ml-2 text-gray-500">
-      - Use if asset data was updated externally
-    </span>
-  </label>
-</div>
-
-// Pass force_refresh parameter to API
-const response = await collectionFlowApi.analyzeGaps(
-  flowId,
-  null,
-  selectedAssetIds,
-  forceRefresh  // New parameter
-);
-```
-
-**Update API schema**:
+#### Add force_refresh Parameter to API
 
 ```python
 # backend/app/schemas/collection_gap_analysis.py
 
 class AnalyzeGapsRequest(BaseModel):
-    gaps: Optional[List[DataGap]] = Field(None, ...)
-    selected_asset_ids: List[str] = Field(...)
+    """Request schema for gap analysis enhancement."""
+
+    gaps: Optional[List[DataGap]] = Field(
+        None,
+        description="Gaps from programmatic scan. If None, triggers comprehensive analysis."
+    )
+    selected_asset_ids: List[str] = Field(
+        ...,
+        min_length=1,
+        description="Asset UUIDs for gap analysis context"
+    )
     force_refresh: bool = Field(
         False,
-        description="Force re-analysis even if cached results exist"
+        description="Force re-analysis even if AI analysis already completed (status=2)"
     )
 ```
 
-### 6. Cache Invalidation Strategies
+```python
+# backend/app/api/v1/endpoints/collection_gap_analysis/analysis_endpoints/gap_analysis_handlers.py
 
-**Auto-invalidate cache** when:
+async def analyze_gaps(
+    flow_id: str,
+    request_body: AnalyzeGapsRequest,
+    background_tasks: BackgroundTasks,
+    context: RequestContext = Depends(get_request_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """Enqueues background job for AI-powered gap enhancement."""
 
-1. **Asset data updated**:
-   ```python
-   # In asset update endpoint
-   asset.data_hash = calculate_asset_hash(asset)
-   await db.flush()
-   # Next analysis will detect hash change and re-analyze
-   ```
+    # ... existing validation ...
 
-2. **Manual cache clear** (admin endpoint):
-   ```python
-   @router.delete("/api/v1/collection/{flow_id}/cache")
-   async def clear_analysis_cache(flow_id: str, db: AsyncSession):
-       """Clear AI analysis cache for debugging/testing."""
-       await db.execute(
-           delete(AIGapAnalysisCache).where(
-               AIGapAnalysisCache.collection_flow_id == UUID(flow_id)
-           )
-       )
-       await db.commit()
-       return {"status": "success", "message": "Cache cleared"}
-   ```
+    # Enqueue background task with force_refresh parameter
+    background_tasks.add_task(
+        process_gap_enhancement_job,
+        job_id=job_id,
+        collection_flow_id=collection_flow.id,
+        selected_asset_ids=request_body.selected_asset_ids,
+        client_account_id=str(context.client_account_id),
+        engagement_id=str(context.engagement_id),
+        force_refresh=request_body.force_refresh,  # Pass force_refresh flag
+    )
+```
 
-3. **Time-based expiration** (optional):
-   ```python
-   # Add to cache validation
-   cache_age = datetime.now(timezone.utc) - cache_entry.analyzed_at
-   if cache_age > timedelta(days=30):
-       logger.info(f"🕐 Cache expired for asset {asset.id} - age={cache_age.days} days")
-       return True  # Re-analyze
-   ```
+### 3. Frontend UI Changes
+
+#### Add Force Re-Analysis Button
+
+```typescript
+// src/components/collection/DataGapDiscovery.tsx
+
+const DataGapDiscovery = ({ flowId, selectedAssetIds }) => {
+  const [forceRefresh, setForceRefresh] = useState(false);
+  const [hasAIAnalysis, setHasAIAnalysis] = useState(false);
+  const [showQuestionnaireButton, setShowQuestionnaireButton] = useState(false);
+
+  // Check if selected assets have AI analysis completed (status = 2)
+  useEffect(() => {
+    const checkAIStatus = async () => {
+      // Query assets to check ai_gap_analysis_status
+      const assets = await fetchAssets(selectedAssetIds);
+      const allCompleted = assets.every(a => a.ai_gap_analysis_status === 2);
+      setHasAIAnalysis(allCompleted);
+    };
+    checkAIStatus();
+  }, [selectedAssetIds]);
+
+  // Auto-trigger AI analysis (only for assets without AI analysis)
+  useEffect(() => {
+    if (gaps.length > 0 && !isAnalyzing && !enhancementProgress && scanSummary) {
+      // Check if any asset needs AI analysis (status != 2)
+      const needsAIAnalysis = gaps.some(gap => {
+        // Check if gap's asset has AI analysis completed
+        return !gap.confidence_score; // Heuristic gap without AI enhancement
+      });
+
+      if (needsAIAnalysis) {
+        console.log('🚀 Auto-triggering AI-enhanced gap analysis');
+        handleAnalyzeGapsAuto();
+      }
+    }
+  }, [gaps, scanSummary, isAnalyzing, enhancementProgress]);
+
+  const handleAnalyzeGapsAuto = async () => {
+    try {
+      setIsAnalyzing(true);
+
+      const response = await collectionFlowApi.analyzeGaps(
+        flowId,
+        null, // Triggers comprehensive analysis
+        selectedAssetIds,
+        false // force_refresh = false (skip completed assets)
+      );
+
+      console.log('✅ AI enhancement job queued:', response.job_id);
+    } catch (error) {
+      console.error('❌ AI analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleForceReAnalysis = async () => {
+    try {
+      setIsAnalyzing(true);
+
+      const response = await collectionFlowApi.analyzeGaps(
+        flowId,
+        null,
+        selectedAssetIds,
+        true // force_refresh = true (re-analyze all assets)
+      );
+
+      console.log('✅ Force re-analysis job queued:', response.job_id);
+    } catch (error) {
+      console.error('❌ Force re-analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Delay showing questionnaire button for 15-30 seconds
+  useEffect(() => {
+    if (gaps.length > 0 && !showQuestionnaireButton) {
+      const timer = setTimeout(() => {
+        setShowQuestionnaireButton(true);
+      }, 20000); // 20 seconds delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [gaps]);
+
+  return (
+    <div>
+      {/* Gap Analysis Status Message */}
+      {scanSummary && (
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+          {hasAIAnalysis ? (
+            <p className="text-green-700">
+              ✅ AI-enhanced gap analysis is complete.
+              Review gaps below and accept/reject AI classifications.
+            </p>
+          ) : (
+            <p className="text-blue-700">
+              📊 Heuristic gap analysis is complete.
+              AI enhancement {isAnalyzing ? 'is running' : 'will run automatically'}.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* AI-Specific Action Buttons - Only show if AI analysis completed */}
+      {hasAIAnalysis && (
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={handleAcceptAIGaps}
+            className="px-4 py-2 bg-green-600 text-white rounded"
+          >
+            ✓ Accept AI Classifications
+          </button>
+          <button
+            onClick={handleRejectAIGaps}
+            className="px-4 py-2 bg-red-600 text-white rounded"
+          >
+            ✗ Reject AI Classifications
+          </button>
+        </div>
+      )}
+
+      {/* Force Re-Analysis Button */}
+      {hasAIAnalysis && (
+        <button
+          onClick={handleForceReAnalysis}
+          disabled={isAnalyzing}
+          className="mb-4 px-4 py-2 bg-yellow-600 text-white rounded"
+        >
+          🔄 Force Re-Analysis
+        </button>
+      )}
+
+      {/* Gaps Table */}
+      <DataGapsTable gaps={gaps} />
+
+      {/* Proceed to Questionnaire Button - Delayed */}
+      {showQuestionnaireButton && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+          <p className="text-sm text-yellow-800 mb-2">
+            ⏱️ Please review the data gaps above before proceeding.
+          </p>
+          <button
+            onClick={handleProceedToQuestionnaire}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg"
+          >
+            Continue to Questionnaire →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+#### Update API Service
+
+```typescript
+// src/services/api/collection-flow/questionnaires.ts
+
+async analyzeGaps(
+  flowId: string,
+  gaps: DataGap[] | null,
+  selectedAssetIds: string[],
+  forceRefresh: boolean = false // New parameter
+): Promise<AnalyzeGapsResponse> {
+  return this.post(`/collection/${flowId}/analyze-gaps`, {
+    gaps,
+    selected_asset_ids: selectedAssetIds,
+    force_refresh: forceRefresh
+  });
+}
+```
+
+### 4. Database Migration
+
+```python
+# backend/alembic/versions/093_add_ai_gap_analysis_status_to_assets.py
+
+"""Add ai_gap_analysis_status to assets table
+
+Revision ID: 093_ai_gap_status
+Revises: 092_add_supported_versions_requirement_details
+Create Date: 2025-01-13
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '093_ai_gap_status'
+down_revision: Union[str, None] = '092_add_supported_versions_requirement_details'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Add ai_gap_analysis_status column to assets table."""
+
+    op.execute("""
+        DO $$
+        BEGIN
+            -- Add ai_gap_analysis_status column if it doesn't exist
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND table_name = 'assets'
+                AND column_name = 'ai_gap_analysis_status'
+            ) THEN
+                ALTER TABLE migration.assets
+                ADD COLUMN ai_gap_analysis_status INTEGER NOT NULL DEFAULT 0;
+
+                -- Add comment explaining status codes
+                COMMENT ON COLUMN migration.assets.ai_gap_analysis_status IS
+                'AI gap analysis status: 0 = not started, 1 = in progress, 2 = completed successfully';
+            END IF;
+
+            -- Create index if it doesn't exist
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_indexes
+                WHERE schemaname = 'migration'
+                AND tablename = 'assets'
+                AND indexname = 'idx_assets_ai_analysis_status'
+            ) THEN
+                CREATE INDEX idx_assets_ai_analysis_status
+                ON migration.assets(ai_gap_analysis_status);
+            END IF;
+        END $$;
+    """)
+
+
+def downgrade() -> None:
+    """Remove ai_gap_analysis_status column from assets table."""
+
+    op.execute("""
+        DO $$
+        BEGIN
+            -- Drop index if exists
+            IF EXISTS (
+                SELECT 1
+                FROM pg_indexes
+                WHERE schemaname = 'migration'
+                AND tablename = 'assets'
+                AND indexname = 'idx_assets_ai_analysis_status'
+            ) THEN
+                DROP INDEX migration.idx_assets_ai_analysis_status;
+            END IF;
+
+            -- Drop column if exists
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND table_name = 'assets'
+                AND column_name = 'ai_gap_analysis_status'
+            ) THEN
+                ALTER TABLE migration.assets
+                DROP COLUMN ai_gap_analysis_status;
+            END IF;
+        END $$;
+    """)
+```
 
 ## Implementation Plan
 
-### Phase 1: Database Schema (Week 1)
-- [ ] Create migration for `assets.data_hash` column
-- [ ] Create migration for `ai_gap_analysis_cache` table
-- [ ] Add indexes for performance
+### Phase 1: Database Schema
+- [ ] Create migration `093_add_ai_gap_analysis_status_to_assets.py`
+- [ ] Run migration: `cd backend && alembic upgrade head`
+- [ ] Verify column and index created
 
-### Phase 2: Cache Logic (Week 1-2)
-- [ ] Implement `calculate_asset_hash()` function
-- [ ] Implement `should_analyze_asset()` function
-- [ ] Update `analyze_assets_with_cache()` in tier_processors.py
-- [ ] Update asset update endpoints to recalculate hash
+### Phase 2: Backend Logic
+- [ ] Add `force_refresh` parameter to `AnalyzeGapsRequest` schema
+- [ ] Update `process_gap_enhancement_job()` to check status and skip completed assets
+- [ ] Update `analyze_gaps()` endpoint to pass `force_refresh` parameter
+- [ ] Mark assets as status=1 when starting, status=2 when completed, status=0 on failure
 
-### Phase 3: Frontend (Week 2)
-- [ ] Add "Force Refresh" checkbox
-- [ ] Update API call to pass `force_refresh` parameter
-- [ ] Add cache status indicator (e.g., "Using cached results for 2/3 assets")
+### Phase 3: Frontend UI
+- [ ] Add `force_refresh` parameter to `analyzeGaps()` API call
+- [ ] Check `ai_gap_analysis_status` to determine if AI analysis completed
+- [ ] Show Accept/Reject buttons ONLY when status=2 (AI completed)
+- [ ] Update status message based on AI completion
+- [ ] Add "Force Re-Analysis" button for manual re-triggering
+- [ ] Delay questionnaire button by 20 seconds
 
-### Phase 4: Monitoring & Metrics (Week 2-3)
-- [ ] Add Grafana dashboard for cache hit rate
-- [ ] Track cost savings in `llm_usage_logs`
-- [ ] Add cache performance metrics
-
-### Phase 5: Testing (Week 3)
-- [ ] Unit tests for hash calculation
-- [ ] Integration tests for cache logic
-- [ ] E2E tests for force refresh
-- [ ] Performance benchmarks
+### Phase 4: Testing
+- [ ] Test auto-trigger skips assets with status=2
+- [ ] Test force refresh re-analyzes all assets
+- [ ] Test Accept/Reject buttons only appear when status=2
+- [ ] Test status messages show correct text
+- [ ] Test questionnaire button appears after 20-second delay
 
 ## Benefits
 
 ### Cost Savings
 - **Scenario**: User re-analyzes same 10 assets 5 times
-- **Without Cache**: 50 LLM calls × $1.50 = **$75**
-- **With Cache**: 10 LLM calls × $1.50 = **$15**
-- **Savings**: **$60 (80% reduction)**
-
-### Performance Improvement
-- **Without Cache**: 10 assets × 45s = **7.5 minutes**
-- **With Cache**: Instant retrieval (< 1 second)
-- **Improvement**: **450x faster** for cached assets
+- **Without Status Flag**: 50 LLM calls × $1.50 = **$75**
+- **With Status Flag**: 10 LLM calls × $1.50 = **$15** (first time only)
+- **Savings**: **$60 (80% reduction)** on repeat analysis
 
 ### User Experience
-- Instant results for unchanged assets
-- Clear indication when using cached data
-- Option to force refresh when needed
+- Clear indication when AI analysis completed vs heuristic-only
+- Accept/Reject buttons only shown when AI has classified gaps
+- 20-second delay encourages gap review before proceeding
+- Manual force re-analysis option when data changes
+
+### Simplicity
+- Single integer column, no complex hash calculations
+- Status flag easy to understand and debug
+- No separate cache table to maintain
+- Works with existing gap persistence logic
 
 ## Risks & Mitigations
 
 | Risk | Mitigation |
 |------|------------|
-| Hash calculation overhead | Minimal (~1ms per asset), indexed lookups |
-| Cache invalidation bugs | Force refresh option, time-based expiration |
-| Stale cached data | Hash includes ALL critical fields, detects changes |
-| Storage growth | Add cleanup job for old cache entries (>90 days) |
-
-## Metrics to Track
-
-1. **Cache Hit Rate**: % of assets using cached results
-2. **Cost Savings**: LLM costs avoided via caching
-3. **Time Savings**: User wait time reduced
-4. **Cache Size**: Number of cache entries
-5. **Force Refresh Usage**: How often users override cache
+| Asset data changes but status still 2 | User can manually force re-analysis |
+| Status stuck at 1 (in-progress) if job crashes | Reset to 0 on exception, allow retry |
+| User bypasses 20s delay | Acceptable - delay is UX guidance, not enforcement |
+| Multiple assets, some completed some not | Filter logic analyzes only incomplete assets |
 
 ## Future Enhancements
 
-1. **Distributed cache**: Use Redis for cross-instance caching
-2. **Predictive pre-warming**: Pre-analyze likely-to-be-requested assets
-3. **Partial cache**: Cache individual gap results, not just entire asset analysis
-4. **ML-based cache invalidation**: Predict when cache is likely stale
+1. **Data change detection**: Add `last_modified_at` timestamp to detect stale analysis
+2. **Auto-expiration**: Reset status=2 to status=0 after 30 days
+3. **Partial re-analysis**: Allow re-analysis of specific fields instead of entire asset
+4. **Progress indicator**: Show per-asset progress during multi-asset analysis
 
 ## References
 
 - PR #1043: Async gap analysis auto-trigger
-- ADR-024: TenantMemoryManager architecture
-- `docs/guidelines/OBSERVABILITY_PATTERNS.md`: LLM usage tracking
+- `backend/app/models/asset/models.py`: Asset model definition
+- `backend/app/models/collection_data_gap.py`: Gap model with AI enhancement fields
 
 ---
 
-**Estimated Implementation Time**: 2-3 weeks
-**Estimated Cost Savings**: 60-80% reduction in LLM costs for re-analysis
-**Estimated Performance Gain**: 450x faster for cached assets
+**Estimated Implementation Time**: 2-3 days
+**Estimated Cost Savings**: 80% reduction in LLM costs for repeat analysis
+**Complexity**: Low (single column, simple status checks)
