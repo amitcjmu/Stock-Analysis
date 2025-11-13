@@ -139,8 +139,23 @@ export interface DependencyAnalysisResponse {
   message?: string;
 }
 
-// NOTE: DependencyExecuteResponse removed - manual execution endpoint deprecated
-// Dependency analysis now auto-executes via MFO flow progression
+/**
+ * Response from POST /dependency/execute endpoint.
+ *
+ * Returned when manually executing the dependency_analysis phase.
+ */
+export interface DependencyExecuteResponse {
+  /** Child flow ID */
+  flow_id: string;
+  /** Phase name that was executed */
+  phase: string;
+  /** Execution status */
+  status: 'started' | 'running' | 'completed' | 'failed';
+  /** User-facing status message */
+  message: string;
+  /** MFO phase execution result (optional) */
+  result?: any;
+}
 
 // =============================================================================
 // API Client Class
@@ -204,22 +219,44 @@ export class AssessmentDependencyApiClient {
   }
 
   /**
-   * NOTE: executeDependencyAnalysis() method removed per design.
+   * Manually execute dependency analysis phase for assessment flow.
    *
-   * The dependency_analysis phase now auto-executes via MFO when the user
-   * clicks "Continue" from the complexity page. The phase execution is
-   * triggered by resumeFlow() which calls the MFO to execute dependency_analysis
-   * before navigating to the dependency page.
+   * This allows manual re-execution of the dependency_analysis phase:
+   * - When the phase hasn't been run yet
+   * - When the phase failed and needs to be retried
+   * - When the user wants to refresh the analysis with updated data
    *
-   * See: src/pages/assessment/[flowId]/complexity.tsx - handleSubmit()
+   * **NOTE**: Dependency analysis can also auto-execute via MFO when the user
+   * clicks "Continue" from the complexity page. This method provides manual control.
    *
-   * The auto-execution flow:
-   * 1. User clicks "Continue" on complexity page
-   * 2. resumeFlow({ phase: 'complexity_analysis', action: 'continue' })
-   * 3. MFO executes dependency_analysis phase automatically
-   * 4. Navigation to /assessment/:flowId/dependency
-   * 5. Page polls getDependencyAnalysis() to show results
+   * @param flowId - Assessment flow identifier (child flow ID)
+   * @returns Execution response with status and results
+   *
+   * @example
+   * await assessmentDependencyApi.executeDependencyAnalysis('flow-uuid');
+   * // Poll getDependencyAnalysis() to check status and get results
    */
+  async executeDependencyAnalysis(flowId: string): Promise<DependencyExecuteResponse> {
+    try {
+      console.log('[AssessmentDependencyApi] Executing dependency analysis:', flowId);
+
+      const response = await apiClient.post<DependencyExecuteResponse>(
+        `/assessment-flow/${flowId}/dependency/execute`,
+        {} // Empty body - all params in URL
+      );
+
+      console.log('[AssessmentDependencyApi] Dependency analysis execution started:', {
+        flow_id: response.flow_id,
+        phase: response.phase,
+        status: response.status,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('[AssessmentDependencyApi] Failed to execute dependency analysis:', error);
+      throw error;
+    }
+  }
 }
 
 // =============================================================================

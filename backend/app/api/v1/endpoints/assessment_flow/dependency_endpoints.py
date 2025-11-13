@@ -91,6 +91,16 @@ async def get_dependency_analysis(
                 "app_server_dependencies": [],
                 "app_app_dependencies": [],
                 "applications": [],
+                "dependency_graph": {
+                    "nodes": [],
+                    "edges": [],
+                    "metadata": {
+                        "dependency_count": 0,
+                        "node_count": 0,
+                        "app_count": 0,
+                        "server_count": 0,
+                    },
+                },
                 "agent_results": None,
                 "message": "No applications selected for assessment",
             }
@@ -124,6 +134,95 @@ async def get_dependency_analysis(
         ]
 
         # ============================================
+        # STEP 2.5: Construct dependency graph from raw data
+        # ============================================
+        nodes = []
+        edges = []
+        node_ids = set()
+
+        # Add application nodes
+        for app in filtered_apps:
+            app_id = app["id"]
+            if app_id not in node_ids:
+                nodes.append(
+                    {
+                        "id": app_id,
+                        "name": app.get("application_name") or app.get("name"),
+                        "type": "application",
+                        "business_criticality": app.get("business_criticality"),
+                    }
+                )
+                node_ids.add(app_id)
+
+        # Add server nodes and app→server edges from app_server_deps
+        for dep in app_server_deps:
+            server_info = dep.get("server_info", {})
+            server_id = server_info.get("id")
+            if server_id and server_id not in node_ids:
+                nodes.append(
+                    {
+                        "id": server_id,
+                        "name": server_info.get("name"),
+                        "type": "server",
+                        "hostname": server_info.get("hostname"),
+                    }
+                )
+                node_ids.add(server_id)
+
+            # Add edge
+            edges.append(
+                {
+                    "source": dep.get("application_id"),
+                    "target": server_id,
+                    "type": dep.get("dependency_type", "hosts"),
+                    "source_name": dep.get("application_name"),
+                    "target_name": server_info.get("name"),
+                }
+            )
+
+        # Add target application nodes and app→app edges from app_app_deps
+        for dep in app_app_deps:
+            target_info = dep.get("target_app_info", {})
+            target_id = target_info.get("id")
+            if target_id and target_id not in node_ids:
+                nodes.append(
+                    {
+                        "id": target_id,
+                        "name": target_info.get("application_name")
+                        or target_info.get("name"),
+                        "type": "application",
+                    }
+                )
+                node_ids.add(target_id)
+
+            # Add edge
+            edges.append(
+                {
+                    "source": dep.get("source_app_id"),
+                    "target": target_id,
+                    "type": dep.get("dependency_type", "api_call"),
+                    "source_name": dep.get("source_app_name"),
+                    "target_name": target_info.get("application_name")
+                    or target_info.get("name"),
+                }
+            )
+
+        # Count node types
+        app_count = sum(1 for n in nodes if n["type"] == "application")
+        server_count = sum(1 for n in nodes if n["type"] == "server")
+
+        dependency_graph = {
+            "nodes": nodes,
+            "edges": edges,
+            "metadata": {
+                "dependency_count": len(edges),
+                "node_count": len(nodes),
+                "app_count": app_count,
+                "server_count": server_count,
+            },
+        }
+
+        # ============================================
         # STEP 3: Extract agent results from phase_results (if executed)
         # ============================================
         agent_results = None
@@ -149,6 +248,7 @@ async def get_dependency_analysis(
             "app_server_dependencies": app_server_deps,
             "app_app_dependencies": app_app_deps,
             "applications": filtered_apps,
+            "dependency_graph": dependency_graph,  # Structured graph for visualization
             "agent_results": agent_results,
             "metadata": {
                 "total_applications": len(filtered_apps),
@@ -168,22 +268,106 @@ async def get_dependency_analysis(
         )
 
 
-# NOTE: Manual execution endpoint removed per design - dependency_analysis
-# auto-executes via MFO when navigating from complexity page.
-# The MFO handles phase progression automatically when user clicks "Continue"
-# from the complexity page, executing dependency_analysis before navigation.
+@router.post("/{flow_id}/dependency/execute")
+async def execute_dependency_analysis(
+    flow_id: str,  # ← CHILD flow ID from URL
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> Dict[str, Any]:
+    """
+    Manually execute dependency analysis phase for assessment flow.
 
+    This endpoint allows manual re-execution of the dependency_analysis phase:
+    - When the phase hasn't been run yet
+    - When the phase failed and needs to be retried
+    - When the user wants to refresh the analysis with updated data
 
-# ============================================
-# VALIDATION CHECKLIST
-# ============================================
-# Before committing, verify:
-# [x] URL receives child flow ID (from user)
-# [x] Query uses AssessmentFlow.id (primary key, not flow_id)
-# [x] Extracted master_flow_id from child_flow.master_flow_id
-# [x] Passed master_flow_id to execute_phase_command()
-# [x] Included child flow_id in phase_input dict
-# [x] Returned child flow_id to user (not master_flow_id)
-# [x] Used get_current_context_dependency (not get_current_context)
-# [x] Added try/except for HTTPException passthrough
-# [x] Applied multi-tenant scoping (client_account_id, engagement_id)
+    **CRITICAL PATTERN**: Uses CHILD flow ID from URL, resolves to MASTER flow ID for MFO
+
+    Args:
+        flow_id: Child flow UUID from URL path
+        current_user: Authenticated user
+        db: Database session
+        context: Request context with tenant IDs
+
+    Returns:
+        Dict with:
+        - flow_id: Child flow ID (user-facing)
+        - phase: Phase name that was executed
+        - status: Execution status (started/running/completed/failed)
+        - message: User-facing status message
+
+    Raises:
+        HTTPException 404: Flow not found
+        HTTPException 500: Phase execution failed
+    """
+    try:
+        # ============================================
+        # STEP 1: Query child flow table using CHILD ID
+        # ============================================
+        stmt = select(AssessmentFlow).where(
+            and_(
+                AssessmentFlow.id == UUID(flow_id),  # ← PRIMARY KEY (child ID)
+                AssessmentFlow.client_account_id == context.client_account_id,
+                AssessmentFlow.engagement_id == context.engagement_id,
+            )
+        )
+        result = await db.execute(stmt)
+        child_flow = result.scalar_one_or_none()
+
+        # Validate flow exists
+        if not child_flow:
+            raise HTTPException(status_code=404, detail="Assessment flow not found")
+
+        # Validate master flow ID exists
+        if not child_flow.master_flow_id:
+            raise HTTPException(
+                status_code=500,
+                detail="Assessment flow not integrated with MFO (missing master_flow_id)",
+            )
+
+        # ============================================
+        # STEP 2: Execute phase via MFO using MASTER flow ID
+        # ============================================
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        # Execute dependency_analysis phase with child flow ID in phase_input
+        phase_result = await orchestrator.execute_phase(
+            str(child_flow.master_flow_id),  # ← MASTER flow ID (MFO routing)
+            "dependency_analysis",
+            phase_input={
+                "flow_id": flow_id,  # ← CHILD flow ID (for persistence)
+                "selected_application_ids": child_flow.selected_application_ids or [],
+            },
+        )
+
+        logger.info(
+            safe_log_format(
+                "Executed dependency_analysis phase: flow_id={flow_id}, status={status}",
+                flow_id=flow_id,
+                status=phase_result.get("status"),
+            )
+        )
+
+        return {
+            "flow_id": flow_id,  # Return child ID (user expects this)
+            "phase": "dependency_analysis",
+            "status": phase_result.get("status", "started"),
+            "message": "Dependency analysis execution started",
+            "result": phase_result,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Failed to execute dependency analysis: {str_e}", str_e=str(e)
+            )
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to execute dependency analysis: {str(e)}"
+        )

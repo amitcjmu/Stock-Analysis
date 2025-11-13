@@ -16,7 +16,8 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Play
 } from 'lucide-react';
 
 /**
@@ -44,6 +45,7 @@ const DependencyPage: React.FC = () => {
   const { state, resumeFlow } = useAssessmentFlow(flowId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -86,6 +88,26 @@ const DependencyPage: React.FC = () => {
   const handleRefresh = () => {
     console.log('[DependencyPage] Refresh dependency analysis');
     refetch();
+  };
+
+  const handleExecuteAnalysis = async () => {
+    console.log('[DependencyPage] Executing dependency analysis...');
+    setIsAnalyzing(true);
+
+    try {
+      await assessmentDependencyApi.executeDependencyAnalysis(flowId);
+      console.log('[DependencyPage] Dependency analysis execution started');
+
+      // Refetch after a short delay to get updated status
+      setTimeout(() => {
+        refetch();
+      }, 2000);
+    } catch (error) {
+      console.error('[DependencyPage] Failed to execute dependency analysis:', error);
+      alert(`Failed to execute analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleSubmit = async (): void => {
@@ -165,6 +187,24 @@ const DependencyPage: React.FC = () => {
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isDependencyLoading ? 'animate-spin' : ''}`} />
                 Refresh
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleExecuteAnalysis}
+                disabled={isAnalyzing || agentResults?.status === 'running'}
+              >
+                {isAnalyzing || agentResults?.status === 'running' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Run Analysis
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -281,7 +321,13 @@ const DependencyPage: React.FC = () => {
                   <div>
                     <p className="text-blue-900 font-medium">Dependency Analysis</p>
                     <p className="text-blue-700 text-sm mt-1">
-                      The dependency analysis phase will automatically execute when you navigate from the complexity page.
+                      The dependency analysis phase can be executed in two ways:
+                    </p>
+                    <ul className="text-blue-700 text-sm mt-2 list-disc list-inside space-y-1">
+                      <li><strong>Auto-execution:</strong> Navigating from the complexity page triggers analysis automatically</li>
+                      <li><strong>Manual execution:</strong> Click "Run Analysis" button to execute or re-run the analysis</li>
+                    </ul>
+                    <p className="text-blue-700 text-sm mt-2">
                       The analysis identifies:
                     </p>
                     <ul className="text-blue-700 text-sm mt-2 list-disc list-inside space-y-1">
