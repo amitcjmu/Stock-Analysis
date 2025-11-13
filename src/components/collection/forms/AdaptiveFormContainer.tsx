@@ -36,6 +36,8 @@ export interface AdaptiveFormContainerProps {
   isSaving?: boolean;
   isSubmitting?: boolean;
   completionStatus?: "pending" | "ready" | "fallback" | "failed" | null;
+  // BUG FIX (#997): Add prop to indicate if assets are selected
+  hasSelectedAssets?: boolean;
   onFieldChange: (fieldId: string, value: unknown) => void;
   onValidationChange: (validation: FormValidationResult) => void;
   onSave: () => void;
@@ -52,6 +54,8 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   isSaving = false,
   isSubmitting = false,
   completionStatus = null,
+  // BUG FIX (#997): Extract hasSelectedAssets prop with default true for backward compatibility
+  hasSelectedAssets = true,
   onFieldChange,
   onValidationChange,
   onSave,
@@ -93,16 +97,16 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
     );
   }
 
-  // If no sections are available, this likely means no assets have been selected
-  // OR questionnaire generation timed out/failed
-  // Show asset selection form to allow user to proceed
-  // BUT: Don't show this if questionnaire is still being generated (pending status)
-  // Explicitly check for terminal statuses to prevent UI flicker during state transitions
-  const showFallback =
+  // BUG FIX (#997): If no sections are available, check if assets are actually selected
+  // If assets ARE selected but questionnaire failed, DON'T show asset selection error
+  // Instead, the parent component should handle showing a fallback questionnaire
+  // Only show asset selection if assets are NOT selected
+  const showAssetSelection =
     (!formData.sections || formData.sections.length === 0) &&
-    (completionStatus === 'ready' || completionStatus === 'fallback' || completionStatus === 'failed');
+    (completionStatus === 'ready' || completionStatus === 'fallback' || completionStatus === 'failed') &&
+    !hasSelectedAssets; // Only show if no assets selected
 
-  if (showFallback) {
+  if (showAssetSelection) {
     // Create a bootstrap asset selection form
     const assetSelectionFormData = {
       formId: 'bootstrap_asset_selection',

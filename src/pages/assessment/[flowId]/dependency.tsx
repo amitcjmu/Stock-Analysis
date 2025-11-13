@@ -61,8 +61,9 @@ const DependencyPage: React.FC = () => {
     queryFn: () => assessmentDependencyApi.getDependencyAnalysis(flowId),
     enabled: !!flowId && flowId !== 'XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX',
     refetchInterval: (data, query) => {
+      // BUG FIX (#1035): Add null/undefined guards for query.state
       // Stop polling if the query has failed
-      if (query.state.status === 'error') {
+      if (query?.state?.status === 'error') {
         return false;
       }
 
