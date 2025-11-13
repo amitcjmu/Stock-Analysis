@@ -21,7 +21,7 @@ import AssetConflictModal from '../../AssetConflictModal';
 // Modularized Components
 import { ViewModeToggle } from './ViewModeToggle';
 import { CleansingRequiredBanner, ExecutionErrorBanner, ConflictResolutionBanner } from './ErrorBanners';
-import { LoadingState, ErrorState, EmptyState } from './InventoryStates';
+import { LoadingState, ErrorState, EmptyState, InvalidFlowState } from './InventoryStates';
 
 // Hooks
 import { useInventoryProgress } from '../hooks/useInventoryProgress';
@@ -30,6 +30,7 @@ import { useAssetSelection } from '../hooks/useAssetSelection';
 import { useInventoryData } from './hooks/useInventoryData';
 import { useAutoExecution } from './hooks/useAutoExecution';
 import { useInventoryActions } from './InventoryActions';
+import { useIntelligentDataSync } from './hooks/useIntelligentDataSync';
 
 // Utils
 import { exportAssets } from '../utils/exportHelpers';
@@ -38,9 +39,9 @@ import { exportAssets } from '../utils/exportHelpers';
 import type { InventoryContentProps } from '../types/inventory.types';
 
 const DEFAULT_COLUMNS = [
-  'asset_name', 'asset_type', 'environment', 'operating_system',
-  'location', 'status', 'business_criticality', 'risk_score',
-  'migration_readiness', 'dependencies', 'last_updated'
+  'name', 'asset_type', 'environment', 'operating_system',
+  'location', 'business_criticality', 'dependencies', 'hostname',
+  'ip_address', 'cpu_cores', 'memory_gb', 'storage_gb', 'created_at'
 ];
 
 const RECORDS_PER_PAGE = 10;
@@ -75,7 +76,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [needsClassification, setNeedsClassification] = useState(false);
   const [isReclassifying, setIsReclassifying] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(!flowId ? 'all' : 'current_flow');
+  // Toggle defaults to 'all' when no flowId, 'current_flow' when flowId is present
+  const [viewMode, setViewMode] = useState<'all' | 'current_flow'>(flowId ? 'current_flow' : 'all');
   const [hasFlowId, setHasFlowId] = useState<boolean>(Boolean(flowId));
 
   // Asset conflict resolution state
@@ -121,7 +123,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   }, []);
 
   // Use inventory data hook (lines 108-348 from original)
-  const { assets, assetsLoading, refetchAssets, hasBackendError } = useInventoryData({
+  const { assets, assetsLoading, refetchAssets, hasBackendError, isFlowNotFound } = useInventoryData({
     clientId: client?.id,
     engagementId: engagement?.id,
     viewMode,
@@ -131,15 +133,34 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     getAssetsFromFlow
   });
 
+  // Intelligent data synchronization - replaces forced page reload mechanism
+  const { invalidateRelevantQueries } = useIntelligentDataSync({
+    flowId,
+    flow,
+    clientId: client?.id,
+    engagementId: engagement?.id,
+    assetsLength: assets.length,
+    assetsLoading,
+    refetchAssets,
+    refreshFlow
+  });
+
   // Get all available columns
+  // CC FIX: Always include DEFAULT_COLUMNS, even if not present in API response
+  // This ensures critical columns like 'dependencies' are available even when empty/null
   const allColumns = useMemo(() => {
-    if (assets.length === 0) return [];
-    const columns = new Set<string>();
-    assets.forEach(asset => {
-      Object.keys(asset).forEach(key => {
-        if (key !== 'id') columns.add(key);
+    // Start with DEFAULT_COLUMNS to ensure critical fields are always available
+    const columns = new Set<string>(DEFAULT_COLUMNS);
+
+    // Add any additional columns from actual asset data
+    if (assets.length > 0) {
+      assets.forEach(asset => {
+        Object.keys(asset).forEach(key => {
+          if (key !== 'id') columns.add(key);
+        });
       });
-    });
+    }
+
     return Array.from(columns).sort();
   }, [assets]);
 
@@ -260,6 +281,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     };
 
     checkForConflicts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowId, flow?.phase_state]);
 
   // Handle conflict resolution completion
@@ -344,6 +366,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           setShowConflictModal(false);
         }}
         onResolutionComplete={handleConflictResolutionComplete}
+        client_account_id={client?.id || ''}
+        engagement_id={engagement?.id || ''}
+        flow_id={flowId || ''}
       />
 
       <ViewModeToggle
@@ -383,8 +408,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         <ErrorState viewMode={viewMode} refetchAssets={refetchAssets} />
       )}
 
+      {/* Invalid Flow State - FIX #326: Show when flow_id doesn't exist */}
+      {isFlowNotFound && !assetsLoading && (
+        <InvalidFlowState flowId={flowId} />
+      )}
+
       {/* Empty State */}
-      {assets.length === 0 && !assetsLoading && !hasBackendError && (
+      {assets.length === 0 && !assetsLoading && !hasBackendError && !isFlowNotFound && (
         <EmptyState
           flow={flow}
           viewMode={viewMode}
@@ -399,7 +429,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       )}
 
       {/* Main Content State - Only render when we have assets */}
-      {assets.length > 0 && !assetsLoading && !hasBackendError && (
+      {assets.length > 0 && !assetsLoading && !hasBackendError && !isFlowNotFound && (
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>

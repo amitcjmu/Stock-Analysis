@@ -6,8 +6,6 @@ Provides essential fixtures for database sessions, request contexts, and service
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 
 from .base import MockRequestContext, MockServiceRegistry
 
@@ -27,20 +25,18 @@ def mock_service_registry() -> MockServiceRegistry:
 @pytest_asyncio.fixture
 async def async_db_session():
     """
-    Fixture for async database session in MFO tests.
+    Fixture for async database session in integration tests.
 
-    Uses in-memory SQLite for fast testing with async support.
+    Uses the actual PostgreSQL database running in Docker.
+    Allows commits within tests (for integration testing real behavior).
+    Note: Data created in tests will persist in the database.
     """
-    # Create in-memory async SQLite engine
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    # Import the actual database session factory from app
+    from app.core.database import AsyncSessionLocal
 
-    # Create session factory
-    async_session_factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    async with async_session_factory() as session:
-        # In a real test, you would create tables here
-        # await create_test_tables(engine)
+    # Create a session using the actual database connection
+    async with AsyncSessionLocal() as session:
         yield session
-        await session.rollback()
-
-    await engine.dispose()
+        # Note: We don't rollback here because integration tests
+        # may need to commit data to test real database interactions.
+        # Data will be left in the database (acceptable for integration tests)

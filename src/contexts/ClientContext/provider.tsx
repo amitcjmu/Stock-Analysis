@@ -1,6 +1,10 @@
 /**
  * Client Context Provider
  * Manages client state and selection
+ *
+ * SECURITY: Always validates stored client against user's actual ClientAccess
+ * records. Stale sessionStorage values (e.g., from previous sessions or
+ * revoked access) are automatically cleared and replaced with valid clients.
  */
 
 import React from 'react'
@@ -9,6 +13,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { apiCall } from '@/lib/api';
+import { tokenStorage } from '@/contexts/AuthContext/storage';
 import type { Client, ClientContextType } from './types';
 import { ClientContext } from './context';
 
@@ -37,17 +42,33 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const clientId = sessionStorage.getItem(CLIENT_KEY);
 
         if (clientId) {
-          // Try to get the specific client
-          const response = await apiCall(`/api/v1/context-establishment/clients/${clientId}`);
+          // Fetch all clients first to validate stored client against user's actual access
+          const allClientsResponse = await apiCall('/api/v1/context-establishment/clients', {}, false);
 
-        if (response.client) {
-          setCurrentClient(response.client);
-            setIsLoading(false);
-            return;
+          if (allClientsResponse.clients && allClientsResponse.clients.length > 0) {
+            // SECURITY: Validate stored client exists in user's available clients
+            const validClient = allClientsResponse.clients.find((c: Client) => c.id === clientId);
+
+            if (validClient) {
+              // User has access to stored client - use it
+              setCurrentClient(validClient);
+              setIsLoading(false);
+              console.log('✅ Using validated stored client:', validClient.name);
+              return;
+            } else {
+              // Stored client is stale (user no longer has access) - clear it and use first available
+              console.warn('⚠️ Stale client in sessionStorage, using first available client');
+              sessionStorage.removeItem(CLIENT_KEY);
+              const firstClient = allClientsResponse.clients[0];
+              sessionStorage.setItem(CLIENT_KEY, firstClient.id);
+              setCurrentClient(firstClient);
+              setIsLoading(false);
+              return;
+            }
           }
         }
 
-        // If no client ID in session or client not found, fetch all clients to get first one
+        // If no client ID in session or no clients available, fetch all clients to get first one
         const response = await apiCall('/api/v1/context-establishment/clients', {}, false);
 
         if (response.clients && response.clients.length > 0) {
@@ -85,7 +106,19 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Load clients when user is available - don't wait for full auth context
     // The auth context depends on ClientContext, so we can't wait for it
     if (user && !authLoading) {
-      console.log('🔄 ClientContext: User available, fetching clients');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 ClientContext: User available, fetching clients');
+      }
+
+      // Ensure token is available before making API calls
+      const token = tokenStorage.getToken();
+      if (!token) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ [ClientContext] User available but no token yet, waiting...');
+        }
+        return;
+      }
+
       const fetchClients = async (): Promise<void> => {
         setIsLoading(true);
         try {
@@ -101,9 +134,20 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (!currentClient) {
               const storedClientId = sessionStorage.getItem(CLIENT_KEY);
               if (storedClientId) {
+                // SECURITY: Validate stored client against user's actual access
                 const client = response.clients.find((c: Client) => c.id === storedClientId);
                 if (client) {
+                  // User has access to stored client - use it
                   setCurrentClient(client);
+                  console.log('✅ Using validated stored client:', client.name);
+                } else {
+                  // Stored client is stale (user no longer has access) - clear it
+                  console.warn('⚠️ Stale client in sessionStorage, using first available client');
+                  sessionStorage.removeItem(CLIENT_KEY);
+                  if (response.clients.length > 0) {
+                    setCurrentClient(response.clients[0]);
+                    sessionStorage.setItem(CLIENT_KEY, response.clients[0].id);
+                  }
                 }
               } else if (response.clients.length > 0) {
                 // select the first client if none is stored

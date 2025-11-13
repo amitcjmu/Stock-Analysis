@@ -86,7 +86,7 @@ async def create_master_flow_for_orphan(
                     },
                 },
                 "collection_state": {
-                    "phase_state": collection_flow.phase_state,
+                    # Per ADR-028: phase_state field removed from collection_flow
                     "user_inputs": collection_flow.user_inputs,
                     "phase_results": collection_flow.phase_results,
                     "collection_results": collection_flow.collection_results,

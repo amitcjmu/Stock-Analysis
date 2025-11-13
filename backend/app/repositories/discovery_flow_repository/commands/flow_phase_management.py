@@ -200,39 +200,39 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
         if not flow:
             return 0.0
 
-        # Phase weights (Discovery flow phases only)
-        # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow
+        # Phase weights (Discovery flow v3.0.0 phases only - 5 phases @ 20% each)
+        # Per ADR-027: Removed dependency_analysis and tech_debt_assessment
         phase_weights = {
             "data_import": 20.0,
+            "data_validation": 20.0,
             "field_mapping": 20.0,
             "data_cleansing": 20.0,
             "asset_inventory": 20.0,
-            "dependency_analysis": 20.0,
         }
 
         # Calculate total progress
         total_progress = 0.0
 
-        # Add progress for completed phases (Discovery flow only)
+        # Add progress for completed phases (Discovery v3.0.0 only)
         if flow.data_import_completed:
             total_progress += phase_weights["data_import"]
+        if flow.data_validation_completed:
+            total_progress += phase_weights["data_validation"]
         if flow.field_mapping_completed:
             total_progress += phase_weights["field_mapping"]
         if flow.data_cleansing_completed:
             total_progress += phase_weights["data_cleansing"]
         if flow.asset_inventory_completed:
             total_progress += phase_weights["asset_inventory"]
-        if flow.dependency_analysis_completed:
-            total_progress += phase_weights["dependency_analysis"]
 
         # If current phase is completed but not yet reflected in booleans
         if phase_completed and current_phase in phase_weights:
             phase_field_map = {
                 "data_import": flow.data_import_completed,
+                "data_validation": flow.data_validation_completed,
                 "field_mapping": flow.field_mapping_completed,
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
-                "dependency_analysis": flow.dependency_analysis_completed,
             }
 
             if not phase_field_map.get(current_phase, False):
@@ -251,14 +251,15 @@ class FlowPhaseManagementCommands(FlowCommandsBase):
             True if flow was completed, False otherwise
         """
         try:
-            # Define the required phases for completion (Discovery flow phases only)
-            # CC FIX: Removed tech_debt_assessment - it belongs to Collection flow, not Discovery flow
+            # Define the required phases for completion (Discovery flow v3.0.0 phases only)
+            # Per ADR-027: Discovery flow now has only 5 phases (dependency_analysis moved to Assessment)
+            # Bug: Legacy completion check for removed phases prevents multi-import workflow
             required_phases = {
                 "data_import": flow.data_import_completed,
+                "data_validation": flow.data_validation_completed,
                 "field_mapping": flow.field_mapping_completed,
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
-                "dependency_analysis": flow.dependency_analysis_completed,
             }
 
             # Check if all required phases are complete

@@ -41,6 +41,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   availableFields,
   onMappingAction,
   onMappingChange,
+  onRemoveMapping,
   onRefresh,
   onApproveMappingWithLearning,
   onRejectMappingWithLearning,
@@ -168,6 +169,58 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       }
     } else {
       setShowRejectionInput(mappingId);
+    }
+  };
+
+  const handleRemove = async (mappingId: string): Promise<void> => {
+    if (processingMappings.has(mappingId)) {
+      return; // Already processing this mapping
+    }
+
+    // Find the mapping to validate it exists
+    const mapping = fieldMappings.find(m => m.id === mappingId);
+    if (!mapping) {
+      console.error('Mapping not found:', mappingId);
+      if (typeof window !== 'undefined' && 'showWarningToast' in window && typeof (window as { showWarningToast?: (message: string) => void }).showWarningToast === 'function') {
+        (window as { showWarningToast: (message: string) => void }).showWarningToast('Selected mapping could not be found. Please refresh and try again.');
+      }
+      return;
+    }
+
+    setProcessingMappings(prev => new Set(prev).add(mappingId));
+
+    try {
+      if (onRemoveMapping) {
+        console.log('🗑️  Removing approved mapping:', mappingId);
+        await onRemoveMapping(mappingId);
+
+        // Wait a moment for the backend to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Trigger cache invalidation and refresh after successful removal
+        if (typeof window !== 'undefined' && '__invalidateFieldMappings' in window && typeof (window as { __invalidateFieldMappings?: () => Promise<void> }).__invalidateFieldMappings === 'function') {
+          console.log('🔄 Invalidating cache after mapping removal');
+          await (window as { __invalidateFieldMappings: () => Promise<void> }).__invalidateFieldMappings();
+        }
+
+        // Also trigger onRefresh to update the UI - this should refetch the data
+        if (onRefresh) {
+          console.log('🔄 Triggering onRefresh to update UI with fresh data');
+          await onRefresh();
+        }
+      }
+    } catch (error) {
+      console.error('Error removing mapping:', error);
+      if (typeof window !== 'undefined' && 'showWarningToast' in window && typeof (window as { showWarningToast?: (message: string) => void }).showWarningToast === 'function') {
+        (window as { showWarningToast: (message: string) => void }).showWarningToast('Failed to remove mapping. Please try again.');
+      }
+    } finally {
+      // Remove from processing set immediately
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(mappingId);
+        return newSet;
+      });
     }
   };
 
@@ -328,7 +381,11 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
           />
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {filteredBuckets.approved.map(mapping => (
-              <ApprovedCard key={mapping.id} mapping={mapping} />
+              <ApprovedCard
+                key={mapping.id}
+                mapping={mapping}
+                onRemove={onRemoveMapping ? handleRemove : undefined}
+              />
             ))}
             {filteredBuckets.approved.length === 0 && (
               <div className="text-center py-8 text-gray-500">

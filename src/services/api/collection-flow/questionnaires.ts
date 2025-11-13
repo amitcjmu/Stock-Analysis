@@ -166,6 +166,11 @@ export class QuestionnairesApi extends CollectionFlowClient {
     current_asset?: string;
     percentage: number;
     updated_at?: string;
+    // Bug #892 Fix: Include detailed error information
+    error?: string;
+    error_type?: string;
+    error_category?: string;
+    user_message?: string;
   }> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}/enhancement-progress`, {
       method: "GET",

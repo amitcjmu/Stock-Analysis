@@ -65,7 +65,7 @@ def get_asset_inventory_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=1800,  # 30 minutes
         metadata={
-            "ui_route": "/discovery/asset-inventory",
+            "ui_route": "/discovery/inventory",
             "ui_short_name": "Inventory",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 20,
             "icon": "database",

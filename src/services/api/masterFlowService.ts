@@ -814,6 +814,9 @@ export const masterFlowService = {
 
   /**
    * Get assessment flow status with application count (via MFO)
+   *
+   * CC FIX: Backend returns `selected_applications` and `progress_percentage`,
+   * but hook expects `application_count` and `progress`. Transform at service layer.
    */
   async getAssessmentStatus(
     flowId: string,
@@ -827,19 +830,28 @@ export const masterFlowService = {
     application_count: number;
   }> {
     try {
+      // Backend actual response format (snake_case fields from Python)
       const response = await apiClient.get<{
         flow_id: string;
         status: string;
-        progress: number;
+        progress_percentage: number;  // Backend returns this
         current_phase: string;
-        application_count: number;
+        application_count: number;  // Backend returns this (count of apps)
       }>(
-        `/api/v1/master-flows/${flowId}/assessment-status`,
+        `/master-flows/${flowId}/assessment-status`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         },
       );
-      return response;
+
+      // Transform to hook's expected format
+      return {
+        flow_id: response.flow_id,
+        status: response.status,
+        progress: response.progress_percentage,  // Transform field name
+        current_phase: response.current_phase,
+        application_count: response.application_count,  // Use correct field name
+      };
     } catch (error) {
       handleApiError(error, "getAssessmentStatus");
       throw error;
@@ -848,6 +860,9 @@ export const masterFlowService = {
 
   /**
    * Get assessment applications with full details (via MFO)
+   *
+   * CC FIX: Backend returns application_asset_groups (canonical applications),
+   * but hook expects individual application details. Transform groups to individual app records.
    */
   async getAssessmentApplications(
     flowId: string,
@@ -867,40 +882,114 @@ export const masterFlowService = {
     }>;
   }> {
     try {
-      // Call MFO endpoint directly - returns array without wrapper
-      const applications = await apiClient.get<Array<{
-        id: string;
-        name: string;
-        type: string;
-        environment: string;
-        business_criticality: string;
-        technology_stack: string[];
-        complexity_score: number;
-        readiness_score: number;
-        discovery_completed_at: string;
-      }>>(
-        `/api/v1/master-flows/${flowId}/assessment-applications`,
+      // Backend returns application_asset_groups structure (October 2025 format)
+      const response = await apiClient.get<{
+        flow_id: string;
+        applications: Array<{
+          canonical_application_id: string | null;
+          canonical_application_name: string;
+          asset_ids: string[];
+          asset_count: number;
+          confidence_score?: number;
+          asset_types?: string[];
+          readiness_summary?: {
+            ready: number;
+            not_ready: number;
+            in_progress: number;
+          };
+        }>;
+        total_applications: number;
+        total_assets: number;
+        unmapped_assets: number;
+      }>(
+        `/master-flows/${flowId}/assessment-applications`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         },
       );
 
-      // Transform to match expected format with snake_case field names
+      // Transform application groups to individual application records
+      // NOTE: Each group represents a canonical application with multiple assets
+      // Handle case where applications field may be undefined/null during initialization
       return {
-        applications: applications.map(app => ({
-          application_id: app.id,
-          application_name: app.name,
-          application_type: app.type,
-          environment: app.environment,
-          business_criticality: app.business_criticality,
-          technology_stack: app.technology_stack,
-          complexity_score: app.complexity_score,
-          readiness_score: app.readiness_score,
-          discovery_completed_at: app.discovery_completed_at,
-        })),
+        applications: (response.applications || []).map(group => {
+          // Calculate readiness score from readiness_summary (if available)
+          const totalAssets = group.asset_count || 1;
+          const readyAssets = group.readiness_summary?.ready || 0;
+          const notReady = group.readiness_summary?.not_ready || 0;
+
+          // Use confidence_score if available, otherwise calculate from readiness
+          const readiness_score = group.confidence_score
+            ? group.confidence_score * 10 // Convert 0-1 to 0-10 scale
+            : totalAssets > 0 ? (readyAssets / totalAssets) * 10 : 0;
+
+          // Determine business criticality based on readiness or default to medium
+          const business_criticality = readiness_score > 8 ? 'low' :
+                                       readiness_score > 5 ? 'medium' : 'high';
+
+          return {
+            application_id: group.canonical_application_id || `unmapped-${group.canonical_application_name}`,
+            application_name: group.canonical_application_name,
+            application_type: group.asset_types?.[0] || 'application',  // Use first asset type if available
+            environment: 'production',  // Default - not in group data
+            business_criticality,
+            technology_stack: [],  // Not available in group summary
+            complexity_score: Math.min(group.asset_count, 10),  // Asset count as proxy for complexity
+            readiness_score: Math.round(readiness_score * 10) / 10,  // Round to 1 decimal
+            discovery_completed_at: new Date().toISOString(),  // Not available in group data
+          };
+        }),
       };
     } catch (error) {
       handleApiError(error, "getAssessmentApplications");
+      throw error;
+    }
+  },
+
+  /**
+   * Get assessment readiness summary and asset-level blockers (via MFO)
+   * Phase 4 Day 21: Assessment Architecture Enhancement
+   */
+  async getAssessmentReadiness(
+    flow_id: string,
+    client_account_id: string,
+    engagement_id?: string,
+  ): Promise<import('@/types/assessment').AssessmentReadinessResponse> {
+    try {
+      const response = await apiClient.get<import('@/types/assessment').AssessmentReadinessResponse>(
+        `/master-flows/${flow_id}/assessment-readiness`,
+        {
+          headers: getMultiTenantHeaders(client_account_id, engagement_id),
+        },
+      );
+      // Backend returns snake_case directly
+      return response;
+    } catch (error) {
+      handleApiError(error, "getAssessmentReadiness");
+      throw error;
+    }
+  },
+
+  /**
+   * Get assessment progress by attribute category (via MFO)
+   * Phase 4 Day 21: Assessment Architecture Enhancement
+   */
+  async getAssessmentProgress(
+    flow_id: string,
+    client_account_id: string,
+    engagement_id?: string,
+  ): Promise<import('@/types/assessment').AssessmentProgressResponse> {
+    try {
+      const response = await apiClient.get<import('@/types/assessment').AssessmentProgressResponse>(
+        `/master-flows/${flow_id}/assessment-progress`,
+        {
+          headers: getMultiTenantHeaders(client_account_id, engagement_id),
+        },
+      );
+      // Backend returns snake_case directly
+      return response;
+    } catch (error) {
+      handleApiError(error, "getAssessmentProgress");
       throw error;
     }
   },

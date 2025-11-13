@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class DecisionCommands:
     """Commands for 6R decision management"""
 
-    def __init__(self, db: AsyncSession, client_account_id: int):
+    def __init__(self, db: AsyncSession, client_account_id: str):
         self.db = db
         self.client_account_id = client_account_id
 

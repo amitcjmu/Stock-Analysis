@@ -66,6 +66,7 @@ export function useSaveHandler({
       });
 
       // Prepare the submission data in the format expected by the backend
+      // CRITICAL FIX (Issue #692): Add save_type to distinguish save vs submit
       const submissionData = {
         responses: formValuesToUse,
         form_metadata: {
@@ -79,6 +80,7 @@ export function useSaveHandler({
           isValid: state.validation?.isValid || false,
           fieldResults: state.validation?.fieldResults || {},
         },
+        save_type: "save_progress", // Keep questionnaire as in_progress
       };
 
       // Submit the questionnaire responses to the backend

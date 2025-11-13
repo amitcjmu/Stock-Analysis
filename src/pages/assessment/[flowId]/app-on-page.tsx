@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import type { GetServerSideProps } from 'next/router';
+import { useParams } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
@@ -21,11 +21,10 @@ import { Save, FileText } from 'lucide-react'
 import { AlertCircle, ArrowRight, Loader2, CheckCircle, Eye, Download } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
-interface AppOnPageProps {
-  flowId: string;
-}
+const AppOnPagePage: React.FC = () => {
+  // Bug #730 fix - Use React Router's useParams instead of Next.js props
+  const { flowId } = useParams<{ flowId: string }>();
 
-const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
   const {
     state,
     finalizeAssessment
@@ -65,6 +64,21 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
   };
 
   const assessmentComplete = Object.keys(state.sixrDecisions).length === state.selectedApplicationIds.length;
+
+  // Bug #730 fix: Show loading skeleton until data is fetched
+  if (!state.dataFetched) {
+    return (
+      <AssessmentFlowLayout flowId={flowId}>
+        <div className="p-6 space-y-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-64"></div>
+            <div className="h-4 bg-gray-200 rounded w-96"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </AssessmentFlowLayout>
+    );
+  }
 
   if (state.selectedApplicationIds.length === 0) {
     return (
@@ -158,7 +172,10 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
             applications={state.selectedApplicationIds}
             selectedApp={selectedApp}
             onAppSelect={setSelectedApp}
-            getApplicationName={(appId) => appId} // In real implementation, get from application data
+            getApplicationName={(appId) => {
+              const app = state.selectedApplications.find(a => a.application_id === appId);
+              return app?.application_name || appId;
+            }}
           />
         )}
 
@@ -334,8 +351,8 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
         )}
       </div>
 
-      {/* Print Styles */}
-      <style jsx global>{`
+      {/* Print Styles - Fixed Issue #819: Removed jsx/global attributes (Next.js-specific, not compatible with Vite) */}
+      <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
           .print\\:block { display: block !important; }
@@ -350,8 +367,5 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
     </AssessmentFlowLayout>
   );
 };
-
-// eslint-disable-next-line react-refresh/only-export-components
-export { getServerSideProps } from './utils';
 
 export default AppOnPagePage;

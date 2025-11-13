@@ -1,6 +1,6 @@
-import type { AssetInventory } from '../types/inventory.types';
+import type { Asset } from '../../../types/asset';
 
-export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]): void => {
+export const exportAssets = (assets: Asset[], selectedColumns: string[]): void => {
   try {
     console.log('🔄 Starting CSV export...', { assetCount: assets.length, columns: selectedColumns });
 
@@ -20,12 +20,25 @@ export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]
     const csvHeaders = selectedColumns.join(',');
     const csvRows = assets.map(asset =>
       selectedColumns.map(col => {
-        const value = asset[col as keyof AssetInventory];
-        // Escape commas and quotes in CSV
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`;
+        const value = asset[col as keyof Asset];
+        let stringValue = value !== null && value !== undefined ? String(value) : '';
+
+        // CC FIX (Qodo): Enhanced CSV security - remove newlines/tabs that could break CSV structure
+        stringValue = stringValue.replace(/[\r\n\t]/g, ' ');
+
+        // Security: Prevent CSV formula injection by prepending single quote to dangerous characters
+        // Excel/LibreOffice interpret cells starting with =, +, -, @, or | as formulas
+        let needsQuoting = false;
+        if (stringValue.length > 0 && /^[=+\-@|]/.test(stringValue)) {
+          stringValue = `'${stringValue}`;
+          needsQuoting = true;
         }
-        return value !== null && value !== undefined ? String(value) : '';
+
+        // Always wrap in quotes if contains special characters (commas, quotes) or was modified for security
+        if (needsQuoting || stringValue.includes(',') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
       }).join(',')
     );
 

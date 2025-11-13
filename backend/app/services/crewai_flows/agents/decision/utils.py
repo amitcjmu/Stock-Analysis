@@ -245,15 +245,15 @@ class DecisionUtils:
             )
 
         # Fallback to hardcoded phase orders for backward compatibility
+        # Per ADR-027: Discovery v3.0.0 has only 5 phases
+        # dependency_analysis and tech_debt_assessment moved to Assessment flow
         if flow_type == "discovery":
             discovery_order = [
                 "data_import",
+                "data_validation",  # Added in v3.0.0
                 "field_mapping",
                 "data_cleansing",
-                "asset_creation",
-                "asset_inventory",
-                "dependency_analysis",
-                "tech_debt_assessment",
+                "asset_inventory",  # Terminal phase - no more phases after this
                 "completed",
             ]
             try:
@@ -267,24 +267,31 @@ class DecisionUtils:
                 return "completed"
 
         if flow_type == "collection":
+            # Per ADR-023: Collection Flow Phase Redesign
+            # Phase order matches FlowTypeRegistry configuration (collection_flow_config.py)
             collection_order = [
-                "platform_detection",
-                "automated_collection",
+                "asset_selection",
+                "auto_enrichment",
                 "gap_analysis",
                 "questionnaire_generation",
                 "manual_collection",
-                "synthesis",
-                "completed",
+                "synthesis",  # Terminal phase - no next phase
             ]
             try:
                 idx = collection_order.index(current_phase)
-                return (
-                    collection_order[idx + 1]
-                    if idx < len(collection_order) - 1
-                    else "completed"
-                )
+                if idx < len(collection_order) - 1:
+                    return collection_order[idx + 1]
+                else:
+                    # Per ADR-023: synthesis is terminal phase, return None
+                    logger.info(
+                        f"Collection flow phase '{current_phase}' is terminal, no next phase"
+                    )
+                    return None
             except ValueError:
-                return "completed"
+                logger.warning(
+                    f"Unknown collection phase '{current_phase}', cannot determine next phase"
+                )
+                return None
 
         return "completed"
 

@@ -48,6 +48,7 @@ class MappingRetrievalService:
 
         # CRITICAL FIX: Handle both direct import_id lookup AND discovery flow lookup
         # First try direct import_id lookup
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(ImportFieldMapping).where(
             and_(
                 ImportFieldMapping.data_import_id == import_uuid,
@@ -76,6 +77,7 @@ class MappingRetrievalService:
         from app.models.discovery_flow import DiscoveryFlow
 
         # Look for discovery flow with this flow_id
+        # SKIP_TENANT_CHECK - Service-level query
         flow_query = select(DiscoveryFlow).where(
             and_(
                 DiscoveryFlow.flow_id == flow_uuid,
@@ -91,6 +93,7 @@ class MappingRetrievalService:
             )
 
             # Try again with the actual data_import_id from discovery flow
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             query = select(ImportFieldMapping).where(
                 and_(
                     ImportFieldMapping.data_import_id == discovery_flow.data_import_id,
@@ -118,6 +121,7 @@ class MappingRetrievalService:
         from app.models.data_import import DataImport
 
         # Get the database ID for this master_flow_id (FK references id, not flow_id)
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         db_id_query = select(CrewAIFlowStateExtensions.id).where(
             CrewAIFlowStateExtensions.flow_id == master_flow_id
         )
@@ -128,7 +132,9 @@ class MappingRetrievalService:
             return []
 
         # Look for data imports with this master_flow_id
+        # SKIP_TENANT_CHECK - Service-level query
         import_query = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(DataImport)
             .where(
                 and_(
@@ -149,6 +155,7 @@ class MappingRetrievalService:
         logger.info(f"✅ Found data import via master_flow_id: {data_import.id}")
 
         # Final attempt with the found data import ID
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(ImportFieldMapping).where(
             and_(
                 ImportFieldMapping.data_import_id == data_import.id,

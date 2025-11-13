@@ -62,6 +62,10 @@ export interface CollectionFlowResponse extends CollectionFlow {
     data_collected: number;
     gaps_resolved: number;
   };
+  applications?: Array<{
+    asset_id: string;
+    application_name: string;
+  }>; // Issue #762: UUID-based application lookup
 }
 
 export interface CollectionGapAnalysisResponse {

@@ -6,6 +6,7 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 
 interface CollectionFlowConfig {
   selected_application_ids?: string[];
@@ -45,10 +46,10 @@ export const useCollectionFlowQuery = ({
     queryFn: async () => {
       if (!activeFlowId) return null;
       try {
-        console.log('🔍 Fetching collection flow details for application check:', activeFlowId);
+        debugLog('🔍 Fetching collection flow details for application check:', activeFlowId);
         return await apiCall(`/collection/flows/${activeFlowId}`);
       } catch (error) {
-        console.error('Failed to fetch collection flow:', error);
+        debugError('Failed to fetch collection flow:', error);
         return null;
       }
     },

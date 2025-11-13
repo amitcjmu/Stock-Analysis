@@ -10,19 +10,19 @@ const ModernizeIndex = (): JSX.Element => {
     { label: 'Applications to Modernize', value: '45', color: 'text-blue-600' },
     { label: 'Refactor Projects', value: '18', color: 'text-green-600' },
     { label: 'Rearchitect Projects', value: '15', color: 'text-purple-600' },
-    { label: 'Rewrite Projects', value: '12', color: 'text-orange-600' },
+    { label: 'Replace Projects', value: '12', color: 'text-orange-600' },
   ];
 
   const modernizationProgress = [
     { treatment: 'Refactor', total: 18, completed: 7, inProgress: 6, planned: 5, color: 'bg-green-500' },
     { treatment: 'Rearchitect', total: 15, completed: 3, inProgress: 5, planned: 7, color: 'bg-purple-500' },
-    { treatment: 'Rewrite', total: 12, completed: 2, inProgress: 3, planned: 7, color: 'bg-orange-500' },
+    { treatment: 'Replace', total: 12, completed: 2, inProgress: 3, planned: 7, color: 'bg-orange-500' },
   ];
 
   const quickActions = [
     { name: 'Refactor Planning', path: '/modernize/refactor', icon: Code, description: 'Plan and execute code refactoring projects' },
     { name: 'Rearchitect Design', path: '/modernize/rearchitect', icon: Layers, description: 'Design new system architectures' },
-    { name: 'Rewrite Strategy', path: '/modernize/rewrite', icon: Zap, description: 'Plan complete application rewrites' },
+    { name: 'Replace Strategy', path: '/modernize/replace', icon: Zap, description: 'Replace with COTS/SaaS or rewrite applications' },
     { name: 'Progress Tracking', path: '/modernize/progress', icon: Activity, description: 'Monitor modernization progress' },
   ];
 
@@ -37,7 +37,7 @@ const ModernizeIndex = (): JSX.Element => {
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">Modernization Overview</h1>
                   <p className="text-lg text-gray-600">
-                    AI-driven modernization planning and execution for Refactor, Rearchitect, and Rewrite treatments
+                    AI-driven modernization planning and execution for Refactor, Rearchitect, and Replace treatments
                   </p>
                 </div>
                 <div className="flex space-x-3">

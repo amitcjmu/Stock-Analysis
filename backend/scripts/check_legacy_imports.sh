@@ -11,11 +11,38 @@ if git diff --cached -U0 -- '*.py' | grep -E "^\+.*(from|import)\s+(backend\.arc
   FAILED=1
 fi
 
-# Check for direct Crew() instantiation (filter out commented lines)
-if git diff --cached -U0 -- '*.py' | grep -v -E "^\+\s*#" | grep -E "^\+.*\bCrew\s*\(" 2>/dev/null; then
+# Check for direct Crew() instantiation (filter out comments, docstrings, and approved exceptions)
+# Exceptions: decommission agent pool has architectural justification (see crew_factory.py docstring)
+# Process file by file to respect exemptions
+CREW_VIOLATIONS=""
+for file in $(git diff --cached --name-only -- '*.py'); do
+  # Skip decommission agent pool files (architecturally justified)
+  if echo "$file" | grep -q "app/services/agents/decommission/agent_pool"; then
+    continue
+  fi
+
+  # Check for Crew() instantiation in this file
+  VIOLATIONS=$(git diff --cached -U0 -- "$file" | \
+    grep -v -E "^\+\s*#" | \
+    grep -E "^\+.*\bCrew\s*\(" 2>/dev/null || true)
+
+  if [ -n "$VIOLATIONS" ]; then
+    CREW_VIOLATIONS="$CREW_VIOLATIONS
+File: $file
+$VIOLATIONS
+"
+  fi
+done
+
+if [ -n "$CREW_VIOLATIONS" ]; then
   echo "❌ Direct Crew() instantiation detected. Use TenantScopedAgentPool instead."
   echo "   See ADR-015 and ADR-024 for persistent agent patterns."
   echo "   Example: await TenantScopedAgentPool.get_agent(context, agent_type, service_registry)"
+  echo ""
+  echo "   Note: Decommission agent pool is exempt due to domain-specific requirements."
+  echo ""
+  echo "Violations:"
+  echo "$CREW_VIOLATIONS"
   FAILED=1
 fi
 

@@ -4,7 +4,20 @@ Ensures all data operations are scoped to client account and engagement.
 """
 
 import logging
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
+
+if TYPE_CHECKING:
+    from app.core.context import RequestContext
 
 from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +42,7 @@ class ContextAwareRepository(Generic[ModelType]):
         self,
         db: AsyncSession,
         model_class: Type[ModelType],
-        client_account_id: Optional[str] = None,
+        context_or_client_id: Optional[Union["RequestContext", str]] = None,
         engagement_id: Optional[str] = None,
     ):
         """
@@ -38,20 +51,40 @@ class ContextAwareRepository(Generic[ModelType]):
         Args:
             db: Async database session
             model_class: SQLAlchemy model class
-            client_account_id: Client account UUID for multi-tenant scoping
-            engagement_id: Engagement UUID for project scoping
+            context_or_client_id: Either a RequestContext object or client account UUID string
+            engagement_id: Engagement UUID for project scoping (only used if context_or_client_id is a string)
+
+        Examples:
+            # Using RequestContext object (recommended)
+            repo = ContextAwareRepository(db, Asset, request_context)
+
+            # Using separate IDs (legacy)
+            repo = ContextAwareRepository(db, Asset, client_account_id, engagement_id)
         """
         self.db = db
         self.model_class = model_class
-        self.client_account_id = client_account_id
-        self.engagement_id = engagement_id
+
+        # Handle both RequestContext and separate parameters
+        from app.core.context import RequestContext
+
+        if isinstance(context_or_client_id, RequestContext):
+            # Modern pattern: RequestContext object
+            context = context_or_client_id
+            self.client_account_id = context.client_account_id
+            self.engagement_id = context.engagement_id
+            self.context = context
+        else:
+            # Legacy pattern: separate parameters
+            self.client_account_id = context_or_client_id
+            self.engagement_id = engagement_id
+            self.context = None
 
         # Check if model supports multi-tenant fields
         self.has_client_account = hasattr(model_class, "client_account_id")
         self.has_engagement = hasattr(model_class, "engagement_id")
 
         # SECURITY: Enforce client context for multi-tenant models
-        if self.has_client_account and not client_account_id:
+        if self.has_client_account and not self.client_account_id:
             raise ValueError(
                 f"SECURITY: Client account ID is required for multi-tenant model {model_class.__name__}. "
                 f"This is a critical security requirement to prevent cross-tenant data access."
@@ -59,7 +92,7 @@ class ContextAwareRepository(Generic[ModelType]):
 
         logger.debug(
             f"Initialized {model_class.__name__} repository with context: "
-            f"client_account_id={client_account_id}, engagement_id={engagement_id}"
+            f"client_account_id={self.client_account_id}, engagement_id={self.engagement_id}"
         )
 
     def _apply_context_filter(self, query: Select) -> Select:

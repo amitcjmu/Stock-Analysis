@@ -1,7 +1,7 @@
 # ADR-027: Universal FlowTypeConfig Pattern and Discovery Phase Consolidation
 
 ## Status
-Proposed
+Accepted 10-14-2025
 
 ## Context
 

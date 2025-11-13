@@ -113,6 +113,8 @@ async def asset_inventory(
             "user_id": getattr(context, "user_id", None),
             "db_session": kwargs.get("db_session")
             or getattr(context, "db_session", None),
+            # CC FIX (Issue #907): Include data_import_id for asset creation
+            "data_import_id": phase_input.get("data_import_id"),
         }
 
         # Validate required context

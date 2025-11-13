@@ -46,9 +46,18 @@ export const useSixRSubmission = ({
         await updateSixRDecision(appId, decision);
       }
 
-      await resumeFlow({
+      // Trigger backend agent to start processing
+      const response = await resumeFlow({
         sixrDecisions: sixrDecisions
       } as SixRSubmissionData);
+
+      console.log('✅ 6R submission complete, agent triggered:', response);
+      console.log('⏳ Complexity analysis agent is now processing in background...');
+      console.log('💡 Click "Check Status" button to check if agent has completed');
+
+      // The agent is now processing in the background
+      // The UI will show status === "processing" with a "Check Status" button
+      // User can click the button to manually check if agent completed and navigate
     } catch (error) {
       console.error('Failed to submit 6R strategy review:', error);
       throw error;

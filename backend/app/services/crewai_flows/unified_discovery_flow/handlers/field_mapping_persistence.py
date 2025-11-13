@@ -90,6 +90,7 @@ class FieldMappingPersistence:
                             and_(
                                 DataImport.id == data_import_id,
                                 DataImport.client_account_id == client_account_id,
+                                DataImport.engagement_id == engagement_id,
                             )
                         )
                         data_import_result = await db.execute(data_import_query)
@@ -143,6 +144,7 @@ class FieldMappingPersistence:
                             ImportFieldMapping.data_import_id == data_import_id,
                             ImportFieldMapping.client_account_id == client_account_id,
                             ImportFieldMapping.data_import_id.in_(
+                                # SKIP_TENANT_CHECK - Service-level/monitoring query
                                 select(DataImport.id).where(
                                     and_(
                                         DataImport.id == data_import_id,
@@ -244,6 +246,7 @@ class FieldMappingPersistence:
                             field_mapping = ImportFieldMapping(
                                 data_import_id=data_import_id,
                                 client_account_id=client_account_id,
+                                engagement_id=engagement_id,
                                 master_flow_id=flow_id,
                                 source_field=source_field,
                                 target_field=target_field,

@@ -39,14 +39,31 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
 
   // Safety check for availableFields
   const safeAvailableFields = Array.isArray(availableFields) ? availableFields : [];
 
-  const categories = ['all', ...new Set(safeAvailableFields.map(field => field?.category || 'unknown'))];
+  // DEBUG: Log available fields count
+  React.useEffect(() => {
+    console.log('🔍 EnhancedFieldDropdown - Available fields:', safeAvailableFields.length);
+    if (safeAvailableFields.length < 50) {
+      console.warn('⚠️ Only', safeAvailableFields.length, 'fields available - expected 90+');
+      console.log('First 5 fields:', safeAvailableFields.slice(0, 5).map(f => f?.name));
+    }
+  }, [safeAvailableFields.length]);
+
+  const allCategories = Array.from(new Set(safeAvailableFields.map(field => field?.category || 'unknown')));
+  // Move 'other' to the end
+  const filteredCategories = allCategories.filter(cat => cat !== 'other');
+  if (allCategories.includes('other')) {
+    filteredCategories.push('other');
+  }
+  const categories = ['all', ...filteredCategories];
 
   const filteredFields = safeAvailableFields.filter(field => {
     try {
@@ -85,7 +102,7 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-96 overflow-hidden">
+        <div className="absolute z-10 w-60 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-96 overflow-hidden">
           <div className="p-3 border-b border-gray-200">
             <input
               type="text"
@@ -104,13 +121,19 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
             >
               {categories.map(category => (
                 <option key={category} value={category}>
-                  {category === 'all' ? 'All Categories' : category}
+                  {category === 'all' ? 'All Categories' : category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="max-h-64 overflow-y-auto">
+          <div
+            className="max-h-64 overflow-y-scroll pr-2"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#9CA3AF #E5E7EB'
+            }}
+          >
             {filteredFields.length === 0 ? (
               <div className="p-3 text-sm text-gray-500 text-center">
                 No fields found matching your criteria
@@ -119,7 +142,8 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
               filteredFields.map((field) => (
                 <button
                   key={field.name}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     try {
                       handleFieldSelect(field.name);
                     } catch (error) {
@@ -131,7 +155,9 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium">{field.name}</span>
+                        <span className="font-medium text-gray-900">
+                          {field.display_name || field.name}
+                        </span>
                         {field.required && (
                           <span className="text-xs text-red-500">*</span>
                         )}
@@ -139,9 +165,9 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
                           <span className="text-xs text-purple-600">Custom</span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {field.description || 'No description'}
-                      </div>
+                      {field.short_hint && (
+                        <div className="text-xs text-gray-500 mt-1">{field.short_hint}</div>
+                      )}
                     </div>
                     <div className="text-xs text-gray-400 ml-2">
                       {field.type}

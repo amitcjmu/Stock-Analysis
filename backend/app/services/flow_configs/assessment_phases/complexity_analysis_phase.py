@@ -101,11 +101,11 @@ def get_complexity_analysis_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=2100,  # 35 minutes
         metadata={
-            "ui_route": "/assessment/complexity",
+            "ui_route": "/assessment/:flowId/complexity",  # Correct route for complexity phase
             "ui_short_name": "Complexity",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 35,
             "icon": "activity",
-            "help_text": "Analyze migration complexity for each asset",
+            "help_text": "Analyze architectural migration complexity (not code metrics)",
             "complexity_factors": [
                 "technical_debt",
                 "dependencies",

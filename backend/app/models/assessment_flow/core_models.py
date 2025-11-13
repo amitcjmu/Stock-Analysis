@@ -76,7 +76,76 @@ class AssessmentFlow(Base):
     flow_metadata = Column(JSONB, default=lambda: {}, nullable=False)
 
     # Selected applications for assessment (separate from configuration for DB constraint)
-    selected_application_ids = Column(JSONB, nullable=False, default=lambda: [])
+    # DEPRECATED: Keep for backward compatibility (semantic mismatch from pre-October 2025)
+    selected_application_ids = Column(
+        JSONB,
+        nullable=False,
+        default=lambda: [],
+        comment=(
+            "DEPRECATED: Use selected_asset_ids instead. "
+            "This column actually stores asset UUIDs, not application UUIDs "
+            "(semantic mismatch from pre-October 2025)."
+        ),
+    )
+
+    # NEW: Proper semantic fields (October 2025 refactor)
+    selected_asset_ids = Column(
+        JSONB,
+        default=lambda: [],
+        nullable=True,
+        comment="Array of asset UUIDs selected for assessment",
+    )
+
+    selected_canonical_application_ids = Column(
+        JSONB,
+        default=lambda: [],
+        nullable=True,
+        comment="Array of canonical application UUIDs (resolved from collection_flow_applications junction table)",
+    )
+
+    application_asset_groups = Column(
+        JSONB,
+        default=lambda: [],
+        nullable=True,
+        comment="""Array of application groups with their assets. Structure: [
+      {
+        "canonical_application_id": "uuid",
+        "canonical_application_name": "CRM System",
+        "asset_ids": ["uuid1", "uuid2"],
+        "asset_count": 2,
+        "asset_types": ["server", "database"],
+        "readiness_summary": {"ready": 1, "not_ready": 1}
+      }
+    ]""",
+    )
+
+    enrichment_status = Column(
+        JSONB,
+        default=lambda: {},
+        nullable=True,
+        comment="""Summary of enrichment table population. Structure: {
+      "compliance_flags": 2,
+      "licenses": 0,
+      "vulnerabilities": 3,
+      "resilience": 1,
+      "dependencies": 4,
+      "product_links": 0,
+      "field_conflicts": 0
+    }""",
+    )
+
+    readiness_summary = Column(
+        JSONB,
+        default=lambda: {},
+        nullable=True,
+        comment="""Assessment readiness summary. Structure: {
+      "total_assets": 5,
+      "ready": 2,
+      "not_ready": 3,
+      "in_progress": 0,
+      "avg_completeness_score": 0.64
+    }""",
+    )
 
     # Assessment state fields
     architecture_captured = Column(Boolean, default=False, nullable=False)

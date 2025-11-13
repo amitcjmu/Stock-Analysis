@@ -12,7 +12,8 @@
  * - Remediation recommendations
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
@@ -21,6 +22,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useToast } from '../../components/ui/use-toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface TechDebtItem {
   id: string;
@@ -49,6 +51,20 @@ interface SupportTimeline {
 
 const AssessmentTechDebtAssessment = (): JSX.Element => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { client, engagement } = useAuth();
+
+  // Redirect to assessment overview to select a flow
+  // Per issue #808: Users must select an assessment flow before viewing tech debt
+  // Backend integration IS complete per ADR-027 - this is just requiring proper flow selection
+  useEffect(() => {
+    navigate('/assess/overview', {
+      state: {
+        message: 'Please select an assessment flow to view tech debt analysis',
+        redirectPhase: 'tech_debt_assessment'
+      }
+    });
+  }, [navigate]);
 
   // TODO: Replace with Assessment flow hooks when implemented
   // For now, this is a placeholder that matches the expected structure
@@ -228,22 +244,22 @@ const AssessmentTechDebtAssessment = (): JSX.Element => {
               </div>
             </div>
 
-            {/* Placeholder Info */}
+            {/* Flow Selection Required Info */}
             <Card className="mb-6 border-blue-200 bg-blue-50">
               <CardContent className="pt-6">
                 <div className="flex items-start">
                   <Info className="mr-2 h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
-                    <p className="text-blue-900 font-medium">Assessment Phase Integration In Progress</p>
+                    <p className="text-blue-900 font-medium">Assessment Flow Selection Required</p>
                     <p className="text-blue-700 text-sm mt-1">
-                      This technical debt assessment page is part of the Assessment flow. Integration with
-                      Assessment flow hooks and backend services is currently being completed. The page
-                      structure follows the Discovery pattern and will be fully functional once the
-                      Assessment flow backend services are connected.
+                      Technical debt assessment requires an active assessment flow. Please navigate to the
+                      Assessment Overview page to select or create an assessment flow, then access tech debt
+                      analysis from the flow-specific navigation.
                     </p>
                     <p className="text-blue-700 text-sm mt-2">
-                      <strong>Note:</strong> Per ADR-027, tech debt assessment was migrated from Discovery
-                      to Assessment flow in v3.0.0.
+                      <strong>Note:</strong> Backend integration is complete per ADR-027 (v3.0.0). Tech debt
+                      analysis is accessible at <code className="bg-blue-100 px-1 rounded">/assessment/:flowId/tech-debt</code> once
+                      you have selected an assessment flow.
                     </p>
                   </div>
                 </div>

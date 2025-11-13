@@ -44,6 +44,17 @@ from app.models.governance import (
 # Assessment Models
 from app.models.assessment import Assessment, WavePlan
 
+# Planning Flow Models (New - Migration 112-114)
+from app.models.planning import (
+    PlanningFlow,
+    ProjectTimeline,
+    ResourceAllocation,
+    ResourcePool,
+    ResourceSkill,
+    TimelineMilestone,
+    TimelinePhase,
+)
+
 # Assessment Flow Models (New)
 from app.models.assessment_flow import (
     ApplicationArchitectureOverride,
@@ -98,6 +109,16 @@ from app.models.collection_flow import (
 )
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 
+# Decommission Flow Models (New - Issue #932)
+from app.models.decommission_flow import (
+    DecommissionFlow,
+    DecommissionPlan,
+    DataRetentionPolicy,
+    ArchiveJob,
+    DecommissionExecutionLog,
+    DecommissionValidationCheck,
+)
+
 # Canonical Applications Models
 from app.models.canonical_applications import (
     CanonicalApplication,
@@ -146,8 +167,8 @@ from app.models.rbac import AccessLevel, ClientAccess, UserRole
 # Security Audit Models
 from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
 
-# SixR Analysis Models
-from app.models.sixr_analysis import SixRAnalysis
+# SixR Analysis Models REMOVED - Replaced by Assessment Flow (Phase 4, Issue #840)
+# from app.models.sixr_analysis import SixRAnalysis
 
 # Tags Models
 from app.models.tags import AssetTag, Tag
@@ -156,10 +177,6 @@ from app.models.tags import AssetTag, Tag
 from app.models.user_active_flows import UserActiveFlow
 
 # V3 Models REMOVED - Using consolidated schema
-
-# DEPRECATED MODELS (Legacy V1 - Use V2 Discovery Flow instead)
-# from app.models.workflow_state import WorkflowState  # REMOVED - Use DiscoveryFlow
-# from app.models.session_management import SessionManagement  # REMOVED - Use DiscoveryFlow
 
 __all__ = [
     # Base Models
@@ -180,6 +197,14 @@ __all__ = [
     # Assessment Models
     "Assessment",
     "WavePlan",
+    # Planning Flow Models
+    "PlanningFlow",
+    "ProjectTimeline",
+    "TimelinePhase",
+    "TimelineMilestone",
+    "ResourcePool",
+    "ResourceAllocation",
+    "ResourceSkill",
     # Assessment Flow Models (SQLAlchemy)
     "AssessmentFlow",
     "EngagementArchitectureStandard",
@@ -236,8 +261,8 @@ __all__ = [
     # LLM Usage Models
     "LLMUsageLog",
     "LLMUsageSummary",
-    # SixR Analysis Models
-    "SixRAnalysis",
+    # SixR Analysis Models REMOVED - Replaced by Assessment Flow (Phase 4, Issue #840)
+    # "SixRAnalysis",
     # Collection Flow Models
     "CollectionFlow",
     "AutomationTier",
@@ -245,6 +270,13 @@ __all__ = [
     "CollectedDataInventory",
     "CollectionDataGap",
     "CollectionQuestionnaireResponse",
+    # Decommission Flow Models
+    "DecommissionFlow",
+    "DecommissionPlan",
+    "DataRetentionPolicy",
+    "ArchiveJob",
+    "DecommissionExecutionLog",
+    "DecommissionValidationCheck",
     # Canonical Applications Models
     "CanonicalApplication",
     "ApplicationNameVariant",

@@ -1,0 +1,157 @@
+# Grafana Datasources Provisioning
+# ADR-031: Automatic datasource configuration
+#
+# Datasources:
+#   - Loki: Log aggregation
+#   - Tempo: Distributed tracing (replaces Jaeger)
+#   - Prometheus: Metrics TSDB
+#   - PostgreSQL: LLM usage, MFO flows, agent analytics
+
+apiVersion: 1
+
+datasources:
+  # ============================================================================
+  # LOKI - Log aggregation
+  # ============================================================================
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    version: 1
+    editable: false
+    jsonData:
+      # HTTP method for queries (GET or POST)
+      httpMethod: POST
+      # Max lines to return per query
+      maxLines: 1000
+      # Derived fields (extract trace_id from logs for trace correlation)
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"([^"]+)"'
+          name: TraceID
+          url: '$${__value.raw}'
+    # Alerting support
+    uid: loki
+
+  # ============================================================================
+  # TEMPO - Distributed tracing
+  # ============================================================================
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    version: 1
+    editable: false
+    jsonData:
+      # HTTP query mode (no WebSockets for Railway compatibility)
+      httpMethod: GET
+      # Trace to logs correlation
+      tracesToLogs:
+        datasourceUid: loki
+        tags:
+          - key: service_name
+            value: service
+        mappedTags:
+          - key: client_account_id
+          - key: engagement_id
+        mapTagNamesEnabled: true
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: true
+      # Service graph (optional - requires metrics_generator in Tempo)
+      serviceMap:
+        datasourceUid: prometheus
+      # Node graph
+      nodeGraph:
+        enabled: true
+      # Search configuration
+      search:
+        # Disable live tail (requires WebSockets)
+        hide: false
+      # Loki search (find traces from logs)
+      lokiSearch:
+        datasourceUid: loki
+    uid: tempo
+
+  # ============================================================================
+  # PROMETHEUS - Metrics TSDB
+  # ============================================================================
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    version: 1
+    editable: false
+    jsonData:
+      # HTTP method for queries
+      httpMethod: POST
+      # Query timeout
+      timeInterval: 15s
+      # Disable metrics browser (use Explore instead)
+      disableMetricLookup: false
+      # Exemplars (link metrics to traces)
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+      # Custom query parameters
+      customQueryParameters: ''
+      # Prometheus type
+      prometheusType: Prometheus
+      prometheusVersion: 2.54.1
+    uid: prometheus
+
+  # ============================================================================
+  # POSTGRESQL - LLM usage, MFO flows, agent analytics
+  # ============================================================================
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: migration_postgres:5432
+    database: migration_db
+    # Use read-only user (created per ADR-031 Phase 3)
+    user: grafana_readonly
+    isDefault: false
+    version: 1
+    editable: false
+    jsonData:
+      # SSL mode (disable for local/Azure dev, enable for Railway)
+      sslmode: disable
+      # Postgres version
+      postgresVersion: 1700  # 17.0
+      # Time column
+      timescaledb: false
+      # Max open connections
+      maxOpenConns: 10
+      maxIdleConns: 2
+      connMaxLifetime: 14400  # 4 hours
+    # Password from environment variable
+    secureJsonData:
+      password: ${POSTGRES_GRAFANA_PASSWORD}
+    uid: postgres
+
+# ============================================================================
+# PRODUCTION NOTES
+# ============================================================================
+# Datasource UIDs are used for:
+#   - Cross-datasource queries (Loki → Tempo trace correlation)
+#   - Dashboard provisioning (hardcode UIDs in JSON)
+#   - Alert rules
+#
+# Read-only PostgreSQL user:
+#   - Created in Phase 3 (see ADR-031 lines 561-575)
+#   - Grants: SELECT on llm_usage_logs, crewai_flow_state_extensions,
+#     discovery_flows, assessment_flows, collection_flows,
+#     agent_discovered_patterns, agent_performance_analytics
+#
+# For Railway production:
+#   - Change PostgreSQL sslmode to 'require'
+#   - Verify Tempo HTTP-only queries work (no WebSocket errors)
+#   - Disable Grafana live tail feature in UI settings
+#
+# For Azure production:
+#   - Verify firewall allows Grafana → Postgres connection
+#   - Use internal Docker network (no public Postgres endpoint)
+#   - Store POSTGRES_GRAFANA_PASSWORD in Azure Key Vault

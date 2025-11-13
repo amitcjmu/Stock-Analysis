@@ -33,8 +33,21 @@ export class FlowsApi extends CollectionFlowClient {
     });
   }
 
-  async ensureFlow(): Promise<CollectionFlowResponse> {
-    return await apiCall(`${this.baseUrl}/flows/ensure`, { method: "POST" });
+  async ensureFlow(missing_attributes?: Record<string, string[]>, assessment_flow_id?: string): Promise<CollectionFlowResponse> {
+    // Bug #668 Fix: Pass missing_attributes to trigger gap creation and questionnaire generation
+    // Bug Fix: Pass assessment_flow_id to link collection flow to assessment flow
+    const body: Record<string, unknown> = {};
+    if (missing_attributes) {
+      body.missing_attributes = missing_attributes;
+    }
+    if (assessment_flow_id) {
+      body.assessment_flow_id = assessment_flow_id;
+    }
+
+    return await apiCall(`${this.baseUrl}/flows/ensure`, {
+      method: "POST",
+      ...(Object.keys(body).length > 0 && { body: JSON.stringify(body) }),
+    });
   }
 
   async getFlowDetails(flowId: string): Promise<CollectionFlowResponse> {
@@ -69,8 +82,37 @@ export class FlowsApi extends CollectionFlowClient {
     return await apiCall(`${this.baseUrl}/incomplete`, { method: "GET" });
   }
 
+  async getActivelyIncompleteFlows(): Promise<CollectionFlowResponse[]> {
+    return await apiCall(`${this.baseUrl}/actively-incomplete`, { method: "GET" });
+  }
+
   async getFlow(flowId: string): Promise<CollectionFlowResponse> {
-    return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: "GET" });
+    try {
+      return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: "GET" });
+    } catch (error: unknown) {
+      // Bug #799 Fix: Enhanced error handling for better user feedback
+      if (error && typeof error === 'object') {
+        const apiError = error as ApiError;
+
+        // Check for 404 - Flow not found
+        if (apiError.status === 404 || apiError.response?.status === 404) {
+          throw new Error(`404: Collection flow not found (ID: ${flowId})`);
+        }
+
+        // Check for 403 - Access denied
+        if (apiError.status === 403 || apiError.response?.status === 403) {
+          throw new Error('403: You do not have permission to access this collection flow');
+        }
+
+        // Check for 500 - Server error
+        if (apiError.status === 500 || apiError.response?.status === 500) {
+          throw new Error('500: Server error while loading flow. Please try again or contact support.');
+        }
+      }
+
+      // Re-throw original error if not a specific HTTP error
+      throw error;
+    }
   }
 
   async getAllFlows(): Promise<CollectionFlowResponse[]> {

@@ -89,37 +89,62 @@ def _create_canonical_applications(conn, existing_apps):
         mapping_key = (str(client_account_id), str(engagement_id), normalized_name)
 
         if mapping_key not in canonical_mapping:
-            # Create new canonical application
-            insert_canonical = text(
+            # Check if canonical application already exists in database
+            check_existing = text(
                 """
-                INSERT INTO migration.canonical_applications (
-                    id, canonical_name, normalized_name, name_hash,
-                    client_account_id, engagement_id,
-                    confidence_score, is_verified, verification_source,
-                    usage_count, created_at, updated_at
-                ) VALUES (
-                    gen_random_uuid(), :canonical_name, :normalized_name, :name_hash,
-                    :client_account_id, :engagement_id,
-                    1.0, false, 'bulk_migration',
-                    1, now(), now()
-                ) RETURNING id
-            """
+                SELECT id FROM migration.canonical_applications
+                WHERE client_account_id = :client_account_id
+                AND engagement_id = :engagement_id
+                AND normalized_name = :normalized_name
+                """
             )
 
-            result = conn.execute(
-                insert_canonical,
+            existing_result = conn.execute(
+                check_existing,
                 {
-                    "canonical_name": app_name.strip(),
-                    "normalized_name": normalized_name,
-                    "name_hash": name_hash,
                     "client_account_id": client_account_id,
                     "engagement_id": engagement_id,
+                    "normalized_name": normalized_name,
                 },
             )
 
-            canonical_id = result.scalar()
-            canonical_mapping[mapping_key] = canonical_id
-            created_count += 1
+            existing_row = existing_result.fetchone()
+
+            if existing_row:
+                # Use existing canonical application
+                canonical_mapping[mapping_key] = existing_row.id
+            else:
+                # Create new canonical application
+                insert_canonical = text(
+                    """
+                    INSERT INTO migration.canonical_applications (
+                        id, canonical_name, normalized_name, name_hash,
+                        client_account_id, engagement_id,
+                        confidence_score, is_verified, verification_source,
+                        usage_count, created_at, updated_at
+                    ) VALUES (
+                        gen_random_uuid(), :canonical_name, :normalized_name, :name_hash,
+                        :client_account_id, :engagement_id,
+                        1.0, false, 'bulk_migration',
+                        1, now(), now()
+                    ) RETURNING id
+                    """
+                )
+
+                result = conn.execute(
+                    insert_canonical,
+                    {
+                        "canonical_name": app_name.strip(),
+                        "normalized_name": normalized_name,
+                        "name_hash": name_hash,
+                        "client_account_id": client_account_id,
+                        "engagement_id": engagement_id,
+                    },
+                )
+
+                canonical_id = result.scalar()
+                canonical_mapping[mapping_key] = canonical_id
+                created_count += 1
 
         processed_count += 1
 
@@ -240,8 +265,8 @@ def _update_tenant_fields(conn):
         """
         UPDATE migration.collection_flow_applications
         SET
-            client_account_id = COALESCE(client_account_id, cf.client_account_id),
-            engagement_id = COALESCE(engagement_id, cf.engagement_id)
+            client_account_id = COALESCE(collection_flow_applications.client_account_id, cf.client_account_id),
+            engagement_id = COALESCE(collection_flow_applications.engagement_id, cf.engagement_id)
         FROM migration.collection_flows cf
         WHERE collection_flow_applications.collection_flow_id = cf.id
         AND (collection_flow_applications.client_account_id IS NULL

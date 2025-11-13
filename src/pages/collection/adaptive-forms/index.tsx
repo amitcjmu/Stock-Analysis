@@ -9,11 +9,14 @@ import CollectionPageLayout from "@/components/collection/layout/CollectionPageL
 import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormContainer";
 import { ApplicationSelectionUI } from "@/components/collection/ApplicationSelectionUI";
 import { QuestionnaireReloadButton } from "@/components/collection/QuestionnaireReloadButton";
+// Import PR#790 Adaptive Questionnaire components
+import { BulkImportWizard } from "@/components/collection/BulkImportWizard";
+import { MultiAssetAnswerModal } from "@/components/collection/MultiAssetAnswerModal";
 
 // Import custom hooks
 import { useAdaptiveFormFlow } from "@/hooks/collection/useAdaptiveFormFlow";
 import {
-  useIncompleteCollectionFlows,
+  useActivelyIncompleteCollectionFlows,
   useCollectionFlowManagement,
 } from "@/hooks/collection/useCollectionFlowManagement";
 import { useFlowDeletion } from "@/hooks/useFlowDeletion";
@@ -33,6 +36,7 @@ import {
   useAssetNavigation,
   useWindowFocusRefetch,
 } from "./hooks";
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 import {
   QuestionnaireDisplay,
   AssetNavigationButtons,
@@ -76,10 +80,14 @@ const AdaptiveForms: React.FC = () => {
   // State for manage flows modal
   const [showManageFlowsModal, setShowManageFlowsModal] = useState(false);
 
+  // PR#790: State for bulk operations modals
+  const [showBulkImportWizard, setShowBulkImportWizard] = useState(false);
+  const [showBulkAnswerModal, setShowBulkAnswerModal] = useState(false);
+
   // DISABLED: Questionnaire generation modal no longer needed (questionnaires generated faster from data gaps)
   const handleQuestionnaireGeneration = React.useCallback(() => {
     // No-op: Modal disabled to avoid unnecessary 30-second delay
-    console.log('📝 Questionnaire generation started (modal disabled)');
+    debugLog('📝 Questionnaire generation started (modal disabled)');
   }, []);
 
   // Handle questionnaire ready from modal
@@ -96,14 +104,15 @@ const AdaptiveForms: React.FC = () => {
     setIsFallbackQuestionnaire(true);
   }, []);
 
-  // Check for incomplete flows that would block new collection processes
+  // Check for actively incomplete flows (INITIALIZED, RUNNING) that would block new operations
+  // Per ADR-012, PAUSED flows are waiting for user input and should not block
   // Skip checking if we're continuing a specific flow (flowId provided)
   const skipIncompleteCheck = !!flowId;
   const {
     data: incompleteFlows = [],
     isLoading: checkingFlows,
     refetch: refetchFlows,
-  } = useIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
+  } = useActivelyIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
 
   // Use collection flow management hook for flow operations
   const { deleteFlow, isDeleting } = useCollectionFlowManagement();
@@ -135,7 +144,7 @@ const AdaptiveForms: React.FC = () => {
       });
     },
     (error) => {
-      console.error('Flow deletion failed:', error);
+      debugError('Flow deletion failed:', error);
 
       // On error, unhide all flows that were being deleted
       deletionState.candidates.forEach((flowId) => {
@@ -176,7 +185,7 @@ const AdaptiveForms: React.FC = () => {
   const shouldAutoInitialize = !checkingFlows && (!hasBlockingFlows || hasJustDeleted || !!flowId);
 
   // Debug logging
-  console.log('🔍 AdaptiveForms initialization state:', {
+  debugLog('🔍 AdaptiveForms initialization state:', {
     flowId,
     checkingFlows,
     hasBlockingFlows,
@@ -195,6 +204,7 @@ const AdaptiveForms: React.FC = () => {
     isCompleted,
     error,
     flowId: activeFlowId, // Extract flowId from hook return
+    questionnaires, // Get questionnaires array for auto-submit check
     // New polling state fields
     isPolling,
     completionStatus,
@@ -204,6 +214,7 @@ const AdaptiveForms: React.FC = () => {
     handleSave,
     handleSubmit,
     initializeFlow,
+    retryPolling, // Manual status check function from polling hook
   } = useAdaptiveFormFlow({
     applicationId,
     flowId,
@@ -225,6 +236,34 @@ const AdaptiveForms: React.FC = () => {
   //   }
   // }, [completionStatus, activeFlowId]);
 
+  // CRITICAL FIX: Fetch collection flow data BEFORE using it in assetGroups memo
+  // Issue #801: currentCollectionFlow must be defined before being referenced
+  const { data: currentCollectionFlow, isLoading: isLoadingFlow, refetch: refetchCollectionFlow } = useQuery({
+    queryKey: ["collection-flow", activeFlowId],
+    queryFn: async () => {
+      if (!activeFlowId) return null;
+      try {
+        debugLog(
+          "🔍 Fetching collection flow details for application check:",
+          activeFlowId,
+        );
+        return await apiCall(`/collection/flows/${activeFlowId}`);
+      } catch (error) {
+        debugError("Failed to fetch collection flow:", error);
+        return null;
+      }
+    },
+    enabled: !!activeFlowId,
+    // Set cache time to 5 minutes to prevent excessive re-fetching
+    staleTime: 5 * 60 * 1000,
+    // Cache data for 10 minutes
+    gcTime: 10 * 60 * 1000,
+    // Disable automatic refetching to prevent loops
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
+
   // Group questions by asset and auto-select first asset
   // Pass formValues to calculate real-time completion percentage
   // CRITICAL: Must be defined BEFORE navigation handlers that use it
@@ -244,8 +283,19 @@ const AdaptiveForms: React.FC = () => {
       }))
     );
 
-    return groupQuestionsByAsset(allQuestions, undefined, formValues);
-  }, [formData, formValues]);
+    // Extract applications array for asset name lookup
+    // Issue #801: Pass applications to properly resolve asset names (not UUIDs)
+    // NOTE: Backend may return empty applications array, but groupQuestionsByAsset
+    // will fall back to extracting asset_name from question metadata
+    // CRITICAL FIX: Map both 'id' and 'asset_id' to ensure lookup works correctly
+    const applications = currentCollectionFlow?.applications?.map(app => ({
+      id: app.asset_id,
+      asset_id: app.asset_id,  // CRITICAL: Also include asset_id for lookup
+      name: app.application_name || app.name || app.asset_name
+    })) || [];
+
+    return groupQuestionsByAsset(allQuestions, applications, formValues);
+  }, [formData, formValues, currentCollectionFlow]);
 
   // Auto-select first asset when groups change (only on initial load)
   React.useEffect(() => {
@@ -274,17 +324,17 @@ const AdaptiveForms: React.FC = () => {
       flowId: activeFlowId,
       enabled: !!activeFlowId && isLoading && !formData, // Only poll if we're loading and don't have data
       onQuestionnaireReady: (state) => {
-        console.log(
+        debugLog(
           "🎉 HTTP Polling: Questionnaire ready notification",
         );
         // DO NOT trigger re-initialization here - the hook handles it internally
       },
       onStatusUpdate: (state) => {
-        console.log("📊 HTTP Polling: Workflow status update:", state);
+        debugLog("📊 HTTP Polling: Workflow status update:", state);
         // DO NOT trigger re-initialization here - the hook handles it internally
       },
       onError: (error) => {
-        console.error("❌ HTTP Polling: Collection workflow error:", error);
+        debugError("❌ HTTP Polling: Collection workflow error:", error);
         toast({
           title: "Workflow Error",
           description: `Collection workflow encountered an error: ${error}`,
@@ -293,48 +343,23 @@ const AdaptiveForms: React.FC = () => {
       },
     });
 
-  // Check if the current Collection flow has application selection
-  // Now that formData is available from useAdaptiveFormFlow
-  const { data: currentCollectionFlow, isLoading: isLoadingFlow, refetch: refetchCollectionFlow } = useQuery({
-    queryKey: ["collection-flow", activeFlowId],
-    queryFn: async () => {
-      if (!activeFlowId) return null;
-      try {
-        console.log(
-          "🔍 Fetching collection flow details for application check:",
-          activeFlowId,
-        );
-        return await apiCall(`/collection/flows/${activeFlowId}`);
-      } catch (error) {
-        console.error("Failed to fetch collection flow:", error);
-        return null;
-      }
-    },
-    enabled: !!activeFlowId,
-    // Set cache time to 5 minutes to prevent excessive re-fetching
-    staleTime: 5 * 60 * 1000,
-    // Cache data for 10 minutes
-    gcTime: 10 * 60 * 1000,
-    // Disable automatic refetching to prevent loops
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-  });
+  // REMOVED: Duplicate currentCollectionFlow query moved earlier (before assetGroups memo)
+  // Issue #801: Prevent "Cannot access 'currentCollectionFlow' before initialization" error
 
   // CC: Debugging - Log handleSave function only when it changes
   React.useEffect(() => {
-    console.log('🔍 AdaptiveForms handleSave initialized:', typeof handleSave === 'function');
+    debugLog('🔍 AdaptiveForms handleSave initialized:', typeof handleSave === 'function');
   }, [handleSave]); // Only log when handleSave changes
 
   // CC: Create a direct save handler to bypass potential prop passing issues
   // CRITICAL: Inject selected asset_id before saving for multi-asset forms
   const directSaveHandler = React.useCallback(async () => {
-    console.log('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
+    debugLog('🟢 DIRECT SAVE HANDLER CALLED - Bypassing prop chain');
 
     let valuesToSave = formValues;
     // For multi-asset forms, create a payload with the correct asset_id
     if (assetGroups.length > 1 && selectedAssetId) {
-      console.log(`💾 Saving progress for asset: ${selectedAssetId}`);
+      debugLog(`💾 Saving progress for asset: ${selectedAssetId}`);
       valuesToSave = {
         ...formValues,
         asset_id: selectedAssetId,
@@ -342,35 +367,35 @@ const AdaptiveForms: React.FC = () => {
     }
 
     if (typeof handleSave === 'function') {
-      console.log('🟢 Calling handleSave from direct handler with valuesToSave');
+      debugLog('🟢 Calling handleSave from direct handler with valuesToSave');
       await handleSave(valuesToSave);
     } else {
-      console.error('❌ handleSave is not available in AdaptiveForms');
+      debugError('❌ handleSave is not available in AdaptiveForms');
     }
   }, [handleSave, assetGroups.length, selectedAssetId, formValues]);
 
   // CC: Wrap handleSubmit to inject asset_id for multi-asset forms
   const directSubmitHandler = React.useCallback(async () => {
-    console.log('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
+    debugLog('🟢 DIRECT SUBMIT HANDLER CALLED - Injecting asset_id if needed');
 
     let submissionValues = formValues;
     // For multi-asset forms, create a submission payload with the correct asset_id
     if (assetGroups.length > 1 && selectedAssetId) {
-      console.log(`✅ Submitting form for asset: ${selectedAssetId}`);
+      debugLog(`✅ Submitting form for asset: ${selectedAssetId}`);
       submissionValues = {
         ...formValues,
         asset_id: selectedAssetId,
       };
     } else {
-      console.log('🟢 Not a multi-asset form, proceeding with regular submit');
+      debugLog('🟢 Not a multi-asset form, proceeding with regular submit');
     }
 
     if (typeof handleSubmit === 'function') {
-      console.log('🟢 Calling handleSubmit from direct handler with submissionValues');
+      debugLog('🟢 Calling handleSubmit from direct handler with submissionValues');
       await handleSubmit(submissionValues);
-      console.log('🟢 handleSubmit completed');
+      debugLog('🟢 handleSubmit completed');
     } else {
-      console.error('❌ handleSubmit is not available in AdaptiveForms');
+      debugError('❌ handleSubmit is not available in AdaptiveForms');
     }
   }, [handleSubmit, assetGroups, selectedAssetId, formValues]);
 
@@ -380,24 +405,24 @@ const AdaptiveForms: React.FC = () => {
 
     // Prevent duplicate initializations for the same flow
     if (isInitializingRef.current) {
-      console.log('⚠️ Initialization already in progress, skipping duplicate call');
+      debugLog('⚠️ Initialization already in progress, skipping duplicate call');
       return;
     }
 
     if (initializationAttempts.current.has(currentFlowKey)) {
-      console.log('⚠️ Already attempted initialization for flow:', currentFlowKey);
+      debugLog('⚠️ Already attempted initialization for flow:', currentFlowKey);
       return;
     }
 
-    console.log('🔐 Protected initialization starting for flow:', currentFlowKey);
+    debugLog('🔐 Protected initialization starting for flow:', currentFlowKey);
     isInitializingRef.current = true;
     initializationAttempts.current.add(currentFlowKey);
 
     try {
       await initializeFlow();
-      console.log('✅ Protected initialization completed for flow:', currentFlowKey);
+      debugLog('✅ Protected initialization completed for flow:', currentFlowKey);
     } catch (error) {
-      console.error('❌ Protected initialization failed for flow:', currentFlowKey, error);
+      debugError('❌ Protected initialization failed for flow:', currentFlowKey, error);
       // Remove from attempts on error to allow retry
       initializationAttempts.current.delete(currentFlowKey);
       throw error;
@@ -423,7 +448,7 @@ const AdaptiveForms: React.FC = () => {
     if (isLoadingFlow || !currentCollectionFlow || !activeFlowId) return;
 
     // Log the flow state but don't redirect - asset-agnostic collection
-    console.log(
+    debugLog(
       "📊 Asset-agnostic collection flow initialized",
       {
         flowId: activeFlowId,
@@ -436,6 +461,93 @@ const AdaptiveForms: React.FC = () => {
     isLoadingFlow,
     activeFlowId,
   ]);
+
+  // Auto-submit asset selection if assets are already pre-selected from assessment flow
+  // CRITICAL FIX: Use ref to prevent multiple auto-submissions
+  const hasAutoSubmittedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (
+      !currentCollectionFlow ||
+      !formData ||
+      !handleSubmit ||
+      isLoadingFlow ||
+      !activeFlowId ||
+      hasAutoSubmittedRef.current // CRITICAL FIX: Prevent multiple submissions
+    ) {
+      return;
+    }
+
+    // Check if assets are pre-selected in collection_config
+    const config = currentCollectionFlow.collection_config || {};
+    const selectedAssetIds =
+      config.selected_application_ids ||
+      config.applications ||
+      config.application_ids ||
+      [];
+
+    // Check if current questionnaire is bootstrap_asset_selection
+    // Get questionnaire ID from formData or from questionnaires array
+    const currentQuestionnaireId =
+      formData?.questionnaires?.[0]?.id ||
+      formData?.questionnaireId ||
+      questionnaires?.[0]?.id ||
+      "";
+    const isAssetSelectionQuestionnaire =
+      currentQuestionnaireId === "bootstrap_asset_selection";
+
+    // Auto-submit if assets are pre-selected and we're on asset selection questionnaire
+    if (
+      Array.isArray(selectedAssetIds) &&
+      selectedAssetIds.length > 0 &&
+      isAssetSelectionQuestionnaire
+    ) {
+      // CRITICAL FIX: Mark as submitted immediately to prevent duplicate calls
+      hasAutoSubmittedRef.current = true;
+
+      debugLog(
+        "🚀 Auto-submitting asset selection with pre-selected assets:",
+        selectedAssetIds,
+      );
+
+      // Create form data with selected assets
+      const autoSubmitData: CollectionFormData = {
+        selected_assets: selectedAssetIds,
+        question_1: selectedAssetIds.map(
+          (id) => `Asset (ID: ${id})`, // Format expected by submit handler
+        ),
+      };
+
+      // Auto-submit after a short delay to ensure form is ready
+      const timer = setTimeout(() => {
+        handleSubmit(autoSubmitData).catch((error) => {
+          debugError("❌ Auto-submit failed:", error);
+          // Reset flag on error so user can retry
+          hasAutoSubmittedRef.current = false;
+          toast({
+            title: "Auto-submit Failed",
+            description:
+              "Failed to automatically submit asset selection. Please submit manually.",
+            variant: "destructive",
+          });
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    currentCollectionFlow,
+    formData,
+    handleSubmit,
+    isLoadingFlow,
+    activeFlowId,
+    questionnaires, // Include questionnaires in dependency array
+  ]);
+
+  // CRITICAL FIX: Reset auto-submit flag when flow ID changes
+  React.useEffect(() => {
+    hasAutoSubmittedRef.current = false;
+  }, [activeFlowId]);
 
   // Reset the hasJustDeleted flag after auto-initialization triggers
   React.useEffect(() => {
@@ -460,7 +572,7 @@ const AdaptiveForms: React.FC = () => {
   // This handles navigation back from application selection page
   useEffect(() => {
     if (activeFlowId && activeFlowId === flowId) {
-      console.log(
+      debugLog(
         "🔄 Flow ID matched - refetching collection flow data for latest application status",
         { activeFlowId, flowId },
       );
@@ -469,7 +581,7 @@ const AdaptiveForms: React.FC = () => {
   }, [activeFlowId, flowId, refetchCollectionFlow]);
 
   // Debug hook state
-  console.log('🎯 useAdaptiveFormFlow state:', {
+  debugLog('🎯 useAdaptiveFormFlow state:', {
     hasFormData: !!formData,
     isLoading,
     error: error?.message,
@@ -572,7 +684,9 @@ const AdaptiveForms: React.FC = () => {
   // IMPORTANT: We should wait until both formData AND the initial loading is complete
   // This prevents showing empty forms that get populated later
   // If we have a flowId, always show loading/initialization state (never block)
-  if ((!formData || isLoading) && (!hasBlockingFlows || flowId)) {
+  // CRITICAL FIX: Also show loading state when completionStatus is 'pending' (questionnaire being generated)
+  const isPendingGeneration = completionStatus === 'pending';
+  if (((!formData || isLoading) && (!hasBlockingFlows || flowId)) || isPendingGeneration) {
     return (
       <LoadingStateDisplay
         completionStatus={completionStatus}
@@ -584,6 +698,7 @@ const AdaptiveForms: React.FC = () => {
         onRetry={() => protectedInitializeFlow()}
         onRefresh={() => window.location.reload()}
         onInitialize={() => protectedInitializeFlow()}
+        onCheckStatus={retryPolling} // Manual status check for pending questionnaires
       />
     );
   }
@@ -642,6 +757,26 @@ const AdaptiveForms: React.FC = () => {
           onQuestionnaireReady={handleQuestionnaireReady}
           className="mb-6"
         />
+      )}
+
+      {/* PR#790: Bulk Operations Action Bar */}
+      {activeFlowId && (
+        <div className="mb-6 flex gap-3" data-testid="bulk-operations-bar">
+          <button
+            onClick={() => setShowBulkAnswerModal(true)}
+            data-testid="bulk-answer-button"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          >
+            Bulk Answer
+          </button>
+          <button
+            onClick={() => setShowBulkImportWizard(true)}
+            data-testid="bulk-import-button"
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+          >
+            Bulk Import
+          </button>
+        </div>
       )}
 
       {/* MODULARIZED: Use QuestionnaireDisplay component */}
@@ -716,6 +851,58 @@ const AdaptiveForms: React.FC = () => {
         onBatchDelete={(flowIds: string[]) => flowIds.forEach(handleDeleteFlow)}
         onViewDetails={handleViewFlowDetails}
       />
+
+      {/* PR#790: Bulk Operations Modals */}
+      {activeFlowId && client?.id && engagement?.id && formData && (
+        <>
+          <BulkImportWizard
+            flow_id={activeFlowId}
+            import_type="application"
+            is_open={showBulkImportWizard}
+            on_close={() => setShowBulkImportWizard(false)}
+            on_success={(rows_imported) => {
+              toast({
+                title: "Import Successful",
+                description: `Successfully imported ${rows_imported} rows`
+              });
+              setShowBulkImportWizard(false);
+              // Refresh the form data
+              queryClient.invalidateQueries({ queryKey: ['collection-flow'] });
+            }}
+          />
+
+          <MultiAssetAnswerModal
+            flow_id={activeFlowId}
+            questions={
+              formData?.sections
+                ? formData.sections.flatMap(section =>
+                    section.fields.map(field => ({
+                      question_id: field.id,
+                      question_text: field.label,
+                      question_type: field.fieldType === 'select' ? 'dropdown' :
+                                    field.fieldType === 'multiselect' ? 'multi_select' : 'text',
+                      answer_options: field.options,
+                      section: section.title,
+                      weight: field.metadata?.weight || 1,
+                      is_required: field.validation?.required || false,
+                      display_order: field.metadata?.display_order
+                    }))
+                  )
+                : []
+            }
+            is_open={showBulkAnswerModal}
+            on_close={() => setShowBulkAnswerModal(false)}
+            on_success={(updated_count) => {
+              toast({
+                title: "Bulk Answer Successful",
+                description: `Successfully updated ${updated_count} assets`
+              });
+              setShowBulkAnswerModal(false);
+              queryClient.invalidateQueries({ queryKey: ['collection-flow'] });
+            }}
+          />
+        </>
+      )}
     </CollectionPageLayout>
   );
 };

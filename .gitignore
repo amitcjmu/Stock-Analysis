@@ -64,6 +64,7 @@ backend/env.example
 .env.development.local
 .env.test.local
 .env.production.local
+*.observability  # Grafana observability stack secrets (any .observability file)
 
 # Database
 *.db
@@ -141,7 +142,13 @@ test-results/**
 # Data artifacts (keep structure, ignore contents)
 backend/data/**
 !backend/data/.gitkeep
+!backend/data/README.md
 backend/.adcs/
 
 .playwright-mcp/*
 test-data/
+
+# Grafana Observability Stack Data
+config/docker/observability/data/*
+config/docker/observability/ssl/*
+!config/docker/observability/data/.gitkeep

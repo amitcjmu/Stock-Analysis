@@ -54,11 +54,16 @@ per-file-ignores =
     backend/scripts/investigate_discovery_flow.py:C901
     backend/scripts/post_deploy_fix.py:C901
     backend/scripts/test_collection_phase_progression.py:F401,F541,E402
+    backend/scripts/backfill_collection_master_flows.py:E402
     backend/scripts/test_railway_connection.py:C901
     backend/scripts/unified_model_planning.py:C901
     backend/scripts/validate_flow_relationships.py:C901
     # Service files may have complex business logic
     backend/app/api/v1/endpoints/sixr_analysis_modular/services/analysis_service.py:C901
+    # Assessment endpoints may have complex progress tracking logic
+    backend/app/api/v1/master_flows/assessment/info_endpoints.py:C901
+    # Assessment repository has complex initialization logic
+    backend/app/repositories/assessment_flow_repository/commands/flow_commands.py:C901
     backend/app/constants/cache_keys.py:C901
     backend/app/core/flow_state_validator.py:C901
     backend/app/docs/api/examples/data_import_examples.py:C901

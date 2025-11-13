@@ -24,6 +24,7 @@ import { FlowsApi } from "./flows";
 import { QuestionnairesApi } from "./questionnaires";
 import { SubmissionsApi } from "./submissions";
 import { ValidationApi } from "./validation";
+import { AdaptiveApi } from "./adaptive";
 
 /**
  * Main CollectionFlowAPI class using composition pattern
@@ -34,12 +35,14 @@ class CollectionFlowApi {
   private questionnaires: QuestionnairesApi;
   private submissions: SubmissionsApi;
   private validation: ValidationApi;
+  private adaptive: AdaptiveApi;
 
   constructor() {
     this.flows = new FlowsApi();
     this.questionnaires = new QuestionnairesApi();
     this.submissions = new SubmissionsApi();
     this.validation = new ValidationApi();
+    this.adaptive = new AdaptiveApi();
   }
 
   // ========================================
@@ -54,8 +57,8 @@ class CollectionFlowApi {
     return this.flows.createFlow(data);
   }
 
-  async ensureFlow() {
-    return this.flows.ensureFlow();
+  async ensureFlow(missing_attributes?: Record<string, string[]>, assessment_flow_id?: string) {
+    return this.flows.ensureFlow(missing_attributes, assessment_flow_id);
   }
 
   async getFlowDetails(flowId: string) {
@@ -72,6 +75,10 @@ class CollectionFlowApi {
 
   async getIncompleteFlows() {
     return this.flows.getIncompleteFlows();
+  }
+
+  async getActivelyIncompleteFlows() {
+    return this.flows.getActivelyIncompleteFlows();
   }
 
   async getFlow(flowId: string) {
@@ -289,6 +296,38 @@ class CollectionFlowApi {
   ) {
     return this.validation.resolveAssetConflict(asset_id, field_name, resolution);
   }
+
+  // ========================================
+  // Adaptive Questionnaire Operations (AdaptiveApi)
+  // ========================================
+
+  async getFilteredQuestions(request: Parameters<AdaptiveApi["getFilteredQuestions"]>[0]) {
+    return this.adaptive.getFilteredQuestions(request);
+  }
+
+  async handleDependencyChange(request: Parameters<AdaptiveApi["handleDependencyChange"]>[0]) {
+    return this.adaptive.handleDependencyChange(request);
+  }
+
+  async previewBulkAnswers(request: Parameters<AdaptiveApi["previewBulkAnswers"]>[0]) {
+    return this.adaptive.previewBulkAnswers(request);
+  }
+
+  async submitBulkAnswers(request: Parameters<AdaptiveApi["submitBulkAnswers"]>[0]) {
+    return this.adaptive.submitBulkAnswers(request);
+  }
+
+  async analyzeImportFile(file: File, import_type: "application" | "server" | "database") {
+    return this.adaptive.analyzeImportFile(file, import_type);
+  }
+
+  async executeImport(request: Parameters<AdaptiveApi["executeImport"]>[0]) {
+    return this.adaptive.executeImport(request);
+  }
+
+  async getImportTaskStatus(task_id: string) {
+    return this.adaptive.getImportTaskStatus(task_id);
+  }
 }
 
 // Export singleton instance for backward compatibility
@@ -326,5 +365,26 @@ export type {
   CompletenessMetrics,
 } from "./types";
 
+// Export adaptive questionnaire types
+export type {
+  QuestionDetail,
+  DynamicQuestionsRequest,
+  DynamicQuestionsResponse,
+  DependencyChangeRequest,
+  DependencyChangeResponse,
+  AnswerInput,
+  BulkAnswerPreviewRequest,
+  ConflictDetail,
+  BulkAnswerPreviewResponse,
+  BulkAnswerSubmitRequest,
+  ChunkError,
+  BulkAnswerSubmitResponse,
+  FieldMappingSuggestion,
+  ImportAnalysisResponse,
+  ImportExecutionRequest,
+  ImportTaskResponse,
+  ImportTaskDetailResponse,
+} from "./adaptive";
+
 // Export sub-API classes for advanced usage
-export { FlowsApi, QuestionnairesApi, SubmissionsApi, ValidationApi };
+export { FlowsApi, QuestionnairesApi, SubmissionsApi, ValidationApi, AdaptiveApi };

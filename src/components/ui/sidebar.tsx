@@ -11,7 +11,9 @@
 // Import and re-export from the modular structure
 import { SidebarProvider } from './sidebar/sidebar-provider';
 import { SidebarContext } from './sidebar/sidebar-context'
-import { Sidebar, SidebarInset } from './sidebar/sidebar-core';
+// NOTE: Sidebar component removed from exports to prevent confusion
+// Use @/components/Sidebar for the actual navigation sidebar instead
+import { SidebarInset } from './sidebar/sidebar-core';
 import { SidebarTrigger, SidebarRail } from './sidebar/sidebar-interactions';
 import {
   SidebarHeader,
@@ -47,7 +49,7 @@ export {
   SidebarContext,
 
   // Core components
-  Sidebar,
+  // Sidebar - REMOVED: Use @/components/Sidebar for navigation instead
   SidebarInset,
 
   // Interaction components

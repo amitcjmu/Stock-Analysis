@@ -106,6 +106,10 @@ class ApplicationComponent(Base):
         UUID(as_uuid=True), nullable=False
     )  # Reference to application
 
+    # Multi-tenant scoping (CRITICAL - added per code review and ADR)
+    client_account_id = Column(UUID(as_uuid=True), nullable=False)
+    engagement_id = Column(UUID(as_uuid=True), nullable=False)
+
     # Component identification
     component_name = Column(String(255), nullable=False)
     component_type = Column(

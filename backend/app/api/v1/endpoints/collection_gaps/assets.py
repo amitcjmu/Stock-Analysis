@@ -385,7 +385,7 @@ async def get_available_assets(
             "name",
             "asset_type",
             "status",
-            "business_owner",
+            # business_owner moved to asset_contacts (Migration 113)
             "business_criticality",
         ]
         optional_fields = [
@@ -423,8 +423,7 @@ async def get_available_assets(
                 last_updated=asset.updated_at,
                 metadata={
                     "business_criticality": asset.business_criticality,
-                    "business_owner": asset.business_owner,
-                    "technical_owner": asset.technical_owner,
+                    # business_owner and technical_owner moved to asset_contacts (Migration 113)
                     "has_dependencies": bool(asset.dependencies),
                     "environment": asset.environment,
                 },

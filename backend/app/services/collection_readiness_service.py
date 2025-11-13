@@ -235,9 +235,9 @@ class CollectionReadinessService:
             }
 
         # Fallback: Calculate from collection data
-        # Check phase_state for field mappings completion
-        phase_state = collection_flow.phase_state or {}
-        field_mappings = phase_state.get("field_mappings", {})
+        # Per ADR-028: phase_state removed, use gap_analysis_results instead
+        gap_results = collection_flow.gap_analysis_results or {}
+        field_mappings = gap_results.get("field_mappings", {})
 
         if field_mappings:
             total_fields = field_mappings.get("total_fields", 0)
@@ -250,7 +250,7 @@ class CollectionReadinessService:
                     "total_fields_required": total_fields,
                     "fields_collected": mapped_fields,
                     "fields_missing": total_fields - mapped_fields,
-                    "source": "phase_state",
+                    "source": "gap_analysis_results",
                 }
 
         # Final fallback: Use progress percentage
@@ -376,9 +376,9 @@ class CollectionReadinessService:
     async def _validate_field_mappings(self, collection_flow: CollectionFlow) -> bool:
         """Validate that field mappings are complete and accurate"""
 
-        # Check phase_state for field mappings
-        phase_state = collection_flow.phase_state or {}
-        field_mappings = phase_state.get("field_mappings", {})
+        # Per ADR-028: phase_state removed, use gap_analysis_results instead
+        gap_results = collection_flow.gap_analysis_results or {}
+        field_mappings = gap_results.get("field_mappings", {})
 
         if not field_mappings:
             return False

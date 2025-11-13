@@ -3,7 +3,7 @@ Pydantic schemas for Collection Flow API
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -23,6 +23,14 @@ class CollectionFlowCreate(BaseModel):
     allow_multiple: Optional[bool] = Field(
         default=False,
         description="Allow multiple concurrent flows (overrides 409 conflict checking)",
+    )
+    missing_attributes: Optional[Dict[str, List[str]]] = Field(
+        default=None,
+        description="Missing attributes by asset_id - triggers gap creation and questionnaire generation",
+    )
+    assessment_flow_id: Optional[str] = Field(
+        default=None,
+        description="UUID of assessment flow to link to - creates proper assessment→collection relationship",
     )
 
 
@@ -65,6 +73,10 @@ class CollectionFlowResponse(BaseModel):
     gaps_identified: Optional[int] = None
     collection_metrics: Optional[Dict[str, Any]] = None
     discovery_flow_id: Optional[str] = None
+    applications: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="List of applications with asset_id and application_name for UUID-based lookups",
+    )
 
     # Assessment transition tracking (Phase 4)
     assessment_ready: Optional[bool] = None
@@ -132,6 +144,13 @@ class QuestionnaireSubmissionRequest(BaseModel):
     validation_results: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
         description="Validation results including isValid flag and field-level errors",
+    )
+    save_type: Literal["save_progress", "submit_complete"] = Field(
+        default="save_progress",
+        description=(
+            "Type of save operation: 'save_progress' keeps status as in_progress, "
+            "'submit_complete' marks as completed and triggers assessment readiness check"
+        ),
     )
 
 

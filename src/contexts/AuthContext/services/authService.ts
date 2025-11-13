@@ -27,7 +27,7 @@ interface GuardedFunction {
   (...args: unknown[]): Promise<unknown>;
   isRunning?: boolean;
 }
-import { tokenStorage, contextStorage, persistClientData, persistEngagementData, syncContextToIndividualKeys } from '../storage'
+import { tokenStorage, contextStorage, persistClientData, persistEngagementData, syncContextToIndividualKeys, clearAllStoredData } from '../storage'
 
 export const useAuthService = (
   user: User | null,
@@ -46,9 +46,26 @@ export const useAuthService = (
   const navigate = useNavigate();
 
   const logout = (): unknown => {
+    // Clear auth and context data, but PRESERVE schema version
+    // The schema version persists across sessions to detect data format changes
     tokenStorage.removeToken();
-    tokenStorage.setUser(null);
+    tokenStorage.removeRefreshToken();
+    tokenStorage.removeUser();
     contextStorage.clearContext();
+
+    // Clear individual context keys
+    try {
+      localStorage.removeItem('auth_client');
+      localStorage.removeItem('auth_engagement');
+      localStorage.removeItem('auth_session');
+      localStorage.removeItem('auth_client_id');
+      localStorage.removeItem('auth_flow');
+      localStorage.removeItem('user_data');
+    } catch (error) {
+      console.warn('Failed to clear context data:', error);
+    }
+
+    // Reset in-memory state
     setUser(null);
     setClient(null);
     setEngagement(null);
@@ -82,6 +99,10 @@ export const useAuthService = (
 
       // Immediately set essential authentication data
       tokenStorage.setToken(response.token.access_token);
+      // Store refresh token if provided
+      if (response.token.refresh_token) {
+        tokenStorage.setRefreshToken(response.token.refresh_token);
+      }
       tokenStorage.setUser(response.user);
       setUser(response.user);
 
@@ -262,14 +283,39 @@ export const useAuthService = (
       if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
         const defaultEngagement = engagementsResponse.engagements[0];
         console.log('🔍 switchClient - Switching to default engagement:', defaultEngagement.id);
+
+        // CRITICAL FIX: Update user_context_selection with NEW client BEFORE switchEngagement
+        // This prevents race condition where switchEngagement reads stale 'client' React state
+        // and overwrites the correct client data in user_context_selection
+        const currentContext = contextStorage.getContext() || {};
+        contextStorage.setContext({
+          ...currentContext,
+          client: fullClientData,  // Use the NEW client data, not stale React state
+          timestamp: Date.now(),
+          source: 'client_switch_before_engagement'
+        });
+
         await switchEngagement(defaultEngagement.id, defaultEngagement);
         console.log('🔍 switchClient - switchEngagement completed');
+        // Note: switchEngagement already updates contextStorage and syncs to individual keys
       } else {
         console.log('🔍 switchClient - No engagements found, clearing engagement/flow');
         setEngagement(null);
         setFlow(null);
         localStorage.removeItem('auth_engagement');
         localStorage.removeItem('auth_flow');
+
+        // Per ADR-024/Bug Report: Update user_context_selection for client-only switch
+        contextStorage.setContext({
+          client: fullClientData,
+          engagement: null,
+          flow: null,
+          timestamp: Date.now(),
+          source: 'client_switch_no_engagement'
+        });
+
+        // Sync context to individual localStorage keys
+        syncContextToIndividualKeys();
 
         try {
           console.log('🔍 switchClient - Updating user defaults');
@@ -286,9 +332,6 @@ export const useAuthService = (
       }
 
       console.log('🔍 switchClient - Completed successfully');
-
-      // CRITICAL: Sync context to individual localStorage keys for new API client
-      syncContextToIndividualKeys();
 
     } catch (error) {
       console.error('Error switching client:', error);
@@ -369,6 +412,22 @@ export const useAuthService = (
       }
 
       console.log('🔍 switchEngagement - Completed successfully');
+
+      // Per ADR-024/Bug Report: Update user_context_selection BEFORE syncing
+      // This ensures syncContextToIndividualKeys() uses the NEW context, not stale data
+      // CRITICAL FIX: Don't overwrite client if it was already set by switchClient()
+      // to prevent race condition with React state updates
+      const currentContext = contextStorage.getContext() || {};
+      contextStorage.setContext({
+        ...currentContext,
+        // Only update client if not already set (standalone engagement switch)
+        // If switchClient() was called first, it already set the correct client
+        client: currentContext.client || client,
+        engagement: fullEngagementData,
+        flow: flowData,
+        timestamp: Date.now(),
+        source: 'engagement_switch'
+      });
 
       // CRITICAL: Sync context to individual localStorage keys for new API client
       syncContextToIndividualKeys();

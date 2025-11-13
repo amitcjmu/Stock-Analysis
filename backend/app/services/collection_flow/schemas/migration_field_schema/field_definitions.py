@@ -173,7 +173,10 @@ CORE_FIELDS: Dict[str, Dict[str, Any]] = {
             "Minimal - Legacy",
         ],
         "help_text": "Determines if asset should be Retired or migrated",
-        "six_r_relevance": ["retire", "retain"],
+        "six_r_relevance": [
+            "retire",
+            "rehost",
+        ],  # Map retain → rehost per 6R standardization
     },
     "vendor_support_status": {
         "category": FieldCategory.TECHNICAL,
@@ -186,8 +189,12 @@ CORE_FIELDS: Dict[str, Dict[str, Any]] = {
             "End of Life",
             "No Support",
         ],
-        "help_text": "End of Life systems often need Refactor or Repurchase",
-        "six_r_relevance": ["refactor", "repurchase", "replatform"],
+        "help_text": "End of Life systems often need Refactor or Replace",
+        "six_r_relevance": [
+            "refactor",
+            "replace",
+            "replatform",
+        ],  # Map repurchase → replace
     },
     "licensing_model": {
         "category": FieldCategory.COMPLIANCE,
@@ -200,8 +207,8 @@ CORE_FIELDS: Dict[str, Dict[str, Any]] = {
             "Open Source",
             "Custom/Enterprise",
         ],
-        "help_text": "Affects Rehost vs Repurchase decision",
-        "six_r_relevance": ["rehost", "repurchase"],
+        "help_text": "Affects Rehost vs Replace decision",
+        "six_r_relevance": ["rehost", "replace"],  # Map repurchase → replace
     },
     "cloud_readiness": {
         "category": FieldCategory.MIGRATION,
@@ -246,8 +253,8 @@ CORE_FIELDS: Dict[str, Dict[str, Any]] = {
         "priority": FieldPriority.HIGH,
         "field_type": "textarea",
         "question_text": "Are there data residency requirements?",
-        "help_text": "May force Retain or specific cloud region for Rehost",
-        "six_r_relevance": ["retain", "rehost"],
+        "help_text": "May force specific cloud region for Rehost",
+        "six_r_relevance": ["rehost"],  # Removed retain per 6R standardization
     },
     "custom_code_percentage": {
         "category": FieldCategory.TECHNICAL,
@@ -255,16 +262,16 @@ CORE_FIELDS: Dict[str, Dict[str, Any]] = {
         "field_type": "select",
         "question_text": "What percentage is custom code vs COTS?",
         "options": ["<25%", "25-50%", "50-75%", ">75%", "100% Custom"],
-        "help_text": "High custom code suggests Refactor, low suggests Repurchase",
-        "six_r_relevance": ["refactor", "repurchase"],
+        "help_text": "High custom code suggests Refactor, low suggests Replace",
+        "six_r_relevance": ["refactor", "replace"],  # Map repurchase → replace
     },
     "saas_alternatives": {
         "category": FieldCategory.MIGRATION,
         "priority": FieldPriority.MEDIUM,
         "field_type": "textarea",
         "question_text": "Are there SaaS alternatives available?",
-        "help_text": "List potential SaaS replacements - drives Repurchase consideration",
-        "six_r_relevance": ["repurchase"],
+        "help_text": "List potential SaaS replacements - drives Replace consideration",
+        "six_r_relevance": ["replace"],  # Map repurchase → replace
     },
     "migration_priority": {
         "category": FieldCategory.MIGRATION,

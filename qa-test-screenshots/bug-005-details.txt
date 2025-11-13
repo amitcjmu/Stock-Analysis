@@ -1,0 +1,67 @@
+BUG #5: Application Selection Lost During Phase Transition (Architecture → Complexity)
+
+## Severity: HIGH
+
+## Description
+When transitioning from Architecture Standards phase to Technical Debt Analysis (Complexity) phase, the application selection is lost. The previous phase showed "1" application selected ("Customer Portal"), but the complexity page displays "No Applications Selected" message.
+
+## Steps to Reproduce
+1. Login with demo@demo-corp.com / Demo123!
+2. Navigate to Collection > Overview → View Progress → Start Assessment Phase
+3. Select "Enterprise Standard" template on Architecture Standards page
+4. Verify "Selected Applications: 1" showing "Customer Portal"
+5. Click "Continue to Tech Debt Analysis"
+6. Observe "No Applications Selected" error message
+
+## Expected Behavior
+- Application selection should persist across phase transitions
+- Complexity page should show the same "Customer Portal" application
+- User should be able to proceed with tech debt analysis
+
+## Actual Behavior
+- Application selection is lost ✗
+- Page shows "No Applications Selected" error ✗
+- Message says "Please return to the previous step to select applications" ✗
+- Cannot proceed with complexity analysis ✗
+
+## Console Evidence
+```
+[ArchitecturePage] Flow resumed successfully {newPhase: complexity_analysis, progress: 33}
+[ArchitecturePage] Navigating to next phase {currentPhase: complexity_analysis, routeName: complexity}
+```
+
+## Frontend Screenshots
+- Architecture page with app: /Users/chocka/CursorProjects/migrate-ui-orchestrator/.playwright-mcp/06-assessment-architecture-with-template.png
+- Complexity page without app: /Users/chocka/CursorProjects/migrate-ui-orchestrator/.playwright-mcp/07-assessment-complexity-no-apps.png
+
+## URL
+- Previous: http://localhost:8081/assessment/55610227-7481-45e5-87ff-dc776dd8d5f8/architecture
+- Current: http://localhost:8081/assessment/55610227-7481-45e5-87ff-dc776dd8d5f8/complexity
+
+## Progress State
+- Previous phase: initialization (0%)
+- Current phase: complexity_analysis (33%)
+- Status: IN PROGRESS
+
+## Potential Root Cause
+- Phase transition API call may not be passing application selection data
+- Complexity page may be using different data source for applications
+- Application selection stored in local component state instead of persisted flow data
+- Backend phase_results not carrying forward application IDs
+
+## Impact
+- **BLOCKER**: Users cannot complete complexity analysis phase
+- Data loss: Selected applications need to be re-selected (if possible)
+- Poor user experience: Loss of work between phases
+- Workflow interruption requiring user to go back
+
+## Related Architectural Pattern
+Per ADR-012, child flow should maintain operational state including selected applications:
+- `phase_results` JSONB column should store application selections
+- Each phase should read from previous phase's results
+- State should persist across phase transitions
+
+## Fix Location
+- backend/app/api/v1/master_flows/assessment/*.py (phase transition endpoints)
+- frontend/src/pages/assessment/[flowId]/complexity.tsx (application data fetching)
+- backend assessment flow service (phase data persistence)

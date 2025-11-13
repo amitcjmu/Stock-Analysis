@@ -3,35 +3,26 @@ Core flow manager for discovery flow operations.
 """
 
 import logging
-import uuid
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.asset import Asset
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
+from .flow_manager_utils import (
+    calculate_readiness_scores,
+    convert_uuids_to_str,
+    create_assets_from_inventory,
+    create_extensions_record,
+    update_master_flow_completion,
+)
+
 logger = logging.getLogger(__name__)
-
-
-def convert_uuids_to_str(obj: Any) -> Any:
-    """
-    Recursively convert UUID objects to strings for JSON serialization.
-    🔧 CC FIX: Prevents 'Object of type UUID is not JSON serializable' errors
-    """
-    if isinstance(obj, uuid.UUID):
-        return str(obj)
-    elif isinstance(obj, dict):
-        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_uuids_to_str(item) for item in obj]
-    return obj
 
 
 class FlowManager:
@@ -140,12 +131,14 @@ class FlowManager:
                     logger.warning(
                         f"⚠️ Provided master_flow_id {master_flow_id} not found, creating new one"
                     )
-                    await self._create_extensions_record(
+                    await create_extensions_record(
                         flow_id,
                         data_import_id,
                         user_id,
                         raw_data,
-                        metadata,
+                        safe_metadata,
+                        self.master_flow_repo,
+                        self.context,
                         auto_commit=False,
                     )
                     # 🔧 CC FIX: Flush to ensure master flow persists in transaction
@@ -157,12 +150,14 @@ class FlowManager:
                     )
             else:
                 # Create new crewai_flow_state_extensions record
-                await self._create_extensions_record(
+                await create_extensions_record(
                     flow_id,
                     data_import_id,
                     user_id,
                     raw_data,
-                    metadata,
+                    safe_metadata,
+                    self.master_flow_repo,
+                    self.context,
                     auto_commit=False,
                 )
                 # 🔧 CC FIX: Flush to ensure master flow persists in transaction
@@ -280,7 +275,9 @@ class FlowManager:
 
             # Create assets if this is the inventory phase
             if phase == "inventory" and phase_data.get("assets"):
-                await self._create_assets_from_inventory(flow, phase_data["assets"])
+                await create_assets_from_inventory(
+                    flow, phase_data["assets"], self.flow_repo
+                )
 
             logger.info(
                 f"✅ Phase completion updated: {flow_id}, phase: {phase}, progress: {flow.progress_percentage}%"
@@ -294,19 +291,41 @@ class FlowManager:
     async def complete_discovery_flow(self, flow_id: str) -> DiscoveryFlow:
         """
         Complete discovery flow and prepare assessment handoff package.
+
+        This service method orchestrates:
+        1. Readiness score calculation (business logic)
+        2. Flow completion in repository (data persistence)
+        3. Master flow state update (cross-repository coordination)
         """
         try:
             logger.info(f"🏁 Completing discovery flow: {flow_id}")
 
-            flow = await self.flow_repo.complete_discovery_flow(flow_id)
-
+            # Step 1: Get current flow to calculate readiness
+            flow = await self.flow_repo.get_by_flow_id(flow_id)
             if not flow:
                 raise ValueError(f"Discovery flow not found: {flow_id}")
 
+            # Step 2: Calculate readiness scores (business logic in service layer)
+            readiness_scores = calculate_readiness_scores(flow)
             logger.info(
-                f"✅ Discovery flow completed: {flow_id}, assets: {len(flow.assets)}"
+                f"Calculated readiness scores for {flow_id}: overall={readiness_scores.get('overall', 0)}"
             )
-            return flow
+
+            # Step 3: Complete flow in repository with calculated scores
+            completed_flow = await self.flow_repo.complete_discovery_flow(
+                flow_id, readiness_scores=readiness_scores
+            )
+
+            if not completed_flow:
+                raise ValueError(f"Failed to complete discovery flow: {flow_id}")
+
+            # Step 4: Update master flow state (cross-repository coordination in service)
+            await update_master_flow_completion(flow_id, self.master_flow_repo)
+
+            logger.info(
+                f"✅ Discovery flow completed: {flow_id}, assets: {len(completed_flow.assets)}"
+            )
+            return completed_flow
 
         except Exception as e:
             logger.error(f"❌ Failed to complete discovery flow {flow_id}: {e}")
@@ -350,73 +369,4 @@ class FlowManager:
 
         except Exception as e:
             logger.error(f"❌ Failed to get completed flows: {e}")
-            raise
-
-    async def _create_extensions_record(
-        self,
-        flow_id: str,
-        data_import_id: str,
-        user_id: str,
-        raw_data: List[Dict[str, Any]],
-        metadata: Dict[str, Any],
-        auto_commit: bool = True,  # 🔧 CC FIX: Add auto_commit parameter
-    ) -> None:
-        """Create corresponding crewai_flow_state_extensions record."""
-        logger.info(f"🔧 Creating crewai_flow_state_extensions record: {flow_id}")
-
-        try:
-            # 🔧 CC FIX: Convert UUIDs to strings to prevent JSON serialization errors
-            flow_configuration = convert_uuids_to_str(
-                {
-                    "data_import_id": data_import_id,
-                    "raw_data_count": len(raw_data),
-                    "metadata": metadata or {},
-                }
-            )
-
-            initial_state = convert_uuids_to_str(
-                {
-                    "created_from": "discovery_flow_service",
-                    "raw_data_sample": raw_data[:2] if raw_data else [],
-                    "creation_timestamp": datetime.utcnow().isoformat(),
-                }
-            )
-
-            # 🔧 CC FIX: Pass auto_commit parameter to master flow creation
-            extensions_record = await self.master_flow_repo.create_master_flow(
-                flow_id=flow_id,  # Same flow_id as discovery flow
-                flow_type="discovery",
-                user_id=user_id
-                or (str(self.context.user_id) if self.context.user_id else "system"),
-                flow_name=f"Discovery Flow {flow_id[:8]}",
-                flow_configuration=flow_configuration,
-                initial_state=initial_state,
-                auto_commit=auto_commit,
-            )
-            logger.info(f"✅ Extensions record created: {extensions_record.flow_id}")
-        except Exception as ext_error:
-            logger.error(f"❌ Failed to create extensions record: {ext_error}")
-            # 🔧 CC FIX: Raise the error instead of just warning (critical for transaction integrity)
-            raise
-
-    async def _create_assets_from_inventory(
-        self, flow: DiscoveryFlow, asset_data_list: List[Dict[str, Any]]
-    ) -> List[Asset]:
-        """Create discovery assets from inventory phase results"""
-        try:
-            logger.info(
-                f"📦 Creating {len(asset_data_list)} assets from inventory for flow: {flow.flow_id}"
-            )
-
-            assets = await self.flow_repo.asset_commands.create_assets_from_discovery(
-                discovery_flow_id=flow.id,
-                asset_data_list=asset_data_list,
-                discovered_in_phase="inventory",
-            )
-
-            logger.info(f"✅ Created {len(assets)} assets from inventory")
-            return assets
-
-        except Exception as e:
-            logger.error(f"❌ Failed to create assets from inventory: {e}")
             raise

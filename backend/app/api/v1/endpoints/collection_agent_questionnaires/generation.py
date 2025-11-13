@@ -3,6 +3,7 @@ Collection Agent Questionnaire Generation
 Agent-driven questionnaire generation logic with fallback handling.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Optional, Dict, List, Any
@@ -21,6 +22,11 @@ from .helpers import build_agent_context, mark_generation_failed
 from .bootstrap import get_bootstrap_questionnaire
 
 logger = logging.getLogger(__name__)
+
+# Bug #893 Fix: Agent execution timeout (matches router timeout)
+AGENT_EXECUTION_TIMEOUT = (
+    85  # seconds (slightly less than router timeout for proper cleanup)
+)
 
 
 async def generate_questionnaire_with_agent(
@@ -48,6 +54,11 @@ async def generate_questionnaire_with_agent(
                 selected_asset_ids=selected_asset_ids,
             )
 
+            # DEBUG: Verify agent_context contains assets
+            logger.info(
+                f"🔍 DEBUG generation.py:49: agent_context contains {len(agent_context.get('assets', []))} assets"
+            )
+
             # Get persistent questionnaire generator agent
             logger.info(
                 f"Getting TenantScopedAgentPool questionnaire_generator for flow {flow_uuid}"
@@ -69,15 +80,33 @@ async def generate_questionnaire_with_agent(
                     gaps_data, agent_context, flow_uuid, selected_asset_ids
                 )
 
+                # DEBUG: Verify agent_input business_context has existing_assets
+                logger.info(
+                    f"🔍 DEBUG generation.py:74: agent_input business_context has "
+                    f"{len(agent_input.get('business_context', {}).get('existing_assets', []))} existing_assets"
+                )
+
                 # Execute questionnaire generation through persistent agent
                 logger.info(
                     f"Executing questionnaire generation with persistent agent for flow {flow_uuid}"
                 )
 
-                # Execute agent generation
-                result = await _execute_agent_generation(
-                    agent, gaps_data, agent_input, agent_context, flow_uuid
-                )
+                # Bug #893 Fix: Wrap agent execution with timeout to prevent indefinite hangs
+                try:
+                    result = await asyncio.wait_for(
+                        _execute_agent_generation(
+                            agent, gaps_data, agent_input, agent_context, flow_uuid
+                        ),
+                        timeout=AGENT_EXECUTION_TIMEOUT,
+                    )
+                except asyncio.TimeoutError as e:
+                    logger.warning(
+                        f"Agent questionnaire generation timed out "
+                        f"after {AGENT_EXECUTION_TIMEOUT}s for flow {flow_uuid}"
+                    )
+                    raise RuntimeError(
+                        f"Agent execution timeout after {AGENT_EXECUTION_TIMEOUT}s"
+                    ) from e
 
             except Exception as agent_error:
                 logger.error(
@@ -97,47 +126,54 @@ async def generate_questionnaire_with_agent(
         logger.error(f"Agent questionnaire generation failed: {e}")
         try:
             async with AsyncSession(get_db()) as db:
-                await mark_generation_failed(db, flow_id)
+                await mark_generation_failed(db, flow_id, context)
         except Exception:
             pass
 
 
-def _prepare_gaps_data(agent_context: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Prepare gaps data from agent context for agent input."""
-    gaps_data = []
+def _prepare_gaps_data(agent_context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Prepare gaps data from agent context for agent input.
+
+    Returns Dict with structure expected by QuestionnaireGenerationTool:
+    {
+        "missing_critical_fields": {asset_id: [field_names]},
+        "assets_with_gaps": [asset_ids],
+        "data_quality_issues": {},
+        "unmapped_attributes": {}
+    }
+    """
+    missing_critical_fields = {}
+    assets_with_gaps = []
+
     for asset in agent_context.get("assets", []):
-        if asset.get("gaps"):
-            for gap in asset["gaps"]:
-                gaps_data.append(
-                    {
-                        "asset_id": asset["id"],
-                        "asset_name": asset["name"],
-                        "gap": gap,
-                        "priority": "high",
-                        "category": "data_collection",
-                    }
-                )
+        asset_id = asset["id"]
+        gaps = asset.get("gaps", [])
 
-    # If no specific gaps, create generic ones
-    if not gaps_data:
-        gaps_data = [
-            {
-                "gap": "Asset selection required",
-                "priority": "critical",
-                "category": "asset_selection",
-            },
-            {
-                "gap": "Basic information incomplete",
-                "priority": "high",
-                "category": "basic_info",
-            },
-        ]
+        if gaps:
+            # Extract field names from gap dictionaries
+            # Gaps structure: [{"field": "technology_stack", ...}, ...]
+            field_names = []
+            for gap in gaps:
+                if isinstance(gap, dict) and "field" in gap:
+                    field_names.append(gap["field"])
+                elif isinstance(gap, str):
+                    field_names.append(gap)
 
-    return gaps_data
+            if field_names:
+                missing_critical_fields[asset_id] = field_names
+                assets_with_gaps.append(asset_id)
+
+    return {
+        "missing_critical_fields": missing_critical_fields,
+        "assets_with_gaps": assets_with_gaps,
+        "data_quality_issues": {},
+        "unmapped_attributes": {},
+    }
 
 
 def _prepare_agent_input(
-    gaps_data: List[Dict[str, Any]],
+    gaps_data: Dict[str, Any],  # Changed from List to Dict
     agent_context: Dict[str, Any],
     flow_uuid: UUID,
     selected_asset_ids: Optional[List[str]],
@@ -158,7 +194,7 @@ def _prepare_agent_input(
 
 async def _execute_agent_generation(
     agent: Any,
-    gaps_data: List[Dict[str, Any]],
+    gaps_data: Dict[str, Any],  # Changed from List to Dict
     agent_input: Dict[str, Any],
     agent_context: Dict[str, Any],
     flow_uuid: UUID,
@@ -234,6 +270,14 @@ async def _save_questionnaire_results(
 
         db.add(questionnaire)
 
+        # Bug #668 Debug: Log questionnaire creation details
+        logger.info(
+            f"🔍 BUG#668: Created questionnaire {questionnaire.id} for flow {flow_id} - "
+            f"completion_status={questionnaire.completion_status}, "
+            f"target_gaps_count={len(questionnaire.target_gaps)}, "
+            f"question_count={len(questionnaire.questions)}"
+        )
+
         # Update flow metadata with tenant scoping
         flow_result = await db.execute(
             select(CollectionFlow).where(
@@ -261,7 +305,23 @@ async def _save_questionnaire_results(
         flow.flow_metadata["questionnaire_ready"] = True
         flow.flow_metadata["agent_questionnaire_id"] = str(questionnaire.id)
 
+        # Bug #668 Debug: Log flow state before commit
+        logger.info(
+            f"🔍 BUG#668: Flow {flow.flow_id} state before commit - "
+            f"assessment_ready={flow.assessment_ready}, "
+            f"current_phase={flow.current_phase}, "
+            f"status={flow.status}"
+        )
+
         await db.commit()
+
+        # Bug #668 Debug: Log flow state after commit
+        await db.refresh(flow)
+        await db.refresh(questionnaire)
+        logger.info(
+            f"🔍 BUG#668: After commit - flow.assessment_ready={flow.assessment_ready}, "
+            f"questionnaire.completion_status={questionnaire.completion_status}"
+        )
 
         logger.info(
             f"TenantScopedAgentPool questionnaire generated successfully for flow {flow_uuid}"
@@ -269,4 +329,4 @@ async def _save_questionnaire_results(
 
     else:
         logger.warning(f"Agent returned no questionnaire for flow {flow_uuid}")
-        await mark_generation_failed(db, flow_id)
+        await mark_generation_failed(db, flow_id, context)

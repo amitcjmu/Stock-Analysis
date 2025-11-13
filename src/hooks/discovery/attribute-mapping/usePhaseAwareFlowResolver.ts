@@ -21,12 +21,15 @@ interface UsePhaseAwareFlowResolverResult {
 
 type DiscoveryPhase =
   | 'data_import'
-  | 'attribute_mapping'
+  | 'data_validation'  // ADR-027 spec but not yet implemented in practice
+  | 'attribute_mapping'  // Legacy - use 'field_mapping' instead
   | 'field_mapping'
-  | 'field_mapping_approval'
+  | 'field_mapping_suggestions'  // Actually used in DB (approval step)
+  | 'field_mapping_approval'  // Legacy name for suggestions step
   | 'data_cleansing'
-  | 'inventory'
-  | 'dependencies';
+  | 'asset_inventory'  // ADR-027: Discovery v3.0.0 phase (replaces 'inventory')
+  | 'inventory'  // Legacy - use 'asset_inventory' instead
+  | 'dependencies';  // Legacy - deprecated in v3.0.0
 
 /**
  * Phase-aware smart flow resolver that handles all flow detection scenarios:
@@ -93,7 +96,7 @@ export function usePhaseAwareFlowResolver(
               headers['X-Engagement-ID'] = engagement.id;
             }
 
-            const response = await apiCall(`/api/v1/data-import/imports/${providedId}`, {
+            const response = await apiCall(`/api/v1/data-import/import/${providedId}`, {
               method: 'GET',
               headers
             });

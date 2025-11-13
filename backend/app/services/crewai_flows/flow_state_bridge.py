@@ -35,6 +35,51 @@ class FlowStateBridge:
         self._state_sync_enabled = True
         self._version_cache = {}  # Cache flow versions
 
+    async def _persist_phase_results(
+        self, flow_id: str, phase: str, crew_results: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Persist phase results including validated_data to database.
+
+        Extracted helper method to reduce sync_state_update complexity.
+        """
+        has_validated_data = "validated_data" in crew_results
+        logger.info(
+            f"💾 Persisting phase results for {phase} "
+            f"(contains validated_data: {has_validated_data})"
+        )
+
+        async with AsyncSessionLocal() as db:
+            store = PostgresFlowStateStore(db, self.context)
+            existing_state = await store.load_state(flow_id)
+            if not existing_state:
+                existing_state = {}
+
+            # Merge crew_results into phase_data
+            if "phase_data" not in existing_state:
+                existing_state["phase_data"] = {}
+            existing_state["phase_data"][phase] = crew_results
+
+            # Also store validated_data at root level for backward compatibility
+            if "validated_data" in crew_results:
+                existing_state["validated_data"] = crew_results["validated_data"]
+                logger.info(
+                    f"✅ Persisting {len(crew_results['validated_data'])} validated records"
+                )
+
+            # Save updated state back to database
+            await store.save_state(flow_id, existing_state, phase)
+            await db.commit()
+            logger.info(f"✅ Phase results persisted to database for {phase}")
+
+        return {
+            "status": "success",
+            "postgresql_update": {"status": "success", "phase": phase},
+            "phase": phase,
+            "crew_results_persisted": True,
+            "persistence_model": "postgresql_direct",
+        }
+
     async def initialize_flow(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """
         Initialize flow state in PostgreSQL - alias for backward compatibility.
@@ -92,8 +137,12 @@ class FlowStateBridge:
         crew_results: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        DELTA TEAM FIX: State updates coordinated through Master Flow Orchestrator only.
-        This method now logs state updates but delegates actual persistence to MFO.
+        🔧 CC FIX: Persist phase results including validated_data to database.
+
+        Root Cause: validated_data from data validation phase was not being persisted,
+        causing field mapping AI agent to fail and fall back to buggy logic.
+
+        Fix: Merge crew_results into flow_persistence_data and save to database.
         """
         if not self._state_sync_enabled:
             return {"status": "sync_disabled"}
@@ -109,21 +158,28 @@ class FlowStateBridge:
             )
             return {"status": "missing_flow_id", "error": "flow_id not found in state"}
 
-        # DELTA TEAM FIX: Log the state update but don't perform competing database writes
         logger.info(f"🔄 State update requested for Flow ID: {flow_id}, phase: {phase}")
-        logger.info(
-            "📋 State update delegated to Master Flow Orchestrator for consistency"
-        )
 
-        # Return success to maintain compatibility but indicate delegation
-        return {
-            "status": "delegated_to_mfo",
-            "postgresql_update": {"status": "delegated", "phase": phase},
-            "phase": phase,
-            "crew_results_logged": crew_results is not None,
-            "persistence_model": "mfo_controlled",
-            "note": "State updates handled by Master Flow Orchestrator",
-        }
+        # 🔧 CC FIX: Actually persist crew_results to database
+        try:
+            if crew_results:
+                return await self._persist_phase_results(flow_id, phase, crew_results)
+            else:
+                logger.warning(f"⚠️ No crew_results to persist for phase {phase}")
+                return {
+                    "status": "no_results",
+                    "postgresql_update": {"status": "skipped", "phase": phase},
+                    "phase": phase,
+                    "crew_results_persisted": False,
+                }
+        except Exception as e:
+            logger.error(f"❌ Failed to persist phase results for {phase}: {e}")
+            return {
+                "status": "persistence_failed",
+                "error": str(e),
+                "phase": phase,
+                "crew_results_persisted": False,
+            }
 
     async def update_flow_state(
         self, state: UnifiedDiscoveryFlowState
@@ -372,102 +428,60 @@ class FlowStateBridge:
             self.enable_sync()
 
     async def load_state(self, flow_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Load flow state from PostgreSQL.
-
-        Args:
-            flow_id: The flow ID to load state for
-
-        Returns:
-            Dictionary containing the flow state or None if not found
-        """
+        """Load flow state from PostgreSQL."""
         try:
             logger.info(f"📥 Loading flow state for: {flow_id}")
-
             async with AsyncSessionLocal() as db:
                 store = PostgresFlowStateStore(db, self.context)
-
-                # Load the state by flow_id
                 state_data = await store.load_state(flow_id)
-
                 if state_data:
                     logger.info(f"✅ Loaded flow state for: {flow_id}")
-                    return state_data
                 else:
                     logger.warning(f"⚠️ No flow state found for: {flow_id}")
-                    return None
-
+                return state_data
         except Exception as e:
             logger.error(f"❌ Error loading flow state for {flow_id}: {e}")
             raise
 
     async def save_state(self, flow_id: str, state_dict: Dict[str, Any]) -> bool:
-        """
-        Save flow state to PostgreSQL.
-
-        Args:
-            flow_id: The flow ID to save state for
-            state_dict: Dictionary containing the flow state
-
-        Returns:
-            True if successful, False otherwise
-        """
+        """Save flow state to PostgreSQL."""
         try:
             logger.info(f"💾 Saving flow state for: {flow_id}")
-
             async with AsyncSessionLocal() as db:
                 store = PostgresFlowStateStore(db, self.context)
-
                 # Ensure required fields are in state_dict
-                state_dict["flow_id"] = flow_id
-                state_dict["client_account_id"] = str(self.context.client_account_id)
-                state_dict["engagement_id"] = str(self.context.engagement_id)
-                state_dict["user_id"] = (
-                    str(self.context.user_id) if self.context.user_id else None
+                state_dict.update(
+                    {
+                        "flow_id": flow_id,
+                        "client_account_id": str(self.context.client_account_id),
+                        "engagement_id": str(self.context.engagement_id),
+                        "user_id": (
+                            str(self.context.user_id) if self.context.user_id else None
+                        ),
+                        "last_updated": datetime.utcnow().isoformat(),
+                    }
                 )
-                state_dict["last_updated"] = datetime.utcnow().isoformat()
-
-                # Save the state (determine current phase from state)
                 current_phase = state_dict.get("current_phase", "unknown")
                 await store.save_state(flow_id, state_dict, current_phase)
-
                 logger.info(f"✅ Saved flow state for: {flow_id}")
                 await db.commit()
                 return True
-
         except Exception as e:
             logger.error(f"❌ Error saving flow state for {flow_id}: {e}")
             raise
 
 
-# Factory function for creating flow state bridges
+# Factory function and context manager for bridge lifecycle
 def create_flow_state_bridge(context: RequestContext) -> FlowStateBridge:
-    """
-    Factory function to create a flow state bridge with proper context.
-
-    Args:
-        context: RequestContext with tenant information
-
-    Returns:
-        FlowStateBridge instance configured for the tenant
-    """
+    """Factory function to create a flow state bridge with proper context."""
     return FlowStateBridge(context)
 
 
-# Async context manager for automatic bridge lifecycle
 @asynccontextmanager
 async def managed_flow_bridge(context: RequestContext):
-    """
-    Async context manager for automatic bridge lifecycle management.
-
-    Usage:
-        async with managed_flow_bridge(context) as bridge:
-            # Use bridge for flow operations
-            await bridge.initialize_flow_state(state)
-    """
+    """Async context manager for automatic bridge lifecycle management."""
     bridge = create_flow_state_bridge(context)
     try:
         yield bridge
     finally:
-        # Cleanup if needed
         pass

@@ -20,6 +20,7 @@ echo ""
 # Parse command line arguments
 CLEAN_VOLUMES=false
 CLEAN_ALL=false
+INCLUDE_OBSERVABILITY=false
 
 for arg in "$@"; do
     case $arg in
@@ -31,21 +32,39 @@ for arg in "$@"; do
             CLEAN_ALL=true
             shift
             ;;
+        --with-observability|-o)
+            INCLUDE_OBSERVABILITY=true
+            shift
+            ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  -v, --clean-volumes  Remove volumes (database data will be lost)"
-            echo "  -a, --clean-all      Remove everything including images"
-            echo "  -h, --help          Show this help message"
+            echo "  -v, --clean-volumes        Remove volumes (database data will be lost)"
+            echo "  -a, --clean-all           Remove everything including images"
+            echo "  -o, --with-observability  Also stop observability stack (Grafana, Loki, etc.)"
+            echo "  -h, --help               Show this help message"
             exit 0
             ;;
     esac
 done
 
+# Build compose file list and command args
+COMPOSE_ARGS=(-f config/docker/docker-compose.yml)
+if [ "$INCLUDE_OBSERVABILITY" = true ]; then
+    COMPOSE_ARGS+=(-f config/docker/docker-compose.observability.yml)
+    echo -e "${YELLOW}📊 Including observability stack in shutdown${NC}"
+fi
+
 # Stop the services
 echo "📦 Stopping services..."
-if docker-compose -f config/docker/docker-compose.yml down; then
+STOP_ARGS=(down)
+
+if [ "$INCLUDE_OBSERVABILITY" = true ]; then
+    STOP_ARGS+=(--remove-orphans)
+fi
+
+if docker-compose "${COMPOSE_ARGS[@]}" "${STOP_ARGS[@]}"; then
     echo -e "${GREEN}✅ Services stopped${NC}"
 else
     echo -e "${YELLOW}⚠️  Services may not be running${NC}"
@@ -55,7 +74,7 @@ fi
 if [ "$CLEAN_VOLUMES" = true ]; then
     echo ""
     echo -e "${YELLOW}🗑️  Removing volumes (database data will be lost)...${NC}"
-    docker-compose -f config/docker/docker-compose.yml down -v
+    docker-compose "${COMPOSE_ARGS[@]}" down -v
     echo -e "${GREEN}✅ Volumes removed${NC}"
 fi
 
@@ -63,7 +82,7 @@ fi
 if [ "$CLEAN_ALL" = true ]; then
     echo ""
     echo -e "${YELLOW}🗑️  Removing all containers, volumes, and images...${NC}"
-    docker-compose -f config/docker/docker-compose.yml down -v --rmi all
+    docker-compose "${COMPOSE_ARGS[@]}" down -v --rmi all --remove-orphans
     echo -e "${GREEN}✅ All resources cleaned${NC}"
 fi
 
@@ -73,7 +92,9 @@ echo -e "${GREEN}✨ Shutdown complete!${NC}"
 # Show restart instructions
 echo ""
 echo "📋 To restart the application:"
-echo "  • Run: ./docker-start.sh"
+echo "  • Basic:              ./docker-start.sh"
+echo "  • With observability: ./docker-start.sh --with-observability"
+echo "  • Force rebuild:      ./docker-start.sh --rebuild"
 
 if [ "$CLEAN_VOLUMES" = true ] || [ "$CLEAN_ALL" = true ]; then
     echo ""

@@ -1,0 +1,57 @@
+BUG #3: Assessment Phase "initialization" Not Found in Config (Repeated Warnings)
+
+## Severity: MEDIUM
+
+## Description
+The backend repeatedly logs warnings that the 'initialization' phase is not found in the assessment configuration. This occurs every 5 seconds during polling.
+
+## Steps to Reproduce
+1. Login with demo@demo-corp.com / Demo123!
+2. Navigate to Collection > Overview
+3. Click "View Progress" then "Start Assessment Phase"
+4. Check backend logs
+
+## Expected Behavior
+- Assessment config should include all valid phases including 'initialization'
+- No repeated warnings in logs
+- Smooth phase progression
+
+## Actual Behavior
+- Backend logs repeated warning: "Phase 'initialization' not found in assessment config" ✗
+- Warning appears every ~5 seconds during status polling ✗
+- Flow status shows "INITIALIZED" but backend doesn't recognize this phase ✗
+
+## Backend Log Evidence
+```
+2025-10-17 15:36:01,420 - app.api.v1.master_flows.assessment.list_status_endpoints - WARNING - Phase 'initialization' not found in assessment config
+2025-10-17 15:36:01,495 - app.api.v1.master_flows.assessment.list_status_endpoints - WARNING - Phase 'initialization' not found in assessment config
+2025-10-17 15:36:04,897 - app.api.v1.master_flows.assessment.list_status_endpoints - WARNING - Phase 'initialization' not found in assessment config
+```
+
+## Database Evidence
+```sql
+flow_id: 55610227-7481-45e5-87ff-dc776dd8d5f8
+flow_type: assessment
+flow_status: initialized
+```
+
+## Frontend Screenshot
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/.playwright-mcp/05-assessment-architecture-page.png
+
+## URL
+http://localhost:8081/assessment/55610227-7481-45e5-87ff-dc776dd8d5f8/architecture
+
+## Potential Root Cause
+- Assessment flow configuration missing 'initialization' phase definition
+- Mismatch between flow status values and configured phases
+- Incomplete phase definition in assessment flow config
+
+## Impact
+- Log pollution with repeated warnings
+- Potential phase progression issues
+- May cause incorrect phase status reporting to frontend
+- Could block automated phase transitions
+
+## Related Files (Need Investigation)
+- backend/app/services/crewai_flows/flow_configs/assessment_flow_config.py
+- backend/app/api/v1/master_flows/assessment/list_status_endpoints.py

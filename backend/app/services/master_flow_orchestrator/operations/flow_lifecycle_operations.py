@@ -13,7 +13,7 @@ from app.core.context import RequestContext
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
-from app.services.flow_orchestration import FlowAuditLogger
+from app.services.flow_contracts import FlowAuditLogger
 
 from .flow_cache_manager import FlowCacheManager
 from .mock_monitor import MockFlowPerformanceMonitor

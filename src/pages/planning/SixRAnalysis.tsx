@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Filter, AlertCircle, RefreshCw, Download, TrendingUp, Layers, Wrench, Cloud, Archive, Package } from 'lucide-react';
+import { BarChart3, Filter, AlertCircle, RefreshCw, Download, TrendingUp, Layers, Wrench, Cloud, Archive, Package, CheckSquare, Square } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '../../services/api';
+import { PlanningInitializationWizard } from '@/components/plan/PlanningInitializationWizard';
+import type { Application as ApplicationType } from '@/lib/api/applicationsService';
 
 interface Application {
   id: string;
@@ -33,63 +35,41 @@ const SixRAnalysis: React.FC = () => {
   const [filterDept, setFilterDept] = useState('All');
   const [filterCriticality, setFilterCriticality] = useState('All');
 
-  // Fetch applications from discovery/inventory
+  // Application selection state for planning flow
+  const [selectedAppIds, setSelectedAppIds] = useState<Set<string>>(new Set());
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+
+  // Engagement ID - TODO: Get from context when available
+  const engagement_id = 1;
+
+  // Fetch applications from /api/v1/applications endpoint
   const { data: applications = [], isLoading, error, refetch } = useQuery<Application[]>({
     queryKey: ['sixr-applications', filterDept, filterCriticality],
     queryFn: async (): Promise<Application[]> => {
       const headers = getAuthHeaders();
 
       try {
-        // Try to fetch from discovery/applications endpoint first
-        const response = await apiCall('discovery/applications', { headers });
+        // Use the standard /api/v1/applications endpoint
+        const response = await apiCall('/api/v1/applications?page=1&page_size=100', { headers });
         const apps = response.applications || [];
 
         // Transform the data to match our Application interface
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
         return apps.map((app: any) => ({
-          id: app.id || app.application_id,
-          name: app.name || app.application_name || 'Unknown',
-          techStack: app.tech_stack || app.technology_stack || 'Unknown',
+          id: app.id,
+          name: app.application_name || app.asset_name || 'Unknown',
+          techStack: app.tech_stack || 'Unknown',
           criticality: app.criticality || 'Medium',
-          department: app.department || app.business_unit || 'IT',
-          sixRTreatment: app.migration_recommendation || app.six_r_strategy || determineSixRStrategy(app),
-          complexity: app.complexity || determineComplexity(app),
-          cloudReadiness: app.cloud_readiness_score || calculateCloudReadiness(app),
-          dependencies: app.dependency_count || 0
+          department: app.department || 'IT', // Removed business_unit - doesn't exist in DB
+          sixRTreatment: app.six_r_strategy || determineSixRStrategy(app),
+          complexity: determineComplexity(app),
+          cloudReadiness: app.complexity_score ? app.complexity_score * 100 : calculateCloudReadiness(app),
+          dependencies: app.dependencies || 0
         }));
-      } catch (primaryError) {
-        console.log('Primary endpoint failed, trying fallback...');
-
-        // Fallback to unified-discovery/assets endpoint
-        try {
-          const assetsResponse = await apiCall('unified-discovery/assets', {
-            headers,
-            params: {
-              asset_type: 'application',
-              limit: 100
-            }
-          });
-
-          const assets = assetsResponse.assets || assetsResponse.data || [];
-
-          // Transform assets to applications
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
-          return assets.map((asset: any) => ({
-            id: asset.id || asset.asset_id,
-            name: asset.name || asset.asset_name || 'Unknown',
-            techStack: asset.attributes?.tech_stack || 'Unknown',
-            criticality: asset.attributes?.criticality || 'Medium',
-            department: asset.attributes?.department || 'IT',
-            sixRTreatment: asset.attributes?.six_r_strategy || determineSixRStrategy(asset),
-            complexity: asset.attributes?.complexity || determineComplexity(asset),
-            cloudReadiness: asset.attributes?.cloud_readiness || calculateCloudReadiness(asset),
-            dependencies: asset.relationships?.length || 0
-          }));
-        } catch (fallbackError) {
-          console.error('Both endpoints failed:', fallbackError);
-          // Return empty array instead of throwing to show empty state
-          return [];
-        }
+      } catch (error) {
+        console.error('Failed to fetch applications:', error);
+        // Return empty array instead of throwing to show empty state
+        return [];
       }
     },
     staleTime: 5 * 60 * 1000,
@@ -190,6 +170,57 @@ const SixRAnalysis: React.FC = () => {
     return colors[criticality] || 'bg-gray-100 text-gray-800';
   };
 
+  // Selection handlers
+  const handleToggleSelection = (appId: string) => {
+    setSelectedAppIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(appId)) {
+        newSet.delete(appId);
+      } else {
+        newSet.add(appId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleAllFiltered = () => {
+    const allFilteredSelected = filteredApplications.every((app) =>
+      selectedAppIds.has(app.id)
+    );
+
+    setSelectedAppIds((prev) => {
+      const newSet = new Set(prev);
+      if (allFilteredSelected) {
+        // Deselect all filtered
+        filteredApplications.forEach((app) => newSet.delete(app.id));
+      } else {
+        // Select all filtered
+        filteredApplications.forEach((app) => newSet.add(app.id));
+      }
+      return newSet;
+    });
+  };
+
+  const handleInitializePlanning = () => {
+    if (selectedAppIds.size === 0) {
+      return; // Button should be disabled, but just in case
+    }
+    setIsWizardOpen(true);
+  };
+
+  // Transform selected applications to match ApplicationType interface for wizard
+  const selectedApplications: ApplicationType[] = filteredApplications
+    .filter((app) => selectedAppIds.has(app.id))
+    .map((app) => ({
+      id: app.id,
+      application_name: app.name,
+      asset_name: null,
+      six_r_strategy: app.sixRTreatment || null,
+      tech_stack: app.techStack,
+      complexity_score: app.cloudReadiness || null,
+      asset_type: null,
+    }));
+
   const exportToCSV = () => {
     const csvHeaders = ['Application Name', 'Tech Stack', 'Criticality', 'Department', '6R Treatment', 'Complexity', 'Cloud Readiness'];
     const csvRows = filteredApplications.map(app => [
@@ -287,8 +318,47 @@ const SixRAnalysis: React.FC = () => {
             {/* Applications Table */}
             <div className="bg-white rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Application Analysis</h2>
+                    {selectedAppIds.size > 0 && (
+                      <p className="text-sm text-blue-600 mt-1">
+                        {selectedAppIds.size} application{selectedAppIds.size !== 1 ? 's' : ''} selected for planning
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleInitializePlanning}
+                    disabled={selectedAppIds.size === 0}
+                    className={`px-4 py-2 rounded-md font-medium flex items-center space-x-2 ${
+                      selectedAppIds.size === 0
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    <Package className="h-4 w-4" />
+                    <span>Initialize Planning Flow</span>
+                  </button>
+                </div>
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-900">Application Analysis</h2>
+                  <button
+                    onClick={handleToggleAllFiltered}
+                    disabled={filteredApplications.length === 0}
+                    className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400 flex items-center space-x-1"
+                  >
+                    {filteredApplications.length > 0 &&
+                    filteredApplications.every((app) => selectedAppIds.has(app.id)) ? (
+                      <>
+                        <CheckSquare className="h-4 w-4" />
+                        <span>Deselect All</span>
+                      </>
+                    ) : (
+                      <>
+                        <Square className="h-4 w-4" />
+                        <span>Select All</span>
+                      </>
+                    )}
+                  </button>
                   <div className="flex space-x-4">
                     <select
                       value={filterDept}
@@ -364,6 +434,9 @@ const SixRAnalysis: React.FC = () => {
                   <table className="min-w-full">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                          Select
+                        </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Application
                         </th>
@@ -390,6 +463,18 @@ const SixRAnalysis: React.FC = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredApplications.map((app) => (
                         <tr key={app.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              onClick={() => handleToggleSelection(app.id)}
+                              className="text-blue-600 hover:text-blue-800 focus:outline-none"
+                            >
+                              {selectedAppIds.has(app.id) ? (
+                                <CheckSquare className="h-5 w-5" />
+                              ) : (
+                                <Square className="h-5 w-5" />
+                              )}
+                            </button>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{app.name}</div>
                           </td>
@@ -460,6 +545,15 @@ const SixRAnalysis: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Planning Initialization Wizard */}
+      <PlanningInitializationWizard
+        open={isWizardOpen}
+        onOpenChange={setIsWizardOpen}
+        engagement_id={engagement_id}
+        preSelectedApplicationIds={Array.from(selectedAppIds)}
+        preSelectedApplications={selectedApplications}
+      />
     </div>
   );
 };

@@ -9,12 +9,14 @@ adapter interfaces, tier detection, data transformation, quality scoring, and au
 from .adapters import AdapterRegistry, BaseAdapter, adapter_registry
 from .audit_logging import AuditLoggingService, MonitoringService
 from .data_transformation import DataNormalizationService, DataTransformationService
+from .lifecycle_service import CollectionFlowLifecycleService
 from .quality_scoring import ConfidenceAssessmentService, QualityAssessmentService
 from .state_management import CollectionFlowStateService
 from .tier_detection import TierDetectionService
 
 __all__ = [
     "CollectionFlowStateService",
+    "CollectionFlowLifecycleService",
     "BaseAdapter",
     "AdapterRegistry",
     "adapter_registry",

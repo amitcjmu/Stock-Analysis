@@ -97,11 +97,17 @@ export const useDashboard = (): UseDashboardReturn => {
   }, []);
 
   // Load data on mount and when context changes
+  // CRITICAL: Depend on IDs, not objects, to properly detect context switches
   useEffect(() => {
     if (user && client && engagement) {
+      console.log('🔄 Context changed, refetching dashboard:', {
+        user: user.id,
+        client: client.id,
+        engagement: engagement.id
+      });
       fetchDashboardData();
     }
-  }, [fetchDashboardData, user, client, engagement]);
+  }, [user?.id, client?.id, engagement?.id, fetchDashboardData]);
 
   return {
     // State

@@ -18,12 +18,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { FieldMergeSelector } from './FieldMergeSelector';
+import { DependencySelector } from './DependencySelector';
 import { assetConflictService } from '@/services/api/assetConflictService';
 import type {
   AssetConflict,
   ResolutionAction,
   ConflictResolution,
   MergeFieldSelections,
+  DependencySelection,
 } from '@/types/assetConflict';
 import { useToast } from '@/components/ui/use-toast';
 import SecureLogger from '@/utils/secureLogger';
@@ -33,6 +35,9 @@ interface AssetConflictModalProps {
   isOpen: boolean;
   onClose: () => void;
   onResolutionComplete: () => void;
+  client_account_id: string;
+  engagement_id: string;
+  flow_id: string; // Flow context for multi-tenant isolation
 }
 
 /**
@@ -72,8 +77,31 @@ function AssetComparisonRow({ label, existingValue, newValue }: { label: string;
   );
 }
 
+// Backend-defined field allowlists (must match backend/app/services/asset_service/deduplication.py)
+const ALLOWED_MERGE_FIELDS = new Set([
+  // Technical specs
+  'operating_system', 'os_version', 'cpu_cores', 'memory_gb', 'storage_gb',
+  // Network info
+  'ip_address', 'fqdn', 'mac_address',
+  // Infrastructure
+  'environment', 'location', 'datacenter', 'rack_location', 'availability_zone',
+  // Business info
+  'business_owner', 'technical_owner', 'department', 'application_name',
+  'technology_stack', 'criticality', 'business_criticality',
+  // Migration planning
+  'six_r_strategy', 'migration_priority', 'migration_complexity', 'migration_wave',
+  // Metadata
+  'description', 'custom_attributes',
+  // Performance metrics
+  'cpu_utilization_percent', 'memory_utilization_percent', 'disk_iops',
+  'network_throughput_mbps', 'current_monthly_cost', 'estimated_cloud_cost',
+]);
+
 export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
   conflicts,
+  client_account_id,
+  engagement_id,
+  flow_id,
   isOpen,
   onClose,
   onResolutionComplete,
@@ -85,6 +113,9 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
 
   // Track merge field selections for conflicts with "merge" action
   const [mergeSelections, setMergeSelections] = useState<Record<string, MergeFieldSelections>>({});
+
+  // Track dependency selections for conflicts with "create_both_with_dependency" action (Issue #910)
+  const [dependencySelections, setDependencySelections] = useState<Record<string, DependencySelection | null>>({});
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,9 +141,61 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
       [conflictId]: action,
     }));
 
-    // Clear merge selections if action is not "merge"
-    if (action !== 'merge') {
+    if (action === 'merge') {
+      // Auto-populate merge selections with all differing fields from new data
+      const conflict = conflicts.find((c) => c.conflict_id === conflictId);
+      if (conflict?.existing_asset && conflict?.new_asset) {
+        const fieldSelections: MergeFieldSelections = {};
+
+        Object.keys(conflict.new_asset).forEach((field) => {
+          // CRITICAL: Only include fields that backend allows merging
+          if (!ALLOWED_MERGE_FIELDS.has(field)) {
+            return; // Skip protected/disallowed fields
+          }
+
+          const existingValue = conflict.existing_asset[field];
+          const newValue = conflict.new_asset[field];
+
+          // Select 'new' for fields that differ
+          if (existingValue !== newValue && newValue !== null && newValue !== undefined) {
+            fieldSelections[field] = 'new';
+          }
+        });
+
+        // Set merge selections for this conflict
+        if (Object.keys(fieldSelections).length > 0) {
+          setMergeSelections((prev) => ({
+            ...prev,
+            [conflictId]: fieldSelections,
+          }));
+        }
+      }
+      // Clear dependency selections for merge action
+      setDependencySelections((prev) => {
+        const updated = { ...prev };
+        delete updated[conflictId];
+        return updated;
+      });
+    } else if (action === 'create_both_with_dependency') {
+      // Clear merge selections for dependency action (Issue #910)
       setMergeSelections((prev) => {
+        const updated = { ...prev };
+        delete updated[conflictId];
+        return updated;
+      });
+      // Initialize dependency selection as null (user must select)
+      setDependencySelections((prev) => ({
+        ...prev,
+        [conflictId]: null,
+      }));
+    } else {
+      // Clear both merge and dependency selections for other actions
+      setMergeSelections((prev) => {
+        const updated = { ...prev };
+        delete updated[conflictId];
+        return updated;
+      });
+      setDependencySelections((prev) => {
         const updated = { ...prev };
         delete updated[conflictId];
         return updated;
@@ -128,6 +211,14 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
     }));
   };
 
+  // Handle dependency selections (Issue #910)
+  const handleDependencySelectionChange = (conflictId: string, selection: DependencySelection | null) => {
+    setDependencySelections((prev) => ({
+      ...prev,
+      [conflictId]: selection,
+    }));
+  };
+
   // Apply resolution action to all conflicts
   const handleApplyToAll = (action: ResolutionAction) => {
     const allResolutions: Record<string, ResolutionAction> = {};
@@ -136,15 +227,51 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
     });
     setResolutions(allResolutions);
 
-    // Clear merge selections if action is not "merge"
-    if (action !== 'merge') {
-      setMergeSelections({});
-    }
+    // If action is "merge", auto-select all differing fields from new data
+    if (action === 'merge') {
+      const autoMergeSelections: Record<string, MergeFieldSelections> = {};
+      conflicts.forEach((conflict) => {
+        const fieldSelections: MergeFieldSelections = {};
 
-    toast({
-      title: 'Applied to All',
-      description: `Set all conflicts to "${action.replace('_', ' ')}"`,
-    });
+        // For each field in the conflict details, select 'new' if values differ
+        if (conflict.existing_asset && conflict.new_asset) {
+          Object.keys(conflict.new_asset).forEach((field) => {
+            // CRITICAL: Only include fields that backend allows merging
+            if (!ALLOWED_MERGE_FIELDS.has(field)) {
+              return; // Skip protected/disallowed fields
+            }
+
+            const existingValue = conflict.existing_asset[field];
+            const newValue = conflict.new_asset[field];
+
+            // Select 'new' for fields that differ
+            if (existingValue !== newValue && newValue !== null && newValue !== undefined) {
+              fieldSelections[field] = 'new';
+            }
+          });
+        }
+
+        // Only add merge selections if there are fields to merge
+        if (Object.keys(fieldSelections).length > 0) {
+          autoMergeSelections[conflict.conflict_id] = fieldSelections;
+        }
+      });
+
+      setMergeSelections(autoMergeSelections);
+
+      toast({
+        title: 'Applied to All',
+        description: `Set all conflicts to merge with new data for ${Object.keys(autoMergeSelections).length} conflicts`,
+      });
+    } else {
+      // Clear merge selections if action is not "merge"
+      setMergeSelections({});
+
+      toast({
+        title: 'Applied to All',
+        description: `Set all conflicts to "${action.replace('_', ' ')}"`,
+      });
+    }
   };
 
   // Submit resolutions
@@ -163,14 +290,32 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
     // Validate merge selections for "merge" actions
     const invalidMergeActions = conflicts.filter((c) => {
       const action = resolutions[c.conflict_id];
-      return action === 'merge' && !mergeSelections[c.conflict_id];
+      const selections = mergeSelections[c.conflict_id];
+      // Check if merge action exists without selections OR with empty selections
+      return action === 'merge' && (!selections || Object.keys(selections).length === 0);
     });
 
     if (invalidMergeActions.length > 0) {
       toast({
         variant: 'destructive',
         title: 'Missing Merge Selections',
-        description: `Please select fields to merge for ${invalidMergeActions.length} conflicts.`,
+        description: `Please select fields to merge for ${invalidMergeActions.length} conflicts. Tip: The merge action auto-selects all differing fields by default.`,
+      });
+      return;
+    }
+
+    // Validate dependency selections for "create_both_with_dependency" actions (Issue #910)
+    const invalidDependencyActions = conflicts.filter((c) => {
+      const action = resolutions[c.conflict_id];
+      const selection = dependencySelections[c.conflict_id];
+      return action === 'create_both_with_dependency' && !selection;
+    });
+
+    if (invalidDependencyActions.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Dependency Selection',
+        description: `Please select a parent application for ${invalidDependencyActions.length} conflict${invalidDependencyActions.length > 1 ? 's' : ''}.`,
       });
       return;
     }
@@ -179,7 +324,7 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
     SecureLogger.info('Submitting conflict resolutions', { conflictCount: conflicts.length });
 
     try {
-      // Build resolution request
+      // Build resolution request (Issue #910: Added dependency_selection)
       const resolutionRequests: ConflictResolution[] = conflicts.map((conflict) => ({
         conflict_id: conflict.conflict_id,
         resolution_action: resolutions[conflict.conflict_id],
@@ -187,11 +332,18 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
           resolutions[conflict.conflict_id] === 'merge'
             ? mergeSelections[conflict.conflict_id]
             : undefined,
+        dependency_selection:
+          resolutions[conflict.conflict_id] === 'create_both_with_dependency'
+            ? dependencySelections[conflict.conflict_id] || undefined
+            : undefined,
       }));
 
-      // Call backend API
+      // Call backend API with multi-tenant context (Issue: Asset conflict resolution 422 error)
       const response = await assetConflictService.resolveConflicts({
         resolutions: resolutionRequests,
+        client_account_id,
+        engagement_id,
+        flow_id,
       });
 
       SecureLogger.info('Conflict resolution response', response);
@@ -332,6 +484,12 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                             Merge Fields (choose field-by-field)
                           </Label>
                         </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="create_both_with_dependency" id={`${conflict.conflict_id}-dep`} />
+                          <Label htmlFor={`${conflict.conflict_id}-dep`} className="cursor-pointer">
+                            Create Both with Shared Dependency (link to parent application)
+                          </Label>
+                        </div>
                       </RadioGroup>
                     </div>
 
@@ -342,6 +500,18 @@ export const AssetConflictModal: React.FC<AssetConflictModalProps> = ({
                         new_asset={conflict.new_asset}
                         onChange={(selections) => handleMergeSelectionsChange(conflict.conflict_id, selections)}
                         initialSelections={mergeSelections[conflict.conflict_id]}
+                      />
+                    )}
+
+                    {/* Dependency Selector (only for "create_both_with_dependency" action) - Issue #910 */}
+                    {currentAction === 'create_both_with_dependency' && (
+                      <DependencySelector
+                        client_account_id={client_account_id}
+                        engagement_id={engagement_id}
+                        onSelectionChange={(selection) =>
+                          handleDependencySelectionChange(conflict.conflict_id, selection)
+                        }
+                        className="mt-4 p-4 border rounded-md bg-muted/50"
                       />
                     )}
 

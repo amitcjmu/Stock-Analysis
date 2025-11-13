@@ -1,3 +1,180 @@
+## [1.21.2] - 2025-11-10
+
+### 🎯 **🐛 Fix - Agentic Questionnaire Persistence**
+
+This release restores the full agentic questionnaire pipeline by hardening CrewAI output parsing, eliminating fallback responses, and persisting the complete gap analysis payload on each collection flow.
+
+### 🚀 **Agent Intelligence Stabilization**
+
+#### **Crew output normalization**
+- **Change Type**: Backend fix
+- **Impact**: Questionnaire generation now consumes the structured payload returned by CrewAI instead of falling back to basic forms.
+- **Technical Details**: `_normalize_agent_output` coerces `CrewOutput` objects, parses `raw_text` fallbacks, and extracts `questionnaires`/`sections` before handing results to downstream serializers.
+
+#### **Questionnaire extraction resilience**
+- **Change Type**: Backend fix
+- **Impact**: Agent-provided MCQ sections survive markdown fences, Python literals, and diagnostic wrappers.
+- **Technical Details**: `_extract_from_agent_output` unwraps `raw_text` dictionaries, normalizes booleans, and retries parsing with `ast.literal_eval` when JSON decoding fails.
+
+#### **Gap analysis state persistence**
+- **Change Type**: Backend enhancement
+- **Impact**: The UI consistently receives the 22 critical gaps surfaced by Tier 2 analysis instead of reverting to default placeholders.
+- **Technical Details**: `GapAnalysisService` now writes summaries, gaps, and questionnaire metadata into `collection_flows.gap_analysis_results` after each run while retaining tenant scoping.
+
+### 📊 **Business Impact**
+- **Agentic continuity**: Users stay on the intelligent questionnaire path without triggering basic fallback forms.
+- **Data integrity**: Persisted gap analysis payload keeps asset gap counts in sync between backend and UI refreshes.
+
+### 🎯 **Success Metrics**
+- **Agent questionnaire success rate**: ≥95 % of Tier 2 runs yield structured questionnaires with no parsing errors.
+- **Gap analysis persistence**: 100 % of post-analysis flows contain `gap_analysis_results` JSON for reuse downstream.
+
+## [1.21.1] - 2025-11-10
+
+### 🎯 **🐛 Fix - Collection Flow Agent Stability**
+
+This release stabilizes collection gap analysis and questionnaire generation by aligning flow identifier handling with tenant-scoped primary keys and rehydrating assets inside background agent sessions.
+
+### 🚀 **Stability Improvements**
+
+#### **Gap analysis ID normalization**
+- **Change Type**: Backend fix
+- **Impact**: Gap analysis now resolves both primary keys and business `flow_id` values, preventing ValueError crashes and allowing gaps to persist.
+- **Technical Details**: `resolve_collection_flow_id` queries `collection_flows.id` before falling back to `flow_id` and `master_flow_id`, retaining tenant scoping.
+
+#### **Agent questionnaire rehydration**
+- **Change Type**: Backend fix
+- **Impact**: Eliminates `greenlet_spawn` errors so background questionnaire generation completes reliably for selected assets.
+- **Technical Details**: Background tasks now pass asset IDs, reload scoped assets inside their session, and fail gracefully when nothing is available.
+
+### 📊 **Business Impact**
+- **Collection flow reliability**: Questionnaire generation completes without manual retries for tenant flows that previously stalled.
+- **Gap analysis continuity**: Automation tiers can persist detected gaps without operator intervention.
+
+### 🎯 **Success Metrics**
+- **Gap analysis completion rate**: ≥95 % of executions without identifier resolution failures.
+- **Questionnaire generation success**: 0 runtime `greenlet_spawn` errors observed during collection flow runs.
+
+## [2025-10-31] - Intelligent Context-Aware Questionnaire Generation
+
+### 🚀 Enhancement - Intelligent Questionnaire Generation (PR #890)
+
+Introduced intelligent questionnaire generation that tailors question options based on asset context (OS, tech stack, business criticality, EOL status). The system now dynamically reorders dropdown options to prioritize most relevant choices based on asset characteristics.
+
+#### **Implemented Intelligent Patterns**
+- ✅ **Architecture Pattern** (tech-stack-aware ordering) - Enterprise patterns appear first for IBM middleware
+- ✅ **Compliance Constraints** ("None" option first) - Enables proper UX for non-regulated assets
+- ✅ **Security Vulnerabilities** (EOL-aware ordering) - High Severity appears first for EOL-expired assets
+- ✅ **Availability Requirements** (criticality-aware ordering) - 99.99% SLA appears first for mission-critical assets
+- ✅ **Security Compliance Requirements** (criticality-aware) - PCI-DSS/HIPAA first for mission-critical
+- ✅ **EOL Technology Assessment** (EOL-status-aware) - Critical EOL options first for expired systems
+
+#### **Technical Implementation**
+**Backend**:
+- Modularized `intelligent_options.py` (652 lines → 6 focused modules <400 lines each)
+  - `security_options.py` - Security vulnerabilities & compliance options
+  - `business_options.py` - Business logic & change tolerance options
+  - `infrastructure_options.py` - Availability requirements options
+  - `eol_options.py` - EOL technology assessment options
+  - `utils.py` - Field type inference & fallback options
+- Implemented `_determine_eol_status()` for EOL detection (AIX 7.2, RHEL 6/7, Windows Server 2008/2012, WebSphere 8.5)
+- Enhanced asset serialization in `collection_crud_questionnaires/utils.py` to include EOL status
+- Context-aware option ordering reduces user cognitive load
+- Fixed string matching bugs using exact normalized matching (prevents false positives)
+
+**Testing**:
+- Added 58 comprehensive unit tests (90%+ coverage)
+- Added 6 integration tests for end-to-end context threading
+- All 64 tests passing
+- Test files:
+  - `tests/backend/services/ai_analysis/questionnaire_generator/tools/test_intelligent_options.py`
+  - `tests/backend/integration/test_intelligent_questionnaire_generation.py`
+
+#### **User Experience Impact**
+- **Faster form completion**: Relevant options appear first based on asset characteristics
+- **Improved data quality**: Context-aware suggestions reduce user errors
+- **Enhanced platform intelligence**: Demonstrates agentic-first architecture principles
+- **Reduced cognitive load**: Users don't need to search through irrelevant options
+
+#### **Quality Improvements**
+- Fixed string matching edge case bug (substring → exact matching)
+- Reduced code complexity in `section_builders.py` with helper function
+- Added comprehensive logging for debugging and observability
+- Graceful fallback to default options when context is missing
+
+#### **Future Work**
+- Technology Stack (OS-aware) - Planned for future release
+- Change Tolerance (criticality-aware) - Planned for future release
+- Business Logic Complexity - Design decision: free-text field maintained
+
+#### **Testing & Verification**
+- Comprehensive QA testing: 7/8 scenarios passed (87.5% pass rate)
+- EOL-aware security vulnerabilities fix verified with AIX 7.2 asset
+- Manual testing completed with screenshots and evidence
+- Root cause analysis documented for all fixes
+- Test Reports:
+  - `TEST_REPORT_COMPLIANCE_AND_EOL_FIELDS_FIX.md`
+  - `FINAL_FIX_VERIFICATION_SECURITY_VULNERABILITIES_EOL_AWARE.md`
+
+#### **Files Modified**
+- Backend: `backend/app/services/ai_analysis/questionnaire_generator/tools/intelligent_options/` (6 modules)
+- Backend: `backend/app/api/v1/endpoints/collection_crud_questionnaires/utils.py` (EOL detection)
+- Backend: `backend/app/services/ai_analysis/questionnaire_generator/tools/section_builders.py` (complexity reduction)
+- Tests: `tests/backend/services/ai_analysis/questionnaire_generator/tools/test_intelligent_options.py` (58 tests)
+- Tests: `tests/backend/integration/test_intelligent_questionnaire_generation.py` (6 tests)
+
+#### **ADR Alignment**
+- ✅ ADR-008 (Agentic Intelligence System Architecture) - Intelligence embedded in option generation
+- ✅ ADR-010 (Docker-First Development) - All testing in Docker containers
+- ✅ Platform principles: Context-aware decisions, modular design, graceful degradation
+
+---
+
+## [2025-10-25] - Fix: PAUSED Flows Should Not Block Bulk Operations
+
+### 🐛 Bug Fix - ADR-012 Alignment
+Per ADR-012 design, PAUSED flows are waiting for user input (asset_selection phase) and should not block new collection operations. This fix introduces a separate "actively incomplete" endpoint that only returns INITIALIZED and RUNNING flows for blocking checks.
+
+### 🚀 Primary Changes
+
+#### Backend Changes
+- **New Endpoint**: `GET /api/v1/collection/actively-incomplete`
+  - Returns only INITIALIZED and RUNNING flows (excludes PAUSED, FAILED, CANCELLED)
+  - Properly scoped by client_account_id and engagement_id
+- **Files Modified**:
+  - `backend/app/api/v1/endpoints/collection_crud_queries/lists.py` - Added `get_actively_incomplete_flows()`
+  - `backend/app/api/v1/endpoints/collection_flows.py` - Registered new route
+  - `backend/app/api/v1/endpoints/collection_crud_queries/__init__.py` - Exported new function
+  - `backend/app/api/v1/endpoints/collection_crud.py` - Added to facade
+
+#### Frontend Changes
+- **New Hook**: `useActivelyIncompleteCollectionFlows`
+  - Fetches only actively processing flows for blocking logic
+  - Maintains same polling and error handling patterns as `useIncompleteCollectionFlows`
+- **Updated Blocking Checks**:
+  - `src/hooks/collection/useCollectionFlowManagement.ts` - Added new hook
+  - `src/pages/collection/adaptive-forms/hooks/useBlockingFlowCheck.ts` - Uses new hook
+  - `src/pages/collection/adaptive-forms/index.tsx` - Uses new hook
+  - `src/hooks/collection/useAdaptiveFormFlow.ts` - Uses new hook
+- **API Client**:
+  - `src/services/api/collection-flow/flows.ts` - Added `getActivelyIncompleteFlows()`
+  - `src/services/api/collection-flow/index.ts` - Exposed new method
+
+### 📊 Business Impact
+- **Enables bulk operations on PAUSED flows**: Users can now perform bulk answer/import operations even when flow is PAUSED at asset_selection phase
+- **Aligns with ADR-012 design**: PAUSED is a valid waiting-for-input state, not a blocking state
+- **Preserves existing management UI**: `/incomplete` endpoint still includes PAUSED flows for flow management pages
+
+### 🎯 Technical Details
+- **Root Cause**: Original `/incomplete` endpoint included PAUSED flows, causing blocking banner to appear during bulk operations
+- **Solution**: Separate endpoint for blocking checks (`/actively-incomplete`) vs management UI (`/incomplete`)
+- **No Breaking Changes**: Existing `/incomplete` endpoint behavior unchanged; management pages still see PAUSED flows
+
+### 🔧 Testing
+- Containers restarted successfully
+- Bulk operations workflow no longer blocked by PAUSED flows
+- E2E test `collection-bulk-answer.spec.ts` expected to pass
+
 ## [0.0.0-docs-collection-gaps] - 2025-09-21
 
 ### 📚 Documentation - Collection Gaps Phase 1 (7-Layer Design)

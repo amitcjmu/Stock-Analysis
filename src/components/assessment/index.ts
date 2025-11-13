@@ -25,9 +25,10 @@ export { DependencyVisualization } from './DependencyVisualization';
 export { BusinessImpactAssessment } from './BusinessImpactAssessment';
 export { ExportAndSharingControls } from './ExportAndSharingControls';
 
-// Re-export from sixr components for backward compatibility
-export { ParameterSliders } from '../sixr/ParameterSliders';
-export { QualifyingQuestions } from '../sixr/QualifyingQuestions';
-export { AnalysisProgress } from '../sixr/AnalysisProgress';
-export { RecommendationDisplay } from '../sixr/RecommendationDisplay';
-export { AnalysisHistory } from '../sixr/AnalysisHistory';
+// Restored components from Phase 5 cleanup (for backward compatibility with Treatment.tsx)
+// These were restored from git history and simplified for Assessment Flow integration
+export { ParameterSliders } from './ParameterSliders';
+export { AnalysisHistory } from './AnalysisHistory';
+
+// Assessment Flow ApplicationSelector (Issue #860 - replaces deprecated 6R selector)
+export { ApplicationSelector } from './ApplicationSelector';

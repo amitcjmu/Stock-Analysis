@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class AnalyticsQueries:
     """Queries for analytics and reporting operations"""
 
-    def __init__(self, db: AsyncSession, client_account_id: int):
+    def __init__(self, db: AsyncSession, client_account_id: str):
         self.db = db
         self.client_account_id = client_account_id
 

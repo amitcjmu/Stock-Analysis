@@ -33,7 +33,8 @@ from .data_helpers import (
 logger = logging.getLogger(__name__)
 
 # Total number of discovery flow phases for progress calculation
-TOTAL_DISCOVERY_PHASES = 6
+# Per ADR-027: Discovery v3.0.0 has only 5 phases
+TOTAL_DISCOVERY_PHASES = 5
 
 
 async def get_flow_status(
@@ -146,7 +147,7 @@ async def update_flow_status(
     }
 
 
-async def get_active_flows(
+async def get_active_flows(  # noqa: C901
     db: AsyncSession, context: RequestContext, limit: int = 10
 ) -> List[Dict[str, Any]]:
     """Get active discovery flows for the current context."""
@@ -277,30 +278,29 @@ async def get_active_flows(
                 }
 
             # Use smart detection: check for actual data, fallback to DB flags
+            # Per ADR-027: Discovery v3.0.0 has only 5 phases
             phases_dict = {
                 "data_import": actual_data_status.get(
                     "has_import_data", flow.data_import_completed
                 ),
+                "data_validation": flow.data_validation_completed,
                 "field_mapping": actual_data_status.get(
                     "has_field_mappings", flow.field_mapping_completed
                 ),
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
-                "dependency_analysis": flow.dependency_analysis_completed,
-                "tech_debt_assessment": flow.tech_debt_assessment_completed,
             }
 
             # Calculate actual progress from detected phases
             # Bug #560: Fixed progress bar showing 0%
-            # Bug #578: Fixed success criteria showing 0/6
+            # Bug #578: Fixed success criteria showing 0/5 (updated per ADR-027)
             completed_phases = sum(
                 [
                     phases_dict["data_import"],
+                    phases_dict["data_validation"],
                     phases_dict["field_mapping"],
                     phases_dict["data_cleansing"],
                     phases_dict["asset_inventory"],
-                    phases_dict["dependency_analysis"],
-                    phases_dict["tech_debt_assessment"],
                 ]
             )
             actual_progress = round(
@@ -364,30 +364,29 @@ async def get_active_flows(
                         }
 
                     # Build phases dict with smart detection
+                    # Per ADR-027: Discovery v3.0.0 has only 5 phases
                     phases_dict = {
                         "data_import": actual_data_status.get(
                             "has_import_data", discovery_flow.data_import_completed
                         ),
+                        "data_validation": discovery_flow.data_validation_completed,
                         "field_mapping": actual_data_status.get(
                             "has_field_mappings", discovery_flow.field_mapping_completed
                         ),
                         "data_cleansing": discovery_flow.data_cleansing_completed,
                         "asset_inventory": discovery_flow.asset_inventory_completed,
-                        "dependency_analysis": discovery_flow.dependency_analysis_completed,
-                        "tech_debt_assessment": discovery_flow.tech_debt_assessment_completed,
                     }
 
                     # Calculate from detected phases
                     # Bug #560: Fixed progress bar showing 0%
-                    # Bug #578: Fixed success criteria showing 0/6
+                    # Bug #578: Fixed success criteria showing 0/5 (updated per ADR-027)
                     completed_phases = sum(
                         [
                             phases_dict["data_import"],
+                            phases_dict["data_validation"],
                             phases_dict["field_mapping"],
                             phases_dict["data_cleansing"],
                             phases_dict["asset_inventory"],
-                            phases_dict["dependency_analysis"],
-                            phases_dict["tech_debt_assessment"],
                         ]
                     )
                     progress = round(
@@ -402,12 +401,37 @@ async def get_active_flows(
                 )
                 progress = getattr(master_flow, "progress_percentage", 0) or 0
 
+            # Determine current phase and status based on completed phases (ADR-027: Discovery v3.0.0)
+            current_phase = getattr(discovery_flow, "current_phase", None)
+            flow_status = getattr(
+                discovery_flow, "status", getattr(master_flow, "flow_status", "unknown")
+            )
+
+            # Calculate current phase from completion flags if not available on discovery_flow
+            if not current_phase:
+                phase_order = [
+                    "data_import",
+                    "data_validation",
+                    "field_mapping",
+                    "data_cleansing",
+                    "asset_inventory",
+                ]
+                for phase in phase_order:
+                    if not phases_dict.get(phase, False):
+                        current_phase = phase
+                        break
+
+            # If all phases are completed, ensure status reflects this
+            if all(phases_dict.values()):
+                current_phase = "completed"
+                flow_status = "completed"
+
             active_flows.append(
                 {
                     "flow_id": master_flow.flow_id,
                     "flow_name": getattr(master_flow, "flow_name", "Unnamed Flow"),
-                    "status": getattr(master_flow, "flow_status", "unknown"),
-                    "current_phase": getattr(master_flow, "current_phase", None),
+                    "status": flow_status,
+                    "current_phase": current_phase,
                     "progress": progress,  # Use calculated progress
                     "phases": phases_dict,  # Add phases for success criteria
                     "created_at": (

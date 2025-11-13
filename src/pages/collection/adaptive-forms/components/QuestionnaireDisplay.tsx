@@ -1,11 +1,17 @@
 /**
  * QuestionnaireDisplay component
  * Handles rendering of the adaptive form container with asset selection
- * Extracted from AdaptiveForms.tsx for better maintainability
+ * Includes dynamic question filtering, agent pruning, and dependency tracking
+ *
+ * Issue #796 - Frontend UI Integration for Dynamic Questions
  */
 
-import React from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import AdaptiveFormContainer from "@/components/collection/forms/AdaptiveFormContainer";
+import { QuestionFilterControls } from "./QuestionFilterControls";
+import { DependencyWarningBanner } from "./DependencyWarningBanner";
+import { Badge } from "@/components/ui/badge";
+import { useFilteredQuestions, useDependencyChange } from "@/hooks/collection/adaptive-questionnaire";
 import type { AssetGroup, ProgressMilestone } from "../types";
 
 interface QuestionnaireDisplayProps {
@@ -46,13 +52,111 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
   onCancel,
   onAssetChange,
 }) => {
+  // State for question filtering and agent pruning
+  const [answeredFilter, setAnsweredFilter] = useState<'all' | 'answered' | 'unanswered'>('all');
+  const [sectionFilter, setSectionFilter] = useState<string>('all');
+  const [agentPruningEnabled, setAgentPruningEnabled] = useState(false);
+  const [triggerRefresh, setTriggerRefresh] = useState(false);
+  const [reopenedQuestions, setReopenedQuestions] = useState<{
+    ids: string[];
+    reason: string;
+    titles: string[];
+  } | null>(null);
+
+  // Get current asset type for API call
+  const selectedAsset = useMemo(() =>
+    assetGroups.find(g => g.asset_id === selectedAssetId),
+    [assetGroups, selectedAssetId]
+  );
+
+  // Use filtered questions hook (only when agent pruning is enabled)
+  // Note: We'll extract child_flow_id from formData or context
+  const childFlowId = formData?.flow_id || formData?.formId || '';
+  const assetType = selectedAsset?.asset_type || 'application';
+
+  const {
+    data: dynamicQuestionsData,
+    isLoading: isLoadingDynamicQuestions,
+    refetch: refetchQuestions
+  } = useFilteredQuestions({
+    child_flow_id: childFlowId,
+    asset_id: selectedAssetId || '',
+    asset_type: assetType,
+    include_answered: answeredFilter !== 'unanswered',
+    refresh_agent_analysis: agentPruningEnabled && triggerRefresh,
+    enabled: agentPruningEnabled && !!selectedAssetId && !!childFlowId,
+  });
+
+  // Dependency change tracking hook
+  const dependencyMutation = useDependencyChange();
+
+  // Handle agent pruning refresh
+  const handleRefreshQuestions = useCallback(() => {
+    setTriggerRefresh(true);
+    refetchQuestions();
+    // Reset trigger after a delay to allow re-triggering
+    setTimeout(() => setTriggerRefresh(false), 1000);
+  }, [refetchQuestions]);
+
+  // Track field changes for dependency detection
+  const handleFieldChangeWithDependency = useCallback((fieldId: string, value: unknown) => {
+    // Call original handler
+    onFieldChange(fieldId, value);
+
+    // Check if this is a critical field that might trigger dependencies
+    // For now, trigger on any field change - backend will determine if dependencies exist
+    if (selectedAssetId && childFlowId && formValues && formValues[fieldId] !== value) {
+      dependencyMutation.mutate({
+        child_flow_id: childFlowId,
+        asset_id: selectedAssetId,
+        changed_field: fieldId,
+        new_value: value,
+        old_value: formValues[fieldId]
+      }, {
+        onSuccess: (data) => {
+          if (data.reopened_question_ids.length > 0) {
+            // Find question titles for reopened questions
+            const reopenedTitles: string[] = [];
+            if (formData && formData.sections) {
+              formData.sections.forEach((section: any) => {
+                section.fields?.forEach((field: any) => {
+                  if (data.reopened_question_ids.includes(field.id)) {
+                    reopenedTitles.push(field.label || field.name || field.id);
+                  }
+                });
+              });
+            }
+
+            setReopenedQuestions({
+              ids: data.reopened_question_ids,
+              reason: data.reason,
+              titles: reopenedTitles
+            });
+          }
+        }
+      });
+    }
+  }, [selectedAssetId, childFlowId, formValues, onFieldChange, dependencyMutation, formData]);
+
   // Filter form data to show only selected asset's questions
   const filteredFormData = React.useMemo(() => {
-    if (!formData || !selectedAssetId || assetGroups.length <= 1) {
-      return formData; // No filtering needed for single asset or no selection
+    if (!formData) {
+      return formData;
     }
 
-    const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId);
+    // CRITICAL FIX: Always update applicationName from assetGroups, even for single asset
+    // This ensures asset name is displayed correctly instead of UUID
+    const selectedGroup = assetGroups.find(g => g.asset_id === selectedAssetId) || assetGroups[0];
+    const assetName = selectedGroup?.asset_name || selectedGroup?.asset_id || formData.applicationName;
+
+    // For single asset or no selection, just update applicationName
+    if (!selectedAssetId || assetGroups.length <= 1) {
+      return {
+        ...formData,
+        applicationName: assetName, // CRITICAL FIX: Always set asset name from assetGroups
+      };
+    }
+
     if (!selectedGroup) return formData;
 
     // Filter sections to only include selected asset's questions
@@ -66,14 +170,105 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Complex type requiring refactoring
     })).filter((section: any) => section.fields.length > 0);
 
-    return {
+    // Apply client-side filters (answered status, section)
+    // FIX: Update applicationName to match selected asset
+    let finalFormData = {
       ...formData,
+      applicationName: assetName, // Use asset name from assetGroups
       sections: filteredSections
     };
-  }, [formData, selectedAssetId, assetGroups]);
+
+    // Apply answered filter
+    if (answeredFilter !== 'all') {
+      finalFormData = {
+        ...finalFormData,
+        sections: finalFormData.sections.map((section: any) => ({
+          ...section,
+          fields: section.fields.filter((field: any) => {
+            const hasValue = formValues && formValues[field.id] !== undefined &&
+              formValues[field.id] !== null && formValues[field.id] !== '';
+            return answeredFilter === 'answered' ? hasValue : !hasValue;
+          })
+        })).filter((section: any) => section.fields.length > 0)
+      };
+    }
+
+    // Apply section filter
+    if (sectionFilter !== 'all') {
+      finalFormData = {
+        ...finalFormData,
+        sections: finalFormData.sections.filter((section: any) => section.id === sectionFilter)
+      };
+    }
+
+    return finalFormData;
+  }, [formData, selectedAssetId, assetGroups, answeredFilter, sectionFilter, formValues]);
+
+  // Calculate question counts
+  const questionCounts = useMemo(() => {
+    const allFields = formData?.sections?.flatMap((s: any) => s.fields) || [];
+    const filteredFields = filteredFormData?.sections?.flatMap((s: any) => s.fields) || [];
+
+    const total = allFields.length;
+    const unanswered = allFields.filter((field: any) => {
+      const hasValue = formValues && formValues[field.id] !== undefined &&
+        formValues[field.id] !== null && formValues[field.id] !== '';
+      return !hasValue;
+    }).length;
+    const filtered = filteredFields.length;
+
+    return { total, unanswered, filtered };
+  }, [formData, filteredFormData, formValues]);
+
+  // Get available sections for filter dropdown
+  const availableSections = useMemo(() => {
+    if (!formData || !formData.sections) return [];
+    return formData.sections.map((section: any) => ({
+      id: section.id,
+      title: section.title || section.name || section.id
+    }));
+  }, [formData]);
+
+  // Determine agent status and pruned count
+  const agentStatus = dynamicQuestionsData?.agent_status || null;
+  const prunedCount = dynamicQuestionsData
+    ? (dynamicQuestionsData.total_questions - dynamicQuestionsData.questions.length)
+    : undefined;
 
   return (
     <>
+      {/* Dependency Warning Banner */}
+      {reopenedQuestions && (
+        <div className="mb-6">
+          <DependencyWarningBanner
+            reopenedQuestionIds={reopenedQuestions.ids}
+            reason={reopenedQuestions.reason}
+            reopenedQuestionTitles={reopenedQuestions.titles}
+            onDismiss={() => setReopenedQuestions(null)}
+          />
+        </div>
+      )}
+
+      {/* Question Filter Controls */}
+      <div className="mb-6">
+        <QuestionFilterControls
+          totalQuestionsCount={questionCounts.total}
+          unansweredQuestionsCount={questionCounts.unanswered}
+          filteredQuestionsCount={questionCounts.filtered}
+          prunedQuestionsCount={prunedCount}
+          answeredFilter={answeredFilter}
+          onAnsweredFilterChange={setAnsweredFilter}
+          sectionFilter={sectionFilter}
+          onSectionFilterChange={setSectionFilter}
+          availableSections={availableSections}
+          agentPruningEnabled={agentPruningEnabled}
+          onAgentPruningToggle={setAgentPruningEnabled}
+          onRefreshQuestions={handleRefreshQuestions}
+          agentStatus={agentStatus}
+          isRefreshing={isLoadingDynamicQuestions}
+        />
+      </div>
+
       {/* Asset Selector - Show when multiple assets */}
       {assetGroups.length > 1 && (
         <div className="mb-6 p-4 border rounded-lg bg-white">
@@ -86,17 +281,28 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
                 value={selectedAssetId || ''}
                 onChange={(e) => onAssetChange(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                data-testid="asset-selector"
               >
                 {assetGroups.map((group) => (
-                  <option key={group.asset_id} value={group.asset_id}>
-                    {group.asset_name} - {group.completion_percentage || 0}% Complete
+                  <option
+                    key={group.asset_id}
+                    value={group.asset_id}
+                    data-testid={`asset-row-${group.asset_id}`}
+                  >
+                    {group.asset_name} | ID: {group.asset_id.substring(0, 8)} | {group.completion_percentage || 0}% Complete
                   </option>
                 ))}
               </select>
             </div>
-            <div className="ml-4 text-sm text-gray-600">
+            <div className="ml-4 text-sm text-gray-600 flex items-center gap-2">
               <div>Asset {assetGroups.findIndex(g => g.asset_id === selectedAssetId) + 1} of {assetGroups.length}</div>
               <div className="font-medium">{assetGroups.filter(g => g.completion_percentage === 100).length} of {assetGroups.length} Complete</div>
+              {/* Asset Type Badge */}
+              {selectedAsset && (
+                <Badge variant="outline" className="ml-2" data-testid="asset-type-badge">
+                  {selectedAsset.asset_type || 'Application'}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -110,7 +316,7 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
         isSaving={isSaving}
         isSubmitting={isSubmitting}
         completionStatus={completionStatus}
-        onFieldChange={onFieldChange}
+        onFieldChange={handleFieldChangeWithDependency}
         onValidationChange={onValidationChange}
         onSave={onSave}
         onSubmit={onSubmit}

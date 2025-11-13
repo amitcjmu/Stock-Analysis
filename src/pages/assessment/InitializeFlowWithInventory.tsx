@@ -51,8 +51,8 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
       const headers = getAuthHeaders();
 
       try {
-        // Try to get applications from asset inventory
-        const response = await apiCall('unified-discovery/assets', {
+        // Try to get applications from asset inventory (request all assets with max page_size)
+        const response = await apiCall('asset-inventory/list/paginated?page_size=100', {
           headers,
           method: 'GET'
         });
@@ -60,7 +60,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
         if (response?.assets) {
           // Filter for applications and format them
           return response.assets
-            .filter((asset: unknown) => asset.type === 'Application')
+            .filter((asset: unknown) => asset.asset_type?.toLowerCase() === 'application')
             .map((asset: unknown) => ({
               id: asset.id,
               name: asset.name || asset.hostname || `App-${asset.id}`,
@@ -126,8 +126,8 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
     return matchesSearch && matchesCriticality;
   });
 
-  // Only show applications ready for assessment
-  const readyApplications = filteredApplications.filter(app => app.ready_for_assessment);
+  // Show all applications from inventory (removed ready_for_assessment filter per Issue #817)
+  const readyApplications = filteredApplications;
 
   const handleSelectApp = (appId: string): void => {
     setSelectedApps(prev =>
@@ -247,7 +247,6 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
                   <CardTitle>Select Applications for Assessment</CardTitle>
                   <CardDescription>
                     Choose applications from your inventory to include in this assessment flow.
-                    Only applications marked as ready for assessment are shown.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

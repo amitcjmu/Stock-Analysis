@@ -6,6 +6,7 @@
 import { useCollectionStatePolling } from '@/hooks/collection/useCollectionStatePolling';
 import { toast } from '@/components/ui/use-toast';
 import type { CollectionFormData } from '@/components/collection/types';
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 
 interface UsePollingStateManagerProps {
   activeFlowId: string | null;
@@ -33,13 +34,13 @@ export const usePollingStateManager = ({
       flowId: activeFlowId,
       enabled: !!activeFlowId && isLoading && !formData,
       onQuestionnaireReady: (state) => {
-        console.log('🎉 HTTP Polling: Questionnaire ready notification');
+        debugLog('🎉 HTTP Polling: Questionnaire ready notification');
       },
       onStatusUpdate: (state) => {
-        console.log('📊 HTTP Polling: Workflow status update:', state);
+        debugLog('📊 HTTP Polling: Workflow status update:', state);
       },
       onError: (error) => {
-        console.error('❌ HTTP Polling: Collection workflow error:', error);
+        debugError('❌ HTTP Polling: Collection workflow error:', error);
         // Security: Sanitize error message to avoid exposing sensitive information
         const userFriendlyMessage = typeof error === 'string'
           ? error

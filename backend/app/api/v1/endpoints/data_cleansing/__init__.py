@@ -18,6 +18,16 @@ from .base import (
     DataCleansingStats,
 )
 
+# Import operations module to register its endpoints
+from . import operations
+
+# Import triggers module to register its endpoints
+from . import triggers
+
+# Import exports module to register its endpoints
+from . import exports
+
+# Import all endpoint functions
 from .operations import (
     get_data_cleansing_analysis,
     get_data_cleansing_stats,
@@ -60,6 +70,11 @@ from .validation import (
 from .analysis import (
     _perform_data_cleansing_analysis,
 )
+
+# Include the operations router in the main router (after all imports)
+router.include_router(operations.router)
+router.include_router(triggers.router)
+router.include_router(exports.router)
 
 # Define public API for export
 __all__ = [

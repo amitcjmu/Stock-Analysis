@@ -129,52 +129,90 @@ class DiscoveryToCollectionBridge:
         automation_tier: str,
         start_phase: str = "gap_analysis",
     ) -> CollectionFlow:
-        """Create Collection flow with Discovery context"""
+        """
+        Create Collection flow with Discovery context.
+        Uses CollectionFlowRepository to ensure MFO registration (ADR-006).
+        """
+        from app.repositories.collection_flow_repository import CollectionFlowRepository
         from uuid import uuid4
 
         flow_id = uuid4()
-        collection_flow = CollectionFlow(
-            flow_id=flow_id,
-            flow_name=f"Collection from Discovery - {len(applications)} apps",
+
+        # Use repository pattern to ensure MFO registration (ADR-006)
+        collection_repo = CollectionFlowRepository(
+            db=self.db,
             client_account_id=self.context.client_account_id,
             engagement_id=self.context.engagement_id,
-            user_id=self.context.user_id,
-            created_by=self.context.user_id,
-            discovery_flow_id=discovery_flow_id,
-            status=CollectionFlowStatus.INITIALIZED.value,
+        )
+
+        # Create flow with MFO registration
+        collection_flow = await collection_repo.create(
+            flow_name=f"Collection from Discovery - {len(applications)} apps",
             automation_tier=automation_tier,
-            current_phase=start_phase,
+            flow_metadata={
+                "discovery_flow_id": str(discovery_flow_id),
+                "created_from": "discovery_bridge",
+                "application_count": len(applications),
+            },
             collection_config={
                 "discovery_flow_id": str(discovery_flow_id),
                 "application_count": len(applications),
                 "start_phase": start_phase,
                 "applications": applications,
             },
+            flow_id=flow_id,
+            user_id=self.context.user_id,
+            discovery_flow_id=discovery_flow_id,
+            current_phase=start_phase,
         )
 
-        self.db.add(collection_flow)
-        await self.db.commit()
-        await self.db.refresh(collection_flow)
+        logger.info(
+            f"✅ Collection flow {collection_flow.id} registered with MFO "
+            f"(master_flow_id: {collection_flow.flow_id})"
+        )
 
         return collection_flow
 
     async def trigger_gap_analysis(
         self, collection_flow: CollectionFlow, app_data: List[Dict[str, Any]]
     ) -> None:
-        """Trigger immediate gap analysis for selected applications"""
+        """
+        Trigger immediate gap analysis for selected applications.
+
+        Per ADR-028: Uses master flow for phase tracking, not local phase_state.
+        """
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
         # This will be handled by the CrewAI flow phases
         # Here we just update the flow state to indicate gap analysis should start
         collection_flow.status = (
             CollectionFlowStatus.RUNNING.value
         )  # Per ADR-012: Flow is now actively running
+
+        # ADR-028: Update master flow phase transition
+        if collection_flow.master_flow_id:
+            master_flow_result = await self.db.execute(
+                select(CrewAIFlowStateExtensions).where(
+                    CrewAIFlowStateExtensions.flow_id == collection_flow.master_flow_id
+                )
+            )
+            master_flow = master_flow_result.scalar_one_or_none()
+
+            if master_flow:
+                # Add gap analysis phase to master flow
+                master_flow.add_phase_transition(
+                    phase=CollectionPhase.GAP_ANALYSIS.value,
+                    status="active",
+                    metadata={
+                        "status": "pending",
+                        "applications_to_analyze": [app["id"] for app in app_data],
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
+
+        # Synchronize current_phase column
         collection_flow.current_phase = CollectionPhase.GAP_ANALYSIS.value
-        collection_flow.phase_state = {
-            "gap_analysis": {
-                "status": "pending",
-                "applications_to_analyze": [app["id"] for app in app_data],
-                "started_at": datetime.now(timezone.utc).isoformat(),
-            }
-        }
+
         await self.db.commit()
 
     def _calculate_completeness(self, app: Asset) -> float:

@@ -56,6 +56,7 @@ async def delete_flow(
         result = await db.execute(
             select(CollectionFlow).where(
                 CollectionFlow.flow_id == UUID(flow_id),
+                CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
             )
         )
@@ -121,6 +122,7 @@ async def cleanup_flows(
         # Find flows to clean up
         result = await db.execute(
             select(CollectionFlow).where(
+                CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
                 CollectionFlow.status.in_(
                     [
@@ -191,6 +193,7 @@ async def batch_delete_flows(
                 result = await db.execute(
                     select(CollectionFlow).where(
                         CollectionFlow.flow_id == UUID(flow_id),
+                        CollectionFlow.client_account_id == context.client_account_id,
                         CollectionFlow.engagement_id == context.engagement_id,
                     )
                 )

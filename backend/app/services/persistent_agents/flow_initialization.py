@@ -6,13 +6,14 @@ ensuring proper agent persistence and memory system validation.
 """
 
 import logging
-import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.core.context import RequestContext
-from app.services.agentic_memory.three_tier_memory_manager import ThreeTierMemoryManager
+
+# Per ADR-024: TenantMemoryManager replaces ThreeTierMemoryManager
+# Memory is managed explicitly in task handlers, not in flow initialization
 from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
@@ -246,6 +247,9 @@ async def validate_agent_memory_system(
     """
     Validate that an agent's memory system is functioning properly
 
+    Per ADR-024: CrewAI memory is DISABLED (memory=False)
+    All agents should have memory=False and use TenantMemoryManager explicitly
+
     Args:
         agent: Agent instance to validate
         agent_type: Type of agent for context
@@ -254,33 +258,29 @@ async def validate_agent_memory_system(
         MemorySystemHealth status
     """
     try:
-        # Check Tier 1: CrewAI LongTermMemory
-        tier1_status = False
-        if hasattr(agent, "memory") and agent.memory:
-            tier1_status = True
+        # Per ADR-024: All agents must have memory=False
+        # Memory is managed via TenantMemoryManager in task handlers
+        memory_disabled = not hasattr(agent, "memory") or agent.memory is False
 
-        # Check Tier 2: Vector storage (episodic memory)
-        tier2_status = False  # Not yet implemented
+        if not memory_disabled:
+            logger.warning(
+                f"⚠️ Agent {agent_type} has memory enabled, but per ADR-024 "
+                f"all agents must use memory=False. Memory should be managed "
+                f"via TenantMemoryManager in task handlers."
+            )
 
-        # Check Tier 3: Database patterns (semantic memory)
-        tier3_status = False
-        if hasattr(agent, "memory_manager"):
-            # Try to access the three-tier memory manager
-            memory_manager = agent.memory_manager
-            if memory_manager and hasattr(memory_manager, "client_account_id"):
-                tier3_status = True
-
-        is_healthy = tier1_status and tier3_status  # Tier 2 optional for now
+        # Agent is healthy if memory is properly disabled per ADR-024
+        is_healthy = memory_disabled
 
         return MemorySystemHealth(
             is_healthy=is_healthy,
-            tier1_status=tier1_status,
-            tier2_status=tier2_status,
-            tier3_status=tier3_status,
+            tier1_status=False,  # Per ADR-024: CrewAI memory disabled
+            tier2_status=False,  # Per ADR-024: Use TenantMemoryManager instead
+            tier3_status=False,  # Per ADR-024: Tier 3 via TenantMemoryManager in task handlers
             error=(
                 None
                 if is_healthy
-                else f"Memory tiers not fully functional: T1={tier1_status}, T2={tier2_status}, T3={tier3_status}"
+                else "Agent has memory enabled, but ADR-024 requires memory=False"
             ),
         )
 
@@ -347,16 +347,18 @@ async def setup_flow_workspace(
         True if successful, False otherwise
     """
     try:
-        # Initialize flow-specific memory contexts
-        ThreeTierMemoryManager(
-            client_account_id=uuid.UUID(context.client_account_id),
-            engagement_id=uuid.UUID(context.engagement_id),
-        )
+        # Per ADR-024: Memory initialization removed
+        # TenantMemoryManager is used explicitly in task handlers via:
+        # - store_learning() after task completion
+        # - retrieve_similar_patterns() before execution
 
         # Set up flow-specific working directories or resources
         # (This is a placeholder for actual workspace setup)
 
-        logger.info(f"🏗️ Flow workspace initialized for {flow_id}")
+        logger.info(
+            f"🏗️ Flow workspace initialized for {flow_id}. "
+            f"Memory managed via TenantMemoryManager in task handlers per ADR-024."
+        )
         return True
 
     except Exception as e:
@@ -369,12 +371,21 @@ async def set_agent_flow_context(agent: Any, flow_id: str, context: RequestConte
     Set flow-specific context on an agent
 
     Args:
-        agent: Agent instance
+        agent: Agent instance (may be AgentWrapper or unwrapped Agent)
         flow_id: Flow identifier
         context: Request context
     """
     try:
-        # Set flow context on agent
+        # Defensive: Check if agent is a wrapper (has _context attribute)
+        # This helps avoid Pydantic v2 field validation issues
+        is_wrapper = hasattr(agent, "_context")
+        agent_type = getattr(agent, "_agent_type", "unknown")
+
+        logger.debug(
+            f"🔗 Setting flow context for agent: {agent_type} (wrapper={is_wrapper})"
+        )
+
+        # Set flow context on agent (these are private attrs, safe on wrappers)
         agent._current_flow_id = flow_id
         agent._current_context = context
         agent._flow_start_time = datetime.utcnow()
@@ -387,9 +398,7 @@ async def set_agent_flow_context(agent: Any, flow_id: str, context: RequestConte
 
         agent._last_execution = datetime.utcnow()
 
-        logger.debug(
-            f"🔗 Flow context set for agent: {getattr(agent, '_agent_type', 'unknown')}"
-        )
+        logger.debug(f"✅ Flow context set successfully for agent: {agent_type}")
 
     except Exception as e:
         logger.error(f"❌ Failed to set agent flow context: {e}")

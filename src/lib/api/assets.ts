@@ -146,4 +146,87 @@ export class AssetAPI {
 
     return response.blob();
   }
+
+  /**
+   * Update a single field on an asset (Issue #911: AI Grid inline editing)
+   */
+  static async updateAssetField(
+    asset_id: number,
+    field_name: string,
+    field_value: string | number | boolean | null
+  ): Promise<Asset> {
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/fields/${field_name}`;
+
+    return await apiCall(endpoint, {
+      method: 'PATCH',
+      body: { value: field_value }
+    });
+  }
+
+  /**
+   * Bulk update a single field on multiple assets (Issue #911: AI Grid bulk editing)
+   */
+  static async bulkUpdateAssetField(
+    asset_ids: number[],
+    field_name: string,
+    field_value: string | number | boolean | null
+  ): Promise<{ updated_count: number }> {
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/bulk-update`;
+    return await apiCall(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        updates: asset_ids.map(asset_id => ({
+          asset_id,
+          field_name,
+          value: field_value
+        }))
+      })
+    });
+  }
+
+  /**
+   * Soft delete an asset (Issue #912: Soft delete functionality)
+   */
+  static async softDeleteAsset(asset_id: number): Promise<void> {
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}`;
+    await apiCall(endpoint, {
+      method: 'DELETE'
+    });
+  }
+
+  /**
+   * Restore a soft-deleted asset (Issue #912: Soft delete functionality)
+   */
+  static async restoreAsset(asset_id: number): Promise<Asset> {
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${asset_id}/restore`;
+    return await apiCall(endpoint, {
+      method: 'POST'
+    });
+  }
+
+  /**
+   * Bulk soft delete multiple assets (Issue #912: Soft delete functionality)
+   */
+  static async bulkSoftDelete(asset_ids: number[]): Promise<{ deleted_count: number }> {
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/bulk-delete`;
+    return await apiCall(endpoint, {
+      method: 'DELETE',
+      body: JSON.stringify({
+        asset_ids
+      })
+    });
+  }
+
+  /**
+   * Get deleted (soft-deleted) assets (Issue #912: Trash view)
+   */
+  static async getDeletedAssets(flow_id?: string): Promise<Asset[]> {
+    const queryParams = new URLSearchParams();
+    if (flow_id) queryParams.append('flow_id', flow_id);
+    queryParams.append('deleted', 'true');
+
+    const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${queryParams}`;
+    const response = await apiCall<AssetListResponse>(endpoint);
+    return response.assets;
+  }
 }

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
-import type { GetServerSideProps } from 'next/router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ComponentIdentificationPanel } from '@/components/assessment/ComponentIdentificationPanel';
 import { TechDebtAnalysisGrid } from '@/components/assessment/TechDebtAnalysisGrid';
@@ -18,13 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Save, ArrowRight, Loader2, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface TechDebtPageProps {
-  flowId: string;
-}
-
 type SeverityLevel = 'critical' | 'high' | 'medium' | 'low';
 
-const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
+const TechDebtPage: React.FC = () => {
+  const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
+  const navigate = useNavigate();
   const {
     state,
     updateApplicationComponents,
@@ -39,6 +37,13 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
   const [editingComponent, setEditingComponent] = useState<string | null>(null);
   const [editingTechDebt, setEditingTechDebt] = useState<string | null>(null);
 
+  // Guard: redirect to overview if flowId missing
+  useEffect(() => {
+    if (!flowId) {
+      navigate('/assess/overview', { replace: true });
+    }
+  }, [flowId, navigate]);
+
   // Set first application as selected by default
   useEffect(() => {
     if (state.selectedApplicationIds.length > 0 && !selectedApp) {
@@ -46,7 +51,7 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     }
   }, [state.selectedApplicationIds, selectedApp]);
 
-  // Get current application data
+  // Get current application data (hooks must be called before any early returns)
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
   const currentAppTechDebt = useMemo(() =>
     selectedApp ? state.techDebtAnalysis[selectedApp] || [] : [],
@@ -82,6 +87,11 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     return stats;
   }, [currentAppTechDebt]);
 
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
+
   const handleSaveDraft = async (): void => {
     if (!selectedApp) return;
 
@@ -109,6 +119,8 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
       }
 
       await resumeFlow({
+        phase: 'tech_debt_assessment',
+        action: 'continue',
         components: state.applicationComponents,
         techDebtAnalysis: state.techDebtAnalysis
       });
@@ -139,7 +151,15 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     }
   };
 
+  // Bug #640 fix: Improved guard to check loading state before showing error
+  // Don't show "No Applications Selected" error while data is still loading
   if (state.selectedApplicationIds.length === 0) {
+    // If still loading, show loading indicator instead of error
+    if (state.isLoading) {
+      return <div className="p-6 text-sm text-muted-foreground">Loading application data...</div>;
+    }
+
+    // Only show error if loading is complete and still no applications
     return (
       <AssessmentFlowLayout flowId={flowId}>
         <div className="p-6 text-center">
@@ -362,8 +382,5 @@ const TechDebtPage: React.FC<TechDebtPageProps> = ({ flowId }) => {
     </AssessmentFlowLayout>
   );
 };
-
-// eslint-disable-next-line react-refresh/only-export-components
-export { getServerSideProps } from './utils';
 
 export default TechDebtPage;

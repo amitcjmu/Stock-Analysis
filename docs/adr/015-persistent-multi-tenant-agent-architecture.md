@@ -3,6 +3,8 @@
 ## Status
 Proposed (2025-08-07)
 
+**HISTORICAL CONTEXT NOTE (October 2025)**: Code examples in this ADR predate ADR-024 and show `memory=True`. As of October 2025, CrewAI memory is disabled (`memory=False`) and TenantMemoryManager is used for all agent learning. See [ADR-024](024-tenant-memory-manager-architecture.md) for current memory architecture.
+
 ## Context
 
 The AI Modernize Migration Platform currently instantiates CrewAI agents **per flow execution** rather than maintaining persistent agent instances per multi-tenant context. This pattern emerged accidentally due to technical issues rather than intentional architectural design, creating significant limitations in agent intelligence and learning capabilities.
@@ -168,11 +170,13 @@ class MemoryEnabledAgentFactory:
         }
         
         # Fix 2: Enable memory with proper error handling
+        # NOTE (October 2025): This code is historical. Current implementation uses memory=False
+        # and TenantMemoryManager for agent learning. See ADR-024 for details.
         agent = CrewAI Agent(
             role=AGENT_ROLES[agent_type],
             goal=AGENT_GOALS[agent_type],
             backstory=AGENT_BACKSTORIES[agent_type],
-            memory=True,  # Re-enable memory
+            memory=True,  # HISTORICAL: Changed to False in October 2025 per ADR-024
             memory_config=memory_config,
             tools=get_agent_tools(agent_type)
         )

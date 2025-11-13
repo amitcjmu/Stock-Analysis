@@ -42,6 +42,7 @@ class DataQualityIssue(BaseModel):
     affected_records: int
     recommendation: str
     auto_fixable: bool = False
+    status: Optional[str] = None  # 'pending', 'resolved', 'ignored'
 
 
 class DataCleansingRecommendation(BaseModel):
@@ -55,6 +56,11 @@ class DataCleansingRecommendation(BaseModel):
     impact: str
     effort_estimate: str
     fields_affected: List[str]
+    # Additional fields for frontend compatibility (Issue #875, #876)
+    confidence: Optional[float] = 0.85  # 0.0 to 1.0 range, default 85% confidence
+    status: str = "pending"  # 'pending' | 'applied' | 'rejected'
+    agent_source: Optional[str] = "Data Quality Agent"
+    implementation_steps: Optional[List[str]] = []
 
 
 class DataCleansingAnalysis(BaseModel):

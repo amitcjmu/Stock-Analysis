@@ -223,7 +223,12 @@ async def _build_critical_attributes_response(
         )
         if persisted_assessment:
             logger.info(
-                "✅ Using persisted critical attributes assessment from persistent agent"
+                "✅ Using persisted critical attributes assessment from agent (found %d fields)",
+                (
+                    len(persisted_assessment)
+                    if isinstance(persisted_assessment, dict)
+                    else 0
+                ),
             )
 
     # Use agent intelligence to determine criticality
@@ -239,11 +244,13 @@ async def _build_critical_attributes_response(
             ) or persisted_assessment.get(source_field)
             if field_assessment:
                 criticality_analysis = field_assessment
-                logger.debug(f"Using persisted assessment for {target_field}")
+                logger.debug("Using persisted assessment for field: %s", target_field)
 
         # Fall back to heuristic analysis if no persisted assessment
         if not criticality_analysis:
-            logger.debug(f"Using fallback heuristic analysis for {target_field}")
+            logger.debug(
+                "Using fallback heuristic analysis for field: %s", target_field
+            )
             criticality_analysis = agent_determine_criticality(
                 source_field, target_field, enhanced_analysis
             )

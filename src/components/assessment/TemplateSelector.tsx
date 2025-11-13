@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import type { ArchitectureStandard } from '@/hooks/useAssessmentFlow';
 import { Network } from 'lucide-react'
 import { Building2, Cloud, Shield, Cpu, Database } from 'lucide-react'
@@ -31,6 +30,7 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
     icon: Building2,
     standards: [
       {
+        id: 'std_enterprise_security',
         requirement_type: 'security',
         description: 'SSL/TLS encryption required for all communications',
         mandatory: true,
@@ -38,18 +38,21 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
         requirement_details: { 'encryption_level': 'AES-256' }
       },
       {
+        id: 'std_enterprise_availability',
         requirement_type: 'availability',
         description: '99.9% uptime SLA requirement',
         mandatory: true,
         requirement_details: { 'sla_percentage': 99.9, 'downtime_tolerance': '8.76 hours/year' }
       },
       {
+        id: 'std_enterprise_backup',
         requirement_type: 'backup',
         description: 'Daily automated backups with 30-day retention',
         mandatory: true,
         requirement_details: { 'frequency': 'daily', 'retention_days': 30 }
       },
       {
+        id: 'std_enterprise_monitoring',
         requirement_type: 'monitoring',
         description: 'Comprehensive application and infrastructure monitoring',
         mandatory: true,
@@ -65,6 +68,7 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
     icon: Cloud,
     standards: [
       {
+        id: 'std_cloud_native_containerization',
         requirement_type: 'containerization',
         description: 'All applications must be containerized (Docker/Kubernetes)',
         mandatory: true,
@@ -72,12 +76,14 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
         requirement_details: { 'orchestration': 'kubernetes' }
       },
       {
+        id: 'std_cloud_native_scalability',
         requirement_type: 'scalability',
         description: 'Horizontal auto-scaling capability required',
         mandatory: true,
         requirement_details: { 'min_replicas': 2, 'max_replicas': 50 }
       },
       {
+        id: 'std_cloud_native_api',
         requirement_type: 'api',
         description: 'RESTful APIs with OpenAPI 3.0 documentation',
         mandatory: true,
@@ -85,6 +91,7 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
         requirement_details: { 'versioning': 'semantic' }
       },
       {
+        id: 'std_cloud_native_observability',
         requirement_type: 'observability',
         description: 'Distributed tracing and metrics collection',
         mandatory: true,
@@ -100,24 +107,28 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
     icon: Shield,
     standards: [
       {
+        id: 'std_security_first_authentication',
         requirement_type: 'authentication',
         description: 'Multi-factor authentication required for all access',
         mandatory: true,
         requirement_details: { 'mfa_methods': ['totp', 'sms', 'hardware_token'] }
       },
       {
+        id: 'std_security_first_encryption',
         requirement_type: 'encryption',
         description: 'Data encryption at rest and in transit',
         mandatory: true,
         requirement_details: { 'at_rest': 'AES-256', 'in_transit': 'TLS 1.3' }
       },
       {
+        id: 'std_security_first_compliance',
         requirement_type: 'compliance',
         description: 'SOC 2 Type II compliance required',
         mandatory: true,
         requirement_details: { 'frameworks': ['SOC2', 'ISO27001'] }
       },
       {
+        id: 'std_security_first_audit',
         requirement_type: 'audit',
         description: 'Comprehensive audit logging and retention',
         mandatory: true,
@@ -133,24 +144,28 @@ const ARCHITECTURE_TEMPLATES: Template[] = [
     icon: Cpu,
     standards: [
       {
+        id: 'std_performance_latency',
         requirement_type: 'latency',
         description: 'API response time under 100ms for 95th percentile',
         mandatory: true,
         requirement_details: { 'p95_latency_ms': 100, 'p99_latency_ms': 500 }
       },
       {
+        id: 'std_performance_caching',
         requirement_type: 'caching',
         description: 'Multi-layer caching strategy implementation',
         mandatory: true,
         requirement_details: { 'cdn': true, 'application_cache': true, 'database_cache': true }
       },
       {
+        id: 'std_performance_database',
         requirement_type: 'database',
         description: 'Database optimization and query performance',
         mandatory: true,
         requirement_details: { 'query_timeout_ms': 1000, 'connection_pooling': true }
       },
       {
+        id: 'std_performance_load_balancing',
         requirement_type: 'load_balancing',
         description: 'Intelligent load balancing with health checks',
         mandatory: true,
@@ -206,13 +221,13 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
                   id={template.id}
                   className="sr-only"
                 />
-                <Label
-                  htmlFor={template.id}
-                  className="cursor-pointer"
-                >
-                  <Card className={`transition-all duration-200 hover:shadow-md ${
+                {/* Fix for issue #638: Remove Label wrapper to prevent click interception */}
+                <Card
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
                     isSelected ? 'ring-2 ring-blue-500 border-blue-200' : ''
-                  }`}>
+                  }`}
+                  onClick={() => handleTemplateSelect(template.id)}
+                >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
@@ -243,8 +258,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
                           Key Requirements ({template.standards.length}):
                         </p>
                         <div className="space-y-1">
-                          {template.standards.slice(0, 3).map((standard, index) => (
-                            <div key={index} className="flex items-center space-x-2">
+                          {template.standards.slice(0, 3).map((standard) => (
+                            <div key={`${template.id}-${standard.requirement_type}`} className="flex items-center space-x-2">
                               <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
                               <span className="text-xs text-gray-600">
                                 {standard.requirement_type}: {standard.description.split('.')[0]}
@@ -263,7 +278,6 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
                       </div>
                     </CardContent>
                   </Card>
-                </Label>
               </div>
             );
           })}

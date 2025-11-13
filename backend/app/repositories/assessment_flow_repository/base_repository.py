@@ -47,7 +47,7 @@ from .commands import (
 )
 
 # Import query handlers
-from .queries import AnalyticsQueries, FlowQueries, StateQueries
+from .queries import AnalyticsQueries, DecisionQueries, FlowQueries, StateQueries
 
 # Import specifications
 from .specifications import FlowSpecifications
@@ -61,8 +61,8 @@ class AssessmentFlowRepository(ContextAwareRepository):
     def __init__(
         self,
         db: AsyncSession,
-        client_account_id: int,
-        engagement_id: Optional[int] = None,
+        client_account_id: str,
+        engagement_id: Optional[str] = None,
         user_id: Optional[str] = None,
     ):
         # Pass the AssessmentFlow model class to the parent constructor
@@ -79,6 +79,7 @@ class AssessmentFlowRepository(ContextAwareRepository):
         self._flow_queries = FlowQueries(db, client_account_id)
         self._analytics_queries = AnalyticsQueries(db, client_account_id)
         self._state_queries = StateQueries(db, client_account_id)
+        self._decision_queries = DecisionQueries(db, client_account_id, engagement_id)
 
         # Initialize specifications
         self._flow_specs = FlowSpecifications(db, client_account_id)
@@ -90,10 +91,11 @@ class AssessmentFlowRepository(ContextAwareRepository):
         engagement_id: str,
         selected_application_ids: List[str],
         created_by: Optional[str] = None,
+        collection_flow_id: Optional[str] = None,
     ) -> str:
         """Create new assessment flow with initial state and register with master flow system"""
         return await self._flow_commands.create_assessment_flow(
-            engagement_id, selected_application_ids, created_by
+            engagement_id, selected_application_ids, created_by, collection_flow_id
         )
 
     async def get_assessment_flow_state(
@@ -101,6 +103,22 @@ class AssessmentFlowRepository(ContextAwareRepository):
     ) -> Optional[AssessmentFlowState]:
         """Get complete assessment flow state with all related data"""
         return await self._flow_queries.get_assessment_flow_state(flow_id)
+
+    async def get_by_flow_id(self, flow_id: str) -> Optional[AssessmentFlow]:
+        """
+        Get raw assessment flow model by ID.
+
+        Lightweight method for operations that only need basic flow data,
+        such as zombie detection. Use get_assessment_flow_state() if you
+        need the full enriched state object.
+
+        Args:
+            flow_id: UUID string of the flow
+
+        Returns:
+            AssessmentFlow model or None if not found
+        """
+        return await self._flow_queries.get_by_flow_id(flow_id)
 
     async def update_flow_phase(
         self,
@@ -142,8 +160,18 @@ class AssessmentFlowRepository(ContextAwareRepository):
         return await self._flow_commands.resume_flow(flow_id, user_input)
 
     async def update_flow_status(self, flow_id: str, status: str):
-        """Update flow status"""
-        await self._flow_commands.update_flow_phase(flow_id, flow_id, status=status)
+        """Update flow status without changing current_phase"""
+        # Get current phase first to preserve it
+        flow_state = await self.get_assessment_flow_state(flow_id)
+        if flow_state and flow_state.current_phase:
+            await self._flow_commands.update_flow_phase(
+                flow_id, flow_state.current_phase, status=status
+            )
+        else:
+            # Fallback if flow not found - don't corrupt current_phase
+            await self._flow_commands.update_flow_phase(
+                flow_id, "initialization", status=status
+            )
 
     # === ARCHITECTURE STANDARDS MANAGEMENT ===
 
@@ -349,6 +377,22 @@ class AssessmentFlowRepository(ContextAwareRepository):
     async def get_flow_analytics(self, flow_id: str) -> Dict[str, Any]:
         """Get analytics data for a flow"""
         return await self._analytics_queries.get_flow_analytics(flow_id)
+
+    async def get_all_sixr_decisions(self, flow_id: str) -> Dict[str, Dict[str, Any]]:
+        """
+        Retrieve all 6R decisions for applications in assessment flow.
+
+        This method queries multiple data sources in priority order:
+        1. phase_results['recommendation_generation']['applications'] (primary)
+        2. assets table where six_r_strategy IS NOT NULL (fallback)
+
+        Args:
+            flow_id: Assessment flow UUID
+
+        Returns:
+            Dict keyed by application_id with 6R decision data
+        """
+        return await self._decision_queries.get_all_sixr_decisions(flow_id)
 
     # === PRIVATE HELPER METHODS ===
 

@@ -53,15 +53,36 @@ class LLMUsageCallback(CustomLogger):
             # Extract metadata
             model = kwargs.get("model", "unknown")
 
-            # Determine provider from model name
-            if "deepinfra" in model.lower():
-                provider = "deepinfra"
-            elif "openai" in model.lower() or "gpt" in model.lower():
-                provider = "openai"
-            elif "anthropic" in model.lower() or "claude" in model.lower():
-                provider = "anthropic"
-            else:
-                provider = "unknown"
+            # Get provider from LiteLLM's own detection (more reliable than parsing model name)
+            # LiteLLM stores the provider it detected in response_obj._hidden_params
+            provider = "unknown"
+            if hasattr(response_obj, "_hidden_params"):
+                provider = response_obj._hidden_params.get(
+                    "custom_llm_provider", "unknown"
+                )
+
+            # Fallback: Try to extract from litellm_params in kwargs
+            if provider == "unknown" and "litellm_params" in kwargs:
+                provider = kwargs["litellm_params"].get(
+                    "custom_llm_provider", "unknown"
+                )
+
+            # Last resort: Determine provider from model name
+            if provider == "unknown":
+                if "deepinfra" in model.lower():
+                    provider = "deepinfra"
+                elif "openai" in model.lower() or "gpt" in model.lower():
+                    provider = "openai"
+                elif "anthropic" in model.lower() or "claude" in model.lower():
+                    provider = "anthropic"
+                else:
+                    # Check if model starts with known provider patterns
+                    if (
+                        model.startswith("meta-llama/")
+                        or model.startswith("google/")
+                        or model.startswith("mistralai/")
+                    ):
+                        provider = "deepinfra"  # DeepInfra hosts these models
 
             # Extract token usage
             usage = getattr(response_obj, "usage", None)
@@ -77,26 +98,56 @@ class LLMUsageCallback(CustomLogger):
                 total_tokens = 0
 
             # Calculate response time
-            response_time_ms = int((end_time - start_time) * 1000)
+            # Fix (Issue #801): Handle both datetime and float timestamps
+            from datetime import datetime, timedelta
+
+            if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            elif isinstance(end_time - start_time, timedelta):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            else:
+                response_time_ms = int((end_time - start_time) * 1000)
 
             # Extract feature context from kwargs
             feature_context = kwargs.get("metadata", {}).get(
                 "feature_context", "crewai"
             )
 
-            # Log asynchronously
-            asyncio.create_task(
-                self._log_usage(
-                    provider=provider,
-                    model=model,
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
-                    total_tokens=total_tokens,
-                    response_time_ms=response_time_ms,
-                    feature_context=feature_context,
-                    success=True,
+            # Log asynchronously - handle both sync and async contexts
+            # (CrewAI may call from either context)
+            try:
+                asyncio.get_running_loop()
+                # We're in an async context - create task
+                asyncio.create_task(
+                    self._log_usage(
+                        provider=provider,
+                        model=model,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        total_tokens=total_tokens,
+                        response_time_ms=response_time_ms,
+                        feature_context=feature_context,
+                        success=True,
+                    )
                 )
-            )
+            except RuntimeError:
+                # No running event loop - we're in sync context
+                # Use asyncio.run() to execute in new loop
+                try:
+                    asyncio.run(
+                        self._log_usage(
+                            provider=provider,
+                            model=model,
+                            input_tokens=input_tokens,
+                            output_tokens=output_tokens,
+                            total_tokens=total_tokens,
+                            response_time_ms=response_time_ms,
+                            feature_context=feature_context,
+                            success=True,
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to log usage in sync context: {e}")
 
             logger.debug(
                 f"LiteLLM success: {provider}/{model}, "
@@ -112,7 +163,27 @@ class LLMUsageCallback(CustomLogger):
         """Called when LiteLLM call fails."""
         try:
             model = kwargs.get("model", "unknown")
-            provider = "deepinfra" if "deepinfra" in model.lower() else "unknown"
+
+            # Use same provider detection logic as success event
+            provider = "unknown"
+            if "litellm_params" in kwargs:
+                provider = kwargs["litellm_params"].get(
+                    "custom_llm_provider", "unknown"
+                )
+
+            if provider == "unknown":
+                if "deepinfra" in model.lower():
+                    provider = "deepinfra"
+                elif "openai" in model.lower() or "gpt" in model.lower():
+                    provider = "openai"
+                elif "anthropic" in model.lower() or "claude" in model.lower():
+                    provider = "anthropic"
+                elif (
+                    model.startswith("meta-llama/")
+                    or model.startswith("google/")
+                    or model.startswith("mistralai/")
+                ):
+                    provider = "deepinfra"
 
             # Get error details
             error_type = type(response_obj).__name__ if response_obj else "UnknownError"
@@ -123,21 +194,42 @@ class LLMUsageCallback(CustomLogger):
                 "feature_context", "crewai"
             )
 
-            # Log asynchronously
-            asyncio.create_task(
-                self._log_usage(
-                    provider=provider,
-                    model=model,
-                    input_tokens=0,
-                    output_tokens=0,
-                    total_tokens=0,
-                    response_time_ms=response_time_ms,
-                    feature_context=feature_context,
-                    success=False,
-                    error_type=error_type,
-                    error_message=error_message,
+            # Log asynchronously - handle both sync and async contexts
+            try:
+                asyncio.get_running_loop()
+                asyncio.create_task(
+                    self._log_usage(
+                        provider=provider,
+                        model=model,
+                        input_tokens=0,
+                        output_tokens=0,
+                        total_tokens=0,
+                        response_time_ms=response_time_ms,
+                        feature_context=feature_context,
+                        success=False,
+                        error_type=error_type,
+                        error_message=error_message,
+                    )
                 )
-            )
+            except RuntimeError:
+                # No running event loop - use asyncio.run()
+                try:
+                    asyncio.run(
+                        self._log_usage(
+                            provider=provider,
+                            model=model,
+                            input_tokens=0,
+                            output_tokens=0,
+                            total_tokens=0,
+                            response_time_ms=response_time_ms,
+                            feature_context=feature_context,
+                            success=False,
+                            error_type=error_type,
+                            error_message=error_message,
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to log failure in sync context: {e}")
 
             logger.warning(
                 f"LiteLLM failure: {provider}/{model}, "
@@ -201,7 +293,22 @@ def setup_litellm_tracking():
 
     try:
         _callback_instance = LLMUsageCallback()
-        litellm.callbacks = [_callback_instance]
+
+        # Use modern LiteLLM callback API (success_callback/failure_callback)
+        # instead of legacy callbacks attribute. This matches the proven pattern
+        # in llm_config.py:154-158 and preserves existing callbacks.
+        # See: https://docs.litellm.ai/docs/observability/custom_callback
+
+        # Register success callback (append to preserve existing callbacks like DeepInfra fixer)
+        if not hasattr(litellm, "success_callback") or litellm.success_callback is None:
+            litellm.success_callback = []
+        litellm.success_callback.append(_callback_instance)
+
+        # Register failure callback (append to preserve existing callbacks)
+        if not hasattr(litellm, "failure_callback") or litellm.failure_callback is None:
+            litellm.failure_callback = []
+        litellm.failure_callback.append(_callback_instance)
+
         logger.info(
             "✅ LiteLLM tracking callback installed - all LLM calls will be logged"
         )

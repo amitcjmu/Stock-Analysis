@@ -23,15 +23,18 @@ from .base import (
     LARGE_STRING_LENGTH,
     IP_ADDRESS_LENGTH,
     MAC_ADDRESS_LENGTH,
-    DEFAULT_MIGRATION_PRIORITY,
-    DEFAULT_STATUS,
-    DEFAULT_MIGRATION_STATUS,
     DEFAULT_CURRENT_PHASE,
     DEFAULT_SOURCE_PHASE,
 )
 from .mixins import AssetPropertiesMixin, AssetBusinessLogicMixin
 from .assessment_fields import AssessmentFieldsMixin
 from .import_fields import ImportFieldsMixin
+from .cmdb_fields import CMDBFieldsMixin
+from .location_fields import LocationFieldsMixin
+from .performance_fields import PerformanceFieldsMixin
+from .discovery_fields import DiscoveryFieldsMixin
+from .business_fields import BusinessFieldsMixin
+from .migration_fields import MigrationFieldsMixin
 
 
 class Asset(
@@ -40,6 +43,12 @@ class Asset(
     AssetBusinessLogicMixin,
     AssessmentFieldsMixin,
     ImportFieldsMixin,
+    CMDBFieldsMixin,
+    LocationFieldsMixin,
+    PerformanceFieldsMixin,
+    DiscoveryFieldsMixin,
+    BusinessFieldsMixin,
+    MigrationFieldsMixin,
 ):
     """
     Represents a single Configuration Item (CI) or asset within the CMDB.
@@ -146,218 +155,127 @@ class Asset(
         nullable=False,
         index=True,
         comment="The primary name of the asset.",
+        info={
+            "display_name": "Asset Name",
+            "short_hint": "Primary asset identifier",
+            "category": "identification",
+        },
     )
     asset_name = Column(
         String(LARGE_STRING_LENGTH),
         nullable=True,
         comment="Alternative or display name for the asset.",
+        info={
+            "display_name": "Display Name",
+            "short_hint": "Friendly display name",
+            "category": "identification",
+        },
     )
     hostname = Column(
         String(LARGE_STRING_LENGTH),
         index=True,
         comment="The hostname of the asset, if applicable.",
+        info={
+            "display_name": "Hostname",
+            "short_hint": "System hostname",
+            "category": "identification",
+        },
     )
     asset_type = Column(
         String(SMALL_STRING_LENGTH),
         nullable=False,
         index=True,
         comment="The type of the asset, from the AssetType enum (e.g., 'server', 'database').",
+        info={
+            "display_name": "Asset Type",
+            "short_hint": "Server / Database / Application / Network Device",
+            "category": "identification",
+        },
     )
     description = Column(
-        Text, comment="A detailed description of the asset and its function."
+        Text,
+        comment="A detailed description of the asset and its function.",
+        info={
+            "display_name": "Description",
+            "short_hint": "Asset description",
+            "category": "identification",
+        },
     )
 
     # Network information
     ip_address = Column(
         String(IP_ADDRESS_LENGTH),
         comment="The primary IP address of the asset (supports IPv6).",
+        info={
+            "display_name": "IP Address",
+            "short_hint": "Primary IP address",
+            "category": "identification",
+        },
     )
     fqdn = Column(
         String(LARGE_STRING_LENGTH),
         comment="The fully qualified domain name of the asset.",
+        info={
+            "display_name": "FQDN",
+            "short_hint": "Fully qualified domain name",
+            "category": "identification",
+        },
     )
     mac_address = Column(
         String(MAC_ADDRESS_LENGTH),
         comment="The MAC address of the asset's primary network interface.",
+        info={
+            "display_name": "MAC Address",
+            "short_hint": "Network MAC address",
+            "category": "identification",
+        },
     )
-
-    # Location and environment
-    environment = Column(
-        String(SMALL_STRING_LENGTH),
-        index=True,
-        comment="The operational environment (e.g., 'Production', 'Development', 'Test').",
-    )
-    location = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The geographical location or region of the asset.",
-    )
-    datacenter = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The datacenter where the asset is hosted.",
-    )
-    rack_location = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="The specific rack location within the datacenter.",
-    )
-    availability_zone = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="The cloud availability zone, if applicable.",
-    )
-
     # Technical specifications (from Azure Migrate)
     operating_system = Column(
         String(MEDIUM_STRING_LENGTH),
         comment="The operating system running on the asset.",
+        info={
+            "display_name": "Operating System",
+            "short_hint": "Windows / Linux / Unix / AIX",
+            "category": "technical",
+        },
     )
     os_version = Column(
-        String(SMALL_STRING_LENGTH), comment="The version of the operating system."
+        String(SMALL_STRING_LENGTH),
+        comment="The version of the operating system.",
+        info={
+            "display_name": "OS Version",
+            "short_hint": "Operating system version",
+            "category": "technical",
+        },
     )
     cpu_cores = Column(
-        Integer, comment="The number of CPU cores allocated to the asset."
+        Integer,
+        comment="The number of CPU cores allocated to the asset.",
+        info={
+            "display_name": "CPU Cores",
+            "short_hint": "Number of cores",
+            "category": "technical",
+        },
     )
     memory_gb = Column(
-        Float, comment="The amount of RAM in gigabytes allocated to the asset."
+        Float,
+        comment="The amount of RAM in gigabytes allocated to the asset.",
+        info={
+            "display_name": "Memory (GB)",
+            "short_hint": "RAM in gigabytes",
+            "category": "technical",
+        },
     )
     storage_gb = Column(
-        Float, comment="The total storage in gigabytes allocated to the asset."
-    )
-
-    # Business information
-    business_owner = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="The name of the business owner or department responsible for the asset.",
-    )
-    technical_owner = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="The name of the technical owner or team responsible for the asset.",
-    )
-    department = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The business department or unit that uses this asset.",
-    )
-    application_name = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="The primary application or service this asset supports.",
-    )
-    technology_stack = Column(
-        String(LARGE_STRING_LENGTH),
-        comment="A summary of the technology stack running on the asset.",
-    )
-    criticality = Column(
-        String(20),
-        comment="The technical criticality of the asset (e.g., 'Low', 'Medium', 'High').",
-    )
-    business_criticality = Column(
-        String(20), comment="The business impact or criticality of the asset."
-    )
-    custom_attributes = Column(
-        JSON,
-        comment="A JSON blob for storing any custom fields or attributes not in the standard schema.",
-    )
-    technical_details = Column(
-        JSON,
-        comment="A JSON blob containing technical details and enrichments for the asset.",
-    )
-
-    # Migration assessment
-    six_r_strategy = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="The recommended 6R migration strategy (e.g., 'Rehost', 'Refactor').",
-    )
-    mapping_status = Column(
-        String(20),
-        index=True,
-        comment="The status of the asset's field mapping during import.",
-    )
-    migration_priority = Column(
-        Integer,
-        default=DEFAULT_MIGRATION_PRIORITY,
-        comment="A priority score (1-10) for migrating this asset.",
-    )
-    migration_complexity = Column(
-        String(20),
-        comment="The assessed complexity of migrating this asset (e.g., 'Low', 'Medium', 'High').",
-    )
-    migration_wave = Column(
-        Integer, comment="The migration wave this asset is assigned to."
-    )
-    sixr_ready = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="Indicates if the asset is ready for 6R analysis (e.g., 'Ready', 'Needs Analysis').",
-    )
-
-    # Status and ownership
-    status = Column(
-        String(SMALL_STRING_LENGTH),
-        default=DEFAULT_STATUS,
-        index=True,
-        comment="The operational status of the asset (e.g., 'active', 'decommissioned', 'maintenance').",
-    )
-    migration_status = Column(
-        String(SMALL_STRING_LENGTH),
-        default=DEFAULT_MIGRATION_STATUS,
-        index=True,
-        comment="The status of the asset within the migration lifecycle (e.g., 'discovered', 'assessed', 'migrated').",
-    )
-
-    # Dependencies and relationships
-    dependencies = Column(
-        JSON, comment="A JSON array of assets that this asset depends on."
-    )
-    related_assets = Column(
-        JSON, comment="A JSON array of other related assets or CIs."
-    )
-
-    # Discovery metadata
-    discovery_method = Column(
-        String(SMALL_STRING_LENGTH),
-        comment="How the asset was discovered (e.g., 'network_scan', 'agent', 'import').",
-    )
-    discovery_source = Column(
-        String(MEDIUM_STRING_LENGTH),
-        comment="The specific tool or system that discovered the asset (e.g., 'ServiceNow', 'Azure Migrate').",
-    )
-    discovery_timestamp = Column(
-        DateTime(timezone=True),
-        comment="Timestamp of when the asset was last discovered or updated.",
-    )
-
-    # Performance and utilization (from Azure Migrate)
-    cpu_utilization_percent = Column(
-        Float, comment="The average CPU utilization percentage."
-    )
-    memory_utilization_percent = Column(
-        Float, comment="The average memory utilization percentage."
-    )
-    disk_iops = Column(
-        Float, comment="The average disk Input/Output Operations Per Second."
-    )
-    network_throughput_mbps = Column(
-        Float, comment="The average network throughput in megabits per second."
-    )
-
-    # Data quality metrics
-    completeness_score = Column(
-        Float, comment="A score indicating how complete the asset's data is."
-    )
-    quality_score = Column(
-        Float, comment="An overall data quality score for the asset record."
-    )
-    confidence_score = Column(
         Float,
-        comment="A confidence score (0.0-1.0) indicating reliability of asset data.",
+        comment="The total storage in gigabytes allocated to the asset.",
+        info={
+            "display_name": "Storage (GB)",
+            "short_hint": "Total storage in gigabytes",
+            "category": "technical",
+        },
     )
-
-    # Cost information
-    current_monthly_cost = Column(
-        Float,
-        comment="The estimated current monthly cost of running the asset on-premises.",
-    )
-    estimated_cloud_cost = Column(
-        Float, comment="The estimated monthly cost of running the asset in the cloud."
-    )
-
-    # Import and assessment fields are now provided by mixins
 
     # Audit fields
     created_at = Column(
@@ -383,6 +301,21 @@ class Asset(
         comment="The user who last updated this asset record.",
     )
 
+    # Soft Delete Fields (Issue #912)
+    deleted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None,
+        comment="Timestamp when the asset was soft deleted (NULL if active).",
+    )
+    deleted_by = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+        default=None,
+        comment="User ID who performed the soft delete.",
+    )
+
     # Relationships
     client_account = relationship("ClientAccount")
     migration = relationship("Migration", back_populates="assets")
@@ -397,6 +330,41 @@ class Asset(
     )
     # field_conflicts = relationship("AssetFieldConflict", back_populates="asset")
     # Removed - causing circular dependency
+
+    # Enrichment relationships (1:1) - PHASE 2 Bug #679
+    # Eager loading with selectinload for intelligent gap detection
+    resilience = relationship(
+        "AssetResilience",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    compliance_flags = relationship(
+        "AssetComplianceFlags",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    vulnerabilities = relationship(
+        "AssetVulnerabilities",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    licenses = relationship(
+        "AssetLicenses",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    eol_assessments = relationship(
+        "AssetEOLAssessment",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    contacts = relationship(
+        "AssetContact",
+        back_populates="asset",
+        lazy="selectin",
+    )
 
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"

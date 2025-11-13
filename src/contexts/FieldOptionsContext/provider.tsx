@@ -3,28 +3,75 @@
  * React context provider for field options state management
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { FieldOptionsContext } from './context';
-import { ASSET_TARGET_FIELDS } from './constants';
 import type { TargetField } from './types';
+import { useAuth } from '../AuthContext';
+import { apiCall } from '@/config/api';
 
 interface FieldOptionsProviderProps {
   children: ReactNode;
 }
 
 export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ children }) => {
-  // Use hardcoded fields directly - no API calls needed
-  const [availableFields] = useState<TargetField[]>(ASSET_TARGET_FIELDS);
-  const [isLoading] = useState(false); // Always false since no API calls
-  const [error] = useState<string | null>(null); // Always null since no API calls
-  const [lastUpdated] = useState<Date | null>(new Date()); // Always current time
+  const { client, engagement } = useAuth();
+  const [availableFields, setAvailableFields] = useState<TargetField[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  console.log('✅ FieldOptionsProvider - Using hardcoded asset fields list with', ASSET_TARGET_FIELDS.length, 'fields');
+  const fetchFields = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Small delay to ensure API context is synchronized
+      // This allows useApiContextSync to update the global context before we make the API call
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Use apiCall utility which handles environment-specific URLs (localhost/Vercel/Railway)
+      const data = await apiCall('/data-import/available-target-fields', {
+        method: 'GET',
+      });
+
+      if (data.fields && Array.isArray(data.fields)) {
+        setAvailableFields(data.fields);
+        setLastUpdated(new Date());
+        console.log(`✅ FieldOptionsProvider: Loaded ${data.fields.length} available fields`);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (err) {
+      console.error('Failed to fetch available fields:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setAvailableFields([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Only fetch if we have both client and engagement context
+    if (client?.id && engagement?.id) {
+      console.log('FieldOptionsProvider: Fetching fields for context:', {
+        clientId: client.id,
+        engagementId: engagement.id
+      });
+      fetchFields();
+    } else {
+      console.warn('FieldOptionsProvider: Skipping fetch - missing client or engagement context', {
+        hasClient: !!client?.id,
+        hasEngagement: !!engagement?.id
+      });
+      // Reset fields when context is incomplete
+      setAvailableFields([]);
+      setIsLoading(false);
+    }
+  }, [client, engagement]); // Changed: Listen to full objects, not just IDs
 
   const refetchFields = async () =>  {
-    console.log('🔄 FieldOptionsProvider - Refetch requested but using hardcoded fields');
-    // No-op since we're using hardcoded fields
+    await fetchFields();
   };
 
   return (

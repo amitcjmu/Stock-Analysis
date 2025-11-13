@@ -18,8 +18,10 @@ interface CollectionFlowDetails {
   status: string;
   current_phase: string;
   progress: number;
+  assessment_flow_id?: string; // OPTION 3: Track if flow came from assessment
   collection_config?: {
     selected_application_ids?: string[];
+    missing_attributes?: Record<string, string[]>; // OPTION 3: Pre-populated gaps
   };
   metadata?: {
     selected_asset_ids?: string[];
@@ -55,9 +57,70 @@ const GapAnalysis: React.FC = () => {
         }
 
         setFlowDetails(flow);
+
+        // OPTION 3: Auto-redirect to questionnaire if flow came from assessment
+        // Skip gap analysis page when assessment_flow_id is present and gaps are pre-populated
+        const assessmentFlowId = (flow as CollectionFlowDetails).assessment_flow_id;
+        const missingAttributes = flow.collection_config?.missing_attributes || {};
+        const shouldSkipGapAnalysis = !!(
+          assessmentFlowId &&
+          Object.keys(missingAttributes).length > 0 &&
+          flow.current_phase === 'gap_analysis'
+        );
+
+        if (shouldSkipGapAnalysis) {
+          console.log(
+            `🔄 OPTION 3: Auto-advancing from gap_analysis to questionnaire ` +
+            `(flow came from assessment flow ${assessmentFlowId})`
+          );
+
+          // Auto-continue the flow to advance phase (backend will auto-advance)
+          try {
+            const continueResult = await collectionFlowApi.continueFlow(flowId);
+            const nextPhase = continueResult.current_phase || 'manual_collection';
+
+            console.log(`✅ Flow auto-advanced to phase: ${nextPhase}`);
+
+            // Navigate to adaptive forms (questionnaire page)
+            const route = `/collection/adaptive-forms?flowId=${flowId}`;
+            console.log(`📍 Navigating to questionnaire: ${route}`);
+            navigate(route);
+
+            toast({
+              title: "Proceeding to Questionnaire",
+              description: "Gap analysis skipped - proceeding directly to data collection",
+              variant: "default"
+            });
+            return; // Exit early to prevent showing gap analysis page
+          } catch (continueError) {
+            console.error('Failed to auto-advance flow:', continueError);
+            // Fall through to show gap analysis page if auto-advance fails
+            toast({
+              title: "Auto-advance Failed",
+              description: "Could not skip gap analysis. Showing gap analysis page.",
+              variant: "default"
+            });
+          }
+        }
       } catch (err: unknown) {
         console.error('Failed to load flow details:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load flow details';
+
+        // Bug #799 Fix: Enhanced error handling based on error type
+        let errorMessage = 'Failed to load flow details';
+
+        if (err instanceof Error) {
+          const msg = err.message.toLowerCase();
+          if (msg.includes('404') || msg.includes('not found')) {
+            errorMessage = `Collection flow not found (ID: ${flowId}). The flow may have been deleted or the URL is invalid.`;
+          } else if (msg.includes('403') || msg.includes('unauthorized') || msg.includes('forbidden')) {
+            errorMessage = 'You do not have permission to access this collection flow.';
+          } else if (msg.includes('500') || msg.includes('server error')) {
+            errorMessage = 'Server error while loading flow. Please try again or contact support.';
+          } else {
+            errorMessage = err.message;
+          }
+        }
+
         setError(errorMessage);
       } finally {
         setIsLoading(false);

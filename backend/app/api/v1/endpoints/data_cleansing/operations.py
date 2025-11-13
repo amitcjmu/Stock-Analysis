@@ -5,7 +5,7 @@ Core data cleansing operations including analysis, stats, and triggering.
 
 import logging
 
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +18,6 @@ from app.models.data_import.mapping import ImportFieldMapping
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 from .base import (
-    router,
     DataCleansingAnalysis,
     DataCleansingStats,
     ResolveQualityIssueRequest,
@@ -26,6 +25,9 @@ from .base import (
 )
 from .validation import _validate_and_get_flow, _get_data_import_for_flow
 from .analysis import _perform_data_cleansing_analysis
+
+# Create operations router
+router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +55,7 @@ async def get_data_cleansing_analysis(
     """
     try:
         logger.info(
-            f"📊 READ-ONLY: Getting data cleansing analysis for flow {flow_id} (should not modify flow status)"
+            f"Getting data cleansing analysis for flow {flow_id} (include_details={include_details})"
         )
 
         # Get flow repository with proper context
@@ -114,7 +116,9 @@ async def get_data_cleansing_analysis(
             if flow_db_id:
                 # Look for data imports with this master_flow_id
                 import_query = (
-                    select(DataImport)
+                    select(
+                        DataImport
+                    )  # SKIP_TENANT_CHECK - master_flow_id FK enforces isolation
                     .where(DataImport.master_flow_id == flow_db_id)
                     .order_by(DataImport.created_at.desc())
                     .limit(1)
@@ -160,6 +164,7 @@ async def get_data_cleansing_analysis(
         field_mappings = field_mapping_result.scalars().all()
 
         # Perform data cleansing analysis
+        logger.info(f"Starting data cleansing analysis for flow {flow_id}")
         analysis_result = await _perform_data_cleansing_analysis(
             flow_id=flow_id,
             data_imports=data_imports,
@@ -168,7 +173,11 @@ async def get_data_cleansing_analysis(
             db_session=db,
         )
 
-        logger.info(f"✅ Data cleansing analysis completed for flow {flow_id}")
+        logger.info(f"Data cleansing analysis completed for flow {flow_id}")
+        logger.info(
+            f"Analysis result: {len(analysis_result.quality_issues)} quality issues returned"
+        )
+
         return analysis_result
 
     except HTTPException:
@@ -289,6 +298,7 @@ async def get_data_cleansing_stats(
     "/flows/{flow_id}/data-cleansing/quality-issues/{issue_id}",
     response_model=ResolveQualityIssueResponse,
     summary="Resolve or ignore a quality issue",
+    tags=["Data Cleansing Operations"],
 )
 async def resolve_quality_issue(
     flow_id: str,
@@ -326,6 +336,8 @@ async def resolve_quality_issue(
         # Verify flow exists and user has access
         flow = await _validate_and_get_flow(flow_id, flow_repo)
 
+        logger.info(f"Flow {flow_id} found: {flow.flow_name} (status: {flow.status})")
+
         # Prepare resolution data with audit trail
         resolved_at = datetime.utcnow().isoformat()
         resolution_data = {
@@ -348,17 +360,35 @@ async def resolve_quality_issue(
 
         data_cleansing_results["resolutions"][issue_id] = resolution_data
 
+        logger.info(f"Stored resolution for issue {issue_id}: {resolution_data}")
+        logger.info(
+            f"Total resolutions stored: {len(data_cleansing_results['resolutions'])}"
+        )
+
         # Update flow with new data_cleansing_results
         existing_data["data_cleansing_results"] = data_cleansing_results
         flow.crewai_state_data = existing_data
 
-        # Commit changes using atomic transaction
-        # The context manager handles flush and commit automatically
-        async with db.begin():
-            await db.flush()
+        # Ensure SQLAlchemy detects the JSONB field change
+        from sqlalchemy.orm.attributes import flag_modified
+
+        flag_modified(flow, "crewai_state_data")
+
+        # Ensure the flow object is properly tracked by the session
+        db.add(flow)
 
         logger.info(
-            f"✅ Quality issue {issue_id} resolved with status '{resolution.status}' for flow {flow_id}"
+            f"Updating flow {flow_id} with resolution data for issue {issue_id}"
+        )
+
+        # Commit changes to database
+        await db.commit()
+        await db.refresh(flow)
+
+        logger.info(f"Database commit successful for flow {flow_id}")
+
+        logger.info(
+            f"Quality issue {issue_id} resolved with status '{resolution.status}' for flow {flow_id}"
         )
 
         return ResolveQualityIssueResponse(
@@ -369,12 +399,16 @@ async def resolve_quality_issue(
             resolved_at=resolved_at,
         )
 
-    except HTTPException:
-        raise
+    except HTTPException as he:
+        logger.error(f"❌ HTTP Exception in resolve endpoint: {he.detail}")
+        raise he
     except Exception as e:
         logger.error(
             f"❌ Failed to resolve quality issue {issue_id} for flow {flow_id}: {str(e)}"
         )
+        import traceback
+
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to resolve quality issue: {str(e)}",

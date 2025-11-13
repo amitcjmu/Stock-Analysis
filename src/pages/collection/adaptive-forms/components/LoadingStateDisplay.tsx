@@ -19,6 +19,7 @@ interface LoadingStateDisplayProps {
   onRetry: () => void;
   onRefresh: () => void;
   onInitialize: () => void;
+  onCheckStatus?: () => void; // Manual status check for pending questionnaires
 }
 
 export const LoadingStateDisplay: React.FC<LoadingStateDisplayProps> = ({
@@ -31,6 +32,7 @@ export const LoadingStateDisplay: React.FC<LoadingStateDisplayProps> = ({
   onRetry,
   onRefresh,
   onInitialize,
+  onCheckStatus,
 }) => {
   // Check if there's an error
   if (error && !isLoading) {
@@ -74,21 +76,42 @@ export const LoadingStateDisplay: React.FC<LoadingStateDisplayProps> = ({
           <CollectionPageLayout
             title="Adaptive Data Collection"
             description="Generating intelligent questionnaire..."
-            isLoading={true}
-            loadingMessage={statusLine || "Our AI agents are analyzing your environment to generate a tailored questionnaire..."}
-            loadingSubMessage="This typically takes 30-60 seconds. Please wait while we create questions specific to your needs."
           >
-            <div className="flex flex-col items-center space-y-4 mt-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <div className="text-center max-w-md">
-                <p className="text-sm text-gray-600">
-                  AI agents are reviewing your selected assets and generating contextual questions...
+            <div className="flex flex-col items-center space-y-6 mt-8">
+              <div className="text-center max-w-2xl">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-6"></div>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                  Generating Questionnaire
+                </h2>
+                <p className="text-lg text-gray-700 mb-2">
+                  {statusLine || "AI is generating your adaptive questionnaire..."}
+                </p>
+                <p className="text-sm text-gray-600 mb-6">
+                  This typically takes 30-60 seconds
                 </p>
                 {isPolling && (
-                  <p className="text-xs text-blue-600 mt-2">
-                    Status updates every 5 seconds
+                  <p className="text-xs text-blue-600 mb-4">
+                    Automatic status updates every 5 seconds
                   </p>
                 )}
+              </div>
+              <div className="flex space-x-4">
+                {onCheckStatus && (
+                  <Button
+                    onClick={onCheckStatus}
+                    size="lg"
+                    variant="default"
+                  >
+                    Check if Ready
+                  </Button>
+                )}
+                <Button
+                  onClick={onRefresh}
+                  size="lg"
+                  variant="outline"
+                >
+                  Refresh Page
+                </Button>
               </div>
             </div>
           </CollectionPageLayout>

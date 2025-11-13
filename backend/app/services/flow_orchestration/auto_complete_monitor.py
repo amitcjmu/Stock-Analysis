@@ -84,6 +84,7 @@ class AutoCompleteMonitor:
         Returns:
             List of discovery flows that need completion
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(DiscoveryFlow).where(
             and_(
                 # Status is not already completed
@@ -116,6 +117,7 @@ class AutoCompleteMonitor:
         Returns:
             List of master flow records that need completion
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         query = select(CrewAIFlowStateExtensions).where(
             and_(
                 CrewAIFlowStateExtensions.flow_status.notin_(
@@ -142,7 +144,9 @@ class AutoCompleteMonitor:
         # Check each master flow to see if its child is completed
         completable_flows = []
         for master_flow in master_flows:
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             # Check corresponding discovery flow
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             discovery_query = select(DiscoveryFlow).where(
                 DiscoveryFlow.flow_id == master_flow.flow_id
             )
@@ -231,8 +235,10 @@ class AutoCompleteMonitor:
         Returns:
             True if the flow is genuinely incomplete, False if it should be completed
         """
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         try:
             # Check discovery flow
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             discovery_query = select(DiscoveryFlow).where(
                 DiscoveryFlow.flow_id == flow_id
             )

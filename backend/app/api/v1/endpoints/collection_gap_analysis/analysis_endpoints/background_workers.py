@@ -134,12 +134,41 @@ async def process_gap_enhancement_job(
             logger.info(f"✅ Job {job_id}: Enhancement complete")
 
     except Exception as e:
-        logger.error(f"❌ Job {job_id} failed: {e}", exc_info=True)
+        # Bug #892 Fix: Capture detailed error information for user feedback
+        error_type = type(e).__name__
+        error_message = str(e)
+
+        logger.error(
+            f"❌ Job {job_id} failed - {error_type}: {error_message}", exc_info=True
+        )
+
+        # Categorize error for better user messaging
+        if "timeout" in error_message.lower() or "TimeoutError" in error_type:
+            user_message = (
+                "LLM API request timed out. Please try again with fewer assets or gaps."
+            )
+            error_category = "timeout"
+        elif "connection" in error_message.lower() or "ConnectionError" in error_type:
+            user_message = "Connection to AI service failed. Please check your network and try again."
+            error_category = "connection"
+        elif "no assets" in error_message.lower():
+            user_message = "No assets found for analysis. Please ensure assets are properly selected."
+            error_category = "no_assets"
+        elif "authentication" in error_message.lower() or "401" in error_message:
+            user_message = "AI service authentication failed. Please contact support."
+            error_category = "auth"
+        else:
+            user_message = f"Enhancement failed: {error_message}"
+            error_category = "unknown"
+
         await update_job_state(
             collection_flow_id,
             {
                 "status": "failed",
-                "error": str(e),
+                "error": error_message,
+                "error_type": error_type,
+                "error_category": error_category,
+                "user_message": user_message,
             },
         )
 

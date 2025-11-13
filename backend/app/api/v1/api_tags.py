@@ -27,6 +27,7 @@ class APITags:
     IMPORT_STORAGE = "Import Storage"
     IMPORT_RETRIEVAL = "Import Retrieval"
     ASSET_PROCESSING = "Asset Processing"
+    CANONICAL_APPLICATIONS = "Canonical Applications"
     CRITICAL_ATTRIBUTES = "Critical Attributes"
     CLEAN_API = "Clean API"
 
@@ -55,6 +56,9 @@ class APITags:
 
     # Assessment & Workflow
     ASSESSMENT_FLOW_MANAGEMENT = "Assessment Flow Management"
+    ASSESSMENT_FLOW_READINESS = "Assessment Flow - Readiness"
+    ASSESSMENT_FLOW_RECOMMENDATIONS = "Assessment Flow - Recommendations"
+    ASSESSMENT_FLOW_EXPORT = "Assessment Flow - Export"
     ARCHITECTURE_STANDARDS = "Architecture Standards"
     COMPONENT_ANALYSIS = "Component Analysis"
     TECH_DEBT_ANALYSIS = "Tech Debt Analysis"
@@ -65,18 +69,31 @@ class APITags:
     UNIFIED_DISCOVERY = "Unified Discovery"
     COLLECTION_FLOW = "Collection Flow"
     COLLECTION_GAP_ANALYSIS = "Collection Gap Analysis"
+    COLLECTION_BULK_OPERATIONS = "Collection Bulk Operations"
+    COLLECTION_QUESTIONS = "Collection Questions"
+    COLLECTION_IMPORT = "Collection Import"
     DEPENDENCY_ANALYSIS = "Dependency Analysis"
     AGENT_INSIGHTS = "Agent Insights"
+
+    # Planning
+    PLANNING_FLOW = "Planning Flow"
+
+    # Decommission
+    DECOMMISSION = "Decommission"
 
     # System
     SYSTEM_HEALTH = "System Health"
     EMERGENCY_CONTROL = "Emergency Control"
     WEBSOCKET_CACHE = "WebSocket Cache"
     CACHED_CONTEXT = "Cached Context"
+    CONTEXT_ESTABLISHMENT = "Context Establishment"
 
     # Legacy/Migration
     LEGACY_UPLOAD = "Legacy Upload"
     QUALITY_ANALYSIS = "Quality Analysis"
+
+    # Asset Management
+    ASSETS = "Assets"
 
     @classmethod
     def get_all_tags(cls) -> list[str]:

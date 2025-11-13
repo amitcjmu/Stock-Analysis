@@ -13,9 +13,10 @@ logger = logging.getLogger(__name__)
 class FieldMappingCreator:
     """Utility for creating field mapping records."""
 
-    def __init__(self, db_session):
-        """Initialize with database session."""
+    def __init__(self, db_session, context):
+        """Initialize with database session and request context."""
         self.db = db_session
+        self.context = context
 
     def create_field_mapping(
         self,
@@ -77,6 +78,7 @@ class FieldMappingCreator:
         mapping = ImportFieldMapping(
             data_import_id=import_uuid,
             client_account_id=client_account_uuid,
+            engagement_id=self.context.engagement_id,
             source_field=source_field,
             target_field=target_field,
             match_type=match_type,

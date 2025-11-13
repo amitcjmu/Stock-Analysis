@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import type { AssetInventory, InventoryProgress } from '../types/inventory.types';
+import type { Asset } from '../../../types/asset';
+import type { InventoryProgress } from '../types/inventory.types';
 
-export const useInventoryProgress = (assets: AssetInventory[] = []): InventoryProgress => {
+export const useInventoryProgress = (assets: Asset[] = []): InventoryProgress => {
   return useMemo(() => {
     // Ensure assets is a valid array
     const safeAssets = assets || [];

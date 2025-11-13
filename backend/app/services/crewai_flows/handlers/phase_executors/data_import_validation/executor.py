@@ -108,6 +108,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             # 🔧 CC FIX + Bug #579: Sync phase completion to discovery flow database
             # Also updates data_imports status to "completed" in same transaction
             await self._sync_phase_completion_to_database("data_import", True)
+            logger.info("✅ Data import phase marked as completed in database")
         else:
             # Only log failure if validation actually failed
             if not reason:
@@ -447,6 +448,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                         from app.models.discovery_flow import DiscoveryFlow
                         from sqlalchemy import select
 
+                        # SKIP_TENANT_CHECK - Service-level query
                         stmt = select(DiscoveryFlow).where(
                             DiscoveryFlow.flow_id == str(flow_id)
                         )
@@ -461,12 +463,13 @@ class DataImportValidationExecutor(BasePhaseExecutor):
 
                     if import_id:
                         from app.models.data_import import DataImport
-                        from app.services.data_import.storage_manager.import_commands import (
-                            ImportCommandsMixin,
+                        from app.services.data_import.storage_manager import (
+                            ImportStorageManager,
                         )
                         from sqlalchemy import select
                         from uuid import UUID
 
+                        # SKIP_TENANT_CHECK - Service-level/monitoring query
                         stmt = select(DataImport).where(
                             DataImport.id == UUID(import_id)
                         )
@@ -474,10 +477,10 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                         data_import = result.scalar_one_or_none()
 
                         if data_import:
-                            import_commands = ImportCommandsMixin(
+                            storage_manager = ImportStorageManager(
                                 db, str(context.client_account_id)
                             )
-                            await import_commands.update_import_status(
+                            await storage_manager.update_import_status(
                                 data_import=data_import,
                                 status="completed",
                                 total_records=data_import.total_records or 0,

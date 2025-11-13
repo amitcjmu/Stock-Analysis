@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
 import type { useAuth } from '@/contexts/AuthContext';
+import { debugLog, debugWarn, debugError } from '@/utils/debug';
 
 interface CollectionFlow {
   flow_id?: string;
@@ -82,7 +83,7 @@ export const useFlowLifecycle = ({
       });
     },
     (error) => {
-      console.error('Flow deletion failed:', error);
+      debugError('Flow deletion failed:', error);
 
       // On error, unhide all flows that were being deleted
       deletionState.candidates.forEach((flowId) => {
@@ -106,13 +107,13 @@ export const useFlowLifecycle = ({
   const handleContinueFlow = async (flowId: string): Promise<void> => {
     try {
       if (!flowId) {
-        console.error('Cannot continue flow: flowId is missing');
+        debugError('Cannot continue flow: flowId is missing');
         return;
       }
       // Navigate to adaptive forms page with flowId to resume the flow
       navigate(`/collection/adaptive-forms?flowId=${encodeURIComponent(flowId)}`);
     } catch (error) {
-      console.error('Failed to continue collection flow:', error);
+      debugError('Failed to continue collection flow:', error);
     }
   };
 

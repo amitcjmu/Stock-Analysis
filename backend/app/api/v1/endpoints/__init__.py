@@ -13,8 +13,8 @@ from . import (
     chat,
     context,
     data_import,
+    field_mapping,
     flow_processing,
-    sixr_analysis,
 )
 from .agents import router as agents_router
 
@@ -22,7 +22,7 @@ from .agents import router as agents_router
 from .monitoring_main import router as monitoring_router
 
 # Expose the routers for the main api.py to collect
-sixr_router = sixr_analysis.router
+# sixr_router removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
 # discovery_router removed - functionality moved to unified_discovery
 asset_inventory_router = asset_inventory.router
 monitoring_router = monitoring_router  # Use the imported monitoring_router
@@ -38,3 +38,4 @@ assessment_events_router = assessment_events.router
 agents_router = agents_router  # Use the imported agents_router
 analysis_router = analysis.router
 asset_workflow_router = asset_workflow.router
+field_mapping_router = field_mapping.router

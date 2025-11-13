@@ -21,7 +21,7 @@ class CleanupUtils:
         # Base flow data
         size += len(str(flow.flow_metadata)) if flow.flow_metadata else 0
         size += len(str(flow.collection_config)) if flow.collection_config else 0
-        size += len(str(flow.phase_state)) if flow.phase_state else 0
+        # Per ADR-028: phase_state field removed from collection_flow
         size += len(str(flow.user_inputs)) if flow.user_inputs else 0
         size += len(str(flow.phase_results)) if flow.phase_results else 0
         size += len(str(flow.agent_insights)) if flow.agent_insights else 0

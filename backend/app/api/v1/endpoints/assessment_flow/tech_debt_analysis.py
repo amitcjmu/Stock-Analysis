@@ -1,10 +1,12 @@
 """
 Tech debt analysis endpoints for assessment flows.
 Handles tech debt analysis retrieval and updates.
+Uses MFO integration layer per ADR-006 (Master Flow Orchestrator pattern).
 """
 
 import logging
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +17,9 @@ from app.core.security.secure_logging import safe_log_format
 from app.core.database import get_db
 from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 from app.schemas.assessment_flow import TechDebtUpdates
+
+# Import MFO integration functions (per ADR-006)
+from .mfo_integration import get_assessment_status_via_mfo
 
 # Import utilities
 try:
@@ -38,17 +43,21 @@ async def get_tech_debt_analysis(
     client_account_id: str = Depends(verify_client_access),
 ):
     """
-    Get tech debt analysis for all or specific application.
+    Get tech debt analysis for all or specific application via MFO.
 
     - **flow_id**: Assessment flow identifier
     - **app_id**: Optional specific application ID filter
     - Returns tech debt analysis results
+    - Uses MFO integration (ADR-006) to verify flow existence
     """
     try:
-        repository = AssessmentFlowRepository(db, client_account_id)
-
-        if not await repository.flow_exists(flow_id):
+        # Verify flow exists via MFO (checks both master and child tables)
+        try:
+            await get_assessment_status_via_mfo(UUID(flow_id), db)
+        except ValueError:
             raise HTTPException(status_code=404, detail="Assessment flow not found")
+
+        repository = AssessmentFlowRepository(db, client_account_id)
 
         if app_id:
             tech_debt = await repository.get_tech_debt_analysis(flow_id, app_id)
@@ -78,13 +87,18 @@ async def update_tech_debt_analysis(
     client_account_id: str = Depends(verify_client_access),
 ):
     """
-    Update tech debt analysis for specific application.
+    Update tech debt analysis for specific application via MFO.
 
     - **flow_id**: Assessment flow identifier
     - **app_id**: Application identifier
     - **tech_debt_items**: Updated tech debt analysis
+    - Uses MFO integration (ADR-006) to verify flow existence
     """
     try:
+        # Get flow state via MFO (checks both master and child tables)
+        _ = await get_assessment_status_via_mfo(UUID(flow_id), db)
+
+        # Also get child flow for application_ids validation
         repository = AssessmentFlowRepository(db, client_account_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
 

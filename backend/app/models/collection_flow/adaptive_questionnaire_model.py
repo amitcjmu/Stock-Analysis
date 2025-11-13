@@ -52,11 +52,20 @@ class AdaptiveQuestionnaire(Base):
         index=True,
     )
 
-    # Flow relationship
+    # Flow relationship (nullable for asset-based questionnaires)
     collection_flow_id = Column(
         UUID(as_uuid=True),
         ForeignKey("collection_flows.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,  # Made nullable per migration 128 for asset-based deduplication
+        index=True,
+    )
+
+    # Asset relationship (for cross-flow questionnaire deduplication)
+    # One questionnaire per (engagement_id, asset_id) - reused across flows
+    asset_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assets.id", ondelete="CASCADE"),
+        nullable=True,  # Nullable during migration, will become required
         index=True,
     )
 
@@ -86,7 +95,7 @@ class AdaptiveQuestionnaire(Base):
     # Response tracking
     completion_status = Column(
         String(50), nullable=False, default="pending"
-    )  # pending, in_progress, completed, failed
+    )  # pending, ready, in_progress, completed, failed
     responses_collected = Column(JSONB, nullable=False, default=dict)
 
     # Template metadata
@@ -147,7 +156,12 @@ class AdaptiveQuestionnaire(Base):
             "id": str(self.id),
             "client_account_id": str(self.client_account_id),
             "engagement_id": str(self.engagement_id),
-            "collection_flow_id": str(self.collection_flow_id),
+            "collection_flow_id": (
+                str(self.collection_flow_id) if self.collection_flow_id else None
+            ),
+            "asset_id": (
+                str(self.asset_id) if self.asset_id else None
+            ),  # Added for deduplication
             "title": self.title,
             "description": self.description,
             "template_name": self.template_name,

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ApplicationDeduplicationManager } from '@/components/collection/application-input/ApplicationDeduplicationManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { ApiClient } from '@/services/ApiClient';
@@ -32,48 +32,51 @@ interface AssetResolutionBannerProps {
  * Per docs/planning/dependency-to-assessment/README.md lines 184-234
  */
 export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ flowId }) => {
-  const { client, engagement } = useAuth();
+  const { client, engagement, user } = useAuth();
   const queryClient = useQueryClient();
   const [showManager, setShowManager] = useState(false);
   const [selectedApplications, setSelectedApplications] = useState<CanonicalApplicationSelection[]>([]);
 
   // Query unmapped assets from collection API
-  const { data: unmappedAssets, isLoading } = useQuery({
+  const { data: unmappedAssets, isLoading, refetch } = useQuery({
     queryKey: ['unmapped-assets', flowId, client?.id, engagement?.id],
     queryFn: async (): Promise<UnmappedAsset[]> => {
-      if (!client?.id || !engagement?.id) {
-        console.warn('AssetResolutionBanner: Missing client/engagement context');
+      if (!client?.id || !engagement?.id || !user?.id) {
+        console.warn('AssetResolutionBanner: Missing client/engagement/user context');
         return [];
       }
 
       try {
-        // CRITICAL FIX: flowId is assessment flow ID, not collection flow ID
-        // Use new endpoint that looks up source collection from assessment metadata
-        const response = await apiClient.get<UnmappedAsset[]>(
+        // Bug #628 Fix: Use ApiClient with multi-tenant headers instead of raw fetch()
+        // Bug #801 Fix: Add X-User-ID header required by RequestContextEnforcementMiddleware
+        // This ensures proper authentication and multi-tenant security headers are included
+        const data = await apiClient.get<UnmappedAsset[]>(
           `/collection/assessment/${flowId}/unmapped-assets`,
           {
             headers: {
-              'X-Client-Account-ID': client.id,
-              'X-Engagement-ID': engagement.id,
-              'Content-Type': 'application/json',
-            },
+              'X-Client-Account-Id': client.id.toString(),
+              'X-Engagement-Id': engagement.id.toString(),
+              'X-User-ID': user.id.toString(),
+            }
           }
         );
 
-        return Array.isArray(response) ? response : [];
-      } catch (error) {
+        return Array.isArray(data) ? data : [];
+      } catch (error: any) {
+        // Handle 404/401 gracefully by hiding banner
+        if (error?.response?.status === 404 || error?.response?.status === 401) {
+          console.warn(`Unmapped assets endpoint returned ${error.response.status} - hiding banner`);
+          return [];
+        }
         console.error('Failed to fetch unmapped assets:', error);
         // Return empty array on error to hide banner gracefully
         return [];
       }
     },
-    enabled: !!flowId && !!client?.id && !!engagement?.id,
+    enabled: !!flowId && !!client?.id && !!engagement?.id && !!user?.id,
     staleTime: 30000, // 30s cache
-    refetchInterval: (data) => {
-      // Refresh more frequently if we have unmapped assets
-      if (!data || data.length === 0) return false;
-      return 15000; // 15s when assets need resolution
-    },
+    // Bug #730 fix - Remove automatic polling, use manual refresh instead
+    refetchInterval: false,
   });
 
   const handleComplete = async () => {
@@ -116,7 +119,7 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
                 Use the deduplication manager to link assets to canonical applications or create new
                 applications as needed.
               </p>
-              <div className="mt-3">
+              <div className="mt-3 flex gap-2">
                 <Button
                   variant="default"
                   size="sm"
@@ -124,6 +127,19 @@ export const AssetResolutionBanner: React.FC<AssetResolutionBannerProps> = ({ fl
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   Resolve {unmappedAssets.length} Asset{unmappedAssets.length > 1 ? 's' : ''}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">Refresh</span>
                 </Button>
               </div>
             </div>

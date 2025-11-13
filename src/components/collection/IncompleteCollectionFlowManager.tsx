@@ -281,7 +281,7 @@ export const IncompleteCollectionFlowManager: React.FC<IncompleteCollectionFlowM
                   {/* Action buttons */}
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center space-x-2">
-                      {(flow.can_resume !== false && flow.status !== 'failed') && (
+                      {(flow.can_resume !== false && flow.status !== 'failed' && flow.status !== 'completed') && (
                         <Button
                           size="sm"
                           onClick={() => onContinueFlow(flow.id)}

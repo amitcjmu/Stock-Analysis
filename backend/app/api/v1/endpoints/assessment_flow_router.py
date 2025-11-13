@@ -18,6 +18,12 @@ from .assessment_flow.component_analysis import router as component_router
 from .assessment_flow.tech_debt_analysis import router as tech_debt_router
 from .assessment_flow.sixr_decisions import router as sixr_router
 from .assessment_flow.finalization import router as finalization_router
+from .assessment_flow.export import router as export_router
+from .assessment_flow.recommendation_acceptance import (
+    router as recommendation_acceptance_router,
+)
+from .assessment_flow.recovery import router as recovery_router
+from .assessment_flow.dependency_endpoints import router as dependency_router
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +36,16 @@ router.include_router(architecture_router, tags=[APITags.ARCHITECTURE_STANDARDS]
 router.include_router(component_router, tags=[APITags.COMPONENT_ANALYSIS])
 router.include_router(tech_debt_router, tags=[APITags.TECH_DEBT_ANALYSIS])
 router.include_router(sixr_router, tags=[APITags.SIXR_DECISIONS])
+router.include_router(
+    recommendation_acceptance_router,
+    tags=[APITags.ASSESSMENT_FLOW_RECOMMENDATIONS],
+)
 router.include_router(finalization_router, tags=[APITags.FLOW_FINALIZATION])
+router.include_router(export_router, tags=[APITags.ASSESSMENT_FLOW_EXPORT])
+router.include_router(recovery_router, tags=[APITags.ASSESSMENT_FLOW_MANAGEMENT])
+router.include_router(dependency_router, tags=[APITags.ASSESSMENT_FLOW_MANAGEMENT])
 
-logger.info("Assessment Flow API endpoints initialized with modular architecture")
+logger.info(
+    "Assessment Flow API endpoints initialized with modular architecture "
+    "(including recommendation acceptance, export, recovery, and dependency analysis)"
+)

@@ -63,30 +63,61 @@ def _convert_assets_to_dicts(assets) -> List[Dict[str, Any]]:
     """Convert SQLAlchemy asset objects to dictionaries."""
     asset_dicts = []
     for asset in assets:
-        asset_dicts.append(
-            {
-                "id": str(asset.id),
-                "name": asset.name,
-                "asset_type": asset.asset_type,
-                "environment": asset.environment,
-                "criticality": asset.criticality,
-                "status": asset.status,
-                "six_r_strategy": asset.six_r_strategy,
-                "migration_wave": asset.migration_wave,
-                "application_name": asset.application_name,
-                "hostname": asset.hostname,
-                "operating_system": asset.operating_system,
-                "cpu_cores": asset.cpu_cores,
-                "memory_gb": asset.memory_gb,
-                "storage_gb": asset.storage_gb,
-                "created_at": (
-                    asset.created_at.isoformat() if asset.created_at else None
-                ),
-                "updated_at": (
-                    asset.updated_at.isoformat() if asset.updated_at else None
-                ),
-            }
-        )
+        asset_dict = {
+            "id": str(asset.id),
+            "name": asset.name,
+            "asset_type": asset.asset_type,
+            "environment": asset.environment,
+            "criticality": asset.criticality,
+            "status": asset.status,
+            "six_r_strategy": asset.six_r_strategy,
+            "migration_wave": asset.migration_wave,
+            "application_name": asset.application_name,
+            "hostname": asset.hostname,
+            "operating_system": asset.operating_system,
+            "cpu_cores": asset.cpu_cores,
+            "memory_gb": asset.memory_gb,
+            "storage_gb": asset.storage_gb,
+            "created_at": (asset.created_at.isoformat() if asset.created_at else None),
+            "updated_at": (asset.updated_at.isoformat() if asset.updated_at else None),
+            # CMDB Enhancement Fields (Issue #833)
+            "business_unit": asset.business_unit,
+            "vendor": asset.vendor,
+            "application_type": asset.application_type,
+            "lifecycle": asset.lifecycle,
+            "hosting_model": asset.hosting_model,
+            "server_role": asset.server_role,
+            "security_zone": asset.security_zone,
+            "database_type": asset.database_type,
+            "database_version": asset.database_version,
+            "database_size_gb": asset.database_size_gb,
+            "cpu_utilization_percent_max": asset.cpu_utilization_percent_max,
+            "memory_utilization_percent_max": asset.memory_utilization_percent_max,
+            "storage_free_gb": asset.storage_free_gb,
+            "storage_used_gb": asset.storage_used_gb,
+            "tech_debt_flags": asset.tech_debt_flags,
+            "pii_flag": asset.pii_flag,
+            "application_data_classification": asset.application_data_classification,
+            "has_saas_replacement": asset.has_saas_replacement,
+            "risk_level": asset.risk_level,
+            "tshirt_size": asset.tshirt_size,
+            "proposed_treatmentplan_rationale": asset.proposed_treatmentplan_rationale,
+            "annual_cost_estimate": asset.annual_cost_estimate,
+            "backup_policy": asset.backup_policy,
+            "asset_tags": asset.asset_tags,
+            # Child table relationships
+            "contacts": (
+                [c.to_dict() for c in asset.contacts]
+                if hasattr(asset, "contacts") and asset.contacts
+                else []
+            ),
+            "eol_assessments": (
+                [e.to_dict() for e in asset.eol_assessments]
+                if hasattr(asset, "eol_assessments") and asset.eol_assessments
+                else []
+            ),
+        }
+        asset_dicts.append(asset_dict)
     return asset_dicts
 
 
@@ -199,32 +230,65 @@ async def list_assets_paginated_fallback(
 
 
 async def _get_assets_from_db(
-    db: AsyncSession, context: RequestContext, page: int, page_size: int
+    db: AsyncSession,
+    context: RequestContext,
+    page: int,
+    page_size: int,
+    flow_id: Optional[str] = None,
+    search: Optional[str] = None,
+    environment: Optional[str] = None,
+    business_criticality: Optional[str] = None,
 ):
-    """Fetch assets from database with pagination."""
+    """Fetch assets from database with pagination and filtering.
+
+    Args:
+        db: Database session
+        context: Request context with tenant information
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+        flow_id: Optional discovery flow ID to filter assets
+        search: Optional search term to filter by asset name (case-insensitive)
+        environment: Optional environment filter
+        business_criticality: Optional business criticality filter
+    """
     from sqlalchemy import func, select
+    from sqlalchemy.orm import selectinload
     from app.models.asset import Asset
 
-    # Build base query with context filtering
+    # Build filter conditions once (DRY principle)
     # SECURITY: Always enforce multi-tenancy - no platform admin bypass for regular users
+    filter_conditions = [
+        Asset.client_account_id == context.client_account_id,
+        Asset.engagement_id == context.engagement_id,
+    ]
+
+    # Add flow_id filter if provided
+    if flow_id:
+        filter_conditions.append(Asset.discovery_flow_id == flow_id)
+
+    # Add search filter if provided (case-insensitive name search)
+    if search and search.strip():
+        filter_conditions.append(Asset.name.ilike(f"%{search.strip()}%"))
+
+    # Add environment filter if provided
+    if environment:
+        filter_conditions.append(Asset.environment == environment)
+
+    # Add business_criticality filter if provided
+    if business_criticality:
+        filter_conditions.append(Asset.business_criticality == business_criticality)
+
+    # Build base query with shared filter conditions
     query = (
-        select(Asset)
-        .where(
-            Asset.client_account_id == context.client_account_id,
-            Asset.engagement_id == context.engagement_id,
-        )
+        select(Asset)  # SKIP_TENANT_CHECK - Filters applied via filter_conditions list
+        .where(*filter_conditions)
+        .options(selectinload(Asset.eol_assessments), selectinload(Asset.contacts))
         .order_by(Asset.created_at.desc())
     )
 
-    # Get total count with proper context filtering
-    count_query = (
-        select(func.count())
-        .select_from(Asset)
-        .where(
-            Asset.client_account_id == context.client_account_id,
-            Asset.engagement_id == context.engagement_id,
-        )
-    )
+    # Get total count with same filter conditions (ensures consistency)
+    count_query = select(func.count()).select_from(Asset).where(*filter_conditions)
+
     count_result = await db.execute(count_query)
     total_items = count_result.scalar() or 0
 
@@ -248,16 +312,51 @@ async def list_assets_paginated(
     page: int = Query(1, gt=0),
     page_size: int = Query(20, gt=0, le=100),
     per_page: int = Query(None),  # Support both page_size and per_page
+    flow_id: Optional[str] = Query(
+        None,
+        description="Optional discovery flow ID to filter assets. "
+        "Uses Optional[str] instead of UUID4 for flexibility: "
+        "(1) Frontend validation in useDiscoveryFlowAutoDetection ensures UUID v4 format, "
+        "(2) Allows graceful error messages for invalid formats, "
+        "(3) Maintains backward compatibility with non-UUID flow IDs, "
+        "(4) SQLAlchemy safely handles type conversion for database queries.",
+    ),
+    search: Optional[str] = Query(
+        None, description="Search assets by name (case-insensitive)"
+    ),
+    environment: Optional[str] = Query(None, description="Filter by environment"),
+    business_criticality: Optional[str] = Query(
+        None, description="Filter by business criticality"
+    ),
 ):
-    """Get paginated list of assets for the current context."""
+    """Get paginated list of assets for the current context.
+
+    Args:
+        db: Database session
+        context: Request context with tenant information
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+        per_page: Alternative parameter for page_size (for compatibility)
+        flow_id: Optional discovery flow ID to filter assets by specific flow
+
+    Returns:
+        Paginated asset list with summary statistics
+    """
     try:
         # Support both page_size and per_page parameters
         if per_page is not None:
             page_size = per_page
 
-        # Fetch assets from database
+        # Fetch assets from database with optional filters
         assets, total_items, total_pages = await _get_assets_from_db(
-            db, context, page, page_size
+            db,
+            context,
+            page,
+            page_size,
+            flow_id,
+            search,
+            environment,
+            business_criticality,
         )
 
         # Convert assets to dictionaries

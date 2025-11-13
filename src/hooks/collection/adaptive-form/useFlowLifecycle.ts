@@ -175,6 +175,7 @@ export function useFlowLifecycle({
               const adaptiveFormData = convertQuestionnairesToFormData(
                 existingQuestionnaires[0],
                 applicationId,
+                flowResponse.applications, // Issue #762: Pass applications for UUID-based lookup
               );
 
               if (validateFormDataStructure(adaptiveFormData)) {
@@ -510,6 +511,7 @@ export function useFlowLifecycle({
         adaptiveFormData = convertQuestionnairesToFormData(
           agentQuestionnaires[0],
           applicationId,
+          flowResponse.applications, // Issue #762: Pass applications for UUID-based lookup
         );
       } catch (conversionError: unknown) {
         console.error(

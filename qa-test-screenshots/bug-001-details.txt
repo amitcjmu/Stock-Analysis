@@ -1,0 +1,53 @@
+BUG #1: Collection Flow Shows "Complete" But Database Shows "Running" with 42.86% Progress
+
+## Severity: CRITICAL
+
+## Description
+The Collection Progress Monitor page displays "Collection Complete" and offers to "Start Assessment Phase", but the database clearly shows the collection flow is still running with only 42.86% completion.
+
+## Steps to Reproduce
+1. Login with demo@demo-corp.com / Demo123!
+2. Navigate to Collection > Overview
+3. Click "View Progress" on the active collection flow alert
+4. Observe "Collection Complete" message
+
+## Expected Behavior
+- UI should show "Collection In Progress" with 42.86% completion
+- "Start Assessment Phase" button should be disabled
+- Current phase "questionnaire_generation" should be displayed
+
+## Actual Behavior
+- UI shows "Collection Complete" ✗
+- Button "Start Assessment Phase" is enabled ✗
+- No indication that collection is still running ✗
+
+## Database Evidence
+```sql
+-- Collection Flow (Child)
+flow_id: 2799fbfc-4ee7-4325-b906-51852c0af67c
+master_flow_id: 1666112b-ae6d-454e-b6f3-7f4944f0e45f
+current_phase: questionnaire_generation
+status: running
+progress_percentage: 42.857142857142854
+
+-- Master Flow
+flow_id: 1666112b-ae6d-454e-b6f3-7f4944f0e45f
+flow_type: collection
+flow_status: running
+```
+
+## Frontend Screenshot
+/Users/chocka/CursorProjects/migrate-ui-orchestrator/.playwright-mcp/04-collection-progress-complete.png
+
+## URL
+http://localhost:8081/collection/progress/2799fbfc-4ee7-4325-b906-51852c0af67c
+
+## Potential Root Cause
+- Frontend is not properly checking flow status from backend
+- Backend readiness endpoint may be returning incorrect "ready" state
+- State synchronization issue between master and child flows
+
+## Impact
+- Users may proceed to assessment with incomplete collection data
+- Data integrity issues in assessment phase
+- Confusing user experience

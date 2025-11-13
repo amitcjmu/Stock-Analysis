@@ -3,6 +3,8 @@ import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 
 export interface TargetField {
   name: string;
+  display_name?: string;
+  short_hint?: string;
   type: string;
   required: boolean;
   description: string;
@@ -35,6 +37,7 @@ export interface FieldMappingsListProps {
   onTargetFieldChange: (mappingId: string, newTarget: string) => void;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string, source_field: string, target_field: string) => void;
+  onRemoveMapping?: (mappingId: string) => void;
   selectedCategory: string;
   searchTerm: string;
   loadingFields: boolean;
@@ -52,6 +55,7 @@ export interface FieldMappingItemProps {
   onTargetFieldChange: (newTarget: string) => void;
   onApproveMapping: () => void;
   onRejectMapping: () => void;
+  onRemoveMapping?: (mappingId: string) => void;
   selectedCategory: string;
   searchTerm: string;
   loadingFields: boolean;
@@ -78,6 +82,7 @@ export interface ApprovalWorkflowProps {
   isRejecting: boolean;
   onApprove: () => void;
   onReject: () => void;
+  onRemove?: (mappingId: string) => void;
 }
 
 export interface RejectionDialogProps {
@@ -114,6 +119,7 @@ export interface FieldMappingsTabProps {
   isAnalyzing: boolean;
   onMappingAction: (mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
+  onRemoveMapping?: (mappingId: string) => Promise<void>;
 }
 
 export interface CategoryColors {

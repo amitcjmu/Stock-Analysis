@@ -1,11 +1,21 @@
 """
 Critical Attributes Definition for 6R Migration Decision Making
 
-This module defines the 22 critical attributes required for accurate 6R strategy decisions.
-These attributes are used by the programmatic gap scanner to identify missing data.
+This module defines the 22 critical attributes required for accurate
+6R strategy decisions. These attributes are used by the programmatic
+gap scanner to identify missing data.
+
+IMPORTANT: These attribute keys MUST match the keys in:
+/backend/app/services/crewai_flows/tools/critical_attributes_tool/base.py
+
+If keys don't match, questionnaire generation will produce 0 questions.
+Last synchronized: 2025-10-22 (Bug #728 fix)
 """
 
+import logging
 from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
 
 
 class CriticalAttributesDefinition:
@@ -23,119 +33,193 @@ class CriticalAttributesDefinition:
     @staticmethod
     def get_attribute_mapping() -> Dict[str, Any]:
         """
-        Returns mapping of critical attributes to asset fields.
+        Returns mapping of the 22 critical attributes to asset fields.
+
+        IMPORTANT: Keys MUST match crewai_flows/tools/critical_attributes_tool/base.py
+        for questionnaire generation to work correctly (Bug #728).
 
         Returns:
             Dict with attribute name as key and config as value:
             {
                 "attribute_name": {
-                    "category": "infrastructure|application|business|technical_debt|dependencies",
+                    "category": "infrastructure|application|business|technical_debt",
                     "priority": 1-4,  # 1=critical, 4=low
                     "asset_fields": ["field_name", "custom_attributes.field"],
-                    "description": "What this attribute represents"
+                    "description": "What this attribute represents",
+                    "required": True/False  # Optional
                 }
             }
         """
         return {
+            # ==========================================
             # Infrastructure Attributes (6)
-            "operating_system": {
+            # ==========================================
+            "operating_system_version": {
                 "category": "infrastructure",
                 "priority": 1,
-                "asset_fields": ["operating_system", "custom_attributes.os"],
+                "asset_fields": [
+                    "operating_system",
+                    "os_version",
+                    "custom_attributes.os",
+                ],
                 "description": "Operating system type and version",
+                "required": True,
             },
-            "cpu_architecture": {
+            "cpu_memory_storage_specs": {
                 "category": "infrastructure",
-                "priority": 2,
-                "asset_fields": ["cpu_info", "custom_attributes.cpu_architecture"],
-                "description": "CPU architecture (x86, ARM, etc.)",
-            },
-            "memory_allocation": {
-                "category": "infrastructure",
-                "priority": 2,
-                "asset_fields": ["memory_gb", "custom_attributes.memory"],
-                "description": "Allocated memory in GB",
-            },
-            "storage_capacity": {
-                "category": "infrastructure",
-                "priority": 2,
-                "asset_fields": ["storage_gb", "custom_attributes.storage"],
-                "description": "Storage capacity in GB",
+                "priority": 1,
+                "asset_fields": [
+                    "cpu_cores",
+                    "memory_gb",
+                    "storage_gb",
+                    "cpu_info",
+                    "custom_attributes.cpu_cores",
+                    "custom_attributes.memory",
+                    "custom_attributes.storage",
+                    "custom_attributes.cpu_architecture",
+                ],
+                "description": "CPU cores, memory, and storage specifications",
+                "required": True,
             },
             "network_configuration": {
                 "category": "infrastructure",
                 "priority": 2,
-                "asset_fields": ["network_config", "custom_attributes.network"],
+                "asset_fields": [
+                    "ip_address",
+                    "fqdn",
+                    "mac_address",
+                    "network_config",
+                    "custom_attributes.network",
+                ],
                 "description": "Network settings and connectivity",
+                "required": False,
             },
-            "virtualization_type": {
+            "virtualization_platform": {
                 "category": "infrastructure",
                 "priority": 2,
-                "asset_fields": ["virtualization", "custom_attributes.vm_type"],
-                "description": "Virtualization platform (VMware, Hyper-V, etc.)",
+                "asset_fields": [
+                    "virtualization",
+                    "custom_attributes.vm_type",
+                    "custom_attributes.virtualization_platform",
+                ],
+                "description": "Virtualization platform (VMware, Hyper-V, KVM, etc.)",
+                "required": False,
             },
-            "cpu_cores": {
+            "performance_baseline": {
                 "category": "infrastructure",
                 "priority": 2,
-                "asset_fields": ["cpu_cores", "custom_attributes.cpu_cores"],
-                "description": "Number of CPU cores allocated",
+                "asset_fields": [
+                    "cpu_utilization_percent",
+                    "memory_utilization_percent",
+                    "disk_iops",
+                    "network_throughput_mbps",
+                ],
+                "description": "Performance baseline metrics (utilization, IOPS, throughput)",
+                "required": False,
             },
-            "memory_gb": {
-                "category": "infrastructure",
-                "priority": 2,
-                "asset_fields": ["memory_gb", "custom_attributes.memory"],
-                "description": "Memory allocation in GB",
-            },
-            "storage_gb": {
-                "category": "infrastructure",
-                "priority": 2,
-                "asset_fields": ["storage_gb", "custom_attributes.storage"],
-                "description": "Storage capacity in GB",
-            },
-            "environment": {
+            "availability_requirements": {
                 "category": "infrastructure",
                 "priority": 1,
-                "asset_fields": ["environment", "custom_attributes.environment"],
-                "description": "Deployment environment (production, staging, development, etc.)",
+                "asset_fields": [
+                    "environment",
+                    "custom_attributes.environment",
+                    "custom_attributes.availability_requirements",
+                    "resilience.rto_minutes",  # PHASE 2 Bug #679
+                    "resilience.rpo_minutes",  # PHASE 2 Bug #679
+                ],
+                "description": "Availability requirements (SLA, uptime, RTO, RPO)",
                 "required": True,
             },
-            # Application Attributes (4)
+            # ==========================================
+            # Application Attributes (8)
+            # ==========================================
             "technology_stack": {
                 "category": "application",
                 "priority": 1,
-                "asset_fields": ["technology_stack", "custom_attributes.tech_stack"],
-                "description": "Programming languages, frameworks, runtime",
+                "asset_fields": [
+                    "technology_stack",
+                    "custom_attributes.tech_stack",
+                ],
+                "description": "Programming languages, frameworks, runtime environment",
+                "required": True,
             },
-            "application_architecture": {
+            "architecture_pattern": {
                 "category": "application",
                 "priority": 1,
                 "asset_fields": [
                     "architecture_pattern",
                     "custom_attributes.architecture",
+                    "custom_attributes.architecture_pattern",
                 ],
-                "description": "Architecture pattern (monolith, microservices, etc.)",
+                "description": "Architecture pattern (monolithic, microservices, N-tier)",
+                "required": True,
             },
-            "integration_points": {
+            "integration_dependencies": {
                 "category": "application",
                 "priority": 1,
-                "asset_fields": ["integrations", "custom_attributes.integrations"],
-                "description": "External systems and APIs integrated",
+                "asset_fields": [
+                    "dependencies",
+                    "related_assets",
+                    "integrations",
+                    "custom_attributes.integrations",
+                    "custom_attributes.upstream_deps",
+                ],
+                "description": "Integration points, dependencies, and API connections",
+                "required": True,
             },
-            "data_volume": {
+            "data_volume_characteristics": {
                 "category": "application",
                 "priority": 2,
-                "asset_fields": ["data_size_gb", "custom_attributes.data_volume"],
-                "description": "Data volume in GB",
+                "asset_fields": [
+                    "data_size_gb",
+                    "custom_attributes.data_volume",
+                ],
+                "description": "Data volume and growth characteristics",
+                "required": False,
             },
-            # Business Attributes (4)
-            "business_criticality": {
+            "user_load_patterns": {
+                "category": "application",
+                "priority": 2,
+                "asset_fields": [
+                    "user_count",
+                    "custom_attributes.user_load",
+                    "custom_attributes.stakeholder_count",
+                ],
+                "description": "User load patterns, concurrent users, traffic characteristics",
+                "required": False,
+            },
+            "business_logic_complexity": {
+                "category": "application",
+                "priority": 1,
+                "asset_fields": [
+                    "custom_attributes.complexity",
+                ],
+                "description": "Business logic complexity, workflow complexity",
+                "required": True,
+            },
+            "configuration_complexity": {
+                "category": "application",
+                "priority": 2,
+                "asset_fields": [
+                    "custom_attributes.config_complexity",
+                ],
+                "description": "Configuration complexity (environment variables, settings)",
+                "required": False,
+            },
+            # "security_compliance_requirements" - REMOVED: Duplicate of compliance_constraints
+            # Consolidated into compliance_constraints in Business Context section
+            # Per CrewAI tool alignment - compliance is asked once for better UX
+            # ==========================================
+            # Business Context Attributes (4)
+            # ==========================================
+            "business_criticality_score": {
                 "category": "business",
                 "priority": 1,
                 "asset_fields": [
+                    "business_criticality",
                     "criticality",
-                    "custom_attributes.business_criticality",
                 ],
-                "description": "Business impact level (critical, high, medium, low)",
+                "description": "Business criticality score (critical, high, medium, low)",
                 "required": True,
             },
             "change_tolerance": {
@@ -145,32 +229,47 @@ class CriticalAttributesDefinition:
                     "risk_tolerance",
                     "custom_attributes.change_tolerance",
                 ],
-                "description": "Tolerance for change and downtime",
+                "description": "Tolerance for change, maintenance windows, flexibility",
+                "required": False,
             },
-            "compliance_requirements": {
+            "compliance_constraints": {
                 "category": "business",
                 "priority": 1,
                 "asset_fields": [
                     "compliance",
                     "custom_attributes.compliance_requirements",
+                    "custom_attributes.compliance_constraints",
+                    "compliance_flags.compliance_scopes",  # PHASE 2 Bug #679
                 ],
-                "description": "Regulatory compliance needs (HIPAA, SOC2, etc.)",
+                "description": "Regulatory and compliance constraints",
+                "required": True,
             },
             "stakeholder_impact": {
                 "category": "business",
-                "priority": 2,
-                "asset_fields": ["user_count", "custom_attributes.stakeholder_count"],
-                "description": "Number of impacted users/stakeholders",
+                "priority": 1,
+                "asset_fields": [
+                    "business_owner",
+                    "technical_owner",
+                    "department",
+                    "user_count",
+                    "custom_attributes.stakeholder_count",
+                ],
+                "description": "Stakeholder impact (owners, departments, affected users)",
+                "required": True,
             },
+            # ==========================================
             # Technical Debt Attributes (4)
-            "code_quality_score": {
+            # ==========================================
+            "code_quality_metrics": {
                 "category": "technical_debt",
                 "priority": 2,
                 "asset_fields": [
                     "code_quality",
                     "custom_attributes.code_quality_score",
+                    "custom_attributes.code_quality",
                 ],
-                "description": "Code quality metrics (if available)",
+                "description": "Code quality metrics (technical debt, code coverage)",
+                "required": False,
             },
             "security_vulnerabilities": {
                 "category": "technical_debt",
@@ -178,14 +277,22 @@ class CriticalAttributesDefinition:
                 "asset_fields": [
                     "security_issues",
                     "custom_attributes.vulnerabilities",
+                    "vulnerabilities.cve_id",  # PHASE 2 Bug #679
+                    "vulnerabilities.severity",  # PHASE 2 Bug #679
                 ],
-                "description": "Known security vulnerabilities",
+                "description": "Known security vulnerabilities (CVEs, security issues)",
+                "required": True,
             },
-            "end_of_life_technology": {
+            "eol_technology_assessment": {
                 "category": "technical_debt",
                 "priority": 1,
-                "asset_fields": ["eol_tech", "custom_attributes.eol_components"],
-                "description": "End-of-life technologies in use",
+                "asset_fields": [
+                    "eol_tech",
+                    "custom_attributes.eol_components",
+                    "custom_attributes.eol_assessment",
+                ],
+                "description": "End-of-life technology assessment (deprecated, obsolete)",
+                "required": True,
             },
             "documentation_quality": {
                 "category": "technical_debt",
@@ -194,35 +301,8 @@ class CriticalAttributesDefinition:
                     "documentation",
                     "custom_attributes.documentation_quality",
                 ],
-                "description": "Quality of technical documentation",
-            },
-            # Dependency Attributes (4)
-            "upstream_dependencies": {
-                "category": "dependencies",
-                "priority": 1,
-                "asset_fields": ["dependencies", "custom_attributes.upstream_deps"],
-                "description": "Systems this application depends on",
-            },
-            "downstream_dependents": {
-                "category": "dependencies",
-                "priority": 1,
-                "asset_fields": ["dependents", "custom_attributes.downstream_deps"],
-                "description": "Systems that depend on this application",
-            },
-            "database_type": {
-                "category": "dependencies",
-                "priority": 1,
-                "asset_fields": ["database_type", "custom_attributes.database"],
-                "description": "Database type and version",
-            },
-            "external_services": {
-                "category": "dependencies",
-                "priority": 2,
-                "asset_fields": [
-                    "external_services",
-                    "custom_attributes.third_party_services",
-                ],
-                "description": "External services and vendors used",
+                "description": "Quality of technical documentation (runbooks, wikis, README)",
+                "required": False,
             },
         }
 
@@ -250,3 +330,232 @@ class CriticalAttributesDefinition:
     def get_critical_attributes() -> Dict[str, Any]:
         """Get only priority 1 (critical) attributes."""
         return CriticalAttributesDefinition.get_attributes_by_priority(1)
+
+    @staticmethod
+    def get_attributes_by_asset_type(asset_type: str) -> Dict[str, Any]:
+        """
+        Get attributes relevant for a specific asset type.
+
+        Asset-type-aware filtering ensures that only applicable attributes
+        are checked for each asset type, preventing irrelevant gaps.
+
+        Args:
+            asset_type: Asset type from AssetType enum
+                       (server, application, database, etc.)
+
+        Returns:
+            Dict of attribute name to config for the given asset type
+
+        Examples:
+            - server: infrastructure + operational attributes
+            - application: application + business + technical_debt attributes
+            - database: dependencies + infrastructure (storage-heavy) attributes
+        """
+        all_attrs = CriticalAttributesDefinition.get_attribute_mapping()
+
+        # Normalize asset type to lowercase for comparison
+        asset_type_lower = asset_type.lower() if asset_type else "other"
+
+        # Define asset type to category mappings
+        # Each asset type gets a set of relevant attribute categories
+        asset_type_mappings = {
+            "server": {
+                "categories": ["infrastructure"],
+                "excluded_attrs": [
+                    "technology_stack",
+                    "architecture_pattern",
+                    "integration_dependencies",
+                    "code_quality_metrics",
+                    "eol_technology_assessment",
+                    "documentation_quality",
+                ],
+            },
+            "virtual_machine": {
+                "categories": ["infrastructure"],
+                "excluded_attrs": [
+                    "technology_stack",
+                    "architecture_pattern",
+                    "integration_dependencies",
+                    "code_quality_metrics",
+                    "eol_technology_assessment",
+                    "documentation_quality",
+                ],
+            },
+            "application": {
+                "categories": ["application", "business", "technical_debt"],
+                "excluded_attrs": [
+                    "cpu_memory_storage_specs",
+                    "network_configuration",
+                    "virtualization_platform",
+                    "performance_baseline",
+                ],
+            },
+            "database": {
+                "categories": ["infrastructure", "business"],
+                "excluded_attrs": [
+                    "technology_stack",
+                    "architecture_pattern",
+                    "virtualization_platform",
+                    "code_quality_metrics",
+                    "eol_technology_assessment",
+                    "documentation_quality",
+                ],
+                "priority_attrs": [
+                    "data_volume_characteristics",
+                    "cpu_memory_storage_specs",
+                    "business_criticality_score",
+                    "compliance_constraints",
+                ],
+            },
+            "network": {
+                "categories": ["infrastructure"],
+                "excluded_attrs": [
+                    "technology_stack",
+                    "architecture_pattern",
+                    "code_quality_metrics",
+                    "eol_technology_assessment",
+                    "documentation_quality",
+                    "data_volume_characteristics",
+                ],
+            },
+            "load_balancer": {
+                "categories": ["infrastructure"],
+                "excluded_attrs": [
+                    "technology_stack",
+                    "architecture_pattern",
+                    "code_quality_metrics",
+                    "eol_technology_assessment",
+                    "documentation_quality",
+                    "data_volume_characteristics",
+                ],
+            },
+            "storage": {
+                "categories": ["infrastructure"],
+                "excluded_attrs": [
+                    "technology_stack",
+                    "architecture_pattern",
+                    "integration_dependencies",
+                    "code_quality_metrics",
+                    "eol_technology_assessment",
+                    "documentation_quality",
+                ],
+                "priority_attrs": [
+                    "cpu_memory_storage_specs",
+                    "data_volume_characteristics",
+                ],
+            },
+            "container": {
+                "categories": [
+                    "application",
+                    "infrastructure",
+                    "business",
+                ],
+                "excluded_attrs": ["virtualization_platform"],
+            },
+            "security_group": {
+                "categories": ["infrastructure", "business"],
+                "excluded_attrs": [
+                    "technology_stack",
+                    "architecture_pattern",
+                    "code_quality_metrics",
+                    "eol_technology_assessment",
+                    "documentation_quality",
+                    "cpu_memory_storage_specs",
+                ],
+            },
+        }
+
+        # Get mapping for asset type, default to all categories if unknown
+        default_mapping = {
+            "categories": list(set(c["category"] for c in all_attrs.values())),
+            "excluded_attrs": [],
+        }
+        mapping = asset_type_mappings.get(asset_type_lower, default_mapping)
+
+        # Filter attributes based on category inclusion
+        filtered_attrs = {}
+        for attr_name, attr_config in all_attrs.items():
+            # Skip if in excluded list
+            if attr_name in mapping.get("excluded_attrs", []):
+                continue
+
+            # Include if category matches OR if it's a priority attribute for the type
+            is_in_category = attr_config["category"] in mapping.get("categories", [])
+            is_priority_attr = attr_name in mapping.get("priority_attrs", [])
+
+            if is_in_category or is_priority_attr:
+                filtered_attrs[attr_name] = attr_config
+
+        return filtered_attrs
+
+    @staticmethod
+    def get_attribute_category_map() -> Dict[str, str]:
+        """
+        Get a simple mapping of attribute names to their categories.
+
+        This is used by frontend-facing endpoints to categorize missing attributes.
+        Centralizes the mapping to avoid duplication across collection_crud files.
+
+        Returns:
+            Dict mapping attribute name (str) to category name (str)
+            Example: {"operating_system_version": "infrastructure", ...}
+        """
+        all_attrs = CriticalAttributesDefinition.get_attribute_mapping()
+        return {name: config["category"] for name, config in all_attrs.items()}
+
+
+def validate_attribute_consistency() -> bool:
+    """
+    Validate that critical attributes in this module match CrewAI tool definitions.
+
+    This helps catch configuration drift between gap creation and questionnaire generation.
+    Should be called during application startup or in tests.
+
+    Returns:
+        bool: True if consistent
+
+    Raises:
+        RuntimeError: If critical attributes mismatch or import fails
+    """
+    try:
+        from app.services.crewai_flows.tools.critical_attributes_tool.base import (
+            CriticalAttributesDefinition as CrewAIAttrs,
+        )
+
+        collection_keys = set(
+            CriticalAttributesDefinition.get_attribute_mapping().keys()
+        )
+        crewai_keys = set(CrewAIAttrs.get_attribute_mapping().keys())
+
+        missing_in_collection = crewai_keys - collection_keys
+        missing_in_crewai = collection_keys - crewai_keys
+
+        if missing_in_collection or missing_in_crewai:
+            error_msg = (
+                "⚠️  Critical attribute mismatch detected! "
+                f"Missing in collection: {missing_in_collection}, "
+                f"Missing in CrewAI tool: {missing_in_crewai}"
+            )
+            logger.error(error_msg)
+            raise RuntimeError(
+                "Critical attribute mismatch detected. Halting application startup."
+            )
+
+        logger.info(
+            f"✅ Critical attributes validated: {len(collection_keys)} attributes "
+            "match between collection and CrewAI tool"
+        )
+        return True
+
+    except ImportError as e:
+        error_msg = f"❌ Could not import CrewAI CriticalAttributesDefinition for validation: {e}"
+        logger.error(error_msg)
+        raise RuntimeError("Failed to validate critical attribute consistency.") from e
+
+
+# This function should be called from your application's startup event handler.
+# For example, in FastAPI:
+#
+# @app.on_event("startup")
+# async def startup_event():
+#     validate_attribute_consistency()

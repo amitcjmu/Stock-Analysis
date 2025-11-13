@@ -211,34 +211,41 @@ async def calculate_error_rate(db: AsyncSession, client_account_id: str) -> floa
     return (error_events / total_events) * 100
 
 
-def calculate_phase_durations(phase_state: Dict[str, Any]) -> Dict[str, float]:
+def calculate_phase_durations(
+    phase_transitions: List[Dict[str, Any]],
+) -> Dict[str, float]:
     """
-    Calculate duration for each phase from phase state data.
+    Calculate duration for each phase from master flow phase transitions.
+
+    Per ADR-028: Phase data now comes from master flow's phase_transitions,
+    not from collection flow's phase_state (which has been removed).
 
     Args:
-        phase_state: Phase state dictionary containing phase history
+        phase_transitions: List of phase transition dicts from master flow
 
     Returns:
         Dictionary mapping phase names to durations in minutes
     """
     durations = {}
 
-    phase_history = phase_state.get("phase_history", [])
-    for phase in phase_history:
-        phase_name = phase.get("phase")
-        started_at = phase.get("started_at")
-        completed_at = phase.get("completed_at")
+    for transition in phase_transitions:
+        phase_name = transition.get("phase")
+        timestamp = transition.get("timestamp")  # Master flow uses 'timestamp'
+        completed_at = transition.get("completed_at")
 
-        if phase_name and started_at:
+        if phase_name and timestamp:
             try:
-                start_dt = datetime.fromisoformat(started_at)
+                start_dt = datetime.fromisoformat(timestamp)
                 if completed_at:
                     end_dt = datetime.fromisoformat(completed_at)
                 else:
                     end_dt = datetime.utcnow()
 
                 duration_minutes = (end_dt - start_dt).total_seconds() / 60
-                durations[phase_name] = round(duration_minutes, 2)
+                # Sum durations if a phase is re-entered
+                durations[phase_name] = durations.get(phase_name, 0) + round(
+                    duration_minutes, 2
+                )
             except Exception:
                 pass
 

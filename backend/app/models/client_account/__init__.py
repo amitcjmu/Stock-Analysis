@@ -9,10 +9,12 @@ from .base import ClientAccount
 from .engagement import Engagement
 from .user import User
 from .associations import UserAccountAssociation
+from .refresh_token import RefreshToken
 
 __all__ = [
     "ClientAccount",
     "Engagement",
     "User",
     "UserAccountAssociation",
+    "RefreshToken",
 ]

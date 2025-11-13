@@ -6,7 +6,7 @@ import logging
 import uuid
 from typing import List, Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,9 +23,17 @@ logger = logging.getLogger(__name__)
 class FlowQueries:
     """Queries for core assessment flow operations"""
 
-    def __init__(self, db: AsyncSession, client_account_id: int):
+    def __init__(self, db: AsyncSession, client_account_id: str):
         self.db = db
         self.client_account_id = client_account_id
+
+    def _safe_phase_enum(self, phase_str: str) -> AssessmentPhase:
+        """Safely convert phase string to enum, falling back to INITIALIZATION"""
+        try:
+            return AssessmentPhase(phase_str)
+        except ValueError:
+            logger.warning(f"Unknown phase '{phase_str}', defaulting to INITIALIZATION")
+            return AssessmentPhase.INITIALIZATION
 
     async def get_assessment_flow_state(
         self, flow_id: str
@@ -33,20 +41,21 @@ class FlowQueries:
         """Get complete assessment flow state with all related data"""
 
         # Get main flow record with eager loading
+        # Note: Only load relationships that have assessment_flow_id FK in database
+        # Per E2E testing Issue #2 fix: Only application_overrides has the FK
+        # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
+        # Frontend/MFO uses master_flow_id, but some code uses child flow ID
         result = await self.db.execute(
             select(AssessmentFlow)
             .options(
-                selectinload(AssessmentFlow.architecture_standards),
                 selectinload(AssessmentFlow.application_overrides),
-                selectinload(AssessmentFlow.application_components),
-                selectinload(AssessmentFlow.tech_debt_analysis),
-                selectinload(AssessmentFlow.component_treatments),
-                selectinload(AssessmentFlow.sixr_decisions),
-                selectinload(AssessmentFlow.learning_feedback),
             )
             .where(
                 and_(
-                    AssessmentFlow.id == flow_id,
+                    or_(
+                        AssessmentFlow.id == flow_id,
+                        AssessmentFlow.master_flow_id == flow_id,
+                    ),
                     AssessmentFlow.client_account_id == self.client_account_id,
                 )
             )
@@ -98,12 +107,14 @@ class FlowQueries:
                 status=AssessmentFlowStatus(flow.status),
                 progress=flow.progress,
                 current_phase=(
-                    AssessmentPhase(flow.current_phase)
+                    self._safe_phase_enum(flow.current_phase)
                     if flow.current_phase
                     else AssessmentPhase.INITIALIZATION
                 ),
                 next_phase=(
-                    AssessmentPhase(flow.next_phase) if flow.next_phase else None
+                    self._safe_phase_enum(flow.next_phase)
+                    if hasattr(flow, "next_phase") and flow.next_phase
+                    else None
                 ),
                 phase_results=flow.phase_results or {},
                 agent_insights=flow.agent_insights or [],
@@ -170,3 +181,38 @@ class FlowQueries:
             .order_by(AssessmentFlow.updated_at.desc())
         )
         return result.scalars().all()
+
+    async def get_by_flow_id(self, flow_id: str) -> Optional[AssessmentFlow]:
+        """
+        Get raw AssessmentFlow model by flow ID.
+
+        Used for lightweight operations like zombie detection where
+        full state object is not needed.
+
+        Args:
+            flow_id: UUID string of the flow
+
+        Returns:
+            AssessmentFlow model or None if not found
+
+        Note:
+            Respects multi-tenant isolation via self.client_account_id
+        """
+        from uuid import UUID
+
+        # Convert string to UUID if needed
+        flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
+        # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
+        result = await self.db.execute(
+            select(AssessmentFlow).where(
+                and_(
+                    or_(
+                        AssessmentFlow.id == flow_uuid,
+                        AssessmentFlow.master_flow_id == flow_uuid,
+                    ),
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                )
+            )
+        )
+        return result.scalar_one_or_none()

@@ -4,6 +4,7 @@ Daily aggregation service for agent performance metrics
 Part of the Agent Observability Enhancement Phase 2
 """
 
+import asyncio
 import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -12,9 +13,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.core.database import AsyncSessionLocal
 from app.models.agent_performance_daily import AgentPerformanceDaily
 from app.models.agent_task_history import AgentTaskHistory
 
@@ -69,37 +70,52 @@ class AgentPerformanceAggregationService:
         """Aggregate performance metrics for a specific date"""
         logger.info(f"Starting performance aggregation for {target_date}")
 
-        db = next(get_db())
+        # Run the async aggregation in a synchronous context
         try:
-            # Get all unique agent/client/engagement combinations that had activity
-            combinations = self._get_active_agent_combinations(db, target_date)
-
-            for agent_name, client_account_id, engagement_id in combinations:
-                try:
-                    self._aggregate_agent_performance(
-                        db, agent_name, client_account_id, engagement_id, target_date
-                    )
-                except Exception as e:
-                    logger.error(f"Error aggregating for {agent_name}: {e}")
-
-            db.commit()
-            logger.info(f"Completed performance aggregation for {target_date}")
-
+            asyncio.run(self._aggregate_for_date_async(target_date))
         except Exception as e:
             logger.error(f"Error in daily aggregation: {e}")
-            db.rollback()
-        finally:
-            db.close()
 
-    def _get_active_agent_combinations(
-        self, db: Session, target_date: date
+    async def _aggregate_for_date_async(self, target_date: date):
+        """Async implementation of aggregation for a specific date"""
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get all unique agent/client/engagement combinations that had activity
+                combinations = await self._get_active_agent_combinations(
+                    db, target_date
+                )
+
+                for agent_name, client_account_id, engagement_id in combinations:
+                    try:
+                        await self._aggregate_agent_performance(
+                            db,
+                            agent_name,
+                            client_account_id,
+                            engagement_id,
+                            target_date,
+                        )
+                    except Exception as e:
+                        logger.error(f"Error aggregating for {agent_name}: {e}")
+
+                await db.commit()
+                logger.info(f"Completed performance aggregation for {target_date}")
+
+            except Exception as e:
+                logger.error(f"Error in async aggregation: {e}")
+                await db.rollback()
+                raise
+
+    async def _get_active_agent_combinations(
+        self, db: AsyncSession, target_date: date
     ) -> List[Tuple[str, str, str]]:
         """Get all unique agent/client/engagement combinations for a date"""
+        from sqlalchemy import select
+
         start_time = datetime.combine(target_date, datetime.min.time())
         end_time = start_time + timedelta(days=1)
 
-        results = (
-            db.query(
+        stmt = (
+            select(
                 AgentTaskHistory.agent_name,
                 AgentTaskHistory.client_account_id,
                 AgentTaskHistory.engagement_id,
@@ -109,35 +125,35 @@ class AgentPerformanceAggregationService:
                 AgentTaskHistory.started_at < end_time,
             )
             .distinct()
-            .all()
         )
 
-        return results
+        result = await db.execute(stmt)
+        return result.all()
 
-    def _aggregate_agent_performance(
+    async def _aggregate_agent_performance(
         self,
-        db: Session,
+        db: AsyncSession,
         agent_name: str,
         client_account_id: str,
         engagement_id: str,
         target_date: date,
     ):
         """Aggregate performance for a specific agent/client/engagement/date"""
+        from sqlalchemy import select
+
         start_time = datetime.combine(target_date, datetime.min.time())
         end_time = start_time + timedelta(days=1)
 
         # Query all tasks for this agent on this date
-        tasks = (
-            db.query(AgentTaskHistory)
-            .filter(
-                AgentTaskHistory.agent_name == agent_name,
-                AgentTaskHistory.client_account_id == client_account_id,
-                AgentTaskHistory.engagement_id == engagement_id,
-                AgentTaskHistory.started_at >= start_time,
-                AgentTaskHistory.started_at < end_time,
-            )
-            .all()
+        stmt = select(AgentTaskHistory).filter(
+            AgentTaskHistory.agent_name == agent_name,
+            AgentTaskHistory.client_account_id == client_account_id,
+            AgentTaskHistory.engagement_id == engagement_id,
+            AgentTaskHistory.started_at >= start_time,
+            AgentTaskHistory.started_at < end_time,
         )
+        result = await db.execute(stmt)
+        tasks = result.scalars().all()
 
         if not tasks:
             return
@@ -178,16 +194,14 @@ class AgentPerformanceAggregationService:
         )
 
         # Check if record already exists
-        existing = (
-            db.query(AgentPerformanceDaily)
-            .filter(
-                AgentPerformanceDaily.agent_name == agent_name,
-                AgentPerformanceDaily.date_recorded == target_date,
-                AgentPerformanceDaily.client_account_id == client_account_id,
-                AgentPerformanceDaily.engagement_id == engagement_id,
-            )
-            .first()
+        stmt = select(AgentPerformanceDaily).filter(
+            AgentPerformanceDaily.agent_name == agent_name,
+            AgentPerformanceDaily.date_recorded == target_date,
+            AgentPerformanceDaily.client_account_id == client_account_id,
+            AgentPerformanceDaily.engagement_id == engagement_id,
         )
+        result = await db.execute(stmt)
+        existing = result.scalar_one_or_none()
 
         if existing:
             # Update existing record
@@ -231,7 +245,7 @@ class AgentPerformanceAggregationService:
             f"{tasks_attempted} tasks, {success_rate:.1f}% success rate"
         )
 
-    def get_agent_performance_trends(
+    async def get_agent_performance_trends(
         self,
         agent_name: str,
         client_account_id: str,
@@ -239,150 +253,152 @@ class AgentPerformanceAggregationService:
         days: int = 30,
     ) -> Dict[str, Any]:
         """Get performance trends for an agent over specified days"""
-        db = next(get_db())
-        try:
-            since_date = date.today() - timedelta(days=days)
+        from sqlalchemy import select
 
-            records = (
-                db.query(AgentPerformanceDaily)
-                .filter(
-                    AgentPerformanceDaily.agent_name == agent_name,
-                    AgentPerformanceDaily.client_account_id == client_account_id,
-                    AgentPerformanceDaily.engagement_id == engagement_id,
-                    AgentPerformanceDaily.date_recorded >= since_date,
+        async with AsyncSessionLocal() as db:
+            try:
+                since_date = date.today() - timedelta(days=days)
+
+                stmt = (
+                    select(AgentPerformanceDaily)
+                    .filter(
+                        AgentPerformanceDaily.agent_name == agent_name,
+                        AgentPerformanceDaily.client_account_id == client_account_id,
+                        AgentPerformanceDaily.engagement_id == engagement_id,
+                        AgentPerformanceDaily.date_recorded >= since_date,
+                    )
+                    .order_by(AgentPerformanceDaily.date_recorded)
                 )
-                .order_by(AgentPerformanceDaily.date_recorded)
-                .all()
-            )
+                result = await db.execute(stmt)
+                records = result.scalars().all()
 
-            trends = {
-                "agent_name": agent_name,
-                "period_days": days,
-                "daily_metrics": [],
-            }
+                trends = {
+                    "agent_name": agent_name,
+                    "period_days": days,
+                    "daily_metrics": [],
+                }
 
-            for record in records:
-                trends["daily_metrics"].append(
-                    {
-                        "date": record.date_recorded.isoformat(),
-                        "tasks_attempted": record.tasks_attempted,
-                        "tasks_completed": record.tasks_completed,
-                        "tasks_failed": record.tasks_failed,
-                        "success_rate": (
-                            float(record.success_rate) if record.success_rate else 0
-                        ),
-                        "avg_duration_seconds": (
-                            float(record.avg_duration_seconds)
-                            if record.avg_duration_seconds
-                            else None
-                        ),
-                        "avg_confidence_score": (
-                            float(record.avg_confidence_score)
-                            if record.avg_confidence_score
-                            else None
-                        ),
-                        "total_llm_calls": record.total_llm_calls,
-                        "total_tokens_used": record.total_tokens_used,
+                for record in records:
+                    trends["daily_metrics"].append(
+                        {
+                            "date": record.date_recorded.isoformat(),
+                            "tasks_attempted": record.tasks_attempted,
+                            "tasks_completed": record.tasks_completed,
+                            "tasks_failed": record.tasks_failed,
+                            "success_rate": (
+                                float(record.success_rate) if record.success_rate else 0
+                            ),
+                            "avg_duration_seconds": (
+                                float(record.avg_duration_seconds)
+                                if record.avg_duration_seconds
+                                else None
+                            ),
+                            "avg_confidence_score": (
+                                float(record.avg_confidence_score)
+                                if record.avg_confidence_score
+                                else None
+                            ),
+                            "total_llm_calls": record.total_llm_calls,
+                            "total_tokens_used": record.total_tokens_used,
+                        }
+                    )
+
+                # Calculate overall statistics
+                if records:
+                    total_tasks = sum(r.tasks_attempted for r in records)
+                    total_completed = sum(r.tasks_completed for r in records)
+                    overall_success_rate = (
+                        (total_completed / total_tasks * 100) if total_tasks > 0 else 0
+                    )
+
+                    trends["overall_stats"] = {
+                        "total_tasks_attempted": total_tasks,
+                        "total_tasks_completed": total_completed,
+                        "overall_success_rate": round(overall_success_rate, 2),
+                        "avg_daily_tasks": round(total_tasks / len(records), 2),
+                        "total_llm_calls": sum(r.total_llm_calls for r in records),
+                        "total_tokens_used": sum(r.total_tokens_used for r in records),
                     }
-                )
+                else:
+                    trends["overall_stats"] = {
+                        "total_tasks_attempted": 0,
+                        "total_tasks_completed": 0,
+                        "overall_success_rate": 0,
+                        "avg_daily_tasks": 0,
+                        "total_llm_calls": 0,
+                        "total_tokens_used": 0,
+                    }
 
-            # Calculate overall statistics
-            if records:
-                total_tasks = sum(r.tasks_attempted for r in records)
-                total_completed = sum(r.tasks_completed for r in records)
-                overall_success_rate = (
-                    (total_completed / total_tasks * 100) if total_tasks > 0 else 0
-                )
+                return trends
 
-                trends["overall_stats"] = {
-                    "total_tasks_attempted": total_tasks,
-                    "total_tasks_completed": total_completed,
-                    "overall_success_rate": round(overall_success_rate, 2),
-                    "avg_daily_tasks": round(total_tasks / len(records), 2),
-                    "total_llm_calls": sum(r.total_llm_calls for r in records),
-                    "total_tokens_used": sum(r.total_tokens_used for r in records),
-                }
-            else:
-                trends["overall_stats"] = {
-                    "total_tasks_attempted": 0,
-                    "total_tasks_completed": 0,
-                    "overall_success_rate": 0,
-                    "avg_daily_tasks": 0,
-                    "total_llm_calls": 0,
-                    "total_tokens_used": 0,
-                }
+            except Exception as e:
+                logger.error(f"Error getting performance trends: {e}")
+                return {"error": str(e)}
 
-            return trends
-
-        except Exception as e:
-            logger.error(f"Error getting performance trends: {e}")
-            return {"error": str(e)}
-        finally:
-            db.close()
-
-    def get_all_agents_summary(
+    async def get_all_agents_summary(
         self, client_account_id: str, engagement_id: str, days: int = 7
     ) -> List[Dict[str, Any]]:
         """Get summary for all agents in a client/engagement"""
-        db = next(get_db())
-        try:
-            since_date = date.today() - timedelta(days=days)
+        from sqlalchemy import select
 
-            # Get aggregated stats for all agents
-            results = (
-                db.query(
-                    AgentPerformanceDaily.agent_name,
-                    func.sum(AgentPerformanceDaily.tasks_attempted).label(
-                        "total_tasks"
-                    ),
-                    func.sum(AgentPerformanceDaily.tasks_completed).label(
-                        "total_completed"
-                    ),
-                    func.avg(AgentPerformanceDaily.success_rate).label(
-                        "avg_success_rate"
-                    ),
-                    func.avg(AgentPerformanceDaily.avg_duration_seconds).label(
-                        "avg_duration"
-                    ),
-                    func.sum(AgentPerformanceDaily.total_llm_calls).label(
-                        "total_llm_calls"
-                    ),
-                )
-                .filter(
-                    AgentPerformanceDaily.client_account_id == client_account_id,
-                    AgentPerformanceDaily.engagement_id == engagement_id,
-                    AgentPerformanceDaily.date_recorded >= since_date,
-                )
-                .group_by(AgentPerformanceDaily.agent_name)
-                .all()
-            )
+        async with AsyncSessionLocal() as db:
+            try:
+                since_date = date.today() - timedelta(days=days)
 
-            summaries = []
-            for result in results:
-                summaries.append(
-                    {
-                        "agent_name": result.agent_name,
-                        "total_tasks": result.total_tasks or 0,
-                        "total_completed": result.total_completed or 0,
-                        "avg_success_rate": (
-                            float(result.avg_success_rate)
-                            if result.avg_success_rate
-                            else 0
+                # Get aggregated stats for all agents
+                stmt = (
+                    select(
+                        AgentPerformanceDaily.agent_name,
+                        func.sum(AgentPerformanceDaily.tasks_attempted).label(
+                            "total_tasks"
                         ),
-                        "avg_duration_seconds": (
-                            float(result.avg_duration) if result.avg_duration else None
+                        func.sum(AgentPerformanceDaily.tasks_completed).label(
+                            "total_completed"
                         ),
-                        "total_llm_calls": result.total_llm_calls or 0,
-                    }
+                        func.avg(AgentPerformanceDaily.success_rate).label(
+                            "avg_success_rate"
+                        ),
+                        func.avg(AgentPerformanceDaily.avg_duration_seconds).label(
+                            "avg_duration"
+                        ),
+                        func.sum(AgentPerformanceDaily.total_llm_calls).label(
+                            "total_llm_calls"
+                        ),
+                    )
+                    .filter(
+                        AgentPerformanceDaily.client_account_id == client_account_id,
+                        AgentPerformanceDaily.engagement_id == engagement_id,
+                        AgentPerformanceDaily.date_recorded >= since_date,
+                    )
+                    .group_by(AgentPerformanceDaily.agent_name)
                 )
+                result = await db.execute(stmt)
+                results = result.all()
 
-            return sorted(summaries, key=lambda x: x["total_tasks"], reverse=True)
+                summaries = []
+                for row in results:
+                    summaries.append(
+                        {
+                            "agent_name": row.agent_name,
+                            "total_tasks": row.total_tasks or 0,
+                            "total_completed": row.total_completed or 0,
+                            "avg_success_rate": (
+                                float(row.avg_success_rate)
+                                if row.avg_success_rate
+                                else 0
+                            ),
+                            "avg_duration_seconds": (
+                                float(row.avg_duration) if row.avg_duration else None
+                            ),
+                            "total_llm_calls": row.total_llm_calls or 0,
+                        }
+                    )
 
-        except Exception as e:
-            logger.error(f"Error getting all agents summary: {e}")
-            return []
-        finally:
-            db.close()
+                return sorted(summaries, key=lambda x: x["total_tasks"], reverse=True)
+
+            except Exception as e:
+                logger.error(f"Error getting all agents summary: {e}")
+                return []
 
     def manual_trigger_aggregation(self, target_date: Optional[date] = None):
         """Manually trigger aggregation for a specific date"""

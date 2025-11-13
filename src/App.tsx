@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 import { Routes } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -70,14 +70,16 @@ import {
   LazyAssessmentFlowOverview,
   LazyInitializeFlowWithInventory,
   LazyAssessmentArchitecture,
+  LazyAssessmentComplexity,
+  LazyAssessmentDependency,
   LazyAssessmentTechDebt,
-  LazyAssessmentSixRReview,
   LazyAssessmentDependencyAnalysis,
   LazyAssessmentTechDebtAssessment,
   LazyPlanIndex,
   LazySixRAnalysis,
   LazyTimeline,
   LazyResource,
+  LazyExport,
   LazyTarget,
   LazyExecuteIndex,
   LazyRehost,
@@ -94,6 +96,11 @@ import {
   LazyDataRetention,
   LazyDecommissionExecution,
   LazyDecommissionValidation,
+  LazyDecommissionFlowOverview,
+  LazyDecommissionFlowPlanning,
+  LazyDecommissionDataMigration,
+  LazyDecommissionShutdown,
+  LazyDecommissionExport,
   LazyCloudComparison,
   LazySavingsAnalysis,
   LazyCostAnalysis,
@@ -377,12 +384,22 @@ const AuthenticatedApp = (): JSX.Element => {
         element={<LazyAssessmentArchitecture />}
       />
       <Route
+        path="/assessment/:flowId/complexity"
+        element={<LazyAssessmentComplexity />}
+      />
+      <Route
+        path="/assessment/:flowId/dependency"
+        element={<LazyAssessmentDependency />}
+      />
+      <Route
         path="/assessment/:flowId/tech-debt"
         element={<LazyAssessmentTechDebt />}
       />
+      {/* Bug #869 fix: Redirect sixr-review to app-on-page (Assessment Flow architecture) */}
+      {/* 6R Strategy Review phase is handled by app-on-page which displays 6R decisions */}
       <Route
         path="/assessment/:flowId/sixr-review"
-        element={<LazyAssessmentSixRReview />}
+        element={<LazyAssessmentAppOnPage />}
       />
       <Route
         path="/assessment/:flowId/app-on-page"
@@ -402,6 +419,24 @@ const AuthenticatedApp = (): JSX.Element => {
         element={<LazyAssessmentTechDebtAssessment />}
       />
 
+      {/* Assessment routes without flowId - redirect to overview (Issue #673) */}
+      <Route
+        path="/assessment/readiness"
+        element={<Navigate to="/assessment/overview" replace />}
+      />
+      <Route
+        path="/assessment/risk"
+        element={<Navigate to="/assessment/overview" replace />}
+      />
+      <Route
+        path="/assessment/complexity"
+        element={<Navigate to="/assessment/overview" replace />}
+      />
+      <Route
+        path="/assessment/recommendations"
+        element={<Navigate to="/assessment/overview" replace />}
+      />
+
       {/* Plan sub-routes */}
       <Route path="/plan/overview" element={<LazyPlanIndex />} />
       <Route path="/plan/6r-analysis" element={<LazySixRAnalysis />} />
@@ -410,6 +445,7 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/plan/roadmap" element={<LazyRoadmap />} />
       <Route path="/plan/timeline" element={<LazyTimeline />} />
       <Route path="/plan/resource" element={<LazyResource />} />
+      <Route path="/plan/export" element={<LazyExport />} />
       <Route path="/plan/target" element={<LazyTarget />} />
 
       {/* Execute sub-routes */}
@@ -424,29 +460,51 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route path="/modernize/overview" element={<LazyModernizeIndex />} />
       <Route path="/modernize/refactor" element={<LazyRefactor />} />
       <Route path="/modernize/rearchitect" element={<LazyRearchitect />} />
+      <Route path="/modernize/replace" element={<LazyRewrite />} />
+      {/* Backward compatibility redirect for old /modernize/rewrite route */}
       <Route path="/modernize/rewrite" element={<LazyRewrite />} />
       <Route path="/modernize/progress" element={<LazyProgress />} />
 
-      <Route path="/decommission" element={<LazyDecommission />} />
+      {/* Decom routes - renamed from Decommission per Issue #930 */}
+      <Route path="/decom" element={<LazyDecommission />} />
       <Route
-        path="/decommission/overview"
+        path="/decom/overview"
         element={<LazyDecommissionIndex />}
       />
       <Route
-        path="/decommission/planning"
+        path="/decom/planning"
         element={<LazyDecommissionPlanning />}
       />
       <Route
-        path="/decommission/data-retention"
+        path="/decom/data-retention"
         element={<LazyDataRetention />}
       />
       <Route
-        path="/decommission/execution"
+        path="/decom/execution"
         element={<LazyDecommissionExecution />}
       />
       <Route
-        path="/decommission/validation"
+        path="/decom/validation"
         element={<LazyDecommissionValidation />}
+      />
+
+      {/* Decommission Flow routes (Issue #942-946 - v2.5.0) */}
+      <Route path="/decommission" element={<LazyDecommissionFlowOverview />} />
+      <Route
+        path="/decommission/planning"
+        element={<LazyDecommissionFlowPlanning />}
+      />
+      <Route
+        path="/decommission/data-migration"
+        element={<LazyDecommissionDataMigration />}
+      />
+      <Route
+        path="/decommission/shutdown"
+        element={<LazyDecommissionShutdown />}
+      />
+      <Route
+        path="/decommission/export"
+        element={<LazyDecommissionExport />}
       />
 
       <Route path="/finops" element={<LazyFinOps />} />

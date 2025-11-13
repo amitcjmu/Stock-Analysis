@@ -36,12 +36,162 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 
 ### 🎯 Test Your Setup (15 minutes)
 1. **Open the frontend**: Navigate to http://localhost:8081 (NOT port 3000)
-2. **Login with demo credentials**: Use current platform admin patterns (NOT demo@democorp.com)
+2. **Login credentials**: Contact your team lead or check the team onboarding documentation for current authentication setup
 3. **Create a test discovery flow**: Upload a sample CSV file
 4. **Watch the AI agents work**: See real-time processing and field mapping
 5. **Explore the admin dashboard**: Check LLM cost tracking and agent monitoring
 
 **🎉 Congratulations!** If everything above worked, you're ready to start developing!
+
+---
+
+## 📊 Observability Stack Setup (Optional - 15 minutes)
+
+The platform includes an enterprise-grade observability stack powered by Grafana for monitoring logs, traces, and metrics. This is **optional** for development but **highly recommended** for debugging and understanding system behavior.
+
+### 🎯 What's Included in Observability
+
+When enabled, you get **5 additional containers**:
+1. **Grafana** (port 9999): Dashboards and visualizations
+2. **Loki** (port 3100): Log aggregation and storage (14-day retention)
+3. **Tempo** (port 3200): Distributed tracing (7-day retention)
+4. **Prometheus** (port 9090): Metrics time-series database (14-day retention)
+5. **Alloy** (ports 12345, 4317, 4318): Unified telemetry collector (replaces deprecated Promtail)
+
+**Pre-built Dashboards**:
+- 📋 **Application Logs - Enhanced**: 8 specialized panels for CrewAI monitoring
+- 🏥 **Agent Health Dashboard**: Agent performance and memory usage
+- 💰 **LLM Costs Dashboard**: Token usage and cost tracking
+- 🔄 **Master Flow Orchestrator**: Flow lifecycle and state tracking
+
+### ✅ Option 1: Enable Observability (Recommended)
+
+```bash
+# 1. Create observability environment file
+cd config/docker
+cp .env.observability.template .env.observability
+
+# 2. Edit .env.observability and set required passwords
+# GRAFANA_ADMIN_PASSWORD=<your-secure-password>
+# POSTGRES_GRAFANA_PASSWORD=<your-postgres-password>
+
+# 3. Start all services INCLUDING observability (9 total containers)
+docker-compose up -d
+docker-compose -f docker-compose.observability.yml up -d
+
+# 4. Verify observability stack is running
+docker ps | grep migration_
+
+# You should see: backend, frontend, postgres, redis (core) + grafana, loki, tempo, prometheus, alloy (observability)
+```
+
+**Access Grafana**:
+- URL: http://localhost:9999
+- Login: `admin` / `<your-GRAFANA_ADMIN_PASSWORD>`
+- Navigate to: Dashboards → Observability
+
+**Verify Log Collection**:
+```bash
+# Check Alloy is collecting logs
+curl http://localhost:12345/-/ready
+# Should return: "Alloy is ready."
+
+# Check Loki has logs
+curl -G http://localhost:3100/loki/api/v1/query \
+  --data-urlencode 'query={container="migration_backend"}' \
+  --data-urlencode 'limit=5'
+```
+
+### ❌ Option 2: Run Without Observability (Lightweight)
+
+If you prefer a minimal setup without monitoring (saves ~2GB RAM):
+
+```bash
+# Start ONLY the core 4 containers
+docker-compose up -d
+
+# Core containers:
+# - migration_backend (FastAPI + CrewAI)
+# - migration_frontend (Next.js)
+# - migration_postgres (PostgreSQL 16 + pgvector)
+# - migration_redis (Redis 7)
+```
+
+**When to skip observability**:
+- You're on a resource-constrained machine (<8GB RAM)
+- You're doing quick feature testing
+- You don't need log/trace/metric analysis
+
+**Re-enable later anytime**:
+```bash
+cd config/docker
+docker-compose -f docker-compose.observability.yml up -d
+```
+
+### 🛑 Stop Observability Stack
+
+To stop observability while keeping core services running:
+
+```bash
+cd config/docker
+docker-compose -f docker-compose.observability.yml down
+```
+
+To stop EVERYTHING (core + observability):
+
+```bash
+docker-compose down
+docker-compose -f docker-compose.observability.yml down
+```
+
+**Note**: Stopping containers preserves data in mounted volumes. To delete all data:
+```bash
+docker-compose down -v  # Deletes core volumes
+docker-compose -f docker-compose.observability.yml down -v  # Deletes observability volumes
+```
+
+### 🔍 Using Observability for Development
+
+**Debugging with Logs**:
+1. Open Grafana: http://localhost:9999
+2. Go to: Dashboards → Observability → Application Logs - Enhanced
+3. Use panels:
+   - **Error & Exception Logs**: See full error stack traces with context
+   - **Flow Phase Transitions**: Track flow progress through phases
+   - **CrewAI Agent Decisions**: Watch agent decision-making in real-time
+   - **Log Levels**: Overview of INFO/WARNING/ERROR distribution
+
+**Finding Issues**:
+- Use the `$search` filter at the top to narrow results
+- Click any log entry to expand and see full JSON details
+- Adjust time range (default: Last 6 hours) for historical analysis
+- Use "Log Rate by Container" to spot unusual activity spikes
+
+**Monitoring LLM Costs**:
+1. Navigate to: Dashboards → Observability → LLM Costs Dashboard
+2. See real-time usage by model (Gemma 3, Llama 4)
+3. Track token consumption and cost per engagement
+4. Identify expensive CrewAI operations
+
+**Performance Troubleshooting**:
+- **Agent Health Dashboard**: Memory usage, execution times, success rates
+- **Master Flow Orchestrator**: Flow bottlenecks and state transitions
+- **Prometheus**: Query backend metrics at http://localhost:9090
+
+### 📚 Observability Documentation
+
+For detailed setup, architecture, and troubleshooting:
+- **Setup Guide**: `/tmp/observability-stack-setup-guide.md` (generated during setup)
+- **Migration Summary**: `.serena/memories/promtail-to-alloy-migration-oct-2025.md`
+- **Alloy Docs**: https://grafana.com/docs/alloy/latest/
+- **Loki Query Syntax**: https://grafana.com/docs/loki/latest/logql/
+
+### ⚠️ Important: Secrets Management
+
+**NEVER commit** `.env.observability` to Git:
+- ✅ `.env.observability.template` is tracked (template for reference)
+- ❌ `.env.observability` is gitignored (contains your passwords)
+- ✅ Pattern `*.observability` ensures all variants are excluded
 
 ---
 
@@ -156,6 +306,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 #### **Deep Dive**
 7. **[docs/development/master_flow_orchestrator/](./development/master_flow_orchestrator/)** (15 min)
    - Flow orchestration patterns
+8. **[docs/adr/025-collection-flow-child-service-migration.md](./adr/025-collection-flow-child-service-migration.md)** (10 min) ⭐ **OCTOBER 2025**
+   - Child flow service pattern (replaces crew_class)
+   - Single execution path architecture
+   - How to implement new flow types
 
 ### 🗄️ Database/DevOps Developer Path (45 minutes total)
 
@@ -180,6 +334,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 #### **Deep Dive**
 4. **[docs/development/agentic-memory-architecture/](./development/agentic-memory-architecture/)** (15 min)
    - Memory and learning patterns
+5. **[docs/adr/024-tenant-memory-manager-architecture.md](./adr/024-tenant-memory-manager-architecture.md)** (15 min) ⭐ **OCTOBER 2025**
+   - Why CrewAI memory is disabled (memory=False)
+   - How TenantMemoryManager provides enterprise agent learning
+   - Multi-tenant memory isolation patterns
 
 ### 🧪 QA/Testing Developer Path (40 minutes total)
 
@@ -239,6 +397,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 3. **Never skip multi-tenant context** - All data must be client-scoped
 4. **Never mix sync/async patterns** - Use `AsyncSessionLocal` in async contexts
 5. **Never bypass pre-commit checks** - Run them at least once
+6. **Never enable CrewAI memory** - Always set `memory=False` (ADR-024, October 2025)
+7. **Never use crew_class parameter** - Always use `child_flow_service` pattern (ADR-025, October 2025)
+8. **Never make direct LLM calls** - Always use `multi_model_service.generate_response()` for tracking
+9. **Never use camelCase in new code** - Always use snake_case (migration completed August 2025)
 
 ### ✅ Always Do These Things
 1. **Always use Docker for everything** - `docker exec` for all debugging
@@ -246,6 +408,10 @@ curl http://localhost:8081           # Frontend check (NOT port 3000)
 3. **Always include context headers** - `X-Client-Account-ID`, `X-Engagement-ID`
 4. **Always update CHANGELOG.md** - After every task completion
 5. **Always test in containers** - Never trust local testing
+6. **Always use TenantMemoryManager** - For all agent learning and pattern storage (ADR-024, October 2025)
+7. **Always use child_flow_service pattern** - When implementing new flow types (ADR-025, October 2025)
+8. **Always use multi_model_service** - For automatic LLM usage tracking and cost monitoring (October 2025)
+9. **Always use snake_case** - For all new API fields and TypeScript interfaces (August 2025)
 
 ### 🔧 Development Patterns
 

@@ -5,7 +5,7 @@ Download functionality for raw and cleaned data as CSV files.
 
 import logging
 
-from fastapi import Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,6 @@ from app.models.data_import.mapping import ImportFieldMapping
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 from .audit_utils import log_raw_data_export_audit, log_cleaned_data_export_audit
-from .base import router
 from .csv_utils import (
     generate_filename,
     generate_raw_csv_content,
@@ -28,6 +27,9 @@ from .csv_utils import (
 )
 from .response_utils import create_csv_streaming_response, create_empty_csv_response
 from .validation import _validate_and_get_flow, _get_data_import_for_flow
+
+# Create exports router
+router = APIRouter()
 
 logger = logging.getLogger(__name__)
 

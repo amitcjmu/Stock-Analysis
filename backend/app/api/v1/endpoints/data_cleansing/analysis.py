@@ -18,6 +18,18 @@ from .base import DataCleansingAnalysis, DataQualityIssue, DataCleansingRecommen
 logger = logging.getLogger(__name__)
 
 
+def _generate_deterministic_issue_id(field_name: str, issue_type: str) -> str:
+    """
+    Generate a deterministic ID for a quality issue based on field name and issue type.
+    This ensures the same issue always gets the same ID, allowing stored resolutions to persist.
+    """
+    # Create a deterministic string from field name and issue type
+    issue_key = f"{field_name}:{issue_type}"
+    # Generate a UUID5 (deterministic) using the issue key
+    namespace = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")  # Standard namespace
+    return str(uuid.uuid5(namespace, issue_key))
+
+
 def _analyze_raw_data_quality(
     raw_records: List[Any], total_records: int
 ) -> Dict[str, Dict[str, Any]]:
@@ -137,7 +149,7 @@ def _generate_quality_issues_from_stats(
 
             quality_issues.append(
                 DataQualityIssue(
-                    id=str(uuid.uuid4()),
+                    id=_generate_deterministic_issue_id(field_name, "missing_values"),
                     field_name=field_name,
                     issue_type="missing_values",
                     severity=severity,
@@ -162,7 +174,7 @@ def _generate_quality_issues_from_stats(
 
             quality_issues.append(
                 DataQualityIssue(
-                    id=str(uuid.uuid4()),
+                    id=_generate_deterministic_issue_id(field_name, "invalid_format"),
                     field_name=field_name,
                     issue_type="invalid_format",
                     severity=severity,
@@ -180,7 +192,7 @@ def _generate_quality_issues_from_stats(
         if len(stats["data_types"]) > 1:
             quality_issues.append(
                 DataQualityIssue(
-                    id=str(uuid.uuid4()),
+                    id=_generate_deterministic_issue_id(field_name, "type_mismatch"),
                     field_name=field_name,
                     issue_type="type_mismatch",
                     severity="medium",
@@ -192,6 +204,90 @@ def _generate_quality_issues_from_stats(
             )
 
     return quality_issues
+
+
+async def _apply_stored_resolutions(
+    flow_id: str, quality_issues: List[DataQualityIssue], db_session: AsyncSession
+) -> List[DataQualityIssue]:
+    """
+    Apply stored resolutions to quality issues.
+
+    This function checks the flow's crewai_state_data for stored resolutions
+    and updates the quality issues with their resolution status.
+    """
+    try:
+        # Get the flow to check for stored resolutions
+        from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select
+
+        # Get the flow directly from the database using the provided session
+        # First, expire any cached instances to force a fresh read from the database
+        db_session.expire_all()
+
+        flow_query = select(
+            DiscoveryFlow
+        ).where(  # SKIP_TENANT_CHECK - flow_id validated via MFO
+            DiscoveryFlow.flow_id == flow_id
+        )
+        flow_result = await db_session.execute(flow_query)
+        flow = flow_result.scalar_one_or_none()
+
+        if not flow:
+            logger.warning(f"Flow {flow_id} not found when applying resolutions")
+            return quality_issues
+
+        # Get stored resolutions from crewai_state_data
+        crewai_data = flow.crewai_state_data or {}
+        logger.info(
+            f"Flow {flow_id} crewai_state_data keys: {list(crewai_data.keys())}"
+        )
+
+        data_cleansing_results = crewai_data.get("data_cleansing_results", {})
+
+        stored_resolutions = data_cleansing_results.get("resolutions", {})
+        logger.info(f"Flow {flow_id} stored_resolutions: {stored_resolutions}")
+
+        if not stored_resolutions:
+            logger.info(f"No stored resolutions found for flow {flow_id}")
+            return quality_issues
+
+        logger.info(
+            f"Found {len(stored_resolutions)} stored resolutions for flow {flow_id}"
+        )
+
+        # Apply resolutions to quality issues
+        updated_issues = []
+        for issue in quality_issues:
+            issue_id = issue.id
+
+            # Check if this issue has been resolved
+            if issue_id in stored_resolutions:
+                resolution = stored_resolutions[issue_id]
+                resolution_status = resolution.get("status", "pending")
+
+                # Create a copy of the issue with updated status
+                updated_issue = DataQualityIssue(
+                    id=issue.id,
+                    field_name=issue.field_name,
+                    issue_type=issue.issue_type,
+                    severity=issue.severity,
+                    description=issue.description,
+                    affected_records=issue.affected_records,
+                    recommendation=issue.recommendation,
+                    auto_fixable=issue.auto_fixable,
+                    status=resolution_status,  # Add the resolution status
+                )
+                updated_issues.append(updated_issue)
+            else:
+                # Issue has no resolution, keep as is
+                updated_issues.append(issue)
+
+        return updated_issues
+
+    except Exception as e:
+        logger.error(f"Failed to apply stored resolutions: {e}")
+        # Return original issues if resolution application fails
+        return quality_issues
 
 
 async def _perform_data_cleansing_analysis(
@@ -287,6 +383,11 @@ async def _perform_data_cleansing_analysis(
                 logger.info(
                     f"Generated {len(quality_issues)} quality issues from raw data analysis"
                 )
+
+                # Apply stored resolutions to quality issues
+                quality_issues = await _apply_stored_resolutions(
+                    flow_id, quality_issues, db_session
+                )
             else:
                 logger.warning(f"No raw records found for data import {data_import.id}")
         except Exception as e:
@@ -305,6 +406,16 @@ async def _perform_data_cleansing_analysis(
                     impact="Improves data consistency and query performance",
                     effort_estimate="2-4 hours",
                     fields_affected=["created_date", "modified_date", "last_seen"],
+                    confidence=0.92,
+                    status="pending",
+                    agent_source="Data Standardization Specialist",
+                    implementation_steps=[
+                        "Analyze all date fields to identify format variations",
+                        "Create transformation rules for common date patterns",
+                        "Apply ISO 8601 format (YYYY-MM-DD) to all date fields",
+                        "Validate transformed dates for accuracy",
+                        "Update field mappings to reflect standardized format",
+                    ],
                 ),
                 DataCleansingRecommendation(
                     id=str(uuid.uuid4()),
@@ -315,6 +426,16 @@ async def _perform_data_cleansing_analysis(
                     impact="Ensures proper asset identification",
                     effort_estimate="1-2 hours",
                     fields_affected=["server_name", "hostname"],
+                    confidence=0.87,
+                    status="pending",
+                    agent_source="Data Quality Agent",
+                    implementation_steps=[
+                        "Identify server names with invalid characters or patterns",
+                        "Define naming convention standards (e.g., alphanumeric, hyphens only)",
+                        "Create transformation rules to sanitize server names",
+                        "Apply validation rules to ensure consistency",
+                        "Review transformed names for accuracy",
+                    ],
                 ),
             ]
         )

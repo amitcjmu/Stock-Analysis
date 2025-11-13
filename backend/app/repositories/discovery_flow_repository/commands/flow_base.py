@@ -7,7 +7,6 @@ Contains core utilities, initialization, and shared helper methods.
 import logging
 import uuid
 from typing import Any
-from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -57,53 +56,3 @@ class FlowCommandsBase:
                 )
         except Exception as e:
             logger.warning(f"Failed to invalidate flow cache: {e}")
-
-    async def _update_master_flow_completion(self, flow_id: str) -> bool:
-        """
-        Update the master flow state to completed status.
-
-        Args:
-            flow_id: The flow ID
-
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            # Import here to avoid circular imports
-            from app.repositories.crewai_flow_state_extensions_repository import (
-                CrewAIFlowStateExtensionsRepository,
-            )
-
-            # Create master repo with same context
-            master_repo = CrewAIFlowStateExtensionsRepository(
-                db=self.db,
-                client_account_id=str(self.client_account_id),
-                engagement_id=str(self.engagement_id),
-                user_id="system",
-            )
-
-            # Update master flow status
-            await master_repo.update_flow_status(
-                flow_id=flow_id,
-                status="completed",
-                phase_data={
-                    "completed_by": "discovery_flow_completion",
-                    "completion_timestamp": datetime.utcnow().isoformat(),
-                },
-                collaboration_entry={
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "action": "flow_completed",
-                    "source": "discovery_flow_completion",
-                    "message": "Discovery flow completed successfully - all phases finished",
-                },
-            )
-
-            logger.info(f"✅ Master flow state updated to completed for: {flow_id}")
-            return True
-
-        except Exception as e:
-            logger.warning(
-                f"⚠️ Failed to update master flow completion for {flow_id}: {e}"
-            )
-            # Don't fail the whole operation if master flow update fails
-            return False

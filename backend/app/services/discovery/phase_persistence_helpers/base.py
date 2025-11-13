@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 # API phase names to database phase names mapping (SINGLE SOURCE OF TRUTH)
 # Used when reading phases_completed from FlowHandler (Issue #557 fix)
+# Per ADR-027: Discovery v3.0.0 has only 5 phases
 API_TO_DB_PHASE_MAP = {
     "data_import": "data_import",
+    "data_validation": "data_validation",
     "attribute_mapping": "field_mapping",
     "data_cleansing": "data_cleansing",
     "inventory": "asset_inventory",
-    "dependencies": "dependency_analysis",
-    "tech_debt": "tech_debt_assessment",
 }
 
 # Reverse mapping: Database phase names to API phase names
@@ -33,14 +33,15 @@ PHASE_FLAG_MAP = {
 }
 
 # Valid phase transitions - defines the state machine
+# Per ADR-027: Discovery v3.0.0 has 5 phases
+# (data_import, data_validation, field_mapping, data_cleansing, asset_inventory)
 VALID_PHASE_TRANSITIONS = {
     None: {"data_import"},  # Initial state
-    "data_import": {"field_mapping"},
+    "data_import": {"data_validation"},
+    "data_validation": {"field_mapping"},
     "field_mapping": {"data_cleansing"},
     "data_cleansing": {"asset_inventory"},
-    "asset_inventory": {"dependency_analysis"},
-    "dependency_analysis": {"tech_debt_assessment"},
-    "tech_debt_assessment": set(),  # Terminal state
+    "asset_inventory": set(),  # Terminal state - Discovery v3.0.0 ends here
 }
 
 

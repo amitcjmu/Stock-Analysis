@@ -132,6 +132,68 @@ async def update_field_mapping(
         raise HTTPException(status_code=500, detail="Failed to update field mapping")
 
 
+@router.delete("/mappings/{mapping_id}")
+async def delete_field_mapping(
+    mapping_id: str,
+    service: MappingService = Depends(get_mapping_service),
+):
+    """
+    Remove an approved field mapping by changing status to 'rejected'.
+    This moves the mapping back to 'Needs Review' for re-processing.
+    """
+    try:
+        logger.info(f"🗑️ Field mapping removal request: mapping_id={mapping_id}")
+
+        # Change is_approved to False instead of deleting
+        # This moves the mapping back to "Needs Review" column
+        update_data = FieldMappingUpdate(is_approved=False)
+        updated_mapping = await service.update_field_mapping(mapping_id, update_data)
+
+        if not updated_mapping:
+            logger.warning(
+                safe_log_format(
+                    "Mapping {mapping_id} not found for status update",
+                    mapping_id=mapping_id,
+                )
+            )
+            raise HTTPException(
+                status_code=404, detail=f"Field mapping not found: {mapping_id}"
+            )
+
+        logger.info(
+            f"✅ Successfully moved field mapping {mapping_id} back to needs review"
+        )
+
+        return {
+            "mapping_id": mapping_id,
+            "is_approved": False,
+            "success": True,
+            "message": "Field mapping moved to needs review",
+            "updated_mapping": updated_mapping,
+        }
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.warning(
+            safe_log_format(
+                "Mapping {mapping_id} not found: {e}", mapping_id=mapping_id, e=e
+            )
+        )
+        raise HTTPException(
+            status_code=404, detail=f"Field mapping not found: {mapping_id}"
+        )
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Error updating mapping {mapping_id}: {e}", mapping_id=mapping_id, e=e
+            )
+        )
+        raise HTTPException(
+            status_code=500, detail="Failed to update field mapping status"
+        )
+
+
 @router.get("/health")
 async def health_check():
     """Health check for top-level field mapping endpoints."""
@@ -139,5 +201,9 @@ async def health_check():
         "status": "healthy",
         "service": "field_mapping_top_level",
         "delegates_to": "data_import.field_mapping_modular",
-        "endpoints": ["/approve/{mapping_id}", "/update/{mapping_id}"],
+        "endpoints": [
+            "/approve/{mapping_id}",
+            "/update/{mapping_id}",
+            "/mappings/{mapping_id} (DELETE)",
+        ],
     }

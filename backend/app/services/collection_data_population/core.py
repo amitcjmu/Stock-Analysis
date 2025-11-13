@@ -220,4 +220,11 @@ class CollectionDataPopulationService:
             and population_results["gaps_populated"] >= 0
             and population_results["gap_analysis_created"]
         ):
+            logger.info(
+                f"🔍 BUG#668: Setting assessment_ready=True "
+                f"for flow {collection_flow.flow_id} via collection_data_population - "
+                f"apps_populated={population_results['applications_populated']}, "
+                f"gaps_populated={population_results['gaps_populated']}, "
+                f"gap_analysis_created={population_results['gap_analysis_created']}"
+            )
             collection_flow.assessment_ready = True

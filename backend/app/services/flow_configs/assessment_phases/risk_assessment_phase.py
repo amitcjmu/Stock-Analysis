@@ -34,8 +34,8 @@ def get_risk_assessment_phase() -> PhaseConfig:
         pre_handlers=["risk_identification"],
         post_handlers=["mitigation_planning"],
         crew_config={
-            "crew_type": "sixr_strategy_crew",
-            "crew_factory": "create_enhanced_sixr_strategy_crew",
+            "crew_type": "assessment_strategy_crew",  # Phase 6: Migrated from sixr_strategy_crew
+            "crew_factory": "create_enhanced_assessment_strategy_crew",  # Phase 6: Renamed
             "input_mapping": {
                 "components": "state.application_components",
                 "tech_debt_analysis": "complexity_scores.tech_debt_items",
@@ -100,7 +100,7 @@ def get_risk_assessment_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=1800,  # 30 minutes
         metadata={
-            "ui_route": "/assessment/risk",
+            "ui_route": "/assessment/:flowId/sixr-review",  # Fix #632: Use React Router syntax
             "ui_short_name": "Risk",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 30,
             "icon": "alert-circle",

@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class FlowSpecifications:
     """Query specifications and utility methods for assessment flows"""
 
-    def __init__(self, db: AsyncSession, client_account_id: int):
+    def __init__(self, db: AsyncSession, client_account_id: str):
         self.db = db
         self.client_account_id = client_account_id
 
@@ -34,8 +34,14 @@ class FlowSpecifications:
 
         try:
             # Get engagement_id for this flow
+            # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
             result = await self.db.execute(
-                select(AssessmentFlow.engagement_id).where(AssessmentFlow.id == flow_id)
+                select(AssessmentFlow.engagement_id).where(
+                    or_(
+                        AssessmentFlow.id == flow_id,
+                        AssessmentFlow.master_flow_id == flow_id,
+                    )
+                )
             )
             engagement_id = result.scalar()
 
@@ -74,8 +80,14 @@ class FlowSpecifications:
 
         try:
             # Get engagement_id for this flow
+            # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
             result = await self.db.execute(
-                select(AssessmentFlow.engagement_id).where(AssessmentFlow.id == flow_id)
+                select(AssessmentFlow.engagement_id).where(
+                    or_(
+                        AssessmentFlow.id == flow_id,
+                        AssessmentFlow.master_flow_id == flow_id,
+                    )
+                )
             )
             engagement_id = result.scalar()
 

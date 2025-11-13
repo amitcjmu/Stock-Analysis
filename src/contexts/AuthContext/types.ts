@@ -7,6 +7,10 @@ export interface TokenStorage {
   setRedirectPath: (path: string) => void;
   clearRedirectPath: () => void;
   removeToken: () => void;
+  removeUser: () => void;
+  getRefreshToken: () => string | null;
+  setRefreshToken: (token: string | null) => void;
+  removeRefreshToken: () => void;
 }
 
 export interface Client {

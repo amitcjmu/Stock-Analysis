@@ -258,14 +258,14 @@ async def sixr_impact_validation(
         if not sixr_impact:
             return False, "No 6R impact analysis found"
 
-        # Validate impact structure
+        # Validate impact structure (6R canonical strategies)
         required_impact_fields = [
             "rehost",
-            "refactor",
             "replatform",
-            "repurchase",
+            "refactor",
+            "rearchitect",
+            "replace",
             "retire",
-            "retain",
         ]
 
         for strategy in required_impact_fields:

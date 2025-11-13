@@ -7,15 +7,35 @@ const ApprovalWorkflow: React.FC<ApprovalWorkflowProps> = ({
   isApproving,
   isRejecting,
   onApprove,
-  onReject
+  onReject,
+  onRemove
 }) => {
   // Only show approval workflow for pending mappings
   if (mapping.status !== 'pending' && mapping.status !== 'suggested' && mapping.status) {
-    // Status indicator for completed mappings
+    // Status indicator for approved mappings with remove button
+    if (mapping.status === 'approved') {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+            {mapping.status}
+          </div>
+          {onRemove && (
+            <button
+              onClick={() => onRemove(mapping.id)}
+              className="p-1.5 rounded-md hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors group"
+              title="Remove this mapping"
+              aria-label="Remove approved mapping"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // Status indicator for rejected mappings
     return (
-      <div className={`px-2 py-1 text-xs rounded-full ${
-        mapping.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-      }`}>
+      <div className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">
         {mapping.status}
       </div>
     );

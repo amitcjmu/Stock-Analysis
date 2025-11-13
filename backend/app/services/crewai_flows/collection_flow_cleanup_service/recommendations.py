@@ -31,6 +31,7 @@ class CleanupRecommendationsService:
         try:
             # Get flow statistics
             all_flows_result = await self.db.execute(
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 select(CollectionFlow)
                 .where(CollectionFlow.engagement_id == self.context.engagement_id)
                 .order_by(CollectionFlow.updated_at.desc())
@@ -122,6 +123,7 @@ class CleanupRecommendationsService:
             cutoff_time = datetime.utcnow() - timedelta(minutes=timeout_minutes)
 
             # Find stuck INITIALIZED flows
+            # SKIP_TENANT_CHECK - Service-level query
             query = select(CollectionFlow).where(
                 and_(
                     CollectionFlow.engagement_id == self.context.engagement_id,

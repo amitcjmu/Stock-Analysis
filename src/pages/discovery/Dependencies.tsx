@@ -167,7 +167,7 @@ const Dependencies: React.FC = () => {
                         variant="link"
                         size="sm"
                         className="text-xs p-0 h-auto"
-                        onClick={() => navigate('/discovery/inventory')}
+                        onClick={() => navigate(effectiveFlowId ? `/discovery/inventory/${effectiveFlowId}` : '/discovery/inventory')}
                       >
                         Complete Asset Inventory →
                       </Button>

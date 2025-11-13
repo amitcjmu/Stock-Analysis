@@ -103,7 +103,7 @@ async def test_flow_with_data(
     for i in range(5):
         record_id = uuid.uuid4()
         raw_data = {
-            "name": f"Server-{i+1}",
+            "name": f"Server-{i + 1}",
             "type": "virtual_machine",
             "cpu": str(2 * (i + 1)),
             "memory": f"{4 * (i + 1)}GB",

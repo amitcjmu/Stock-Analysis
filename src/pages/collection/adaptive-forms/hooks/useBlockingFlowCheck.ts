@@ -1,11 +1,12 @@
 /**
  * useBlockingFlowCheck Hook
- * Checks for incomplete flows that would block new collection processes
+ * Checks for actively incomplete flows (INITIALIZED, RUNNING) that would block new collection processes.
+ * Per ADR-012, PAUSED flows are waiting for user input and should not block new operations.
  */
 
 import { useMemo } from 'react';
 import {
-  useIncompleteCollectionFlows,
+  useActivelyIncompleteCollectionFlows,
   useCollectionFlowManagement,
 } from '@/hooks/collection/useCollectionFlowManagement';
 
@@ -44,14 +45,15 @@ interface UseBlockingFlowCheckReturn {
 export const useBlockingFlowCheck = ({
   flowId,
 }: UseBlockingFlowCheckProps): UseBlockingFlowCheckReturn => {
-  // Check for incomplete flows that would block new collection processes
+  // Check for actively incomplete flows that would block new collection processes
+  // Per ADR-012, only INITIALIZED and RUNNING flows should block (excludes PAUSED)
   // Skip checking if we're continuing a specific flow (flowId provided)
   const skipIncompleteCheck = !!flowId;
   const {
     data: incompleteFlows = [],
     isLoading: checkingFlows,
     refetch: refetchFlows,
-  } = useIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
+  } = useActivelyIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
 
   // Use collection flow management hook for flow operations
   const { deleteFlow, isDeleting } = useCollectionFlowManagement();

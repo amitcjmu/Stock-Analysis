@@ -204,7 +204,7 @@ async def populated_engagement(
         asset = Asset(
             id=uuid4(),
             engagement_id=test_engagement.id,
-            name=f"Test Asset {i+1}",
+            name=f"Test Asset {i + 1}",
             type="application" if i % 2 == 0 else "database",
             environment="production" if i % 3 == 0 else "staging",
             business_criticality=3 + (i % 3),

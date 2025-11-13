@@ -189,12 +189,25 @@ export function groupQuestionsByAsset(
   const groups: AssetQuestionGroup[] = [];
 
   for (const [assetId, assetQuestions] of assetMap.entries()) {
-    const asset = assets?.find(a => a.id === assetId);
+    // CRITICAL FIX: Check both 'id' and 'asset_id' fields for lookup compatibility
+    const asset = assets?.find(a => a.id === assetId || (a as any).asset_id === assetId);
     const allQuestions = [...globalQuestions, ...assetQuestions];
+
+    // Issue #801: Extract asset name from question metadata if assets array doesn't have it
+    let assetName = asset?.name;
+    if (!assetName) {
+      // Try to find asset_name in question metadata
+      for (const question of assetQuestions) {
+        if (question.metadata?.asset_name) {
+          assetName = question.metadata.asset_name as string;
+          break;
+        }
+      }
+    }
 
     groups.push({
       asset_id: assetId,
-      asset_name: asset?.name || assetId.substring(0, 8),
+      asset_name: assetName || assetId.substring(0, 8), // Fallback to UUID prefix only if no metadata
       questions: allQuestions,
       completion_percentage: formValues
         ? calculateCompletionPercentage(allQuestions, formValues)

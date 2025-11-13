@@ -18,40 +18,65 @@ router = APIRouter()
 async def get_wave_planning(
     db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
 ) -> Dict[str, Any]:
-    """Get wave planning data with waves and groups."""
-    current_date = datetime.now()
+    """
+    Get wave planning data (UPDATED - no longer stub).
 
-    wave_planning_data = {
-        "waves": [
-            {
-                "wave": "Wave 1",
-                "startDate": current_date.strftime("%Y-%m-%d"),
-                "targetDate": (current_date + timedelta(days=90)).strftime("%Y-%m-%d"),
-                "groups": ["Finance Apps", "HR Systems", "Email & Collaboration"],
-                "apps": 45,
-                "status": "Scheduled",
-            },
-            {
-                "wave": "Wave 2",
-                "startDate": (current_date + timedelta(days=45)).strftime("%Y-%m-%d"),
-                "targetDate": (current_date + timedelta(days=135)).strftime("%Y-%m-%d"),
-                "groups": ["ERP Systems", "Supply Chain", "Customer Service"],
-                "apps": 38,
-                "status": "Planning",
-            },
-            {
-                "wave": "Wave 3",
-                "startDate": (current_date + timedelta(days=90)).strftime("%Y-%m-%d"),
-                "targetDate": (current_date + timedelta(days=180)).strftime("%Y-%m-%d"),
-                "groups": ["Legacy Systems", "Data Warehouses", "Analytics"],
-                "apps": 42,
-                "status": "Draft",
-            },
-        ],
-        "summary": {"totalWaves": 3, "totalApps": 125, "totalGroups": 9},
+    Retrieves real wave planning data from planning_flows table via repository.
+    Returns empty state if no planning flow exists (no error).
+    """
+    from app.repositories.planning_flow_repository import PlanningFlowRepository
+
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
+    # Convert to UUIDs (per migration 115) - NEVER use integers for tenant IDs
+    from uuid import UUID
+
+    client_account_uuid = (
+        (
+            UUID(client_account_id)
+            if isinstance(client_account_id, str)
+            else client_account_id
+        )
+        if client_account_id
+        else None
+    )
+    engagement_uuid = (
+        (UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id)
+        if engagement_id
+        else None
+    )
+
+    # Initialize repository with tenant scoping
+    repository = PlanningFlowRepository(
+        db=db,
+        client_account_id=client_account_uuid,
+        engagement_id=engagement_uuid,
+    )
+
+    # Get latest planning flow for engagement (get_all auto-filters by tenant context)
+    planning_flows = await repository.get_all()
+
+    if not planning_flows:
+        # Return empty state (no error - planning not started yet)
+        return {
+            "waves": [],
+            "groups": [],
+            "planning_status": "not_started",
+            "summary": {"total_waves": 0, "total_apps": 0, "total_groups": 0},
+        }
+
+    # Get most recent planning flow
+    latest_flow = planning_flows[0]
+
+    return {
+        "waves": latest_flow.wave_plan_data.get("waves", []),
+        "groups": latest_flow.wave_plan_data.get("groups", []),
+        "planning_status": latest_flow.current_phase,
+        "phase_status": latest_flow.phase_status,
+        "summary": latest_flow.wave_plan_data.get("summary", {}),
+        "planning_flow_id": str(latest_flow.planning_flow_id),
     }
-
-    return wave_planning_data
 
 
 @router.put("/")

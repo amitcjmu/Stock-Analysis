@@ -9,6 +9,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.core.agent_monitoring_startup import (
+    initialize_agent_monitoring,
+    shutdown_agent_monitoring,
+)
+
 
 def get_lifespan():  # noqa: C901
     @asynccontextmanager
@@ -115,6 +120,56 @@ def get_lifespan():  # noqa: C901
                 "⚠️⚠️⚠️ Database connection test failed: %s", e, exc_info=True
             )
 
+        # Initialize Redis connection (Upstash for caching)
+        try:
+            from app.core.redis_config import redis_manager
+
+            logging.getLogger(__name__).info("🔧 Initializing Redis connection...")
+            redis_initialized = await redis_manager.initialize()
+            if redis_initialized:
+                logging.getLogger(__name__).info(
+                    f"✅ Redis connected ({redis_manager.client_type})"
+                )
+            else:
+                logging.getLogger(__name__).warning(
+                    "⚠️ Redis unavailable - running in fallback mode (no caching)"
+                )
+        except Exception as e:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "Redis initialization warning: %s", e, exc_info=True
+            )
+
+        # Validate critical attributes consistency
+        try:
+            logging.getLogger(__name__).info(
+                "🔄 Validating critical attributes consistency..."
+            )
+            from app.services.collection.critical_attributes import (
+                validate_attribute_consistency,
+            )
+
+            validate_attribute_consistency()
+            logging.getLogger(__name__).info("✅ Critical attributes validation passed")
+        except Exception as e:
+            # This is a critical error that should halt startup
+            logging.getLogger(__name__).error(
+                f"❌ Critical attributes validation failed: {e}", exc_info=True
+            )
+            raise  # Re-raise to prevent startup with invalid configuration
+
+        # Initialize agent monitoring services
+        try:
+            logging.getLogger(__name__).info("🔧 Initializing agent monitoring...")
+            initialize_agent_monitoring()
+            logging.getLogger(__name__).info(
+                "✅ Agent monitoring initialized successfully"
+            )
+        except Exception as e:  # pragma: no cover
+            # Don't fail startup if monitoring fails - log and continue
+            logging.getLogger(__name__).error(
+                f"⚠️ Failed to initialize agent monitoring: {e}", exc_info=True
+            )
+
         # Log feature flags configuration
         try:
             logging.getLogger(__name__).info(
@@ -125,6 +180,37 @@ def get_lifespan():  # noqa: C901
             log_feature_flags()
         except Exception as e:  # pragma: no cover
             logging.getLogger(__name__).warning("Feature flags logging warning: %s", e)
+
+        # CrewAI OpenAI Compatibility Shim (gated by feature flag)
+        # Some CrewAI versions fall back to OPENAI_API_KEY env var even when using DeepInfra
+        # This shim sets OPENAI_API_KEY from DEEPINFRA_API_KEY ONLY when:
+        # 1. CREWAI_OPENAI_COMPAT_SHIM=true (explicit opt-in)
+        # 2. No existing OPENAI_API_KEY (doesn't shadow explicit OpenAI config)
+        # Per GPT5 review: Prevents conflating providers and shadowing explicit configs
+        try:
+            enable_shim = (
+                os.getenv("CREWAI_OPENAI_COMPAT_SHIM", "false").lower() == "true"
+            )
+            if enable_shim:
+                deepinfra_key = os.getenv("DEEPINFRA_API_KEY")
+                existing_openai_key = os.getenv("OPENAI_API_KEY")
+
+                if deepinfra_key and not existing_openai_key:
+                    os.environ["OPENAI_API_KEY"] = deepinfra_key
+                    os.environ["OPENAI_API_BASE"] = (
+                        "https://api.deepinfra.com/v1/openai"
+                    )
+                    logging.getLogger(__name__).info(
+                        "✅ CrewAI compat shim: Set OPENAI_API_KEY from DEEPINFRA_API_KEY"
+                    )
+                elif existing_openai_key:
+                    logging.getLogger(__name__).info(
+                        "ℹ️ CrewAI compat shim: Preserving existing OPENAI_API_KEY"
+                    )
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                f"⚠️ CrewAI OpenAI compat shim setup failed: {e}"
+            )
 
         # Setup LiteLLM tracking for automatic LLM usage logging
         try:
@@ -153,6 +239,20 @@ def get_lifespan():  # noqa: C901
 
         # Shutdown logic
         logging.getLogger(__name__).info("🔄 Application shutting down...")
+
+        # Shutdown agent monitoring
+        try:
+            logging.getLogger(__name__).info("🛑 Shutting down agent monitoring...")
+            shutdown_agent_monitoring()
+            logging.getLogger(__name__).info(
+                "✅ Agent monitoring shut down successfully"
+            )
+        except Exception as e:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "⚠️ Failed to shut down agent monitoring: %s", e
+            )
+
+        # Shutdown flow health monitor
         try:
             from app.services.flow_health_monitor import flow_health_monitor
 

@@ -86,12 +86,96 @@ This is NOT over-engineering - it's REQUIRED for enterprise resilience
 
 ### Critical Architecture Patterns
 
+#### ⚠️ CRITICAL: MFO Flow ID Pattern (READ THIS FIRST!)
+
+**This is a RECURRING BUG pattern** - read before implementing ANY flow endpoints!
+
+The MFO uses a **two-table pattern** with **TWO DIFFERENT UUIDs** per flow:
+- **Master Flow ID**: Internal MFO routing (`crewai_flow_state_extensions.flow_id`)
+- **Child Flow ID**: User-facing identifier (`assessment_flows.id`, `discovery_flows.id`, etc.)
+
+**THE GOLDEN RULES**:
+1. **URL paths receive CHILD flow IDs** (user-facing: `/execute/{flow_id}`)
+2. **MFO methods expect MASTER flow IDs** (`orchestrator.execute_phase(master_id, ...)`)
+3. **ALWAYS resolve master_flow_id from child table BEFORE calling MFO**
+4. **Include child flow_id in phase_input** for persistence
+
+**CORRECT PATTERN** (copy this verbatim):
+```python
+@router.post("/execute/{flow_id}")  # ← Child ID from URL
+async def execute_something(flow_id: str, db: AsyncSession, context: RequestContext):
+    # Step 1: Query child flow table using child ID
+    stmt = select(AssessmentFlow).where(
+        AssessmentFlow.id == UUID(flow_id),  # ← Child ID
+        AssessmentFlow.client_account_id == context.client_account_id,
+        AssessmentFlow.engagement_id == context.engagement_id,
+    )
+    result = await db.execute(stmt)
+    child_flow = result.scalar_one_or_none()
+
+    if not child_flow or not child_flow.master_flow_id:
+        raise HTTPException(status_code=404, detail="Flow not found")
+
+    # Step 2: Extract master flow ID
+    master_flow_id = child_flow.master_flow_id  # ← FK to master flow
+
+    # Step 3: Call MFO with MASTER ID, pass CHILD ID in phase_input
+    orchestrator = MasterFlowOrchestrator(db, context)
+    result = await orchestrator.execute_phase(
+        str(master_flow_id),  # ← MASTER flow ID (MFO routing)
+        "phase_name",
+        {"flow_id": flow_id}  # ← CHILD flow ID (persistence)
+    )
+
+    return {"success": True, "flow_id": flow_id}  # Return child ID
+```
+
+**Reference**: See Serena memory `mfo_two_table_flow_id_pattern_critical` for full details.
+
+**Example Files**:
+- `backend/app/api/v1/endpoints/assessment_flow/mfo_integration/create.py`
+- `backend/app/api/v1/endpoints/collection_flow/lifecycle.py`
+
+**Common Mistakes**:
+- ❌ Passing child ID to `MFO.execute_phase()` → "Flow not found" errors
+- ❌ Querying `AssessmentFlow.flow_id` → AttributeError (use `.id`)
+- ❌ Missing `flow_id` in `phase_input` → Phase results won't persist
+
+#### Flow Execution Pattern Selection (CRITICAL - ADR-025)
+
+**Two execution patterns exist** - choose based on flow characteristics:
+
+**Child Service Pattern** (Collection, Discovery, Decommission):
+- ✅ Use when: Multi-phase data collection, questionnaire generation, auto-progression
+- ✅ Provides: Centralized phase routing, state abstraction, auto-progression logic
+- ✅ Files: `backend/app/services/child_flow_services/{flow}_child_flow_service.py`
+
+**Direct Flow Pattern** (Assessment):
+- ✅ Use when: Analysis workflows, linear phases, simpler state management
+- ✅ Provides: Direct CrewAI integration, simpler architecture
+- ✅ Files: `backend/app/services/crewai_flows/unified_{flow}_flow.py`
+
+**Decision Criteria**:
+```
+Does flow collect data via questionnaires?
+├─ Yes → Does it have auto-progression logic?
+│         ├─ Yes → Use Child Service Pattern
+│         └─ No → Consider Child Service Pattern
+└─ No → Is it analyzing existing data?
+          ├─ Yes → Use Direct Flow Pattern (like Assessment)
+          └─ No → Evaluate complexity
+```
+
+**IMPORTANT**: ADR-025 applies to Collection Flow only. Assessment Flow correctly uses Direct Flow Pattern.
+
+**See**: `docs/adr/025-collection-flow-child-service-migration.md` section "When to Use Child Service Pattern"
+
 #### Master Flow Orchestrator (MFO) Pattern
 The MFO is the single source of truth for all workflow operations:
 - **Entry Point**: `/api/v1/master-flows/*` endpoints ONLY
-- **Two-Table Architecture**:
+- **Two-Table Architecture** (see critical pattern above):
   - `crewai_flow_state_extensions`: Master flow lifecycle (running/paused/completed)
-  - `discovery_flows`: Child flow operational data (phases, UI state)
+  - `assessment_flows` / `discovery_flows` / `collection_flows`: Child flow operational data
 - **Never** call legacy `/api/v1/discovery/*` endpoints directly
 
 #### State Management Flow
@@ -315,6 +399,45 @@ patterns = await memory_manager.retrieve_similar_patterns(
 - `/docs/development/TENANT_MEMORY_STRATEGY.md` - Implementation strategy
 - `backend/app/services/crewai_flows/memory/tenant_memory_manager/` - Implementation
 
+### Assessment Flow Architecture
+
+**Purpose**: Cloud readiness assessment and 6R migration recommendation
+
+**Endpoints**: `/api/v1/assessment-flow/*` (MFO-integrated per ADR-006)
+
+**Execution Pattern**: Direct `UnifiedAssessmentFlow` (does NOT use child service pattern - see ADR-025)
+
+**Flow Progression**:
+1. Create assessment flow → Master flow in `crewai_flow_state_extensions`
+2. Child flow in `assessment_flows` tracks operational state
+3. Phases: Architecture Standards → Tech Debt → Dependency Analysis → 6R Decisions
+4. Accept recommendations → Update `Asset.six_r_strategy`
+5. Export results → PDF/Excel/JSON
+
+**Two-Table Pattern** (ADR-012):
+- **Master Table**: `crewai_flow_state_extensions` (lifecycle: running/paused/completed)
+- **Child Table**: `assessment_flows` (operational: phases, UI state, selected applications)
+
+**Why No Child Service Pattern**:
+- Assessment is analysis-focused (not data collection)
+- Linear phase progression (no auto-progression logic)
+- No questionnaire generation
+- Simpler state management than Collection/Discovery flows
+- Direct CrewAI flow works efficiently
+
+**Key Files**:
+- Backend: `backend/app/api/v1/endpoints/assessment_flow/`
+- Frontend: `src/lib/api/assessmentFlow.ts`
+- MFO Integration: `backend/app/api/v1/endpoints/assessment_flow/mfo_integration.py`
+- CrewAI Flow: `backend/app/services/crewai_flows/unified_assessment_flow.py`
+
+**Deprecated**: `/api/v1/6r/*` endpoints (HTTP 410 Gone - use Assessment Flow instead)
+
+**Migration Context**:
+- 6R Analysis implementation was removed (Oct 2025) to eliminate duplicate code paths
+- Assessment Flow is the single source of truth for 6R recommendations
+- Strategy crew integrated with Assessment Flow via MFO architecture
+
 ## Subagent Instructions and Requirements
 
 ### AUTOMATIC ENFORCEMENT FOR ALL SUBAGENTS (Including Autonomous)
@@ -369,6 +492,78 @@ When invoking ANY subagent (qa-playwright-tester, python-crewai-fastapi-expert, 
    ```
 
 ## Development Best Practices
+
+### CRITICAL: Bug Investigation Workflow (MUST READ - Prevents False Fixes)
+
+**⚠️ MANDATORY PROCESS FOR ALL BUG INVESTIGATIONS - LEARNED FROM ISSUE #795**
+
+Before assuming something is a bug and implementing a fix, **ALWAYS** follow this sequence:
+
+#### 1. Check Serena Memories FIRST
+```bash
+# Search for relevant architectural context
+mcp__serena__list_memories  # List all available memories
+mcp__serena__read_memory <memory_name>  # Read relevant memories
+```
+
+**Why**: Many "bugs" are actually **working as designed**. Serena memories document:
+- Architectural intent and design decisions
+- Intelligent behavior patterns (e.g., adaptive questionnaires, gap-based filtering)
+- Why certain code appears to do "less" but is actually doing "more intelligently"
+
+#### 2. Understand Architectural Intent
+Ask yourself:
+- **Is this behavior intentional?** (e.g., fewer questions = better data quality, not a bug)
+- **What problem does this design solve?** (e.g., intelligent gap-based question generation)
+- **Does showing "less" actually mean "smarter"?** (e.g., adaptive forms showing only data gaps)
+
+#### 3. Reproduce with Playwright FIRST
+**NEVER** ask users for manual testing - use qa-playwright-tester agent:
+```typescript
+Task tool with subagent_type: "qa-playwright-tester"
+// Reproduce the exact scenario
+// Capture screenshots, console logs, network traces
+// Verify actual vs expected behavior
+```
+
+#### 4. Analyze Backend Logic
+Check the backend code that generates the data:
+- Gap analysis services
+- Intelligent filtering logic
+- Agent-based decision making
+- Database queries with proper scoping
+
+#### 5. Present Analysis BEFORE Implementing
+**MANDATORY**: Before writing ANY fix:
+1. Document what you found (root cause analysis)
+2. Explain whether it's a bug or working as designed
+3. If it's a bug, propose the fix approach
+4. **Wait for user approval** before implementing
+
+#### Example: Issue #795 (Adaptive Forms)
+**Reported**: "Asset 2 shows only 3 sections instead of 7 - BUG!"
+
+**Investigation Revealed**:
+- ✅ Serena memory: "questions should be generated based on gaps"
+- ✅ Asset 2 has better data quality → fewer gaps → fewer questions
+- ✅ Playwright testing: System working correctly
+- ✅ Backend: Gap analysis correctly identifying missing fields only
+- ❌ **NOT A BUG** - Intelligent adaptive behavior
+
+**What Went Wrong**:
+- Assumed fewer sections = bug without checking intent
+- Implemented "fix" that broke intelligent filtering
+- Made system ask unnecessary questions for complete data
+
+**Correct Action**: Close as "Working as Designed"
+
+#### Red Flags That Suggest "Not a Bug"
+- 🚩 "Fewer items displayed" in an **adaptive/intelligent** system
+- 🚩 "Different behavior per asset/user" in a **personalized** system
+- 🚩 "Empty sections hidden" in a **smart UI** that shows only relevant content
+- 🚩 "Questions vary by data quality" in a **gap-based** collection system
+
+**When in doubt: CHECK SERENA MEMORIES FIRST, REPRODUCE WITH PLAYWRIGHT, PRESENT ANALYSIS**
 
 ### CRITICAL: API Request Body vs Query Parameters (MUST READ - Prevents 422 Errors)
 
@@ -431,6 +626,137 @@ Before writing ANY code that handles API responses:
 ### Development Environment Configuration
 - Use /opt/homebrew/bin/gh for all Git CLI tools and /opt/homebrew/bin/python3.11@ for all Python executions in the app
 - Never attempt to run npm run dev locally as ALL app related testing needs to be done on docker instances locally. The app runs on localhost:8081 NOT on port 3000
+
+### CRITICAL: Observability Enforcement (MANDATORY - November 2025)
+
+**All LLM calls and CrewAI task executions MUST be instrumented for cost tracking and performance monitoring.**
+
+See `/docs/guidelines/OBSERVABILITY_PATTERNS.md` for full documentation.
+
+#### LLM Call Tracking (Automatic)
+
+**All LLM calls are automatically tracked** via `litellm_tracking_callback.py` installed at app startup. No action needed for basic tracking.
+
+**For new code**, use `multi_model_service` for best tenant context:
+```python
+from app.services.multi_model_service import multi_model_service, TaskComplexity
+
+response = await multi_model_service.generate_response(
+    prompt="Your prompt",
+    task_type="analysis",
+    complexity=TaskComplexity.SIMPLE,
+    client_account_id=client_account_id,
+    engagement_id=engagement_id
+)
+# ✅ Automatically logged to llm_usage_logs with costs
+```
+
+**Legacy code** with direct `litellm.completion()` calls:
+- Already tracked via global LiteLLM callback (no changes needed)
+- Add tenant context to metadata if possible:
+```python
+response = litellm.completion(
+    model="deepinfra/llama-4",
+    messages=[...],
+    metadata={
+        "feature_context": "readiness_assessment",
+        "client_account_id": 1,
+        "engagement_id": 123
+    }
+)
+```
+
+#### Agent Task Tracking (Manual Integration Required)
+
+**MANDATORY for all CrewAI task execution** (enforced by pre-commit hooks):
+
+```python
+from app.services.crewai_flows.handlers.callback_handler_integration import (
+    CallbackHandlerIntegration
+)
+
+# 1. Create callback handler with tenant context
+callback_handler = CallbackHandlerIntegration.create_callback_handler(
+    flow_id=str(master_flow.flow_id),
+    context={
+        "client_account_id": str(master_flow.client_account_id),
+        "engagement_id": str(master_flow.engagement_id),
+        "flow_type": "assessment",  # or "discovery", "collection"
+        "phase": "readiness"
+    }
+)
+callback_handler.setup_callbacks()
+
+# 2. Create task
+task = Task(
+    description="Your task description",
+    expected_output="Expected output format",
+    agent=(agent._agent if hasattr(agent, "_agent") else agent)
+)
+
+# 3. Register task start BEFORE execution
+callback_handler._step_callback({
+    "type": "starting",
+    "status": "starting",
+    "agent": "readiness_assessor",
+    "task": "readiness_assessment",
+    "content": "Starting task description"
+})
+
+# 4. Execute task
+future = task.execute_async(context=context_str)
+result = await asyncio.wrap_future(future)
+
+# 5. Mark completion with status
+callback_handler._task_completion_callback({
+    "agent": "readiness_assessor",
+    "task_name": "readiness_assessment",
+    "status": "completed" if result else "failed",
+    "task_id": "readiness_task",
+    "output": result
+})
+```
+
+#### Pre-Commit Enforcement
+
+Pre-commit hooks will **block commits** that violate observability patterns:
+
+**CRITICAL** (blocks commit):
+- `task.execute_async()` without `CallbackHandler` in scope
+
+**ERROR** (blocks commit):
+- Direct `litellm.completion()` calls (use `multi_model_service` instead)
+
+**WARNING** (allows commit):
+- `crew.kickoff()` without `callbacks` parameter
+
+#### Viewing Observability Data
+
+**Grafana Dashboards** (http://localhost:9999):
+- **LLM Costs**: `/d/llm-costs/` - Cost tracking by model/provider
+- **Agent Activity**: `/d/agent-activity/` - Agent performance and usage
+- **CrewAI Flows**: `/d/crewai-flows/` - Flow execution metrics
+
+**Database Tables**:
+- `migration.llm_usage_logs` - All LLM API calls with costs
+- `migration.agent_task_history` - CrewAI task execution tracking
+- `migration.llm_model_pricing` - Cost per 1K tokens by model
+
+#### Why This Matters
+
+1. **Cost Control**: Track LLM spending by model, provider, feature (average $0.50-$2.00 per flow)
+2. **Performance**: Identify slow agents and bottlenecks (target: <5s response time)
+3. **Quality**: Monitor success rates and error patterns (target: >95% success rate)
+4. **Multi-Tenant**: Understand usage per client and engagement for billing
+5. **Debugging**: Trace agent task execution flow with detailed logs
+
+#### Exemptions
+
+Observability NOT required for:
+- Test code (`backend/tests/`)
+- Migration scripts (`backend/alembic/versions/`)
+- Utility scripts (unless they call LLMs)
+- Legacy code before November 2025 (but encouraged to adopt)
 
 ## Architectural Review Guidelines for AI Agents
 
@@ -515,10 +841,11 @@ When modifying API endpoints, **ALWAYS**:
 - Flow Processing: `/api/v1/flow-processing/*`
 - Discovery: `/api/v1/unified-discovery/*`
 - Collection: `/api/v1/collection/*`
+- Assessment: `/api/v1/assessment-flow/*` (NOT `/6r/*` - deprecated)
 
 ### Files That MUST Be Updated Together
 - Backend: `router_registry.py`, `router_imports.py`, endpoint files
-- Frontend: `masterFlowService.ts`, `discoveryService.ts`, `collectionService.ts`
+- Frontend: `masterFlowService.ts`, `discoveryService.ts`, `collectionService.ts`, `assessmentFlowApi.ts`
 
 ### Never Do This
 - ❌ Change backend without frontend

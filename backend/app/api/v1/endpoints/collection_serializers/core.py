@@ -7,15 +7,19 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from app.models.asset import Asset
-from app.models.collection_flow import CollectionFlow, AutomationTier
+from app.models.collection_flow import (
+    CollectionFlow,
+    AutomationTier,
+    AdaptiveQuestionnaire,
+)
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.sixr_analysis import SixRQuestionResponse as AdaptiveQuestionnaire
 from app.models.collection_flow import CollectionGapAnalysis
 from app.schemas.collection_flow import (
     CollectionFlowResponse,
     CollectionGapAnalysisResponse,
     AdaptiveQuestionnaireResponse,
 )
+from app.utils.json_sanitization import sanitize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +28,14 @@ def serialize_collection_flow(
     collection_flow: CollectionFlow,
     gaps_identified: int = 0,
     collection_metrics: Optional[Dict[str, Any]] = None,
+    applications: Optional[List[Dict[str, Any]]] = None,
 ) -> CollectionFlowResponse:
     """Serialize a CollectionFlow model to CollectionFlowResponse.
 
     Alias for build_collection_flow_response for backward compatibility.
     """
     return build_collection_flow_response(
-        collection_flow, gaps_identified, collection_metrics
+        collection_flow, gaps_identified, collection_metrics, applications
     )
 
 
@@ -38,6 +43,7 @@ def build_collection_flow_response(
     collection_flow: CollectionFlow,
     gaps_identified: int = 0,
     collection_metrics: Optional[Dict[str, Any]] = None,
+    applications: Optional[List[Dict[str, Any]]] = None,
 ) -> CollectionFlowResponse:
     """Build a CollectionFlowResponse from a CollectionFlow model.
 
@@ -45,6 +51,7 @@ def build_collection_flow_response(
         collection_flow: Collection flow model instance
         gaps_identified: Number of gaps identified (optional)
         collection_metrics: Collection metrics dictionary (optional)
+        applications: List of applications with asset_id and application_name (optional)
 
     Returns:
         CollectionFlowResponse object
@@ -113,6 +120,10 @@ def build_collection_flow_response(
     # Include discovery_flow_id if present
     if collection_flow.discovery_flow_id:
         response_dict["discovery_flow_id"] = str(collection_flow.discovery_flow_id)
+
+    # Include applications list for UUID-based frontend lookups (Issue #762)
+    if applications is not None:
+        response_dict["applications"] = applications
 
     return CollectionFlowResponse(**response_dict)
 
@@ -292,14 +303,17 @@ def build_questionnaire_response(
                 f"No target_gaps found in questionnaire {questionnaire.id} questions"
             )
 
-    # Build base response
+    # Build base response with sanitized questions to prevent JSON serialization errors
+    # (e.g., NaN, Infinity values from LLM responses)
     response = AdaptiveQuestionnaireResponse(
         id=str(questionnaire.id),
         collection_flow_id=str(questionnaire.collection_flow_id),
         title=questionnaire.title,
         description=questionnaire.description,
         target_gaps=target_gaps,
-        questions=questionnaire.questions,
+        questions=sanitize_for_json(
+            questionnaire.questions
+        ),  # Sanitize questions array
         validation_rules=questionnaire.validation_rules,
         completion_status=questionnaire.completion_status,
         status_line=status_line,

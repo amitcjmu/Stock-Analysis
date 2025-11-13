@@ -15,6 +15,7 @@ interface DiscoveryFlow {
   data_import_completed?: boolean;
   field_mapping_completed?: boolean;
   data_cleansing_completed?: boolean;
+  asset_inventory_completed?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -42,16 +43,21 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   // First try route params (e.g., /path/:flowId)
   const { flowId: routeFlowId } = useParams<{ flowId?: string }>();
 
-  // Also check query params (e.g., ?flow_id=...)
+  // Also check query params (e.g., ?flow_id=... or ?flowId=...)
+  // Support both snake_case (flow_id) and camelCase (flowId) for backward compatibility
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const queryFlowId = queryParams.get('flow_id');
+  const queryFlowId = queryParams.get('flow_id') || queryParams.get('flowId');
 
   // Normalize and validate IDs before use (trim whitespace and validate format)
   const normalizeFlowId = (id: string | null | undefined): string | undefined => {
     if (!id) return undefined;
     const trimmed = id.trim();
-    // Basic UUID format validation
+    // UUID v4 format validation (strict)
+    // NOTE: This regex is intentionally strict to match UUID v4 only (not all UUID versions)
+    // Backend exclusively uses uuid.uuid4() for all ID generation (Asset.id, DiscoveryFlow.id, etc.)
+    // Rejecting non-v4 UUIDs provides additional security against ID manipulation attacks
+    // See: backend/app/models/asset/models.py:65, backend/app/models/discovery_flow.py:26
     const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
     return trimmed && uuidPattern.test(trimmed) ? trimmed : undefined;
   };
@@ -73,7 +79,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       // Emergency fallback: try to extract flow ID from URL with validation
       const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
 
-      // Look for flow ID patterns in current URL with secure validation
+      // Look for UUID v4 patterns in current URL with secure validation
+      // Must match the same strict v4 pattern used in normalizeFlowId
       const flowIdPattern = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}/i;
       const urlMatch = currentUrl.match(flowIdPattern);
 
@@ -151,6 +158,30 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       }
     }
 
+    // Priority 1.7: For inventory (asset_inventory), check flows that completed data_cleansing
+    if (currentPhase === 'inventory' || currentPhase === 'asset_inventory') {
+      const dataCleansingCompleteFlow = flowList.find((flow: DiscoveryFlow) => {
+        // Check if data_cleansing is completed
+        const dataCleansingCompleted = flow.phases?.data_cleansing === true ||
+                                      flow.data_cleansing_completed === true ||
+                                      flow.current_phase === 'data_cleansing';
+
+        // Check if flow is in a suitable status
+        const isPreferredStatus = preferredStatuses.includes(flow.status);
+
+        // Check if asset_inventory is not yet completed
+        const inventoryNotCompleted = flow.phases?.asset_inventory !== true &&
+                                     flow.asset_inventory_completed !== true;
+
+        return dataCleansingCompleted && isPreferredStatus && inventoryNotCompleted;
+      });
+
+      if (dataCleansingCompleteFlow) {
+        const flowId = dataCleansingCompleteFlow.flow_id || dataCleansingCompleteFlow.id;
+        return flowId;
+      }
+    }
+
     // Priority 2: Flow with specified phase completed but still in preferred status
     if (currentPhase) {
       const completedPhaseFlow = flowList.find((flow: DiscoveryFlow) => {
@@ -212,12 +243,35 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       return candidateFlowId;
     }
 
-    // IMPORTANT: Trust URL flow ID even if not in current flow list
-    // The flow list might be filtered (only "active" flows) or not loaded yet
-    // URL flow IDs are explicitly provided by navigation and should be trusted
+    // CRITICAL FIX #326: Validate URL flow_id exists in flowList before trusting it
+    // Backend now returns 404 when flow_id doesn't exist - frontend must validate first
     if (urlFlowId) {
-      console.log(`✅ Using URL flow ID: ${urlFlowId}`);
-      return urlFlowId;
+      // BUG #761 FIX: Use optimistic UI while loading - trust URL flow ID until proven invalid
+      // Only reject after flow list has loaded AND flow is not found
+      if (!flowList || flowList.length === 0) {
+        console.log(`⏳ Optimistically using URL flow ID while list loads: ${urlFlowId}`);
+        return urlFlowId; // Optimistic: trust URL until list loads
+      }
+
+      // Check if URL flow_id exists in user's flow list
+      const flowExists = flowList.some((flow: DiscoveryFlow) => {
+        const flowId = flow.flow_id || flow.id;
+        return flowId === urlFlowId;
+      });
+
+      if (flowExists) {
+        console.log(`✅ Using validated URL flow ID: ${urlFlowId}`);
+        return urlFlowId;
+      } else {
+        // CC FIX (Bug #835): Allow completed flows for inventory/asset_inventory context
+        // Users should be able to view inventory even for completed discovery flows
+        if (currentPhase === 'asset_inventory' || currentPhase === 'inventory') {
+          console.log(`⚠️ URL flow ID ${urlFlowId} not in active list, but allowing for inventory view (may be completed flow)`);
+          return urlFlowId;
+        }
+        console.warn(`❌ URL flow ID ${urlFlowId} not found in user's flow list - invalid flow`);
+        return null; // Return null for invalid flow_id - will trigger error state
+      }
     }
 
     // For auto-detected flows, validate against flow list
@@ -290,8 +344,8 @@ export const useDataCleansingFlowDetection = (): FlowAutoDetectionResult => {
 
 export const useInventoryFlowDetection = (): FlowAutoDetectionResult => {
   return useDiscoveryFlowAutoDetection({
-    currentPhase: 'inventory',
-    preferredStatuses: ['running', 'active'],
+    currentPhase: 'asset_inventory',
+    preferredStatuses: ['running', 'active', 'initialized', 'in_progress', 'processing'],
     fallbackToAnyRunning: true
   });
 };

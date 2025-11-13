@@ -129,6 +129,13 @@ def parse_and_validate_output(
     # Sanitize numeric fields (remove NaN/Inf, clamp ranges)
     result_dict["gaps"] = sanitize_numeric_fields(result_dict.get("gaps", {}))
 
+    # CRITICAL: Normalize asset_id for ALL gaps (prevents UUID errors on persistence)
+    # AI enhancement may return gaps without valid asset_id, stamp known asset.id
+    asset_id_str = str(asset.id)
+    for priority in ["critical", "high", "medium", "low"]:
+        for gap in result_dict.get("gaps", {}).get(priority, []):
+            gap["asset_id"] = asset_id_str  # Ensure UUID string for all gaps
+
     return result_dict
 
 

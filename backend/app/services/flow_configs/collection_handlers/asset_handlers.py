@@ -7,9 +7,9 @@ Provides handler functions for applying resolved gap data to asset records.
 
 import logging
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import update, and_, select, text
+from sqlalchemy import and_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
@@ -20,6 +20,69 @@ logger = logging.getLogger(__name__)
 
 class AssetHandlers(CollectionHandlerBase):
     """Handlers for asset write-back operations"""
+
+    def _handle_integer_field(self, value: list, dst_field: str) -> Optional[int]:
+        """Extract integer value from list for numeric fields.
+
+        Args:
+            value: List containing potential integer value
+            dst_field: Target field name (for logging)
+
+        Returns:
+            Integer value or None if invalid
+        """
+        try:
+            return int(value[0]) if value[0] else None
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid value for {dst_field}: {value[0]}")
+            return None
+
+    def _handle_string_field(self, value: list, dst_field: str) -> Optional[Any]:
+        """Extract string value from list, joining multiple values with comma.
+
+        Args:
+            value: List containing string values
+            dst_field: The destination field name to check if it supports lists
+
+        Returns:
+            List for array-type fields, comma-joined string or first element for others
+        """
+        # For fields that are actual list types in the model, return the list
+        if dst_field in ["technology_stack"]:
+            return value
+
+        if len(value) > 1:
+            return ", ".join(str(v) for v in value)
+        return str(value[0]) if value[0] else None
+
+    def _process_list_value(self, value: list, dst_field: str) -> Optional[Any]:
+        """Process list values based on field type.
+
+        Args:
+            value: List value to process
+            dst_field: Target field name
+
+        Returns:
+            Processed value or None if invalid
+        """
+        if len(value) == 0:
+            return None
+
+        # Integer fields
+        if dst_field in ["cpu_cores", "memory_gb", "storage_gb"]:
+            return self._handle_integer_field(value, dst_field)
+
+        # String fields that may have multiple values
+        if dst_field in [
+            "technology_stack",
+            "business_owner",
+            "department",
+            "application_name",
+        ]:
+            return self._handle_string_field(value, dst_field)
+
+        # Default: take first element
+        return value[0]
 
     def _build_update_payload(
         self, field_updates: Dict[str, Any], whitelist: Dict[str, str]
@@ -41,37 +104,46 @@ class AssetHandlers(CollectionHandlerBase):
                 None,
                 "",
             ):
-                update_payload[dst_field] = field_updates[src_field]
+                value = field_updates[src_field]
+                # Handle list values - extract first element for single-value fields
+                if isinstance(value, list):
+                    processed_value = self._process_list_value(value, dst_field)
+                    if processed_value is not None:
+                        update_payload[dst_field] = processed_value
+                else:
+                    update_payload[dst_field] = value
 
-        # Build technical_details JSON for architecture and availability
+        # ✅ FIX 0.3: Build technical_details JSON comprehensively
+        # These fields go into the technical_details JSONB column
         technical_details = {}
-        if (
-            "architecture_pattern" in field_updates
-            and field_updates["architecture_pattern"]
-        ):
-            technical_details["architecture_pattern"] = field_updates[
-                "architecture_pattern"
-            ]
-        if (
-            "availability_requirements" in field_updates
-            and field_updates["availability_requirements"]
-        ):
-            technical_details["availability_requirements"] = field_updates[
-                "availability_requirements"
-            ]
+        technical_fields = [
+            "architecture_pattern",
+            "availability_requirements",
+            "data_quality",
+            "integration_complexity",
+            "api_endpoints",
+            "monitoring_enabled",
+            "logging_enabled",
+        ]
+        for field in technical_fields:
+            if field in field_updates and field_updates[field]:
+                technical_details[field] = field_updates[field]
 
         if technical_details:
             update_payload["technical_details"] = technical_details
 
-        # Build custom_attributes JSON for stakeholder impact
+        # ✅ FIX 0.3: Build custom_attributes JSON comprehensively
+        # These fields go into the custom_attributes JSONB column
         custom_attributes = {}
-        if (
-            "stakeholder_impact" in field_updates
-            and field_updates["stakeholder_impact"]
-        ):
-            custom_attributes["stakeholder_impact"] = field_updates[
-                "stakeholder_impact"
-            ]
+        custom_fields = [
+            "stakeholder_impact",
+            "vm_type",
+            "custom_tags",
+            "notes",
+        ]
+        for field in custom_fields:
+            if field in field_updates and field_updates[field]:
+                custom_attributes[field] = field_updates[field]
 
         if custom_attributes:
             update_payload["custom_attributes"] = custom_attributes
@@ -121,37 +193,111 @@ class AssetHandlers(CollectionHandlerBase):
             raise RuntimeError("Invalid tenant identifiers for write-back scope")
         audit_enabled = True
 
+        # CRITICAL FIX: Also query responses that don't have gap_id linked
+        # This handles cases where responses were created but gap_id wasn't set
+        # SECURITY FIX: Add tenant scoping to prevent data leaks
         resolved_rows = await db.execute(
             text(
-                "SELECT g.field_name, r.response_value, "
+                "SELECT DISTINCT "
+                "COALESCE(g.field_name, r.question_id) AS field_name, "
+                "r.response_value, "
+                "r.asset_id, "
                 "(g.metadata->>'asset_id') AS asset_id_hint, "
                 "(g.metadata->>'application_name') AS app_name_hint "
-                "FROM migration.collection_data_gaps g "
-                "JOIN migration.collection_questionnaire_responses r ON g.id = r.gap_id "
-                "WHERE g.collection_flow_id = :flow_id "
-                "AND g.resolution_status = 'resolved'"
+                "FROM migration.collection_questionnaire_responses r "
+                "LEFT JOIN migration.collection_data_gaps g ON g.id = r.gap_id "
+                "WHERE r.collection_flow_id = :flow_id "
+                "AND r.client_account_id = :client_account_id "
+                "AND r.engagement_id = :engagement_id "
+                "AND (g.resolution_status = 'resolved' OR r.gap_id IS NULL)"
+                "AND r.response_value IS NOT NULL"
             ),
-            {"flow_id": collection_flow_id},
+            {
+                "flow_id": collection_flow_id,
+                "client_account_id": client_uuid,
+                "engagement_id": engagement_uuid,
+            },
         )
         resolved = resolved_rows.fetchall()
         if not resolved:
+            logger.warning(
+                f"No resolved gaps or responses found for flow {collection_flow_id}"
+            )
             return
 
         field_updates = build_field_updates_from_rows(resolved)
         logger.info(f"📊 Field updates extracted from responses: {field_updates}")
 
-        # Expanded whitelist with direct field mappings
+        # ✅ FIX 0.3: Comprehensive Whitelist (Issue #980 - Critical Bug Fix)
+        # Expanded from 10 fields to ~55 fields to cover all Asset model columns
+        # that can be populated via questionnaire responses
         whitelist = {
+            # === IDENTIFICATION FIELDS ===
+            "name": "name",
+            "asset_name": "asset_name",
+            "hostname": "hostname",
+            "asset_type": "asset_type",
+            "description": "description",
+            "fqdn": "fqdn",
+            # === BUSINESS CONTEXT FIELDS ===
             "environment": "environment",
             "business_criticality": "business_criticality",
             "business_owner": "business_owner",
+            "business_unit": "business_unit",
             "department": "department",
             "application_name": "application_name",
+            "application_type": "application_type",
+            "server_role": "server_role",
+            # === TECHNOLOGY STACK FIELDS ===
             "technology_stack": "technology_stack",
-            "operating_system_version": "operating_system",  # Map to operating_system column
+            "operating_system": "operating_system",
+            "operating_system_version": "operating_system",  # Alias for backward compat
+            "os_version": "os_version",
+            "database_type": "database_type",
+            "database_version": "database_version",
+            # === INFRASTRUCTURE FIELDS ===
             "cpu_cores": "cpu_cores",
             "memory_gb": "memory_gb",
             "storage_gb": "storage_gb",
+            "storage_used_gb": "storage_used_gb",
+            "storage_free_gb": "storage_free_gb",
+            "database_size_gb": "database_size_gb",
+            # === NETWORK FIELDS ===
+            "ip_address": "ip_address",
+            "mac_address": "mac_address",
+            # === LOCATION FIELDS ===
+            "datacenter": "datacenter",
+            "location": "location",
+            "rack_location": "rack_location",
+            "availability_zone": "availability_zone",
+            "security_zone": "security_zone",
+            # === COST & PERFORMANCE FIELDS ===
+            "current_monthly_cost": "current_monthly_cost",
+            "annual_cost_estimate": "annual_cost_estimate",
+            "estimated_cloud_cost": "estimated_cloud_cost",
+            "cpu_utilization_percent": "cpu_utilization_percent",
+            "memory_utilization_percent": "memory_utilization_percent",
+            "network_throughput_mbps": "network_throughput_mbps",
+            "disk_iops": "disk_iops",
+            # === ASSESSMENT FIELDS ===
+            "assessment_readiness": "assessment_readiness",
+            "assessment_readiness_score": "assessment_readiness_score",
+            "migration_complexity": "migration_complexity",
+            "migration_priority": "migration_priority",
+            "six_r_strategy": "six_r_strategy",
+            "wave_number": "wave_number",
+            # === DATA CLASSIFICATION & COMPLIANCE ===
+            "application_data_classification": "application_data_classification",
+            "pii_flag": "pii_flag",
+            # === LIFECYCLE & EOL FIELDS ===
+            "eol_date": "eol_date",
+            "eol_risk_level": "eol_risk_level",
+            "lifecycle": "lifecycle",
+            # === BACKUP & RESILIENCE ===
+            "backup_policy": "backup_policy",
+            # === DISCOVERY METADATA ===
+            "discovery_source": "discovery_source",
+            "discovery_method": "discovery_method",
         }
 
         asset_ids = await self._resolve_target_asset_ids(db, resolved, context)
@@ -223,11 +369,16 @@ class AssetHandlers(CollectionHandlerBase):
     async def _resolve_target_asset_ids(
         self, db: AsyncSession, resolved_rows, context: Dict[str, Any]
     ) -> List[uuid.UUID]:
-        """Resolve target asset IDs from gap metadata hints (asset_id/app_name)."""
+        """Resolve target asset IDs from gap metadata hints (asset_id/app_name) or response asset_id."""
         from app.models.asset import Asset
 
         hinted_asset_ids = set()
         for row in resolved_rows:
+            # CRITICAL FIX: Check both asset_id from responses and asset_id_hint from gaps
+            asset_id_from_response = getattr(row, "asset_id", None)
+            if asset_id_from_response:
+                hinted_asset_ids.add(str(asset_id_from_response))
+
             hint = getattr(row, "asset_id_hint", None)
             if hint:
                 hinted_asset_ids.add(hint)

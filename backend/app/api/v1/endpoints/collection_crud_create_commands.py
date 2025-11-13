@@ -6,7 +6,6 @@ and new collection flow creation.
 
 import logging
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
@@ -18,6 +17,12 @@ from app.api.v1.endpoints import (
     collection_serializers,
     collection_utils,
     collection_validators,
+)
+from app.api.v1.endpoints.collection_crud_create_helpers import (
+    build_existing_flow_error_detail,
+    create_data_gaps_for_missing_attributes,
+    handle_transaction_rollback,
+    initialize_background_execution_if_needed,
 )
 from app.core.context import RequestContext
 from app.core.rbac_utils import (
@@ -161,48 +166,16 @@ async def create_collection_from_discovery(
         # Transaction context manager will handle the final commit
 
         # Check if initial phase requires user input before executing
-        # Phases like asset_selection need user interaction before agents can proceed
-        PHASES_REQUIRING_USER_INPUT = [
-            CollectionPhase.ASSET_SELECTION.value,
-        ]
+        PHASES_REQUIRING_USER_INPUT = [CollectionPhase.ASSET_SELECTION.value]
 
-        if collection_flow.current_phase in PHASES_REQUIRING_USER_INPUT:
-            logger.info(
-                f"⏸️  Phase '{collection_flow.current_phase}' requires user input - "
-                f"skipping automatic execution for flow {flow_id}"
-            )
-            # Flow is created and ready - execution will happen after user provides input
-        else:
-            # Initialize background execution for the collection flow (outside transaction)
-            logger.info(
-                f"🚀 Initializing background execution for collection flow {flow_id}"
-            )
-            try:
-                execution_result = await collection_utils.initialize_mfo_flow_execution(
-                    db=db,
-                    context=context,
-                    master_flow_id=uuid.UUID(master_flow_id),
-                    flow_type="collection",
-                    initial_state=flow_input,
-                )
-
-                # Check execution result status
-                if execution_result.get("status") == "failed":
-                    logger.error(
-                        f"❌ Failed to initialize background execution: "
-                        f"{execution_result.get('error', 'Unknown error')}"
-                    )
-                    # Don't fail the entire flow creation, just log the error
-                else:
-                    logger.info(
-                        f"✅ Background execution initialized for collection flow: "
-                        f"{execution_result}"
-                    )
-            except Exception as exec_error:
-                logger.error(
-                    f"❌ Background execution initialization failed: {exec_error}"
-                )
-                # Don't fail the entire flow creation - flow is already committed
+        await initialize_background_execution_if_needed(
+            db=db,
+            context=context,
+            collection_flow=collection_flow,
+            master_flow_id=uuid.UUID(master_flow_id),
+            flow_input=flow_input,
+            phases_requiring_user_input=PHASES_REQUIRING_USER_INPUT,
+        )
 
         logger.info(
             "Created collection flow %s from discovery flow %s with %d applications",
@@ -219,19 +192,11 @@ async def create_collection_from_discovery(
 
     except HTTPException:
         # Ensure rollback on HTTP exceptions that might leave partial state
-        try:
-            await db.rollback()
-            logger.info("🔄 Database transaction rolled back due to HTTP exception")
-        except Exception as rollback_error:
-            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
+        await handle_transaction_rollback(db, "HTTP exception")
         raise
     except Exception as e:
         # Rollback transaction on any unexpected errors
-        try:
-            await db.rollback()
-            logger.info("🔄 Database transaction rolled back due to unexpected error")
-        except Exception as rollback_error:
-            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
+        await handle_transaction_rollback(db, "unexpected error")
 
         logger.error(
             safe_log_format(
@@ -279,6 +244,7 @@ async def create_collection_flow(
         existing_result = await db.execute(
             select(CollectionFlow)
             .where(
+                CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
                 CollectionFlow.status.in_(
                     [
@@ -299,94 +265,40 @@ async def create_collection_flow(
                 str(current_user.id)
             )
 
-            # Create enhanced error response with user options
-            error_detail = {
-                "error": "Active collection flow already exists",
-                "message": (
-                    "Cannot create new flow while another is active. "
-                    "Please manage existing flows first."
-                ),
-                "existing_flow_id": str(existing_flow.flow_id),
-                "existing_flow_name": existing_flow.flow_name,
-                "existing_flow_status": existing_flow.status,
-                "last_activity": (
-                    existing_flow.updated_at.isoformat()
-                    if existing_flow.updated_at
-                    else existing_flow.created_at.isoformat()
-                ),
-                "age_hours": round(
-                    (
-                        datetime.now(timezone.utc)
-                        - (
-                            (
-                                existing_flow.updated_at or existing_flow.created_at
-                            ).replace(tzinfo=timezone.utc)
-                            if (
-                                existing_flow.updated_at or existing_flow.created_at
-                            ).tzinfo
-                            is None
-                            else (existing_flow.updated_at or existing_flow.created_at)
-                        )
-                    ).total_seconds()
-                    / 3600,
-                    2,
-                ),
-                "analysis": flow_analysis,
-                "suggested_endpoints": {
-                    "analyze_flows": "/api/v1/collection/flows/analysis",
-                    "manage_flows": "/api/v1/collection/flows/manage",
-                    "resume_flow": (
-                        f"/api/v1/collection/flows/{existing_flow.flow_id}/continue"
-                    ),
-                },
-                "resolution_steps": [
-                    (
-                        "1. Call /api/v1/collection/flows/analysis to view all "
-                        "existing flows and their states"
-                    ),
-                    (
-                        "2. Use /api/v1/collection/flows/manage to cancel, "
-                        "complete, or clean up flows as needed"
-                    ),
-                    (
-                        "3. Retry flow creation or resume the existing flow "
-                        "using the continue endpoint"
-                    ),
-                ],
-                "user_action_required": True,
-            }
-
-            raise HTTPException(
-                status_code=409,
-                detail=error_detail,
+            error_detail = build_existing_flow_error_detail(
+                existing_flow, flow_analysis
             )
+
+            raise HTTPException(status_code=409, detail=error_detail)
 
         # Create collection flow (session handles transaction automatically)
         # Create flow record
         flow_id = uuid.uuid4()
 
-        # Initialize phase state with asset selection phase for non-Discovery flows
-        phase_state = {
-            "current_phase": CollectionPhase.ASSET_SELECTION.value,
-            "phase_history": [
-                {
-                    "phase": CollectionPhase.ASSET_SELECTION.value,
-                    "started_at": datetime.now(timezone.utc).isoformat(),
-                    "status": "active",
-                    "metadata": {
-                        "started_directly": True,
-                        "reason": "Collection flow starts with asset selection for user to choose assets",
-                    },
-                }
-            ],
-            "phase_metadata": {
-                "asset_selection": {
-                    "started_directly": True,
-                    "requires_user_selection": True,
-                    "source": "collection_overview",
-                }
-            },
-        }
+        # Per ADR-028: phase_state eliminated - phase tracking will be added to master flow
+        # Phase tracking will be managed via master flow's phase_transitions after creation
+
+        # Bug Fix: Parse assessment_flow_id to UUID if provided
+        assessment_uuid = None
+        if flow_data.assessment_flow_id:
+            from uuid import UUID
+
+            assessment_uuid = (
+                UUID(flow_data.assessment_flow_id)
+                if isinstance(flow_data.assessment_flow_id, str)
+                else flow_data.assessment_flow_id
+            )
+
+        # Bug Fix: Extract asset IDs from missing_attributes and add to collection_config
+        # This ensures flows created from Assessment "Collect Missing Data" have pre-selected assets
+        collection_config = flow_data.collection_config or {}
+        if flow_data.missing_attributes:
+            # Extract unique asset IDs from missing_attributes dict keys
+            selected_asset_ids = list(flow_data.missing_attributes.keys())
+            collection_config["selected_application_ids"] = selected_asset_ids
+            logger.info(
+                f"Pre-selected {len(selected_asset_ids)} assets from missing_attributes for flow"
+            )
 
         collection_flow = CollectionFlow(
             flow_id=flow_id,
@@ -398,17 +310,27 @@ async def create_collection_flow(
             # Per ADR-012: asset_selection phase requires PAUSED status (user input needed)
             status=CollectionFlowStatus.PAUSED.value,
             automation_tier=flow_data.automation_tier,
-            collection_config=flow_data.collection_config or {},
+            collection_config=collection_config,
             flow_metadata={
                 "use_agent_generation": True
             },  # Enable CrewAI agent generation
             current_phase=CollectionPhase.ASSET_SELECTION.value,
-            phase_state=phase_state,
+            # Bug Fix: Link collection flow to assessment flow
+            assessment_flow_id=assessment_uuid,
+            # phase_state removed per ADR-028 - use master flow's phase_transitions
         )
 
         db.add(collection_flow)
         await db.flush()  # Make ID available for foreign key relationships
         await db.refresh(collection_flow)
+
+        # Bug #668 Fix: Create data gaps for specific missing attributes if provided
+        if flow_data.missing_attributes:
+            await create_data_gaps_for_missing_attributes(
+                db=db,
+                collection_flow_id=collection_flow.id,
+                missing_attributes=flow_data.missing_attributes,
+            )
 
         # Initialize with Master Flow Orchestrator within the same transaction
         flow_input = {
@@ -441,48 +363,16 @@ async def create_collection_flow(
         # Transaction context manager will handle the final commit
 
         # Check if initial phase requires user input before executing
-        # Phases like asset_selection need user interaction before agents can proceed
-        PHASES_REQUIRING_USER_INPUT = [
-            CollectionPhase.ASSET_SELECTION.value,
-        ]
+        PHASES_REQUIRING_USER_INPUT = [CollectionPhase.ASSET_SELECTION.value]
 
-        if collection_flow.current_phase in PHASES_REQUIRING_USER_INPUT:
-            logger.info(
-                f"⏸️  Phase '{collection_flow.current_phase}' requires user input - "
-                f"skipping automatic execution for flow {flow_id}"
-            )
-            # Flow is created and ready - execution will happen after user provides input
-        else:
-            # Initialize background execution for the collection flow (outside transaction)
-            logger.info(
-                f"🚀 Initializing background execution for collection flow {flow_id}"
-            )
-            try:
-                execution_result = await collection_utils.initialize_mfo_flow_execution(
-                    db=db,
-                    context=context,
-                    master_flow_id=uuid.UUID(master_flow_id),
-                    flow_type="collection",
-                    initial_state=flow_input,
-                )
-
-                # Check execution result status
-                if execution_result.get("status") == "failed":
-                    logger.error(
-                        f"❌ Failed to initialize background execution: "
-                        f"{execution_result.get('error', 'Unknown error')}"
-                    )
-                    # Don't fail the entire flow creation, just log the error
-                else:
-                    logger.info(
-                        f"✅ Background execution initialized for collection flow: "
-                        f"{execution_result}"
-                    )
-            except Exception as exec_error:
-                logger.error(
-                    f"❌ Background execution initialization failed: {exec_error}"
-                )
-                # Don't fail the entire flow creation - flow is already committed
+        await initialize_background_execution_if_needed(
+            db=db,
+            context=context,
+            collection_flow=collection_flow,
+            master_flow_id=uuid.UUID(master_flow_id),
+            flow_input=flow_input,
+            phases_requiring_user_input=PHASES_REQUIRING_USER_INPUT,
+        )
 
         logger.info(
             safe_log_format(
@@ -501,19 +391,11 @@ async def create_collection_flow(
 
     except HTTPException:
         # Ensure rollback on HTTP exceptions that might leave partial state
-        try:
-            await db.rollback()
-            logger.info("🔄 Database transaction rolled back due to HTTP exception")
-        except Exception as rollback_error:
-            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
+        await handle_transaction_rollback(db, "HTTP exception")
         raise
     except Exception as e:
         # Rollback transaction on any unexpected errors
-        try:
-            await db.rollback()
-            logger.info("🔄 Database transaction rolled back due to unexpected error")
-        except Exception as rollback_error:
-            logger.error(f"❌ Failed to rollback transaction: {rollback_error}")
+        await handle_transaction_rollback(db, "unexpected error")
 
         logger.error(
             safe_log_format(

@@ -3,12 +3,18 @@ Workflow Phase Manager for Enhanced Collection Orchestrator
 
 This module handles phase transitions, advancement logic, and phase-specific
 initialization for the enhanced collection orchestrator.
+
+Per ADR-028: Uses master flow as single source of truth for phase tracking.
 """
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+from uuid import UUID
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
 from app.models.collection_flow import (
     CollectionFlowState,
     CollectionPhase,
@@ -17,14 +23,43 @@ from app.models.collection_flow import (
 
 from .workflow_models import QuestionnaireType, WorkflowPhase, WorkflowProgress
 
+if TYPE_CHECKING:
+    from app.services.collection_flow.state_management.commands import (
+        CollectionFlowCommandService,
+    )
+
 logger = logging.getLogger(__name__)
 
 
-class WorkflowPhaseManager:
-    """Manages workflow phase transitions and advancement logic"""
+# Note: _set_current_phase_state() helper removed per ADR-028
+# Phase tracking now uses master flow as single source of truth
 
-    def __init__(self):
-        """Initialize workflow phase manager"""
+
+class WorkflowPhaseManager:
+    """
+    Manages workflow phase transitions and advancement logic.
+
+    Per ADR-028: Uses CollectionFlowCommandService for atomic phase transitions
+    to master flow, eliminating duplicated phase_state tracking.
+    """
+
+    def __init__(
+        self,
+        db: AsyncSession,
+        context: RequestContext,
+        command_service: "CollectionFlowCommandService",
+    ):
+        """
+        Initialize workflow phase manager.
+
+        Args:
+            db: Database session
+            context: Request context with tenant information
+            command_service: Command service for atomic phase transitions
+        """
+        self.db = db
+        self.context = context
+        self.command_service = command_service
         self.phase_progress_map = {
             WorkflowPhase.INITIAL: 10.0,
             WorkflowPhase.COLLECTING_BASIC: 30.0,
@@ -116,12 +151,30 @@ class WorkflowPhaseManager:
     async def _initialize_basic_collection(
         self, state: CollectionFlowState, progress: WorkflowProgress
     ) -> None:
-        """Initialize basic collection phase"""
+        """
+        Initialize basic collection phase.
+
+        Per ADR-028: Uses command service for atomic phase transition to master flow.
+        """
         logger.info(f"Initializing basic collection for flow {state.flow_id}")
 
-        # Set collection status and phase
+        # Set collection status (in-memory)
         state.status = CollectionStatus.COLLECTING_DATA
-        state.current_phase = CollectionPhase.ASSET_SELECTION
+
+        # ADR-028: Atomic phase transition via master flow
+        await self.command_service.transition_phase(
+            flow_id=UUID(state.flow_id),
+            new_phase=CollectionPhase.ASSET_SELECTION,
+            phase_metadata={
+                "source": "workflow_phase_manager",
+                "workflow_phase": WorkflowPhase.COLLECTING_BASIC.value,
+                "questionnaire_type": QuestionnaireType.BOOTSTRAP.value,
+                "collection_method": "automated_with_bootstrap",
+            },
+        )
+
+        # Update in-memory state to match master flow
+        state.current_phase = CollectionPhase.ASSET_SELECTION.value
 
         # Initialize phase results if not exists
         if "basic_collection" not in state.phase_results:
@@ -134,12 +187,30 @@ class WorkflowPhaseManager:
     async def _initialize_detailed_collection(
         self, state: CollectionFlowState, progress: WorkflowProgress
     ) -> None:
-        """Initialize detailed collection phase"""
+        """
+        Initialize detailed collection phase.
+
+        Per ADR-028: Uses command service for atomic phase transition to master flow.
+        """
         logger.info(f"Initializing detailed collection for flow {state.flow_id}")
 
-        # Update collection status
+        # Update collection status (in-memory)
         state.status = CollectionStatus.GENERATING_QUESTIONNAIRES
-        state.current_phase = CollectionPhase.QUESTIONNAIRE_GENERATION
+
+        # ADR-028: Atomic phase transition via master flow
+        await self.command_service.transition_phase(
+            flow_id=UUID(state.flow_id),
+            new_phase=CollectionPhase.QUESTIONNAIRE_GENERATION,
+            phase_metadata={
+                "source": "workflow_phase_manager",
+                "workflow_phase": WorkflowPhase.COLLECTING_DETAILED.value,
+                "questionnaire_type": QuestionnaireType.DETAILED.value,
+                "collection_method": "manual_with_detailed_questionnaires",
+            },
+        )
+
+        # Update in-memory state to match master flow
+        state.current_phase = CollectionPhase.QUESTIONNAIRE_GENERATION.value
 
         # Initialize detailed collection results
         if "detailed_collection" not in state.phase_results:
@@ -152,12 +223,30 @@ class WorkflowPhaseManager:
     async def _initialize_review_phase(
         self, state: CollectionFlowState, progress: WorkflowProgress
     ) -> None:
-        """Initialize review phase"""
+        """
+        Initialize review phase.
+
+        Per ADR-028: Uses command service for atomic phase transition to master flow.
+        """
         logger.info(f"Initializing review phase for flow {state.flow_id}")
 
-        # Update status for review
+        # Update status for review (in-memory)
         state.status = CollectionStatus.VALIDATING_DATA
-        state.current_phase = CollectionPhase.DATA_VALIDATION
+
+        # ADR-028: Atomic phase transition via master flow
+        await self.command_service.transition_phase(
+            flow_id=UUID(state.flow_id),
+            new_phase=CollectionPhase.DATA_VALIDATION,
+            phase_metadata={
+                "source": "workflow_phase_manager",
+                "workflow_phase": WorkflowPhase.REVIEWING.value,
+                "review_type": "comprehensive_data_validation",
+                "canonical_apps_integration": True,
+            },
+        )
+
+        # Update in-memory state to match master flow
+        state.current_phase = CollectionPhase.DATA_VALIDATION.value
 
         # Initialize review results
         if "review_phase" not in state.phase_results:
@@ -170,14 +259,33 @@ class WorkflowPhaseManager:
     async def _finalize_workflow(
         self, state: CollectionFlowState, progress: WorkflowProgress
     ) -> None:
-        """Finalize workflow completion"""
+        """
+        Finalize workflow completion.
+
+        Per ADR-028: Uses command service for atomic phase transition to master flow.
+        """
         logger.info(f"Finalizing workflow for flow {state.flow_id}")
 
-        # Update final status
+        # Update final status (in-memory)
         state.status = CollectionStatus.COMPLETED
-        state.current_phase = CollectionPhase.FINALIZATION
         state.completed_at = datetime.utcnow()
         state.assessment_ready = True
+
+        # ADR-028: Atomic phase transition via master flow
+        await self.command_service.transition_phase(
+            flow_id=UUID(state.flow_id),
+            new_phase=CollectionPhase.FINALIZATION,
+            phase_metadata={
+                "source": "workflow_phase_manager",
+                "workflow_phase": WorkflowPhase.COMPLETE.value,
+                "completed_at": datetime.utcnow().isoformat(),
+                "total_questionnaires": len(state.questionnaires or []),
+                "canonical_apps_processed": True,
+            },
+        )
+
+        # Update in-memory state to match master flow
+        state.current_phase = CollectionPhase.FINALIZATION.value
 
         # Finalize results
         if "workflow_completion" not in state.phase_results:

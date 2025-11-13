@@ -128,7 +128,8 @@ def validate_context(
             status_code=403,  # Changed from 400 to 403 for security
             detail=(
                 "Client account context is required for multi-tenant security. "
-                "Please provide X-Client-Account-Id header."
+                "Please provide one of: X-Client-Account-ID, X-Client-Account-Id, or x-client-account-id header. "
+                "Note: HTTP headers are case-insensitive, any casing will work."
             ),
         )
 
@@ -137,6 +138,7 @@ def validate_context(
             status_code=403,  # Changed from 400 to 403 for security
             detail=(
                 "Engagement context is required for multi-tenant security. "
-                "Please provide X-Engagement-Id header."
+                "Please provide one of: X-Engagement-ID, X-Engagement-Id, or x-engagement-id header. "
+                "Note: HTTP headers are case-insensitive, any casing will work."
             ),
         )

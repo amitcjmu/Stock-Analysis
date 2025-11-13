@@ -29,7 +29,9 @@ except ImportError:
 if TYPE_CHECKING:
     from app.services.service_registry import ServiceRegistry
 
-from app.services.agentic_memory.three_tier_memory_manager import ThreeTierMemoryManager
+# Per ADR-024: TenantMemoryManager replaces ThreeTierMemoryManager
+# Memory is now managed explicitly via TenantMemoryManager in task handlers,
+# not attached to agent pools (agents created with memory=False)
 from .pool_statistics import AgentHealth
 
 logger = logging.getLogger(__name__)
@@ -145,28 +147,20 @@ class AgentPoolCore:
         try:
             logger.info(f"🏗️ Initializing agent pool for tenant {client_account_id}")
 
-            # Initialize memory manager for this tenant
-            memory_manager = None
-            try:
-                memory_manager = ThreeTierMemoryManager(
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
-                )
-                # Memory manager initializes synchronously in __init__, no async initialize() needed
-                logger.info(
-                    f"💾 Memory manager initialized for tenant {client_account_id}"
-                )
+            # Per ADR-024: CrewAI memory is DISABLED (memory=False)
+            # TenantMemoryManager is used explicitly in task handlers via:
+            # - store_learning() for pattern storage after task completion
+            # - retrieve_similar_patterns() for pattern retrieval before execution
+            logger.info(
+                "✅ Tenant pool initialized with memory=False per ADR-024. "
+                "Use TenantMemoryManager in task handlers for agent learning."
+            )
 
-            except Exception as memory_error:
-                logger.warning(f"Memory manager initialization failed: {memory_error}")
-                # Continue without memory - agents can still function
-
-            # Create tenant pool structure
+            # Create tenant pool structure (without memory_manager)
             agent_pools[pool_key] = {
                 "client_account_id": client_account_id,
                 "engagement_id": engagement_id,
                 "agents": {},  # Will hold agent_type -> agent_data mappings
-                "memory_manager": memory_manager,
                 "created_at": datetime.now(),
                 "last_used": datetime.now(),
                 "total_agents": 0,
@@ -174,8 +168,8 @@ class AgentPoolCore:
             }
 
             logger.info(
-                f"✅ Tenant pool initialized for {client_account_id} with "
-                f"{'memory' if memory_manager else 'no memory'}"
+                f"✅ Tenant pool initialized for {client_account_id}. "
+                f"Agents created with memory=False per ADR-024."
             )
 
         except Exception as e:
@@ -230,6 +224,24 @@ class AgentPoolCore:
                 "allow_delegation": False,  # Prevent delegation loops
                 "max_iter": 3,  # Limit iterations
             }
+
+            # Add LLM if provided in config (either direct llm object or llm_config)
+            if "llm" in config:
+                agent_params["llm"] = config["llm"]
+            elif "llm_config" in config:
+                # Create LLM from llm_config for assessment agents
+                from crewai import LLM
+                from app.core.config import settings
+
+                llm_conf = config["llm_config"]
+                if llm_conf.get("provider") == "deepinfra":
+                    agent_params["llm"] = LLM(
+                        model=f"deepinfra/{llm_conf['model']}",
+                        api_key=settings.DEEPINFRA_API_KEY,
+                    )
+                    logger.debug(
+                        f"Created DeepInfra LLM for {agent_type}: {llm_conf['model']}"
+                    )
 
             # Add tools if available
             if tools:

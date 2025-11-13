@@ -228,8 +228,8 @@ export const useFieldMappings = (
         // Now try to get the raw import data to see all original CSV fields
         try {
           const rawImportData = isCacheFeatureEnabled('DISABLE_CUSTOM_CACHE')
-            ? await apiClient.get(`/data-import/imports/${importId}`)
-            : await apiCall(`/api/v1/data-import/imports/${importId}`, {
+            ? await apiClient.get(`/data-import/import/${importId}`)
+            : await apiCall(`/api/v1/data-import/import/${importId}`, {
                 method: 'GET',
                 headers: {
                   'Content-Type': 'application/json',

@@ -1,0 +1,232 @@
+// Grafana Alloy Configuration
+// Purpose: Unified collector for logs, traces, and metrics
+// Replaces: Promtail + OTel Collector
+// Architecture: ADR-031
+
+// Logging configuration
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// =============================================================================
+// DOCKER LOG COLLECTION PIPELINE
+// =============================================================================
+
+// Step 1: Discover Docker containers
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+
+  filter {
+    name   = "status"
+    values = ["running"]
+  }
+
+  // Security: Only collect logs from migration project containers (label-based filtering)
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=migration"]
+  }
+}
+
+// Step 2: Scrape Docker logs
+loki.source.docker "docker_logs" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.containers.targets
+  forward_to       = [loki.write.endpoint.receiver]
+  refresh_interval = "5s"
+
+  relabel_rules = loki.relabel.docker_labels.rules
+
+  labels = {
+    job = "docker_logs",
+  }
+}
+
+// Step 3: Add Docker metadata as labels
+loki.relabel "docker_labels" {
+  forward_to = []  // Not used as a receiver, only for rule generation
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    replacement   = "$1"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+}
+
+// Step 4: Parse JSON logs and extract fields
+loki.process "parse_json" {
+  forward_to = [loki.process.redact_secrets.receiver]
+
+  stage.json {
+    expressions = {
+      level             = "level",
+      client_account_id = "client_account_id",
+      engagement_id     = "engagement_id",
+      flow_id           = "flow_id",
+      agent             = "agent",
+      phase             = "phase",
+      status            = "status",
+      message           = "message",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level             = "level",
+      client_account_id = "client_account_id",
+      engagement_id     = "engagement_id",
+      flow_id           = "flow_id",
+      agent             = "agent",
+      phase             = "phase",
+      status            = "status",
+    }
+  }
+
+  stage.output {
+    source = "message"
+  }
+}
+
+// Step 5: Redact sensitive fields
+loki.process "redact_secrets" {
+  forward_to = [loki.write.endpoint.receiver]
+
+  stage.replace {
+    expression = "password"
+    source     = ""
+    replace    = "***REDACTED***"
+  }
+
+  stage.replace {
+    expression = "api_key"
+    source     = ""
+    replace    = "***REDACTED***"
+  }
+
+  stage.replace {
+    expression = "secret"
+    source     = ""
+    replace    = "***REDACTED***"
+  }
+
+  stage.replace {
+    expression = "token"
+    source     = ""
+    replace    = "***REDACTED***"
+  }
+}
+
+// Step 6: Forward logs to Loki
+loki.write "endpoint" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// =============================================================================
+// OPENTELEMETRY TRACES & METRICS COLLECTION
+// =============================================================================
+
+// OTLP receiver for traces and metrics
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Batch processor (improves performance)
+otelcol.processor.batch "default" {
+  output {
+    traces  = [otelcol.exporter.otlp.tempo.input]
+    metrics = [otelcol.exporter.prometheus.default.input]
+  }
+}
+
+// Export traces to Tempo
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// Export metrics to Prometheus via remote write
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// Prometheus remote write
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+// =============================================================================
+// ALLOY SELF-MONITORING
+// =============================================================================
+
+// Alloy self-monitoring metrics
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy" {
+  targets         = prometheus.exporter.self.alloy.targets
+  forward_to      = [prometheus.remote_write.default.receiver]
+  scrape_interval = "30s"
+}
+
+// =============================================================================
+// OPTIONAL: DATABASE & CACHE INTEGRATIONS (Azure dev only)
+// =============================================================================
+
+// PostgreSQL metrics (uncomment for Azure dev)
+// prometheus.scrape "postgres" {
+//   targets = [{
+//     __address__ = "migration_postgres:5432",
+//   }]
+//   forward_to      = [prometheus.remote_write.default.receiver]
+//   scrape_interval = "30s"
+//   metrics_path    = "/metrics"
+// }
+
+// Redis metrics (uncomment for Azure dev)
+// prometheus.scrape "redis" {
+//   targets = [{
+//     __address__ = "migration_redis:6379",
+//   }]
+//   forward_to      = [prometheus.remote_write.default.receiver]
+//   scrape_interval = "30s"
+//   metrics_path    = "/metrics"
+// }
+
+// =============================================================================
+// NOTES
+// =============================================================================
+// High cardinality warning per ADR-031 Line 156:
+// - Limit tenant labels (client_account_id, engagement_id) in Prometheus
+// - For per-tenant analytics, use SQL dashboards querying PostgreSQL
+// - Use tenant labels sparingly and only for critical metrics

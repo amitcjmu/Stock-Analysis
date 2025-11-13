@@ -43,8 +43,13 @@ export const useDependencyNavigation = (
   }, [flow, updatePhase, navigate]);
 
   const handleNavigateToInventory = useCallback(() => {
-    navigate('/discovery/inventory');
-  }, [navigate]);
+    // CC FIX (Bug #835): Include flow_id in URL path to prevent validation errors
+    if (flowId) {
+      navigate(`/discovery/inventory/${flowId}`);
+    } else {
+      navigate('/discovery/inventory');
+    }
+  }, [navigate, flowId]);
 
   const handleNavigateToDataCleansing = useCallback(() => {
     navigate('/discovery/data-cleansing');

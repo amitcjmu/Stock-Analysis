@@ -51,14 +51,14 @@ class ImpactCalculatorTool(AsyncBaseDiscoveryTool):
                 "recommendations": [],
             }
 
-            # Calculate confidence impact per strategy
+            # Calculate confidence impact per strategy (6R canonical)
             for strategy in [
                 "rehost",
                 "replatform",
                 "refactor",
-                "repurchase",
+                "rearchitect",
+                "replace",
                 "retire",
-                "retain",
             ]:
                 impact_results["migration_confidence_impact"][strategy] = (
                     self._calculate_strategy_confidence(gaps, strategy)

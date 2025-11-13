@@ -2,6 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
+/**
+ * Hook for fetching Replace strategy data (COTS/SaaS replacement or application rewrite)
+ *
+ * Note: This hook is named useRewrite for backward compatibility but handles the
+ * consolidated "replace" strategy which includes both COTS/SaaS replacement and
+ * custom application rewrites.
+ */
+
 export interface RewriteProject {
   id: string;
   name: string;
@@ -53,9 +61,10 @@ export const useRewrite = (filter?: string): JSX.Element => {
   const { getContextHeaders } = useAuth();
 
   return useQuery<RewriteData>({
-    queryKey: ['rewrite', filter],
+    queryKey: ['replace', filter], // Updated to 'replace' for consistency
     queryFn: async () => {
-      const response = await apiCall('modernize/rewrite', {
+      // API endpoint will be updated to support both 'replace' and 'rewrite' for backward compatibility
+      const response = await apiCall('modernize/replace', {
         method: 'GET',
         headers: {
           ...getContextHeaders(),

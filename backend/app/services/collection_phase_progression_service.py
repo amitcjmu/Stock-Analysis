@@ -80,9 +80,10 @@ class CollectionPhaseProgressionService:
                 logger.warning(f"No master flow found for {flow.flow_id}")
                 return False
 
-            # Check if platform detection has results in phase_state
-            phase_state = master_flow.phase_state or {}
-            platform_results = phase_state.get("platform_detection", {})
+            # Per ADR-028: Check flow_persistence_data for platform detection results
+            # Master flow doesn't have phase_state field anymore
+            persistence_data = master_flow.flow_persistence_data or {}
+            platform_results = persistence_data.get("platform_detection", {})
 
             # Consider complete if platform detection has run and produced results
             has_platforms = bool(platform_results.get("platforms", []))

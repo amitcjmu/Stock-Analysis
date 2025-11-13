@@ -45,8 +45,9 @@ async def get_current_user(
         try:
             jwt_service = JWTService()
             payload = jwt_service.verify_token(token)
+
         except Exception as jwt_error:
-            logger.error(f"JWT service error: {jwt_error}")
+            logger.error(f"❌ [AUTH] JWT service error: {jwt_error}")
             raise credentials_exception
 
         if payload is None:
@@ -59,11 +60,14 @@ async def get_current_user(
         try:
             user_id = UUID(user_id_str)
 
-            # Find user by ID with eager loading of associations
+            # Find user by ID with eager loading of associations and roles
             result = await db.execute(
                 select(User)
                 .where(User.id == user_id)
-                .options(selectinload(User.user_associations))
+                .options(
+                    selectinload(User.user_associations),
+                    selectinload(User.roles),  # CC: Load roles for RBAC checks
+                )
             )
             user = result.scalar_one_or_none()
 
@@ -72,6 +76,7 @@ async def get_current_user(
 
             # Check if user is active
             if not user.is_active:
+                logger.warning(f"⚠️ [AUTH] User account is inactive: {user.email}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="User account is inactive",
@@ -79,13 +84,16 @@ async def get_current_user(
 
             return user
 
-        except ValueError:
+        except ValueError as ve:
+            logger.error(
+                f"❌ [AUTH] Invalid UUID format for user_id: {user_id_str}, error: {ve}"
+            )
             raise credentials_exception
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Authentication error: {e}")
+        logger.error(f"❌ [AUTH] Unexpected authentication error: {e}", exc_info=True)
         raise credentials_exception
 
 

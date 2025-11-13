@@ -159,138 +159,110 @@ export const convertQuestionToFormField = (
  * Groups questions into logical sections based on category
  */
 export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSection[] => {
-  const sections: FormSection[] = [];
+  // CRITICAL FIX (Bug #768): Use backend-provided categories dynamically
+  // Instead of hardcoded frontend categories, group ALL questions by their actual category
+  // This ensures no questions are filtered out when backend generates new category types
+
+  if (!questions || questions.length === 0) {
+    return [];
+  }
+
+  // Helper: Convert category to human-readable title
+  const categoryToTitle = (category: string): string => {
+    const titleMap: Record<string, string> = {
+      'asset_selection': 'Asset Selection',
+      'basic': 'Basic Information',
+      'business': 'Business Information',
+      'technical': 'Technical Details',
+      'technical_details': 'Technical Details',
+      'technical_debt': 'Technical Debt & Modernization',
+      'infrastructure': 'Infrastructure & Deployment',
+      'compliance': 'Compliance & Security',
+      'data_validation': 'Data Quality & Validation',
+      'metadata': 'Metadata & Configuration',
+      'application': 'Application Details',
+    };
+    return titleMap[category] || category
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Helper: Get description for category
+  const categoryToDescription = (category: string): string => {
+    const descMap: Record<string, string> = {
+      'asset_selection': 'Select assets to enhance with additional data',
+      'basic': 'Core application details',
+      'business': 'Business context and ownership information',
+      'technical': 'Technical architecture and dependencies',
+      'technical_details': 'Technical architecture and implementation details',
+      'technical_debt': 'Technical debt assessment and modernization needs',
+      'infrastructure': 'Deployment environment and infrastructure details',
+      'compliance': 'Data classification and compliance requirements',
+      'data_validation': 'Data quality checks and validation rules',
+      'metadata': 'System metadata and configuration',
+      'application': 'Application-specific details and properties',
+    };
+    return descMap[category] || `Questions related to ${categoryToTitle(category).toLowerCase()}`;
+  };
+
+  // Helper: Get order priority for category
+  const categoryOrder = (category: string): number => {
+    const orderMap: Record<string, number> = {
+      'asset_selection': 0,
+      'basic': 1,
+      'business': 2,
+      'application': 3,
+      'technical_details': 4,
+      'technical': 4,
+      'infrastructure': 5,
+      'data_validation': 6,
+      'technical_debt': 7,
+      'metadata': 8,
+      'compliance': 9,
+    };
+    return orderMap[category] ?? 50; // Unknown categories go last
+  };
 
   // Group questions by category
-  // First, handle asset selection questions separately
-  const assetSelectionQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'asset_selection' ||
-    q.field_id === 'selected_assets' ||
-    q.field_type === 'asset_selector'
+  const categoryMap = new Map<string, QuestionData[]>();
+
+  for (const question of questions) {
+    const category = question.category || 'uncategorized';
+    if (!categoryMap.has(category)) {
+      categoryMap.set(category, []);
+    }
+    categoryMap.get(category).push(question);
+  }
+
+  console.log(`📊 Grouped ${questions.length} questions into ${categoryMap.size} categories:`,
+    Array.from(categoryMap.entries()).map(([cat, qs]) => `${cat} (${qs.length})`).join(', ')
   );
 
-  const basicQuestions = questions.filter((q: QuestionData) =>
-    (q.category === 'basic' ||
-    q.category === 'business' ||
-    q.field_id === 'application_name' ||
-    q.field_id === 'application_type' ||
-    q.field_id === 'business_criticality' ||
-    q.field_id === 'primary_users' ||
-    q.field_id === 'user_count') &&
-    q.field_type !== 'asset_selector'  // Don't include asset selectors here
-  );
+  // Create sections from categories
+  const sections: FormSection[] = [];
 
-  const technicalQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'technical' ||
-    q.field_id === 'technology_stack' ||
-    q.field_id === 'database_type' ||
-    q.field_id === 'architecture_pattern' ||
-    q.field_id === 'api_interfaces' ||
-    q.field_id === 'authentication_method'
-  );
+  for (const [category, categoryQuestions] of categoryMap.entries()) {
+    const sectionId = `agent-${category.replace(/_/g, '-')}`;
+    const order = categoryOrder(category);
 
-  const infrastructureQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'infrastructure' ||
-    q.field_id === 'deployment_environment' ||
-    q.field_id === 'cloud_provider' ||
-    q.field_id === 'containerized' ||
-    q.field_id === 'scalability_requirements'
-  );
-
-  const complianceQuestions = questions.filter((q: QuestionData) =>
-    q.category === 'compliance' ||
-    q.field_id === 'data_classification' ||
-    q.field_id === 'compliance_requirements' ||
-    q.field_id === 'disaster_recovery'
-  );
-
-  // Create asset selection section (should come first)
-  if (assetSelectionQuestions.length > 0) {
     sections.push({
-      id: 'agent-asset-selection',
-      title: 'Asset Selection',
-      description: 'Select assets to enhance with additional data',
-      fields: assetSelectionQuestions.map((q, index) =>
-        convertQuestionToFormField(q, index, 'agent-asset-selection')
+      id: sectionId,
+      title: categoryToTitle(category),
+      description: categoryToDescription(category),
+      fields: categoryQuestions.map((q, index) =>
+        convertQuestionToFormField(q, index, sectionId)
       ),
-      order: 0,  // Should be first
-      requiredFieldsCount: assetSelectionQuestions.filter((q: QuestionData) => q.required !== false).length,
-      completionWeight: 0.15
+      order,
+      requiredFieldsCount: categoryQuestions.filter((q: QuestionData) => q.required !== false).length,
+      completionWeight: categoryQuestions.length / questions.length, // Proportional to question count
     });
   }
 
-  // Create basic information section
-  if (basicQuestions.length > 0) {
-    sections.push({
-      id: 'agent-basic-info',
-      title: 'Basic Information',
-      description: 'Core application details identified by CrewAI gap analysis',
-      fields: basicQuestions.map((q, index) =>
-        convertQuestionToFormField(q, index, 'agent-basic-info')
-      ),
-      order: 1,
-      requiredFieldsCount: basicQuestions.filter((q: QuestionData) => q.required !== false).length,
-      completionWeight: 0.4
-    });
-  }
+  // Sort sections by order
+  sections.sort((a, b) => a.order - b.order);
 
-  // Create technical details section
-  if (technicalQuestions.length > 0) {
-    sections.push({
-      id: 'agent-technical-details',
-      title: 'Technical Details',
-      description: 'Technical architecture and dependencies',
-      fields: technicalQuestions.map((q, index) =>
-        convertQuestionToFormField(q, index, 'agent-technical-details')
-      ),
-      order: 2,
-      requiredFieldsCount: technicalQuestions.filter((q: QuestionData) => q.required !== false).length,
-      completionWeight: 0.25
-    });
-  }
-
-  // Create infrastructure section
-  if (infrastructureQuestions.length > 0) {
-    sections.push({
-      id: 'agent-infrastructure',
-      title: 'Infrastructure & Deployment',
-      description: 'Deployment environment and infrastructure details',
-      fields: infrastructureQuestions.map((q, index) =>
-        convertQuestionToFormField(q, index, 'agent-infrastructure')
-      ),
-      order: 3,
-      requiredFieldsCount: infrastructureQuestions.filter((q: QuestionData) => q.required !== false).length,
-      completionWeight: 0.2
-    });
-  }
-
-  // Create compliance section
-  if (complianceQuestions.length > 0) {
-    sections.push({
-      id: 'agent-compliance',
-      title: 'Compliance & Security',
-      description: 'Data classification and compliance requirements',
-      fields: complianceQuestions.map((q, index) =>
-        convertQuestionToFormField(q, index, 'agent-compliance')
-      ),
-      order: 4,
-      requiredFieldsCount: complianceQuestions.filter((q: QuestionData) => q.required !== false).length,
-      completionWeight: 0.15
-    });
-  }
-
-  // Fallback: If no sections were created, put all questions into a general section
-  if (sections.length === 0 && questions.length > 0) {
-    sections.push({
-      id: 'agent-general',
-      title: 'Adaptive Questionnaire',
-      description: 'General questions generated from gap analysis',
-      fields: questions.map((q, index) => convertQuestionToFormField(q, index, 'agent-general')),
-      order: 1,
-      requiredFieldsCount: questions.filter((q: QuestionData) => q.required !== false).length,
-      completionWeight: 1.0
-    });
-  }
+  console.log(`✅ Created ${sections.length} sections with ${sections.reduce((sum, s) => sum + s.fields.length, 0)} total fields`);
 
   return sections;
 };
@@ -303,14 +275,16 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
  */
 export const convertQuestionnaireToFormData = (
   questionnaire: QuestionnaireData,
-  applicationId?: string | null
+  applicationId?: string | null,
+  applications?: Array<{ asset_id: string; application_name: string }>
 ): AdaptiveFormData => {
-  return convertQuestionnairesToFormData(questionnaire, applicationId || null);
+  return convertQuestionnairesToFormData(questionnaire, applicationId || null, applications);
 };
 
 export const convertQuestionnairesToFormData = (
   questionnaire: QuestionnaireData | AdaptiveQuestionnaireResponse,
-  applicationId: string | null
+  applicationId: string | null,
+  applications?: Array<{ asset_id: string; application_name: string }>
 ): AdaptiveFormData => {
   try {
     const questions = questionnaire.questions || [];
@@ -364,11 +338,27 @@ export const convertQuestionnairesToFormData = (
     const totalFields = questions.length;
     const requiredFields = questions.filter((q: QuestionData) => q.required !== false).length;
 
-    // CRITICAL FIX: Extract asset name from questions metadata
-    // Questions generated by the backend include asset_name in their text
-    // Look for "Admin Dashboard" or similar names in question text
+    // Issue #762: UUID-based asset name lookup using applications array
+    // This ensures correct name resolution even with duplicate asset names
     const extractAssetName = (): string | undefined => {
-      // Try to extract from question text patterns like "for Admin Dashboard" or "for <asset_name>"
+      // PREFERRED: Look up by asset_id from question metadata (UUID-based, handles duplicates)
+      if (applications && applications.length > 0) {
+        for (const question of questions) {
+          const assetId = question.metadata?.asset_id || question.metadata?.asset_ids?.[0];
+          if (assetId) {
+            const app = applications.find(a => a.asset_id === assetId);
+            if (app) {
+              // CRITICAL FIX (Bug #768): Use app.name instead of app.application_name
+              // The Asset model has 'name' field, not 'application_name' field
+              const assetName = app.name || app.application_name || app.asset_name;
+              console.log('✅ Found asset name via UUID lookup:', assetName, 'for asset_id:', assetId);
+              return assetName;
+            }
+          }
+        }
+      }
+
+      // FALLBACK 1: Try to extract from question text patterns like "for Admin Dashboard"
       for (const question of questions) {
         const text = question.question_text || question.label || '';
         // Pattern: "for Asset_Name" or similar
@@ -380,19 +370,37 @@ export const convertQuestionnairesToFormData = (
             return assetName;
           }
         }
-        // Try metadata if available
+      }
+
+      // FALLBACK 2: Try metadata asset_name field
+      for (const question of questions) {
         if (question.metadata?.asset_name) {
           return question.metadata.asset_name as string;
         }
       }
+
       return undefined;
     };
 
+    // Extract asset_id from question metadata for proper backend linkage
+    // This ensures questionnaire responses get linked to the correct asset in the database
+    const extractAssetId = (): string | null => {
+      for (const question of questions) {
+        const assetId = question.metadata?.asset_id || question.metadata?.asset_ids?.[0];
+        if (assetId) {
+          console.log('✅ Extracted asset_id from question metadata:', assetId);
+          return assetId;
+        }
+      }
+      return null;
+    };
+
     const applicationName = extractAssetName();
+    const extractedAssetId = extractAssetId();
 
     return {
       formId: questionnaireId,
-      applicationId: applicationId || 'app-new',
+      applicationId: extractedAssetId || applicationId || 'app-new',
       applicationName, // CRITICAL FIX: Actual asset name extracted from questions
       sections,
       totalFields,

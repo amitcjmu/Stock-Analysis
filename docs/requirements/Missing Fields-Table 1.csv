@@ -1,0 +1,46 @@
+Data Field,Table Name,Column Name,DataType,Remarks/comments
+virtualization_platform,asset,virtualization_platform,varchar,Infra
+data_volume_characteristics,asset,data_volume_characteristics,Int,Infea
+user_load_patterns,asset,user_load_patterns,varchar,Application
+business_logic_complexity,asset,application_mplexity,varchar(enum),Application
+configuration_complexity,asset,configuration_complexity,varchar(enum),Application
+change_tolerance,asset,change_tolerance,varchar(enum),Application
+eol_technology_assessment ,asset_eol,eol_technology_assessment ,text,Application/Infra
+technical_detail,asset,technical_detail,BJSON,Application
+business_unit,asset,business_unit,varchar,Application
+business_owner_email,asset,business_owner_email,varchar,
+technical_owner_email,asset,technical_owner_email,varchar,
+lifecycle,asset,lifecycle,varchar(enum),Retire/Replace/Retain/Invest
+cots_or_custom,asset,application_type,varchar(enum),Cots/Custom/Custom-Cots/Other
+vendor,asset,vendor,varchar,Vendor name
+has_saas_replacement,asset,has_saas_replacement,bool,
+hosting_model,asset,hosting_model,varchar(enum),"On-prem, cloud, hybrid etc"
+primary_database_type,asset,database_type,varchar,Db name
+primary_database_version,asset,database_version,varchar,Db version
+db_size,asset,database_size_gb,Int,Db size
+data_classification,asset,application_data_classification,varchar(enum),
+pii_flag,asset,pii_flag,bool,
+cloud_readiness,asset,cloud_readiness,varchar(enum),
+tech_debt_flags,asset,tech_debt_flags,bool,
+proposed_rationale,asset,proposed_treatmentplan_rationale,Text,
+risk_level,asset,risk_level,varchar(enum),
+tshirt_size,asset,tshirt_size,varchar,
+annual_cost_estimate,asset,annual_cost_estimate,Float,
+clustering,asset,clustering,bool,Server clustering
+Dr_support,asset,dr_support,bool,Yes/No
+rto_hours,asset,rto_hours,Int,
+rpo_minutes,asset,rpo_minutes,Int,
+role,asset,server_role,varchar(enum),Web/db/app/citirx
+ip_secondary,asset,secondary_ips,Text,Can contain multiple secondary ip’s
+security_zone,asset,security_zone,varchar,availability_zone of assets table
+cpu_max_percent,asset,cpu_utilization_percent_max,Float8,
+memory_max_percent,asset,memory_utilization_percent_max,Float8,
+storage_free_gb,asset,storage_free_gb,Float8,
+backup_policy,asset,backup_policy,Text,
+tags,asset,asset_tages,Text,
+port,asset__dependencies,port,Int,?? - is this required filed as per asset_dependency table info?
+protocol_name	,asset__dependencies,protocol_name	,varchar,?? - is this required filed as per asset_dependency table info?
+conn_count	,asset__dependencies,conn_count	,Int,?? - is this required filed as per asset_dependency table info?
+bytes_total	,asset__dependencies,bytes_total	,Flot16,?? - is this required filed as per asset_dependency table info?
+first_seen	,asset__dependencies,first_seen	,datetime,?? - is this required filed as per asset_dependency table info?
+last_seen,asset__dependencies,last_seen,datetime,?? - is this required filed as per asset_dependency table info?

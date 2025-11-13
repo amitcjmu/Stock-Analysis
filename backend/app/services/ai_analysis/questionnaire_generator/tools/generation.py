@@ -13,20 +13,13 @@ from pydantic import BaseModel, Field
 from .section_builders import (
     create_basic_info_section,
     create_category_sections,
-    create_fallback_section,
     group_attributes_by_category,
 )
 
-# Import question builder functions
-from .question_builders import (
-    generate_data_quality_question,
-    generate_dependency_question,
-    generate_fallback_question,
-    generate_generic_question,
-    generate_generic_technical_question,
-    generate_missing_field_question,
-    generate_unmapped_attribute_question,
-)
+# Import helper modules
+from .asset_helpers import AssetHelpers
+from .questionnaire_caching import QuestionnaireCaching
+from .question_delegation import QuestionDelegation
 
 logger = logging.getLogger(__name__)
 
@@ -53,54 +46,30 @@ class QuestionnaireGenerationTool(BaseTool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._asset_name_cache: Dict[str, str] = {}
-
-    async def _get_asset_name(
-        self, asset_id: str, business_context: Dict[str, Any] = None
-    ) -> str:
-        """
-        Fetch asset name from business_context, database, or cache.
-
-        CRITICAL FIX: Uses actual asset names instead of UUID prefix.
-        Resolves issue where questions showed "Asset df0d34a9" instead of "Admin Dashboard".
-
-        Priority order:
-        1. business_context['asset_names'] dict (passed from caller)
-        2. Cache from previous lookups
-        3. Database query (if db_session available)
-        4. Fallback to "Asset {uuid_prefix}" (preserves existing behavior)
-
-        Args:
-            asset_id: Asset UUID as string
-            business_context: Optional dict with asset_names mapping
-
-        Returns:
-            Asset name or "Asset {uuid_prefix}" as fallback
-        """
-        # Check business_context first (most efficient)
-        if business_context and "asset_names" in business_context:
-            asset_names = business_context["asset_names"]
-            if asset_id in asset_names:
-                asset_name = asset_names[asset_id]
-                self._asset_name_cache[asset_id] = asset_name
-                return asset_name
-
-        # Check cache
-        if asset_id in self._asset_name_cache:
-            return self._asset_name_cache[asset_id]
-
-        # Fallback to UUID prefix (preserves existing behavior for cases where asset_names not provided)
-        fallback_name = f"Asset {asset_id[:8]}"
-        logger.debug(f"⚠️ Using UUID prefix for {asset_id}: {fallback_name}")
-        self._asset_name_cache[asset_id] = fallback_name
-        return fallback_name
+        self._asset_helpers = AssetHelpers()
+        self._caching = QuestionnaireCaching()
+        self._delegation = QuestionDelegation()
 
     def _create_basic_info_section(self) -> dict:
         """Create basic information section."""
         return create_basic_info_section()
 
-    def _process_missing_fields(self, missing_fields: dict) -> list:
-        """Process missing fields and generate sections."""
+    def _process_missing_fields(
+        self,
+        missing_fields: dict,
+        business_context: dict = None,
+        existing_field_values: dict = None,
+    ) -> list:
+        """Process missing fields and generate sections with asset context.
+
+        Args:
+            missing_fields: Dict mapping asset_id -> list of missing attribute names
+            business_context: Business context including existing_assets with OS data
+            existing_field_values: Dict mapping asset_id -> {attr_name: value} for pre-fill
+
+        Returns:
+            List of section dictionaries with categorized questions
+        """
         sections = []
 
         try:
@@ -111,9 +80,25 @@ class QuestionnaireGenerationTool(BaseTool):
             # Get the 22 critical attributes mapping
             attribute_mapping = CriticalAttributesDefinition.get_attribute_mapping()
 
-            # Group missing attributes by category
+            # Extract assets data from business_context for OS-aware question generation
+            # The serializer provides comprehensive asset data including operating_system
+            assets_data = None
+            if business_context:
+                assets_data = business_context.get("existing_assets", [])
+                logger.info(
+                    f"Received {len(assets_data) if assets_data else 0} assets with context "
+                    f"for OS-aware question generation"
+                )
+
+            # Fix #3: Log existing_field_values for verification field pre-fill
+            if existing_field_values:
+                logger.info(
+                    f"Found {len(existing_field_values)} assets with verification fields for pre-fill"
+                )
+
+            # Group missing attributes by category with asset context
             attrs_by_category = group_attributes_by_category(
-                missing_fields, attribute_mapping
+                missing_fields, attribute_mapping, assets_data, existing_field_values
             )
 
             # Create organized sections by category
@@ -124,12 +109,17 @@ class QuestionnaireGenerationTool(BaseTool):
             )
 
         except ImportError as e:
-            logger.warning(
-                f"Critical attributes system not available, using fallback: {e}"
+            # ❌ REMOVED: Legacy fallback that generated generic text questions
+            # Issue #980 intelligent builders are now integrated into section_builders.py
+            # If CriticalAttributesDefinition import fails, it's a configuration error that should be fixed
+            logger.error(
+                f"CRITICAL: CriticalAttributesDefinition import failed - questionnaire generation cannot proceed: {e}",
+                exc_info=True,
             )
-            fallback_section = create_fallback_section(missing_fields)
-            if fallback_section:
-                sections.append(fallback_section)
+            raise ImportError(
+                "Critical attributes system is required for questionnaire generation. "
+                "Check that app.services.crewai_flows.tools.critical_attributes_tool is available."
+            ) from e
 
         return sections
 
@@ -178,7 +168,13 @@ class QuestionnaireGenerationTool(BaseTool):
                 )
 
             if missing_fields:
-                missing_field_sections = self._process_missing_fields(missing_fields)
+                # Fix #3: Extract existing_field_values for verification field pre-fill
+                existing_field_values = data_gaps.get("existing_field_values")
+
+                # Pass business_context for OS-aware question generation
+                missing_field_sections = self._process_missing_fields(
+                    missing_fields, business_context, existing_field_values
+                )
                 sections.extend(missing_field_sections)
 
             # Section 3: Data Quality Issues
@@ -187,7 +183,9 @@ class QuestionnaireGenerationTool(BaseTool):
                 quality_questions = []
                 for asset_id, issue_data in quality_issues.items():
                     # CRITICAL FIX: Use actual asset name instead of UUID prefix
-                    asset_name = await self._get_asset_name(asset_id, business_context)
+                    asset_name = await self._asset_helpers.get_asset_name(
+                        asset_id, business_context
+                    )
                     asset_context = {
                         "asset_id": asset_id,
                         "asset_name": asset_name,
@@ -196,7 +194,9 @@ class QuestionnaireGenerationTool(BaseTool):
                             f"Confidence: {issue_data.get('confidence', 0):.0%}"
                         ),
                     }
-                    question = self._generate_data_quality_question({}, asset_context)
+                    question = self._delegation.generate_data_quality_question(
+                        {}, asset_context
+                    )
                     quality_questions.append(question)
 
                 if quality_questions:
@@ -215,7 +215,9 @@ class QuestionnaireGenerationTool(BaseTool):
                 unmapped_questions = []
                 for asset_id, attributes in unmapped.items():
                     # CRITICAL FIX: Use actual asset name instead of UUID prefix
-                    asset_name = await self._get_asset_name(asset_id, business_context)
+                    asset_name = await self._asset_helpers.get_asset_name(
+                        asset_id, business_context
+                    )
                     for attr in attributes[
                         :5
                     ]:  # Limit to 5 per asset to avoid overwhelming
@@ -226,8 +228,10 @@ class QuestionnaireGenerationTool(BaseTool):
                             "attribute_value": attr.get("value"),
                             "suggested_mapping": attr.get("potential_mapping"),
                         }
-                        question = self._generate_unmapped_attribute_question(
-                            {}, asset_context
+                        question = (
+                            self._delegation.generate_unmapped_attribute_question(
+                                {}, asset_context
+                            )
                         )
                         unmapped_questions.append(question)
 
@@ -241,34 +245,15 @@ class QuestionnaireGenerationTool(BaseTool):
                         }
                     )
 
-            # Section 5: Technical Details (for assets with gaps)
-            assets_with_gaps = data_gaps.get("assets_with_gaps", [])
-            if assets_with_gaps:
-                technical_questions = []
-                for asset_id in assets_with_gaps[:3]:  # Limit to first 3 assets
-                    # CRITICAL FIX: Use actual asset name instead of UUID prefix
-                    asset_name = await self._get_asset_name(asset_id, business_context)
-                    asset_context = {
-                        "asset_id": asset_id,
-                        "asset_name": asset_name,
-                        "asset_type": "application",  # Default, should come from actual asset data
-                    }
-                    question = self._generate_technical_detail_question(
-                        {}, asset_context
-                    )
-                    technical_questions.append(question)
-
-                if technical_questions:
-                    sections.append(
-                        {
-                            "section_id": "technical_details",
-                            "section_title": "Technical Details",
-                            "section_description": "Additional technical information needed for migration planning",
-                            "questions": technical_questions,
-                        }
-                    )
+            # REMOVED: Section 5 - Technical Details (legacy fallback)
+            # This section generated free-form text questions that cannot be processed by 6R engine.
+            # All critical technical information is now captured via structured MCQ questions
+            # in the critical attributes framework (architecture, tech stack, dependencies, etc.)
 
             # Return structured response
+            # Extract assets_with_gaps from data_gaps for metadata
+            assets_with_gaps = data_gaps.get("assets_with_gaps", [])
+
             result = {
                 "status": "success",
                 "questionnaires": sections,  # Note: using 'questionnaires' key as expected by parser
@@ -310,83 +295,110 @@ class QuestionnaireGenerationTool(BaseTool):
         # Use async implementation
         return asyncio.run(self._arun(data_gaps, business_context or {}))
 
-    def _generate_missing_field_question(
-        self, asset_analysis: Dict[str, Any], asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate question for missing critical field."""
-        return generate_missing_field_question(asset_analysis, asset_context)
+    async def generate_questions_for_asset(
+        self,
+        asset_id: str,
+        asset_type: str,
+        gaps: list,
+        client_account_id: int,
+        engagement_id: int,
+        db_session,
+        business_context: Dict[str, Any] = None,
+    ) -> list:
+        """
+        Generate questions for asset with caching.
 
-    def _generate_unmapped_attribute_question(
-        self, asset_analysis: Dict[str, Any], asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate question for unmapped attribute."""
-        return generate_unmapped_attribute_question(asset_analysis, asset_context)
+        Checks cache first, generates only if needed.
+        Per BULK_UPLOAD_ENRICHMENT_ARCHITECTURE_ANALYSIS.md Part 6.2:
+        Enables 90% cache hit rate for similar assets.
 
-    def _generate_data_quality_question(
-        self, asset_analysis: Dict[str, Any], asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate question for data quality issue."""
-        return generate_data_quality_question(asset_analysis, asset_context)
+        Args:
+            asset_id: Asset UUID
+            asset_type: Type of asset (database, server, application)
+            gaps: List of missing field names
+            client_account_id: Client account ID
+            engagement_id: Engagement ID
+            db_session: Database session
+            business_context: Optional business context
 
-    def _generate_dependency_question(
-        self, asset_analysis: Dict[str, Any], asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate question for dependency information."""
-        return generate_dependency_question(asset_analysis, asset_context)
+        Returns:
+            List of question dictionaries
+        """
+        # Create gap pattern signature
+        gap_pattern = self._caching.create_gap_pattern(gaps)
 
-    def _generate_technical_detail_question(
-        self, asset_analysis: Dict[str, Any], asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate question for missing technical details."""
-        asset_type = asset_context.get("asset_type", "application").lower()
+        # Get memory manager
+        memory_manager = self._caching.get_memory_manager(db_session)
 
-        if asset_type == "database":
-            return self._generate_database_technical_question(asset_context)
-        elif asset_type == "application":
-            return self._generate_application_technical_question(asset_context)
-        elif asset_type == "server":
-            return self._generate_server_technical_question(asset_context)
-        else:
-            return self._generate_generic_technical_question(asset_context)
+        # Check cache FIRST
+        cached_result = await memory_manager.retrieve_questionnaire_template(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            asset_type=asset_type,
+            gap_pattern=gap_pattern,
+        )
 
-    def _generate_database_technical_question(
-        self, asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate technical questions specific to database assets."""
-        from .question_generators import generate_database_technical_question
+        if cached_result.get("cache_hit"):
+            logger.info(
+                f"✅ Cache HIT for {asset_type}_{gap_pattern} "
+                f"(usage_count: {cached_result.get('usage_count', 0)})"
+            )
 
-        return generate_database_technical_question(asset_context)
+            # Customize questions for this asset
+            asset_name = await self._asset_helpers.get_asset_name(
+                asset_id, business_context
+            )
+            customized_questions = self._caching.customize_questions(
+                cached_result.get("questions", []), asset_id, asset_name
+            )
 
-    def _generate_application_technical_question(
-        self, asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate technical questions specific to application assets."""
-        from .question_generators import generate_application_technical_question
+            return customized_questions
 
-        return generate_application_technical_question(asset_context)
+        # Cache MISS - generate fresh (deterministic, not LLM-based)
+        logger.info(
+            f"❌ Cache MISS - generating deterministically for {asset_type}_{gap_pattern}"
+        )
 
-    def _generate_server_technical_question(
-        self, asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate technical questions specific to server assets."""
-        from .question_generators import generate_server_technical_question
+        # Generate questions using existing deterministic logic
+        # This calls the existing _arun method which builds questions from data_gaps
+        data_gaps = {
+            "missing_critical_fields": {asset_id: gaps},
+            "assets_with_gaps": [asset_id],
+        }
 
-        return generate_server_technical_question(asset_context)
+        generation_result = await self._arun(
+            data_gaps=data_gaps, business_context=business_context or {}
+        )
 
-    def _generate_generic_technical_question(
-        self, asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate generic technical question for unknown asset types."""
-        return generate_generic_technical_question(asset_context)
+        # Extract sections and questions from result
+        # Per Qodo Bot review: Preserve section structure instead of flattening
+        questionnaire_sections = []
+        questions = []
+        if generation_result.get("status") == "success":
+            questionnaire_sections = generation_result.get("questionnaires", [])
+            for section in questionnaire_sections:
+                questions.extend(section.get("questions", []))
 
-    def _generate_generic_question(
-        self, gap_type: str, asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate generic question for unknown gap types."""
-        return generate_generic_question(gap_type, asset_context)
+        # Store in cache for future use with preserved section structure
+        if questions and questionnaire_sections:
+            await memory_manager.store_questionnaire_template(
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                asset_type=asset_type,
+                gap_pattern=gap_pattern,
+                questions=questions,  # Flat list for backward compatibility
+                metadata={
+                    "generated_by": "QuestionGenerationTool",
+                    "asset_id": asset_id,
+                    "gap_count": len(gaps),
+                    "sections": questionnaire_sections,  # Preserve section structure
+                    "section_count": len(questionnaire_sections),
+                },
+            )
 
-    def _generate_fallback_question(
-        self, gap_type: str, asset_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Generate fallback question when generation fails."""
-        return generate_fallback_question(gap_type, asset_context)
+            logger.info(
+                f"✅ Stored {len(questions)} questions in {len(questionnaire_sections)} sections "
+                f"for cache key {asset_type}_{gap_pattern}"
+            )
+
+        return questions

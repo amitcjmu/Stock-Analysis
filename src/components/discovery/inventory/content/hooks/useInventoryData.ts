@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Asset } from '../../../../../types/asset';
-import type { AssetInventory } from '../../types/inventory.types';
 
 interface UseInventoryDataProps {
   clientId?: number;
@@ -35,10 +34,17 @@ export const useInventoryData = ({
   setNeedsClassification,
   setHasTriggeredInventory,
   getAssetsFromFlow
-}: UseInventoryDataProps) => {
+}: UseInventoryDataProps): {
+  assets: Asset[];
+  assetsLoading: boolean;
+  refetchAssets: () => void;
+  hasBackendError: boolean;
+  isFlowNotFound: boolean;
+  error: Error | null;
+} => {
   // Get assets data - fetch from API endpoint that returns assets based on view mode
   // Updated to support both "All Assets" and "Current Flow Only" modes
-  const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
+  const { data: assetsData, isLoading: assetsLoading, error: assetsError, refetch: refetchAssets } = useQuery({
     queryKey: ['discovery-assets', String(clientId ?? ''), String(engagementId ?? ''), viewMode, flowId || 'no-flow'],
     queryFn: async () => {
       try {
@@ -52,23 +58,28 @@ export const useInventoryData = ({
             page_size: pageSize.toString()
           });
 
-          // Only include flow_id when in current_flow mode and flowId is available
-          // FIX: Don't throw error if no flowId - just fetch all assets from database
+          // Only include flow_id parameter when BOTH conditions are true:
+          // 1. viewMode is 'current_flow' (user wants flow-specific assets)
+          // 2. flowId exists and is valid (we have a flow context)
+          // When viewMode is 'all', NEVER pass flow_id - fetch all assets from database
           const normalizedFlowId = flowId && flowId !== 'no-flow' ? String(flowId) : '';
 
           // Security: Validate flow ID to prevent injection attacks
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
           if (viewMode === 'current_flow' && normalizedFlowId) {
             if (uuidRegex.test(normalizedFlowId)) {
               queryParams.append('flow_id', normalizedFlowId);
-              console.log(`🔍 API call will include flow_id: ${normalizedFlowId}`);
+              console.log(`🔍 [current_flow mode] Including flow_id parameter: ${normalizedFlowId}`);
             } else {
               console.warn(`⚠️ Invalid flow ID format, skipping: ${normalizedFlowId}`);
               // Don't include invalid flow_id in request - fetch all assets instead
             }
           } else if (viewMode === 'current_flow') {
-            console.log(`📊 current_flow mode but no flowId - fetching all assets from database`);
+            console.log(`📊 [current_flow mode] No valid flowId - fetching all assets from database`);
             // Don't throw error - inventory should load assets from DB regardless of flow state
+          } else {
+            console.log(`📊 [all mode] Not including flow_id parameter - fetching all assets`);
           }
 
           const response = await apiCall(`/unified-discovery/assets?${queryParams.toString()}`);
@@ -171,29 +182,7 @@ export const useInventoryData = ({
         // If no pagination metadata, return first page only
         if (!firstPageData.pagination) {
           console.log(`📊 Using single page (no pagination):`, firstPageData.assets.length);
-
-          // Transform and return first page assets
-          return firstPageData.assets.map((asset: Asset) => ({
-            id: asset.id,
-            asset_name: asset.name,
-            asset_type: asset.asset_type,
-            environment: asset.environment,
-            criticality: asset.business_criticality,
-            status: 'discovered',
-            six_r_strategy: asset.six_r_strategy,
-            migration_wave: asset.migration_wave,
-            application_name: asset.name,
-            hostname: asset.hostname,
-            operating_system: asset.operating_system,
-            cpu_cores: asset.cpu_cores,
-            memory_gb: asset.memory_gb,
-            storage_gb: asset.storage_gb,
-            business_criticality: asset.business_criticality,
-            risk_score: 0,
-            migration_readiness: asset.sixr_ready ? 'ready' : 'pending',
-            dependencies: 0,
-            last_updated: asset.updated_at || asset.created_at
-          }));
+          return firstPageData.assets;
         }
 
         // For 'all' mode with pagination, fetch all pages iteratively
@@ -239,31 +228,25 @@ export const useInventoryData = ({
         console.log('📊 Assets from API (final):', allAssets.length);
         console.log('📊 Assets need classification:', firstPageData.needsClassification);
 
-        // Transform all assets to match expected format
-        return allAssets.map((asset: Asset) => ({
-          id: asset.id,
-          asset_name: asset.name,
-          asset_type: asset.asset_type,
-          environment: asset.environment,
-          criticality: asset.business_criticality,
-          status: 'discovered',
-          six_r_strategy: asset.six_r_strategy,
-          migration_wave: asset.migration_wave,
-          application_name: asset.name,
-          hostname: asset.hostname,
-          operating_system: asset.operating_system,
-          cpu_cores: asset.cpu_cores,
-          memory_gb: asset.memory_gb,
-          storage_gb: asset.storage_gb,
-          business_criticality: asset.business_criticality,
-          risk_score: 0,
-          migration_readiness: asset.sixr_ready ? 'ready' : 'pending',
-          dependencies: 0,
-          last_updated: asset.updated_at || asset.created_at
-        }));
+        return allAssets;
 
       } catch (error) {
         console.error('Error fetching assets:', error);
+
+        // FIX #326: Normalize error shape across different API clients (fetch/axios/custom)
+        // Check multiple common locations for HTTP status code
+        const anyErr = error;
+        const status =
+          anyErr?.response?.status ?? // Axios format
+          anyErr?.status ?? // Custom/fetch format
+          (typeof anyErr?.code === 'string' && anyErr.code.startsWith('4')
+            ? Number(anyErr.code)
+            : undefined);
+
+        if (status === 404) {
+          console.error('❌ 404 Error: Flow not found or invalid flow_id');
+          throw new Error('FLOW_NOT_FOUND');
+        }
 
         // Fallback to flow assets if API fails completely
         const flowAssets = getAssetsFromFlow();
@@ -280,7 +263,7 @@ export const useInventoryData = ({
     staleTime: 30000
   });
 
-  const assets: AssetInventory[] = useMemo(() => {
+  const assets: Asset[] = useMemo(() => {
     if (!assetsData) return [];
     if (Array.isArray(assetsData)) return assetsData;
     if (assetsData && Array.isArray((assetsData as { assets?: Asset[] }).assets)) {
@@ -292,10 +275,15 @@ export const useInventoryData = ({
   // Check if we have a backend error
   const hasBackendError = assetsData === null || (assetsData && (assetsData as AssetApiResponse).data_source === 'error');
 
+  // FIX #326: Check if this is a flow not found error (404)
+  const isFlowNotFound = assetsError?.message === 'FLOW_NOT_FOUND';
+
   return {
     assets,
     assetsLoading,
     refetchAssets,
-    hasBackendError
+    hasBackendError,
+    isFlowNotFound,
+    error: assetsError
   };
 };

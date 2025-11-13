@@ -43,6 +43,15 @@ services:
       - DEBUG=true
       - PYTHONPATH=/app
 
+      # Hot Module Reload (HMR) Configuration
+      # WARNING: HMR restarts the server on file changes, causing:
+      #   - Long-running flows (Discovery/Assessment) to abort mid-execution
+      #   - Database transactions to be left incomplete
+      #   - CrewAI agent state and progress to be lost
+      #   - SSE connections to frontend to drop
+      # RECOMMENDATION: Keep disabled (false) when testing flows, enable only for quick UI/API changes
+      - UVICORN_RELOAD_ENABLED=${UVICORN_RELOAD_ENABLED:-false}
+
       # Assessment Flow Configuration
       - ASSESSMENT_FLOW_ENABLED=true
       - ASSESSMENT_CREW_PARALLELISM=3

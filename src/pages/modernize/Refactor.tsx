@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Clock, CheckCircle, Filter } from 'lucide-react'
 import { Code, Sparkles, Play, AlertTriangle, Loader2 } from 'lucide-react'
 import { useRefactor } from '@/hooks/useRefactor';
-import { Sidebar } from '@/components/ui/sidebar';
+import Sidebar from '@/components/Sidebar';;
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 
 const Refactor = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState('planning');
@@ -68,6 +69,9 @@ const Refactor = (): JSX.Element => {
       <Sidebar />
       <div className="flex-1 ml-64">
         <main className="p-8">
+          {/* Context Breadcrumbs */}
+          <ContextBreadcrumbs showContextSelector={true} />
+
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">

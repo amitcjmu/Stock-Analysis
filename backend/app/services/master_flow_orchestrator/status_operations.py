@@ -13,8 +13,12 @@ from app.core.logging import get_logger
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
-from app.services.flow_orchestration import FlowAuditLogger, FlowStatusManager
-from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLevel
+from app.services.flow_contracts import (
+    FlowAuditLogger,
+    FlowStatusManager,
+    AuditCategory,
+    AuditLevel,
+)
 from app.services.flow_orchestration.smart_discovery_service import (
     SmartDiscoveryService,
 )

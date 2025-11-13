@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.data_import import CustomTargetField, ImportFieldMapping
 
@@ -22,13 +23,18 @@ logger = logging.getLogger(__name__)
 
 @router.post("/imports/{import_id}/learn-from-mapping")
 async def learn_from_user_mapping(
-    import_id: str, learning_data: dict, db: AsyncSession = Depends(get_db)
+    import_id: str,
+    learning_data: dict,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
 ):
     """Store user corrections for AI learning - this is how the system gets smarter."""
     try:
         # Store the corrected mapping
         corrected_mapping = ImportFieldMapping(
             data_import_id=import_id,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
             source_field=learning_data["source_field"],
             target_field=learning_data["corrected_target_field"],
             mapping_type="user_corrected",

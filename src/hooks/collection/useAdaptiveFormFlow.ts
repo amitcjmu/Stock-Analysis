@@ -23,13 +23,14 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { createFallbackFormData } from "@/utils/collection/formDataTransformation";
 
 // Import flow management hooks
 import {
   useCollectionFlowManagement,
-  useIncompleteCollectionFlows,
+  useActivelyIncompleteCollectionFlows,
 } from "./useCollectionFlowManagement";
 import { useQuestionnairePolling } from "./useQuestionnairePolling";
 
@@ -65,6 +66,9 @@ import type { CollectionFormData } from "@/components/collection/types";
 // Import auth context
 import { useAuth } from "@/contexts/AuthContext";
 
+// Import applications hook for UUID-to-name resolution
+import { useApplications } from "@/hooks/useApplications";
+
 /**
  * Main adaptive form flow hook - now composed from modular hooks
  * CRITICAL: 100% backward compatible with original implementation
@@ -82,6 +86,9 @@ export const useAdaptiveFormFlow = (
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { setCurrentFlow, user } = useAuth();
+
+  // Get applications list for UUID-to-name resolution in form data
+  const { applications } = useApplications();
 
   // CRITICAL FIX: Single source of truth for flow ID
   // Get flow ID from URL params or options - this is our primary source
@@ -101,11 +108,12 @@ export const useAdaptiveFormFlow = (
     }
   }, [urlFlowId, updateFlowId, currentFlowIdRef]);
 
-  // Check for incomplete flows
+  // Check for actively incomplete flows (INITIALIZED, RUNNING)
+  // Per ADR-012, PAUSED flows are waiting for user input and should not block
   // CRITICAL FIX: Always call the hook but use skipIncompleteCheck for logic
   const skipIncompleteCheck = !!urlFlowId || !!currentFlowIdRef.current;
   const { data: incompleteFlows = [], isLoading: checkingFlows } =
-    useIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
+    useActivelyIncompleteCollectionFlows(); // Always call the hook to maintain consistent hook order
 
   // Filter out the current flow from the blocking check
   // CRITICAL FIX: Only consider flows as blocking if we're NOT continuing a specific flow
@@ -166,10 +174,35 @@ export const useAdaptiveFormFlow = (
     updateFlowId,
   });
 
+  // CRITICAL FIX #677: Poll for flow phase to know when questionnaires are ready
+  // Phase progression: gap_analysis → questionnaire_generation → manual_collection
+  // Questionnaires are saved to DB BEFORE transition to manual_collection
+  const { data: flowDetails } = useQuery({
+    queryKey: ['collection-flow-phase', state.flowId],
+    queryFn: async () => {
+      if (!state.flowId) return null;
+      return await collectionFlowApi.getFlowDetails(state.flowId);
+    },
+    enabled: !!state.flowId && !state.formData && !state.questionnaires?.length,
+    refetchInterval: (data) => {
+      // Keep polling phase every 2s until we reach manual_collection
+      if (!data || data.current_phase === 'questionnaire_generation' || data.current_phase === 'gap_analysis') {
+        return 2000; // 2 seconds
+      }
+      return false; // Stop when manual_collection is reached
+    },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always fresh
+  });
+
+  const currentPhase = flowDetails?.current_phase || null;
+
   // Use the new questionnaire polling hook with completion_status support
   const questionnairePollingState = useQuestionnairePolling({
     flowId: state.flowId || '',
     enabled: !!state.flowId && !state.formData && !state.questionnaires?.length,
+    currentPhase, // CRITICAL: Pass current phase to prevent race condition
     onReady: useCallback(async (questionnaires: CollectionQuestionnaire[]) => {
       console.log('🎉 Questionnaire ready from new polling hook:', questionnaires);
       // Convert questionnaires and update state - use timeout to prevent React warning
@@ -178,6 +211,7 @@ export const useAdaptiveFormFlow = (
           const adaptiveFormData = convertQuestionnairesToFormData(
             questionnaires[0],
             applicationId,
+            applications // FIX: Pass applications for UUID-to-name lookup
           );
 
           if (validateFormDataStructure(adaptiveFormData)) {
@@ -225,7 +259,7 @@ export const useAdaptiveFormFlow = (
           console.error('Failed to convert questionnaire:', error);
         }
       }
-    }, [applicationId, toast, state.flowId, setState]),
+    }, [applicationId, applications, toast, state.flowId, setState]),
     onFallback: useCallback(async (questionnaires: CollectionQuestionnaire[]) => {
       console.log('⚠️ Using fallback questionnaire from new polling hook:', questionnaires);
 
@@ -235,6 +269,7 @@ export const useAdaptiveFormFlow = (
           const adaptiveFormData = convertQuestionnairesToFormData(
             questionnaires[0],
             applicationId,
+            applications // FIX: Pass applications for UUID-to-name lookup
           );
 
           // CRITICAL FIX: Fetch saved responses from database for fallback questionnaire too
@@ -297,7 +332,7 @@ export const useAdaptiveFormFlow = (
           variant: "default",
         });
       }
-    }, [applicationId, toast, state.flowId, setState]),
+    }, [applicationId, applications, toast, state.flowId, setState]),
     onFailed: useCallback((errorMessage: string) => {
       console.error('❌ Questionnaire generation failed:', errorMessage);
       // Enhanced error handling with retry capabilities
@@ -416,6 +451,7 @@ export const useAdaptiveFormFlow = (
         const adaptiveFormData = convertQuestionnairesToFormData(
           questionnaires[0],
           applicationId,
+          applications // FIX: Pass applications for UUID-to-name lookup
         );
 
         if (validateFormDataStructure(adaptiveFormData)) {
@@ -455,7 +491,7 @@ export const useAdaptiveFormFlow = (
         variant: "destructive",
       });
     }
-  }, [state.flowId, applicationId, toast, setState]);
+  }, [state.flowId, applicationId, applications, toast, setState]);
 
   // Track if we've attempted initialization for this flowId
   const [hasAttemptedInit, setHasAttemptedInit] = useState<string | null>(null);

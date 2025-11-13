@@ -111,9 +111,14 @@ export interface AssessmentFlowState {
 
   // UI state
   isLoading: boolean;
+  dataFetched: boolean; // Bug #730 fix - track if initial data has been loaded
   error: string | null;
   lastUserInteraction: Date | null;
   appsReadyForPlanning: string[];
+
+  // Phase failure tracking (Fix for issue #818)
+  hasFailedPhases?: boolean;
+  failedPhases?: string[];
 
   // Real-time updates
   agentUpdates: Array<{
@@ -124,13 +129,21 @@ export interface AssessmentFlowState {
   }>;
 }
 
+// Response from resume flow API (ADR-027)
+export interface AssessmentFlowStatusResponse {
+  flow_id: string;
+  status: string;
+  current_phase: string;
+  progress: number;
+}
+
 export interface UseAssessmentFlowReturn {
   // State
   state: AssessmentFlowState;
 
   // Flow control
   initializeFlow: (selectedAppIds: string[]) => Promise<void>;
-  resumeFlow: (userInput: UserInput) => Promise<void>;
+  resumeFlow: (userInput: UserInput) => Promise<AssessmentFlowStatusResponse>;
   navigateToPhase: (phase: AssessmentPhase) => Promise<void>;
   finalizeAssessment: () => Promise<void>;
 

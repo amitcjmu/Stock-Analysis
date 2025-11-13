@@ -55,7 +55,7 @@ class CollectionChildFlowService(BaseChildFlowService):
                 "progress_percentage": child_flow.progress_percentage,
                 "automation_tier": child_flow.automation_tier,
                 "collection_config": child_flow.collection_config,
-                "phase_state": getattr(child_flow, "phase_state", {}),
+                # Per ADR-028: phase_state field removed from collection_flow
             }
         except Exception as e:
             logger.warning(f"Failed to get collection child flow status: {e}")
@@ -111,6 +111,72 @@ class CollectionChildFlowService(BaseChildFlowService):
             # User must select assets - return awaiting input
             logger.info(f"Phase '{phase_name}' - awaiting user asset selection")
             return {"status": "awaiting_user_input", "phase": phase_name}
+
+        elif phase_name == "auto_enrichment":
+            # Execute auto-enrichment BEFORE gap analysis (Phase 2 fix)
+            # Per BULK_UPLOAD_ENRICHMENT_ARCHITECTURE_ANALYSIS.md Part 6.1
+            from app.services.enrichment.auto_enrichment_pipeline import (
+                AutoEnrichmentPipeline,
+            )
+            from app.core.config import settings
+
+            logger.info("Executing auto_enrichment via AutoEnrichmentPipeline")
+
+            # Check feature flag (respecting environment configuration)
+            if not getattr(settings, "AUTO_ENRICHMENT_ENABLED", True):
+                logger.warning(
+                    "AUTO_ENRICHMENT_ENABLED=False - skipping enrichment phase"
+                )
+                # Auto-transition to gap_analysis
+                await self.state_service.transition_phase(
+                    flow_id=child_flow.id, new_phase=CollectionPhase.GAP_ANALYSIS
+                )
+                return {
+                    "status": "skipped",
+                    "phase": phase_name,
+                    "reason": "AUTO_ENRICHMENT_ENABLED feature flag disabled",
+                }
+
+            # Get asset_ids from phase_input (selected in asset_selection phase)
+            asset_ids = (phase_input or {}).get("selected_asset_ids", [])
+            if not asset_ids:
+                logger.warning("No asset_ids provided for enrichment - skipping")
+                # Auto-transition to gap_analysis even if no assets
+                await self.state_service.transition_phase(
+                    flow_id=child_flow.id, new_phase=CollectionPhase.GAP_ANALYSIS
+                )
+                return {
+                    "status": "skipped",
+                    "phase": phase_name,
+                    "reason": "No assets selected for enrichment",
+                }
+
+            # Initialize AutoEnrichmentPipeline with tenant scoping
+            enrichment_pipeline = AutoEnrichmentPipeline(
+                db=self.db,
+                client_account_id=self.context.client_account_id,
+                engagement_id=self.context.engagement_id,
+            )
+
+            # Execute enrichment with Phase 2.3 backpressure controls
+            result = await enrichment_pipeline.trigger_auto_enrichment(asset_ids)
+
+            logger.info(
+                f"Auto-enrichment completed: {result.get('total_assets', 0)} assets, "
+                f"{result.get('elapsed_time_seconds', 0):.1f}s"
+            )
+
+            # Auto-transition to gap_analysis after enrichment completes
+            # CRITICAL: Gap analysis now sees enriched data
+            await self.state_service.transition_phase(
+                flow_id=child_flow.id, new_phase=CollectionPhase.GAP_ANALYSIS
+            )
+
+            return {
+                "status": "success",
+                "phase": phase_name,
+                "enrichment_results": result,
+            }
 
         elif phase_name == "gap_analysis":
             # Execute gap analysis using GapAnalysisService with persistent agents
@@ -173,21 +239,8 @@ class CollectionChildFlowService(BaseChildFlowService):
             return result
 
         elif phase_name == "questionnaire_generation":
-            # Generate questionnaires using QuestionnaireGenerationService
-            # NOTE: This service may not exist yet - implementing stub per plan
-            logger.info(f"Phase '{phase_name}' - questionnaire generation requested")
-
-            # For now, return success with placeholder
-            # TODO: Implement actual QuestionnaireGenerationService when ready
-            logger.warning(
-                "QuestionnaireGenerationService not yet implemented - returning placeholder"
-            )
-            return {
-                "status": "success",
-                "phase": phase_name,
-                "execution_type": "stub",
-                "message": "Questionnaire generation service pending implementation",
-            }
+            # Generate questionnaires from persisted gaps using QuestionnaireGenerationTool
+            return await self._execute_questionnaire_generation(child_flow, phase_name)
 
         elif phase_name == "manual_collection":
             # User must manually provide responses - return awaiting input
@@ -219,4 +272,103 @@ class CollectionChildFlowService(BaseChildFlowService):
                 "phase": phase_name,
                 "execution_type": "noop",
                 "message": f"Phase '{phase_name}' not yet implemented",
+            }
+
+    async def _execute_questionnaire_generation(
+        self, child_flow, phase_name: str
+    ) -> Dict[str, Any]:
+        """
+        Execute questionnaire generation phase.
+
+        Extracted to reduce complexity of execute_phase method (Flake8 C901).
+
+        Args:
+            child_flow: Collection flow entity
+            phase_name: Phase name ("questionnaire_generation")
+
+        Returns:
+            Phase execution result dictionary
+        """
+        logger.info(f"Phase '{phase_name}' - questionnaire generation requested")
+
+        # Import required services
+        from sqlalchemy import select
+        from app.models.collection_data_gap import CollectionDataGap
+
+        try:
+            # Get persisted gaps from database
+            gaps_result = await self.db.execute(
+                select(CollectionDataGap).where(
+                    CollectionDataGap.collection_flow_id == child_flow.id,
+                    CollectionDataGap.resolution_status == "pending",
+                )
+            )
+            persisted_gaps = gaps_result.scalars().all()
+
+            if not persisted_gaps:
+                logger.info(
+                    "No pending gaps found - transitioning to manual_collection"
+                )
+                await self.state_service.transition_phase(
+                    flow_id=child_flow.id,
+                    new_phase=CollectionPhase.MANUAL_COLLECTION,
+                )
+                return {
+                    "status": "success",
+                    "phase": phase_name,
+                    "message": "No gaps to generate questionnaires for",
+                    "questionnaires_generated": 0,
+                }
+
+            logger.info(
+                f"Found {len(persisted_gaps)} pending gaps for questionnaire generation"
+            )
+
+            # Import helper functions
+            from app.services.child_flow_services.questionnaire_helpers import (
+                prepare_gap_data,
+                generate_questionnaires,
+                persist_questionnaires,
+            )
+
+            # Transform gaps and generate questionnaires using helper functions
+            data_gaps, business_context = await prepare_gap_data(
+                self.db, self.context, persisted_gaps, child_flow
+            )
+
+            generation_result = await generate_questionnaires(
+                data_gaps, business_context
+            )
+
+            if generation_result.get("status") != "success":
+                logger.error(
+                    f"Questionnaire generation failed: {generation_result.get('error')}"
+                )
+                return {
+                    "status": "failed",
+                    "phase": phase_name,
+                    "error": generation_result.get("error", "Unknown error"),
+                }
+
+            # Persist and transition using helper function
+            return await persist_questionnaires(
+                self.db,
+                self.context,
+                self.state_service,
+                generation_result,
+                persisted_gaps,
+                child_flow,
+                phase_name,
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Error in questionnaire_generation phase: {e}",
+                exc_info=True,
+            )
+            return {
+                "status": "failed",
+                "phase": phase_name,
+                "error": str(e),
+                "error_type": type(e).__name__,
             }

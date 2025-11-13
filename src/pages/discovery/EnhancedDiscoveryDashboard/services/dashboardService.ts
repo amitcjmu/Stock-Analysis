@@ -245,7 +245,7 @@ export class DashboardService {
             active_agents: metadata.active_agents || flow.active_agents || 18,
             data_sources: metadata.data_sources || flow.data_sources || 1,
             success_criteria_met: metadata.success_criteria_met || flow.success_criteria_met || Object.values(flow.phases || metadata.phases || {}).filter(Boolean).length || 0,
-            total_success_criteria: 6, // 6 phases in discovery
+            total_success_criteria: 5, // Per ADR-027: Discovery v3.0.0 has 5 phases
             flow_type: flow.type || 'discovery'
           };
 
@@ -308,7 +308,7 @@ export class DashboardService {
                 active_agents: 18,
                 data_sources: 1,
                 success_criteria_met: Object.values(flowState.phases || {}).filter(Boolean).length,
-                total_success_criteria: 6, // 6 phases in discovery
+                total_success_criteria: 5, // Per ADR-027: Discovery v3.0.0 has 5 phases
                 flow_type: 'discovery'
               });
             }

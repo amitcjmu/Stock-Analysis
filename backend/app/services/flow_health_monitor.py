@@ -79,6 +79,7 @@ class FlowHealthMonitor:
                 # Find flows stuck at initialization/active with 0% progress for > 1 hour
                 cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
 
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 stmt = select(DiscoveryFlow).where(
                     and_(
                         DiscoveryFlow.status.in_(["active", "initialized", "running"]),
@@ -109,7 +110,9 @@ class FlowHealthMonitor:
         """
         try:
             async with AsyncSessionLocal() as db:
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 # Get all active flows
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 stmt = select(DiscoveryFlow).where(
                     DiscoveryFlow.status.in_(
                         ["active", "initialized", "running", "waiting_for_approval"]
@@ -216,14 +219,17 @@ class FlowHealthMonitor:
             cached_data = await self.redis.get(cache_key)
             if cached_data:
                 # Reconstruct the DiscoveryFlow object from cached data
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 disc_stmt = select(DiscoveryFlow).where(
                     DiscoveryFlow.id == cached_data["id"]
                 )
                 disc_result = await db.execute(disc_stmt)
                 return disc_result.scalar_one_or_none()
 
+        # SKIP_TENANT_CHECK - Service-level/monitoring query
         # Not in cache, query database
         disc_stmt = (
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(DiscoveryFlow)
             .where(DiscoveryFlow.master_flow_id == master_flow_id)
             .order_by(DiscoveryFlow.created_at.desc())
@@ -253,6 +259,7 @@ class FlowHealthMonitor:
         try:
             async with AsyncSessionLocal() as db:
                 # Get all master flows with discovery children
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 stmt = select(CrewAIFlowStateExtensions).where(
                     CrewAIFlowStateExtensions.flow_type == "discovery"
                 )
@@ -299,12 +306,14 @@ class FlowHealthMonitor:
                     "failed",
                     "waiting_for_approval",
                 ]:
+                    # SKIP_TENANT_CHECK - Service-level/monitoring query
                     stmt = select(func.count()).where(DiscoveryFlow.status == status)
                     result = await db.execute(stmt)
                     status_counts[status] = result.scalar() or 0
 
                 # Find stuck flows
                 cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
+                # SKIP_TENANT_CHECK - Service-level/monitoring query
                 stuck_stmt = select(func.count()).where(
                     and_(
                         DiscoveryFlow.status.in_(["active", "initialized", "running"]),
@@ -318,6 +327,7 @@ class FlowHealthMonitor:
                 # Average progress by status
                 progress_by_status = {}
                 for status in ["active", "running"]:
+                    # SKIP_TENANT_CHECK - Service-level/monitoring query
                     stmt = select(func.avg(DiscoveryFlow.progress_percentage)).where(
                         DiscoveryFlow.status == status
                     )

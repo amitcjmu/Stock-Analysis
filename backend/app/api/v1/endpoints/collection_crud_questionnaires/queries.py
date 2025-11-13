@@ -29,6 +29,7 @@ async def _get_flow_by_id(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> CollectionFlow:
     """Get and validate collection flow by ID."""
+    logger.debug(f"🔍 _get_flow_by_id called with flow_id={flow_id}")
     flow_result = await db.execute(
         select(CollectionFlow).where(
             CollectionFlow.flow_id == UUID(flow_id),
@@ -40,6 +41,9 @@ async def _get_flow_by_id(
     if not flow:
         logger.warning(f"Collection flow not found: {flow_id}")
         raise HTTPException(status_code=404, detail="Collection flow not found")
+    logger.debug(
+        f"✅ Found flow: flow_id={flow.flow_id}, id={flow.id}, phase={flow.current_phase}"
+    )
     return flow
 
 
@@ -51,6 +55,11 @@ async def _get_existing_questionnaires_tenant_scoped(
     CRITICAL: Only returns questionnaires that are NOT completed.
     Completed questionnaires should not be returned to prevent submission loops.
     """
+    logger.debug(f"🔍 Querying questionnaires with collection_flow_id={flow.id}")
+    logger.debug(
+        f"   client_account_id={context.client_account_id}, engagement_id={context.engagement_id}"
+    )
+
     questionnaires_result = await db.execute(
         select(AdaptiveQuestionnaire)
         .where(
@@ -67,15 +76,22 @@ async def _get_existing_questionnaires_tenant_scoped(
 
     if questionnaires:
         logger.info(
-            f"Found {len(questionnaires)} incomplete questionnaires in database"
+            f"✅ Found {len(questionnaires)} incomplete questionnaires in database"
         )
-        return [
+        for q in questionnaires:
+            logger.debug(
+                f"   - Questionnaire {q.id}: {len(q.questions)} questions, status={q.completion_status}"
+            )
+
+        serialized = [
             collection_serializers.build_questionnaire_response(q)
             for q in questionnaires
         ]
+        logger.debug(f"📦 Serialized {len(serialized)} questionnaire responses")
+        return serialized
 
     logger.info(
-        "No incomplete questionnaires found - collection may be ready for assessment"
+        "❌ No incomplete questionnaires found - collection may be ready for assessment"
     )
     return []
 
@@ -91,6 +107,65 @@ async def _get_existing_assets(
         .order_by(Asset.created_at.desc())
     )
     return list(assets_result.scalars().all())
+
+
+async def get_questionnaire_by_asset(
+    engagement_id: UUID,
+    asset_id: UUID,
+    db: AsyncSession,
+    context: RequestContext,
+) -> AdaptiveQuestionnaireResponse:
+    """
+    Get questionnaire for a specific asset in an engagement.
+
+    Uses asset-based deduplication: returns the same questionnaire across flows
+    for the same asset. Enables questionnaire reuse and prevents duplicate data entry.
+
+    Args:
+        engagement_id: Engagement ID (tenant scope)
+        asset_id: Asset ID to look up
+        db: Database session
+        context: Request context for authorization
+
+    Returns:
+        AdaptiveQuestionnaireResponse for the asset
+
+    Raises:
+        HTTPException(404): If no questionnaire found for this asset
+    """
+    from .deduplication import get_existing_questionnaire_for_asset
+
+    try:
+        # Check for existing questionnaire (scoped by engagement_id + asset_id)
+        existing = await get_existing_questionnaire_for_asset(
+            engagement_id,
+            asset_id,
+            db,
+        )
+
+        if not existing:
+            logger.warning(
+                f"No questionnaire found for asset {asset_id} in engagement {engagement_id}"
+            )
+            raise HTTPException(
+                status_code=404,
+                detail=f"No questionnaire found for asset {asset_id}. Please create a collection flow first.",
+            )
+
+        logger.info(
+            f"Found questionnaire {existing.id} for asset {asset_id} "
+            f"(status: {existing.completion_status})"
+        )
+
+        return collection_serializers.build_questionnaire_response(existing)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Error getting questionnaire for asset {asset_id}: {e}", exc_info=True
+        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 async def get_adaptive_questionnaires(
@@ -115,8 +190,54 @@ async def get_adaptive_questionnaires(
 
         if existing_questionnaires:
             logger.info(
-                f"Returning {len(existing_questionnaires)} existing questionnaires"
+                f"✅ Returning {len(existing_questionnaires)} existing questionnaires to frontend"
             )
+            for q in existing_questionnaires:
+                logger.debug(
+                    f"   - Questionnaire {q.id}: {len(q.questions) if q.questions else 0} questions"
+                )
+
+            # ✅ DEFENSIVE FIX: Check if phase transition was missed (e.g., background task interrupted)
+            # If questionnaire exists with questions but phase is still questionnaire_generation,
+            # transition to manual_collection now
+            has_questions = any(
+                hasattr(q, "questions") and q.questions and len(q.questions) > 0
+                for q in existing_questionnaires
+            )
+
+            if has_questions and flow.current_phase == "questionnaire_generation":
+                logger.warning(
+                    f"⚠️ Flow {flow_id} has questionnaire with questions but phase "
+                    f"is still 'questionnaire_generation'. Performing defensive phase "
+                    f"transition to 'manual_collection'"
+                )
+
+                try:
+                    from sqlalchemy import update as sql_update
+
+                    await db.execute(
+                        sql_update(CollectionFlow)
+                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        .values(
+                            current_phase="manual_collection",
+                            status="paused",  # Awaiting user questionnaire input
+                            progress_percentage=50.0,  # Questionnaire generated = 50% progress
+                            updated_at=datetime.now(timezone.utc),
+                        )
+                    )
+                    await db.commit()
+
+                    logger.info(
+                        f"✅ Defensive phase transition successful: {flow_id} → manual_collection"
+                    )
+                except Exception as phase_error:
+                    # Don't fail the request if phase transition fails
+                    # Questionnaire retrieval already succeeded
+                    logger.error(
+                        f"❌ Defensive phase transition failed for {flow_id}: {phase_error}",
+                        exc_info=True,
+                    )
+
             return existing_questionnaires
 
         # CRITICAL: If no incomplete questionnaires AND assessment_ready is true, return empty array

@@ -26,6 +26,11 @@ const getAuthHeaders = (): AuthHeaders => {
     const token = tokenStorage.getToken();
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+    } else {
+      // CRITICAL: Log when token is missing to debug timing issues (dev only)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ [apiClient] getAuthHeaders: No token available from tokenStorage');
+      }
     }
 
     const user = tokenStorage.getUser();
@@ -57,7 +62,12 @@ const getAuthHeaders = (): AuthHeaders => {
       }
     }
   } catch (error) {
-    console.warn('Failed to get auth headers:', error);
+    // Make token retrieval failures visible instead of silent (dev only)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [apiClient] getAuthHeaders: Failed to retrieve auth headers:', error);
+    }
+    // Re-throw to make failures visible
+    throw error;
   }
 
   return headers;
@@ -285,11 +295,21 @@ class ApiClient {
       // API Request logged
 
       // Prepare headers
+      const authHeaders = getAuthHeaders();
       const headers: HeadersInit = {
         'X-Request-ID': requestId,
-        ...getAuthHeaders(),
+        ...authHeaders,
         ...options.headers,
       };
+
+      // Add debug logging to track authorization header (dev only)
+      if (!authHeaders.Authorization && process.env.NODE_ENV === 'development') {
+        console.warn(`⚠️ [apiClient] Request [${requestId}] being sent WITHOUT Authorization header:`, {
+          method,
+          url: normalizedEndpoint,
+          hasToken: !!tokenStorage.getToken()
+        });
+      }
 
       // Only set default Content-Type for non-FormData requests
       if (!(options.body instanceof FormData) && method !== 'GET') {
@@ -298,6 +318,14 @@ class ApiClient {
 
       // Prepare body
       let body: string | FormData | undefined;
+      console.log('[ApiClient.executeRequest] Body processing:', {
+        method,
+        endpoint: normalizedEndpoint,
+        optionsBody: options.body,
+        optionsBodyType: typeof options.body,
+        optionsBodyUndefined: options.body === undefined
+      });
+
       if (options.body !== undefined) {
         if (options.body instanceof FormData) {
           body = options.body;
@@ -306,6 +334,12 @@ class ApiClient {
         } else {
           body = JSON.stringify(options.body);
         }
+        console.log('[ApiClient.executeRequest] Body prepared:', {
+          bodyType: typeof body,
+          bodyValue: body instanceof FormData ? 'FormData' : body
+        });
+      } else {
+        console.log('[ApiClient.executeRequest] ⚠️ options.body is UNDEFINED - no body will be sent!');
       }
 
       // Create abort controller for timeout

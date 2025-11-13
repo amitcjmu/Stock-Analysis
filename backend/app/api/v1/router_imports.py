@@ -19,12 +19,19 @@ from app.api.v1.endpoints import (
     chat_router,
     context_router,
     data_import_router,
+    field_mapping_router,
     monitoring_router,
-    sixr_router,
+    # sixr_router removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
 )
 
-# Asset conflicts router
+# Asset conflicts and preview routers
 from app.api.v1.endpoints.asset_conflicts import router as asset_conflicts_router
+from app.api.v1.endpoints.asset_preview import (  # noqa: F401
+    router as asset_preview_router,
+)
+
+# Asset editing router (Issues #911, #912)
+from app.api.v1.endpoints.asset_editing import router as asset_editing_router
 
 from app.api.v1.endpoints.execute import router as execute_router
 
@@ -43,7 +50,7 @@ except ImportError:
     ANALYSIS_QUEUES_AVAILABLE = False
     analysis_queues_router = None
 
-# Decommission endpoints
+# Decommission endpoints (legacy - deprecated)
 decommission_router: Optional[APIRouter]
 try:
     from app.api.v1.endpoints.decommission import router as decommission_router
@@ -52,6 +59,18 @@ try:
 except ImportError:
     DECOMMISSION_AVAILABLE = False
     decommission_router = None
+
+# Decommission Flow endpoints (MFO-integrated per ADR-006)
+decommission_flow_router: Optional[APIRouter]
+try:
+    from app.api.v1.endpoints.decommission_flow import (
+        router as decommission_flow_router,
+    )
+
+    DECOMMISSION_FLOW_AVAILABLE = True
+except ImportError:
+    DECOMMISSION_FLOW_AVAILABLE = False
+    decommission_flow_router = None
 
 # Admin endpoints
 platform_admin_router: Optional[APIRouter]
@@ -122,6 +141,18 @@ except ImportError:
 # assessment_flow_router is imported from endpoints package at line 16
 ASSESSMENT_FLOW_AVAILABLE = True
 
+# Assessment Flow Readiness endpoints (Issue #980 - Gap Detection Integration)
+assessment_flow_readiness_router: Optional[APIRouter]
+try:
+    from app.api.v1.endpoints.assessment_flow_readiness import (
+        router as assessment_flow_readiness_router,
+    )
+
+    ASSESSMENT_FLOW_READINESS_AVAILABLE = True
+except ImportError:
+    ASSESSMENT_FLOW_READINESS_AVAILABLE = False
+    assessment_flow_readiness_router = None
+
 # Wave Planning endpoints
 wave_planning_router: Optional[APIRouter]
 try:
@@ -143,19 +174,29 @@ except ImportError:
     plan_router = None
 
 # Collection Flow endpoints
-collection_router: Optional[APIRouter]
+collection_flows_router: Optional[APIRouter]
 collection_post_completion_router: Optional[APIRouter]
+collection_bulk_ops_router: Optional[APIRouter]
 try:
-    from app.api.v1.endpoints.collection import router as collection_router
+    from app.api.v1.endpoints.collection_flows import router as collection_flows_router
     from app.api.v1.endpoints.collection_post_completion import (
         router as collection_post_completion_router,
     )
+    from app.api.v1.endpoints.collection import router as collection_bulk_ops_router
 
     COLLECTION_AVAILABLE = True
 except ImportError:
     COLLECTION_AVAILABLE = False
-    collection_router = None
+    collection_flows_router = None
     collection_post_completion_router = None
+    collection_bulk_ops_router = None
+
+# Collection Bulk Operations endpoints (Adaptive Questionnaire Enhancements)
+# NOTE: These are now included in collection_bulk_ops_router via collection/__init__.py
+# Individual routers no longer imported separately to avoid duplicate registration
+COLLECTION_BULK_OPS_AVAILABLE = (
+    COLLECTION_AVAILABLE  # Same availability as main collection router
+)
 
 # Collection Gaps endpoints
 collection_gaps_vendor_products_router: Optional[APIRouter]
@@ -392,6 +433,29 @@ try:
 except ImportError:
     routers_with_flags["FINOPS"] = (False, None)
 
+# Canonical Applications
+try:
+    from app.api.v1.canonical_applications import (
+        router as canonical_applications_router,
+    )
+
+    routers_with_flags["CANONICAL_APPLICATIONS"] = (True, canonical_applications_router)
+except ImportError:
+    routers_with_flags["CANONICAL_APPLICATIONS"] = (False, None)
+
+# Applications (for Planning Flow wizard)
+try:
+    from app.api.v1.endpoints.applications import router as applications_router
+
+    routers_with_flags["APPLICATIONS"] = (True, applications_router)
+except ImportError:
+    routers_with_flags["APPLICATIONS"] = (False, None)
+
+# Wave Planning (for Plan Flow wizard)
+if WAVE_PLANNING_AVAILABLE:
+    routers_with_flags["WAVE_PLANNING"] = (True, wave_planning_router)
+else:
+    routers_with_flags["WAVE_PLANNING"] = (False, None)
 
 # RBAC Admin router
 try:
@@ -415,12 +479,14 @@ __all__ = [
     "asset_workflow_router",
     "asset_inventory_router",
     "asset_conflicts_router",
+    "asset_editing_router",
     "chat_router",
     "context_router",
     "data_import_router",
+    "field_mapping_router",
     "execute_router",
     "monitoring_router",
-    "sixr_router",
+    # "sixr_router",  # Removed - replaced by Assessment Flow with MFO integration (Phase 4, Issue #840)
     "context_establishment_router",
     "flow_sync_debug_router",
     # Conditional routers with availability flags
@@ -440,12 +506,17 @@ __all__ = [
     "clarifications_router",
     "ASSESS_AVAILABLE",
     "assess_router",
+    "ASSESSMENT_FLOW_READINESS_AVAILABLE",
+    "assessment_flow_readiness_router",
     "WAVE_PLANNING_AVAILABLE",
     "wave_planning_router",
     "PLAN_AVAILABLE",
     "plan_router",
     "COLLECTION_AVAILABLE",
-    "collection_router",
+    "collection_flows_router",
+    "collection_post_completion_router",
+    "collection_bulk_ops_router",
+    "COLLECTION_BULK_OPS_AVAILABLE",
     "COLLECTION_GAPS_AVAILABLE",
     "collection_gaps_vendor_products_router",
     "collection_gaps_maintenance_windows_router",

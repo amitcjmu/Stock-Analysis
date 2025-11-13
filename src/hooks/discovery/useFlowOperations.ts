@@ -115,11 +115,27 @@ export const useIncompleteFlowDetection = (): unknown => {
         return { flows: [] };
       }
     },
-    staleTime: 30000,
-    refetchInterval: false,
+    staleTime: 0, // Always consider data stale so we check for updates
+    refetchInterval: (data) => {
+      // FIX #604: Enable polling for flow status updates
+      // Per coding-agent-guide.md: Use HTTP polling (5s active / 15s waiting)
+      if (!data || !data.flows || data.flows.length === 0) {
+        return false; // No flows, stop polling
+      }
+
+      // Check if any flow is actively processing
+      const hasActiveFlow = data.flows.some((flow: any) =>
+        flow.status === 'running' ||
+        flow.status === 'processing' ||
+        flow.status === 'initializing'
+      );
+
+      // Poll every 5 seconds if flows are active, 15 seconds for waiting states
+      return hasActiveFlow ? 5000 : 15000;
+    },
     enabled: !!client?.id && !!engagement?.id, // Only run query when we have proper context
     retry: false, // Don't retry failed requests to avoid console spam
-    refetchOnWindowFocus: false // Don't refetch when window gains focus
+    refetchOnWindowFocus: true // Refetch when window gains focus to show latest updates
   });
 };
 
@@ -195,23 +211,25 @@ export const useFlowResumption = (): unknown => {
       }
 
       // Navigate based on routing context or current phase
+      // CRITICAL FIX: Always pass flow_id in URL to maintain flow context across pages
       if (data.routing_context) {
         console.log('📍 [DEBUG] Using routing context:', data.routing_context);
-        navigate(data.routing_context.target_page);
+        const targetUrl = `${data.routing_context.target_page}?flow_id=${flowId}`;
+        console.log('📍 [DEBUG] Navigating to:', targetUrl);
+        navigate(targetUrl);
       } else if (data.current_phase) {
-        // For field_mapping phase, navigate to attribute-mapping without flow ID
-        // The page will auto-detect the correct flow
+        // For field_mapping phase, navigate to attribute-mapping WITH flow ID
         if (data.current_phase === 'field_mapping' || data.current_phase === 'attribute_mapping') {
-          console.log('📍 [DEBUG] Navigating to attribute mapping (auto-detect flow)');
-          navigate('/discovery/attribute-mapping');
+          console.log('📍 [DEBUG] Navigating to attribute mapping with flow ID:', flowId);
+          navigate(`/discovery/attribute-mapping?flow_id=${flowId}`);
         } else {
           const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
           console.log('📍 [DEBUG] Navigating to phase route:', route);
           navigate(route);
         }
       } else {
-        console.log('📍 [DEBUG] No routing info, defaulting to attribute mapping (auto-detect)');
-        navigate('/discovery/attribute-mapping');
+        console.log('📍 [DEBUG] No routing info, defaulting to attribute mapping with flow ID:', flowId);
+        navigate(`/discovery/attribute-mapping?flow_id=${flowId}`);
       }
     },
     onError: (error: unknown) => {

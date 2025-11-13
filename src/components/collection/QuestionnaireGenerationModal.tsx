@@ -49,8 +49,9 @@ export const QuestionnaireGenerationModal: React.FC<
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(Date.now());
 
-  // Total generation time in milliseconds (30 seconds)
-  const TOTAL_GENERATION_TIME = 30000;
+  // Bug #893 Fix: Increased timeout from 30s to 90s to match backend agent execution time
+  // Total generation time in milliseconds (90 seconds)
+  const TOTAL_GENERATION_TIME = 90000;
   const POLLING_INTERVAL = 2000; // Poll every 2 seconds
 
   useEffect(() => {
@@ -208,7 +209,7 @@ export const QuestionnaireGenerationModal: React.FC<
             <div className="text-sm text-gray-500">
               <p>
                 Our AI agents are analyzing your requirements and generating a
-                personalized questionnaire. This typically takes 20-30 seconds.
+                personalized questionnaire. This typically takes 30-60 seconds.
               </p>
             </div>
           )}

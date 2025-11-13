@@ -87,17 +87,23 @@ export function useSubmitHandler({
         assetId = data.asset_id;
       }
 
+      // Use extracted asset_id from formData if available (from question metadata)
+      // This takes precedence over the prop applicationId to ensure correct backend linkage
+      const finalApplicationId = state.formData?.applicationId || applicationId;
+
+      // CRITICAL FIX (Issue #692): Add save_type to mark questionnaire as completed
       const submissionData = {
         responses: data,
         form_metadata: {
           form_id: state.formData?.formId,
-          application_id: applicationId,
+          application_id: finalApplicationId,
           ...(assetId ? { asset_id: assetId } : {}), // Only include when a single ID is present
           completion_percentage: completionPercentage,
           confidence_score: state.validation?.overallConfidenceScore,
           submitted_at: new Date().toISOString(),
         },
         validation_results: state.validation,
+        save_type: "submit_complete", // Mark questionnaire as completed and trigger assessment check
       };
 
       console.log(
@@ -220,6 +226,39 @@ export function useSubmitHandler({
         }
       }
 
+      // CRITICAL UX FIX: Show processing state and handle assessment flow redirect
+      const assessmentFlowId = submitResponse.assessment_flow_id;
+      const redirectToAssessment = submitResponse.redirect_to_assessment === true;
+      const readinessUpdated = submitResponse.readiness_updated === true;
+
+      if (redirectToAssessment && assessmentFlowId) {
+        // Collection flow came from assessment flow - show processing and redirect back
+        toast({
+          title: "Processing Your Answers",
+          description: "Updating asset readiness and analyzing gaps...",
+        });
+
+        // Show loading state
+        setState((prev) => ({ ...prev, isLoading: true }));
+
+        // Wait for backend processing (gap re-analysis and readiness update)
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        toast({
+          title: "Collection Complete",
+          description: readinessUpdated
+            ? "Asset readiness has been updated. Returning to assessment flow..."
+            : "Your answers have been saved. Returning to assessment flow...",
+        });
+
+        // Redirect back to assessment flow
+        setTimeout(() => {
+          window.location.href = `/assess/overview?flowId=${assessmentFlowId}`;
+        }, 2000);
+
+        return; // Exit early - don't check for more questionnaires
+      }
+
       toast({
         title: "Adaptive Form Submitted Successfully",
         description:
@@ -258,6 +297,7 @@ export function useSubmitHandler({
             const nextQuestionnaire =
               updatedQuestionnaires.find(
                 (q) =>
+                  q.completion_status === "ready" ||  // FIX BUG#801: Include ready status after backend fix
                   q.completion_status === "pending" ||
                   q.completion_status === "in_progress",
               ) || updatedQuestionnaires[0];
@@ -267,9 +307,14 @@ export function useSubmitHandler({
                 `📝 Loading next questionnaire: ${nextQuestionnaire.id}`,
               );
 
-              // Convert the questionnaire to form data format
+              // Fetch flow details to get applications array for UUID-based lookup
+              const flowDetails = await collectionFlowApi.getFlowDetails(actualFlowId);
+              const applications = flowDetails?.applications || [];
+              console.log(`📋 Fetched ${applications.length} applications for UUID lookup`);
+
+              // Convert the questionnaire to form data format with applications array
               const nextFormData =
-                convertQuestionnaireToFormData(nextQuestionnaire);
+                convertQuestionnaireToFormData(nextQuestionnaire, null, applications);
 
               // CRITICAL FIX: Fetch saved responses from API instead of extracting from questionnaire object
               // Responses are stored in collection_questionnaire_responses table, not in the questionnaire
