@@ -17,8 +17,8 @@ from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
+from app.services.flow_contracts import FlowAuditLogger
 from app.services.flow_orchestration import (
-    FlowAuditLogger,
     FlowErrorHandler,
     FlowExecutionEngine,
     FlowLifecycleManager,

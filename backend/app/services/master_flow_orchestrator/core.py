@@ -19,12 +19,15 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
 
 # Import modular components
-from app.services.flow_orchestration import (
+from app.services.flow_contracts import (
     FlowAuditLogger,
+    FlowStatusManager,
+    IFlowOrchestrator,
+)
+from app.services.flow_orchestration import (
     FlowErrorHandler,
     FlowExecutionEngine,
     FlowLifecycleManager,
-    FlowStatusManager,
 )
 from app.services.flow_orchestration.flow_repair_service import FlowRepairService
 from app.services.flow_orchestration.smart_discovery_service import (
@@ -42,9 +45,12 @@ from .status_sync_operations import StatusSyncOperations
 logger = get_logger(__name__)
 
 
-class MasterFlowOrchestrator:
+class MasterFlowOrchestrator(IFlowOrchestrator):
     """
     THE SINGLE ORCHESTRATOR - Refactored with modular components
+
+    Implements IFlowOrchestrator interface to enable dependency injection
+    and break circular dependencies with other services.
 
     This orchestrator provides:
     - Unified flow lifecycle management (via FlowLifecycleManager)
