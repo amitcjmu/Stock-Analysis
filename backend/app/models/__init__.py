@@ -178,10 +178,6 @@ from app.models.user_active_flows import UserActiveFlow
 
 # V3 Models REMOVED - Using consolidated schema
 
-# DEPRECATED MODELS (Legacy V1 - Use V2 Discovery Flow instead)
-# from app.models.workflow_state import WorkflowState  # REMOVED - Use DiscoveryFlow
-# from app.models.session_management import SessionManagement  # REMOVED - Use DiscoveryFlow
-
 __all__ = [
     # Base Models
     "Base",

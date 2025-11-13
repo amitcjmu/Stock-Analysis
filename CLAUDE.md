@@ -86,12 +86,96 @@ This is NOT over-engineering - it's REQUIRED for enterprise resilience
 
 ### Critical Architecture Patterns
 
+#### ⚠️ CRITICAL: MFO Flow ID Pattern (READ THIS FIRST!)
+
+**This is a RECURRING BUG pattern** - read before implementing ANY flow endpoints!
+
+The MFO uses a **two-table pattern** with **TWO DIFFERENT UUIDs** per flow:
+- **Master Flow ID**: Internal MFO routing (`crewai_flow_state_extensions.flow_id`)
+- **Child Flow ID**: User-facing identifier (`assessment_flows.id`, `discovery_flows.id`, etc.)
+
+**THE GOLDEN RULES**:
+1. **URL paths receive CHILD flow IDs** (user-facing: `/execute/{flow_id}`)
+2. **MFO methods expect MASTER flow IDs** (`orchestrator.execute_phase(master_id, ...)`)
+3. **ALWAYS resolve master_flow_id from child table BEFORE calling MFO**
+4. **Include child flow_id in phase_input** for persistence
+
+**CORRECT PATTERN** (copy this verbatim):
+```python
+@router.post("/execute/{flow_id}")  # ← Child ID from URL
+async def execute_something(flow_id: str, db: AsyncSession, context: RequestContext):
+    # Step 1: Query child flow table using child ID
+    stmt = select(AssessmentFlow).where(
+        AssessmentFlow.id == UUID(flow_id),  # ← Child ID
+        AssessmentFlow.client_account_id == context.client_account_id,
+        AssessmentFlow.engagement_id == context.engagement_id,
+    )
+    result = await db.execute(stmt)
+    child_flow = result.scalar_one_or_none()
+
+    if not child_flow or not child_flow.master_flow_id:
+        raise HTTPException(status_code=404, detail="Flow not found")
+
+    # Step 2: Extract master flow ID
+    master_flow_id = child_flow.master_flow_id  # ← FK to master flow
+
+    # Step 3: Call MFO with MASTER ID, pass CHILD ID in phase_input
+    orchestrator = MasterFlowOrchestrator(db, context)
+    result = await orchestrator.execute_phase(
+        str(master_flow_id),  # ← MASTER flow ID (MFO routing)
+        "phase_name",
+        {"flow_id": flow_id}  # ← CHILD flow ID (persistence)
+    )
+
+    return {"success": True, "flow_id": flow_id}  # Return child ID
+```
+
+**Reference**: See Serena memory `mfo_two_table_flow_id_pattern_critical` for full details.
+
+**Example Files**:
+- `backend/app/api/v1/endpoints/assessment_flow/mfo_integration/create.py`
+- `backend/app/api/v1/endpoints/collection_flow/lifecycle.py`
+
+**Common Mistakes**:
+- ❌ Passing child ID to `MFO.execute_phase()` → "Flow not found" errors
+- ❌ Querying `AssessmentFlow.flow_id` → AttributeError (use `.id`)
+- ❌ Missing `flow_id` in `phase_input` → Phase results won't persist
+
+#### Flow Execution Pattern Selection (CRITICAL - ADR-025)
+
+**Two execution patterns exist** - choose based on flow characteristics:
+
+**Child Service Pattern** (Collection, Discovery, Decommission):
+- ✅ Use when: Multi-phase data collection, questionnaire generation, auto-progression
+- ✅ Provides: Centralized phase routing, state abstraction, auto-progression logic
+- ✅ Files: `backend/app/services/child_flow_services/{flow}_child_flow_service.py`
+
+**Direct Flow Pattern** (Assessment):
+- ✅ Use when: Analysis workflows, linear phases, simpler state management
+- ✅ Provides: Direct CrewAI integration, simpler architecture
+- ✅ Files: `backend/app/services/crewai_flows/unified_{flow}_flow.py`
+
+**Decision Criteria**:
+```
+Does flow collect data via questionnaires?
+├─ Yes → Does it have auto-progression logic?
+│         ├─ Yes → Use Child Service Pattern
+│         └─ No → Consider Child Service Pattern
+└─ No → Is it analyzing existing data?
+          ├─ Yes → Use Direct Flow Pattern (like Assessment)
+          └─ No → Evaluate complexity
+```
+
+**IMPORTANT**: ADR-025 applies to Collection Flow only. Assessment Flow correctly uses Direct Flow Pattern.
+
+**See**: `docs/adr/025-collection-flow-child-service-migration.md` section "When to Use Child Service Pattern"
+
 #### Master Flow Orchestrator (MFO) Pattern
 The MFO is the single source of truth for all workflow operations:
 - **Entry Point**: `/api/v1/master-flows/*` endpoints ONLY
-- **Two-Table Architecture**:
+- **Two-Table Architecture** (see critical pattern above):
   - `crewai_flow_state_extensions`: Master flow lifecycle (running/paused/completed)
-  - `discovery_flows`: Child flow operational data (phases, UI state)
+  - `assessment_flows` / `discovery_flows` / `collection_flows`: Child flow operational data
 - **Never** call legacy `/api/v1/discovery/*` endpoints directly
 
 #### State Management Flow
@@ -321,10 +405,12 @@ patterns = await memory_manager.retrieve_similar_patterns(
 
 **Endpoints**: `/api/v1/assessment-flow/*` (MFO-integrated per ADR-006)
 
+**Execution Pattern**: Direct `UnifiedAssessmentFlow` (does NOT use child service pattern - see ADR-025)
+
 **Flow Progression**:
 1. Create assessment flow → Master flow in `crewai_flow_state_extensions`
 2. Child flow in `assessment_flows` tracks operational state
-3. Phases: Architecture Standards → Tech Debt → 6R Decisions
+3. Phases: Architecture Standards → Tech Debt → Dependency Analysis → 6R Decisions
 4. Accept recommendations → Update `Asset.six_r_strategy`
 5. Export results → PDF/Excel/JSON
 
@@ -332,10 +418,18 @@ patterns = await memory_manager.retrieve_similar_patterns(
 - **Master Table**: `crewai_flow_state_extensions` (lifecycle: running/paused/completed)
 - **Child Table**: `assessment_flows` (operational: phases, UI state, selected applications)
 
+**Why No Child Service Pattern**:
+- Assessment is analysis-focused (not data collection)
+- Linear phase progression (no auto-progression logic)
+- No questionnaire generation
+- Simpler state management than Collection/Discovery flows
+- Direct CrewAI flow works efficiently
+
 **Key Files**:
 - Backend: `backend/app/api/v1/endpoints/assessment_flow/`
 - Frontend: `src/lib/api/assessmentFlow.ts`
 - MFO Integration: `backend/app/api/v1/endpoints/assessment_flow/mfo_integration.py`
+- CrewAI Flow: `backend/app/services/crewai_flows/unified_assessment_flow.py`
 
 **Deprecated**: `/api/v1/6r/*` endpoints (HTTP 410 Gone - use Assessment Flow instead)
 

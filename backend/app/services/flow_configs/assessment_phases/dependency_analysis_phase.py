@@ -69,7 +69,7 @@ def get_dependency_analysis_phase() -> PhaseConfig:
         retry_config=default_retry,
         timeout_seconds=1800,  # 30 minutes
         metadata={
-            "ui_route": "/assessment/:flowId/sixr-review",  # Fix #632: Use React Router syntax
+            "ui_route": "/assessment/:flowId/dependency",  # Correct route for dependency analysis page
             "ui_short_name": "Dependencies",  # Compact name for sidebar navigation
             "estimated_duration_minutes": 20,
             "icon": "share-2",

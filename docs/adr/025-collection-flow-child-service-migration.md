@@ -3,6 +3,18 @@
 ## Status
 Approved (2025-10-07)
 
+## Applicability
+
+**This ADR applies specifically to Collection Flow only.**
+
+The phrase "All flows use `child_flow_service`" in this document refers to Discovery and Collection flows, which share similar data collection characteristics (multi-phase data gathering, questionnaire generation, complex state management).
+
+**Flows with different characteristics do NOT require this pattern**:
+- **Assessment Flow**: Analysis-focused, uses `UnifiedAssessmentFlow` with direct MFO integration (simpler lifecycle, no questionnaires)
+- Future flows may use patterns appropriate to their specific needs
+
+See "When to Use Child Service Pattern" section below for guidance.
+
 ## Context
 
 The Collection Flow is currently in a **hybrid architectural state** where different components use incompatible execution patterns, causing E2E failures and architectural inconsistency.
@@ -255,6 +267,82 @@ FlowConfig(
 - **Fail-fast**: Error immediately if no execution handler
 - **Sequential**: No parallel processing complexity
 - **Minimal**: 4 tests cover critical paths
+
+---
+
+## When to Use Child Service Pattern vs Direct Flow Pattern
+
+### Use Child Service Pattern When Flow Has:
+
+✅ **Complex multi-phase data collection**
+- Multiple questionnaire generation phases
+- Two-tier execution (automatic + manual)
+- Dynamic form generation based on gaps
+
+✅ **Auto-progression logic**
+- Automatic phase transitions based on data quality
+- Complex state machine with conditional branching
+- Background processing with status polling
+
+✅ **Heavy state management**
+- Complex operational state tracking
+- Multiple sub-phases within main phases
+- Persistent state across resume/pause operations
+
+✅ **Safety-critical operations**
+- Compliance requirements
+- Data preservation needs
+- Rollback/recovery capabilities
+
+**Examples**: Discovery Flow, Collection Flow, Decommission Flow
+
+---
+
+### Use Direct Flow Pattern When Flow Has:
+
+✅ **Simple analysis workflows**
+- Linear phase progression
+- No questionnaire generation
+- Analysis of existing data (not collection)
+
+✅ **Simpler state management**
+- Phase → Complete model
+- No auto-progression needed
+- Straightforward phase transitions
+
+✅ **CrewAI-native execution**
+- Direct `UnifiedXxxFlow` class works well
+- No need for additional service abstraction
+- MFO integration is straightforward
+
+**Examples**: Assessment Flow (6 analysis phases, no questionnaires, linear progression)
+
+---
+
+### Decision Tree
+
+```
+Is your flow collecting data via questionnaires?
+├─ Yes → Does it have auto-progression logic?
+│         ├─ Yes → Use Child Service Pattern
+│         └─ No → Consider Child Service Pattern
+└─ No → Is it analyzing existing data?
+          ├─ Yes → Use Direct Flow Pattern
+          └─ No → Evaluate complexity (see criteria above)
+```
+
+---
+
+### Key Differences
+
+| Aspect | Child Service Pattern | Direct Flow Pattern |
+|--------|----------------------|---------------------|
+| **Phase Execution** | Via `child_flow_service.execute_phase()` | Via `UnifiedXxxFlow` CrewAI instance |
+| **Repository Access** | Abstracted through service | Direct in handlers |
+| **Auto-Progression** | Built into service | Handled externally |
+| **State Management** | Service manages complexity | Simpler, direct updates |
+| **Best For** | Data collection flows | Analysis flows |
+| **Examples** | Collection, Discovery | Assessment |
 
 ---
 
