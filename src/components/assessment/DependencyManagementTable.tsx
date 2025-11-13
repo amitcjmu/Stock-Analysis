@@ -122,8 +122,6 @@ export const DependencyManagementTable: React.FC<DependencyManagementTableProps>
 
   const onGridReady = useCallback((params: GridReadyEvent<Application>) => {
     gridApiRef.current = params.api;
-    // Auto-size columns to fit content
-    params.api.sizeColumnsToFit();
   }, []);
 
   // Handle cell editing (skip dependencies - handled by cell editor)

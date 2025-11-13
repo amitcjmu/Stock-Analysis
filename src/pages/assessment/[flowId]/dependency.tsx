@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
@@ -47,7 +47,6 @@ const DependencyPage: React.FC = () => {
   const { state, resumeFlow } = useAssessmentFlow(flowId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -61,12 +60,18 @@ const DependencyPage: React.FC = () => {
     queryKey: ['assessment-dependency', flowId],
     queryFn: () => assessmentDependencyApi.getDependencyAnalysis(flowId),
     enabled: !!flowId && flowId !== 'XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX',
-    refetchInterval: (data) => {
+    refetchInterval: (data, query) => {
+      // Stop polling if the query has failed
+      if (query.state.status === 'error') {
+        return false;
+      }
+
       // BUG FIX: Use proper comparison (NOT !!status === 'completed')
-      // Poll every 5s if phase is running, 15s otherwise, stop when completed
+      // Poll every 5s if phase is running, 15s otherwise, stop when completed/failed
       if (!data) return 5000;
       const status = data.agent_results?.status;
-      if (status === 'completed') return false; // Stop polling when complete
+      if (status === 'completed' || status === 'failed') return false; // Stop polling when complete or failed
+
       // BUG FIX: Check for 'running' status (NOT 'processing')
       return status === 'running' ? 5000 : 15000;
     },
@@ -92,24 +97,25 @@ const DependencyPage: React.FC = () => {
     refetch();
   };
 
-  const handleExecuteAnalysis = async () => {
-    console.log('[DependencyPage] Executing dependency analysis...');
-    setIsAnalyzing(true);
-
-    try {
-      await assessmentDependencyApi.executeDependencyAnalysis(flowId);
+  // Use useMutation for executing dependency analysis (prevents race conditions)
+  const { mutate: executeAnalysis, isPending: isAnalyzing } = useMutation({
+    mutationFn: () => assessmentDependencyApi.executeDependencyAnalysis(flowId),
+    onSuccess: () => {
       console.log('[DependencyPage] Dependency analysis execution started');
-
-      // Refetch after a short delay to get updated status
+      // Refetch after a short delay to allow backend to update status
       setTimeout(() => {
         refetch();
       }, 2000);
-    } catch (error) {
+    },
+    onError: (error: unknown) => {
       console.error('[DependencyPage] Failed to execute dependency analysis:', error);
       alert(`Failed to execute analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsAnalyzing(false);
-    }
+    },
+  });
+
+  const handleExecuteAnalysis = () => {
+    console.log('[DependencyPage] Executing dependency analysis...');
+    executeAnalysis();
   };
 
   const handleUpdateDependencies = async (applicationId: string, dependencies: string | null) => {

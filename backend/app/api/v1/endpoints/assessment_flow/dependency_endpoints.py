@@ -533,14 +533,13 @@ async def update_application_dependencies(
             )
         )
 
-        # Create new dependencies
-        for target_id in dependency_ids:
-            await dependency_repo.create_dependency(
-                source_asset_id=request.application_id,
-                target_asset_id=target_id,
-                dependency_type="manual",  # Mark as manually created
-                confidence_score=1.0,  # Manual dependencies have 100% confidence
-            )
+        # Create new dependencies (bulk operation for performance)
+        await dependency_repo.bulk_create_dependencies(
+            source_asset_id=request.application_id,
+            target_asset_ids=dependency_ids,
+            dependency_type="manual",  # Mark as manually created
+            confidence_score=1.0,  # Manual dependencies have 100% confidence
+        )
 
         await db.commit()
 

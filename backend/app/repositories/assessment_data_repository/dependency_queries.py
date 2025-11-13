@@ -150,29 +150,30 @@ class DependencyQueriesMixin:
             )
 
             # Filter to only include dependencies involving selected applications/servers
-            all_node_ids = {str(app.id) for app in applications} | {
-                str(srv.id) for srv in servers
-            }
+            # Optimize: filter in database instead of Python for performance
+            all_node_ids = {app.id for app in applications} | {srv.id for srv in servers}
+
+            # Add WHERE clause to filter dependencies at database level
+            query = query.where(
+                AssetDependency.asset_id.in_(all_node_ids),
+                AssetDependency.depends_on_asset_id.in_(all_node_ids),
+            )
 
             result = await self.db.execute(query)
             rows = result.all()
 
+            # All rows are now guaranteed to be in our selected nodes (database filtered)
             for row in rows:
-                source_id = str(row.asset_id)
-                target_id = str(row.depends_on_asset_id)
-
-                # Only include edges where both source and target are in our selected nodes
-                if source_id in all_node_ids and target_id in all_node_ids:
-                    edges.append(
-                        {
-                            "source": source_id,
-                            "target": target_id,
-                            "type": row.dependency_type,
-                            "confidence_score": row.confidence_score or 1.0,
-                            "source_name": row.source_name,
-                            "target_name": row.target_name,
-                        }
-                    )
+                edges.append(
+                    {
+                        "source": str(row.asset_id),
+                        "target": str(row.depends_on_asset_id),
+                        "type": row.dependency_type,
+                        "confidence_score": row.confidence_score or 1.0,
+                        "source_name": row.source_name,
+                        "target_name": row.target_name,
+                    }
+                )
 
             logger.info(
                 f"Built dependency graph: {len(nodes)} nodes, {len(edges)} edges "
