@@ -9,13 +9,15 @@ import json
 import logging
 import time
 
+from typing import List
+from uuid import UUID
 from fastapi import BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context
 from app.core.database import get_db
 from app.core.redis_config import get_redis_manager
-from app.schemas.collection_gap_analysis import AnalyzeGapsRequest
+from app.schemas.collection_gap_analysis import AnalyzeGapsRequest, DataGap
 
 from ..utils import resolve_collection_flow
 from .background_workers import process_gap_enhancement_job
@@ -25,6 +27,69 @@ logger = logging.getLogger(__name__)
 
 # Server-side limits
 MAX_GAPS_PER_REQUEST = 200
+
+
+async def load_heuristic_gaps_from_db(
+    collection_flow_id: UUID, selected_asset_ids: List[str], db: AsyncSession
+) -> List[DataGap]:
+    """
+    Load heuristic gaps from CollectionDataGap table.
+
+    Used when analyze_gaps is called without gaps array (auto-trigger scenario).
+    Returns gaps in DataGap schema format for processing.
+
+    Args:
+        collection_flow_id: UUID of the collection flow
+        selected_asset_ids: List of asset UUID strings to filter gaps
+        db: Database session
+
+    Returns:
+        List of DataGap objects converted from database records
+    """
+    from app.models.collection_data_gap import CollectionDataGap
+    from sqlalchemy import select
+    from uuid import UUID as UUIDType
+
+    logger.info(
+        f"📥 Loading heuristic gaps from DB - Flow: {collection_flow_id}, "
+        f"Assets: {len(selected_asset_ids)}"
+    )
+
+    stmt = select(CollectionDataGap).where(
+        CollectionDataGap.collection_flow_id == collection_flow_id,
+        CollectionDataGap.asset_id.in_([UUIDType(aid) for aid in selected_asset_ids]),
+        CollectionDataGap.confidence_score.is_(
+            None
+        ),  # Only heuristic gaps (not AI-enhanced)
+        CollectionDataGap.resolution_status.in_(["unresolved", "pending"]),
+    )
+
+    result = await db.execute(stmt)
+    db_gaps = result.scalars().all()
+
+    logger.info(f"✅ Loaded {len(db_gaps)} heuristic gaps from database")
+
+    # Convert CollectionDataGap models to DataGap schema
+    return [
+        DataGap(
+            asset_id=str(gap.asset_id),
+            asset_name=(
+                gap.gap_metadata.get("asset_name", "Unknown")
+                if gap.gap_metadata
+                else "Unknown"
+            ),
+            field_name=gap.field_name,
+            gap_category=gap.gap_category or "general",
+            gap_type=gap.gap_type or "missing_data",
+            priority=gap.priority,
+            current_value=gap.resolved_value,
+            suggested_resolution=gap.suggested_resolution
+            or "Manual collection required",
+            confidence_score=gap.confidence_score,
+            ai_suggestions=gap.ai_suggestions if gap.ai_suggestions else None,
+        )
+        for gap in db_gaps
+    ]
 
 
 async def analyze_gaps(
@@ -71,20 +136,11 @@ async def analyze_gaps(
     - 422: Invalid request format
     """
     try:
-        # Server-side limit enforcement
-        if len(request_body.gaps) > MAX_GAPS_PER_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Too many gaps requested ({len(request_body.gaps)}). "
-                    f"Maximum allowed: {MAX_GAPS_PER_REQUEST}. "
-                    f"Please select fewer gaps or use row selection."
-                ),
-            )
-
+        # Log request mode for observability
         logger.info(
             f"🤖 AI analysis request - Flow: {flow_id}, "
-            f"Gaps: {len(request_body.gaps)}"
+            f"Mode: {'auto-trigger (load from DB)' if request_body.gaps is None else 'manual (gaps provided)'}, "
+            f"Assets: {len(request_body.selected_asset_ids)}"
         )
 
         # Resolve collection flow (validates tenant access)
@@ -95,10 +151,32 @@ async def analyze_gaps(
             db=db,
         )
 
-        # Create idempotency key from selected gap IDs
-        gap_ids = sorted(
-            [f"{gap.asset_id}:{gap.field_name}" for gap in request_body.gaps]
-        )
+        # Load gaps from DB if not provided (auto-trigger mode) or use provided gaps
+        if request_body.gaps is None:
+            logger.info("📥 Auto-trigger mode: Loading heuristic gaps from database")
+            gaps = await load_heuristic_gaps_from_db(
+                collection_flow_id=collection_flow.id,
+                selected_asset_ids=request_body.selected_asset_ids,
+                db=db,
+            )
+        else:
+            # Backward compatible: Use provided gaps
+            logger.info(f"📥 Manual mode: Using {len(request_body.gaps)} provided gaps")
+            gaps = request_body.gaps
+
+        # Server-side limit enforcement (now applies to loaded or provided gaps)
+        if len(gaps) > MAX_GAPS_PER_REQUEST:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Too many gaps to process ({len(gaps)}). "
+                    f"Maximum allowed: {MAX_GAPS_PER_REQUEST}. "
+                    f"Please select fewer assets or gaps."
+                ),
+            )
+
+        # Create idempotency key from selected gap IDs (use processed gaps list)
+        gap_ids = sorted([f"{gap.asset_id}:{gap.field_name}" for gap in gaps])
         idempotency_key = hashlib.sha256(json.dumps(gap_ids).encode()).hexdigest()[:16]
 
         # Generate job ID
@@ -137,12 +215,12 @@ async def analyze_gaps(
                         )
 
             # Initialize job state in Redis
-            num_assets = len(set(gap.asset_id for gap in request_body.gaps))
+            num_assets = len(set(gap.asset_id for gap in gaps))
             await create_job_state(
                 job_id=job_id,
                 flow_id=flow_id,
                 collection_flow_id=collection_flow.id,
-                total_gaps=len(request_body.gaps),
+                total_gaps=len(gaps),
                 total_assets=num_assets,
                 idempotency_key=idempotency_key,
             )
@@ -152,7 +230,7 @@ async def analyze_gaps(
             process_gap_enhancement_job,
             job_id=job_id,
             collection_flow_id=collection_flow.id,
-            gaps=request_body.gaps,
+            gaps=gaps,  # Use processed gaps list (either from DB or request)
             selected_asset_ids=request_body.selected_asset_ids,
             client_account_id=str(context.client_account_id),
             engagement_id=str(context.engagement_id),
@@ -162,8 +240,8 @@ async def analyze_gaps(
 
         logger.info(f"🚀 Queued enhancement job {job_id} for flow {flow_id}")
 
-        num_gaps = len(request_body.gaps)
-        num_assets = len(set(gap.asset_id for gap in request_body.gaps))
+        num_gaps = len(gaps)
+        num_assets = len(set(gap.asset_id for gap in gaps))
 
         return {
             "job_id": job_id,

@@ -278,7 +278,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       // Bug #892 Fix: Provide more actionable error messages
       let errorMessage = "Failed to start enhancement. Please try again.";
       if (error && typeof error === 'object') {
-        const status = (error as any).response?.status;
+        const status = (error as { response?: { status?: number } }).response?.status;
         if (status === 409) {
           errorMessage = "An enhancement job is already running. Please wait for it to complete.";
         } else if (status === 429) {
@@ -300,6 +300,134 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setEnhancementProgress(null);
     }
   };
+
+  // ✅ Auto-trigger handler (non-blocking)
+  const handleAnalyzeGapsAuto = useCallback(async () => {
+    try {
+      setIsAnalyzing(true);
+
+      console.log('📤 Auto-triggering analyze-gaps with empty gaps array (DB load mode)');
+
+      // Call existing endpoint with empty gaps array
+      // Backend will load heuristic gaps from database
+      const response = await collectionFlowApi.analyzeGaps(
+        flowId,
+        [], // Empty array - triggers DB load in backend
+        selectedAssetIds
+      );
+
+      console.log('✅ AI enhancement job queued:', response.job_id);
+
+      // Start polling for progress (same pattern as handleAnalyzeGaps)
+      let attempts = 0;
+      const maxAttempts = 24; // 12 minutes max (30s interval)
+
+      const pollProgress = setInterval(async () => {
+        try {
+          const progress = await collectionFlowApi.getEnhancementProgress(flowId);
+
+          setEnhancementProgress({
+            job_id: response.job_id,
+            status: progress.status,
+            processed: progress.processed,
+            total: progress.total,
+            current_asset: progress.current_asset,
+            percentage: progress.percentage,
+          });
+
+          if (progress.status === "completed") {
+            clearInterval(pollProgress);
+
+            // Re-fetch gaps to get AI enhancements from database
+            try {
+              const updatedGaps = await collectionFlowApi.getGaps(flowId);
+              setGaps(updatedGaps);
+
+              toast({
+                title: "Auto-Enhancement Complete",
+                description: `Enhanced ${progress.processed} assets successfully`,
+                variant: "default",
+              });
+            } catch (fetchError) {
+              console.error("Failed to fetch enhanced gaps:", fetchError);
+            }
+
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          } else if (progress.status === "failed") {
+            clearInterval(pollProgress);
+            const errorDescription = progress.user_message ||
+              progress.error ||
+              "AI enhancement encountered an error. You can manually trigger it again.";
+            toast({
+              title: "Auto-Enhancement Failed",
+              description: errorDescription,
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            clearInterval(pollProgress);
+            toast({
+              title: "Enhancement Timeout",
+              description: "Enhancement is taking longer than expected. You can manually trigger it again.",
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+        } catch (error) {
+          console.error("Progress polling error:", error);
+        }
+      }, 30000); // Poll every 30 seconds
+
+    } catch (error: unknown) {
+      console.error('Failed to auto-trigger AI analysis:', error);
+
+      // Non-blocking error - user can still manually trigger via "Analyze with AI" button
+      if (error instanceof Error && error.message.includes('already running')) {
+        // Job already exists - existing polling will pick it up
+        console.log('Job already running - existing polling will track progress');
+      } else {
+        toast({
+          title: "Background Analysis",
+          description: "AI enhancement could not auto-start. You can manually trigger it using the button.",
+          variant: "default"
+        });
+      }
+      setIsAnalyzing(false);
+    }
+  }, [flowId, selectedAssetIds, toast]);
+
+  // ✅ Auto-trigger AI-enhanced gap analysis after heuristic scan completes
+  useEffect(() => {
+    // Only auto-trigger if:
+    // 1. Heuristic gaps exist (scan completed)
+    // 2. Not already analyzing
+    // 3. No enhancement progress (not already running)
+    // 4. Scan summary exists (scan just completed)
+    if (
+      gaps.length > 0 &&
+      !isAnalyzing &&
+      !enhancementProgress &&
+      scanSummary
+    ) {
+      // Check if gaps already have AI enhancements (confidence_score is populated by AI)
+      const hasAIEnhancements = gaps.some(gap =>
+        gap.confidence_score !== null && gap.confidence_score !== undefined
+      );
+
+      if (!hasAIEnhancements) {
+        console.log('🚀 Auto-triggering AI-enhanced gap analysis');
+        handleAnalyzeGapsAuto();
+      } else {
+        console.log('✅ Gaps already have AI enhancements - skipping auto-trigger');
+      }
+    }
+  }, [gaps, scanSummary, isAnalyzing, enhancementProgress, handleAnalyzeGapsAuto]);
 
   const handleCellEditingStopped = useCallback(
     (event: CellEditingStoppedEvent<GapRowData>) => {
