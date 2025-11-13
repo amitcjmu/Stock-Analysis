@@ -142,7 +142,7 @@ export class QuestionnairesApi extends CollectionFlowClient {
   // Phase 2: Two-Phase Gap Analysis - AI Enhancement (Non-Blocking)
   async analyzeGaps(
     flowId: string,
-    gaps: DataGap[],
+    gaps: DataGap[] | null,
     selectedAssetIds: string[],
   ): Promise<{
     job_id: string;

@@ -18,25 +18,19 @@ logger = logging.getLogger(__name__)
 async def process_gap_enhancement_job(
     job_id: str,
     collection_flow_id: UUID,
-    gaps: list,  # NOTE: Kept for API compatibility but NOT used in comprehensive mode
     selected_asset_ids: list,
     client_account_id: str,
     engagement_id: str,
 ):
-    """Background worker for comprehensive AI gap analysis with per-asset persistence.
+    """Background worker for comprehensive AI gap analysis.
 
-    CRITICAL BEHAVIOR CHANGE (Post-User Feedback):
-    - Previously: Enhanced only predetermined heuristic gaps (partial analysis)
-    - Now: Performs COMPREHENSIVE analysis on entire assets (full analysis)
-
-    This ensures assets are truly ready for assessment by finding ALL data gaps,
-    not just the gaps that heuristic scan identified.
+    Performs full asset analysis without requiring predetermined gaps.
+    This enables comprehensive discovery of all data gaps.
 
     Args:
         job_id: Unique job identifier
         collection_flow_id: Collection flow internal ID (used for all DB operations)
-        gaps: List of gaps (UNUSED - kept for API compatibility, will be removed in future)
-        selected_asset_ids: Asset IDs to process
+        selected_asset_ids: Asset IDs to analyze comprehensively
         client_account_id: Client account UUID (primitive, not mutable context)
         engagement_id: Engagement UUID (primitive, not mutable context)
     """
@@ -76,15 +70,13 @@ async def process_gap_enhancement_job(
                 collection_flow_id=str(collection_flow_id),
             )
 
-            # CRITICAL FIX: Use comprehensive AI analysis (NOT gap enhancement)
-            # Previous implementation only enhanced pre-determined heuristic gaps,
-            # which caused assets to show as "not ready" when heuristic scan missed gaps.
-            # Comprehensive analysis analyzes the ENTIRE asset, not just predetermined gaps.
+            # Run tier_2 comprehensive AI analysis
             logger.info(
-                f"🤖 Job {job_id}: Running COMPREHENSIVE AI analysis on {len(assets)} assets"
+                f"🤖 Job {job_id}: Running COMPREHENSIVE AI analysis "
+                f"on {len(assets)} assets"
             )
 
-            # Use comprehensive tier_2 AI analysis (analyzes entire assets, not just gaps)
+            # Correct - comprehensive analysis on assets only
             ai_result = await gap_service._run_tier_2_ai_analysis(
                 assets=assets,
                 collection_flow_id=str(collection_flow_id),

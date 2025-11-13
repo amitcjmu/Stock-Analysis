@@ -306,13 +306,13 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsAnalyzing(true);
 
-      console.log('📤 Auto-triggering analyze-gaps with empty gaps array (DB load mode)');
+      console.log('📤 Auto-triggering analyze-gaps with null gaps (comprehensive analysis mode)');
 
-      // Call existing endpoint with empty gaps array
-      // Backend will load heuristic gaps from database
+      // Call existing endpoint with null gaps
+      // Backend will perform comprehensive AI analysis on assets
       const response = await collectionFlowApi.analyzeGaps(
         flowId,
-        [], // Empty array - triggers DB load in backend
+        null, // null - triggers comprehensive analysis in backend
         selectedAssetIds
       );
 

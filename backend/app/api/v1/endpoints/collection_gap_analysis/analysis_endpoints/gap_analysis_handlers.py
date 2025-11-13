@@ -151,33 +151,21 @@ async def analyze_gaps(
             db=db,
         )
 
-        # Load gaps from DB if not provided (auto-trigger mode) or use provided gaps
-        if request_body.gaps is None:
-            logger.info("📥 Auto-trigger mode: Loading heuristic gaps from database")
-            gaps = await load_heuristic_gaps_from_db(
-                collection_flow_id=collection_flow.id,
-                selected_asset_ids=request_body.selected_asset_ids,
-                db=db,
-            )
-        else:
-            # Backward compatible: Use provided gaps
-            logger.info(f"📥 Manual mode: Using {len(request_body.gaps)} provided gaps")
-            gaps = request_body.gaps
+        # Note: For comprehensive AI analysis, we don't need to load gaps beforehand
+        # The tier_2 analysis will analyze entire assets and discover all gaps
+        # This simplifies the flow and removes redundant database queries
+        logger.info(
+            f"📥 Comprehensive AI analysis mode - "
+            f"Assets: {len(request_body.selected_asset_ids)}"
+        )
 
-        # Server-side limit enforcement (now applies to loaded or provided gaps)
-        if len(gaps) > MAX_GAPS_PER_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Too many gaps to process ({len(gaps)}). "
-                    f"Maximum allowed: {MAX_GAPS_PER_REQUEST}. "
-                    f"Please select fewer assets or gaps."
-                ),
-            )
-
-        # Create idempotency key from selected gap IDs (use processed gaps list)
-        gap_ids = sorted([f"{gap.asset_id}:{gap.field_name}" for gap in gaps])
-        idempotency_key = hashlib.sha256(json.dumps(gap_ids).encode()).hexdigest()[:16]
+        # Create idempotency key from selected asset IDs
+        # Note: Using asset IDs instead of gaps since comprehensive analysis
+        # operates on entire assets, not predetermined gaps
+        asset_ids_sorted = sorted(request_body.selected_asset_ids)
+        idempotency_key = hashlib.sha256(
+            json.dumps(asset_ids_sorted).encode()
+        ).hexdigest()[:16]
 
         # Generate job ID
         job_id = f"enhance_{flow_id[:8]}_{int(time.time())}_{idempotency_key}"
@@ -215,13 +203,12 @@ async def analyze_gaps(
                         )
 
             # Initialize job state in Redis
-            num_assets = len(set(gap.asset_id for gap in gaps))
             await create_job_state(
                 job_id=job_id,
                 flow_id=flow_id,
                 collection_flow_id=collection_flow.id,
-                total_gaps=len(gaps),
-                total_assets=num_assets,
+                total_gaps=0,  # Will be calculated after comprehensive analysis
+                total_assets=len(request_body.selected_asset_ids),
                 idempotency_key=idempotency_key,
             )
 
@@ -230,7 +217,6 @@ async def analyze_gaps(
             process_gap_enhancement_job,
             job_id=job_id,
             collection_flow_id=collection_flow.id,
-            gaps=gaps,  # Use processed gaps list (either from DB or request)
             selected_asset_ids=request_body.selected_asset_ids,
             client_account_id=str(context.client_account_id),
             engagement_id=str(context.engagement_id),
@@ -240,16 +226,14 @@ async def analyze_gaps(
 
         logger.info(f"🚀 Queued enhancement job {job_id} for flow {flow_id}")
 
-        num_gaps = len(gaps)
-        num_assets = len(set(gap.asset_id for gap in gaps))
+        num_assets = len(request_body.selected_asset_ids)
 
         return {
             "job_id": job_id,
             "status": "queued",
             "progress_url": progress_url,
             "message": (
-                f"Enhancement job queued for {num_gaps} gaps "
-                f"across {num_assets} assets. "
+                f"Comprehensive AI analysis job queued for {num_assets} assets. "
                 f"Poll progress_url for updates."
             ),
         }

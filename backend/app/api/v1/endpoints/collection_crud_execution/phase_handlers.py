@@ -179,11 +179,15 @@ async def handle_gap_analysis_phase(
 
             try:
                 # Run tier_1 programmatic scan to get basic questionnaire
-                await gap_service.analyze_and_generate_questionnaire(
+                gap_results = await gap_service.analyze_and_generate_questionnaire(
                     selected_asset_ids=selected_asset_ids,
                     db=db,
                     automation_tier="tier_1",  # Use fast heuristic scan only
                 )
+
+                # Store tier_1 results to gap_analysis_results for consistency
+                collection_flow.gap_analysis_results = gap_results
+                await db.flush()  # Ensure it's persisted before phase transition
 
                 logger.info(
                     safe_log_format(
