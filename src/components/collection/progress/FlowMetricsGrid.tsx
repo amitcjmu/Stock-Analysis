@@ -38,16 +38,28 @@ export const FlowMetricsGrid: React.FC<FlowMetricsGridProps> = ({
     );
   }
 
-  // Safely extract and validate numeric values
+  // BUG FIX (#998): Handle both camelCase and snake_case field names from API
+  // The backend returns snake_case (e.g., active_flows), but TypeScript interface uses camelCase
+  const metricsAny = metrics as any;
+
+  // Safely extract and validate numeric values with fallback for both naming conventions
   const safeMetrics = {
-    totalFlows: typeof metrics.totalFlows === 'number' && isFinite(metrics.totalFlows) ? metrics.totalFlows : 0,
-    activeFlows: typeof metrics.activeFlows === 'number' && isFinite(metrics.activeFlows) ? metrics.activeFlows : 0,
-    completedFlows: typeof metrics.completedFlows === 'number' && isFinite(metrics.completedFlows) ? metrics.completedFlows : 0,
-    failedFlows: typeof metrics.failedFlows === 'number' && isFinite(metrics.failedFlows) ? metrics.failedFlows : 0,
-    totalApplications: typeof metrics.totalApplications === 'number' && isFinite(metrics.totalApplications) ? metrics.totalApplications : 0,
-    completedApplications: typeof metrics.completedApplications === 'number' && isFinite(metrics.completedApplications) ? metrics.completedApplications : 0,
-    averageCompletionTime: typeof metrics.averageCompletionTime === 'number' && isFinite(metrics.averageCompletionTime) ? metrics.averageCompletionTime : 0,
-    dataQualityScore: typeof metrics.dataQualityScore === 'number' && isFinite(metrics.dataQualityScore) ? metrics.dataQualityScore : 0,
+    totalFlows: typeof metrics.totalFlows === 'number' && isFinite(metrics.totalFlows) ? metrics.totalFlows :
+                (typeof metricsAny.total_flows === 'number' && isFinite(metricsAny.total_flows) ? metricsAny.total_flows : 0),
+    activeFlows: typeof metrics.activeFlows === 'number' && isFinite(metrics.activeFlows) ? metrics.activeFlows :
+                 (typeof metricsAny.active_flows === 'number' && isFinite(metricsAny.active_flows) ? metricsAny.active_flows : 0),
+    completedFlows: typeof metrics.completedFlows === 'number' && isFinite(metrics.completedFlows) ? metrics.completedFlows :
+                    (typeof metricsAny.completed_flows === 'number' && isFinite(metricsAny.completed_flows) ? metricsAny.completed_flows : 0),
+    failedFlows: typeof metrics.failedFlows === 'number' && isFinite(metrics.failedFlows) ? metrics.failedFlows :
+                 (typeof metricsAny.failed_flows === 'number' && isFinite(metricsAny.failed_flows) ? metricsAny.failed_flows : 0),
+    totalApplications: typeof metrics.totalApplications === 'number' && isFinite(metrics.totalApplications) ? metrics.totalApplications :
+                       (typeof metricsAny.total_applications === 'number' && isFinite(metricsAny.total_applications) ? metricsAny.total_applications : 0),
+    completedApplications: typeof metrics.completedApplications === 'number' && isFinite(metrics.completedApplications) ? metrics.completedApplications :
+                           (typeof metricsAny.completed_applications === 'number' && isFinite(metricsAny.completed_applications) ? metricsAny.completed_applications : 0),
+    averageCompletionTime: typeof metrics.averageCompletionTime === 'number' && isFinite(metrics.averageCompletionTime) ? metrics.averageCompletionTime :
+                           (typeof metricsAny.average_completion_time === 'number' && isFinite(metricsAny.average_completion_time) ? metricsAny.average_completion_time : 0),
+    dataQualityScore: typeof metrics.dataQualityScore === 'number' && isFinite(metrics.dataQualityScore) ? metrics.dataQualityScore :
+                      (typeof metricsAny.data_quality_score === 'number' && isFinite(metricsAny.data_quality_score) ? metricsAny.data_quality_score : 0),
   };
   // Safely calculate progress percentage, avoiding NaN
   const overallProgress = safeMetrics.totalApplications > 0
