@@ -57,6 +57,13 @@ async def start_collection_phase_loop_background(
     async with AsyncSessionLocal() as db:
         try:
             # Use injected orchestrator or lazy import MFO
+            # NOTE: Lazy import is INTENTIONAL (per ADR-006) to break circular dependency:
+            #   - MFO imports from flow_orchestration (FlowErrorHandler, etc.)
+            #   - collection_phase_runner is in flow_orchestration
+            #   - Lazy import allows runtime resolution after modules loaded
+            #   - Dependency injection (orchestrator param) enables testing with mocks
+            # This is NOT inconsistent - it's a documented architectural pattern
+            # for breaking circular dependencies while maintaining testability.
             if orchestrator is None:
                 from app.services.master_flow_orchestrator import (  # noqa: F811
                     MasterFlowOrchestrator,

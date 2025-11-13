@@ -214,12 +214,14 @@ class AssessmentFlowLifecycleService:
             # Feature-flagged handling based on environment configuration
             if settings.UNMAPPED_ASSET_HANDLING == "strict":
                 # Always reject unmapped assets
-                unmapped_list = ", ".join(unmapped_names[:5])
-                more = "..." if len(unmapped_names) > 5 else ""
+                # SECURITY: Log full details but sanitize user-facing error message
+                logger.warning(
+                    f"Strict mode rejection: {unmapped_count} unmapped assets: "
+                    f"{', '.join(unmapped_names[:10])}{'...' if len(unmapped_names) > 10 else ''}"
+                )
                 raise ValueError(
                     f"Assessment initialization blocked: {unmapped_count} "
                     f"unmapped assets detected. "
-                    f"Unmapped assets: {unmapped_list}{more}. "
                     f"Strict mode requires all assets mapped to canonical "
                     f"applications. Use Asset Resolution workflow in "
                     f"collection flow."
@@ -228,15 +230,18 @@ class AssessmentFlowLifecycleService:
                 # Reject if exceeds threshold
                 threshold = settings.UNMAPPED_ASSET_THRESHOLD
                 if unmapped_percentage > threshold:
-                    unmapped_list = ", ".join(unmapped_names[:5])
-                    more_indicator = "..." if len(unmapped_names) > 5 else ""
+                    # SECURITY: Log full details but sanitize user-facing error message
+                    logger.warning(
+                        f"Threshold exceeded: {unmapped_count} unmapped assets "
+                        f"({unmapped_percentage:.1%}): "
+                        f"{', '.join(unmapped_names[:10])}{'...' if len(unmapped_names) > 10 else ''}"
+                    )
 
                     raise ValueError(
                         f"Assessment initialization blocked: "
                         f"{unmapped_percentage:.1%} unmapped assets "
                         f"exceeds threshold of {threshold:.1%}. "
-                        f"Unmapped assets ({unmapped_count}): "
-                        f"{unmapped_list}{more_indicator}. "
+                        f"Found {unmapped_count} unmapped assets. "
                         f"Please complete canonical application mapping to "
                         f"proceed."
                     )

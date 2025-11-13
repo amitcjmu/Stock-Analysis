@@ -384,18 +384,45 @@ class FlowAuditLogger:
         self.audit_filters[filter_name] = filter_function
         logger.info(f"Registered audit filter: {filter_name}")
 
-    def _convert_to_serializable(self, obj: Any) -> Any:
-        """Recursively convert UUIDs and other non-serializable objects to strings."""
+    def _convert_to_serializable(self, obj: Any, visited: Optional[set] = None) -> Any:
+        """
+        Recursively convert UUIDs and other non-serializable objects to strings.
+
+        Includes circular reference detection to prevent infinite recursion.
+
+        Args:
+            obj: Object to convert
+            visited: Set of visited object IDs (for circular reference detection)
+
+        Returns:
+            Serializable version of the object
+        """
+        # Initialize visited set on first call
+        if visited is None:
+            visited = set()
+
+        # Detect circular references by tracking object IDs
+        obj_id = id(obj)
+        if obj_id in visited:
+            return "<Circular Reference>"
+
+        # For complex types, add to visited set
+        if isinstance(obj, (dict, list)) or hasattr(obj, "__dict__"):
+            visited.add(obj_id)
+
+        # Convert based on type
         if isinstance(obj, uuid.UUID):
             return str(obj)
         elif isinstance(obj, datetime):
             return obj.isoformat()
         elif isinstance(obj, dict):
-            return {k: self._convert_to_serializable(v) for k, v in obj.items()}
+            return {
+                k: self._convert_to_serializable(v, visited) for k, v in obj.items()
+            }
         elif isinstance(obj, list):
-            return [self._convert_to_serializable(item) for item in obj]
+            return [self._convert_to_serializable(item, visited) for item in obj]
         elif hasattr(obj, "__dict__"):
-            return self._convert_to_serializable(obj.__dict__)
+            return self._convert_to_serializable(obj.__dict__, visited)
         else:
             return obj
 
