@@ -5,6 +5,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
 import { DependencyManagementTable } from '@/components/assessment/DependencyManagementTable';
+import { DependencyGraph } from '@/components/assessment/DependencyGraph';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { assessmentDependencyApi } from '@/lib/api/assessmentDependencyApi';
 import { Button } from '@/components/ui/button';
@@ -356,6 +357,11 @@ const DependencyPage: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Visual Dependency Graph - Show when we have graph data */}
+          {dependencyGraph && dependencyGraph.nodes.length > 0 && (
+            <DependencyGraph dependencyGraph={dependencyGraph} height={600} />
           )}
 
           {/* Dependency Management Table */}
