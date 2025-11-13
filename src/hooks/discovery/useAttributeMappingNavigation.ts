@@ -96,8 +96,8 @@ export const useAttributeMappingNavigation = (
   const handleContinueToDataCleansing = useCallback(async () => {
     try {
       // BUG FIX (#995): Extract flow ID from flowState or fall back to flow object
-      // Also try extractedFlowId as a fallback since it's already resolved
-      const rawFlowId = extractFlowId(flowState) || extractFlowId(flow as FlowStateInput) || extractedFlowId;
+      // Note: extractedFlowId is already being used by useUnifiedDiscoveryFlow (line 93)
+      const rawFlowId = extractFlowId(flowState) || extractFlowId(flow as FlowStateInput);
 
       console.log('🔍 DEBUG: Flow ID resolution:', {
         flowState_flow_id: flowState?.flow_id,
