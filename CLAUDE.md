@@ -141,6 +141,35 @@ async def execute_something(flow_id: str, db: AsyncSession, context: RequestCont
 - ❌ Querying `AssessmentFlow.flow_id` → AttributeError (use `.id`)
 - ❌ Missing `flow_id` in `phase_input` → Phase results won't persist
 
+#### Flow Execution Pattern Selection (CRITICAL - ADR-025)
+
+**Two execution patterns exist** - choose based on flow characteristics:
+
+**Child Service Pattern** (Collection, Discovery, Decommission):
+- ✅ Use when: Multi-phase data collection, questionnaire generation, auto-progression
+- ✅ Provides: Centralized phase routing, state abstraction, auto-progression logic
+- ✅ Files: `backend/app/services/child_flow_services/{flow}_child_flow_service.py`
+
+**Direct Flow Pattern** (Assessment):
+- ✅ Use when: Analysis workflows, linear phases, simpler state management
+- ✅ Provides: Direct CrewAI integration, simpler architecture
+- ✅ Files: `backend/app/services/crewai_flows/unified_{flow}_flow.py`
+
+**Decision Criteria**:
+```
+Does flow collect data via questionnaires?
+├─ Yes → Does it have auto-progression logic?
+│         ├─ Yes → Use Child Service Pattern
+│         └─ No → Consider Child Service Pattern
+└─ No → Is it analyzing existing data?
+          ├─ Yes → Use Direct Flow Pattern (like Assessment)
+          └─ No → Evaluate complexity
+```
+
+**IMPORTANT**: ADR-025 applies to Collection Flow only. Assessment Flow correctly uses Direct Flow Pattern.
+
+**See**: `docs/adr/025-collection-flow-child-service-migration.md` section "When to Use Child Service Pattern"
+
 #### Master Flow Orchestrator (MFO) Pattern
 The MFO is the single source of truth for all workflow operations:
 - **Entry Point**: `/api/v1/master-flows/*` endpoints ONLY
@@ -376,10 +405,12 @@ patterns = await memory_manager.retrieve_similar_patterns(
 
 **Endpoints**: `/api/v1/assessment-flow/*` (MFO-integrated per ADR-006)
 
+**Execution Pattern**: Direct `UnifiedAssessmentFlow` (does NOT use child service pattern - see ADR-025)
+
 **Flow Progression**:
 1. Create assessment flow → Master flow in `crewai_flow_state_extensions`
 2. Child flow in `assessment_flows` tracks operational state
-3. Phases: Architecture Standards → Tech Debt → 6R Decisions
+3. Phases: Architecture Standards → Tech Debt → Dependency Analysis → 6R Decisions
 4. Accept recommendations → Update `Asset.six_r_strategy`
 5. Export results → PDF/Excel/JSON
 
@@ -387,10 +418,18 @@ patterns = await memory_manager.retrieve_similar_patterns(
 - **Master Table**: `crewai_flow_state_extensions` (lifecycle: running/paused/completed)
 - **Child Table**: `assessment_flows` (operational: phases, UI state, selected applications)
 
+**Why No Child Service Pattern**:
+- Assessment is analysis-focused (not data collection)
+- Linear phase progression (no auto-progression logic)
+- No questionnaire generation
+- Simpler state management than Collection/Discovery flows
+- Direct CrewAI flow works efficiently
+
 **Key Files**:
 - Backend: `backend/app/api/v1/endpoints/assessment_flow/`
 - Frontend: `src/lib/api/assessmentFlow.ts`
 - MFO Integration: `backend/app/api/v1/endpoints/assessment_flow/mfo_integration.py`
+- CrewAI Flow: `backend/app/services/crewai_flows/unified_assessment_flow.py`
 
 **Deprecated**: `/api/v1/6r/*` endpoints (HTTP 410 Gone - use Assessment Flow instead)
 
