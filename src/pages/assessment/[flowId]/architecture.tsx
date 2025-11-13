@@ -90,6 +90,7 @@ const ArchitecturePage: React.FC = () => {
       hasOverrides: Object.keys(overrides).length,
       isSubmitting,
       isLoading: state.isLoading,
+      currentPhase: state.currentPhase,
     });
 
     setIsSubmitting(true);
@@ -97,7 +98,36 @@ const ArchitecturePage: React.FC = () => {
       console.log('[ArchitecturePage] Updating architecture standards...');
       await updateArchitectureStandards(standards, overrides);
 
-      console.log('[ArchitecturePage] Resuming flow...');
+      // BUG FIX (#1034): Check if initialization phase needs to be completed first
+      // Backend requires phases in order: initialization → readiness_assessment → complexity_analysis → ...
+      // If current phase is null or 'initialization', complete initialization first
+      const currentPhase = state.currentPhase;
+      const needsInitialization = !currentPhase || currentPhase === 'initialization';
+
+      console.log('[ArchitecturePage] Phase check:', {
+        currentPhase,
+        needsInitialization,
+      });
+
+      // Execute initialization phase first if needed
+      if (needsInitialization) {
+        console.log('[ArchitecturePage] Executing initialization phase...');
+        try {
+          await resumeFlow({
+            phase: 'initialization',
+            action: 'continue',
+            standards,
+            overrides
+          });
+          console.log('[ArchitecturePage] Initialization phase completed');
+        } catch (initError) {
+          console.warn('[ArchitecturePage] Initialization phase failed, continuing anyway:', initError);
+          // Continue to readiness_assessment even if initialization fails
+          // as it may be optional/implicit in some cases
+        }
+      }
+
+      console.log('[ArchitecturePage] Resuming flow with readiness_assessment...');
       const resumeResponse = await resumeFlow({
         phase: 'readiness_assessment',
         action: 'continue',
