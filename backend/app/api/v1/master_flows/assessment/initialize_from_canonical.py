@@ -175,21 +175,19 @@ async def initialize_assessment_from_canonical(
         ),
     )
 
-    # Step 5: Use existing FlowCommands.create_assessment_flow
-    from app.repositories.assessment_flow_repository import AssessmentFlowRepository
-
-    repo = AssessmentFlowRepository(
-        db=db,
-        client_account_id=client_account_id,
-        engagement_id=engagement_id,
-        user_id=context.user_id,
+    # Step 5: Use service layer for flow creation (per 7-layer architecture)
+    from app.services.assessment.assessment_flow_lifecycle_service import (
+        AssessmentFlowLifecycleService,
     )
 
-    # Create flow with asset IDs (backward compatible field name)
-    flow_id = await repo.create_assessment_flow(
+    lifecycle_service = AssessmentFlowLifecycleService(db=db, context=context)
+
+    # Create flow with asset IDs through service layer
+    flow_id = await lifecycle_service.create_assessment_flow(
         engagement_id=str(engagement_id),
         selected_application_ids=[str(aid) for aid in all_asset_ids],
         created_by=context.user_id,
+        collection_flow_id=request.optional_collection_flow_id,
     )
 
     # Step 6: Update flow metadata with traceability info
