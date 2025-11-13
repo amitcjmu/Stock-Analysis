@@ -151,7 +151,9 @@ class DependencyQueriesMixin:
 
             # Filter to only include dependencies involving selected applications/servers
             # Optimize: filter in database instead of Python for performance
-            all_node_ids = {app.id for app in applications} | {srv.id for srv in servers}
+            all_node_ids = {app.id for app in applications} | {
+                srv.id for srv in servers
+            }
 
             # Add WHERE clause to filter dependencies at database level
             query = query.where(
