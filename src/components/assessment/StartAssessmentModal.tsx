@@ -5,10 +5,13 @@
  * breaking the collection→assessment circular dependency (GPT-5 suggestion).
  *
  * Features:
- * - Searchable canonical application list
- * - Multi-select with visual feedback
- * - Zero-asset app handling
- * - Direct navigation to new assessment flow
+ * - Three-tab interface: "Ready for Assessment", "Needs Mapping", and "Needs Collection"
+ * - Searchable canonical application list across all tabs
+ * - Multi-select with visual feedback (ready apps only)
+ * - Asset mapping interface for unmapped assets
+ * - Readiness status indicators (ready/partial/not-ready)
+ * - Actionable guidance for not-ready apps (blockers + recommendations)
+ * - Direct navigation to assessment or collection flows
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -24,11 +27,34 @@ interface CanonicalApplication {
   usage_count: number;
   confidence_score: number;
   is_verified: boolean;
+
+  // Readiness metadata (added per backend API update)
+  linked_asset_count: number;
+  ready_asset_count: number;
+  not_ready_asset_count: number;
+  readiness_status: "ready" | "partial" | "not_ready";
+  readiness_blockers: string[];
+  readiness_recommendations: string[];
 }
 
+interface UnmappedAsset {
+  is_unmapped_asset: true;
+  asset_id: string;
+  asset_name: string;
+  asset_type: string;
+  mapped_to_application_id: string | null;
+  mapped_to_application_name: string | null;
+  discovery_status: string;
+  assessment_readiness: string;
+}
+
+type ApplicationOrAsset = CanonicalApplication | UnmappedAsset;
+
 interface CanonicalApplicationsResponse {
-  applications: CanonicalApplication[];
+  applications: ApplicationOrAsset[];
   total: number;
+  canonical_apps_count: number;
+  unmapped_assets_count: number;
   page: number;
   page_size: number;
   total_pages: number;
@@ -39,6 +65,13 @@ interface StartAssessmentModalProps {
   onClose: () => void;
 }
 
+type TabType = "ready" | "needs-mapping" | "needs-collection";
+
+// Type guard to check if item is an unmapped asset
+function isUnmappedAsset(item: ApplicationOrAsset): item is UnmappedAsset {
+  return 'is_unmapped_asset' in item && item.is_unmapped_asset === true;
+}
+
 export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   isOpen,
   onClose,
@@ -46,14 +79,17 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<TabType>("ready");
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppIds, setSelectedAppIds] = useState<Set<string>>(new Set());
-  const [applications, setApplications] = useState<CanonicalApplication[]>([]);
+  const [applications, setApplications] = useState<ApplicationOrAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [assetMappings, setAssetMappings] = useState<Record<string, string>>({});
+  const [mappingInProgress, setMappingInProgress] = useState<string | null>(null);
 
-  // Fetch canonical applications
+  // Fetch canonical applications and unmapped assets
   useEffect(() => {
     if (!isOpen || !client?.id || !engagement?.id) return;
 
@@ -63,7 +99,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
       try {
         const response = await apiCall<CanonicalApplicationsResponse>(
-          `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100`,
+          `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100&include_unmapped_assets=true`,
           {
             method: 'GET',
             headers: {
@@ -90,10 +126,42 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
     if (!searchQuery.trim()) return applications;
 
     const query = searchQuery.toLowerCase();
-    return applications.filter((app) =>
-      app.canonical_name.toLowerCase().includes(query)
-    );
+    return applications.filter((item) => {
+      if (isUnmappedAsset(item)) {
+        return item.asset_name.toLowerCase().includes(query);
+      }
+      return item.canonical_name.toLowerCase().includes(query);
+    });
   }, [applications, searchQuery]);
+
+  // Get list of canonical applications for mapping dropdown
+  const availableApplications = useMemo(() => {
+    return applications.filter(app => !isUnmappedAsset(app)) as CanonicalApplication[];
+  }, [applications]);
+
+  // Separate items by tab category
+  const readyApplications = useMemo(() => {
+    return filteredApplications.filter(item =>
+      !isUnmappedAsset(item) &&
+      (item.readiness_status === "ready" || item.readiness_status === "partial")
+    ) as CanonicalApplication[];
+  }, [filteredApplications]);
+
+  const unmappedAssets = useMemo(() => {
+    // Show ONLY truly unmapped assets (not already mapped to applications)
+    // Once mapped, assets won't appear in this tab
+    return filteredApplications.filter(item =>
+      isUnmappedAsset(item) &&
+      !item.mapped_to_application_id  // Exclude already-mapped assets
+    ) as UnmappedAsset[];
+  }, [filteredApplications]);
+
+  const notReadyApplications = useMemo(() => {
+    return filteredApplications.filter(item =>
+      !isUnmappedAsset(item) &&
+      item.readiness_status === "not_ready"
+    ) as CanonicalApplication[];
+  }, [filteredApplications]);
 
   // Handle app selection toggle
   const toggleAppSelection = (appId: string) => {
@@ -104,6 +172,62 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       newSelection.add(appId);
     }
     setSelectedAppIds(newSelection);
+  };
+
+  // Handle mapping dropdown change
+  const handleMappingChange = (assetId: string, appId: string) => {
+    setAssetMappings(prev => ({
+      ...prev,
+      [assetId]: appId
+    }));
+  };
+
+  // Handle asset mapping to application
+  const handleApplyMapping = async (assetId: string) => {
+    const appId = assetMappings[assetId];
+    if (!appId || !client?.id || !engagement?.id) return;
+
+    setMappingInProgress(assetId);
+
+    try {
+      await apiCall('/api/v1/canonical-applications/map-asset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Account-ID': client.id,
+          'X-Engagement-ID': engagement.id,
+        },
+        body: JSON.stringify({
+          asset_id: assetId,
+          canonical_application_id: appId,
+        }),
+      });
+
+      // Clear mapping from state
+      setAssetMappings(prev => {
+        const newMappings = { ...prev };
+        delete newMappings[assetId];
+        return newMappings;
+      });
+
+      // Refetch applications to update mapping status
+      const response = await apiCall<CanonicalApplicationsResponse>(
+        `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100&include_unmapped_assets=true`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Client-Account-ID': client.id,
+            'X-Engagement-ID': engagement.id,
+          },
+        }
+      );
+      setApplications(response.applications);
+    } catch (err) {
+      console.error('Failed to map asset:', err);
+      setError('Failed to map asset. Please try again.');
+    } finally {
+      setMappingInProgress(null);
+    }
   };
 
   // Handle assessment creation
@@ -185,8 +309,8 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -208,10 +332,44 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
           />
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab("ready")}
+            className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+              activeTab === "ready"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Ready for Assessment ({readyApplications.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("needs-mapping")}
+            className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+              activeTab === "needs-mapping"
+                ? "border-b-2 border-green-500 text-green-600"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Needs Mapping ({unmappedAssets.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("needs-collection")}
+            className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+              activeTab === "needs-collection"
+                ? "border-b-2 border-orange-500 text-orange-600"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Needs Collection ({notReadyApplications.length})
+          </button>
+        </div>
+
         {/* Application List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm whitespace-pre-wrap">
               {error}
             </div>
           )}
@@ -220,63 +378,215 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             <div className="text-center py-8 text-gray-500">
               Loading applications...
             </div>
-          ) : filteredApplications.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No applications found. Try a different search term.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredApplications.map((app) => (
-                <div
-                  key={app.id}
-                  onClick={() => toggleAppSelection(app.id)}
-                  className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                    selectedAppIds.has(app.id)
-                      ? 'bg-blue-50 border-blue-500'
-                      : 'bg-white border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900">
-                          {app.canonical_name}
-                        </h3>
-                        {app.is_verified && (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                            Verified
-                          </span>
-                        )}
+          ) : activeTab === "ready" ? (
+            // Ready Tab Content
+            readyApplications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No ready applications found. Complete collection flows first.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {readyApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    onClick={() => toggleAppSelection(app.id)}
+                    className={`p-4 border rounded-md cursor-pointer transition-colors ${
+                      selectedAppIds.has(app.id)
+                        ? 'bg-blue-50 border-blue-500'
+                        : 'bg-white border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900">
+                            {app.canonical_name}
+                          </h3>
+                          {app.is_verified && (
+                            <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                              Verified
+                            </span>
+                          )}
+                          {app.readiness_status === "partial" && (
+                            <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded flex items-center gap-1">
+                              <span>⚠️</span>
+                              <span>Partial</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex gap-4 text-sm text-gray-600">
+                          {app.application_type && (
+                            <span>Type: {app.application_type}</span>
+                          )}
+                          {app.business_criticality && (
+                            <span>Criticality: {app.business_criticality}</span>
+                          )}
+                          <span>Assets: {app.ready_asset_count}/{app.linked_asset_count} ready</span>
+                          <span>Confidence: {(app.confidence_score * 100).toFixed(0)}%</span>
+                        </div>
                       </div>
-                      <div className="mt-1 flex gap-4 text-sm text-gray-600">
-                        {app.application_type && (
-                          <span>Type: {app.application_type}</span>
-                        )}
-                        {app.business_criticality && (
-                          <span>Criticality: {app.business_criticality}</span>
-                        )}
-                        <span>Used: {app.usage_count}x</span>
-                        <span>Confidence: {(app.confidence_score * 100).toFixed(0)}%</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedAppIds.has(app.id)}
+                        onChange={() => toggleAppSelection(app.id)}
+                        className="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : activeTab === "needs-mapping" ? (
+            // Needs Mapping Tab Content
+            unmappedAssets.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                All assets are mapped to applications!
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {unmappedAssets.map((asset) => (
+                  <div
+                    key={asset.asset_id}
+                    className="p-4 border border-green-200 rounded-md bg-green-50"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900">{asset.asset_name}</h3>
+                          <span className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded capitalize">
+                            {asset.asset_type}
+                          </span>
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            asset.discovery_status === "completed"
+                              ? "bg-green-200 text-green-800"
+                              : "bg-yellow-200 text-yellow-800"
+                          }`}>
+                            {asset.discovery_status}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 text-sm text-gray-600">
+                          Asset ID: {asset.asset_id.substring(0, 8)}...
+                        </div>
+                      </div>
+
+                      <div className="ml-4 flex items-center gap-2">
+                        <select
+                          value={assetMappings[asset.asset_id] || ""}
+                          onChange={(e) => handleMappingChange(asset.asset_id, e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          disabled={mappingInProgress === asset.asset_id}
+                        >
+                          <option value="">Select Application...</option>
+                          {availableApplications.map((app) => (
+                            <option key={app.id} value={app.id}>
+                              {app.canonical_name}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          onClick={() => handleApplyMapping(asset.asset_id)}
+                          disabled={!assetMappings[asset.asset_id] || mappingInProgress === asset.asset_id}
+                          className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {mappingInProgress === asset.asset_id ? 'Mapping...' : 'Map'}
+                        </button>
                       </div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={selectedAppIds.has(app.id)}
-                      onChange={() => toggleAppSelection(app.id)}
-                      className="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                      onClick={(e) => e.stopPropagation()}
-                    />
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
+          ) : (
+            // Needs Collection Tab Content
+            notReadyApplications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                All applications are ready for assessment!
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notReadyApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    className="p-4 border border-orange-200 rounded-md bg-orange-50"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-orange-600 text-lg">⚠️</span>
+                          <h3 className="font-medium text-gray-900">
+                            {app.canonical_name}
+                          </h3>
+                          <span className="px-2 py-1 text-xs bg-orange-200 text-orange-800 rounded">
+                            Not Ready
+                          </span>
+                        </div>
+
+                        <div className="mt-2 text-sm text-gray-700">
+                          <strong>Assets:</strong> {app.linked_asset_count} linked ({app.ready_asset_count} ready, {app.not_ready_asset_count} not ready)
+                        </div>
+
+                        {app.readiness_blockers.length > 0 && (
+                          <div className="mt-3">
+                            <strong className="text-sm text-gray-700">Issues:</strong>
+                            <ul className="mt-1 text-sm text-gray-600 list-disc list-inside space-y-1">
+                              {app.readiness_blockers.map((blocker, idx) => (
+                                <li key={idx}>{blocker}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {app.readiness_recommendations.length > 0 && (
+                          <div className="mt-3">
+                            <strong className="text-sm text-gray-700">Next Steps:</strong>
+                            <ul className="mt-1 text-sm text-gray-600 list-disc list-inside space-y-1">
+                              {app.readiness_recommendations.map((rec, idx) => (
+                                <li key={idx}>{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          // Navigate to collection with application context
+                          navigate(`/collection`, {
+                            state: {
+                              preselectedApplicationId: app.id,
+                              canonicalApplicationName: app.canonical_name,
+                              fromAssessmentReadiness: true
+                            }
+                          });
+                          onClose();
+                        }}
+                        className="ml-4 px-3 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap"
+                      >
+                        Start Collection
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            {selectedAppIds.size} application{selectedAppIds.size !== 1 ? 's' : ''} selected
+            {activeTab === "ready" ? (
+              <>
+                {selectedAppIds.size} application{selectedAppIds.size !== 1 ? 's' : ''} selected
+              </>
+            ) : activeTab === "needs-mapping" ? (
+              <>Map assets to applications to include in assessment</>
+            ) : (
+              <>Complete collection flows to enable assessment</>
+            )}
           </div>
           <div className="flex gap-3">
             <button
@@ -286,13 +596,15 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             >
               Cancel
             </button>
-            <button
-              onClick={handleCreateAssessment}
-              disabled={creating || selectedAppIds.size === 0}
-              className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creating ? 'Creating...' : 'Start Assessment'}
-            </button>
+            {activeTab === "ready" && (
+              <button
+                onClick={handleCreateAssessment}
+                disabled={creating || selectedAppIds.size === 0}
+                className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? 'Creating...' : 'Start Assessment'}
+              </button>
+            )}
           </div>
         </div>
       </div>
