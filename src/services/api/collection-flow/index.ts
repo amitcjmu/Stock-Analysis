@@ -163,8 +163,8 @@ class CollectionFlowApi {
     return this.questionnaires.scanGaps(flowId, selectedAssetIds);
   }
 
-  async analyzeGaps(flowId: string, gaps: Parameters<QuestionnairesApi["analyzeGaps"]>[1], selectedAssetIds: string[]) {
-    return this.questionnaires.analyzeGaps(flowId, gaps, selectedAssetIds);
+  async analyzeGaps(flowId: string, gaps: Parameters<QuestionnairesApi["analyzeGaps"]>[1], selectedAssetIds: string[], force_refresh?: boolean) {
+    return this.questionnaires.analyzeGaps(flowId, gaps, selectedAssetIds, force_refresh);
   }
 
   async getEnhancementProgress(flowId: string) {

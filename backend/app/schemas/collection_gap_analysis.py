@@ -155,6 +155,13 @@ class AnalyzeGapsRequest(BaseModel):
         ),
     )
     selected_asset_ids: List[str] = Field(..., description="Asset UUIDs for context")
+    force_refresh: bool = Field(
+        False,
+        description=(
+            "Force re-analysis even if AI analysis already completed (status=2). "
+            "Set to True to bypass cache and re-run AI analysis on all assets."
+        ),
+    )
 
     @validator("gaps", pre=True, always=True)
     def normalize_gaps(cls, v):
