@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 async def verify_ai_gaps_consistency(assets, db):
     """Verify that assets marked as AI-analyzed have gaps with confidence_score.
 
+    CRITICAL FIX (Issue #1045 - Qodo Bot): Auto-fix inconsistencies by resetting status
+    instead of just logging warnings.
+
     This ensures data consistency across all collection flows, not just the current one.
 
     Args:
@@ -27,6 +30,7 @@ async def verify_ai_gaps_consistency(assets, db):
     from sqlalchemy import select, func
     from app.models.collection_data_gap import CollectionDataGap
 
+    fixed_count = 0
     for asset in assets:
         # Check if gaps with AI enhancement exist for this asset (across ALL flows)
         stmt = select(func.count()).where(
@@ -37,15 +41,25 @@ async def verify_ai_gaps_consistency(assets, db):
         ai_gaps_count = result.scalar()
 
         if ai_gaps_count == 0:
+            # AUTO-FIX: Reset status to 0 so asset can be re-analyzed
             logger.warning(
-                f"⚠️ Consistency issue: Asset {asset.id} marked as AI-analyzed "
-                f"(status=2) but has no gaps with confidence_score"
+                f"⚠️ Consistency issue detected and FIXED: Asset {asset.id} marked as AI-analyzed "
+                f"(status=2) but has no gaps with confidence_score - resetting to status=0"
             )
+            asset.ai_gap_analysis_status = 0
+            asset.ai_gap_analysis_timestamp = None
+            fixed_count += 1
         else:
             logger.debug(
                 f"✅ Asset {asset.id} consistency verified - "
                 f"{ai_gaps_count} AI-enhanced gaps found"
             )
+
+    if fixed_count > 0:
+        await db.commit()
+        logger.info(
+            f"🔧 Auto-fixed {fixed_count} consistency issues by resetting status to 0"
+        )
 
 
 async def process_gap_enhancement_job(  # noqa: C901
@@ -116,12 +130,21 @@ async def process_gap_enhancement_job(  # noqa: C901
                 assets_stale = 0
 
                 for asset in all_assets:
+                    # CRITICAL FIX (Issue #1045 - Qodo Bot): Skip assets being processed by other workers
+                    if asset.ai_gap_analysis_status == 1:
+                        assets_skipped += 1
+                        logger.debug(
+                            f"⏭️ Asset {asset.id} skipped - already being processed (status=1)"
+                        )
+                        continue
+
                     # Check if AI analysis completed
                     if asset.ai_gap_analysis_status != 2:
+                        # Status = 0 (not started), add to analyze list
                         assets_to_analyze.append(asset)
                         continue
 
-                    # Check if analysis is stale (asset updated after analysis)
+                    # Status = 2 (completed), check if analysis is stale
                     if (
                         asset.ai_gap_analysis_timestamp
                         and asset.updated_at
@@ -231,29 +254,35 @@ async def process_gap_enhancement_job(  # noqa: C901
             f"❌ Job {job_id} failed - {error_type}: {error_message}", exc_info=True
         )
 
-        # Reset status to 0 on failure so analysis can be retried
+        # CRITICAL FIX (Issue #1045 - Qodo Bot): Reset status ONLY for assets that were being analyzed
+        # (status=1), not all assets in the job
         from app.core.database import AsyncSessionLocal
 
         try:
             async with AsyncSessionLocal() as db:
                 from app.services.collection.gap_analysis.data_loader import load_assets
 
-                # Reload assets to reset status
-                failed_assets = await load_assets(
+                # Reload assets to check which ones were in-progress
+                all_job_assets = await load_assets(
                     selected_asset_ids,
                     client_account_id,
                     engagement_id,
                     db,
                 )
 
-                for asset in failed_assets:
-                    asset.ai_gap_analysis_status = 0
-                    asset.ai_gap_analysis_timestamp = None
+                # Only reset assets that were actively being analyzed (status=1)
+                reset_count = 0
+                for asset in all_job_assets:
+                    if asset.ai_gap_analysis_status == 1:
+                        asset.ai_gap_analysis_status = 0
+                        asset.ai_gap_analysis_timestamp = None
+                        reset_count += 1
 
                 await db.commit()
 
                 logger.info(
-                    f"🔄 Reset AI analysis status for {len(failed_assets)} assets to allow retry"
+                    f"🔄 Reset AI analysis status for {reset_count}/{len(all_job_assets)} "
+                    f"assets that were in-progress (status=1) to allow retry"
                 )
         except Exception as reset_error:
             logger.error(
