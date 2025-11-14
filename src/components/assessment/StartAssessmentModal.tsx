@@ -5,9 +5,10 @@
  * breaking the collection→assessment circular dependency (GPT-5 suggestion).
  *
  * Features:
- * - Two-tab interface: "Ready for Assessment" and "Needs Collection"
- * - Searchable canonical application list across both tabs
+ * - Three-tab interface: "Ready for Assessment", "Needs Mapping", and "Needs Collection"
+ * - Searchable canonical application list across all tabs
  * - Multi-select with visual feedback (ready apps only)
+ * - Asset mapping interface for unmapped assets
  * - Readiness status indicators (ready/partial/not-ready)
  * - Actionable guidance for not-ready apps (blockers + recommendations)
  * - Direct navigation to assessment or collection flows
@@ -36,9 +37,24 @@ interface CanonicalApplication {
   readiness_recommendations: string[];
 }
 
+interface UnmappedAsset {
+  is_unmapped_asset: true;
+  asset_id: string;
+  asset_name: string;
+  asset_type: string;
+  mapped_to_application_id: string | null;
+  mapped_to_application_name: string | null;
+  discovery_status: string;
+  assessment_readiness: string;
+}
+
+type ApplicationOrAsset = CanonicalApplication | UnmappedAsset;
+
 interface CanonicalApplicationsResponse {
-  applications: CanonicalApplication[];
+  applications: ApplicationOrAsset[];
   total: number;
+  canonical_apps_count: number;
+  unmapped_assets_count: number;
   page: number;
   page_size: number;
   total_pages: number;
@@ -49,7 +65,12 @@ interface StartAssessmentModalProps {
   onClose: () => void;
 }
 
-type TabType = "ready" | "not-ready";
+type TabType = "ready" | "needs-mapping" | "needs-collection";
+
+// Type guard to check if item is an unmapped asset
+function isUnmappedAsset(item: ApplicationOrAsset): item is UnmappedAsset {
+  return 'is_unmapped_asset' in item && item.is_unmapped_asset === true;
+}
 
 export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   isOpen,
@@ -61,12 +82,14 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("ready");
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppIds, setSelectedAppIds] = useState<Set<string>>(new Set());
-  const [applications, setApplications] = useState<CanonicalApplication[]>([]);
+  const [applications, setApplications] = useState<ApplicationOrAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [assetMappings, setAssetMappings] = useState<Record<string, string>>({});
+  const [mappingInProgress, setMappingInProgress] = useState<string | null>(null);
 
-  // Fetch canonical applications
+  // Fetch canonical applications and unmapped assets
   useEffect(() => {
     if (!isOpen || !client?.id || !engagement?.id) return;
 
@@ -76,7 +99,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
       try {
         const response = await apiCall<CanonicalApplicationsResponse>(
-          `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100`,
+          `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100&include_unmapped_assets=true`,
           {
             method: 'GET',
             headers: {
@@ -103,22 +126,39 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
     if (!searchQuery.trim()) return applications;
 
     const query = searchQuery.toLowerCase();
-    return applications.filter((app) =>
-      app.canonical_name.toLowerCase().includes(query)
-    );
+    return applications.filter((item) => {
+      if (isUnmappedAsset(item)) {
+        return item.asset_name.toLowerCase().includes(query);
+      }
+      return item.canonical_name.toLowerCase().includes(query);
+    });
   }, [applications, searchQuery]);
 
-  // Separate ready and not-ready applications
+  // Get list of canonical applications for mapping dropdown
+  const availableApplications = useMemo(() => {
+    return applications.filter(app => !isUnmappedAsset(app)) as CanonicalApplication[];
+  }, [applications]);
+
+  // Separate items by tab category
   const readyApplications = useMemo(() => {
-    return filteredApplications.filter(app =>
-      app.readiness_status === "ready" || app.readiness_status === "partial"
-    );
+    return filteredApplications.filter(item =>
+      !isUnmappedAsset(item) &&
+      (item.readiness_status === "ready" || item.readiness_status === "partial")
+    ) as CanonicalApplication[];
+  }, [filteredApplications]);
+
+  const unmappedAssets = useMemo(() => {
+    return filteredApplications.filter(item =>
+      isUnmappedAsset(item) &&
+      !item.mapped_to_application_id
+    ) as UnmappedAsset[];
   }, [filteredApplications]);
 
   const notReadyApplications = useMemo(() => {
-    return filteredApplications.filter(app =>
-      app.readiness_status === "not_ready"
-    );
+    return filteredApplications.filter(item =>
+      !isUnmappedAsset(item) &&
+      item.readiness_status === "not_ready"
+    ) as CanonicalApplication[];
   }, [filteredApplications]);
 
   // Handle app selection toggle
@@ -130,6 +170,62 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       newSelection.add(appId);
     }
     setSelectedAppIds(newSelection);
+  };
+
+  // Handle mapping dropdown change
+  const handleMappingChange = (assetId: string, appId: string) => {
+    setAssetMappings(prev => ({
+      ...prev,
+      [assetId]: appId
+    }));
+  };
+
+  // Handle asset mapping to application
+  const handleApplyMapping = async (assetId: string) => {
+    const appId = assetMappings[assetId];
+    if (!appId || !client?.id || !engagement?.id) return;
+
+    setMappingInProgress(assetId);
+
+    try {
+      await apiCall('/api/v1/canonical-applications/map-asset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Account-ID': client.id,
+          'X-Engagement-ID': engagement.id,
+        },
+        body: JSON.stringify({
+          asset_id: assetId,
+          canonical_application_id: appId,
+        }),
+      });
+
+      // Clear mapping from state
+      setAssetMappings(prev => {
+        const newMappings = { ...prev };
+        delete newMappings[assetId];
+        return newMappings;
+      });
+
+      // Refetch applications to update mapping status
+      const response = await apiCall<CanonicalApplicationsResponse>(
+        `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100&include_unmapped_assets=true`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Client-Account-ID': client.id,
+            'X-Engagement-ID': engagement.id,
+          },
+        }
+      );
+      setApplications(response.applications);
+    } catch (err) {
+      console.error('Failed to map asset:', err);
+      setError('Failed to map asset. Please try again.');
+    } finally {
+      setMappingInProgress(null);
+    }
   };
 
   // Handle assessment creation
@@ -247,10 +343,20 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             Ready for Assessment ({readyApplications.length})
           </button>
           <button
-            onClick={() => setActiveTab("not-ready")}
+            onClick={() => setActiveTab("needs-mapping")}
             className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
-              activeTab === "not-ready"
-                ? "border-b-2 border-blue-500 text-blue-600"
+              activeTab === "needs-mapping"
+                ? "border-b-2 border-green-500 text-green-600"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Needs Mapping ({unmappedAssets.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("needs-collection")}
+            className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+              activeTab === "needs-collection"
+                ? "border-b-2 border-orange-500 text-orange-600"
                 : "text-gray-600 hover:text-gray-800"
             }`}
           >
@@ -329,8 +435,70 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
                 ))}
               </div>
             )
+          ) : activeTab === "needs-mapping" ? (
+            // Needs Mapping Tab Content
+            unmappedAssets.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                All assets are mapped to applications!
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {unmappedAssets.map((asset) => (
+                  <div
+                    key={asset.asset_id}
+                    className="p-4 border border-green-200 rounded-md bg-green-50"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900">{asset.asset_name}</h3>
+                          <span className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded capitalize">
+                            {asset.asset_type}
+                          </span>
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            asset.discovery_status === "completed"
+                              ? "bg-green-200 text-green-800"
+                              : "bg-yellow-200 text-yellow-800"
+                          }`}>
+                            {asset.discovery_status}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 text-sm text-gray-600">
+                          Asset ID: {asset.asset_id.substring(0, 8)}...
+                        </div>
+                      </div>
+
+                      <div className="ml-4 flex items-center gap-2">
+                        <select
+                          value={assetMappings[asset.asset_id] || ""}
+                          onChange={(e) => handleMappingChange(asset.asset_id, e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          disabled={mappingInProgress === asset.asset_id}
+                        >
+                          <option value="">Select Application...</option>
+                          {availableApplications.map((app) => (
+                            <option key={app.id} value={app.id}>
+                              {app.canonical_name}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          onClick={() => handleApplyMapping(asset.asset_id)}
+                          disabled={!assetMappings[asset.asset_id] || mappingInProgress === asset.asset_id}
+                          className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {mappingInProgress === asset.asset_id ? 'Mapping...' : 'Map'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           ) : (
-            // Not Ready Tab Content
+            // Needs Collection Tab Content
             notReadyApplications.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 All applications are ready for assessment!
@@ -383,7 +551,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
                       <button
                         onClick={() => {
-                          navigate(`/collection/new?app=${app.id}`);
+                          navigate(`/collection`);
                           onClose();
                         }}
                         className="ml-4 px-3 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap"
@@ -405,6 +573,8 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
               <>
                 {selectedAppIds.size} application{selectedAppIds.size !== 1 ? 's' : ''} selected
               </>
+            ) : activeTab === "needs-mapping" ? (
+              <>Map assets to applications to include in assessment</>
             ) : (
               <>Complete collection flows to enable assessment</>
             )}
