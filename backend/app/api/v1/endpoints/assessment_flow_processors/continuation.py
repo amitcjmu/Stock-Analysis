@@ -142,6 +142,29 @@ async def continue_assessment_flow(
                     phase_input=phase_input,
                 )
 
+                # CRITICAL FIX (Issue #1048): Check if phase execution succeeded
+                # execute_assessment_phase returns error dict instead of raising exception
+                if result.get("status") == "error" or "error" in result:
+                    error_msg = result.get(
+                        "error", result.get("message", "Unknown error")
+                    )
+                    logger.error(
+                        safe_log_format(
+                            "[ISSUE-1048] ❌ BACKGROUND TASK FAILED: Assessment flow {flow_id} "
+                            "phase {phase_value} execution failed: {error_msg}",
+                            flow_id=flow_id,
+                            phase_value=phase.value,
+                            error_msg=error_msg,
+                        )
+                    )
+                    # Keep flow in progress (phase failed but flow continues)
+                    # Note: Using "in_progress" not "error" - AssessmentFlowStatus enum
+                    await assessment_repo.update_flow_status(
+                        flow_id,
+                        "in_progress",
+                    )
+                    return  # Exit without logging success
+
                 logger.info(
                     safe_log_format(
                         "[ISSUE-999] ✅ BACKGROUND TASK COMPLETED: Assessment flow {flow_id} "
@@ -166,12 +189,11 @@ async def continue_assessment_flow(
                     ),
                     exc_info=True,
                 )
-                # Update flow to error state
+                # Keep flow in progress (agent execution failed)
                 try:
                     await assessment_repo.update_flow_status(
                         flow_id,
-                        "error",
-                        current_phase=phase.value,
+                        "in_progress",
                     )
                 except Exception:
                     pass  # Best effort

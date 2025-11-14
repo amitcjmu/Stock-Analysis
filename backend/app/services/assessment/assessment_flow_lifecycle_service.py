@@ -327,6 +327,7 @@ class AssessmentFlowLifecycleService:
             current_phase=AssessmentPhase.INITIALIZATION.value,
             progress=0.0,
             phase_progress={},
+            phase_results={},  # Initialize empty to prevent validation failures
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )

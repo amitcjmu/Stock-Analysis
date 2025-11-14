@@ -220,8 +220,9 @@ class ExecutionEngineAssessmentCrews(
             raise ValueError(f"Assessment flow {master_flow.flow_id} not found")
 
         # Define phase progression order
+        # Phase order must match assessment_flow_config.py phases list
+        # (No "initialization" phase - that's a flow-level handler, not a phase)
         phase_order = [
-            "initialization",
             "readiness_assessment",
             "complexity_analysis",
             "dependency_analysis",

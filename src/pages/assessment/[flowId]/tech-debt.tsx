@@ -124,6 +124,9 @@ const TechDebtPage: React.FC = () => {
         components: state.applicationComponents,
         techDebtAnalysis: state.techDebtAnalysis
       });
+
+      // Navigate to Risk Assessment phase
+      navigate(`/assessment/${flowId}/risk`);
     } catch (error) {
       console.error('Failed to submit tech debt analysis:', error);
     } finally {
