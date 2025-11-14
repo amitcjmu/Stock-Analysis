@@ -220,6 +220,7 @@ async def analyze_gaps(
             selected_asset_ids=request_body.selected_asset_ids,
             client_account_id=str(context.client_account_id),
             engagement_id=str(context.engagement_id),
+            force_refresh=request_body.force_refresh,  # Pass force_refresh flag
         )
 
         progress_url = f"/api/v1/collection/{flow_id}/enhancement-progress"

@@ -34,6 +34,7 @@ import {
   type DataGap,
   type GapUpdate,
 } from "@/services/api/collection-flow";
+import { AssetAPI } from "@/lib/api/assets";
 
 interface DataGapDiscoveryProps {
   flowId: string;
@@ -95,6 +96,9 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   } | null>(null);
   const [selectedGaps, setSelectedGaps] = useState<GapRowData[]>([]);
   const [isContinuing, setIsContinuing] = useState(false);
+  // AI gap analysis status tracking (Issue #1043)
+  const [hasAIAnalysis, setHasAIAnalysis] = useState(false);
+  const [showQuestionnaireButton, setShowQuestionnaireButton] = useState(false);
 
   // Fetch existing gaps on mount, or scan if none exist
   useEffect(() => {
@@ -125,6 +129,33 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     loadGaps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowId, selectedAssetIds]);
+
+  // Check if selected assets have AI analysis completed (status = 2)
+  useEffect(() => {
+    const checkAIStatus = async () => {
+      if (selectedAssetIds.length === 0) {
+        setHasAIAnalysis(false);
+        return;
+      }
+
+      try {
+        // Fetch assets to check ai_gap_analysis_status
+        const assetPromises = selectedAssetIds.map(id => AssetAPI.getAsset(id));
+        const assets = await Promise.all(assetPromises);
+
+        // Check if all selected assets have completed AI analysis (status = 2)
+        const allCompleted = assets.every(asset => asset.ai_gap_analysis_status === 2);
+        setHasAIAnalysis(allCompleted);
+
+        console.log(`📊 AI analysis status check - ${allCompleted ? 'All assets analyzed' : 'Some assets need analysis'}`);
+      } catch (error) {
+        console.error('Failed to check AI analysis status:', error);
+        setHasAIAnalysis(false);
+      }
+    };
+
+    checkAIStatus();
+  }, [selectedAssetIds]);
 
   const handleScanGaps = async () => {
     try {
@@ -310,10 +341,12 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
       // Call existing endpoint with null gaps
       // Backend will perform comprehensive AI analysis on assets
+      // force_refresh = false to skip assets with ai_gap_analysis_status = 2
       const response = await collectionFlowApi.analyzeGaps(
         flowId,
         null, // null - triggers comprehensive analysis in backend
-        selectedAssetIds
+        selectedAssetIds,
+        false // force_refresh = false (skip completed assets)
       );
 
       console.log('✅ AI enhancement job queued:', response.job_id);
@@ -402,6 +435,111 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     }
   }, [flowId, selectedAssetIds, toast]);
 
+  // Force re-analysis handler (for manual re-triggering)
+  const handleForceReAnalysis = async () => {
+    try {
+      setIsAnalyzing(true);
+
+      console.log('🔄 Force re-analysis triggered by user');
+
+      const response = await collectionFlowApi.analyzeGaps(
+        flowId,
+        null,
+        selectedAssetIds,
+        true // force_refresh = true (re-analyze all assets)
+      );
+
+      console.log('✅ Force re-analysis job queued:', response.job_id);
+
+      toast({
+        title: "Re-Analysis Started",
+        description: "All assets will be re-analyzed with AI. This may take a few minutes.",
+        variant: "default",
+      });
+
+      // Start polling for progress (same pattern as auto-trigger)
+      let attempts = 0;
+      const maxAttempts = 24; // 12 minutes max (30s interval)
+
+      const pollProgress = setInterval(async () => {
+        try {
+          const progress = await collectionFlowApi.getEnhancementProgress(flowId);
+
+          setEnhancementProgress({
+            job_id: response.job_id,
+            status: progress.status,
+            processed: progress.processed,
+            total: progress.total,
+            current_asset: progress.current_asset,
+            percentage: progress.percentage,
+          });
+
+          if (progress.status === "completed") {
+            clearInterval(pollProgress);
+
+            // Re-fetch gaps to get updated AI enhancements
+            try {
+              const updatedGaps = await collectionFlowApi.getGaps(flowId);
+              setGaps(updatedGaps);
+
+              // Update AI analysis status
+              setHasAIAnalysis(true);
+
+              toast({
+                title: "Re-Analysis Complete",
+                description: `Re-analyzed ${progress.processed} assets successfully`,
+                variant: "default",
+              });
+            } catch (fetchError) {
+              console.error("Failed to fetch enhanced gaps:", fetchError);
+            }
+
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          } else if (progress.status === "failed") {
+            clearInterval(pollProgress);
+            const errorDescription = progress.user_message ||
+              progress.error ||
+              "Re-analysis failed. Please try again.";
+            toast({
+              title: "Re-Analysis Failed",
+              description: errorDescription,
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            clearInterval(pollProgress);
+            toast({
+              title: "Re-Analysis Timeout",
+              description: "Re-analysis is taking longer than expected.",
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+        } catch (error) {
+          console.error("Progress polling error:", error);
+        }
+      }, 30000); // Poll every 30 seconds
+
+    } catch (error: unknown) {
+      console.error('Failed to force re-analysis:', error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to start re-analysis. Please try again.";
+      toast({
+        title: "Re-Analysis Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setIsAnalyzing(false);
+    }
+  };
+
   // ✅ Auto-trigger AI-enhanced gap analysis after heuristic scan completes
   useEffect(() => {
     // Only auto-trigger if:
@@ -428,6 +566,17 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       }
     }
   }, [gaps, scanSummary, isAnalyzing, enhancementProgress, handleAnalyzeGapsAuto]);
+
+  // Delay showing questionnaire button for 20 seconds to encourage gap review
+  useEffect(() => {
+    if (gaps.length > 0 && !showQuestionnaireButton) {
+      const timer = setTimeout(() => {
+        setShowQuestionnaireButton(true);
+      }, 20000); // 20 seconds delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [gaps, showQuestionnaireButton]);
 
   const handleCellEditingStopped = useCallback(
     (event: CellEditingStoppedEvent<GapRowData>) => {
@@ -908,6 +1057,23 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Gap Analysis Status Message */}
+      {scanSummary && (
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {hasAIAnalysis ? (
+            <p className="text-green-700 font-medium">
+              ✅ AI-enhanced gap analysis is complete.
+              Review gaps below and accept/reject AI classifications.
+            </p>
+          ) : (
+            <p className="text-blue-700 font-medium">
+              📊 Heuristic gap analysis is complete.
+              AI enhancement {isAnalyzing ? 'is running' : 'will run automatically'}.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Summary Card */}
       {scanSummary && (
         <Card>
@@ -987,6 +1153,19 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               {isAnalyzing ? "Analyzing..." : "Perform Agentic Analysis"}
             </Button>
 
+            {/* Force Re-Analysis Button - Only show when AI analysis completed */}
+            {hasAIAnalysis && (
+              <Button
+                onClick={handleForceReAnalysis}
+                disabled={isAnalyzing}
+                variant="outline"
+                className="text-yellow-600 hover:bg-yellow-50"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Force Re-Analysis
+              </Button>
+            )}
+
             {/* Progress Display for Non-Blocking AI Enhancement */}
             {enhancementProgress && (
               <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-700">
@@ -1013,29 +1192,34 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               </Button>
             )}
 
-            <Button
-              onClick={handleBulkAccept}
-              disabled={isSaving || gaps.length === 0}
-              variant="outline"
-              className="text-green-600 hover:bg-green-50"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Accept All (High Confidence)
-            </Button>
+            {/* Accept All and Reject All - Only show when AI analysis completed */}
+            {hasAIAnalysis && (
+              <>
+                <Button
+                  onClick={handleBulkAccept}
+                  disabled={isSaving || gaps.length === 0}
+                  variant="outline"
+                  className="text-green-600 hover:bg-green-50"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Accept All (High Confidence)
+                </Button>
 
-            <Button
-              onClick={handleBulkReject}
-              disabled={isSaving || gaps.length === 0}
-              variant="outline"
-              className="text-red-600 hover:bg-red-50"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Reject All AI Suggestions
-            </Button>
+                <Button
+                  onClick={handleBulkReject}
+                  disabled={isSaving || gaps.length === 0}
+                  variant="outline"
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Reject All AI Suggestions
+                </Button>
+              </>
+            )}
           </div>
 
-          {/* Continue to Questionnaire Button - P1 UX Fix for Issue #654 */}
-          {scanSummary && onComplete && (
+          {/* Continue to Questionnaire Button - P1 UX Fix for Issue #654 + 20s delay */}
+          {scanSummary && onComplete && showQuestionnaireButton && (
             <div className="pt-4 mt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
@@ -1059,6 +1243,20 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
                     </>
                   )}
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Timer message while waiting for questionnaire button */}
+          {scanSummary && onComplete && !showQuestionnaireButton && (
+            <div className="pt-4 mt-4 border-t border-gray-200">
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                <p className="text-sm text-yellow-800 font-medium">
+                  ⏱️ Please review the data gaps above before proceeding.
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Continue button will appear shortly...
+                </p>
               </div>
             </div>
           )}

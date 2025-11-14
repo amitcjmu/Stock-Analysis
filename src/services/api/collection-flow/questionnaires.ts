@@ -144,6 +144,7 @@ export class QuestionnairesApi extends CollectionFlowClient {
     flowId: string,
     gaps: DataGap[] | null,
     selectedAssetIds: string[],
+    force_refresh: boolean = false, // New parameter for force re-analysis
   ): Promise<{
     job_id: string;
     status: string;
@@ -153,7 +154,11 @@ export class QuestionnairesApi extends CollectionFlowClient {
     // Returns 202 Accepted with job_id immediately (non-blocking)
     return await apiCall(`${this.baseUrl}/flows/${flowId}/analyze-gaps`, {
       method: "POST",
-      body: JSON.stringify({ gaps, selected_asset_ids: selectedAssetIds }),
+      body: JSON.stringify({
+        gaps,
+        selected_asset_ids: selectedAssetIds,
+        force_refresh, // Pass force_refresh flag to backend
+      }),
       timeout: 10000, // 10s timeout for job submission
     });
   }
