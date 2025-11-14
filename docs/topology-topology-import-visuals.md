@@ -38,7 +38,7 @@
 ### Asset & Dependency Persistence Strategy
 
 - **Reuse the existing `Asset` table** for application components. Each distinct tier/service discovered from AppDynamics/Datadog becomes (or updates) an `Asset` row with `asset_type = "component"` and appropriate metadata (language, environment, agent type, export timestamp). This keeps querying uniform across infrastructure + components.
-- **Dependencies stay in `AssetDependency`**. For each source → target relationship we insert/update an `AssetDependency` row keyed by the source/target asset IDs, storing metrics (`latency_ms`, `call_count`, `error_rate`, `dependency_type`). Additional attributes can live in the JSONB payload we already have on that model.
+- **Dependencies stay in `AssetDependency`**. For each source → target relationship we insert/update an `AssetDependency` row keyed strictly by the canonical `asset_id` values (UUID) from the `Asset` table—never by names. Metrics (`latency_ms`, `call_count`, `error_rate`, `dependency_type`) live alongside those IDs, and any extra attributes can go into the JSONB payload. During import we must resolve both ends to real assets (creating component assets first if needed) before inserting the dependency edge.
 - **Matching flow**:
   1. Resolve application → parent Asset (existing CMDB entry).
   2. Resolve component → Asset (create if missing, `asset_type="component"`).
@@ -46,6 +46,20 @@
   4. Create/update `AssetDependency` records (component ↔ component, component ↔ database, etc.).
 - **Repository usage**: processors should call the existing asset/dependency repositories (or helper methods we expose) so the same transaction/tenant scoping rules apply. For example, use `AssetRepository.find_or_create_by(name, asset_type)` and `AssetDependencyRepository.upsert_edge(...)`.
 - **Unmatched items**: when a component can’t be tied to a known application or host, log it in the phase results and optionally create a “pending” component asset flagged for manual review (e.g., `status="unmatched"`). This preserves traceability without blocking ingestion.
+
+## Discovery flow adjustments for non-CMDB imports
+
+### a) Application discovery uploads on the CMDB import page
+- Add a second option on the Discovery / CMDB Import UI labelled “Application Discovery Data (AppDynamics / Datadog dependency scans)”.
+- Submissions still post to `/api/v1/data-import/upload`, but set `import_category=app_discovery` so ApplicationDiscoveryProcessor handles the records while the same master/child flow orchestration runs (`data_import → … → asset_creation`).
+- Make it clear to users that this path ingests service-to-service dependencies (application portfolio + dependency scan results) but otherwise shares the CMDB discovery flow.
+
+### b) Attribute mapping UX after validation
+- After `data_validation`, auto-route users to `/discovery/attribute-mapping/:flow_id`.
+- Restrict the target-field dropdowns to dependency-relevant fields only:
+  - `assets`: application name, hostname/FQDN, environment, owner, criticality.
+  - `asset_dependency`: downstream component, dependency_type, latency, call_count, error_rate, port, protocol.
+- Persist selections in `import_field_mappings` so cleansing and asset creation phases reuse the same mappings for AppDynamics/Datadog columns.
 
 ---
 
