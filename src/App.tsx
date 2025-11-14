@@ -73,6 +73,7 @@ import {
   LazyAssessmentComplexity,
   LazyAssessmentDependency,
   LazyAssessmentTechDebt,
+  LazyAssessmentRisk,
   LazyAssessmentDependencyAnalysis,
   LazyAssessmentTechDebtAssessment,
   LazyPlanIndex,
@@ -394,6 +395,10 @@ const AuthenticatedApp = (): JSX.Element => {
       <Route
         path="/assessment/:flowId/tech-debt"
         element={<LazyAssessmentTechDebt />}
+      />
+      <Route
+        path="/assessment/:flowId/risk"
+        element={<LazyAssessmentRisk />}
       />
       {/* Bug #869 fix: Redirect sixr-review to app-on-page (Assessment Flow architecture) */}
       {/* 6R Strategy Review phase is handled by app-on-page which displays 6R decisions */}
