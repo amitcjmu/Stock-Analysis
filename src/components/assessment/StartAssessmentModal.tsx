@@ -5,10 +5,12 @@
  * breaking the collection→assessment circular dependency (GPT-5 suggestion).
  *
  * Features:
- * - Searchable canonical application list
- * - Multi-select with visual feedback
- * - Zero-asset app handling
- * - Direct navigation to new assessment flow
+ * - Two-tab interface: "Ready for Assessment" and "Needs Collection"
+ * - Searchable canonical application list across both tabs
+ * - Multi-select with visual feedback (ready apps only)
+ * - Readiness status indicators (ready/partial/not-ready)
+ * - Actionable guidance for not-ready apps (blockers + recommendations)
+ * - Direct navigation to assessment or collection flows
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -24,6 +26,14 @@ interface CanonicalApplication {
   usage_count: number;
   confidence_score: number;
   is_verified: boolean;
+
+  // Readiness metadata (added per backend API update)
+  linked_asset_count: number;
+  ready_asset_count: number;
+  not_ready_asset_count: number;
+  readiness_status: "ready" | "partial" | "not_ready";
+  readiness_blockers: string[];
+  readiness_recommendations: string[];
 }
 
 interface CanonicalApplicationsResponse {
@@ -39,6 +49,8 @@ interface StartAssessmentModalProps {
   onClose: () => void;
 }
 
+type TabType = "ready" | "not-ready";
+
 export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   isOpen,
   onClose,
@@ -46,6 +58,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<TabType>("ready");
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppIds, setSelectedAppIds] = useState<Set<string>>(new Set());
   const [applications, setApplications] = useState<CanonicalApplication[]>([]);
@@ -94,6 +107,19 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       app.canonical_name.toLowerCase().includes(query)
     );
   }, [applications, searchQuery]);
+
+  // Separate ready and not-ready applications
+  const readyApplications = useMemo(() => {
+    return filteredApplications.filter(app =>
+      app.readiness_status === "ready" || app.readiness_status === "partial"
+    );
+  }, [filteredApplications]);
+
+  const notReadyApplications = useMemo(() => {
+    return filteredApplications.filter(app =>
+      app.readiness_status === "not_ready"
+    );
+  }, [filteredApplications]);
 
   // Handle app selection toggle
   const toggleAppSelection = (appId: string) => {
@@ -208,10 +234,34 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
           />
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab("ready")}
+            className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+              activeTab === "ready"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Ready for Assessment ({readyApplications.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("not-ready")}
+            className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+              activeTab === "not-ready"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Needs Collection ({notReadyApplications.length})
+          </button>
+        </div>
+
         {/* Application List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm whitespace-pre-wrap">
               {error}
             </div>
           )}
@@ -220,63 +270,144 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             <div className="text-center py-8 text-gray-500">
               Loading applications...
             </div>
-          ) : filteredApplications.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No applications found. Try a different search term.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredApplications.map((app) => (
-                <div
-                  key={app.id}
-                  onClick={() => toggleAppSelection(app.id)}
-                  className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                    selectedAppIds.has(app.id)
-                      ? 'bg-blue-50 border-blue-500'
-                      : 'bg-white border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900">
-                          {app.canonical_name}
-                        </h3>
-                        {app.is_verified && (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                            Verified
-                          </span>
-                        )}
+          ) : activeTab === "ready" ? (
+            // Ready Tab Content
+            readyApplications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No ready applications found. Complete collection flows first.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {readyApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    onClick={() => toggleAppSelection(app.id)}
+                    className={`p-4 border rounded-md cursor-pointer transition-colors ${
+                      selectedAppIds.has(app.id)
+                        ? 'bg-blue-50 border-blue-500'
+                        : 'bg-white border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900">
+                            {app.canonical_name}
+                          </h3>
+                          {app.is_verified && (
+                            <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                              Verified
+                            </span>
+                          )}
+                          {app.readiness_status === "partial" && (
+                            <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded flex items-center gap-1">
+                              <span>⚠️</span>
+                              <span>Partial</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex gap-4 text-sm text-gray-600">
+                          {app.application_type && (
+                            <span>Type: {app.application_type}</span>
+                          )}
+                          {app.business_criticality && (
+                            <span>Criticality: {app.business_criticality}</span>
+                          )}
+                          <span>Assets: {app.ready_asset_count}/{app.linked_asset_count} ready</span>
+                          <span>Confidence: {(app.confidence_score * 100).toFixed(0)}%</span>
+                        </div>
                       </div>
-                      <div className="mt-1 flex gap-4 text-sm text-gray-600">
-                        {app.application_type && (
-                          <span>Type: {app.application_type}</span>
-                        )}
-                        {app.business_criticality && (
-                          <span>Criticality: {app.business_criticality}</span>
-                        )}
-                        <span>Used: {app.usage_count}x</span>
-                        <span>Confidence: {(app.confidence_score * 100).toFixed(0)}%</span>
-                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedAppIds.has(app.id)}
+                        onChange={() => toggleAppSelection(app.id)}
+                        className="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={selectedAppIds.has(app.id)}
-                      onChange={() => toggleAppSelection(app.id)}
-                      className="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                      onClick={(e) => e.stopPropagation()}
-                    />
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
+          ) : (
+            // Not Ready Tab Content
+            notReadyApplications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                All applications are ready for assessment!
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notReadyApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    className="p-4 border border-orange-200 rounded-md bg-orange-50"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-orange-600 text-lg">⚠️</span>
+                          <h3 className="font-medium text-gray-900">
+                            {app.canonical_name}
+                          </h3>
+                          <span className="px-2 py-1 text-xs bg-orange-200 text-orange-800 rounded">
+                            Not Ready
+                          </span>
+                        </div>
+
+                        <div className="mt-2 text-sm text-gray-700">
+                          <strong>Assets:</strong> {app.linked_asset_count} linked ({app.ready_asset_count} ready, {app.not_ready_asset_count} not ready)
+                        </div>
+
+                        {app.readiness_blockers.length > 0 && (
+                          <div className="mt-3">
+                            <strong className="text-sm text-gray-700">Issues:</strong>
+                            <ul className="mt-1 text-sm text-gray-600 list-disc list-inside space-y-1">
+                              {app.readiness_blockers.map((blocker, idx) => (
+                                <li key={idx}>{blocker}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {app.readiness_recommendations.length > 0 && (
+                          <div className="mt-3">
+                            <strong className="text-sm text-gray-700">Next Steps:</strong>
+                            <ul className="mt-1 text-sm text-gray-600 list-disc list-inside space-y-1">
+                              {app.readiness_recommendations.map((rec, idx) => (
+                                <li key={idx}>{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          navigate(`/collection/new?app=${app.id}`);
+                          onClose();
+                        }}
+                        className="ml-4 px-3 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap"
+                      >
+                        Start Collection
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            {selectedAppIds.size} application{selectedAppIds.size !== 1 ? 's' : ''} selected
+            {activeTab === "ready" ? (
+              <>
+                {selectedAppIds.size} application{selectedAppIds.size !== 1 ? 's' : ''} selected
+              </>
+            ) : (
+              <>Complete collection flows to enable assessment</>
+            )}
           </div>
           <div className="flex gap-3">
             <button
@@ -286,13 +417,15 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             >
               Cancel
             </button>
-            <button
-              onClick={handleCreateAssessment}
-              disabled={creating || selectedAppIds.size === 0}
-              className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creating ? 'Creating...' : 'Start Assessment'}
-            </button>
+            {activeTab === "ready" && (
+              <button
+                onClick={handleCreateAssessment}
+                disabled={creating || selectedAppIds.size === 0}
+                className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? 'Creating...' : 'Start Assessment'}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -9,13 +9,17 @@ from typing import Any, Dict, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.api_tags import APITags
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
-from app.models.canonical_applications import CanonicalApplication
+from app.models.canonical_applications import (
+    CanonicalApplication,
+    CollectionFlowApplication,
+)
+from app.models.asset.models import Asset
 
 # Import bulk mapping router
 from . import bulk_mapping
@@ -40,12 +44,20 @@ async def list_canonical_applications(
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
     """
-    List canonical applications with tenant scoping, search, and pagination.
+    List canonical applications with tenant scoping, search, pagination, and readiness metadata.
 
     Returns paginated list of canonical applications for the current engagement.
     Supports case-insensitive search across canonical_name and normalized_name.
 
     Multi-tenant isolation: All queries scoped by client_account_id and engagement_id.
+
+    **NEW**: Each application now includes assessment readiness information:
+    - linked_asset_count: Total assets linked to this canonical application
+    - ready_asset_count: Assets with discovery_status="completed" AND assessment_readiness="ready"
+    - not_ready_asset_count: Assets not meeting readiness criteria
+    - readiness_status: "ready" (all ready) | "partial" (some ready) | "not_ready" (none ready)
+    - readiness_blockers: List of issues preventing readiness
+    - readiness_recommendations: Suggested actions to achieve readiness
 
     Query Parameters:
         - search: Optional substring search (canonical_name or normalized_name)
@@ -54,7 +66,19 @@ async def list_canonical_applications(
 
     Returns:
         {
-            "applications": [...],
+            "applications": [
+                {
+                    "id": "uuid",
+                    "canonical_name": "MyApp",
+                    "linked_asset_count": 5,
+                    "ready_asset_count": 3,
+                    "not_ready_asset_count": 2,
+                    "readiness_status": "partial",
+                    "readiness_blockers": ["2 asset(s) not ready for assessment"],
+                    "readiness_recommendations": ["Complete discovery for remaining assets"],
+                    ...
+                }
+            ],
             "total": int,
             "page": int,
             "page_size": int,
@@ -112,8 +136,111 @@ async def list_canonical_applications(
         result = await db.execute(query)
         applications = result.scalars().all()
 
-        # Convert to dict format
-        applications_data = [app.to_dict() for app in applications]
+        # Build readiness metadata for all applications
+        app_ids = [app.id for app in applications]
+
+        # Query to get asset readiness stats per canonical app
+        # JOIN: CollectionFlowApplication -> Asset
+        # GROUP BY: canonical_application_id
+        # COUNT: total assets, ready assets
+        readiness_query = (
+            select(
+                CollectionFlowApplication.canonical_application_id,
+                func.count(Asset.id).label("linked_asset_count"),
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                Asset.discovery_status == "completed",
+                                Asset.assessment_readiness == "ready",
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("ready_asset_count"),
+            )
+            .join(
+                Asset,
+                and_(
+                    Asset.id == CollectionFlowApplication.asset_id,
+                    Asset.client_account_id == client_account_id,
+                    Asset.engagement_id == engagement_id,
+                ),
+            )
+            .where(
+                CollectionFlowApplication.canonical_application_id.in_(app_ids),
+                CollectionFlowApplication.client_account_id == client_account_id,
+                CollectionFlowApplication.engagement_id == engagement_id,
+            )
+            .group_by(CollectionFlowApplication.canonical_application_id)
+        )
+
+        readiness_result = await db.execute(readiness_query)
+        readiness_rows = readiness_result.all()
+
+        # Build readiness map: canonical_app_id -> {linked_count, ready_count}
+        readiness_map = {
+            row.canonical_application_id: {
+                "linked_asset_count": row.linked_asset_count or 0,
+                "ready_asset_count": row.ready_asset_count or 0,
+            }
+            for row in readiness_rows
+        }
+
+        # Enhance application dicts with readiness metadata
+        applications_data = []
+        for app in applications:
+            app_dict = app.to_dict()
+
+            # Get readiness stats (default to 0 if no assets linked)
+            readiness_stats = readiness_map.get(
+                app.id,
+                {
+                    "linked_asset_count": 0,
+                    "ready_asset_count": 0,
+                },
+            )
+
+            linked_count = readiness_stats["linked_asset_count"]
+            ready_count = readiness_stats["ready_asset_count"]
+            not_ready_count = linked_count - ready_count
+
+            # Determine overall readiness status
+            if linked_count == 0:
+                readiness_status = "not_ready"  # No assets = not ready
+                blockers = ["No assets linked to this application"]
+                recommendations = [
+                    "Complete Collection Flow to gather application data"
+                ]
+            elif ready_count == linked_count:
+                readiness_status = "ready"  # All assets ready
+                blockers = []
+                recommendations = []
+            elif ready_count > 0:
+                readiness_status = "partial"  # Some ready, some not
+                blockers = [f"{not_ready_count} asset(s) not ready for assessment"]
+                recommendations = [
+                    "Complete discovery and data collection for remaining assets"
+                ]
+            else:
+                readiness_status = "not_ready"  # None ready
+                blockers = ["Assets require discovery completion and data collection"]
+                recommendations = ["Run Collection Flow to gather missing data"]
+
+            # Add readiness fields to application dict
+            app_dict.update(
+                {
+                    "linked_asset_count": linked_count,
+                    "ready_asset_count": ready_count,
+                    "not_ready_asset_count": not_ready_count,
+                    "readiness_status": readiness_status,  # "ready" | "partial" | "not_ready"
+                    "readiness_blockers": blockers,
+                    "readiness_recommendations": recommendations,
+                }
+            )
+
+            applications_data.append(app_dict)
 
         return {
             "applications": applications_data,
