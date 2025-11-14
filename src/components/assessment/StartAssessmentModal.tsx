@@ -148,9 +148,10 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   }, [filteredApplications]);
 
   const unmappedAssets = useMemo(() => {
+    // Show ALL non-application assets regardless of mapping status
+    // User can see which are already mapped and update mappings if needed
     return filteredApplications.filter(item =>
-      isUnmappedAsset(item) &&
-      !item.mapped_to_application_id
+      isUnmappedAsset(item)
     ) as UnmappedAsset[];
   }, [filteredApplications]);
 
@@ -551,7 +552,14 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
                       <button
                         onClick={() => {
-                          navigate(`/collection`);
+                          // Navigate to collection with application context
+                          navigate(`/collection`, {
+                            state: {
+                              preselectedApplicationId: app.id,
+                              canonicalApplicationName: app.canonical_name,
+                              fromAssessmentReadiness: true
+                            }
+                          });
                           onClose();
                         }}
                         className="ml-4 px-3 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap"
