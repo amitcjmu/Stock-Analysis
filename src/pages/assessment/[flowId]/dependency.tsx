@@ -176,7 +176,8 @@ const DependencyPage: React.FC = () => {
     }
   };
 
-  if (state.selectedApplicationIds.length === 0) {
+  // CC: Fixed bug - check selectedApplications (populated) not selectedApplicationIds (may be empty)
+  if (state.selectedApplications.length === 0) {
     return (
       <SidebarProvider>
         <AssessmentFlowLayout flowId={flowId}>

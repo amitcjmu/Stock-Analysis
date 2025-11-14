@@ -163,8 +163,9 @@ const RiskAssessmentPage: React.FC = () => {
     }
   };
 
+  // CC: Fixed bug - check selectedApplications (populated) not selectedApplicationIds (may be empty)
   // Bug #640 fix: Improved guard to check loading state before showing error
-  if (state.selectedApplicationIds.length === 0) {
+  if (state.selectedApplications.length === 0) {
     if (state.isLoading) {
       return <div className="p-6 text-sm text-muted-foreground">Loading application data...</div>;
     }

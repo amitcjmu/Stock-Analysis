@@ -189,7 +189,9 @@ const ComplexityPage: React.FC = () => {
     return 'text-green-600';
   };
 
-  if (state.selectedApplicationIds.length === 0) {
+  // CC: Fixed bug - check selectedApplications (populated) not selectedApplicationIds (may be empty)
+  // Issue: State mismatch caused "No Applications Selected" despite data loaded
+  if (state.selectedApplications.length === 0) {
     return (
       <SidebarProvider>
         <AssessmentFlowLayout flowId={flowId}>

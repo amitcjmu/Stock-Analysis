@@ -80,7 +80,8 @@ const AppOnPagePage: React.FC = () => {
     );
   }
 
-  if (state.selectedApplicationIds.length === 0) {
+  // CC: Fixed bug - check selectedApplications (populated) not selectedApplicationIds (may be empty)
+  if (state.selectedApplications.length === 0) {
     return (
       <AssessmentFlowLayout flowId={flowId}>
         <div className="p-6 text-center">
