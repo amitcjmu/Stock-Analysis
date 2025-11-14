@@ -9,7 +9,7 @@
 ## Problem Statement
 
 AI gap analysis using Llama 4 is expensive and time-consuming:
-- **Cost**: ~$0.50-$2.00 per asset analyzed
+- **Cost**: ~$0.50-$2.00 per 1000 assets analyzed
 - **Time**: 30-60 seconds per asset
 - **Current Behavior**: Re-analyzes assets even when already completed
 - **Impact**: Unnecessary LLM costs and user wait time
@@ -23,30 +23,78 @@ AI gap analysis using Llama 4 is expensive and time-consuming:
 3. **Allow manual re-analysis**: User can force re-analysis when needed
 4. **Show appropriate UI**: Display AI-specific buttons only when AI analysis completed
 5. **Delay questionnaire access**: Give users time to review gaps before proceeding
+6. **Detect stale analysis**: Re-analyze if asset data changed after last analysis
+7. **Ensure consistency**: Verify that status matches actual gap data
+
+## Architecture Rationale
+
+### Per-Asset Status (Not Per-Flow)
+
+**Critical Design Decision**: The `ai_gap_analysis_status` column is added to the **`assets` table**, NOT a flow-specific table.
+
+**Why Per-Asset**:
+- Gaps are **per-asset globally**, not scoped to individual collection flows
+- When AI analysis completes for an asset, **all collection flows** referencing that asset benefit
+- `collection_flow_id` in the gaps table is for **tracking/display purposes**, not uniqueness scoping
+- Avoids redundant AI analysis across multiple flows for the same asset
+
+**Example**:
+- Asset A analyzed in Collection Flow 1 → status=2, gaps persisted
+- Collection Flow 2 references Asset A → **skips analysis** (status already 2)
+- Both flows see the same AI-enhanced gaps for Asset A
+
+### Consistency Verification
+
+**Why Needed**: Status on `assets` table could become inconsistent with actual gaps in `collection_data_gaps` table.
+
+**Verification Logic**: After marking status=2, verify that gaps with `confidence_score IS NOT NULL` exist for the asset (across **all** flows, not just current flow).
+
+**Handles Edge Cases**:
+- Job crashes after partial gap persistence
+- Manual database modifications
+- Race conditions in concurrent processing
+
+### Stale Detection
+
+**Why Needed**: Asset data may change after AI analysis, making cached results outdated.
+
+**Detection Logic**: Compare `ai_gap_analysis_timestamp` with `asset.updated_at`:
+- If `updated_at > ai_gap_analysis_timestamp` → asset changed after analysis → re-analyze
+- Timestamp is set when status changes to 2 (analysis completes)
+- Status reset to 0 and timestamp cleared on failure
 
 ## Solution Design
 
-### 1. Add AI Analysis Status Flag to Assets Table
+### 1. Add AI Analysis Status Tracking to Assets Table
 
-**Simple status tracking** using integer flag in `assets` table:
+**Simple status tracking** using status flag and timestamp in `assets` table:
 
 ```sql
--- Migration: Add ai_gap_analysis_status column to assets table
+-- Migration: Add AI gap analysis tracking columns to assets table
 ALTER TABLE migration.assets
-ADD COLUMN ai_gap_analysis_status INTEGER NOT NULL DEFAULT 0;
+ADD COLUMN ai_gap_analysis_status INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN ai_gap_analysis_timestamp TIMESTAMP WITH TIME ZONE;
 
 -- Create index for fast lookups
 CREATE INDEX idx_assets_ai_analysis_status ON migration.assets(ai_gap_analysis_status);
 
--- Add comment explaining status codes
+-- Add comments explaining columns
 COMMENT ON COLUMN migration.assets.ai_gap_analysis_status IS
 'AI gap analysis status: 0 = not started, 1 = in progress, 2 = completed successfully';
+
+COMMENT ON COLUMN migration.assets.ai_gap_analysis_timestamp IS
+'Timestamp when AI gap analysis was last completed (status changed to 2). Used to detect stale analysis when compared with asset.updated_at.';
 ```
 
 **Status Codes**:
 - `0` = AI analysis not started (default)
 - `1` = AI analysis in progress (job running)
 - `2` = AI analysis completed and results persisted to database
+
+**Timestamp Purpose**:
+- Records when AI analysis completed (status changed to 2)
+- Compared with `asset.updated_at` to detect stale analysis
+- If `updated_at > ai_gap_analysis_timestamp`, asset data changed after analysis → re-analyze needed
 
 ### 2. Backend Logic Changes
 
@@ -76,23 +124,42 @@ async def process_gap_enhancement_job(
     result = await db.execute(stmt)
     all_assets = result.scalars().all()
 
-    # Filter assets based on AI analysis status
+    # Filter assets based on AI analysis status and staleness
     if force_refresh:
         # User forced re-analysis - analyze all assets
         assets_to_analyze = all_assets
         logger.info(f"🔄 Force refresh enabled - analyzing all {len(all_assets)} assets")
     else:
-        # Skip assets that already completed AI analysis (status = 2)
-        assets_to_analyze = [
-            asset for asset in all_assets
-            if asset.ai_gap_analysis_status != 2
-        ]
-        assets_skipped = len(all_assets) - len(assets_to_analyze)
+        # Skip assets that already completed AI analysis (status = 2) AND aren't stale
+        assets_to_analyze = []
+        assets_skipped = 0
+        assets_stale = 0
+
+        for asset in all_assets:
+            # Check if AI analysis completed
+            if asset.ai_gap_analysis_status != 2:
+                assets_to_analyze.append(asset)
+                continue
+
+            # Check if analysis is stale (asset updated after analysis)
+            if (asset.ai_gap_analysis_timestamp and
+                asset.updated_at and
+                asset.updated_at > asset.ai_gap_analysis_timestamp):
+                assets_to_analyze.append(asset)
+                assets_stale += 1
+                logger.debug(
+                    f"📊 Asset {asset.id} marked for re-analysis - "
+                    f"updated_at={asset.updated_at} > "
+                    f"ai_analysis_timestamp={asset.ai_gap_analysis_timestamp}"
+                )
+            else:
+                assets_skipped += 1
 
         logger.info(
             f"📊 AI analysis plan - "
-            f"Analyze: {len(assets_to_analyze)}, "
-            f"Skipped (already completed): {assets_skipped}"
+            f"Analyze: {len(assets_to_analyze)} "
+            f"(new: {len(assets_to_analyze) - assets_stale}, stale: {assets_stale}), "
+            f"Skipped (cached): {assets_skipped}"
         )
 
     if not assets_to_analyze:
@@ -118,21 +185,65 @@ async def process_gap_enhancement_job(
             db=db,
         )
 
-        # Mark assets as completed (status = 2)
+        # Mark assets as completed (status = 2) with timestamp
+        from datetime import datetime, timezone
+        completion_time = datetime.now(timezone.utc)
+
         for asset in assets_to_analyze:
             asset.ai_gap_analysis_status = 2
+            asset.ai_gap_analysis_timestamp = completion_time
+
         await db.commit()
 
-        logger.info(f"✅ AI analysis completed for {len(assets_to_analyze)} assets")
+        # Verify consistency: gaps with confidence_score should exist
+        await verify_ai_gaps_consistency(assets_to_analyze, db)
+
+        logger.info(
+            f"✅ AI analysis completed for {len(assets_to_analyze)} assets "
+            f"at {completion_time.isoformat()}"
+        )
 
     except Exception as e:
         # Reset status to 0 on failure so analysis can be retried
         for asset in assets_to_analyze:
             asset.ai_gap_analysis_status = 0
+            asset.ai_gap_analysis_timestamp = None
         await db.commit()
 
         logger.error(f"❌ AI analysis failed: {e}")
         raise
+
+
+async def verify_ai_gaps_consistency(
+    assets: List[Asset],
+    db: AsyncSession
+) -> None:
+    """Verify that assets marked as AI-analyzed have gaps with confidence_score.
+
+    This ensures data consistency across all collection flows, not just the current one.
+    """
+    from sqlalchemy import select, func
+    from app.models.collection_data_gap import CollectionDataGap
+
+    for asset in assets:
+        # Check if gaps with AI enhancement exist for this asset (across ALL flows)
+        stmt = select(func.count()).where(
+            CollectionDataGap.asset_id == asset.id,
+            CollectionDataGap.confidence_score.is_not(None)
+        )
+        result = await db.execute(stmt)
+        ai_gaps_count = result.scalar()
+
+        if ai_gaps_count == 0:
+            logger.warning(
+                f"⚠️ Consistency issue: Asset {asset.id} marked as AI-analyzed "
+                f"(status=2) but has no gaps with confidence_score"
+            )
+        else:
+            logger.debug(
+                f"✅ Asset {asset.id} consistency verified - "
+                f"{ai_gaps_count} AI-enhanced gaps found"
+            )
 ```
 
 #### Add force_refresh Parameter to API
@@ -364,14 +475,17 @@ async analyzeGaps(
 ### 4. Database Migration
 
 ```python
-# backend/alembic/versions/093_add_ai_gap_analysis_status_to_assets.py
+# backend/alembic/versions/093_add_ai_gap_analysis_tracking_to_assets.py
 
-"""Add ai_gap_analysis_status to assets table
+"""Add AI gap analysis tracking columns to assets table
 
-Revision ID: 093_ai_gap_status
+Revision ID: 093_ai_gap_tracking
 Revises: 092_add_supported_versions_requirement_details
 Create Date: 2025-01-13
 
+Adds:
+- ai_gap_analysis_status: Track completion status (0=not started, 1=in progress, 2=completed)
+- ai_gap_analysis_timestamp: Track when analysis completed (for stale detection)
 """
 from typing import Sequence, Union
 
@@ -380,14 +494,14 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '093_ai_gap_status'
+revision: str = '093_ai_gap_tracking'
 down_revision: Union[str, None] = '092_add_supported_versions_requirement_details'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Add ai_gap_analysis_status column to assets table."""
+    """Add AI gap analysis tracking columns to assets table."""
 
     op.execute("""
         DO $$
@@ -405,10 +519,26 @@ def upgrade() -> None:
 
                 -- Add comment explaining status codes
                 COMMENT ON COLUMN migration.assets.ai_gap_analysis_status IS
-                'AI gap analysis status: 0 = not started, 1 = in progress, 2 = completed successfully';
+                'AI gap analysis status: 0 = not started, 1 = in progress, 2 = completed successfully. Per-asset, shared across all collection flows.';
             END IF;
 
-            -- Create index if it doesn't exist
+            -- Add ai_gap_analysis_timestamp column if it doesn't exist
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND table_name = 'assets'
+                AND column_name = 'ai_gap_analysis_timestamp'
+            ) THEN
+                ALTER TABLE migration.assets
+                ADD COLUMN ai_gap_analysis_timestamp TIMESTAMP WITH TIME ZONE;
+
+                -- Add comment explaining timestamp purpose
+                COMMENT ON COLUMN migration.assets.ai_gap_analysis_timestamp IS
+                'Timestamp when AI gap analysis was last completed (status changed to 2). Used to detect stale analysis when compared with asset.updated_at.';
+            END IF;
+
+            -- Create partial index for fast lookups (only active statuses)
             IF NOT EXISTS (
                 SELECT 1
                 FROM pg_indexes
@@ -417,14 +547,15 @@ def upgrade() -> None:
                 AND indexname = 'idx_assets_ai_analysis_status'
             ) THEN
                 CREATE INDEX idx_assets_ai_analysis_status
-                ON migration.assets(ai_gap_analysis_status);
+                ON migration.assets(ai_gap_analysis_status)
+                WHERE ai_gap_analysis_status IN (1, 2);  -- Partial index for active statuses
             END IF;
         END $$;
     """)
 
 
 def downgrade() -> None:
-    """Remove ai_gap_analysis_status column from assets table."""
+    """Remove AI gap analysis tracking columns from assets table."""
 
     op.execute("""
         DO $$
@@ -440,7 +571,19 @@ def downgrade() -> None:
                 DROP INDEX migration.idx_assets_ai_analysis_status;
             END IF;
 
-            -- Drop column if exists
+            -- Drop ai_gap_analysis_timestamp column if exists
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND table_name = 'assets'
+                AND column_name = 'ai_gap_analysis_timestamp'
+            ) THEN
+                ALTER TABLE migration.assets
+                DROP COLUMN ai_gap_analysis_timestamp;
+            END IF;
+
+            -- Drop ai_gap_analysis_status column if exists
             IF EXISTS (
                 SELECT 1
                 FROM information_schema.columns
@@ -457,31 +600,83 @@ def downgrade() -> None:
 
 ## Implementation Plan
 
-### Phase 1: Database Schema
-- [ ] Create migration `093_add_ai_gap_analysis_status_to_assets.py`
+### Phase 1: Database Schema (Must-Have)
+- [ ] Create migration `093_add_ai_gap_analysis_tracking_to_assets.py`
+  - [ ] Add `ai_gap_analysis_status` INTEGER column (default 0)
+  - [ ] Add `ai_gap_analysis_timestamp` TIMESTAMP column
+  - [ ] Create partial index on `ai_gap_analysis_status` for statuses 1 and 2
+  - [ ] Add column comments explaining purpose
 - [ ] Run migration: `cd backend && alembic upgrade head`
-- [ ] Verify column and index created
+- [ ] Verify columns and index created:
+  ```sql
+  \d+ migration.assets;  -- Check columns exist
+  \di migration.*ai_analysis*;  -- Check index exists
+  ```
 
-### Phase 2: Backend Logic
+### Phase 2: Backend Logic (Must-Have)
 - [ ] Add `force_refresh` parameter to `AnalyzeGapsRequest` schema
-- [ ] Update `process_gap_enhancement_job()` to check status and skip completed assets
+- [ ] Update `process_gap_enhancement_job()`:
+  - [ ] Check status and skip completed assets (status=2)
+  - [ ] Add stale detection (compare `ai_gap_analysis_timestamp` with `asset.updated_at`)
+  - [ ] Mark assets as status=1 when starting
+  - [ ] Mark assets as status=2 with timestamp when completed
+  - [ ] Reset status=0 and timestamp=None on failure
+- [ ] Add `verify_ai_gaps_consistency()` function:
+  - [ ] Query gaps with `confidence_score IS NOT NULL` for each asset
+  - [ ] Log warnings if status=2 but no AI-enhanced gaps exist
+  - [ ] Called after successful analysis completion
 - [ ] Update `analyze_gaps()` endpoint to pass `force_refresh` parameter
-- [ ] Mark assets as status=1 when starting, status=2 when completed, status=0 on failure
 
-### Phase 3: Frontend UI
+### Phase 3: Frontend UI (Must-Have)
 - [ ] Add `force_refresh` parameter to `analyzeGaps()` API call
 - [ ] Check `ai_gap_analysis_status` to determine if AI analysis completed
 - [ ] Show Accept/Reject buttons ONLY when status=2 (AI completed)
-- [ ] Update status message based on AI completion
+- [ ] Update status message based on AI completion:
+  - [ ] "AI-enhanced gap analysis is complete" when status=2
+  - [ ] "Heuristic gap analysis is complete. AI enhancement will run automatically" when status ≠ 2
 - [ ] Add "Force Re-Analysis" button for manual re-triggering
 - [ ] Delay questionnaire button by 20 seconds
 
-### Phase 4: Testing
+### Phase 4: Testing (Must-Have)
 - [ ] Test auto-trigger skips assets with status=2
+- [ ] Test stale detection re-analyzes assets when `updated_at > ai_gap_analysis_timestamp`
 - [ ] Test force refresh re-analyzes all assets
+- [ ] Test consistency verification logs warnings for mismatches
 - [ ] Test Accept/Reject buttons only appear when status=2
 - [ ] Test status messages show correct text
 - [ ] Test questionnaire button appears after 20-second delay
+- [ ] Test timestamp is set correctly when analysis completes
+
+### Phase 5: Background Cleanup Job (Should-Have)
+- [ ] Create background job to reset stale status=1 entries
+  - [ ] Query assets with status=1 and `updated_at` > 1 hour ago
+  - [ ] Reset to status=0 and timestamp=None
+  - [ ] Run hourly via scheduler
+- [ ] Add monitoring for cleanup job execution
+
+### Phase 6: Monitoring & Metrics (Should-Have)
+- [ ] Add Grafana dashboard panels:
+  - [ ] Cache hit rate (assets skipped / total assets)
+  - [ ] Stale detection rate (assets re-analyzed due to staleness)
+  - [ ] Force refresh usage rate
+  - [ ] Consistency verification failure rate
+- [ ] Track cost savings in `llm_usage_logs`:
+  - [ ] Log "cache_hit" when asset skipped
+  - [ ] Calculate savings = skipped_assets × avg_cost_per_asset
+- [ ] Add structured logging:
+  ```python
+  logger.info(
+      "AI analysis plan",
+      extra={
+          "flow_id": collection_flow_id,
+          "total_assets": len(all_assets),
+          "assets_to_analyze": len(assets_to_analyze),
+          "assets_skipped": assets_skipped,
+          "assets_stale": assets_stale,
+          "force_refresh": force_refresh
+      }
+  )
+  ```
 
 ## Benefits
 
@@ -527,6 +722,18 @@ def downgrade() -> None:
 
 ---
 
-**Estimated Implementation Time**: 2-3 days
+## Implementation Estimates
+
+**Total Implementation Time**: 3-5 days
+
+**Phase Breakdown**:
+- Phase 1 (Database): 0.5 day (migration + verification)
+- Phase 2 (Backend): 1-2 days (logic + consistency verification)
+- Phase 3 (Frontend): 1 day (UI + force refresh)
+- Phase 4 (Testing): 1 day (comprehensive testing)
+- Phase 5 (Cleanup Job): 0.5 day (optional, should-have)
+- Phase 6 (Monitoring): 0.5-1 day (optional, should-have)
+
 **Estimated Cost Savings**: 80% reduction in LLM costs for repeat analysis
-**Complexity**: Low (single column, simple status checks)
+**Complexity**: Low-Medium (adds timestamp + consistency verification to simple status flag)
+**Risk Level**: Low (well-defined scope, clear rollback strategy)
