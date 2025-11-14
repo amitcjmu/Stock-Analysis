@@ -9,10 +9,7 @@ Usage: python backfill_cmdb_fields.py <discovery_flow_id>
 """
 import asyncio
 import os
-from datetime import datetime
-from typing import Dict, Any
-from uuid import UUID
-from sqlalchemy import text, select, and_
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -345,11 +342,11 @@ async def backfill_cmdb_data(flow_id: str, dry_run: bool = False):
 
         if not dry_run:
             await session.commit()
-            print(f"\n✅ BACKFILL COMPLETE!")
+            print("\n✅ BACKFILL COMPLETE!")
         else:
-            print(f"\n🔍 DRY RUN COMPLETE (no changes made)")
+            print("\n🔍 DRY RUN COMPLETE (no changes made)")
 
-        print(f"\n📊 Summary:")
+        print("\n📊 Summary:")
         print(f"   Assets updated: {updated_assets}")
         print(f"   EOL records created: {eol_records_created}")
         print(f"   Contact records created: {contact_records_created}")

@@ -13,7 +13,7 @@ import ast
 import tempfile
 from pathlib import Path
 from typing import Optional
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -36,11 +36,6 @@ class TestProviderDetection:
         response_obj.usage = Mock(
             prompt_tokens=100, completion_tokens=50, total_tokens=150
         )
-
-        kwargs = {
-            "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-            "metadata": {},
-        }
 
         # Extract provider using same logic as callback
         provider = "unknown"

@@ -9,9 +9,7 @@ Usage: python backfill_all_cmdb_fields.py <discovery_flow_id> [--dry-run]
 """
 import asyncio
 import os
-from datetime import datetime
-from typing import Dict, Any, Optional
-from uuid import UUID
+from typing import Dict, Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -226,7 +224,7 @@ async def backfill_comprehensive_cmdb(flow_id: str, dry_run: bool = False):
         print(f"\n{'='*80}")
         print(f"COMPREHENSIVE CMDB BACKFILL FOR FLOW: {flow_id}")
         print(f"Mode: {'DRY RUN (no changes)' if dry_run else 'LIVE UPDATE'}")
-        print(f"Covers: ALL ~60+ CMDB fields (not just 24 new ones)")
+        print("Covers: ALL ~60+ CMDB fields (not just 24 new ones)")
         print(f"{'='*80}\n")
 
         # Get all assets with both cleansed_data AND raw_data (for emails/EOL)
@@ -270,9 +268,9 @@ async def backfill_comprehensive_cmdb(flow_id: str, dry_run: bool = False):
             if idx <= 3:  # Show first 3 for debugging
                 print(f"🔍 Asset {idx}: {asset.asset_name} (Type: {asset.asset_type})")
                 print(f"   Cleansed data keys: {list(cleansed.keys())[:10]}...")
-                print(
-                    f"   Raw data has emails: BO={bool(raw.get('business_owner_email'))}, TO={bool(raw.get('technical_owner_email'))}"
-                )
+                bo_email = bool(raw.get("business_owner_email"))
+                to_email = bool(raw.get("technical_owner_email"))
+                print(f"   Raw data has emails: BO={bo_email}, TO={to_email}")
 
             # Extract ALL CMDB fields
             cmdb_fields = extract_all_cmdb_fields(cleansed)
@@ -479,18 +477,18 @@ async def backfill_comprehensive_cmdb(flow_id: str, dry_run: bool = False):
         # Commit if not dry run
         if not dry_run:
             await session.commit()
-            print(f"\n✅ COMPREHENSIVE BACKFILL COMPLETE!\n")
+            print("\n✅ COMPREHENSIVE BACKFILL COMPLETE!\n")
         else:
-            print(f"\n🔍 DRY RUN COMPLETE (no changes made)\n")
+            print("\n🔍 DRY RUN COMPLETE (no changes made)\n")
 
         # Summary
         print(f"{'='*80}")
-        print(f"SUMMARY")
+        print("SUMMARY")
         print(f"{'='*80}")
         print(f"Assets processed: {assets_updated}")
         print(f"EOL records created: {eol_records}")
         print(f"Contact records created: {contact_records}")
-        print(f"\nFields with data (coverage):")
+        print("\nFields with data (coverage):")
         for field, count in sorted(fields_populated_count.items(), key=lambda x: -x[1])[
             :20
         ]:

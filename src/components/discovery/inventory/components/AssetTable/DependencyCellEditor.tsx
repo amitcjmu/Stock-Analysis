@@ -22,7 +22,7 @@ interface DependencyCellEditorProps extends ICellEditorParams {
 
 export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAssets, setSelectedAssets] = useState<(number | string)[]>([]); // CC FIX: Support both number IDs and UUID strings
+  const [selectedAssets, setSelectedAssets] = useState<Array<number | string>>([]); // CC FIX: Support both number IDs and UUID strings
   const [availableAssets, setAvailableAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
@@ -68,9 +68,9 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
     if (props.updateField && props.data && props.colDef.field) {
       // Use setTimeout to ensure this runs after the editor closes
       setTimeout(() => {
-        props.updateField!({
+        props.updateField({
           asset_id: props.data!.id,
-          field_name: props.colDef.field!,
+          field_name: props.colDef.field,
           field_value: newValue,
         });
         console.log('[DependencyCellEditor] Called updateField to save to backend');
@@ -94,7 +94,7 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
 
       // Value could be comma-separated numeric IDs or UUIDs
       const parts = props.value.toString().split(',').map(p => p.trim());
-      const ids: (number | string)[] = [];
+      const ids: Array<number | string> = [];
 
       parts.forEach(part => {
         // Check if the part is a valid integer string (not UUID starting with digits)

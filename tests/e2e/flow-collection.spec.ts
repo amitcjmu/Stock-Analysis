@@ -10,7 +10,7 @@ test.describe('Collection Flow - Complete E2E Tests', () => {
     await page.waitForLoadState('domcontentloaded');
     const bodyText = await page.textContent('body');
     expect(bodyText).toContain('Collection');
-    
+
     await page.screenshot({ path: 'test-results/collection-page.png' });
   });
 
@@ -26,10 +26,10 @@ test.describe('Collection Flow - Complete E2E Tests', () => {
     const dataGrid = page.locator('table, [role="grid"], .data-grid');
     const hasGrid = await dataGrid.count() > 0;
     console.log('Has data grid:', hasGrid);
-    
+
     // Check for data source references
     const bodyText = await page.textContent('body');
-    const hasDataSource = bodyText?.toLowerCase().includes('cmdb') || 
+    const hasDataSource = bodyText?.toLowerCase().includes('cmdb') ||
                           bodyText?.toLowerCase().includes('import') ||
                           bodyText?.toLowerCase().includes('source');
     console.log('Has data source references:', hasDataSource);
@@ -39,7 +39,7 @@ test.describe('Collection Flow - Complete E2E Tests', () => {
     // Look for export buttons
     const exportButton = page.locator('button:has-text("Export"), button:has-text("Download")');
     const exportCount = await exportButton.count();
-    
+
     if (exportCount > 0) {
       console.log(`✓ Found ${exportCount} export button(s)`);
     } else {
@@ -51,7 +51,7 @@ test.describe('Collection Flow - Complete E2E Tests', () => {
     // Look for bulk action buttons
     const bulkActions = page.locator('button:has-text("Bulk"), button:has-text("Select All")');
     const bulkCount = await bulkActions.count();
-    
+
     console.log(`Bulk action buttons: ${bulkCount}`);
   });
 });

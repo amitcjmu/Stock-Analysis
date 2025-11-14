@@ -16,7 +16,7 @@ test.describe('FinOps Flow - Complete E2E Tests', () => {
     const costElements = page.locator('.cost, .price, [data-testid*="cost"]');
     const costCount = await costElements.count();
     console.log('Cost elements found:', costCount);
-    
+
     const bodyText = await page.textContent('body');
     const hasCurrency = bodyText?.includes('$') || bodyText?.includes('USD');
     console.log('Has currency data:', hasCurrency);

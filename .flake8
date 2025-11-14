@@ -58,6 +58,9 @@ per-file-ignores =
     backend/scripts/test_railway_connection.py:C901
     backend/scripts/unified_model_planning.py:C901
     backend/scripts/validate_flow_relationships.py:C901
+    # CMDB testing/backfill scripts are complex utilities
+    backend/scripts/cmdb_testing/backfill_all_cmdb_fields.py:C901
+    backend/scripts/cmdb_testing/backfill_cmdb_fields.py:C901
     # Service files may have complex business logic
     backend/app/api/v1/endpoints/sixr_analysis_modular/services/analysis_service.py:C901
     # Assessment endpoints may have complex progress tracking logic

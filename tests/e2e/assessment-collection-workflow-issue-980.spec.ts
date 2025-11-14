@@ -147,7 +147,7 @@ test.describe('Assessment → Collection → Assessment Workflow (Issue #980)', 
 
     // Extract assessment flow ID from URL or page
     const currentUrl = page.url();
-    const urlMatch = currentUrl.match(/\/assessment\/([^\/]+)/);
+    const urlMatch = currentUrl.match(/\/assessment\/([^/]+)/);
     if (urlMatch && urlMatch[1] !== 'overview') {
       assessmentFlowId = urlMatch[1];
       console.log(`✅ Found assessment flow ID from URL: ${assessmentFlowId}`);

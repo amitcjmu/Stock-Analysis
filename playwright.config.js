@@ -12,7 +12,7 @@ export default defineConfig({
     ['line'],
     ['json', { outputFile: 'test-results/results.json' }]
   ],
-  
+
   use: {
     baseURL: 'http://localhost:8081',
     trace: 'on-first-retry',

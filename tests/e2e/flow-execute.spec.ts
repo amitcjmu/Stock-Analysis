@@ -16,11 +16,11 @@ test.describe('Execute Flow - Complete E2E Tests', () => {
     const statusIndicators = page.locator('[data-status], .status');
     const statusCount = await statusIndicators.count();
     console.log('Status indicators found:', statusCount);
-    
+
     const inProgress = await page.locator('[data-status="in-progress"]').count();
     const completed = await page.locator('[data-status="completed"]').count();
     const pending = await page.locator('[data-status="pending"]').count();
-    
+
     console.log(`Status - In Progress: ${inProgress}, Completed: ${completed}, Pending: ${pending}`);
   });
 

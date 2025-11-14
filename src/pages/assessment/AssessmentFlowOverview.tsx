@@ -32,6 +32,8 @@ interface AssessmentFlow {
   created_at: string;
   updated_at: string;
   created_by: string;
+  client_account_id: string; // Added for tenant context extraction
+  engagement_id: string; // Added for tenant context extraction
 }
 
 interface AssessmentFlowMetrics {
@@ -221,9 +223,10 @@ const AssessmentFlowOverview = (): JSX.Element => {
     return flows.find(f => f.status === 'processing' || f.status === 'initialized') || flows[0];
   }, [selectedFlowForDetails, flows]);
 
-  // Extract multi-tenant context from user
-  const clientAccountId = user?.client_account_id || '1'; // Default fallback
-  const engagementId = user?.engagement_id || undefined;
+  // Extract multi-tenant context from selected flow (not user object)
+  // Fix for "Assessment flow not found" errors - use flow's own tenant context
+  const clientAccountId = flowForWidgets?.client_account_id || user?.client_account_id || '1';
+  const engagementId = flowForWidgets?.engagement_id || user?.engagement_id || undefined;
 
   const handleCollectMissingData = () => {
     if (collectionFlowId) {

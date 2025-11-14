@@ -125,7 +125,9 @@ async def _generate_questionnaires_per_section(  # noqa: C901
             # Generate sections in parallel for all (asset, section) combinations
             tasks = []
             for asset in existing_assets:
-                asset_gaps = gaps_by_asset.get(asset.id, [])
+                # CRITICAL FIX: gap scanner returns asset_id as string, but asset.id is UUID
+                # Must convert to string for dictionary lookup to work
+                asset_gaps = gaps_by_asset.get(str(asset.id), [])
                 if not asset_gaps:
                     logger.info(
                         f"Asset {asset.name} ({asset.id}) has no gaps, skipping questionnaire generation"

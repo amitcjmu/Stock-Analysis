@@ -13,8 +13,8 @@ This test suite covers all major user flows:
 - ✅ Execution Flow (migration status)
 - ✅ Decommission, FinOps, Modernize flows
 
-**Test Framework**: [Playwright](https://playwright.dev/)  
-**Language**: TypeScript  
+**Test Framework**: [Playwright](https://playwright.dev/)
+**Language**: TypeScript
 **Target Environment**: Docker (http://localhost:8081)
 
 ## Running Tests

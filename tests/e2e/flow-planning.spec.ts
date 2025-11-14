@@ -16,7 +16,7 @@ test.describe('Planning Flow - Complete E2E Tests', () => {
     const waves = page.locator('.wave, [data-testid*="wave"]');
     const waveCount = await waves.count();
     console.log('Migration waves found:', waveCount);
-    
+
     const timeline = page.locator('.timeline, [role="progressbar"]');
     const hasTimeline = await timeline.count() > 0;
     console.log('Timeline view available:', hasTimeline);
@@ -26,7 +26,7 @@ test.describe('Planning Flow - Complete E2E Tests', () => {
     const resources = page.locator('.resource, [data-testid*="resource"]');
     const resourceCount = await resources.count();
     console.log('Resource elements:', resourceCount);
-    
+
     const bodyText = await page.textContent('body');
     const hasResourcePlanning = bodyText?.toLowerCase().includes('resource') ||
                                bodyText?.toLowerCase().includes('capacity');

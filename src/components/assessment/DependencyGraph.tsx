@@ -6,9 +6,10 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import ReactFlow, {
+import type {
   Node,
-  Edge,
+  Edge} from 'reactflow';
+import ReactFlow, {
   Controls,
   Background,
   BackgroundVariant,

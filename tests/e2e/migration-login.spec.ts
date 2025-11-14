@@ -9,10 +9,10 @@ test.describe('Migration Platform - Login Page Tests', () => {
   test('should load login page successfully', async ({ page }) => {
     // Check URL
     await expect(page).toHaveURL(/localhost:8081/);
-    
+
     // Check page title
     await expect(page).toHaveTitle('AI powered Migration Orchestrator');
-    
+
     // Check for root div
     const rootDiv = page.locator('#root');
     await expect(rootDiv).toBeVisible();
@@ -22,11 +22,11 @@ test.describe('Migration Platform - Login Page Tests', () => {
     // Check for email input
     const emailInput = page.locator('input[type="email"], input[placeholder*="Email"]');
     await expect(emailInput).toBeVisible();
-    
+
     // Check for password input
     const passwordInput = page.locator('input[type="password"]');
     await expect(passwordInput).toBeVisible();
-    
+
     // Check for Sign In button
     const signInButton = page.locator('button:has-text("Sign In")');
     await expect(signInButton).toBeVisible();

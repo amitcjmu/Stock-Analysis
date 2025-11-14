@@ -21,6 +21,7 @@ EXCLUDE_PATTERNS = [
     "*/tests/*",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
     "*/test_*.py",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
     "*_test.py",  # Test files are EXEMPT from 400 line limit per CLAUDE.md
+    "*/scripts/cmdb_testing/*",  # CMDB testing/backfill scripts are utilities
     "*/venv/*",
     "*/node_modules/*",
     "*/__pycache__/*",

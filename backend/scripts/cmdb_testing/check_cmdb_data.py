@@ -4,7 +4,7 @@ Script to check CMDB fields population in assets table and child tables.
 """
 import asyncio
 import os
-from sqlalchemy import create_engine, text, select, and_
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 

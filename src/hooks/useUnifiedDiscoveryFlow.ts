@@ -482,19 +482,30 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(2000 * Math.pow(2, attemptIndex), 8000), // 2s, 4s, 8s max
-    onError: (error: Error | unknown) => {
+    // Note: onError removed - React Query v5 deprecated onError for useQuery
+    // Error handling is now done via useEffect watching the error state
+  });
+
+  // Handle 404 errors by clearing stale flow IDs from localStorage
+  // React Query v5 removed onError for useQuery, so we handle errors via useEffect
+  useEffect(() => {
+    if (error) {
       // Stop polling on error
       setPollingEnabled(false);
 
       // Clear invalid flow ID from localStorage on 404 error
       const errorObj = error as { status?: number; response?: { status?: number }; message?: string };
-      if (errorObj?.status === 404 || errorObj?.response?.status === 404 ||
-          errorObj?.message?.includes('404') || errorObj?.message?.includes('Not Found')) {
+      const is404 = errorObj?.status === 404 ||
+                    errorObj?.response?.status === 404 ||
+                    errorObj?.message?.includes('404') ||
+                    errorObj?.message?.includes('Not Found');
+
+      if (is404) {
         SecureLogger.warn(`Flow ${flowId} not found (404), clearing from storage`);
 
         // Clear from SecureStorage
         if (flowId) {
-          SecureStorage.removeFlowId();
+          SecureStorage.clearFlowId();
         }
 
         // Also clear all flow-related items from localStorage
@@ -505,7 +516,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
         }
       }
     }
-  });
+  }, [error, flowId]);
 
   // Reset polling when flow ID changes
   useEffect(() => {

@@ -9,7 +9,7 @@ test.describe('Migration Platform - Navigation Tests', () => {
   test('should navigate to Discovery section', async ({ page }) => {
     await page.click('text=Discovery');
     await page.waitForLoadState('domcontentloaded');
-    
+
     const url = page.url();
     console.log('Discovery URL:', url);
   });
@@ -17,7 +17,7 @@ test.describe('Migration Platform - Navigation Tests', () => {
   test('should navigate to Collection section', async ({ page }) => {
     await page.click('text=Collection');
     await page.waitForLoadState('domcontentloaded');
-    
+
     const url = page.url();
     console.log('Collection URL:', url);
   });
@@ -25,7 +25,7 @@ test.describe('Migration Platform - Navigation Tests', () => {
   test('should navigate to Assess section', async ({ page }) => {
     await page.click('text=Assess');
     await page.waitForLoadState('domcontentloaded');
-    
+
     const url = page.url();
     console.log('Assess URL:', url);
   });

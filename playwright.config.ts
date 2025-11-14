@@ -9,13 +9,13 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : 4,
   timeout: 60000,
-  
+
   reporter: [
     ['html', { outputFolder: 'playwright-report' }], // Changed from test-results/html
     ['list'],
     ['json', { outputFile: 'test-results/results.json' }],
   ],
-  
+
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:8081',
     trace: 'retain-on-failure',
@@ -33,7 +33,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  
+
   webServer: {
     command: 'echo "Docker services should already be running"',
     url: 'http://localhost:8081',

@@ -16,7 +16,7 @@ test.describe('Migration Platform - Homepage Tests', () => {
     // The homepage is actually the login page, which doesn't have nav elements
     // Check for login page elements instead
     const pageContent = await page.textContent('body');
-    
+
     // If on login page, check for login elements
     if (pageContent?.includes('Sign In') || pageContent?.includes('Email')) {
       const loginElements = page.locator('input[type="email"], input[type="password"], button').first();

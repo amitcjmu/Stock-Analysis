@@ -71,14 +71,14 @@ async function seedTestAssets() {
 
     // Check if test assets already exist
     const checkResult = await client.query(
-      `SELECT COUNT(*) as count FROM migration.assets 
-       WHERE client_account_id = $1 AND engagement_id = $2 
+      `SELECT COUNT(*) as count FROM migration.assets
+       WHERE client_account_id = $1 AND engagement_id = $2
        AND name LIKE 'test-%'`,
       [DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID]
     );
 
     const existingCount = parseInt(checkResult.rows[0].count);
-    
+
     if (existingCount >= 3) {
       console.log(`✅ Test assets already exist (${existingCount} found)`);
       return;
@@ -86,8 +86,8 @@ async function seedTestAssets() {
 
     // Delete old test assets
     await client.query(
-      `DELETE FROM migration.assets 
-       WHERE client_account_id = $1 AND engagement_id = $2 
+      `DELETE FROM migration.assets
+       WHERE client_account_id = $1 AND engagement_id = $2
        AND name LIKE 'test-%'`,
       [DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID]
     );
@@ -97,16 +97,16 @@ async function seedTestAssets() {
     for (const asset of TEST_ASSETS) {
       await client.query(
         `INSERT INTO migration.assets (
-          id, client_account_id, engagement_id, 
-          name, asset_type, hostname, ip_address, 
-          environment, operating_system, cpu_cores, 
-          memory_gb, storage_gb, application_name, 
+          id, client_account_id, engagement_id,
+          name, asset_type, hostname, ip_address,
+          environment, operating_system, cpu_cores,
+          memory_gb, storage_gb, application_name,
           criticality, status, created_at, updated_at
         ) VALUES (
-          gen_random_uuid(), $1, $2, 
-          $3, $4, $5, $6, 
-          $7, $8, $9, 
-          $10, $11, $12, 
+          gen_random_uuid(), $1, $2,
+          $3, $4, $5, $6,
+          $7, $8, $9,
+          $10, $11, $12,
           $13, $14, NOW(), NOW()
         )`,
         [
