@@ -8,6 +8,7 @@ import logging
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.api_tags import APITags
 from app.core.database import get_db
 
 # Import modular handlers
@@ -16,6 +17,7 @@ from .handlers.field_handler import router as field_handler
 
 # from .handlers.legacy_upload_handler import router as legacy_upload_router  # File doesn't exist
 from .handlers.import_retrieval_handler import router as import_retrieval_router
+from .handlers.upload_handler import router as upload_router
 
 # Import agentic intelligence modules
 AGENTIC_AVAILABLE = False
@@ -27,10 +29,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Include all handler routers with proper prefixes
-router.include_router(clean_api_router, tags=["Clean API"])
+router.include_router(clean_api_router, tags=[APITags.CLEAN_API])
 # router.include_router(legacy_upload_router, tags=["Legacy Upload"])  # Router not available - file doesn't exist
-router.include_router(import_retrieval_router, tags=["Import Retrieval"])
-router.include_router(field_handler, tags=["Field Mapping"])
+router.include_router(import_retrieval_router, tags=[APITags.IMPORT_RETRIEVAL])
+router.include_router(field_handler, tags=[APITags.FIELD_MAPPING])
+router.include_router(upload_router, tags=[APITags.DATA_IMPORT_CORE])
 
 # Critical attributes analysis handled by MasterFlowOrchestrator with real CrewAI agents
 logger.info("📦 Critical attributes analysis now handled by MasterFlowOrchestrator")
@@ -44,6 +47,7 @@ async def health_check():
         "clean_api_handler",
         "import_retrieval_handler",
         "field_handler",
+        "upload_handler",
     ]
 
     if AGENTIC_AVAILABLE:

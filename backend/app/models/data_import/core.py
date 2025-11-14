@@ -14,8 +14,9 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -69,6 +70,17 @@ class DataImport(Base):
         String(50),
         nullable=False,
         comment="The type of data being imported (e.g., 'cmdb', 'asset_inventory').",
+    )
+    import_category = Column(
+        String(50),
+        nullable=True,
+        comment="High-level category for routing import processing.",
+    )
+    processing_config = Column(
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        comment="Processor configuration blob scoped to import category.",
     )
     description = Column(
         Text,

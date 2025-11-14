@@ -99,6 +99,8 @@ class StoreImportRequest(BaseModel):
     client_id: Optional[str] = None
     engagement_id: Optional[str] = None
     cleansing_stats: Optional[CleansingStats] = None
+    import_category: Optional[str] = None
+    processing_config: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ValidationFlow(BaseModel):

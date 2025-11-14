@@ -1,0 +1,156 @@
+"""
+Upload handler for multi-category data imports.
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from typing import Any, Dict, List
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import (
+    RequestContext,
+    get_current_context_dependency,
+)
+from app.core.database import get_db
+from app.core.logging import get_logger
+from app.schemas.data_import_schemas import (
+    FileMetadata,
+    StoreImportRequest,
+    UploadContext,
+)
+from app.services.data_import import ImportStorageHandler
+
+logger = get_logger(__name__)
+
+SUPPORTED_IMPORT_CATEGORIES = {
+    "cmdb_export",
+    "app_discovery",
+    "infrastructure",
+    "sensitive_data",
+}
+
+router = APIRouter()
+
+
+@router.post("/upload")
+async def upload_data_import(
+    file: UploadFile = File(...),
+    import_category: str = Form(...),
+    processing_config: str | None = Form(None),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> Dict[str, Any]:
+    """
+    Ingest a data import file and queue background processing.
+
+    The payload is multipart/form-data with:
+      - file: UploadFile
+      - import_category: Upload category identifier
+      - processing_config: Optional JSON object with processor configuration
+    """
+    normalized_category = import_category.lower()
+    if normalized_category not in SUPPORTED_IMPORT_CATEGORIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported import_category '{import_category}'. "
+            f"Supported categories: {sorted(SUPPORTED_IMPORT_CATEGORIES)}",
+        )
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty.",
+        )
+
+    try:
+        parsed_data = json.loads(file_bytes.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        logger.error("Failed to parse uploaded file as JSON: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file must be valid JSON representing import records.",
+        ) from exc
+
+    records = _normalize_records(parsed_data)
+    if not records:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No records found in uploaded file.",
+        )
+
+    try:
+        config_payload = json.loads(processing_config) if processing_config else {}
+        if not isinstance(config_payload, dict):
+            raise ValueError("processing_config must be a JSON object.")
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="processing_config must be a valid JSON object.",
+        ) from exc
+
+    metadata = FileMetadata(
+        filename=file.filename or "uploaded-data.json",
+        size=len(file_bytes),
+        type=file.content_type or "application/json",
+    )
+    upload_context = UploadContext(
+        intended_type=normalized_category,
+        upload_timestamp=datetime.utcnow().isoformat(),
+    )
+
+    store_request = StoreImportRequest(
+        file_data=records,
+        metadata=metadata,
+        upload_context=upload_context,
+        client_id=context.client_account_id,
+        engagement_id=context.engagement_id,
+        import_category=normalized_category,
+        processing_config=config_payload,
+    )
+
+    handler = ImportStorageHandler(db, context.client_account_id)
+    response = await handler.handle_import(store_request, context)
+
+    if not response.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=response.get("message", "Failed to process import."),
+        )
+
+    return {
+        "data_import_id": response.get("data_import_id"),
+        "master_flow_id": response.get("flow_id"),
+        "records_stored": response.get("records_stored"),
+        "status": "queued",
+        "message": "Import stored and background processing started.",
+        "import_category": normalized_category,
+        "processing_config": config_payload,
+    }
+
+
+def _normalize_records(payload: Any) -> List[Dict[str, Any]]:
+    """
+    Normalize uploaded payload into a list of dictionaries.
+    """
+    if isinstance(payload, list):
+        return [dict(item) for item in payload if isinstance(item, dict)]
+
+    if isinstance(payload, dict):
+        if "data" in payload and isinstance(payload["data"], list):
+            return [dict(item) for item in payload["data"] if isinstance(item, dict)]
+        return [payload]
+
+    return []

@@ -50,6 +50,8 @@ class ImportCommandsMixin:
         status: str = "processing",
         engagement_id: Optional[str] = None,
         imported_by: Optional[str] = None,
+        import_category: Optional[str] = None,
+        processing_config: Optional[Dict[str, Any]] = None,
     ) -> DataImport:
         """
         Store import data and create DataImport record.
@@ -59,6 +61,8 @@ class ImportCommandsMixin:
             filename: Name of the imported file
             file_content_type: MIME type of the file
             import_type: Type of import (e.g., 'cmdb')
+            import_category: High-level category for processor routing
+            processing_config: Optional processor configuration overrides
             status: Initial status for the import
             engagement_id: Optional engagement ID
             imported_by: Optional user ID who imported
@@ -77,6 +81,8 @@ class ImportCommandsMixin:
                 engagement_id=engagement_id,
                 import_name=f"{filename} Import",
                 import_type=import_type,
+                import_category=import_category,
+                processing_config=processing_config or {},
                 description=f"Data import for {import_type} category",
                 filename=filename,
                 file_size=len(file_content),
