@@ -463,6 +463,11 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
                           }`}>
                             {asset.discovery_status}
                           </span>
+                          {asset.mapped_to_application_id && (
+                            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                              Mapped to: {asset.mapped_to_application_name}
+                            </span>
+                          )}
                         </div>
 
                         <div className="mt-2 text-sm text-gray-600">
@@ -472,7 +477,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
                       <div className="ml-4 flex items-center gap-2">
                         <select
-                          value={assetMappings[asset.asset_id] || ""}
+                          value={assetMappings[asset.asset_id] || asset.mapped_to_application_id || ""}
                           onChange={(e) => handleMappingChange(asset.asset_id, e.target.value)}
                           className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           disabled={mappingInProgress === asset.asset_id}
@@ -487,10 +492,14 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
                         <button
                           onClick={() => handleApplyMapping(asset.asset_id)}
-                          disabled={!assetMappings[asset.asset_id] || mappingInProgress === asset.asset_id}
+                          disabled={
+                            (!assetMappings[asset.asset_id] && !asset.mapped_to_application_id) ||
+                            (assetMappings[asset.asset_id] === asset.mapped_to_application_id) ||
+                            mappingInProgress === asset.asset_id
+                          }
                           className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          {mappingInProgress === asset.asset_id ? 'Mapping...' : 'Map'}
+                          {mappingInProgress === asset.asset_id ? 'Mapping...' : (asset.mapped_to_application_id ? 'Update' : 'Map')}
                         </button>
                       </div>
                     </div>
