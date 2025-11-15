@@ -177,13 +177,34 @@ async def analyze_gaps(
 
             if existing_job:
                 job_status = existing_job.get("status")
+                existing_idempotency_key = existing_job.get("idempotency_key")
 
-                # Block if job is actively running
+                # Idempotency: If SAME asset set (same idempotency_key) is already processing,
+                # return existing job to prevent duplicate LLM calls
+                if existing_idempotency_key == idempotency_key and job_status in [
+                    "queued",
+                    "running",
+                ]:
+                    logger.info(
+                        f"🔁 Idempotency: Returning existing job {existing_job.get('job_id')} "
+                        f"for idempotency_key {idempotency_key}"
+                    )
+                    return {
+                        "job_id": existing_job.get("job_id"),
+                        "status": "already_running",
+                        "progress_url": f"/api/v1/collection/{flow_id}/enhancement-progress",
+                        "message": (
+                            f"Job already running for these assets. "
+                            f"Job ID: {existing_job.get('job_id')}"
+                        ),
+                    }
+
+                # Block if DIFFERENT job is actively running for this flow
                 if job_status in ["queued", "running"]:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
                         detail=(
-                            f"Enhancement job already running for this flow. "
+                            f"Different enhancement job already running for this flow. "
                             f"Job ID: {existing_job.get('job_id')}"
                         ),
                     )

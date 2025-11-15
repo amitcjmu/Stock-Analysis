@@ -8,6 +8,7 @@ as required by GPT5 PR feedback.
 """
 
 import hashlib
+import json
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
@@ -221,10 +222,72 @@ class TestAnalyzeGapsEndpoint:
                         assert "/enhancement-progress" in result["progress_url"]
 
     @pytest.mark.asyncio
-    async def test_analyze_gaps_idempotency_409_conflict(
+    async def test_analyze_gaps_idempotency_returns_existing_job(
         self, mock_context, analyze_request
     ):
-        """Test idempotency - resubmitting same gaps returns 409."""
+        """Test idempotency - resubmitting same gaps returns existing job."""
+        # Lazy import to avoid Redis initialization at collection time
+        from app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers import (
+            analyze_gaps,
+        )
+
+        mock_db = AsyncMock(spec=AsyncSession)
+        background_tasks = BackgroundTasks()
+        flow_id = str(uuid4())
+
+        # Calculate the same idempotency key that the endpoint will generate
+        asset_ids_sorted = sorted(analyze_request.selected_asset_ids)
+        expected_idempotency_key = hashlib.sha256(
+            json.dumps(asset_ids_sorted).encode()
+        ).hexdigest()[:16]
+
+        with patch(
+            "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+            ".gap_analysis_handlers.resolve_collection_flow"
+        ) as mock_resolve:
+            mock_flow = MagicMock()
+            mock_flow.id = uuid4()
+            mock_resolve.return_value = mock_flow
+
+            with patch(
+                "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                ".gap_analysis_handlers.get_redis_manager"
+            ) as mock_redis:
+                mock_redis_manager = MagicMock()
+                mock_redis_manager.is_available.return_value = True
+                mock_redis.return_value = mock_redis_manager
+
+                # Mock existing running job with SAME idempotency key
+                with patch(
+                    "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
+                    ".gap_analysis_handlers.get_job_state"
+                ) as mock_get_state:
+                    mock_get_state.return_value = {
+                        "job_id": "existing_job_12345",
+                        "status": "running",
+                        "idempotency_key": expected_idempotency_key,  # Same asset set
+                    }
+
+                    # Should return existing job (idempotent)
+                    result = await analyze_gaps(
+                        flow_id=flow_id,
+                        request_body=analyze_request,
+                        background_tasks=background_tasks,
+                        context=mock_context,
+                        db=mock_db,
+                    )
+
+                    # Verify idempotent response
+                    assert result["status"] == "already_running"
+                    assert result["job_id"] == "existing_job_12345"
+                    assert "progress_url" in result
+                    assert flow_id in result["progress_url"]
+
+    @pytest.mark.asyncio
+    async def test_analyze_gaps_different_assets_raises_409(
+        self, mock_context, analyze_request
+    ):
+        """Test that different asset set raises 409 when another job is running."""
         # Lazy import to avoid Redis initialization at collection time
         from app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints.gap_analysis_handlers import (
             analyze_gaps,
@@ -249,7 +312,7 @@ class TestAnalyzeGapsEndpoint:
                 mock_redis_manager.is_available.return_value = True
                 mock_redis.return_value = mock_redis_manager
 
-                # Mock existing running job
+                # Mock existing running job with DIFFERENT idempotency key
                 with patch(
                     "app.api.v1.endpoints.collection_gap_analysis.analysis_endpoints"
                     ".gap_analysis_handlers.get_job_state"
@@ -257,9 +320,10 @@ class TestAnalyzeGapsEndpoint:
                     mock_get_state.return_value = {
                         "job_id": "existing_job",
                         "status": "running",
+                        "idempotency_key": "different_key_123",  # Different asset set
                     }
 
-                    # Should raise 409 Conflict
+                    # Should raise 409 Conflict (different job running)
                     with pytest.raises(HTTPException) as exc_info:
                         await analyze_gaps(
                             flow_id=str(uuid4()),
@@ -270,7 +334,10 @@ class TestAnalyzeGapsEndpoint:
                         )
 
                     assert exc_info.value.status_code == status.HTTP_409_CONFLICT
-                    assert "already running" in exc_info.value.detail
+                    assert (
+                        "Different enhancement job already running"
+                        in exc_info.value.detail
+                    )
 
     @pytest.mark.asyncio
     async def test_analyze_gaps_rate_limiting_429(self, mock_context, analyze_request):

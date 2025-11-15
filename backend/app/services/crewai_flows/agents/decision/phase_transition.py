@@ -66,7 +66,7 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         )
 
         # Analyze current state using flow-type aware methods
-        analysis = self._analyze_current_state(
+        analysis = await self._analyze_current_state(
             current_phase, results, state, effective_flow_type
         )
 
