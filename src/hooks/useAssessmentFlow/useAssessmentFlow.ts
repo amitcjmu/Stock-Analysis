@@ -637,7 +637,7 @@ export const useAssessmentFlow = (
     // Intentionally omitting loadFlowState to prevent infinite loop
   ]);
 
-  // Auto-poll when status is in_progress (Issue: Frontend stuck waiting for backend)
+  // Auto-polling when assessment is in progress
   // Poll every 5 seconds to detect phase completion and update UI automatically
   // Stop polling when reaching recommendation_generation (final assessment phase)
   useEffect(() => {
@@ -649,12 +649,12 @@ export const useAssessmentFlow = (
 
     if (shouldPoll) {
       const interval = setInterval(() => {
-        refreshStatus();
+        loadFlowState();
       }, 5000); // Poll every 5 seconds
 
       return () => clearInterval(interval);
     }
-  }, [state.status, state.currentPhase, state.flowId, clientAccountId, refreshStatus]);
+  }, [state.status, state.currentPhase, state.flowId, clientAccountId, loadFlowState]);
 
   // Expose loadApplicationData for manual refresh
   const refreshApplicationData = useCallback(() => {

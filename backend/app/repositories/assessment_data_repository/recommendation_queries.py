@@ -75,6 +75,10 @@ class RecommendationQueriesMixin:
             # Get applications filtered by selected IDs
             if selected_app_ids:
                 applications = await self._get_selected_applications(selected_app_ids)
+                # Fetch comprehensive asset data for each application
+                app_assets_map = await self._get_applications_with_assets(
+                    selected_app_ids
+                )
             else:
                 # Fallback: Get all applications if no selection
                 logger.warning(
@@ -82,15 +86,22 @@ class RecommendationQueriesMixin:
                     f"using all applications (flow_id={flow_id})"
                 )
                 applications = await self._get_applications()
+                # For fallback, also fetch assets
+                app_ids = [app.id for app in applications]
+                app_assets_map = await self._get_applications_with_assets(app_ids)
 
             # Get business constraints (from flow metadata or defaults)
             business_constraints = self._extract_business_constraints(flow)
 
+            # Serialize applications with comprehensive asset data
+            serialized_apps = []
+            for app in applications:
+                assets = app_assets_map.get(str(app.id), [])
+                serialized_apps.append(self._serialize_application(app, assets))
+
             return {
                 "all_phase_results": all_phase_results,
-                "applications": [
-                    self._serialize_application(app) for app in applications
-                ],
+                "applications": serialized_apps,
                 "selected_application_ids": [
                     str(app_id) for app_id in selected_app_ids
                 ],

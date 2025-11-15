@@ -166,10 +166,22 @@ class CollectionDecisionLogic:
     def _decide_after_questionnaire_generation(
         analysis: Dict[str, Any],
     ) -> AgentDecision:
-        """Decision logic after questionnaire generation phase"""
+        """
+        Decision logic after questionnaire generation phase.
+
+        Bug #1055 Fix: Uses database count if available (via collection_analysis.py),
+        falls back to phase_result metadata if database query failed.
+        """
         questionnaire_quality = analysis.get("questionnaire_quality", {})
         questionnaires_generated = questionnaire_quality.get("questionnaires_count", 0)
         generation_confidence = questionnaire_quality.get("confidence", 0)
+        data_source = questionnaire_quality.get("data_source", "unknown")
+
+        # Bug #1055: Log where the count came from (database or phase_result)
+        logger.info(
+            f"📊 Questionnaire count determination: {questionnaires_generated} questionnaires "
+            f"(source: {data_source})"
+        )
 
         if questionnaires_generated == 0:
             return AgentDecision(
@@ -177,7 +189,11 @@ class CollectionDecisionLogic:
                 next_phase="",
                 confidence=0.9,
                 reasoning="No questionnaires generated despite identified gaps. Check gap analysis results.",
-                metadata={"questionnaires_count": 0, "user_action": "review_gaps"},
+                metadata={
+                    "questionnaires_count": 0,
+                    "user_action": "review_gaps",
+                    "data_source": data_source,
+                },
             )
 
         if generation_confidence < 0.6:
@@ -189,6 +205,7 @@ class CollectionDecisionLogic:
                 metadata={
                     "generation_confidence": generation_confidence,
                     "user_action": "review_questionnaires",
+                    "data_source": data_source,
                 },
             )
 
@@ -200,7 +217,10 @@ class CollectionDecisionLogic:
                 f"Questionnaires successfully generated ({questionnaires_generated}). "
                 "Proceeding to manual collection."
             ),
-            metadata=questionnaire_quality,
+            metadata={
+                **questionnaire_quality,
+                "data_source": data_source,
+            },
         )
 
     @staticmethod
