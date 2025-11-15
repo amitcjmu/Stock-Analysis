@@ -161,13 +161,17 @@ async def get_sixr_decisions(
         decisions: Dict mapping application_id to SixRDecision objects
     """
     client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
 
     try:
         from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 
-        repository = AssessmentFlowRepository(db, client_account_id)
+        repository = AssessmentFlowRepository(db, client_account_id, engagement_id)
         flow_state = await repository.get_assessment_flow_state(flow_id)
 
         if not flow_state:
