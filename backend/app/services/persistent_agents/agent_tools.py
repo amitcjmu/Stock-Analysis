@@ -68,6 +68,10 @@ class AgentToolsManager:
             cls._add_risk_assessment_tools(context_info, tools, service_registry)
         elif agent_type == "pattern_discovery_agent":
             cls._add_pattern_discovery_tools(context_info, tools, service_registry)
+        elif agent_type == "recommendation_generator":
+            cls._add_recommendation_generator_tools(
+                context_info, tools, service_registry
+            )
         else:
             logger.debug(f"No specific tools defined for agent type: {agent_type}")
 
@@ -180,6 +184,60 @@ class AgentToolsManager:
         )
 
         logger.debug(f"Added {added_count} pattern discovery tools")
+
+    @classmethod
+    def _add_recommendation_generator_tools(
+        cls,
+        context_info: Dict[str, Any],
+        tools: List,
+        service_registry: "ServiceRegistry",
+    ) -> None:
+        """Add recommendation generator specific tools for 6R strategy and wave planning"""
+        added_count = 0
+
+        # Asset intelligence tools for asset data access
+        try:
+            from app.services.tools.asset_intelligence_tools import (
+                get_asset_intelligence_tools,
+            )
+
+            added_count += cls._safe_extend_tools(
+                tools,
+                lambda: get_asset_intelligence_tools(),
+                "asset_intelligence_tools",
+            )
+        except ImportError as e:
+            logger.warning(f"Failed to import asset_intelligence_tools: {e}")
+
+        # Dependency analysis tools for wave planning and dependency mapping
+        try:
+            from app.services.crewai_flows.tools.dependency_analysis_tool.factory import (
+                create_dependency_analysis_tools,
+            )
+
+            added_count += cls._safe_extend_tools(
+                tools,
+                lambda: create_dependency_analysis_tools(context_info),
+                "dependency_analysis_tools",
+            )
+        except ImportError as e:
+            logger.warning(f"Failed to import dependency_analysis_tools: {e}")
+
+        # Critical attributes tools for readiness assessment
+        try:
+            from app.services.crewai_flows.tools.critical_attributes_tool.tools import (
+                create_critical_attributes_tools,
+            )
+
+            added_count += cls._safe_extend_tools(
+                tools,
+                lambda: create_critical_attributes_tools(context_info),
+                "critical_attributes_tools",
+            )
+        except ImportError as e:
+            logger.warning(f"Failed to import critical_attributes_tools: {e}")
+
+        logger.debug(f"Added {added_count} recommendation generator tools")
 
     @classmethod
     def _add_legacy_tools(cls, tools: List):

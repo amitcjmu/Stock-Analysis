@@ -10,6 +10,9 @@ from typing import Any, Dict
 from app.core.security.secure_logging import safe_log_format
 from app.models.assessment_flow import AssessmentPhase
 from app.core.database import get_db
+from app.services.flow_orchestration.phase_execution_lock_manager import (
+    phase_lock_manager,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +37,8 @@ async def continue_assessment_flow(
         phase: Current assessment phase to execute
         user_id: User identifier for audit trail
     """
+    # CRITICAL (Issue #999): Ensure lock is released even if execution fails
+    # This prevents lock leaks that would block future executions
     try:
         logger.info(
             safe_log_format(
@@ -205,6 +210,17 @@ async def continue_assessment_flow(
                 "Failed to initialize assessment flow execution: {str_e}", str_e=str(e)
             ),
             exc_info=True,
+        )
+    finally:
+        # CRITICAL (Issue #999): Always release lock, even on exception
+        # This prevents deadlocks and allows retries after failures
+        phase_lock_manager.release_lock(flow_id, phase.value)
+        logger.info(
+            safe_log_format(
+                "[ISSUE-999] 🔓 Released execution lock for flow_id={flow_id}, phase={phase_value}",
+                flow_id=flow_id,
+                phase_value=phase.value,
+            )
         )
 
 

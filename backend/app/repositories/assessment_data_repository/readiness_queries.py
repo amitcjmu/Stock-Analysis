@@ -47,8 +47,20 @@ class ReadinessQueriesMixin:
                 logger.warning(f"Assessment flow not found: {flow_id}")
                 return self._empty_readiness_data()
 
-            # Fetch applications in this engagement
-            applications = await self._get_applications()
+            # ISSUE-6: Get selected application IDs from flow
+            selected_app_ids = flow.selected_canonical_application_ids or []
+
+            # Fetch applications filtered by selected IDs
+            if selected_app_ids:
+                applications = await self._get_selected_applications(selected_app_ids)
+                logger.info(
+                    f"[ISSUE-6] Filtered to {len(applications)} selected applications for readiness assessment"
+                )
+            else:
+                logger.warning(
+                    "[ISSUE-6] No selected IDs, using all applications for readiness assessment"
+                )
+                applications = await self._get_applications()
 
             # Fetch discovery flow results if available
             discovery_data = await self._get_discovery_data()

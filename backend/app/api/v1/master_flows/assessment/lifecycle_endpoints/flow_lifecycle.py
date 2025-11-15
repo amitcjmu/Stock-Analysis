@@ -13,6 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
 from app.utils.json_sanitization import sanitize_for_json
+from app.services.flow_orchestration.phase_execution_lock_manager import (
+    phase_lock_manager,
+)
 
 from . import router
 
@@ -153,9 +156,29 @@ async def resume_assessment_flow_via_mfo(
                         "[ISSUE-999] Skipping agent execution for finalization phase"
                     )
                 else:
+                    # CRITICAL (Issue #999): Check lock BEFORE queueing background task
+                    # Prevents duplicate phase executions from rapid resume calls
+                    if not await phase_lock_manager.try_acquire_lock(
+                        str(flow_id), current_phase.value
+                    ):
+                        logger.info(
+                            f"[ISSUE-999] Phase {current_phase.value} already executing "
+                            f"for flow {flow_id}, skipping duplicate background task"
+                        )
+                        # Return current status without queueing duplicate
+                        return sanitize_for_json(
+                            {
+                                "flow_id": flow_id,
+                                "status": "already_running",
+                                "current_phase": current_phase.value,
+                                "progress": result.get("progress_percentage"),
+                                "message": f"Phase {current_phase.value} is already executing",
+                            }
+                        )
+
                     # Trigger background task for agent execution
                     logger.info(
-                        f"[ISSUE-999] Adding background task for phase {current_phase.value}"
+                        f"[ISSUE-999] ✅ Lock acquired, adding background task for phase {current_phase.value}"
                     )
                     background_tasks.add_task(
                         assessment_flow_processors.continue_assessment_flow,

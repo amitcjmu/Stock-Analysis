@@ -38,8 +38,23 @@ class DependencyQueriesMixin:
                 - integration_dependencies: Integration points
         """
         try:
-            # Get applications
-            applications = await self._get_applications()
+            # ISSUE-6: Get assessment flow to access selected application IDs
+            flow = await self._get_assessment_flow(flow_id)
+            selected_app_ids = (
+                flow.selected_canonical_application_ids or [] if flow else []
+            )
+
+            # Get applications filtered by selected IDs
+            if selected_app_ids:
+                applications = await self._get_selected_applications(selected_app_ids)
+                logger.info(
+                    f"[ISSUE-6] Filtered to {len(applications)} selected applications for dependency analysis"
+                )
+            else:
+                logger.warning(
+                    "[ISSUE-6] No selected IDs, using all applications for dependency analysis"
+                )
+                applications = await self._get_applications()
 
             # Get infrastructure data for dependency mapping
             servers = await self._get_servers()

@@ -146,24 +146,33 @@ class AgentConfigManager:
             if not CREWAI_AVAILABLE:
                 return
 
-            # Skip warmup for questionnaire_generator to prevent autonomous tool execution
-            # Issue: During warmup, agent autonomously calls questionnaire_generation tool
-            # with 0 assets, generating incorrect default options before real execution
-            # Fix: Skip warmup for agents with data-dependent tools
-            if agent_type == "questionnaire_generator":
+            # ISSUE-4: Skip warmup for all assessment agents to prevent tool execution with empty data
+            # During warmup, agents autonomously call tools with 0 records, generating incorrect results
+            # Fix: Skip warmup for all agents with data-dependent tools
+            AGENTS_SKIP_WARMUP = [
+                "questionnaire_generator",
+                "readiness_assessor",
+                "complexity_analyst",
+                "dependency_analyst",
+                "risk_assessor",
+                "recommendation_generator",
+            ]
+
+            if agent_type in AGENTS_SKIP_WARMUP:
                 logger.info(
                     f"{agent_type} agent warmup skipped - prevents autonomous tool execution with empty data"
                 )
                 return
 
-            # Create a simple warm-up task
+            # ISSUE-5: Create a simple warm-up task (use "Initialize" not "Verify")
             warmup_input = {
-                "task": f"Verify {agent_type} agent is ready for operation",
-                "context": "System initialization",
+                "task": f"Initialize {agent_type} agent",
+                "context": "System ready",
             }
 
             # Execute with timeout to prevent hanging - handle different agent types
             if hasattr(agent, "execute_async"):
+                # OBSERVABILITY: Warmup task with mock data - tracking not needed
                 await asyncio.wait_for(
                     agent.execute_async(inputs=warmup_input), timeout=30.0
                 )
@@ -229,6 +238,7 @@ class AgentConfigManager:
 
             # Execute health check with timeout - handle different agent types
             if hasattr(agent, "execute_async"):
+                # OBSERVABILITY: Health check with mock data - tracking not needed
                 response = await asyncio.wait_for(
                     agent.execute_async(inputs=health_check_input), timeout=10.0
                 )

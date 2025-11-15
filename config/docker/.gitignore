@@ -1,2 +1,6 @@
 # Observability environment file with secrets (DO NOT COMMIT)
 .env.observability
+
+# Test data files
+create_test_data*.sql
+test_unmapped_assets*.sh
