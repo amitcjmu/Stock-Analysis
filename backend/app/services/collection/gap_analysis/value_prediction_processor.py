@@ -131,10 +131,21 @@ class GapValuePredictionProcessor:
                 asset_context=asset_context,
             )
 
+            # Get persistent agent from pool
+            from app.services.persistent_agents.tenant_scoped_agent_pool import (
+                TenantScopedAgentPool,
+            )
+
+            agent = await TenantScopedAgentPool.get_or_create_agent(
+                client_id=self.client_account_id,
+                engagement_id=self.engagement_id,
+                agent_type="gap_analysis_specialist",
+            )
+
             # Execute agent task
             try:
                 task_output = await execute_agent_task_method(
-                    agent=None,  # Agent will be provided by service
+                    agent=agent,  # Pass actual agent from pool
                     task_description=task_description,
                 )
 
