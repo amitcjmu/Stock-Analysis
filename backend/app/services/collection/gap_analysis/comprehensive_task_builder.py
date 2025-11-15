@@ -3,10 +3,12 @@
 Per PR #1043: Auto-trigger phase that performs comprehensive gap detection
 with AI enhancement (confidence scores, suggestions) but NO questionnaires.
 
-UPDATED per COLLECTION_FLOW_TWO_CRITICAL_ISSUES.md:
-- Intelligent filtering based on asset type (NOT 6R strategy - assessment hasn't run yet)
-- Checks existing JSONB data before creating gaps
-- Only presents relevant attributes to agent (reduces agent work and improves performance)
+UPDATED per user feedback (PR #1059 review):
+- Agent performs INDEPENDENT gap detection (not just enhancement of predetermined gaps)
+- Provides current_fields + asset type + 22 critical attributes framework
+- Agent uses INTELLIGENCE to determine which gaps are relevant for each asset type
+- Checks existing JSONB data to provide current_fields, but lets agent decide what's missing
+- Agent autonomously creates gaps with confidence scores and AI suggestions
 """
 
 import json
@@ -23,101 +25,118 @@ logger = logging.getLogger(__name__)
 
 
 def build_comprehensive_gap_analysis_task(assets: List[Asset]) -> str:
-    """Build task for comprehensive AI gap detection and enhancement (gaps ONLY, no questionnaires).
+    """Build task for comprehensive AI gap detection (gaps ONLY, no questionnaires).
 
     Per PR #1043: Auto-trigger phase that:
-    1. Examines ALL asset data to find missing critical attributes
-    2. AI enhances gaps with confidence scores and suggestions
+    1. Agent INDEPENDENTLY identifies missing critical attributes using AI intelligence
+    2. Agent creates gaps with confidence scores and AI suggestions
     3. Does NOT generate questionnaires (happens separately when user proceeds)
 
-    UPDATED per COLLECTION_FLOW_TWO_CRITICAL_ISSUES.md:
-    - Pre-filters attributes based on asset type (applications don't need network_device attrs)
-    - Checks existing JSONB data (custom_attributes, technical_details) before creating gaps
-    - Only presents missing + applicable attributes to agent (improves performance)
+    UPDATED per user feedback (PR #1059 review):
+    - Agent performs INDEPENDENT gap detection (not enhancement of predetermined gaps)
+    - Provides current_fields (from model + JSONB) + asset type + 22 attributes framework
+    - Agent decides which attributes are missing AND relevant for each asset type
+    - Agent autonomously filters irrelevant gaps (e.g., "user_patterns" for databases)
 
     This is different from:
     - build_task_description(): Builds gaps AND questionnaires
     - build_enhancement_task_description(): Only enhances existing heuristic gaps
 
     Args:
-        assets: List of Asset objects to comprehensively analyze
+        assets: List of Asset objects for agent to comprehensively analyze
 
     Returns:
-        Task description string for CrewAI agent
+        Task description string for CrewAI agent with full autonomy to detect gaps
     """
-    # Build intelligent asset summary with pre-filtered gaps
+    # Build asset summary with current data (let agent determine gaps)
     asset_summary = []
     for asset in assets[:10]:  # Show first 10
         # Get existing fields from all sources (model + JSONB)
         existing_fields = DataIntelligence.get_existing_fields(asset)
 
-        # Get attributes applicable to this asset type
+        # Get attributes applicable to this asset type (as guidance, not prescription)
         applicable_attrs = AssetTypeRequirements.get_applicable_attributes(
             asset.asset_type
         )
-
-        # Get missing attributes (applicable but not present)
-        missing_attrs = DataIntelligence.get_missing_attributes(asset, applicable_attrs)
 
         asset_data = {
             "id": str(asset.id),
             "name": asset.name,
             "type": asset.asset_type,
             "current_fields": existing_fields,  # Data that exists
-            "missing_attributes": missing_attrs,  # Gaps to create
-            "applicable_count": len(applicable_attrs),  # Total relevant attributes
-            "missing_count": len(missing_attrs),  # Total gaps
+            "applicable_attributes_count": len(
+                applicable_attrs
+            ),  # Guidance on typical scope
         }
 
         asset_summary.append(asset_data)
 
         logger.debug(
             f"Asset {asset.name} ({asset.asset_type}): "
-            f"{len(existing_fields)} existing, {len(missing_attrs)} missing "
-            f"out of {len(applicable_attrs)} applicable attributes"
+            f"{len(existing_fields)} existing fields, "
+            f"{len(applicable_attrs)} typically applicable attributes"
         )
 
+    # Import critical attributes framework for prompt
+    from app.services.crewai_flows.tools.critical_attributes_tool.base import (
+        CriticalAttributesDefinition,
+    )
+
+    all_critical_attrs = CriticalAttributesDefinition.get_all_attributes()
+
     return f"""
-TASK: AI gap detection and enhancement for cloud migration assessment.
+TASK: Comprehensive AI-powered gap detection for cloud migration assessment.
 
 CRITICAL INSTRUCTIONS - READ FIRST:
 1. DO NOT USE ANY TOOLS - All data you need is in the asset summary below
 2. Analyze assets DIRECTLY from the provided data - tools won't help here
 3. The asset data includes:
    - current_fields: Data that already exists (from model fields and custom_attributes JSONB)
-   - missing_attributes: Pre-filtered list of gaps (applicable to asset type, not in current_fields)
-4. Your job: Enhance each missing attribute with confidence scores and AI suggestions
+   - type: Asset type (application, database, server, network_device, storage, middleware)
+4. Your job: IDENTIFY and CREATE gap records for missing critical attributes
 5. DO NOT generate questionnaires (happens separately when user clicks "Continue to Questionnaire")
 
 WHY NO TOOLS:
-- You have complete Asset metadata with current_fields and missing_attributes
+- You have complete Asset metadata with current_fields
 - Data validation tools are for CSV imports, not gap analysis
 - Tools would return "0 records" because no raw import data exists at this stage
 - Direct analysis is 6x faster and more accurate
 
-INTELLIGENT PRE-FILTERING APPLIED:
-- Asset type filtering: Only attributes applicable to each asset type (e.g., databases don't need "user_load_patterns")
-- Data checking: Existing JSONB data (custom_attributes, technical_details) already checked
-- You receive ONLY the missing attributes that need gap records created
+YOUR COMPREHENSIVE ANALYSIS TASK:
+You are an expert migration analyst. For EACH asset:
+
+1. **IDENTIFY MISSING CRITICAL ATTRIBUTES**:
+   - Compare current_fields against the 22 critical attributes below
+   - Consider which attributes are relevant for this asset type:
+     * Applications: Need all architecture, integration, user patterns
+     * Databases: Need infrastructure, data volume, security - NOT user UX patterns
+     * Servers: Need infrastructure, hosted services - NOT app architecture
+     * Network devices: Need network config, connectivity - NOT app dependencies
+     * Storage: Need capacity, I/O, redundancy - NOT business logic
+     * Middleware: Need runtime specs, clustering - asset-type specific
+   - Use your intelligence to determine if a gap is truly relevant
+
+2. **ASSESS CRITICALITY AND CONFIDENCE**:
+   - Assign confidence scores based on evidence in current_fields:
+     * If asset name = "Oracle Database" but missing "technology_stack" → HIGH (0.95)
+     * If deployment info exists but missing "os" → HIGH (0.90)
+     * If no context clues for missing field → MEDIUM (0.60)
+   - Classify priority based on 6R migration needs:
+     * critical (priority 1): Required for 6R decisions (os, cpu, technology_stack)
+     * high (priority 2): Important for planning (architecture, dependencies)
+     * medium (priority 3): Useful for optimization (performance, patterns)
+     * low (priority 4): Nice to have (documentation)
+
+3. **PROVIDE ACTIONABLE AI SUGGESTIONS**:
+   - Use current_fields to suggest where to find missing data
+   - Example: "Check custom_attributes.environment for OS details"
+   - Example: "Review asset name 'Oracle DB' to infer technology_stack"
 
 ASSETS TO ANALYZE ({len(assets)} total, showing first 10):
 {json.dumps(asset_summary, indent=2)}
 
-YOUR ANALYSIS TASK:
-1. For EACH asset's missing_attributes list, create enhanced gap records
-2. Use current_fields to intelligently assign confidence scores:
-   - If asset has "name": "Oracle Database" but missing "technology_stack" → HIGH confidence (0.95)
-   - If asset has deployment info but missing "os" → HIGH confidence (0.90)
-   - If no context clues exist for missing field → MEDIUM confidence (0.60)
-3. Classify gaps by priority based on 6R migration needs:
-   - critical (priority 1): Required for 6R decisions (os, cpu_memory_storage, technology_stack)
-   - high (priority 2): Important for planning (architecture, integration_dependencies)
-   - medium (priority 3): Useful for optimization (performance_baseline, user_load_patterns)
-   - low (priority 4): Nice to have (documentation_quality)
-4. Provide 2-3 ACTIONABLE ai_suggestions per gap based on asset context:
-   - Use current_fields data to suggest where to look
-   - Example: "Check custom_attributes.environment for OS details"
-   - Example: "Review asset name 'Oracle DB' to infer technology_stack"
+22 CRITICAL ATTRIBUTES FOR MIGRATION READINESS:
+{json.dumps(all_critical_attrs, indent=2)}
 
 CONFIDENCE SCORE GUIDELINES (0.0-1.0):
 - 0.9-1.0: Strong evidence in asset data that this field is missing and critical
@@ -178,7 +197,8 @@ RETURN JSON FORMAT (gaps ONLY, no questionnaires):
 }}
 
 CRITICAL REMINDERS:
-- DO COMPREHENSIVE analysis (not just predetermined gaps) - look at ALL 22 critical attributes
+- Use your INTELLIGENCE to identify which of the 22 attributes are missing AND relevant for each asset type
+- Don't create gaps for irrelevant attributes (e.g., "user_load_patterns" for databases)
 - Use asset current_fields data to intelligently assign confidence scores
 - Every gap MUST have confidence_score field (0.0-1.0)
 - Every gap MUST have ai_suggestions array (2-3 actionable items based on asset context)
