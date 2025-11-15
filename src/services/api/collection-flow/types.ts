@@ -189,6 +189,10 @@ export interface DataGap {
   suggested_resolution: string;
   confidence_score: number | null;
   ai_suggestions?: string[];
+  // Phase 3 (Agentic Gap Resolution) - Value Prediction
+  predicted_value?: string | null;
+  prediction_confidence?: number | null;
+  prediction_reasoning?: string | null;
 }
 
 export interface GapScanSummary {

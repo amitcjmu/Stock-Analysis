@@ -1,6 +1,7 @@
 """Gap persistence utilities."""
 
 import logging
+import math
 from typing import Any, Dict, List
 from uuid import UUID
 
@@ -64,6 +65,13 @@ async def persist_gaps(
                     gaps_failed += 1
                     continue
 
+                # Sanitize confidence_score (no NaN/Inf)
+                confidence_score = gap.get("confidence_score")
+                if confidence_score is not None and (
+                    math.isnan(confidence_score) or math.isinf(confidence_score)
+                ):
+                    confidence_score = None
+
                 # Build gap record dictionary for upsert
                 gap_record = {
                     "collection_flow_id": UUID(collection_flow_id),
@@ -79,6 +87,8 @@ async def persist_gaps(
                         "Manual collection required",
                     ),
                     "resolution_status": "pending",
+                    "confidence_score": confidence_score,  # AI enhancement field
+                    "ai_suggestions": gap.get("ai_suggestions"),  # AI enhancement field
                 }
 
                 # ✅ FIX: Use PostgreSQL upsert with conflict resolution
@@ -91,6 +101,12 @@ async def persist_gaps(
                         "suggested_resolution": gap_record["suggested_resolution"],
                         "description": gap_record["description"],
                         "impact_on_sixr": gap_record["impact_on_sixr"],
+                        "confidence_score": gap_record[
+                            "confidence_score"
+                        ],  # AI enhancement
+                        "ai_suggestions": gap_record[
+                            "ai_suggestions"
+                        ],  # AI enhancement
                         "updated_at": func.now(),
                     },
                 )

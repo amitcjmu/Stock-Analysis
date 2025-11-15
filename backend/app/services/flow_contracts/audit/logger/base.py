@@ -1,25 +1,29 @@
 """
-Flow Audit Logger
+Flow Audit Logger - Base Implementation
 
 Main FlowAuditLogger class for comprehensive audit logging with compliance and security tracking.
 """
 
-import json
-import uuid
-from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 
-from .compliance import (
+from ..compliance import (
     ComplianceAndSecurityHandler,
     ComplianceRules,
     SecurityRules,
 )
-from .filters import AuditFilters
-from .models import AuditCategory, AuditEvent, AuditLevel
+from ..filters import AuditFilters
+from ..models import AuditCategory, AuditEvent, AuditLevel
+from .user_extraction import extract_user_id_with_fallbacks
+from .utils import (
+    event_to_dict,
+    export_events_to_csv,
+    export_events_to_json,
+    log_event_to_system,
+)
 
 logger = get_logger(__name__)
 
@@ -69,6 +73,21 @@ class FlowAuditLogger:
             "credentials": AuditFilters.filter_credentials,
         }
 
+    def _extract_user_id_with_fallbacks(
+        self, context: Optional[RequestContext], operation: str
+    ) -> Optional[str]:
+        """
+        Extract user_id with multiple fallback strategies (delegates to user_extraction module).
+
+        Args:
+            context: Request context (may be None or have user_id=None)
+            operation: Operation being performed (determines if system operation)
+
+        Returns:
+            User ID string, or None if all extraction methods fail
+        """
+        return extract_user_id_with_fallbacks(context, operation)
+
     async def log_audit_event(
         self,
         flow_id: str,
@@ -104,6 +123,9 @@ class FlowAuditLogger:
                 f"audit_{flow_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S_%f')}"
             )
 
+            # AUDIT FIX: Extract user_id with multiple fallback strategies
+            user_id = self._extract_user_id_with_fallbacks(context, operation)
+
             # Create audit event
             audit_event = AuditEvent(
                 event_id=event_id,
@@ -112,7 +134,7 @@ class FlowAuditLogger:
                 level=level,
                 flow_id=flow_id,
                 operation=operation,
-                user_id=context.user_id if context else None,
+                user_id=user_id,
                 client_account_id=str(context.client_account_id) if context else None,
                 engagement_id=str(context.engagement_id) if context else None,
                 success=success,
@@ -154,37 +176,8 @@ class FlowAuditLogger:
             return ""
 
     def _log_to_system(self, event: AuditEvent):
-        """Log audit event to system logger"""
-        log_data = {
-            "event_id": event.event_id,
-            "timestamp": event.timestamp.isoformat(),
-            "category": event.category.value,
-            "level": event.level.value,
-            "flow_id": str(event.flow_id) if event.flow_id else None,
-            "operation": event.operation,
-            "user_id": str(event.user_id) if event.user_id else None,
-            "client_account_id": (
-                str(event.client_account_id) if event.client_account_id else None
-            ),
-            "engagement_id": str(event.engagement_id) if event.engagement_id else None,
-            "success": event.success,
-            "error_message": event.error_message,
-            "details": self._convert_to_serializable(event.details),
-            "metadata": self._convert_to_serializable(event.metadata),
-        }
-
-        # Log based on audit level
-        log_msg = f"AUDIT: {json.dumps(log_data, default=str)}"
-        if event.level == AuditLevel.CRITICAL:
-            logger.critical(log_msg)
-        elif event.level == AuditLevel.ERROR:
-            logger.error(log_msg)
-        elif event.level == AuditLevel.WARNING:
-            logger.warning(log_msg)
-        elif event.level == AuditLevel.DEBUG:
-            logger.debug(log_msg)
-        else:
-            logger.info(log_msg)
+        """Log audit event to system logger (delegates to utils module)"""
+        log_event_to_system(event)
 
     async def _check_compliance_rules(self, event: AuditEvent):
         """Check compliance rules against audit event"""
@@ -253,7 +246,7 @@ class FlowAuditLogger:
         events = events[:limit]
 
         # Convert to dict format
-        return [self._event_to_dict(event) for event in events]
+        return [event_to_dict(event) for event in events]
 
     def get_compliance_report(self, flow_id: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -334,20 +327,9 @@ class FlowAuditLogger:
                 events.extend(flow_events)
 
         if format.lower() == "json":
-            return json.dumps(
-                [self._event_to_dict(event) for event in events], indent=2, default=str
-            )
+            return export_events_to_json(events)
         elif format.lower() == "csv":
-            # Simple CSV export (would need proper CSV library for production)
-            csv_lines = [
-                "timestamp,category,level,flow_id,operation,user_id,success,error_message"
-            ]
-            for event in events:
-                csv_lines.append(
-                    f"{event.timestamp},{event.category.value},{event.level.value},"
-                    f"{event.flow_id},{event.operation},{event.user_id},{event.success},{event.error_message or ''}"
-                )
-            return "\n".join(csv_lines)
+            return export_events_to_csv(events)
         else:
             raise ValueError(f"Unsupported export format: {format}")
 
@@ -383,51 +365,3 @@ class FlowAuditLogger:
         """
         self.audit_filters[filter_name] = filter_function
         logger.info(f"Registered audit filter: {filter_name}")
-
-    def _convert_to_serializable(self, obj: Any, visited: Optional[set] = None) -> Any:
-        """
-        Recursively convert UUIDs and other non-serializable objects to strings.
-
-        Includes circular reference detection to prevent infinite recursion.
-
-        Args:
-            obj: Object to convert
-            visited: Set of visited object IDs (for circular reference detection)
-
-        Returns:
-            Serializable version of the object
-        """
-        # Initialize visited set on first call
-        if visited is None:
-            visited = set()
-
-        # Detect circular references by tracking object IDs
-        obj_id = id(obj)
-        if obj_id in visited:
-            return "<Circular Reference>"
-
-        # For complex types, add to visited set
-        if isinstance(obj, (dict, list)) or hasattr(obj, "__dict__"):
-            visited.add(obj_id)
-
-        # Convert based on type
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        elif isinstance(obj, datetime):
-            return obj.isoformat()
-        elif isinstance(obj, dict):
-            return {
-                k: self._convert_to_serializable(v, visited) for k, v in obj.items()
-            }
-        elif isinstance(obj, list):
-            return [self._convert_to_serializable(item, visited) for item in obj]
-        elif hasattr(obj, "__dict__"):
-            return self._convert_to_serializable(obj.__dict__, visited)
-        else:
-            return obj
-
-    def _event_to_dict(self, event: AuditEvent) -> Dict[str, Any]:
-        """Convert AuditEvent to dictionary with proper serialization."""
-        event_dict = asdict(event)
-        # Convert any nested UUIDs or non-serializable objects
-        return self._convert_to_serializable(event_dict)

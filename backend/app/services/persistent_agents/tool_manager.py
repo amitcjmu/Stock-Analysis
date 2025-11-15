@@ -216,156 +216,6 @@ class AgentToolManager:
         return tools_added
 
     @classmethod
-    def add_legacy_tools(cls, context_info: Dict[str, Any], tools: List) -> int:
-        """Add legacy tools for backward compatibility."""
-        tools_added = 0
-        try:
-            # Lazy import legacy tools
-            from app.services.crewai_flows.tools.asset_creation_tool import (
-                create_asset_creation_tools,
-            )
-            from app.services.crewai_flows.tools.task_completion_tools import (
-                create_task_completion_tools,
-            )
-
-            # Add common legacy tools
-            tools_added += cls._safe_extend_tools(
-                tools,
-                create_asset_creation_tools,
-                "legacy asset creation",
-                context_info,
-            )
-            tools_added += cls._safe_extend_tools(
-                tools,
-                create_task_completion_tools,
-                "legacy task completion",
-                context_info,
-            )
-
-            logger.debug(f"Added {tools_added} legacy tools")
-        except Exception as e:
-            logger.warning(f"Failed to add legacy tools: {e}")
-
-        return tools_added
-
-    @classmethod
-    def add_data_analysis_tools(cls, context_info: Dict[str, Any], tools: List) -> int:
-        """Add data analysis and validation tools."""
-        tools_added = 0
-        try:
-            # Lazy import data analysis tools
-            from app.services.crewai_flows.tools.data_validation_tool import (
-                create_data_validation_tools,
-            )
-            from app.services.crewai_flows.tools.critical_attributes_tool import (
-                create_critical_attributes_tools,
-            )
-
-            tools_added += cls._safe_extend_tools(
-                tools, create_data_validation_tools, "data validation", context_info
-            )
-            tools_added += cls._safe_extend_tools(
-                tools,
-                create_critical_attributes_tools,
-                "critical attributes",
-                context_info,
-            )
-
-            logger.debug(f"Added {tools_added} data analysis tools")
-        except Exception as e:
-            logger.warning(f"Failed to add data analysis tools: {e}")
-
-        return tools_added
-
-    @classmethod
-    def add_quality_tools(cls, context_info: Dict[str, Any], tools: List) -> None:
-        """Add quality assurance and validation tools."""
-        try:
-            # Lazy import quality tools
-            from app.services.crewai_flows.tools.data_validation_tool import (
-                create_data_validation_tools,
-            )
-
-            # Add quality-focused tools
-            cls._safe_extend_tools(
-                tools, create_data_validation_tools, "quality validation", context_info
-            )
-            logger.debug("Added quality tools")
-        except Exception as e:
-            logger.warning(f"Failed to add quality tools: {e}")
-
-    @classmethod
-    def add_business_analysis_tools(
-        cls, context_info: Dict[str, Any], tools: List
-    ) -> int:
-        """Add business analysis and decision support tools."""
-        tools_added = 0
-        try:
-            # Lazy import business analysis tools
-            from app.services.crewai_flows.tools.dependency_analysis_tool import (
-                create_dependency_analysis_tools,
-            )
-            from app.services.tools.asset_intelligence_tools import (
-                get_asset_intelligence_tools,
-            )
-
-            tools_added += cls._safe_extend_tools(
-                tools,
-                create_dependency_analysis_tools,
-                "business dependency analysis",
-                context_info,
-            )
-            tools_added += cls._safe_extend_tools(
-                tools,
-                get_asset_intelligence_tools,
-                "business asset intelligence",
-                context_info,
-            )
-
-            logger.debug(f"Added {tools_added} business analysis tools")
-        except Exception as e:
-            logger.warning(f"Failed to add business analysis tools: {e}")
-
-        return tools_added
-
-    @classmethod
-    def add_field_mapper_tools(cls, context_info: Dict[str, Any], tools: List) -> None:
-        """Add field mapping specific tools."""
-        if not TOOLS_AVAILABLE:
-            return
-
-        tools_added = 0
-
-        try:
-            # Lazy import field mapping tools
-            from app.services.crewai_flows.tools.mapping_confidence_tool import (
-                MappingConfidenceTool,
-            )
-            from app.services.crewai_flows.tools.critical_attributes_tool import (
-                create_critical_attributes_tools,
-            )
-
-            # Add mapping confidence tool
-            if MappingConfidenceTool:
-                tools.append(MappingConfidenceTool(context_info=context_info))
-                tools_added += 1
-
-            # Add critical attributes assessment tools for field mapper
-            # This enables the agent to assess the 22 critical attributes
-            tools_added += cls._safe_extend_tools(
-                tools,
-                create_critical_attributes_tools,
-                "critical attributes",
-                context_info,
-            )
-
-            logger.debug(
-                f"Added {tools_added} field mapper tools including critical attributes assessment"
-            )
-        except Exception as e:
-            logger.warning(f"Failed to add field mapper tools: {e}")
-
-    @classmethod
     def _validate_tools(cls, tools: List, context: str = "") -> List[Any]:
         """
         Validate that all tools are BaseTool instances.
@@ -489,6 +339,8 @@ class AgentToolManager:
         tools = []
 
         try:
+            from app.services.persistent_agents.tool_adders import ToolAdders
+
             # Extract context information
             client_account_id, engagement_id, service_registry = (
                 cls.extract_context_info(context_info)
@@ -514,16 +366,15 @@ class AgentToolManager:
                 "data_cleansing",
                 "asset_inventory",
             ]:
-                cls.add_data_analysis_tools(context_info, tools)
+                ToolAdders.add_data_analysis_tools(context_info, tools)
 
             if agent_type in ["questionnaire_generator", "six_r_analyzer"]:
-                cls.add_business_analysis_tools(context_info, tools)
+                ToolAdders.add_business_analysis_tools(context_info, tools)
 
-            # Add quality tools for all agents
-            cls.add_quality_tools(context_info, tools)
-
-            # Add legacy tools for backward compatibility
-            cls.add_legacy_tools(context_info, tools)
+            # Per COLLECTION_FLOW_TWO_CRITICAL_ISSUES.md:
+            # Removed global add_quality_tools() and add_legacy_tools()
+            # These added Discovery Flow CSV import tools to ALL agents
+            # Data validation tools now only in "discovery"/"asset_inventory"
 
             logger.info(f"Configured {len(tools)} tools for {agent_type} agent")
 

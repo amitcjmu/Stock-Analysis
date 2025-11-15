@@ -4,7 +4,7 @@
  */
 
 import { CollectionFlowClient } from "./client";
-import { apiCall } from "@/config/api";
+import { apiCall } from "@/lib/api/apiClient";
 
 // ========================================
 // Request/Response Types

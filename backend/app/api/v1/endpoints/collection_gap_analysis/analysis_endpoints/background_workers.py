@@ -15,6 +15,66 @@ from .job_state_manager import update_job_state
 logger = logging.getLogger(__name__)
 
 
+async def cleanup_heuristic_gaps(
+    collection_flow_id: UUID,
+    analyzed_assets: list,
+    ai_validated_gaps: dict,
+    db,
+):
+    """Delete heuristic gaps that weren't validated by AI comprehensive analysis.
+
+    The AI analysis is the AUTHORITATIVE source of gaps. Heuristic gaps are just
+    a quick preview and should be removed if AI determined they aren't real gaps.
+
+    Args:
+        collection_flow_id: Collection flow UUID
+        analyzed_assets: List of Asset objects that were analyzed
+        ai_validated_gaps: Dict from AI analysis with validated gaps
+        db: AsyncSession database session
+
+    Returns:
+        Number of heuristic gaps deleted
+    """
+    from sqlalchemy import select
+    from app.models.collection_data_gap import CollectionDataGap
+
+    logger.info(
+        f"🔍 Cleaning up heuristic gaps for {len(analyzed_assets)} analyzed assets "
+        f"(AI gaps are authoritative and replace all heuristic gaps)"
+    )
+
+    # Delete ALL heuristic gaps for analyzed assets
+    # AI gaps are authoritative and completely replace heuristic gaps
+    deleted_count = 0
+    for asset in analyzed_assets:
+        # Find all heuristic gaps for this asset in this flow
+        stmt = select(CollectionDataGap).where(
+            CollectionDataGap.collection_flow_id == collection_flow_id,
+            CollectionDataGap.asset_id == asset.id,
+            CollectionDataGap.confidence_score.is_(None),  # Heuristic gaps only
+        )
+        result = await db.execute(stmt)
+        heuristic_gaps = result.scalars().all()
+
+        # Delete ALL heuristic gaps - AI analysis is authoritative
+        for gap in heuristic_gaps:
+            await db.delete(gap)
+            deleted_count += 1
+            logger.debug(
+                f"🗑️ Deleting heuristic gap (AI analysis is authoritative): "
+                f"Asset={asset.name}, Field={gap.field_name}"
+            )
+
+    await db.commit()
+
+    if deleted_count > 0:
+        logger.info(
+            f"✅ Cleaned up {deleted_count} heuristic gaps not validated by AI analysis"
+        )
+
+    return deleted_count
+
+
 async def verify_ai_gaps_consistency(assets, db):
     """Verify that assets marked as AI-analyzed have gaps with confidence_score.
 
@@ -202,6 +262,18 @@ async def process_gap_enhancement_job(  # noqa: C901
                 assets=assets_to_analyze,
                 collection_flow_id=str(collection_flow_id),
                 db=db,
+            )
+
+            # CRITICAL: Delete heuristic gaps not validated by AI
+            # AI analysis is authoritative - heuristic gaps are just preview
+            deleted_count = await cleanup_heuristic_gaps(
+                collection_flow_id=collection_flow_id,
+                analyzed_assets=assets_to_analyze,
+                ai_validated_gaps=ai_result,
+                db=db,
+            )
+            logger.info(
+                f"🧹 Cleaned up {deleted_count} heuristic gaps not validated by AI"
             )
 
             # Mark assets as completed (status = 2) with timestamp

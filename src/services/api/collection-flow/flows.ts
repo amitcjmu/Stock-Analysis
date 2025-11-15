@@ -1,4 +1,4 @@
-import { apiCall } from "@/config/api";
+import { apiCall } from "@/lib/api/apiClient";
 import { CollectionFlowClient } from "./client";
 import type {
   CollectionFlowCreateRequest,
