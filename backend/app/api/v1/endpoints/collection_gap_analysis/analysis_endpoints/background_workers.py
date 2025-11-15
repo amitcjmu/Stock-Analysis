@@ -38,28 +38,15 @@ async def cleanup_heuristic_gaps(
     from sqlalchemy import select
     from app.models.collection_data_gap import CollectionDataGap
 
-    # Extract AI-validated gap field names by asset
-    ai_gap_fields_by_asset = {}
-    for priority in ["critical", "high", "medium", "low"]:
-        for gap in ai_validated_gaps.get("gaps", {}).get(priority, []):
-            asset_id = gap.get("asset_id")
-            field_name = gap.get("field_name")
-            if asset_id and field_name:
-                if asset_id not in ai_gap_fields_by_asset:
-                    ai_gap_fields_by_asset[asset_id] = set()
-                ai_gap_fields_by_asset[asset_id].add(field_name)
-
     logger.info(
-        f"🔍 AI validated gaps for {len(ai_gap_fields_by_asset)} assets: "
-        f"{sum(len(fields) for fields in ai_gap_fields_by_asset.values())} total gap fields"
+        f"🔍 Cleaning up heuristic gaps for {len(analyzed_assets)} analyzed assets "
+        f"(AI gaps are authoritative and replace all heuristic gaps)"
     )
 
-    # Delete heuristic gaps (no confidence_score) that AI didn't validate
+    # Delete ALL heuristic gaps for analyzed assets
+    # AI gaps are authoritative and completely replace heuristic gaps
     deleted_count = 0
     for asset in analyzed_assets:
-        asset_id_str = str(asset.id)
-        ai_validated_fields = ai_gap_fields_by_asset.get(asset_id_str, set())
-
         # Find all heuristic gaps for this asset in this flow
         stmt = select(CollectionDataGap).where(
             CollectionDataGap.collection_flow_id == collection_flow_id,
@@ -69,15 +56,14 @@ async def cleanup_heuristic_gaps(
         result = await db.execute(stmt)
         heuristic_gaps = result.scalars().all()
 
-        # Delete gaps that AI didn't include in its analysis
+        # Delete ALL heuristic gaps - AI analysis is authoritative
         for gap in heuristic_gaps:
-            if gap.field_name not in ai_validated_fields:
-                await db.delete(gap)
-                deleted_count += 1
-                logger.debug(
-                    f"🗑️ Deleting heuristic gap not validated by AI: "
-                    f"Asset={asset.name}, Field={gap.field_name}"
-                )
+            await db.delete(gap)
+            deleted_count += 1
+            logger.debug(
+                f"🗑️ Deleting heuristic gap (AI analysis is authoritative): "
+                f"Asset={asset.name}, Field={gap.field_name}"
+            )
 
     await db.commit()
 
