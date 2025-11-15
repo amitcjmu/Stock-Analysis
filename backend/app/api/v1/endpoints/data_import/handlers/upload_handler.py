@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+import os
 from typing import Any, Dict, List
 
 from fastapi import (
@@ -41,6 +42,10 @@ SUPPORTED_IMPORT_CATEGORIES = {
     "sensitive_data",
 }
 
+
+MAX_UPLOAD_SIZE_MB = 100
+MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
 router = APIRouter()
 
 
@@ -68,6 +73,17 @@ async def upload_data_import(
             f"Supported categories: {sorted(SUPPORTED_IMPORT_CATEGORIES)}",
         )
 
+    # Enforce upload size limit before reading into memory
+    file.file.seek(0, os.SEEK_END)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    if file_size > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=(f"Uploaded file exceeds {MAX_UPLOAD_SIZE_MB}MB limit."),
+        )
+
     file_bytes = await file.read()
     if not file_bytes:
         raise HTTPException(
@@ -84,7 +100,13 @@ async def upload_data_import(
             detail="Uploaded file must be valid JSON representing import records.",
         ) from exc
 
-    records = _normalize_records(parsed_data)
+    try:
+        records = _normalize_records(parsed_data)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
     if not records:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -150,12 +172,23 @@ def _normalize_records(payload: Any) -> List[Dict[str, Any]]:
     """
     Normalize uploaded payload into a list of dictionaries.
     """
+
+    def _to_dict_list(items: List[Any]) -> List[Dict[str, Any]]:
+        normalized: List[Dict[str, Any]] = []
+        for idx, item in enumerate(items):
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"Invalid record at index {idx}: each entry must be a JSON object."
+                )
+            normalized.append(dict(item))
+        return normalized
+
     if isinstance(payload, list):
-        return [dict(item) for item in payload if isinstance(item, dict)]
+        return _to_dict_list(payload)
 
     if isinstance(payload, dict):
         if "data" in payload and isinstance(payload["data"], list):
-            return [dict(item) for item in payload["data"] if isinstance(item, dict)]
+            return _to_dict_list(payload["data"])
         return [payload]
 
-    return []
+    raise ValueError("Payload must be a JSON object or a list of JSON objects.")
