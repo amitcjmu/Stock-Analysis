@@ -27,7 +27,11 @@ class DataIntelligence:
     """Intelligent data checking for gap analysis."""
 
     # Attribute to field mapping from CriticalAttributesDefinition
-    ATTRIBUTE_MAPPING = CriticalAttributesDefinition.ATTRIBUTE_FIELD_MAPPING
+    # Note: This is a method call, not a class variable
+    @classmethod
+    def _get_attribute_mapping(cls) -> Dict[str, Any]:
+        """Get attribute mapping from CriticalAttributesDefinition."""
+        return CriticalAttributesDefinition.get_attribute_mapping()
 
     @classmethod
     def get_existing_fields(cls, asset: Asset) -> Dict[str, Any]:
@@ -48,7 +52,8 @@ class DataIntelligence:
         existing_fields = {}
 
         # Iterate through all 22 critical attributes
-        for attr_name, attr_config in cls.ATTRIBUTE_MAPPING.items():
+        attribute_mapping = cls._get_attribute_mapping()
+        for attr_name, attr_config in attribute_mapping.items():
             asset_fields = attr_config.get("asset_fields", [])
 
             # Check each potential field location for this attribute
@@ -176,7 +181,8 @@ class DataIntelligence:
             >>> DataIntelligence.check_attribute_exists(asset, "cpu_memory_storage_specs")
             True  # Data exists, no gap needed
         """
-        attr_config = cls.ATTRIBUTE_MAPPING.get(attribute_name)
+        attribute_mapping = cls._get_attribute_mapping()
+        attr_config = attribute_mapping.get(attribute_name)
         if not attr_config:
             logger.warning(f"Unknown attribute: {attribute_name}")
             return False
@@ -250,14 +256,15 @@ class DataIntelligence:
         """
         existing_fields = cls.get_existing_fields(asset)
         existing_count = len(existing_fields)
-        total_count = len(cls.ATTRIBUTE_MAPPING)
+        attribute_mapping = cls._get_attribute_mapping()
+        total_count = len(attribute_mapping)
         missing_count = total_count - existing_count
 
         completeness_percentage = (
             (existing_count / total_count * 100) if total_count > 0 else 0
         )
 
-        all_attribute_names = list(cls.ATTRIBUTE_MAPPING.keys())
+        all_attribute_names = list(attribute_mapping.keys())
         missing_fields = [
             attr for attr in all_attribute_names if attr not in existing_fields
         ]
