@@ -6,7 +6,6 @@ Handles async database writes, queue management, and data persistence.
 import asyncio
 import logging
 import threading
-import time
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
@@ -36,24 +35,43 @@ class PersistenceMixin:
 
     def _stop_db_writer(self):
         """Stop the database writer thread."""
+        if not self._db_write_active:
+            return
+
+        logger.info("Stopping database writer thread...")
         self._db_write_active = False
         if self._db_write_thread:
-            self._db_write_thread.join(timeout=2)
+            # The thread will do a final flush in its loop's finally block
+            # Give it enough time to complete the final write
+            self._db_write_thread.join(timeout=10)
+            if self._db_write_thread.is_alive():
+                logger.warning("Database writer thread did not stop in time.")
 
-        # Process any remaining items in queue
-        asyncio.run(self._flush_db_queue())
+        self._db_write_thread = None
         logger.info("Database writer thread stopped")
 
     def _db_writer_loop(self):
-        """Background loop for processing database writes."""
+        """Background loop for processing database writes with dedicated event loop."""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(self._db_writer_async_loop())
+        finally:
+            logger.info("Flushing remaining DB queue before stopping writer loop...")
+            try:
+                loop.run_until_complete(self._flush_db_queue())
+            except Exception as e:
+                logger.error(f"Error flushing DB queue during shutdown: {e}")
+            loop.close()
+
+    async def _db_writer_async_loop(self):
+        """The async part of the writer loop, runs within the dedicated event loop."""
         while self._db_write_active:
             try:
-                # Process queue every 2 seconds or when queue gets large
-                time.sleep(2)
-                # Run async flush in the event loop
-                asyncio.run(self._flush_db_queue())
+                await asyncio.sleep(2)
+                await self._flush_db_queue()
             except Exception as e:
-                logger.error(f"Error in database writer loop: {e}")
+                logger.error(f"Error in database writer async loop: {e}")
 
     async def _flush_db_queue(self):
         """Flush all pending database writes asynchronously."""

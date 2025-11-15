@@ -31,6 +31,7 @@ Usage:
         phase_lock_manager.release_lock(flow_id, phase)
 """
 
+import asyncio
 import logging
 from asyncio import Lock
 from collections import defaultdict
@@ -96,29 +97,34 @@ class PhaseExecutionLockManager:
         lock_key = (flow_id, phase)
         lock = self._locks[lock_key]
 
-        # Check for timeout and force cleanup if needed
+        # Check for timeout - use cooperative timeout rather than force-releasing
         if lock_key in self._lock_timestamps:
             elapsed = datetime.utcnow() - self._lock_timestamps[lock_key]
             if elapsed > timedelta(minutes=self._TIMEOUT_MINUTES):
-                logger.warning(
+                logger.error(
                     f"⏱️ Lock timeout for {flow_id}:{phase} "
                     f"(held for {elapsed.total_seconds():.1f}s > "
-                    f"{self._TIMEOUT_MINUTES * 60}s), forcing release"
+                    f"{self._TIMEOUT_MINUTES * 60}s). Lock holder should release cooperatively."
                 )
-                if lock.locked():
-                    lock.release()
-                del self._lock_timestamps[lock_key]
+                # Set timeout flag for lock holder to detect
+                self._lock_timestamps[lock_key] = datetime.min  # Marker for timeout
+                # Don't force release - let the holder check and release cooperatively
+                # Continue to try acquiring with timeout below
 
-        # Try to acquire lock (non-blocking check)
-        if lock.locked():
+        # Try to acquire lock with timeout (safer than force-releasing)
+        try:
+            await asyncio.wait_for(
+                lock.acquire(),
+                timeout=1.0,  # 1 second timeout for non-blocking behavior
+            )
+        except asyncio.TimeoutError:
             logger.warning(
-                f"🔒 Phase {phase} already executing for flow {flow_id}, "
+                f"🔒 Phase {phase} lock acquisition timeout for flow {flow_id}, "
                 "skipping duplicate execution attempt"
             )
             return False
 
-        # Acquire lock and record timestamp
-        await lock.acquire()
+        # Lock acquired successfully - record timestamp
         self._lock_timestamps[lock_key] = datetime.utcnow()
         logger.info(f"✅ Acquired execution lock for {flow_id}:{phase}")
         return True

@@ -238,6 +238,7 @@ BEGIN
             NOW()
         FROM migration.users u
         WHERE u.client_account_id = '11111111-1111-1111-1111-111111111111'::UUID
+        ORDER BY u.id
         LIMIT 1
         ON CONFLICT DO NOTHING;
     END IF;
@@ -270,8 +271,8 @@ INSERT INTO migration.collection_flow_applications (
 
 -- Verify the data
 SELECT
-    'Applications' as type,
-    COUNT(*) as count
+    'Applications' AS asset_type,
+    COUNT(*) AS asset_count
 FROM migration.assets
 WHERE client_account_id = '11111111-1111-1111-1111-111111111111'::UUID
   AND engagement_id = '22222222-2222-2222-2222-222222222222'::UUID
@@ -279,8 +280,8 @@ WHERE client_account_id = '11111111-1111-1111-1111-111111111111'::UUID
   AND name LIKE 'Test-%'
 UNION ALL
 SELECT
-    'Non-application assets' as type,
-    COUNT(*) as count
+    'Non-application assets' AS asset_type,
+    COUNT(*) AS asset_count
 FROM migration.assets
 WHERE client_account_id = '11111111-1111-1111-1111-111111111111'::UUID
   AND engagement_id = '22222222-2222-2222-2222-222222222222'::UUID
@@ -288,8 +289,8 @@ WHERE client_account_id = '11111111-1111-1111-1111-111111111111'::UUID
   AND name LIKE 'Test-%'
 UNION ALL
 SELECT
-    'Mapped non-app assets' as type,
-    COUNT(*) as count
+    'Mapped non-app assets' AS asset_type,
+    COUNT(*) AS asset_count
 FROM migration.assets a
 INNER JOIN migration.collection_flow_applications cfa ON a.id = cfa.asset_id
 WHERE a.client_account_id = '11111111-1111-1111-1111-111111111111'::UUID
