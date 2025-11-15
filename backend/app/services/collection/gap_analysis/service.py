@@ -171,6 +171,40 @@ class GapAnalysisService(
                 exc_info=True,
             )
 
+    async def predict_gap_values(
+        self,
+        gaps: List[Dict[str, Any]],
+        collection_flow_id: UUID,
+        db: AsyncSession,
+    ) -> Dict[str, Any]:
+        """
+        Predict actual VALUES for existing gaps using AI.
+
+        This is Phase 3 (Agentic Gap Resolution) triggered by
+        "Agentic Gap Resolution Analysis" button.
+
+        Args:
+            gaps: List of gap dictionaries from frontend
+            collection_flow_id: Collection flow UUID
+            db: Database session
+
+        Returns:
+            Dict with predictions and summary
+        """
+        from .value_prediction_processor import GapValuePredictionProcessor
+
+        processor = GapValuePredictionProcessor(
+            client_account_id=self.client_account_id,
+            engagement_id=self.engagement_id,
+        )
+
+        return await processor.predict_gap_values(
+            gaps=gaps,
+            collection_flow_id=collection_flow_id,
+            db=db,
+            execute_agent_task_method=self._execute_agent_task,
+        )
+
     async def _load_assets(
         self, selected_asset_ids: List[str], db: AsyncSession
     ) -> List[Any]:

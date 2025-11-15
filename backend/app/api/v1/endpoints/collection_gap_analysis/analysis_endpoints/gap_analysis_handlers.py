@@ -29,6 +29,79 @@ logger = logging.getLogger(__name__)
 MAX_GAPS_PER_REQUEST = 200
 
 
+async def _handle_value_prediction(
+    flow_id: str,
+    collection_flow,
+    gaps: List[DataGap],
+    context: RequestContext,
+    db: AsyncSession,
+    background_tasks: BackgroundTasks,
+):
+    """Handle gap value prediction workflow (Workflow #3).
+
+    This is triggered when user clicks "Agentic Gap Resolution Analysis" button.
+    AI predicts VALUES for existing gaps, not new gap discovery.
+
+    Args:
+        flow_id: Collection flow ID (frontend UUID)
+        collection_flow: Resolved CollectionFlow object
+        gaps: List of gaps to predict values for
+        context: Request context
+        db: Database session
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        202 response with job details
+    """
+    from app.services.collection.gap_analysis.service import GapAnalysisService
+
+    # Validate gap count
+    if len(gaps) > MAX_GAPS_PER_REQUEST:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Too many gaps ({len(gaps)}). Maximum {MAX_GAPS_PER_REQUEST} allowed.",
+        )
+
+    logger.info(
+        f"🔮 Starting gap value prediction job for {len(gaps)} gaps "
+        f"(flow: {flow_id})"
+    )
+
+    # Initialize gap analysis service
+    gap_service = GapAnalysisService(
+        client_account_id=str(context.client_account_id),
+        engagement_id=str(context.engagement_id),
+        collection_flow_id=str(collection_flow.id),
+    )
+
+    # Run prediction synchronously (fast, < 30s for most cases)
+    try:
+        result = await gap_service.predict_gap_values(
+            gaps=[g.dict() for g in gaps],
+            collection_flow_id=collection_flow.id,
+            db=db,
+        )
+
+        logger.info(
+            f"✅ Value prediction complete: {result['summary']['total_predictions']} predictions "
+            f"({result['summary']['high_confidence_count']} high confidence)"
+        )
+
+        return {
+            "status": "completed",
+            "message": f"Predicted values for {result['summary']['total_predictions']} gaps",
+            "predictions": result["predictions"],
+            "summary": result["summary"],
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Value prediction failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Value prediction failed: {str(e)}",
+        )
+
+
 async def load_heuristic_gaps_from_db(
     collection_flow_id: UUID, selected_asset_ids: List[str], db: AsyncSession
 ) -> List[DataGap]:
@@ -137,9 +210,13 @@ async def analyze_gaps(
     """
     try:
         # Log request mode for observability
+        request_mode = (
+            "value_prediction" if request_body.gaps else "comprehensive_analysis"
+        )
         logger.info(
             f"🤖 AI analysis request - Flow: {flow_id}, "
-            f"Mode: {'auto-trigger (load from DB)' if request_body.gaps is None else 'manual (gaps provided)'}, "
+            f"Mode: {request_mode}, "
+            f"Gaps: {len(request_body.gaps) if request_body.gaps else 0}, "
             f"Assets: {len(request_body.selected_asset_ids)}"
         )
 
@@ -151,13 +228,27 @@ async def analyze_gaps(
             db=db,
         )
 
-        # Note: For comprehensive AI analysis, we don't need to load gaps beforehand
-        # The tier_2 analysis will analyze entire assets and discover all gaps
-        # This simplifies the flow and removes redundant database queries
-        logger.info(
-            f"📥 Comprehensive AI analysis mode - "
-            f"Assets: {len(request_body.selected_asset_ids)}"
-        )
+        # Route based on request type
+        if request_body.gaps is not None and len(request_body.gaps) > 0:
+            # Workflow #3: Gap Value Prediction (manual button click)
+            logger.info(
+                f"🔮 Gap value prediction mode - "
+                f"Predicting values for {len(request_body.gaps)} gaps"
+            )
+            return await _handle_value_prediction(
+                flow_id=flow_id,
+                collection_flow=collection_flow,
+                gaps=request_body.gaps,
+                context=context,
+                db=db,
+                background_tasks=background_tasks,
+            )
+        else:
+            # Workflow #2: Comprehensive AI Analysis (auto-trigger)
+            logger.info(
+                f"📥 Comprehensive AI analysis mode - "
+                f"Assets: {len(request_body.selected_asset_ids)}"
+            )
 
         # Create idempotency key from selected asset IDs
         # Note: Using asset IDs instead of gaps since comprehensive analysis
