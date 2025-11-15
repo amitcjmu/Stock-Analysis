@@ -212,16 +212,13 @@ export const assessmentFlowAPI = {
   },
 
   async getSixRDecisions(flowId: string): Promise<Response> {
-    // DEPRECATED: Get this data from assessment-status endpoint instead
-    const response = await fetch(
-      `${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`,
+    // Fix for Issue #7: Use dedicated endpoint with apiCall for auth headers
+    return apiCall(
+      `/master-flows/${flowId}/sixr-decisions`,
+      {
+        method: "GET",
+      }
     );
-
-    if (!response.ok) {
-      throw new Error(`Failed to get 6R decisions: ${response.statusText}`);
-    }
-
-    return response.json();
   },
 
   async finalize(flowId: string): Promise<Response> {

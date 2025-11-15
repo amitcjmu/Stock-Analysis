@@ -36,8 +36,23 @@ class ComplexityQueriesMixin:
                 - customization_indicators: Customization level data
         """
         try:
-            # Get applications with technology stack details
-            applications = await self._get_applications()
+            # ISSUE-6: Get assessment flow to access selected application IDs
+            flow = await self._get_assessment_flow(flow_id)
+            selected_app_ids = (
+                flow.selected_canonical_application_ids or [] if flow else []
+            )
+
+            # Get applications filtered by selected IDs
+            if selected_app_ids:
+                applications = await self._get_selected_applications(selected_app_ids)
+                logger.info(
+                    f"[ISSUE-6] Filtered to {len(applications)} selected applications for complexity analysis"
+                )
+            else:
+                logger.warning(
+                    "[ISSUE-6] No selected IDs, using all applications for complexity analysis"
+                )
+                applications = await self._get_applications()
 
             # Get collected inventory grouped by type
             inventory_by_type = await self._get_inventory_by_type()

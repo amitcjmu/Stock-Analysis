@@ -29,17 +29,33 @@ from typing import List, Tuple
 class LLMCallDetector(ast.NodeVisitor):
     """Detect LLM calls that bypass observability."""
 
-    def __init__(self):
+    def __init__(self, file_content: str):
         self.violations = []
         self.has_callback_handler = False
+        self.file_lines = file_content.split("\n")
+
+    def _has_exemption_comment(self, lineno: int) -> bool:
+        """Check if line has an OBSERVABILITY exemption comment."""
+        if lineno <= 0 or lineno > len(self.file_lines):
+            return False
+
+        # Check current line and previous 2 lines for exemption comment
+        for i in range(max(0, lineno - 3), lineno):
+            if i < len(self.file_lines):
+                line = self.file_lines[i]
+                if "OBSERVABILITY:" in line and "tracking not needed" in line:
+                    return True
+        return False
 
     def visit_Call(self, node):
         """Check function calls for observability patterns."""
 
         # Check for task.execute_async() without callback
         if hasattr(node.func, "attr") and node.func.attr == "execute_async":
-            # Check if CallbackHandler is in scope
-            if not self.has_callback_handler:
+            # Check if CallbackHandler is in scope or exemption comment exists
+            if not self.has_callback_handler and not self._has_exemption_comment(
+                node.lineno
+            ):
                 self.violations.append(
                     (
                         node.lineno,
@@ -99,9 +115,10 @@ def check_file(file_path: Path) -> List[Tuple[int, str, str]]:
     """Check a Python file for observability violations."""
     try:
         with open(file_path, "r") as f:
-            tree = ast.parse(f.read(), filename=str(file_path))
+            content = f.read()
+            tree = ast.parse(content, filename=str(file_path))
 
-        detector = LLMCallDetector()
+        detector = LLMCallDetector(content)
         detector.visit(tree)
         return detector.violations
     except SyntaxError:

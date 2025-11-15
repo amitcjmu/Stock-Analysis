@@ -12,6 +12,7 @@ from .info_endpoints import router as info_router
 from .lifecycle_endpoints import router as lifecycle_router
 from .initialize_from_canonical import router as initialize_canonical_router
 from .enrichment_endpoints import router as enrichment_router
+from .recommendations_endpoint import router as recommendations_router
 
 # Create main router that combines all sub-routers
 router = APIRouter()
@@ -24,6 +25,7 @@ router.include_router(list_status_router)
 router.include_router(info_router)
 router.include_router(lifecycle_router)
 router.include_router(enrichment_router)  # Phase 5: Enrichment endpoints
+router.include_router(recommendations_router)  # Fix for Issue #7: 6R recommendations
 
 # Export for backward compatibility
 __all__ = ["router"]
