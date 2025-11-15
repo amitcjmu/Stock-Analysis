@@ -25,6 +25,7 @@ export type AssessmentPhase =
   | "architecture_minimums"
   | "tech_debt_analysis"
   | "component_sixr_strategies"
+  | "recommendation_generation" // Issue #7 fix: Add backend phase name
   | "app_on_page_generation"
   | "finalization";
 

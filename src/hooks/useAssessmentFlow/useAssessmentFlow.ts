@@ -97,19 +97,16 @@ export const useAssessmentFlow = (
           }
 
           case "component_sixr_strategies":
-          case "app_on_page_generation": {
+          case "app_on_page_generation":
+          case "recommendation_generation": {
+            // Issue #7 fix: Load 6R decisions for recommendation_generation phase
             const decisionsData = await assessmentFlowAPI.getSixRDecisions(
               state.flowId,
             );
+            // Backend returns decisions as a dictionary already, not an array
             setState((prev) => ({
               ...prev,
-              sixrDecisions: decisionsData.decisions.reduce(
-                (acc: Record<string, SixRDecision>, decision: SixRDecision) => {
-                  acc[decision.application_id] = decision;
-                  return acc;
-                },
-                {},
-              ),
+              sixrDecisions: decisionsData.decisions || {},
             }));
             break;
           }

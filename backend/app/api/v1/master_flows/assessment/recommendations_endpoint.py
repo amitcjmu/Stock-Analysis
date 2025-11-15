@@ -41,10 +41,23 @@ def _extract_from_recommendation_generation(
         return decisions
 
     rec_gen = phase_results["recommendation_generation"]
-    if not isinstance(rec_gen, dict) or "applications" not in rec_gen:
+    if not isinstance(rec_gen, dict):
         return decisions
 
-    applications = rec_gen["applications"]
+    # Fix for Issue #7: Phase results has nested structure
+    # phase_results["recommendation_generation"]["results"]["recommendation_generation"]["applications"]
+    # Try the nested "results" structure first (current format)
+    if "results" in rec_gen and isinstance(rec_gen["results"], dict):
+        inner_rec_gen = rec_gen["results"].get("recommendation_generation", {})
+        if isinstance(inner_rec_gen, dict) and "applications" in inner_rec_gen:
+            applications = inner_rec_gen["applications"]
+        else:
+            # Fallback: Try direct applications key in outer structure (legacy)
+            applications = rec_gen.get("applications", [])
+    else:
+        # Fallback: Try direct applications key (legacy)
+        applications = rec_gen.get("applications", [])
+
     if not isinstance(applications, list):
         return decisions
 
@@ -55,12 +68,17 @@ def _extract_from_recommendation_generation(
         app_id = app_rec["application_id"]
         decisions[app_id] = {
             "application_id": app_id,
+            "application_name": app_rec.get("application_name", ""),
             "overall_strategy": app_rec.get("six_r_strategy", "retain"),
             "confidence_score": app_rec.get("confidence_score", 0.0),
-            "rationale": app_rec.get("rationale", ""),
+            "rationale": app_rec.get("rationale", app_rec.get("reasoning", "")),
             "architecture_exceptions": app_rec.get("architecture_exceptions", []),
             "component_treatments": app_rec.get("component_treatments", []),
             "move_group_hints": app_rec.get("move_group_hints", []),
+            "risk_level": app_rec.get("risk_level", "unknown"),
+            "estimated_effort": app_rec.get("estimated_effort", "unknown"),
+            "tech_debt_score": app_rec.get("tech_debt_score"),
+            "risk_factors": app_rec.get("risk_factors", []),
         }
 
     if decisions:
