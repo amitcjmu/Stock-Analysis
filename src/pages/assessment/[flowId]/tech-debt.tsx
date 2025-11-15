@@ -27,7 +27,8 @@ const TechDebtPage: React.FC = () => {
     state,
     updateApplicationComponents,
     updateTechDebtAnalysis,
-    resumeFlow
+    resumeFlow,
+    toggleAutoPolling
   } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const [selectedApp, setSelectedApp] = useState<string>('');
@@ -214,6 +215,26 @@ const TechDebtPage: React.FC = () => {
             currentPhase="tech_debt_analysis"
           />
         )}
+
+        {/* Auto-Polling Control */}
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <span className="text-sm text-muted-foreground">Auto-refresh:</span>
+          <Button
+            variant={state.autoPollingEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={toggleAutoPolling}
+            className="gap-2"
+          >
+            {state.autoPollingEnabled ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                On
+              </>
+            ) : (
+              <>Off</>
+            )}
+          </Button>
+        </div>
 
         {/* Application Selection */}
         <ApplicationTabs

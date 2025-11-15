@@ -55,6 +55,7 @@ export const useAssessmentFlow = (
     error: null,
     lastUserInteraction: null,
     appsReadyForPlanning: [],
+    autoPollingEnabled: !options?.disableAutoPolling, // Default based on options
     agentUpdates: [],
   });
 
@@ -638,13 +639,22 @@ export const useAssessmentFlow = (
     // Intentionally omitting loadFlowState to prevent infinite loop
   ]);
 
+  // Toggle auto-polling on/off (user-controlled)
+  const toggleAutoPolling = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      autoPollingEnabled: !prev.autoPollingEnabled,
+    }));
+  }, []);
+
   // Auto-polling when assessment is in progress
   // Poll every 5 seconds to detect phase completion and update UI automatically
   // Stop polling when reaching recommendation_generation (final assessment phase)
-  // Can be disabled on edit pages via options.disableAutoPolling to prevent form resets
+  // Respects both options.disableAutoPolling (default) and state.autoPollingEnabled (user toggle)
   useEffect(() => {
     const shouldPoll =
       !options?.disableAutoPolling && // Respect disableAutoPolling option
+      state.autoPollingEnabled && // Respect user toggle
       state.status === "in_progress" &&
       state.flowId &&
       clientAccountId &&
@@ -657,7 +667,7 @@ export const useAssessmentFlow = (
 
       return () => clearInterval(interval);
     }
-  }, [state.status, state.currentPhase, state.flowId, clientAccountId, loadFlowState, options?.disableAutoPolling]);
+  }, [state.status, state.currentPhase, state.flowId, clientAccountId, loadFlowState, options?.disableAutoPolling, state.autoPollingEnabled]);
 
   // Expose loadApplicationData for manual refresh
   const refreshApplicationData = useCallback(() => {
@@ -697,6 +707,8 @@ export const useAssessmentFlow = (
     updateApplicationComponents,
     updateTechDebtAnalysis,
     updateSixRDecision,
+    subscribeToUpdates: () => {}, // Placeholder for real-time updates
+    unsubscribeFromUpdates: () => {}, // Placeholder for real-time updates
     refreshStatus, // NEW: Manual refresh function
     startPolling, // DEPRECATED: kept for backward compatibility but does nothing
     stopPolling,
@@ -705,5 +717,6 @@ export const useAssessmentFlow = (
     getApplicationsNeedingReview,
     isPhaseComplete,
     refreshApplicationData, // Add method to refresh application data
+    toggleAutoPolling, // Toggle auto-polling on/off
   };
 };

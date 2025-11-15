@@ -21,7 +21,8 @@ const ArchitecturePage: React.FC = () => {
     state,
     updateArchitectureStandards,
     resumeFlow,
-    refreshApplicationData
+    refreshApplicationData,
+    toggleAutoPolling
   } = useAssessmentFlow(flowId, { disableAutoPolling: true });
   const navigate = useNavigate();
   const { client, engagement } = useAuth();
@@ -307,6 +308,26 @@ const ArchitecturePage: React.FC = () => {
             </p>
           </div>
         )}
+
+        {/* Auto-Polling Control */}
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <span className="text-sm text-muted-foreground">Auto-refresh:</span>
+          <Button
+            variant={state.autoPollingEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={toggleAutoPolling}
+            className="gap-2"
+          >
+            {state.autoPollingEnabled ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                On
+              </>
+            ) : (
+              <>Off</>
+            )}
+          </Button>
+        </div>
 
         {/* Template Selection */}
         <Card>

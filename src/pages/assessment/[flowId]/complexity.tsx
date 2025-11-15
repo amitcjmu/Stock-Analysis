@@ -23,7 +23,7 @@ import { AlertCircle, ArrowRight, Loader2, BarChart3, Code2, TrendingUp, AlertTr
 const ComplexityPage: React.FC = () => {
   const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
   const navigate = useNavigate();
-  const { state, resumeFlow } = useAssessmentFlow(flowId, { disableAutoPolling: true });
+  const { state, resumeFlow, toggleAutoPolling } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -252,6 +252,26 @@ const ComplexityPage: React.FC = () => {
               currentPhase="complexity_analysis"
             />
           )}
+
+          {/* Auto-Polling Control */}
+          <div className="flex items-center justify-end gap-2 mb-4">
+            <span className="text-sm text-muted-foreground">Auto-refresh:</span>
+            <Button
+              variant={state.autoPollingEnabled ? "default" : "outline"}
+              size="sm"
+              onClick={toggleAutoPolling}
+              className="gap-2"
+            >
+              {state.autoPollingEnabled ? (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                  On
+                </>
+              ) : (
+                <>Off</>
+              )}
+            </Button>
+          </div>
 
           {/* Application Selection */}
           <ApplicationTabs
