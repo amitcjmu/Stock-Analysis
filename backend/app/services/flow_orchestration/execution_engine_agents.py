@@ -27,9 +27,11 @@ class ExecutionEngineAgentHandlers:
         self,
         master_repo: CrewAIFlowStateExtensionsRepository,
         phase_transition_agent: PhaseTransitionAgent,
+        db_session=None,  # Added for Bug #1055 fix
     ):
         self.master_repo = master_repo
         self.phase_transition_agent = phase_transition_agent
+        self.db_session = db_session  # Store for passing to agent context
 
     async def get_agent_decision(
         self,
@@ -161,6 +163,7 @@ class ExecutionEngineAgentHandlers:
                 "phase_result": phase_result,
                 "flow_state": flow_state or {},
                 "flow_history": master_flow.flow_persistence_data or {},
+                "db_session": self.db_session,  # Bug #1055: Pass db_session for database queries
             }
 
             # Get decision from phase transition agent

@@ -14,8 +14,11 @@ class CollectionPhase(str, Enum):
     ASSET_SELECTION = (
         "asset_selection"  # Replaces platform_detection and automated_collection
     )
+    AUTO_ENRICHMENT = "auto_enrichment"
     GAP_ANALYSIS = "gap_analysis"
+    QUESTIONNAIRE_GENERATION = "questionnaire_generation"
     MANUAL_COLLECTION = "manual_collection"
+    DATA_VALIDATION = "data_validation"
     FINALIZATION = "finalization"
 
 
@@ -40,16 +43,25 @@ class CollectionPhaseUtils:
                 CollectionPhase.ASSET_SELECTION.value
             ],
             CollectionPhase.ASSET_SELECTION.value: [
-                CollectionPhase.GAP_ANALYSIS.value,
-                CollectionPhase.MANUAL_COLLECTION.value,  # Skip gap analysis if no gaps
+                CollectionPhase.AUTO_ENRICHMENT.value,
+                CollectionPhase.GAP_ANALYSIS.value,  # Skip enrichment
                 CollectionPhase.FINALIZATION.value,  # Skip to finalization if complete
             ],
+            CollectionPhase.AUTO_ENRICHMENT.value: [
+                CollectionPhase.GAP_ANALYSIS.value,
+            ],
             CollectionPhase.GAP_ANALYSIS.value: [
+                CollectionPhase.QUESTIONNAIRE_GENERATION.value,
+                CollectionPhase.FINALIZATION.value,  # Skip if no gaps
+            ],
+            CollectionPhase.QUESTIONNAIRE_GENERATION.value: [
                 CollectionPhase.MANUAL_COLLECTION.value,
-                CollectionPhase.FINALIZATION.value,  # Skip manual if no gaps
             ],
             CollectionPhase.MANUAL_COLLECTION.value: [
-                CollectionPhase.FINALIZATION.value
+                CollectionPhase.DATA_VALIDATION.value,
+            ],
+            CollectionPhase.DATA_VALIDATION.value: [
+                CollectionPhase.FINALIZATION.value,
             ],
             CollectionPhase.FINALIZATION.value: [],  # Terminal phase
         }
