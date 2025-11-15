@@ -61,6 +61,17 @@
   - `asset_dependency`: downstream component, dependency_type, latency, call_count, error_rate, port, protocol.
 - Persist selections in `import_field_mappings` so cleansing and asset creation phases reuse the same mappings for AppDynamics/Datadog columns.
 
+#### Target field source-of-truth (PR #956 + topology tranche updates)
+
+| Layer | Responsibility | Notes |
+| --- | --- | --- |
+| Backend (`field_handler.py`) | Introspects `migration.assets` and uses the SQLAlchemy column `.info` metadata (display_name, short_hint, category) that was introduced in PR #956 to build the CMDB-friendly list. We simply append the dependency columns (`dependency_type`, `relationship_nature`, `direction`, `port`, `protocol_name`, `conn_count`, `first_seen`, `last_seen`, `description`) so the same handler covers app-dependency flows. | No import-type branching yet; it always returns the master list so other callers (inventory grid, FieldOptionsContext) stay backward compatible. |
+| Frontend global context (`FieldOptionsContext`) | Fetches `/data-import/available-target-fields` once on login and caches the full CMDB list so every classic CMDB import sees the same user-friendly names. | Source of truth for CMDB attribute mapping dropdowns. |
+| Attribute mapping hook (`useTargetFields.ts`) | When a specific flow is opened, it calls `/data-import/available-target-fields?flow_id=...`. If the backend flags `import_category === 'app_discovery'`, the hook returns that limited field set to the UI; otherwise it falls back to the global CMDB list. | This is why application-dependency imports only display the curated dependency fields while CMDB flows continue to show the full schema list. |
+| Mapping UI (`FieldMappingsTab`, `CriticalAttributesTab`) | Reads both the context list and the per-flow hook result so the dropdowns automatically switch between CMDB and app dependency fields without additional conditional rendering logic scattered across components. | Keeps the UX consistent regardless of import type. |
+
+If we ever need the backend to enforce the filtering per import category, the existing handler already has everything required (we resolve `import_category` in the import records); we would just filter the list before returning it instead of letting the hook decide.
+
 ---
 
 # Application & Dependency Export References

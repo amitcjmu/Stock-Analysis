@@ -71,6 +71,8 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
             <FieldMappingsTab
               fieldMappings={fieldMappings}
               isAnalyzing={false}
+              flowId={sessionInfo?.flowId}
+              importCategory={sessionInfo?.importCategory ?? null}
               onMappingAction={(mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => {
                 if (action === 'approve') {
                   onApproveMapping(mappingId);

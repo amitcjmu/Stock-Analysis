@@ -151,6 +151,101 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
             ]
         )
 
+        # asset_dependencies: key relationship attributes needed for application dependency imports
+        dependency_fields = [
+            {
+                "name": "dependency_type",
+                "display_name": "Dependency Type",
+                "short_hint": "Category of the dependency (database, API, storage, etc.)",
+                "type": "string",
+                "required": False,
+                "description": "Type of relationship between the source and target assets.",
+                "category": "dependency",
+                "nullable": False,
+            },
+            {
+                "name": "description",
+                "display_name": "Dependency Description",
+                "short_hint": "Narrative describing how the assets interact",
+                "type": "text",
+                "required": False,
+                "description": "Describes the nature or purpose of the dependency.",
+                "category": "dependency",
+                "nullable": True,
+            },
+            {
+                "name": "relationship_nature",
+                "display_name": "Relationship Nature",
+                "short_hint": "Logical nature such as hosting, data, API",
+                "type": "string",
+                "required": False,
+                "description": "Nature of the relationship (e.g., hosting, API, data feed).",
+                "category": "dependency",
+                "nullable": True,
+            },
+            {
+                "name": "direction",
+                "display_name": "Direction",
+                "short_hint": "Flow direction between source and target",
+                "type": "string",
+                "required": False,
+                "description": "Indicates if the dependency flows inbound, outbound, or bidirectional.",
+                "category": "dependency",
+                "nullable": True,
+            },
+            {
+                "name": "port",
+                "display_name": "Port",
+                "short_hint": "Network port observed for this dependency",
+                "type": "integer",
+                "required": False,
+                "description": "Network port number observed for the dependency connection.",
+                "category": "dependency",
+                "nullable": True,
+            },
+            {
+                "name": "protocol_name",
+                "display_name": "Protocol",
+                "short_hint": "Protocol such as TCP, UDP, HTTP",
+                "type": "string",
+                "required": False,
+                "description": "Protocol name detected for the dependency traffic.",
+                "category": "dependency",
+                "nullable": True,
+            },
+            {
+                "name": "conn_count",
+                "display_name": "Connection Count",
+                "short_hint": "Number of observed connections",
+                "type": "integer",
+                "required": False,
+                "description": "Total number of connections observed between the assets.",
+                "category": "dependency",
+                "nullable": True,
+            },
+            {
+                "name": "first_seen",
+                "display_name": "First Seen",
+                "short_hint": "Timestamp when the dependency was first observed",
+                "type": "datetime",
+                "required": False,
+                "description": "First time this dependency was detected.",
+                "category": "dependency",
+                "nullable": True,
+            },
+            {
+                "name": "last_seen",
+                "display_name": "Last Seen",
+                "short_hint": "Most recent observation timestamp",
+                "type": "datetime",
+                "required": False,
+                "description": "Most recent time this dependency was detected.",
+                "category": "dependency",
+                "nullable": True,
+            },
+        ]
+        fields.extend(dependency_fields)
+
         logger.info(f"Total fields including related tables: {len(fields)}")
         return fields
 

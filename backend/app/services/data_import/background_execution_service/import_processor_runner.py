@@ -114,6 +114,11 @@ class ImportProcessorBackgroundRunner:
                     data_import_id=uuid.UUID(data_import_id),
                 )
             data_import_uuid = uuid.UUID(str(data_import_id))
+            if hasattr(processor, "set_flow_context"):
+                processor.set_flow_context(
+                    master_flow_id=master_flow_id,
+                    data_import_id=data_import_uuid,
+                )
             result = await processor.process(
                 data_import_id=data_import_uuid,
                 raw_records=raw_records,
