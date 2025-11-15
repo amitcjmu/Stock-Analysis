@@ -19,7 +19,8 @@ import {
   Shield,
   TrendingUp,
   Database,
-  GitBranch
+  GitBranch,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SixRDecision } from '@/hooks/useAssessmentFlow';
@@ -55,7 +56,9 @@ const SixRStrategyReview: React.FC = () => {
   const {
     state,
     updateSixRDecision,
-    resumeFlow
+    resumeFlow,
+    refreshApplicationData,
+    toggleAutoPolling
   } = useAssessmentFlow(flowId);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
@@ -266,12 +269,46 @@ const SixRStrategyReview: React.FC = () => {
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">
-            6R Strategy Review
-          </h1>
-          <p className="text-gray-600">
-            Review migration recommendations, dependencies, and risk assessment for selected applications
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                6R Strategy Review
+              </h1>
+              <p className="text-gray-600">
+                Review migration recommendations, dependencies, and risk assessment for selected applications
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refreshApplicationData()}
+                disabled={state.isLoading}
+              >
+                {state.isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Refresh Data
+              </Button>
+              <Button
+                variant={state.autoPollingEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={toggleAutoPolling}
+                className="gap-2"
+              >
+                {state.autoPollingEnabled ? (
+                  <>
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Auto-refresh On
+                  </>
+                ) : (
+                  <>Auto-refresh Off</>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Status Alert */}

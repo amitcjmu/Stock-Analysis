@@ -27,7 +27,9 @@ const AppOnPagePage: React.FC = () => {
 
   const {
     state,
-    finalizeAssessment
+    finalizeAssessment,
+    refreshApplicationData,
+    toggleAutoPolling
   } = useAssessmentFlow(flowId);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
@@ -109,6 +111,34 @@ const AppOnPagePage: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-2 print:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refreshApplicationData()}
+                disabled={state.isLoading}
+              >
+                {state.isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Refresh Data
+              </Button>
+              <Button
+                variant={state.autoPollingEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={toggleAutoPolling}
+                className="gap-2"
+              >
+                {state.autoPollingEnabled ? (
+                  <>
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Auto-refresh On
+                  </>
+                ) : (
+                  <>Auto-refresh Off</>
+                )}
+              </Button>
               <Button variant="outline" onClick={handlePrint}>
                 <Eye className="h-4 w-4 mr-2" />
                 Print Preview
