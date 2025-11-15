@@ -640,6 +640,23 @@ export const useAssessmentFlow = (
     // Intentionally omitting loadFlowState to prevent infinite loop
   ]);
 
+  // Auto-polling when assessment is in progress
+  // Poll until status becomes "completed" to ensure UI updates when backend finishes
+  useEffect(() => {
+    const shouldPoll =
+      state.status === "in_progress" &&
+      state.flowId &&
+      clientAccountId;
+
+    if (shouldPoll) {
+      const interval = setInterval(() => {
+        loadFlowState();
+      }, 5000); // Poll every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [state.status, state.flowId, clientAccountId, loadFlowState]);
+
   // Expose loadApplicationData for manual refresh
   const refreshApplicationData = useCallback(() => {
     return loadApplicationData();
