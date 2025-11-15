@@ -3,14 +3,16 @@ Field Handler - Provides field mapping and target field information.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from app.models.data_import import DataImport
 from .field_metadata import (
     INTERNAL_SYSTEM_FIELDS,
     TYPE_MAPPINGS,
@@ -22,6 +24,23 @@ from .field_metadata import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+APP_DISCOVERY_ASSET_FIELDS = {
+    "id",
+    "name",
+    "hostname",
+    "application_name",
+    "asset_type",
+}
+APP_DISCOVERY_EXCLUDED_DEP_FIELDS = {
+    "id",
+    "asset_id",
+    "depends_on_asset_id",
+    "client_account_id",
+    "engagement_id",
+    "created_at",
+    "updated_at",
+}
 
 
 async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
@@ -182,8 +201,113 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
         ]
 
 
+async def get_asset_dependency_fields(db: AsyncSession) -> List[Dict[str, Any]]:
+    """Get target fields from the asset_dependencies table."""
+    result = await db.execute(
+        text(
+            """
+            SELECT
+                column_name,
+                data_type,
+                is_nullable,
+                character_maximum_length,
+                numeric_precision,
+                numeric_scale
+            FROM information_schema.columns
+            WHERE table_name = 'asset_dependencies'
+              AND table_schema = 'migration'
+            ORDER BY ordinal_position
+            """
+        )
+    )
+
+    columns = result.fetchall()
+    fields: List[Dict[str, Any]] = []
+
+    for col in columns:
+        field_name = col.column_name
+        if field_name in APP_DISCOVERY_EXCLUDED_DEP_FIELDS:
+            continue
+
+        pg_type = col.data_type
+        field_type = TYPE_MAPPINGS.get(pg_type, "string")
+        is_nullable = col.is_nullable == "YES"
+
+        fields.append(
+            {
+                "name": field_name,
+                "display_name": field_name.replace("_", " ").title(),
+                "short_hint": None,
+                "type": field_type,
+                "required": False,
+                "description": f"Dependency attribute '{field_name}'",
+                "category": "dependency",
+                "nullable": is_nullable,
+                "max_length": col.character_maximum_length,
+                "precision": col.numeric_precision,
+                "scale": col.numeric_scale,
+            }
+        )
+
+    return fields
+
+
+async def get_application_dependency_target_fields(
+    db: AsyncSession,
+) -> List[Dict[str, Any]]:
+    """Return curated fields for application dependency imports."""
+    asset_fields = await get_assets_table_fields(db)
+    curated_assets = [
+        field for field in asset_fields if field["name"] in APP_DISCOVERY_ASSET_FIELDS
+    ]
+
+    dependency_fields = await get_asset_dependency_fields(db)
+
+    logger.info(
+        "Prepared application dependency target fields: %s asset fields, %s dependency fields",
+        len(curated_assets),
+        len(dependency_fields),
+    )
+    return curated_assets + dependency_fields
+
+
+async def resolve_import_category(
+    *,
+    flow_id: Optional[str],
+    explicit_category: Optional[str],
+    db: AsyncSession,
+) -> Optional[str]:
+    """Resolve import category via explicit parameter or master flow lookup."""
+    if explicit_category:
+        return explicit_category.lower()
+
+    if not flow_id:
+        return None
+
+    try:
+        flow_uuid = UUID(flow_id)
+    except (ValueError, TypeError):
+        logger.warning("Invalid flow_id provided for target field lookup: %s", flow_id)
+        return None
+
+    result = await db.execute(
+        select(DataImport.import_category).where(
+            DataImport.master_flow_id == flow_uuid,
+            DataImport.import_category.isnot(None),
+        )
+    )
+    category = result.scalar_one_or_none()
+    return category.lower() if category else None
+
+
 @router.get("/available-target-fields")
 async def get_available_target_fields(
+    flow_id: Optional[str] = Query(
+        None, description="Optional master flow ID to scope target fields"
+    ),
+    import_category: Optional[str] = Query(
+        None, description="Optional import category override"
+    ),
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
@@ -198,8 +322,19 @@ async def get_available_target_fields(
             f"Getting available target fields for client {context.client_account_id}"
         )
 
-        # Get actual fields from database schema
-        fields = await get_assets_table_fields(db)
+        resolved_category = await resolve_import_category(
+            flow_id=flow_id, explicit_category=import_category, db=db
+        )
+        logger.info(
+            "Resolved target field import category: %s (flow_id=%s)",
+            resolved_category or "default",
+            flow_id,
+        )
+
+        if resolved_category == "app_discovery":
+            fields = await get_application_dependency_target_fields(db)
+        else:
+            fields = await get_assets_table_fields(db)
 
         # Group fields by category
         categories = {}
@@ -219,6 +354,7 @@ async def get_available_target_fields(
 
         return {
             "success": True,
+            "import_category": resolved_category or "cmdb_export",
             "fields": fields,
             "categories": categories,
             "total_fields": len(fields),

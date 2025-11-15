@@ -125,9 +125,14 @@ async def upload_data_import(
     response = await handler.handle_import(store_request, context)
 
     if not response.get("success"):
+        error_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        response_payload: Any = response.get("message", "Failed to process import.")
+        if response.get("error") == "conflict":
+            error_code = status.HTTP_409_CONFLICT
+            response_payload = response
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=response.get("message", "Failed to process import."),
+            status_code=error_code,
+            detail=response_payload,
         )
 
     return {

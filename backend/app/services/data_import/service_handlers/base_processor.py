@@ -25,6 +25,23 @@ class BaseDataImportProcessor(ABC):
         self.logger = get_logger(
             f"{self.__class__.__module__}.{self.__class__.__name__}"
         )
+        self.master_flow_id: Optional[str] = None
+        self.data_import_id: Optional[uuid.UUID] = None
+
+    def set_flow_context(
+        self,
+        *,
+        master_flow_id: Optional[str] = None,
+        data_import_id: Optional[uuid.UUID] = None,
+    ) -> None:
+        """
+        Provide flow context so processors can publish status updates.
+        """
+
+        if master_flow_id:
+            self.master_flow_id = master_flow_id
+        if data_import_id:
+            self.data_import_id = data_import_id
 
     async def process(
         self,

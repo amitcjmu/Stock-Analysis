@@ -36,6 +36,8 @@ interface AttributeMappingTabContentProps {
   learnedMappings?: Set<string>;
   clientAccountId?: string;
   engagementId?: string;
+  flowId?: string | null;
+  importCategory?: string;
 }
 
 const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
@@ -57,7 +59,9 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   onBulkLearnMappings,
   learnedMappings,
   clientAccountId,
-  engagementId
+  engagementId,
+  flowId,
+  importCategory,
 }) => {
   const renderTabContent = (): JSX.Element => {
     switch (activeTab) {
@@ -103,13 +107,8 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
             onRefresh={refetchAgentic}
             isLoading={isLoading}
             isAnalyzing={false}
-            // New learning-related props
-            onApproveMappingWithLearning={onApproveMappingWithLearning}
-            onRejectMappingWithLearning={onRejectMappingWithLearning}
-            onBulkLearnMappings={onBulkLearnMappings}
-            learnedMappings={learnedMappings}
-            clientAccountId={clientAccountId}
-            engagementId={engagementId}
+            flowId={flowId}
+            importCategory={importCategory}
           />
         );
       case 'data':
@@ -131,6 +130,8 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
             onRefresh={refetchAgentic}
             isLoading={isLoading}
             isAnalyzing={false}
+            flowId={flowId}
+            importCategory={importCategory}
           />
         );
     }

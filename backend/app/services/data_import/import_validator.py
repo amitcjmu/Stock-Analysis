@@ -309,23 +309,33 @@ class ImportValidator:
             # Filter out flows that are actually empty or have no real progress
             # Only consider flows with actual phases and meaningful progress
             actual_incomplete_flows = []
+            active_statuses = {
+                "initialized",
+                "running",
+                "processing",
+                "paused",
+                "waiting_for_approval",
+                "in_progress",
+                "active",
+            }
+
             for flow in incomplete_flows:
                 # Convert DiscoveryFlow object to dict if needed
                 flow_dict = self._flow_to_dict(flow)
 
-                current_phase = flow_dict.get("current_phase")
-                progress = flow_dict.get("progress_percentage", 0)
+                current_phase_raw = flow_dict.get("current_phase") or ""
+                current_phase = current_phase_raw.lower()
+                progress = flow_dict.get("progress_percentage", 0) or 0
                 phase_completion = flow_dict.get("phase_completion", {})
+                status = (flow_dict.get("status") or "").lower()
 
-                # Check if this is a real flow with actual progress
-                if (
-                    current_phase
-                    and current_phase not in ["", "initialization"]
-                    and (
-                        progress > 0
-                        or (phase_completion and any(phase_completion.values()))
-                    )
-                ):
+                has_real_phase = current_phase not in ("", "initialization")
+                has_progress = progress > 0 or (
+                    phase_completion and any(phase_completion.values())
+                )
+                is_active_status = status in active_statuses
+
+                if has_real_phase or has_progress or is_active_status:
                     actual_incomplete_flows.append(flow_dict)
 
             # If we found any actual incomplete flows, prevent new import

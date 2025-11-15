@@ -71,13 +71,23 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
             }
           }
 
+          const phaseState =
+            (flowResponse.phase_state as Record<string, unknown> | undefined) || {};
+          if (!importMetadata.import_category) {
+            importMetadata.import_category =
+              (phaseState.import_category as string) ||
+              (flowResponse.configuration?.import_category as string) ||
+              (flowResponse.initial_state?.import_category as string);
+          }
+
           const importData = {
             import_metadata: importMetadata,
             raw_data: flowResponse.raw_data?.[0] || {},
             sample_record: flowResponse.raw_data?.[0] || {},
             record_count: flowResponse.raw_data?.length || 0,
             field_count: flowResponse.raw_data?.[0] ? Object.keys(flowResponse.raw_data[0]).length : 0,
-            field_mappings: flowResponse.field_mappings || []
+            field_mappings: flowResponse.field_mappings || [],
+            normalized_preview: phaseState?.normalized_preview || []
           };
 
           console.log('✅ Extracted import data from flow status:', importData);

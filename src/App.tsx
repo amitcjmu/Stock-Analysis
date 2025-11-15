@@ -8,7 +8,6 @@ import { Routes } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ClientProvider } from "./contexts/ClientContext";
-import { FieldOptionsProvider } from "./contexts/FieldOptionsContext";
 import { DialogProvider } from "./contexts/DialogContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
@@ -727,14 +726,12 @@ const App = (): JSX.Element => (
       >
         <AuthProvider>
           <ClientProvider>
-            <FieldOptionsProvider>
-              <DialogProvider>
-                <ChatFeedbackProvider>
-                  <AuthenticatedApp />
-                  <GlobalChatFeedback />
-                </ChatFeedbackProvider>
-              </DialogProvider>
-            </FieldOptionsProvider>
+            <DialogProvider>
+              <ChatFeedbackProvider>
+                <AuthenticatedApp />
+                <GlobalChatFeedback />
+              </ChatFeedbackProvider>
+            </DialogProvider>
           </ClientProvider>
         </AuthProvider>
       </LazyLoadingProvider>

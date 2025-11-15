@@ -4,13 +4,29 @@ Application discovery import processor.
 
 from __future__ import annotations
 
+from typing import Any, Dict, List, Optional
+import time
 import uuid
-from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+from app.repositories.dependency_repository import DependencyRepository
+from app.services.asset_service.base import AssetService
+from app.services.data_import.background_execution_service.utils import (
+    update_flow_status,
+)
+from app.services.data_import.service_handlers.topology_normalizer import (
+    NormalizationResult,
+    normalize_topology_records,
+)
 from app.services.multi_model_service import TaskComplexity, multi_model_service
+from app.services.persistent_agents.tenant_scoped_agent_pool import (
+    TenantScopedAgentPool,
+)
+from app.services.crewai_flows.handlers.callback_handler_integration import (
+    CallbackHandlerIntegration,
+)
 
 from .base_processor import BaseDataImportProcessor
 
@@ -22,6 +38,47 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
 
     def __init__(self, db: AsyncSession, context: RequestContext):
         super().__init__(db, context)
+        self.asset_service = AssetService(db, context)
+        self.dependency_repository = DependencyRepository(
+            db,
+            client_account_id=str(context.client_account_id),
+            engagement_id=str(context.engagement_id),
+        )
+        self._normalization: Optional[NormalizationResult] = None
+        self._asset_cache: Dict[str, Any] = {}
+
+    async def process(
+        self,
+        data_import_id: uuid.UUID,
+        raw_records: List[Dict[str, Any]],
+        processing_config: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        validation_result = await self.validate_data(
+            data_import_id=data_import_id,
+            raw_records=raw_records,
+            processing_config=processing_config,
+        )
+
+        if not validation_result.get("valid"):
+            return {
+                "status": "failed",
+                "validation": validation_result,
+                "enrichment": None,
+            }
+
+        normalized_records = validation_result.get("normalized_records") or raw_records
+
+        enrichment_result = await self.enrich_assets(
+            data_import_id=data_import_id,
+            validated_records=normalized_records,
+            processing_config=processing_config,
+        )
+
+        return {
+            "status": "completed",
+            "validation": validation_result,
+            "enrichment": enrichment_result,
+        }
 
     async def validate_data(
         self,
@@ -29,29 +86,56 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
         raw_records: List[Dict[str, Any]],
         processing_config: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Perform lightweight schema validation with LLM assistance."""
-        record_preview = raw_records[:2] if raw_records else []
-        prompt = (
-            "You are validating an application discovery dataset. "
-            "Verify that each record maps applications to infrastructure assets. "
-            f"Preview: {record_preview}"
+        """Normalize incoming rows and run schema validation."""
+        normalization = normalize_topology_records(
+            raw_records,
+            source_system=(
+                processing_config.get("source_system")
+                if isinstance(processing_config, dict)
+                else None
+            ),
         )
+        self._normalization = normalization
 
-        try:
-            await multi_model_service.generate_response(
-                prompt=prompt,
-                task_type="dependency_analysis",
-                complexity=TaskComplexity.MEDIUM,
+        warnings = list(normalization.warnings)
+        validation_errors = list(normalization.errors)
+
+        if normalization.normalized_records:
+            await self._run_validation_agent(normalization.normalized_records)
+
+        if validation_errors:
+            await self._publish_status(
+                status="failed",
+                phase="data_validation",
+                payload={
+                    "import_category": self.category,
+                    "detected_columns": normalization.detected_fields,
+                    "errors": validation_errors,
+                    "warnings": warnings,
+                },
             )
-        except Exception as exc:
-            self.logger.warning(
-                "Application discovery validation used fallback due to error: %s", exc
-            )
+            return {
+                "valid": False,
+                "validation_errors": validation_errors,
+                "warnings": warnings,
+            }
+
+        await self._publish_status(
+            status="processing",
+            phase="data_validation",
+            payload={
+                "import_category": self.category,
+                "detected_columns": normalization.detected_fields,
+                "normalized_preview": normalization.normalized_records[:5],
+                "warnings": warnings,
+            },
+        )
 
         return {
             "valid": True,
-            "validation_errors": [],
-            "warnings": [],
+            "validation_errors": validation_errors,
+            "warnings": warnings,
+            "normalized_records": normalization.normalized_records,
         }
 
     async def enrich_assets(
@@ -60,19 +144,268 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
         validated_records: List[Dict[str, Any]],
         processing_config: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """
-        Enrichment stub.
+        """Persist normalized dependency records into Asset/AssetDependency tables."""
+        if not validated_records:
+            return {
+                "assets_enriched": 0,
+                "dependencies_created": 0,
+                "unmatched_components": 0,
+            }
 
-        TODO: Persist application dependencies into AssetDependency table.
-        """
-        self.logger.info(
-            "Enrichment placeholder for application discovery import_id=%s "
-            "(records=%s)",
-            data_import_id,
-            len(validated_records),
+        dependencies_created = 0
+        unmatched_components = 0
+
+        for record in validated_records:
+            source_asset = await self._get_or_create_component_asset(
+                record, role="source"
+            )
+            if not source_asset:
+                unmatched_components += 1
+                continue
+
+            target_asset = await self._get_or_create_target_asset(record)
+            if not target_asset:
+                unmatched_components += 1
+                continue
+
+            try:
+                await self.dependency_repository.create_dependency(
+                    source_asset_id=str(source_asset.id),
+                    target_asset_id=str(target_asset.id),
+                    dependency_type=record.get("dependency_type")
+                    or "application_dependency",
+                    confidence_score=record.get("confidence_score") or 0.7,
+                    description=self._build_dependency_description(record),
+                )
+                dependencies_created += 1
+            except Exception as exc:
+                self.logger.warning(
+                    "Failed to create dependency for %s -> %s: %s",
+                    source_asset.name,
+                    target_asset.name,
+                    exc,
+                )
+                unmatched_components += 1
+
+        assets_enriched = len(self._asset_cache)
+
+        await self._publish_status(
+            status="processing",
+            phase="asset_creation",
+            payload={
+                "import_category": self.category,
+                "normalized_preview": validated_records[:5],
+                "assets_enriched": assets_enriched,
+                "dependencies_created": dependencies_created,
+                "unmatched_components": unmatched_components,
+            },
         )
+
         return {
-            "assets_enriched": 0,
-            "dependencies_created": 0,
-            "performance_updated": 0,
+            "assets_enriched": assets_enriched,
+            "dependencies_created": dependencies_created,
+            "unmatched_components": unmatched_components,
         }
+
+    async def _run_validation_agent(
+        self, normalized_records: List[Dict[str, Any]]
+    ) -> None:
+        """Run schema validation via agent + LLM tracking."""
+        preview = normalized_records[:5]
+        prompt = (
+            "Validate the following application dependency records. "
+            "Ensure each item has application_name, component_name, host_name, "
+            "dependency_target, and dependency_type fields populated. "
+            "Respond with any anomalies.\n"
+            f"Records: {preview}"
+        )
+
+        callback_handler = None
+        if self.master_flow_id:
+            callback_handler = CallbackHandlerIntegration.create_callback_handler(
+                flow_id=str(self.master_flow_id),
+                context=self.context,
+            )
+
+        try:
+            agent = await TenantScopedAgentPool.get_agent(
+                self.context, "topology_schema_agent"
+            )
+
+            def _record_task_start() -> None:
+                if not callback_handler:
+                    return
+                callback_handler._step_callback(
+                    {
+                        "agent": "topology_schema_agent",
+                        "task": "topology_schema_validation",
+                        "type": "task_start",
+                        "status": "starting",
+                        "content": "Validating topology schema for imported data",
+                    }
+                )
+
+            def _record_task_completion(duration: float, status: str) -> None:
+                if not callback_handler:
+                    return
+                callback_handler._task_completion_callback(
+                    {
+                        "agent": "topology_schema_agent",
+                        "task_name": "topology_schema_validation",
+                        "task_id": "topology_schema_validation",
+                        "status": status,
+                        "duration": duration,
+                        "output": {
+                            "records_sampled": len(preview),
+                            "warnings_found": False,
+                        },
+                    }
+                )
+
+            execution_start: Optional[float] = None
+
+            if hasattr(agent, "execute_async"):
+                _record_task_start()
+                execution_start = time.perf_counter()
+                await agent.execute_async(inputs={"task": prompt})
+                _record_task_completion(
+                    time.perf_counter() - execution_start if execution_start else 0.0,
+                    "completed",
+                )
+            elif hasattr(agent, "execute"):
+                _record_task_start()
+                execution_start = time.perf_counter()
+                agent.execute(task=prompt)
+                _record_task_completion(
+                    time.perf_counter() - execution_start if execution_start else 0.0,
+                    "completed",
+                )
+        except Exception as exc:
+            if callback_handler:
+                _record_task_completion(0.0, "failed")
+            self.logger.debug(
+                "Topology schema agent unavailable, continuing with LLM validation: %s",
+                exc,
+            )
+
+        try:
+            await multi_model_service.generate_response(
+                prompt=prompt,
+                task_type="topology_validation",
+                complexity=TaskComplexity.MEDIUM,
+            )
+        except Exception as exc:
+            self.logger.warning(
+                "multi_model_service validation failed for app discovery import: %s",
+                exc,
+            )
+
+    async def _get_or_create_component_asset(self, record: Dict[str, Any], role: str):
+        """Create or retrieve the component asset for source records."""
+        cache_key = self._cache_key(record, role)
+        if cache_key in self._asset_cache:
+            return self._asset_cache[cache_key]
+
+        asset_payload = {
+            "asset_type": "component",
+            "application_name": record.get("application_name"),
+            "name": f"{record.get('application_name')}::{record.get('component_name')}",
+            "hostname": record.get("host_name"),
+            "environment": record.get("environment"),
+            "custom_attributes": {
+                "status": record.get("status"),
+                "component_type": record.get("component_type"),
+                "language": record.get("language"),
+                "host_name": record.get("host_name"),
+                "import_category": self.category,
+            },
+            "raw_data": record.get("raw_record", {}),
+        }
+
+        try:
+            asset, _ = await self.asset_service.create_or_update_asset(
+                asset_payload, flow_id=self.master_flow_id
+            )
+            self._asset_cache[cache_key] = asset
+            return asset
+        except Exception as exc:
+            self.logger.error("Failed to create component asset: %s", exc)
+            return None
+
+    async def _get_or_create_target_asset(self, record: Dict[str, Any]):
+        """Create or retrieve the downstream dependency asset."""
+        target_name = record.get("dependency_target")
+        if not target_name:
+            return None
+
+        cache_key = f"target::{target_name}".lower()
+        if cache_key in self._asset_cache:
+            return self._asset_cache[cache_key]
+
+        asset_payload = {
+            "asset_type": record.get("dependency_target_type") or "component",
+            "application_name": record.get("application_name"),
+            "name": target_name,
+            "environment": record.get("environment"),
+            "custom_attributes": {
+                "import_category": self.category,
+                "linked_component": record.get("component_name"),
+            },
+            "raw_data": record.get("raw_record", {}),
+        }
+
+        try:
+            asset, _ = await self.asset_service.create_or_update_asset(
+                asset_payload, flow_id=self.master_flow_id
+            )
+            self._asset_cache[cache_key] = asset
+            return asset
+        except Exception as exc:
+            self.logger.error("Failed to create target asset: %s", exc)
+            return None
+
+    def _cache_key(self, record: Dict[str, Any], role: str) -> str:
+        """Build a cache key for deduplication."""
+        app = record.get("application_name") or ""
+        component = (
+            record.get("component_name")
+            if role == "source"
+            else record.get("dependency_target")
+        ) or ""
+        host = record.get("host_name") or ""
+        return f"{role}::{app}::{component}::{host}".lower()
+
+    def _build_dependency_description(self, record: Dict[str, Any]) -> str:
+        """Construct a human-readable description for the dependency."""
+        latency = record.get("avg_latency_ms")
+        calls = record.get("call_count")
+        protocol = record.get("protocol")
+
+        parts = [
+            f"{record.get('component_name')} ➜ {record.get('dependency_target')}",
+            f"type={record.get('dependency_type')}",
+        ]
+        if protocol:
+            parts.append(f"protocol={protocol}")
+        if latency is not None:
+            parts.append(f"avg_latency_ms={latency}")
+        if calls is not None:
+            parts.append(f"call_count={calls}")
+
+        return " | ".join(parts)
+
+    async def _publish_status(
+        self, *, status: str, phase: str, payload: Dict[str, Any]
+    ) -> None:
+        """Update the flow status for downstream consumers."""
+        if not self.master_flow_id:
+            return
+        try:
+            await update_flow_status(
+                flow_id=self.master_flow_id,
+                status=status,
+                phase_data={"phase": phase, **payload},
+                context=self.context,
+            )
+        except Exception as exc:
+            self.logger.warning("Failed to publish flow status update: %s", exc)

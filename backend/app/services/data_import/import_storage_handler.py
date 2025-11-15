@@ -18,6 +18,7 @@ from app.services.data_import.background_execution_service import (
     BackgroundExecutionService,
     ImportProcessorBackgroundRunner,
 )
+from .import_validator import ImportValidator
 
 from .child_flow_service import DataImportChildFlowService
 from .storage_manager import ImportStorageManager
@@ -87,6 +88,7 @@ class ImportStorageHandler:
         self.db = db
         self.client_account_id = client_account_id
         self.response_builder = ImportResponseBuilder()
+        self.validator = ImportValidator(db, client_account_id)
 
     async def get_latest_import_data(
         self, context: RequestContext
@@ -298,6 +300,39 @@ class ImportStorageHandler:
             Response dictionary with import results
         """
         try:
+            # Guardrail: prevent multiple active discovery flows per tenant/engagement
+            if context.client_account_id and context.engagement_id:
+                flow_validation = (
+                    await self.validator.validate_no_incomplete_discovery_flow(
+                        context.client_account_id, context.engagement_id
+                    )
+                )
+
+                if not flow_validation.get("can_proceed", True):
+                    logger.warning(
+                        "Blocking data import for client %s / engagement %s due to active discovery flow: %s",
+                        context.client_account_id,
+                        context.engagement_id,
+                        flow_validation.get("existing_flow"),
+                    )
+                    return self.response_builder.conflict_response(
+                        conflict_message=flow_validation.get(
+                            "message",
+                            (
+                                "An existing discovery flow is still active. "
+                                "Please complete it before starting a new import."
+                            ),
+                        ),
+                        existing_flow=flow_validation.get("existing_flow"),
+                        recommendations=flow_validation.get("recommendations"),
+                    )
+            else:
+                logger.debug(
+                    "Skipping active flow validation - missing client (%s) or engagement (%s)",
+                    context.client_account_id,
+                    context.engagement_id,
+                )
+
             # Use transaction manager for atomic operations
             transaction_manager = ImportTransactionManager(self.db)
 
