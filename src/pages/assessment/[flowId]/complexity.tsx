@@ -23,7 +23,7 @@ import { AlertCircle, ArrowRight, Loader2, BarChart3, Code2, TrendingUp, AlertTr
 const ComplexityPage: React.FC = () => {
   const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
   const navigate = useNavigate();
-  const { state, resumeFlow } = useAssessmentFlow(flowId);
+  const { state, resumeFlow } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);

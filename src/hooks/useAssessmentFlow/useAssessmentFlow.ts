@@ -24,6 +24,7 @@ import type {
 
 export const useAssessmentFlow = (
   initialFlowId?: string,
+  options?: { disableAutoPolling?: boolean }
 ): UseAssessmentFlowReturn => {
   const navigate = useNavigate();
   const { user, client, engagement, getAuthHeaders } = useAuth();
@@ -640,8 +641,10 @@ export const useAssessmentFlow = (
   // Auto-polling when assessment is in progress
   // Poll every 5 seconds to detect phase completion and update UI automatically
   // Stop polling when reaching recommendation_generation (final assessment phase)
+  // Can be disabled on edit pages via options.disableAutoPolling to prevent form resets
   useEffect(() => {
     const shouldPoll =
+      !options?.disableAutoPolling && // Respect disableAutoPolling option
       state.status === "in_progress" &&
       state.flowId &&
       clientAccountId &&
@@ -654,7 +657,7 @@ export const useAssessmentFlow = (
 
       return () => clearInterval(interval);
     }
-  }, [state.status, state.currentPhase, state.flowId, clientAccountId, loadFlowState]);
+  }, [state.status, state.currentPhase, state.flowId, clientAccountId, loadFlowState, options?.disableAutoPolling]);
 
   // Expose loadApplicationData for manual refresh
   const refreshApplicationData = useCallback(() => {

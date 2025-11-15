@@ -28,7 +28,7 @@ const TechDebtPage: React.FC = () => {
     updateApplicationComponents,
     updateTechDebtAnalysis,
     resumeFlow
-  } = useAssessmentFlow(flowId);
+  } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [severityFilter, setSeverityFilter] = useState<SeverityLevel | 'all'>('all');

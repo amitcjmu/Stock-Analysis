@@ -22,7 +22,7 @@ const ArchitecturePage: React.FC = () => {
     updateArchitectureStandards,
     resumeFlow,
     refreshApplicationData
-  } = useAssessmentFlow(flowId);
+  } = useAssessmentFlow(flowId, { disableAutoPolling: true });
   const navigate = useNavigate();
   const { client, engagement } = useAuth();
 
