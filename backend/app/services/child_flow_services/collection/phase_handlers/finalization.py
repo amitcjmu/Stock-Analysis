@@ -125,13 +125,12 @@ async def execute_finalization_phase(
         if all_gaps:
             # Categorize gaps by priority and resolution status
             # CRITICAL: priority >= 80 OR impact_on_sixr == 'critical'
+            # Per Qodo feedback: Remove getattr to fail fast if attribute missing
             critical_pending = [
                 g
                 for g in all_gaps
                 if g.resolution_status == "pending"
-                and (
-                    g.priority >= 80 or getattr(g, "impact_on_sixr", None) == "critical"
-                )
+                and (g.priority >= 80 or g.impact_on_sixr == "critical")
             ]
 
             critical_pending_count = len(critical_pending)
@@ -157,12 +156,13 @@ async def execute_finalization_phase(
                 )
 
                 # Prepare critical gap details
+                # Per Qodo feedback: Remove getattr to fail fast if attribute missing
                 critical_gap_details = [
                     {
                         "field_name": g.field_name,
                         "priority": g.priority,
-                        "gap_category": getattr(g, "gap_category", "unknown"),
-                        "impact_on_sixr": getattr(g, "impact_on_sixr", None),
+                        "gap_category": g.gap_category,
+                        "impact_on_sixr": g.impact_on_sixr,
                         "gap_id": str(g.id),
                     }
                     for g in critical_pending[:10]
@@ -232,12 +232,54 @@ async def execute_finalization_phase(
             "marking collection as completed"
         )
 
-        # Update flow status to COMPLETED directly
+        # Update flow status to COMPLETED with concurrency protection
         # Per ADR-012: Status reflects lifecycle state (COMPLETED)
-        child_flow.status = CollectionFlowStatus.COMPLETED
-        child_flow.completed_at = datetime.utcnow()
-        child_flow.updated_at = datetime.utcnow()
+        # Per Qodo feedback: Add idempotent check to prevent race conditions
 
+        # Re-query flow with row-level lock to prevent concurrent completion attempts
+        from sqlalchemy import select
+        from app.models.collection_flow import CollectionFlow
+
+        async with db.begin_nested():
+            # SELECT FOR UPDATE locks the row until transaction commits
+            stmt = (
+                select(CollectionFlow)
+                .where(CollectionFlow.id == child_flow.id)
+                .with_for_update()
+            )
+
+            result = await db.execute(stmt)
+            locked_flow = result.scalar_one_or_none()
+
+            if not locked_flow:
+                logger.error(
+                    f"❌ Flow {child_flow.id} not found during finalization lock"
+                )
+                return {
+                    "status": "error",
+                    "phase": phase_name,
+                    "error": "flow_not_found",
+                    "message": "Collection flow disappeared during finalization",
+                }
+
+            # Idempotent check: If already completed, return success
+            if locked_flow.status == CollectionFlowStatus.COMPLETED:
+                logger.warning(
+                    f"⚠️ Flow {child_flow.id} already completed - idempotent return"
+                )
+                # Refresh child_flow reference for completion summary
+                await db.refresh(child_flow)
+            else:
+                # First completion attempt - update status
+                locked_flow.status = CollectionFlowStatus.COMPLETED
+                locked_flow.completed_at = datetime.utcnow()
+                locked_flow.updated_at = datetime.utcnow()
+
+                await db.flush()  # Flush within nested transaction
+
+                logger.info(f"✅ Flow {child_flow.id} marked as COMPLETED")
+
+        # Commit outer transaction (releases lock)
         await db.commit()
         await db.refresh(child_flow)
 

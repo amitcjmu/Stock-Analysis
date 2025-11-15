@@ -85,39 +85,26 @@ async def execute_data_validation_phase(
             if g.resolution_status in ["resolved", "skipped", "auto_resolved"]
         ]
 
-        # Further categorize pending gaps by priority and impact
-        # CRITICAL: impact_on_sixr='critical' OR priority >= 80
-        critical_pending = [
-            g
-            for g in pending_gaps
-            if g.impact_on_sixr == "critical" or g.priority >= 80
-        ]
+        # Categorize pending gaps by priority and impact in single O(N) pass
+        # Per Qodo feedback: Avoid O(N^2) membership checks with if/elif/else
+        critical_pending = []
+        high_pending = []
+        medium_pending = []
+        low_pending = []
 
-        # HIGH: impact_on_sixr='high' OR priority >= 60 (and not already critical)
-        high_pending = [
-            g
-            for g in pending_gaps
-            if (g.impact_on_sixr == "high" or g.priority >= 60)
-            and g not in critical_pending
-        ]
-
-        # MEDIUM: impact_on_sixr='medium' OR priority >= 40
-        medium_pending = [
-            g
-            for g in pending_gaps
-            if (g.impact_on_sixr == "medium" or (40 <= g.priority < 60))
-            and g not in critical_pending
-            and g not in high_pending
-        ]
-
-        # LOW: everything else
-        low_pending = [
-            g
-            for g in pending_gaps
-            if g not in critical_pending
-            and g not in high_pending
-            and g not in medium_pending
-        ]
+        for g in pending_gaps:
+            # CRITICAL: impact_on_sixr='critical' OR priority >= 80
+            if g.impact_on_sixr == "critical" or g.priority >= 80:
+                critical_pending.append(g)
+            # HIGH: impact_on_sixr='high' OR priority >= 60 (and not already critical)
+            elif g.impact_on_sixr == "high" or g.priority >= 60:
+                high_pending.append(g)
+            # MEDIUM: impact_on_sixr='medium' OR priority >= 40
+            elif g.impact_on_sixr == "medium" or (40 <= g.priority < 60):
+                medium_pending.append(g)
+            # LOW: everything else
+            else:
+                low_pending.append(g)
 
         total_gaps = len(all_gaps)
         total_resolved = len(resolved_gaps)

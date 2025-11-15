@@ -102,18 +102,19 @@ class CollectionAnalysis:
                 from uuid import UUID
 
                 # Extract collection_flow_id from state (try multiple possible locations)
-                collection_flow_id = None
-                if hasattr(state, "id"):
-                    collection_flow_id = state.id
-                elif hasattr(state, "collection_flow_id"):
-                    collection_flow_id = state.collection_flow_id
-                elif hasattr(state, "flow_id"):
-                    collection_flow_id = state.flow_id
-                elif isinstance(state, dict):
+                # Per Qodo feedback: Simplify with dict.get() and getattr() patterns
+                if isinstance(state, dict):
                     collection_flow_id = (
                         state.get("id")
                         or state.get("collection_flow_id")
                         or state.get("flow_id")
+                    )
+                else:
+                    # Object attribute access
+                    collection_flow_id = (
+                        getattr(state, "id", None)
+                        or getattr(state, "collection_flow_id", None)
+                        or getattr(state, "flow_id", None)
                     )
 
                 if collection_flow_id:
