@@ -67,6 +67,36 @@ const AssessmentFlowOverview = (): JSX.Element => {
     return c >= READINESS_THRESHOLD && d >= READINESS_THRESHOLD && (readiness.apps_ready_for_assessment || 0) > 0;
   }, [readiness]);
 
+  // Fetch assessment flows from MFO list endpoint (MOVED UP - must be before flowForWidgets useMemo)
+  const { data: flows = [], isLoading: flowsLoading } = useQuery<AssessmentFlow[]>({
+    queryKey: ['assessment-flows'],
+    queryFn: async () => {
+      const headers = getAuthHeaders();
+      const response = await apiCall('/master-flows/list', {
+        method: 'GET',
+        headers
+      });
+
+      return Array.isArray(response) ? response : [];
+    },
+    staleTime: 30000,
+    refetchInterval: 15000 // Refresh every 15 seconds
+  });
+
+  // Get selected flow for widgets - MUST be defined before dependent code uses it
+  const flowForWidgets = useMemo(() => {
+    if (selectedFlowForDetails && flows.some(f => f.id === selectedFlowForDetails)) {
+      return flows.find(f => f.id === selectedFlowForDetails);
+    }
+    // Auto-select first processing or initialized flow
+    return flows.find(f => f.status === 'processing' || f.status === 'initialized') || flows[0];
+  }, [selectedFlowForDetails, flows]);
+
+  // Extract multi-tenant context from selected flow (not user object)
+  // Fix for "Assessment flow not found" errors - use flow's own tenant context
+  const clientAccountId = flowForWidgets?.client_account_id || user?.client_account_id || '1';
+  const engagementId = flowForWidgets?.engagement_id || user?.engagement_id || undefined;
+
   // Bug #668 Fix: Removed auto-ensureFlow() call that was creating flows with 0 gaps
   // Collection flows should only be created when user explicitly clicks "Collect Missing Data"
   // which passes the missing_attributes to create targeted gaps
@@ -128,22 +158,6 @@ const AssessmentFlowOverview = (): JSX.Element => {
   const { data: metrics, isLoading: metricsLoading } = useQuery<AssessmentFlowMetrics>({
     queryKey: ['assessment-flow-metrics'],
     queryFn: async () => ({ total_flows: 0, active_flows: 0, completed_flows: 0, total_applications_assessed: 0 })
-  });
-
-  // Fetch assessment flows from MFO list endpoint
-  const { data: flows = [], isLoading: flowsLoading } = useQuery<AssessmentFlow[]>({
-    queryKey: ['assessment-flows'],
-    queryFn: async () => {
-      const headers = getAuthHeaders();
-      const response = await apiCall('/master-flows/list', {
-        method: 'GET',
-        headers
-      });
-
-      return Array.isArray(response) ? response : [];
-    },
-    staleTime: 30000,
-    refetchInterval: 15000 // Refresh every 15 seconds
   });
 
   const getStatusIcon = (status: string): JSX.Element => {
@@ -213,20 +227,6 @@ const AssessmentFlowOverview = (): JSX.Element => {
   };
 
   const showNotReadyBanner = !isEnsuringFlow && collectionFlowId && !readinessPasses;
-
-  // Get selected flow for widgets (either manually selected or first processing/initialized flow)
-  const flowForWidgets = useMemo(() => {
-    if (selectedFlowForDetails && flows.some(f => f.id === selectedFlowForDetails)) {
-      return flows.find(f => f.id === selectedFlowForDetails);
-    }
-    // Auto-select first processing or initialized flow
-    return flows.find(f => f.status === 'processing' || f.status === 'initialized') || flows[0];
-  }, [selectedFlowForDetails, flows]);
-
-  // Extract multi-tenant context from selected flow (not user object)
-  // Fix for "Assessment flow not found" errors - use flow's own tenant context
-  const clientAccountId = flowForWidgets?.client_account_id || user?.client_account_id || '1';
-  const engagementId = flowForWidgets?.engagement_id || user?.engagement_id || undefined;
 
   const handleCollectMissingData = () => {
     if (collectionFlowId) {
