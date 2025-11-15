@@ -85,6 +85,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     critical_gaps: number;
     execution_time_ms: number;
   } | null>(null);
+  const [agenticScanTime, setAgenticScanTime] = useState<number | null>(null);
   const [modifiedGaps, setModifiedGaps] = useState<Set<string>>(new Set());
   const [enhancementProgress, setEnhancementProgress] = useState<{
     job_id: string;
@@ -111,6 +112,38 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         if (existingGaps && existingGaps.length > 0) {
           // Backend always returns database UUIDs - no transformation needed
           setGaps(existingGaps);
+
+          // Try to retrieve scan summary from collection flow's gap_analysis_results
+          try {
+            const flowDetails = await collectionFlowApi.getFlow(flowId);
+            const gapAnalysisResults = flowDetails.gap_analysis_results;
+
+            if (gapAnalysisResults && gapAnalysisResults.summary) {
+              // Use persisted scan summary if available
+              setScanSummary({
+                total_gaps: gapAnalysisResults.summary.total_gaps || existingGaps.length,
+                critical_gaps: gapAnalysisResults.summary.critical_gaps || existingGaps.filter(g => g.priority === 1).length,
+                execution_time_ms: gapAnalysisResults.summary.execution_time_ms || 0,
+              });
+            } else {
+              // Fallback: Generate summary from existing gaps
+              const criticalCount = existingGaps.filter(g => g.priority === 1).length;
+              setScanSummary({
+                total_gaps: existingGaps.length,
+                critical_gaps: criticalCount,
+                execution_time_ms: 0, // Not available
+              });
+            }
+          } catch (flowError) {
+            console.error("Failed to load flow details:", flowError);
+            // Fallback: Generate summary from existing gaps
+            const criticalCount = existingGaps.filter(g => g.priority === 1).length;
+            setScanSummary({
+              total_gaps: existingGaps.length,
+              critical_gaps: criticalCount,
+              execution_time_ms: 0, // Not available
+            });
+          }
         } else if (selectedAssetIds.length > 0) {
           // No existing gaps, trigger a scan if assets are selected
           handleScanGaps();
@@ -256,6 +289,14 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
           if (progress.status === "completed") {
             clearInterval(pollProgress);
+
+            // Calculate agentic scan time if we have job timestamps
+            if (progress.updated_at && enhancementProgress) {
+              const startTime = new Date(enhancementProgress.job_id.split('_')[2] * 1000); // Extract timestamp from job ID
+              const endTime = new Date(progress.updated_at);
+              const durationMs = endTime.getTime() - startTime.getTime();
+              setAgenticScanTime(Math.round(durationMs));
+            }
 
             // Re-scan gaps to get AI enhancements from database
             try {
@@ -1083,27 +1124,57 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               Gap Analysis Summary
             </CardTitle>
             <CardDescription>
-              Fast programmatic scan across {scanSummary.total_gaps} gaps
+              {agenticScanTime
+                ? `Heuristic + AI analysis complete across ${gaps.length} final gaps`
+                : `Fast programmatic scan across ${scanSummary.total_gaps} gaps`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-5 gap-4">
+              {/* Single row with all metrics */}
               <div>
-                <div className="text-sm text-gray-600">Total Gaps</div>
+                <div className="text-sm text-gray-600">Assets</div>
+                <div className="text-2xl font-bold">
+                  {selectedAssetIds.length}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">Analyzed</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Initial Gaps</div>
                 <div className="text-2xl font-bold">
                   {scanSummary.total_gaps}
                 </div>
+                <div className="text-xs text-gray-500 mt-1">Heuristic scan</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Agentic Gaps</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {gaps.length}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">After AI analysis</div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">Critical Gaps</div>
                 <div className="text-2xl font-bold text-red-600">
                   {scanSummary.critical_gaps}
                 </div>
+                <div className="text-xs text-gray-500 mt-1">Heuristic priority</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">Scan Time</div>
-                <div className="text-2xl font-bold">
-                  {scanSummary.execution_time_ms}ms
+                <div className="text-sm text-gray-600">
+                  {agenticScanTime ? 'Agentic Scan Time' : 'Scan Time'}
+                </div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {agenticScanTime ? (
+                    agenticScanTime < 1000
+                      ? `${agenticScanTime}ms`
+                      : `${(agenticScanTime / 1000).toFixed(1)}s`
+                  ) : (
+                    scanSummary.execution_time_ms > 0 ? `${scanSummary.execution_time_ms}ms` : 'N/A'
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {agenticScanTime ? 'AI analysis' : 'Heuristic'}
                 </div>
               </div>
             </div>
@@ -1126,75 +1197,79 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-            <Button
-              onClick={handleScanGaps}
-              disabled={isScanning || selectedAssetIds.length === 0}
-              variant="outline"
-            >
-              {isScanning ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              {isScanning ? "Scanning..." : "Re-scan Gaps"}
-            </Button>
-
-            <Button
-              onClick={handleAnalyzeGaps}
-              disabled={isAnalyzing || gaps.length === 0}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {isAnalyzing ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              {isAnalyzing ? "Analyzing..." : "Agentic Gap Resolution Analysis"}
-            </Button>
-
-            {/* Force Re-Analysis Button - Only show when AI analysis completed */}
-            {hasAIAnalysis && (
+            {/* Row 1: Scan and Analysis Actions */}
+            <div className="flex items-center gap-3 flex-wrap">
               <Button
-                onClick={handleForceReAnalysis}
-                disabled={isAnalyzing}
+                onClick={handleScanGaps}
+                disabled={isScanning || selectedAssetIds.length === 0}
                 variant="outline"
-                className="text-yellow-600 hover:bg-yellow-50"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Force Re-Analysis
+                {isScanning ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                {isScanning ? "Scanning..." : "Re-scan Gaps"}
               </Button>
-            )}
 
-            {/* Progress Display for Non-Blocking AI Enhancement */}
-            {enhancementProgress && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-700">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                <span>
-                  Processing: {enhancementProgress.processed}/{enhancementProgress.total} assets
-                  {enhancementProgress.current_asset && ` - ${enhancementProgress.current_asset}`}
-                  ({Math.round((enhancementProgress.processed / enhancementProgress.total) * 100)}%)
-                </span>
-              </div>
-            )}
-
-            <div className="flex-1" />
-
-            {/* Accept Selected Button - Only show when gaps are selected */}
-            {selectedGaps.length > 0 && (
               <Button
-                onClick={handleAcceptSelected}
-                disabled={isSaving}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleAnalyzeGaps}
+                disabled={isAnalyzing || gaps.length === 0}
+                className="bg-purple-600 hover:bg-purple-700"
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Accept Selected ({selectedGaps.length})
+                {isAnalyzing ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                {isAnalyzing ? "Analyzing..." : "Agentic Gap Resolution Analysis"}
               </Button>
-            )}
 
-            {/* Accept All and Reject All - Only show when AI analysis completed */}
+              {/* Force Re-Analysis Button - Only show when AI analysis completed */}
+              {hasAIAnalysis && (
+                <Button
+                  onClick={handleForceReAnalysis}
+                  disabled={isAnalyzing}
+                  variant="outline"
+                  className="text-yellow-600 hover:bg-yellow-50"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Force Re-Analysis
+                </Button>
+              )}
+
+              {/* Progress Display for Non-Blocking AI Enhancement */}
+              {enhancementProgress && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-700">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>
+                    Processing: {enhancementProgress.processed}/{enhancementProgress.total} assets
+                    {enhancementProgress.current_asset && ` - ${enhancementProgress.current_asset}`}
+                    ({Math.round((enhancementProgress.processed / enhancementProgress.total) * 100)}%)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Row 2: Accept/Reject Actions - Only show when AI analysis completed */}
             {hasAIAnalysis && (
-              <>
+              <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-gray-200">
+                <div className="text-sm text-gray-600 font-medium mr-2">
+                  AI Recommendations:
+                </div>
+
+                {/* Accept Selected Button - Only show when gaps are selected */}
+                {selectedGaps.length > 0 && (
+                  <Button
+                    onClick={handleAcceptSelected}
+                    disabled={isSaving}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Accept Selected ({selectedGaps.length})
+                  </Button>
+                )}
+
                 <Button
                   onClick={handleBulkAccept}
                   disabled={isSaving || gaps.length === 0}
@@ -1214,7 +1289,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
                   <X className="w-4 h-4 mr-2" />
                   Reject All AI Suggestions
                 </Button>
-              </>
+              </div>
             )}
           </div>
 
@@ -1260,7 +1335,6 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               </div>
             </div>
           )}
-          </div>
         </CardContent>
       </Card>
 
