@@ -72,6 +72,13 @@ class CollectionDataGap(Base, TimestampMixin):
     confidence_score = Column(Float, nullable=True)  # 0.0-1.0, NULL if no AI
     ai_suggestions = Column(JSONB, nullable=True)  # Array of AI suggestions
 
+    # AI Value Prediction (Phase 3 - Agentic Gap Resolution)
+    predicted_value = Column(Text, nullable=True)  # AI-predicted value for gap
+    prediction_confidence = Column(
+        Float, nullable=True
+    )  # Confidence in prediction (0.0-1.0)
+    prediction_reasoning = Column(Text, nullable=True)  # Why AI predicted this value
+
     # Metadata
     gap_metadata = Column(
         "metadata", JSONB, nullable=False, default={}, server_default="{}"

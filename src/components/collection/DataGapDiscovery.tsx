@@ -1150,7 +1150,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               ) : (
                 <Sparkles className="w-4 h-4 mr-2" />
               )}
-              {isAnalyzing ? "Analyzing..." : "Perform Agentic Analysis"}
+              {isAnalyzing ? "Analyzing..." : "Agentic Gap Resolution Analysis"}
             </Button>
 
             {/* Force Re-Analysis Button - Only show when AI analysis completed */}
