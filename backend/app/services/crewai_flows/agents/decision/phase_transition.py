@@ -81,10 +81,22 @@ class PhaseTransitionAgent(BaseDecisionAgent):
 
         return decision
 
-    def _analyze_current_state(
-        self, phase: str, results: Any, state: Any, flow_type: str
+    async def _analyze_current_state(
+        self, phase: str, results: Any, state: Any, flow_type: str, db_session=None
     ) -> Dict[str, Any]:
-        """Comprehensive state analysis with flow-type awareness"""
+        """
+        Comprehensive state analysis with flow-type awareness.
+
+        Args:
+            phase: Phase name
+            results: Phase result dictionary
+            state: Flow state object
+            flow_type: Flow type (discovery, collection, etc.)
+            db_session: Optional database session for Bug #1055 database queries
+
+        Returns:
+            Analysis dictionary with phase-specific metrics
+        """
         from app.services.crewai_flows.agents.decision.utils import DecisionUtils
 
         analysis = {
@@ -114,8 +126,11 @@ class PhaseTransitionAgent(BaseDecisionAgent):
                 analysis["asset_creation_results"] = discovery_analysis
 
         elif flow_type == "collection":
-            collection_analysis = CollectionAnalysis.analyze_collection_phase_results(
-                phase, results, state
+            # Bug #1055: Pass db_session to collection analysis for database queries
+            collection_analysis = (
+                await CollectionAnalysis.analyze_collection_phase_results(
+                    phase, results, state, db_session=db_session
+                )
             )
             # Map collection analysis results to expected keys
             if phase == "platform_detection":
@@ -301,9 +316,12 @@ class PhaseTransitionAgent(BaseDecisionAgent):
 
             logger.info(f"🔍 Extracted flow_type for phase transition: {flow_type}")
 
+            # Bug #1055: Extract db_session from agent_context for database queries
+            db_session = agent_context.get("db_session")
+
             # Analyze the phase result and determine next steps
-            analysis = self._analyze_current_state(
-                phase_name, phase_result, state, flow_type
+            analysis = await self._analyze_current_state(
+                phase_name, phase_result, state, flow_type, db_session=db_session
             )
 
             # Check if phase was successful based on result

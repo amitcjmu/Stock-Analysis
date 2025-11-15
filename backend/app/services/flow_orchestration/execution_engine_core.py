@@ -76,7 +76,9 @@ class FlowExecutionCore:
 
         # Initialize modular components
         self.agents = ExecutionEngineAgentHandlers(
-            master_repo, self.phase_transition_agent
+            master_repo,
+            self.phase_transition_agent,
+            db_session=self.db,  # Bug #1055: Pass db_session
         )
         self.phase_utils = ExecutionEnginePhaseUtils(master_repo, self.flow_registry)
         self.state_utils = ExecutionEngineStateUtils(master_repo, context)
