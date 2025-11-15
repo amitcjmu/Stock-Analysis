@@ -227,6 +227,7 @@ export const assessmentFlowAPI = {
       `/master-flows/${flowId}/assessment/finalize`,
       {
         method: "POST",
+        body: JSON.stringify({}), // Backend expects finalization_data body
       }
     );
   },
