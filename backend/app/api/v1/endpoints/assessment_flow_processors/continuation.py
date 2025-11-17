@@ -179,11 +179,23 @@ async def continue_assessment_flow(
                     )
                 )
 
-                # Update flow status to reflect completion
+                # Update flow status based on whether this is the final phase
+                # recommendation_generation is the final phase in assessment flow
+                is_final_phase = phase.value == "recommendation_generation"
+                new_status = "completed" if is_final_phase else "in_progress"
+
                 await assessment_repo.update_flow_status(
                     flow_id,
-                    "in_progress",  # Keep in progress for next phase
+                    new_status,
                 )
+
+                if is_final_phase:
+                    logger.info(
+                        safe_log_format(
+                            "[ISSUE-999] 🎉 Assessment flow {flow_id} COMPLETED - all phases finished",
+                            flow_id=flow_id,
+                        )
+                    )
 
                 break  # Exit the async for loop
 
