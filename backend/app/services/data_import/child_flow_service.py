@@ -63,6 +63,9 @@ class DataImportChildFlowService:
         configuration: Dict[str, Any] = {
             "source": "data_import",
             "import_id": str(data_import.id),
+            "data_import_id": str(
+                data_import.id
+            ),  # Defensive redundancy for metadata access
             "filename": data_import.filename,
             "import_timestamp": datetime.utcnow().isoformat(),
         }

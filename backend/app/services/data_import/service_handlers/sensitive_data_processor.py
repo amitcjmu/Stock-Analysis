@@ -42,6 +42,8 @@ class SensitiveDataProcessor(BaseDataImportProcessor):
                 prompt=prompt,
                 task_type="compliance_validation",
                 complexity=TaskComplexity.MEDIUM,
+                client_account_id=self.context.client_account_id,
+                engagement_id=self.context.engagement_id,
             )
         except Exception as exc:
             self.logger.warning(
