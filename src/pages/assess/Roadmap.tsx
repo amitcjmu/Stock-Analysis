@@ -93,12 +93,19 @@ const Roadmap = (): JSX.Element => {
 
             {/* Roadmap Timeline */}
             <div className="space-y-8">
-              {roadmapData?.waves.map((wave) => (
+              {!roadmapData?.waves || roadmapData.waves.length === 0 ? (
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Roadmap Data Available</h3>
+                  <p className="text-gray-600">Create a wave plan to see your migration roadmap.</p>
+                </div>
+              ) : (
+                roadmapData.waves.map((wave) => (
                 <div key={wave.wave} className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">{wave.wave} Migration Timeline</h2>
 
                   <div className="space-y-6">
-                    {wave.phases.map((phase, index) => (
+                    {wave.phases?.map((phase, index) => (
                       <div key={phase.name} className="relative">
                         <div className="flex items-center space-x-4">
                           {getStatusIcon(phase.status)}
@@ -115,14 +122,14 @@ const Roadmap = (): JSX.Element => {
                           </div>
                         </div>
 
-                        {index < wave.phases.length - 1 && (
+                        {index < (wave.phases?.length || 0) - 1 && (
                           <div className="absolute left-2 top-8 w-0.5 h-8 bg-gray-200"></div>
                         )}
                       </div>
                     ))}
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
 
             {/* Timeline Overview */}
