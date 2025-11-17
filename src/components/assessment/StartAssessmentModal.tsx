@@ -65,6 +65,7 @@ interface CanonicalApplicationsResponse {
 interface StartAssessmentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  assessmentFlowId?: string; // Optional: If navigating from existing assessment flow
 }
 
 type TabType = "ready" | "needs-mapping" | "needs-collection";
@@ -77,6 +78,7 @@ function isUnmappedAsset(item: ApplicationOrAsset): item is UnmappedAsset {
 export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   isOpen,
   onClose,
+  assessmentFlowId,
 }) => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
@@ -240,50 +242,101 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 
     setStartingCollection(app.id);
     try {
-      // Fetch all assets linked to this application to pre-select them
-      const assetsResponse = await apiCall<{assets: any[]}>(
-        `/api/v1/assets?canonical_application_id=${app.id}`,
-        {
-          method: 'GET',
-          headers: {
-            'X-Client-Account-ID': client.id,
-            'X-Engagement-ID': engagement.id,
-          },
-        }
-      );
+      // Bug #1066 Fix: Fetch assessment readiness summary to get SPECIFIC gap fields
+      // instead of passing empty missing_attributes
+      const missing_attributes: Record<string, string[]> = {};
 
-      const assets = assetsResponse.assets || [];
-      if (assets.length === 0) {
+      if (assessmentFlowId) {
+        // If we have an assessment flow context, fetch detailed gap reports
+        console.log(`🔍 Fetching readiness summary for assessment flow ${assessmentFlowId}`);
+
+        try {
+          const readinessSummary = await apiCall<{asset_reports: any[]}>(
+            `/api/v1/assessment-flow/${assessmentFlowId}/readiness-summary?detailed=true`,
+            {
+              method: 'GET',
+              headers: {
+                'X-Client-Account-ID': client.id,
+                'X-Engagement-ID': engagement.id,
+              },
+            }
+          );
+
+          // Extract SPECIFIC gap fields from assessment analysis (critical and high-priority only)
+          if (readinessSummary.asset_reports && readinessSummary.asset_reports.length > 0) {
+            for (const report of readinessSummary.asset_reports) {
+              // Only include not-ready assets for this specific application
+              if (!report.is_ready) {
+                const gapFields = [
+                  ...(report.critical_gaps || []).map((gap: any) => gap.field_id || gap.field_name),
+                  ...(report.high_priority_gaps || []).map((gap: any) => gap.field_id || gap.field_name),
+                ].filter(Boolean);
+
+                if (gapFields.length > 0) {
+                  missing_attributes[report.asset_id] = gapFields;
+                }
+              }
+            }
+          }
+
+          console.log(`✅ Extracted specific gaps for ${Object.keys(missing_attributes).length} assets:`, missing_attributes);
+        } catch (error) {
+          console.warn('Failed to fetch readiness summary, falling back to asset list:', error);
+        }
+      }
+
+      // Fallback: If no assessment context or gap fetch failed, fetch assets and let backend discover gaps
+      if (Object.keys(missing_attributes).length === 0) {
+        console.log('⚠️  No specific gaps found, fetching assets for backend gap analysis');
+
+        const assetsResponse = await apiCall<{assets: any[]}>(
+          `/api/v1/assets?canonical_application_id=${app.id}`,
+          {
+            method: 'GET',
+            headers: {
+              'X-Client-Account-ID': client.id,
+              'X-Engagement-ID': engagement.id,
+            },
+          }
+        );
+
+        const assets = assetsResponse.assets || [];
+        if (assets.length === 0) {
+          toast({
+            title: 'No Assets Found',
+            description: `No assets found for application "${app.canonical_name}". Please check asset mapping.`,
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        // Empty arrays = backend will run full gap analysis
+        for (const asset of assets) {
+          missing_attributes[asset.id] = [];
+        }
+      }
+
+      // Validate that we have something to collect
+      if (Object.keys(missing_attributes).length === 0) {
         toast({
-          title: 'No Assets Found',
-          description: `No assets found for application "${app.canonical_name}". Please check asset mapping.`,
-          variant: 'destructive',
+          title: 'No Data Gaps',
+          description: `Application "${app.canonical_name}" has no missing data requiring collection.`,
+          variant: 'default',
         });
         return;
       }
 
-      // Build missing_attributes object with asset IDs as keys and empty arrays as values
-      // The backend will pre-select these assets and run gap analysis
-      const missing_attributes: Record<string, string[]> = {};
-      for (const asset of assets) {
-        missing_attributes[asset.id] = []; // Empty array = backend will discover gaps
-      }
+      console.log(`🚀 Starting collection for ${app.canonical_name} with ${Object.keys(missing_attributes).length} assets`);
 
-      console.log(`🚀 Starting collection for application: ${app.canonical_name} (${assets.length} assets)`);
-
-      // Call ensureFlow with missing_attributes to pre-select assets
-      // Don't pass assessment_flow_id since we're not in an assessment context yet
-      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes);
+      // Call ensureFlow with missing_attributes (and assessment_flow_id if available)
+      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes, assessmentFlowId);
 
       toast({
         title: 'Collection Flow Started',
-        description: `Collection started for ${app.canonical_name} (${assets.length} assets selected)`,
+        description: `Collection started for ${app.canonical_name} (${Object.keys(missing_attributes).length} assets)`,
       });
 
-      // Close the modal
       onClose();
-
-      // Navigate directly to the collection questionnaires (skip asset selection and gap analysis)
       navigate(`/collection/adaptive-forms?flowId=${collectionFlow.flow_id || collectionFlow.id}`);
 
     } catch (error: any) {
