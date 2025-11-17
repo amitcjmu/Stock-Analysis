@@ -13,21 +13,12 @@ import { formatFieldValue, formatTargetAttribute } from './mappingUtils';
 const ApprovedCard: React.FC<CardProps> = ({ mapping, onRemove }) => {
   const handleRemoveClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click event
-    if (onRemove) {
+    if (onRemove && mapping?.id) {
       onRemove(mapping.id);
     }
   };
 
-  // Debug logging
-  console.log('🔍 ApprovedCard rendering:', {
-    id: mapping?.id,
-    source: mapping?.source_field,
-    target: mapping?.target_field,
-    hasMapping: !!mapping
-  });
-
   if (!mapping) {
-    console.warn('⚠️ ApprovedCard received null/undefined mapping');
     return null;
   }
 

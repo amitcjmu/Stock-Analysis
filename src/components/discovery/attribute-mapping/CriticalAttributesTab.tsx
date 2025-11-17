@@ -108,13 +108,31 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
     });
 
     // Normalize field mappings to ensure they have the correct structure for ThreeColumnFieldMapper
-    return filtered.map(mapping => {
+    return filtered.map((mapping, index) => {
       // Ensure the mapping has all required properties in snake_case format
+      const sourceField = (mapping as any).source_field || (mapping as any).sourceField || '';
+      const targetField = (mapping as any).target_field || (mapping as any).targetAttribute || (mapping as any).targetField || null;
+      
+      // Generate unique ID: use existing id, or create from fields, or use index as fallback
+      const generateId = () => {
+        if (mapping.id) {
+          return mapping.id;
+        }
+        if (sourceField && targetField) {
+          return `${sourceField}_${targetField}`;
+        }
+        if (sourceField) {
+          return `${sourceField}_${index}`;
+        }
+        // Final fallback: use index to ensure uniqueness
+        return `mapping_${index}`;
+      };
+
       const normalized: any = {
         ...mapping,
-        id: mapping.id || `${(mapping as any).source_field || (mapping as any).sourceField}_${(mapping as any).target_field || (mapping as any).targetAttribute || (mapping as any).targetField || 'unmapped'}`,
-        source_field: (mapping as any).source_field || (mapping as any).sourceField || '',
-        target_field: (mapping as any).target_field || (mapping as any).targetAttribute || (mapping as any).targetField || null,
+        id: generateId(),
+        source_field: sourceField,
+        target_field: targetField,
         status: (mapping as any).status || 'pending',
         mapping_type: (mapping as any).mapping_type || (mapping as any).mappingType || 'auto',
         confidence_score: (mapping as any).confidence_score || (mapping as any).confidence || 0.5
@@ -133,31 +151,6 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
     });
   }, [availableFields, criticalFieldNames]);
 
-  // Debug logging
-  console.log('🎯 CriticalAttributesTab - Debug info:', {
-    totalFieldMappings: fieldMappings.length,
-    criticalFieldMappings: criticalFieldMappings.length,
-    totalAvailableFields: availableFields.length,
-    criticalAvailableFields: criticalAvailableFields.length,
-    criticalFieldNames: Array.from(criticalFieldNames).slice(0, 10), // First 10 for debugging
-    sampleCriticalMappings: criticalFieldMappings.slice(0, 3).map(m => ({
-      id: m.id,
-      source_field: (m as any).source_field || (m as any).sourceField,
-      target_field: (m as any).target_field || (m as any).targetAttribute || (m as any).targetField,
-      status: (m as any).status,
-      mapping_type: (m as any).mapping_type || (m as any).mappingType,
-      confidence_score: (m as any).confidence_score || (m as any).confidence,
-      hasAllRequiredProps: !!(m.id && ((m as any).source_field || (m as any).sourceField) && (m as any).status)
-    })),
-    allCriticalMappingsStructure: criticalFieldMappings.map(m => ({
-      id: m.id,
-      has_source_field: !!(m as any).source_field,
-      has_target_field: !!(m as any).target_field,
-      has_status: !!(m as any).status,
-      has_mapping_type: !!(m as any).mapping_type,
-      has_confidence_score: !!(m as any).confidence_score
-    }))
-  });
 
   if (isAnalyzing) {
     return (
@@ -209,30 +202,13 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
       </div>
 
       {/* Use the same ThreeColumnFieldMapper component with filtered data */}
-      {(() => {
-        // Debug: Log what we're passing to ThreeColumnFieldMapper
-        console.log('🎯 CriticalAttributesTab - Passing to ThreeColumnFieldMapper:', {
-          criticalFieldMappingsCount: criticalFieldMappings.length,
-          criticalAvailableFieldsCount: criticalAvailableFields.length,
-          sampleMappings: criticalFieldMappings.slice(0, 2).map(m => ({
-            id: m.id,
-            source_field: (m as any).source_field,
-            target_field: (m as any).target_field,
-            status: (m as any).status,
-            mapping_type: (m as any).mapping_type,
-            confidence_score: (m as any).confidence_score
-          }))
-        });
-        return (
-          <ThreeColumnFieldMapper
-            fieldMappings={criticalFieldMappings}
-            availableFields={criticalAvailableFields}
-            onMappingAction={onMappingAction}
-            onMappingChange={onMappingChange}
-            onRefresh={onRefresh}
-          />
-        );
-      })()}
+      <ThreeColumnFieldMapper
+        fieldMappings={criticalFieldMappings}
+        availableFields={criticalAvailableFields}
+        onMappingAction={onMappingAction}
+        onMappingChange={onMappingChange}
+        onRefresh={onRefresh}
+      />
 
       {/* Footer Info */}
       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">

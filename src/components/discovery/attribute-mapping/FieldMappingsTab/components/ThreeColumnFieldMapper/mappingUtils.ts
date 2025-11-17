@@ -59,42 +59,44 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
     });
   }
 
-  // Improved categorization logic:
-  // 1. Approved mappings go to the approved column ONLY
+  // Improved categorization logic using single loop with if/else to ensure mutual exclusivity:
+  // 1. Approved mappings go to the approved column ONLY (highest priority)
   // 2. High confidence pending mappings (AI suggested) go to autoMapped column
   // 3. Unmapped, rejected, or no target mappings go to unmapped column (Needs Review)
-  // 4. CRITICAL: Items should only appear in ONE column based on their status
+  // 4. CRITICAL: Each mapping appears in exactly ONE column
   // Use case-insensitive comparison to handle status variations
   const normalizeStatus = (status: string | undefined) => (status || '').toLowerCase().trim();
 
-  const approved = fieldMappings.filter(m => normalizeStatus(m.status) === 'approved');
+  // Initialize buckets
+  const approved: FieldMapping[] = [];
+  const autoMapped: FieldMapping[] = [];
+  const unmapped: FieldMapping[] = [];
 
-  const autoMapped = fieldMappings.filter(m => {
-    const status = normalizeStatus(m.status);
-    // Include pending or suggested mappings that have a target field and aren't explicitly unmapped
-    // BUT EXCLUDE approved items (they go in approved column only)
-    return status !== 'approved' &&
-           status !== 'rejected' &&
-           (status === 'pending' || status === 'suggested') &&
-           m.target_field &&
-           m.target_field !== '' &&
-           m.target_field !== 'unmapped' &&
-           m.target_field !== 'Unassigned' &&
-           m.mapping_type !== 'unmapped';
-  });
+  // Single loop to categorize each mapping into exactly one bucket
+  for (const mapping of fieldMappings) {
+    const status = normalizeStatus(mapping.status);
 
-  const unmapped = fieldMappings.filter(m => {
-    const status = normalizeStatus(m.status);
-    // Include rejected, explicitly unmapped, or fields without proper targets
-    // BUT EXCLUDE approved items (they go in approved column only)
-    return status !== 'approved' &&
-           (status === 'rejected' ||
-            m.mapping_type === 'unmapped' ||
-            !m.target_field ||
-            m.target_field === '' ||
-            m.target_field === 'unmapped' ||
-            m.target_field === 'Unassigned');
-  });
+    // Priority 1: Approved mappings (highest priority - checked first)
+    if (status === 'approved') {
+      approved.push(mapping);
+    }
+    // Priority 2: Auto-mapped (pending/suggested with valid target field)
+    else if (
+      status !== 'rejected' &&
+      (status === 'pending' || status === 'suggested') &&
+      mapping.target_field &&
+      mapping.target_field !== '' &&
+      mapping.target_field !== 'unmapped' &&
+      mapping.target_field !== 'Unassigned' &&
+      mapping.mapping_type !== 'unmapped'
+    ) {
+      autoMapped.push(mapping);
+    }
+    // Priority 3: Unmapped/Needs Review (rejected, unmapped, or no valid target)
+    else {
+      unmapped.push(mapping);
+    }
+  }
 
   // SECURITY FIX: Use secure debug logging for bucket information
   debugLog('🔍 ThreeColumnFieldMapper - Buckets:', {
