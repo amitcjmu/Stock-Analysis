@@ -46,7 +46,7 @@ async def _sync_waves_to_timeline(
         engagement_id: Engagement UUID
         wave_plan_data: Wave plan data containing waves array
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     waves = wave_plan_data.get("waves", [])
     if not waves:
@@ -72,8 +72,10 @@ async def _sync_waves_to_timeline(
             datetime.fromisoformat(w["end_date"]) for w in waves if w.get("end_date")
         ]
 
-        overall_start = min(start_dates) if start_dates else datetime.now()
-        overall_end = max(end_dates) if end_dates else datetime.now()
+        # Use UTC now for timezone-aware comparison
+        now_utc = datetime.now(timezone.utc)
+        overall_start = min(start_dates) if start_dates else now_utc
+        overall_end = max(end_dates) if end_dates else now_utc
 
         timeline = await repo.create_timeline(
             client_account_id=client_account_id,
