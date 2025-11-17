@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GetServerSideProps } from 'next/router';
+import { useNavigate } from 'react-router-dom';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,7 @@ interface SummaryPageProps {
 }
 
 const SummaryPage: React.FC<SummaryPageProps> = ({ flowId }) => {
+  const navigate = useNavigate();
   const { state } = useAssessmentFlow(flowId);
 
   const completedApps = Object.keys(state.sixrDecisions).length;
@@ -118,7 +120,7 @@ const SummaryPage: React.FC<SummaryPageProps> = ({ flowId }) => {
             Download Report
           </Button>
 
-          <Button size="lg">
+          <Button size="lg" onClick={() => navigate('/plan')}>
             Continue to Planning
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
