@@ -312,6 +312,18 @@ Base recommendations on EVIDENCE from the assessment results, not assumptions.
                 result_str = str(result) if not isinstance(result, str) else result
 
             # Parse result (assuming JSON output from agent)
+            # Strip markdown code blocks if present (common LLM output format)
+            if isinstance(result_str, str):
+                result_str = result_str.strip()
+                # Remove ```json and ``` wrappers
+                if result_str.startswith("```json"):
+                    result_str = result_str[7:]  # Remove ```json
+                elif result_str.startswith("```"):
+                    result_str = result_str[3:]  # Remove ```
+                if result_str.endswith("```"):
+                    result_str = result_str[:-3]  # Remove trailing ```
+                result_str = result_str.strip()
+
             try:
                 parsed_result = (
                     json.loads(result_str)

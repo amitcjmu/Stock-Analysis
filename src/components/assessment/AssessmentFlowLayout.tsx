@@ -387,7 +387,7 @@ export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
                   <Button
                     className="w-full"
-                    onClick={() => navigate(`/planning`)}
+                    onClick={() => navigate(`/plan`)}
                   >
                     Continue to Planning
                   </Button>
