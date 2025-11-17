@@ -5,6 +5,8 @@ import { CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 const Roadmap = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
@@ -51,35 +53,42 @@ const Roadmap = (): JSX.Element => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 flex items-center justify-center">
-          <Spinner size="lg" />
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 flex items-center justify-center">
+            <Spinner size="lg" />
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800">Error loading roadmap data. Please try again later.</p>
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 p-8">
+            <ContextBreadcrumbs showContextSelector={true} />
+            <div className="max-w-7xl mx-auto">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800">Error loading roadmap data. Please try again later.</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar />
-      <div className="flex-1 ml-64">
-        <main className="p-8">
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <ContextBreadcrumbs showContextSelector={true} />
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Migration Roadmap</h1>
@@ -163,6 +172,7 @@ const Roadmap = (): JSX.Element => {
         </main>
       </div>
     </div>
+    </SidebarProvider>
   );
 };
 
