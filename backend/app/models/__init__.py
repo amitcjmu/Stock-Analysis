@@ -32,6 +32,11 @@ from app.models.asset_resilience import (
     AssetVulnerabilities,
     AssetLicenses,
 )
+from app.models.asset_enrichments import (
+    AssetTechDebt,
+    AssetPerformanceMetrics,
+    AssetCostOptimization,
+)
 from app.models.maintenance_windows import (
     MaintenanceWindows,
     BlackoutPeriods,
@@ -307,6 +312,10 @@ __all__ = [
     "AssetComplianceFlags",
     "AssetVulnerabilities",
     "AssetLicenses",
+    # Asset Enrichment Models (Issue #980)
+    "AssetTechDebt",
+    "AssetPerformanceMetrics",
+    "AssetCostOptimization",
     "MaintenanceWindows",
     "BlackoutPeriods",
     "ApprovalRequests",

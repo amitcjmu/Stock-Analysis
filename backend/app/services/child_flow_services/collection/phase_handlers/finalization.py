@@ -237,7 +237,6 @@ async def execute_finalization_phase(
         # Per Qodo feedback: Add idempotent check to prevent race conditions
 
         # Re-query flow with row-level lock to prevent concurrent completion attempts
-        from sqlalchemy import select
         from app.models.collection_flow import CollectionFlow
 
         async with db.begin_nested():

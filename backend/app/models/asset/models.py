@@ -369,6 +369,24 @@ class Asset(
         back_populates="asset",
         lazy="selectin",
     )
+    tech_debt = relationship(
+        "app.models.asset_enrichments.AssetTechDebt",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    performance_metrics = relationship(
+        "app.models.asset_enrichments.AssetPerformanceMetrics",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    cost_optimization = relationship(
+        "app.models.asset_enrichments.AssetCostOptimization",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
     licenses = relationship(
         "AssetLicenses",
         back_populates="asset",
