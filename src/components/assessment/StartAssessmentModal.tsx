@@ -18,6 +18,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
+import { collectionFlowApi } from '@/services/api/collection-flow';
+import { useToast } from '@/components/ui/use-toast';
 
 interface CanonicalApplication {
   id: string;
@@ -78,6 +80,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, client, engagement } = useAuth();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<TabType>("ready");
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,6 +88,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   const [applications, setApplications] = useState<ApplicationOrAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [startingCollection, setStartingCollection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [assetMappings, setAssetMappings] = useState<Record<string, string>>({});
   const [mappingInProgress, setMappingInProgress] = useState<string | null>(null);
@@ -227,6 +231,70 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       setError('Failed to map asset. Please try again.');
     } finally {
       setMappingInProgress(null);
+    }
+  };
+
+  // Handle starting collection for a single application
+  const handleStartCollection = async (app: CanonicalApplication) => {
+    if (startingCollection) return; // Prevent double-click
+
+    setStartingCollection(app.id);
+    try {
+      // Fetch all assets linked to this application to pre-select them
+      const assetsResponse = await apiCall<{assets: any[]}>(
+        `/api/v1/assets?canonical_application_id=${app.id}`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Client-Account-ID': client.id,
+            'X-Engagement-ID': engagement.id,
+          },
+        }
+      );
+
+      const assets = assetsResponse.assets || [];
+      if (assets.length === 0) {
+        toast({
+          title: 'No Assets Found',
+          description: `No assets found for application "${app.canonical_name}". Please check asset mapping.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Build missing_attributes object with asset IDs as keys and empty arrays as values
+      // The backend will pre-select these assets and run gap analysis
+      const missing_attributes: Record<string, string[]> = {};
+      for (const asset of assets) {
+        missing_attributes[asset.id] = []; // Empty array = backend will discover gaps
+      }
+
+      console.log(`🚀 Starting collection for application: ${app.canonical_name} (${assets.length} assets)`);
+
+      // Call ensureFlow with missing_attributes to pre-select assets
+      // Don't pass assessment_flow_id since we're not in an assessment context yet
+      const collectionFlow = await collectionFlowApi.ensureFlow(missing_attributes);
+
+      toast({
+        title: 'Collection Flow Started',
+        description: `Collection started for ${app.canonical_name} (${assets.length} assets selected)`,
+      });
+
+      // Close the modal
+      onClose();
+
+      // Navigate directly to the collection questionnaires (skip asset selection and gap analysis)
+      navigate(`/collection/adaptive-forms?flowId=${collectionFlow.flow_id || collectionFlow.id}`);
+
+    } catch (error: any) {
+      console.error('Failed to start collection:', error);
+      toast({
+        title: 'Collection Start Failed',
+        description: error?.message || 'Failed to start collection flow. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setStartingCollection(null);
     }
   };
 
@@ -552,20 +620,11 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
                       </div>
 
                       <button
-                        onClick={() => {
-                          // Navigate to collection with application context
-                          navigate(`/collection`, {
-                            state: {
-                              preselectedApplicationId: app.id,
-                              canonicalApplicationName: app.canonical_name,
-                              fromAssessmentReadiness: true
-                            }
-                          });
-                          onClose();
-                        }}
-                        className="ml-4 px-3 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap"
+                        onClick={() => handleStartCollection(app)}
+                        disabled={startingCollection === app.id}
+                        className="ml-4 px-3 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Start Collection
+                        {startingCollection === app.id ? 'Starting...' : 'Start Collection'}
                       </button>
                     </div>
                   </div>
