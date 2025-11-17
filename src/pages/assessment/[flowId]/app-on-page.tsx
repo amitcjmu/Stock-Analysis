@@ -29,19 +29,21 @@ const AppOnPagePage: React.FC = () => {
     state,
     finalizeAssessment,
     refreshApplicationData,
-    toggleAutoPolling
+    toggleAutoPolling,
+    resumeFlow
   } = useAssessmentFlow(flowId);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [printMode, setPrintMode] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Set first application as selected by default
   useEffect(() => {
-    if (state.selectedApplicationIds.length > 0 && !selectedApp) {
-      setSelectedApp(state.selectedApplicationIds[0]);
+    if (state.selectedApplications.length > 0 && !selectedApp) {
+      setSelectedApp(state.selectedApplications[0].application_id);
     }
-  }, [state.selectedApplicationIds, selectedApp]);
+  }, [state.selectedApplications, selectedApp]);
 
   // Get current application data
   const currentAppDecision = selectedApp ? state.sixrDecisions[selectedApp] : null;
@@ -65,7 +67,29 @@ const AppOnPagePage: React.FC = () => {
     setTimeout(() => setPrintMode(false), 1000);
   };
 
-  const assessmentComplete = Object.keys(state.sixrDecisions).length === state.selectedApplicationIds.length;
+  const handleRetryRecommendations = async (): Promise<void> => {
+    setIsRetrying(true);
+    try {
+      await resumeFlow({
+        phase: 'recommendation_generation',
+        action: 'retry'
+      });
+      // Refresh data after retry completes
+      await refreshApplicationData();
+    } catch (error) {
+      console.error('Failed to retry recommendation generation:', error);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  const assessmentComplete = Object.keys(state.sixrDecisions).length === state.selectedApplications.length;
+
+  // Detect failed applications (missing 6R decisions)
+  const failedApplications = state.selectedApplications.filter(
+    app => !state.sixrDecisions[app.application_id]
+  );
+  const hasFailedApps = failedApplications.length > 0;
 
   // Bug #730 fix: Show loading skeleton until data is fetched
   if (!state.dataFetched) {
@@ -169,7 +193,7 @@ const AppOnPagePage: React.FC = () => {
             </Badge>
 
             <Badge variant="outline">
-              {Object.keys(state.sixrDecisions).length} of {state.selectedApplicationIds.length} applications assessed
+              {Object.keys(state.sixrDecisions).length} of {state.selectedApplications.length} applications assessed
             </Badge>
 
             <Badge variant="outline">
@@ -197,10 +221,45 @@ const AppOnPagePage: React.FC = () => {
           </div>
         )}
 
+        {/* Failed Recommendations Warning */}
+        {hasFailedApps && !isRetrying && (
+          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg print:hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+                <div>
+                  <p className="text-sm font-medium text-orange-900">
+                    {failedApplications.length} {failedApplications.length === 1 ? 'application' : 'applications'} failed to generate recommendations
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Applications: {failedApplications.map(app => app.application_name).join(', ')}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetryRecommendations}
+                disabled={isRetrying}
+                className="border-orange-300 text-orange-700 hover:bg-orange-100"
+              >
+                {isRetrying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Retrying...
+                  </>
+                ) : (
+                  'Retry Generation'
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Application Selection */}
         {!printMode && (
           <ApplicationTabs
-            applications={state.selectedApplicationIds}
+            applications={state.selectedApplications.map(app => app.application_id)}
             selectedApp={selectedApp}
             onAppSelect={setSelectedApp}
             getApplicationName={(appId) => {
@@ -215,6 +274,7 @@ const AppOnPagePage: React.FC = () => {
             {/* Application Summary Card */}
             <ApplicationSummaryCard
               applicationId={selectedApp}
+              applicationName={state.selectedApplications.find(a => a.application_id === selectedApp)?.application_name}
               decision={currentAppDecision}
               components={currentAppComponents}
               techDebt={currentAppTechDebt}
@@ -328,17 +388,18 @@ const AppOnPagePage: React.FC = () => {
         {printMode && (
           <div className="print:block hidden space-y-6 page-break">
             <h2 className="text-xl font-bold text-gray-900 mb-4">All Applications Summary</h2>
-            {state.selectedApplicationIds.map(appId => {
-              const decision = state.sixrDecisions[appId];
-              const components = state.applicationComponents[appId] || [];
-              const techDebt = state.techDebtAnalysis[appId] || [];
+            {state.selectedApplications.map(app => {
+              const decision = state.sixrDecisions[app.application_id];
+              const components = state.applicationComponents[app.application_id] || [];
+              const techDebt = state.techDebtAnalysis[app.application_id] || [];
 
               if (!decision) return null;
 
               return (
-                <div key={appId} className="mb-8">
+                <div key={app.application_id} className="mb-8">
                   <ApplicationSummaryCard
-                    applicationId={appId}
+                    applicationId={app.application_id}
+                    applicationName={app.application_name}
                     decision={decision}
                     components={components}
                     techDebt={techDebt}

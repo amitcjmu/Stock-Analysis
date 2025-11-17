@@ -47,6 +47,7 @@ export const useAssessmentFlow = (
     applicationCount: 0, // Add application count
     engagementStandards: [],
     applicationOverrides: {},
+    selectedTemplate: null, // No template selected initially
     applicationComponents: {},
     techDebtAnalysis: {},
     sixrDecisions: {},
@@ -72,14 +73,27 @@ export const useAssessmentFlow = (
             break;
           }
 
+          case "initialization":
+          case "readiness_assessment":
+          case "architecture":
           case "architecture_minimums": {
+            // Load architecture standards for all architecture-related phases
             const archData = await assessmentFlowAPI.getArchitectureStandards(
               state.flowId,
             );
+
+            // If no template is saved but standards exist, detect if they match a template or are custom
+            let templateToSet = archData.selected_template;
+            if (!templateToSet && archData.engagement_standards && archData.engagement_standards.length > 0) {
+              // Standards exist but no template saved - mark as custom
+              templateToSet = "custom";
+            }
+
             setState((prev) => ({
               ...prev,
               engagementStandards: archData.engagement_standards,
               applicationOverrides: archData.application_overrides,
+              selectedTemplate: templateToSet,
             }));
             break;
           }
@@ -349,6 +363,7 @@ export const useAssessmentFlow = (
     async (
       standards: ArchitectureStandard[],
       overrides: Record<string, ArchitectureStandard>,
+      selectedTemplate?: string | null,
     ) => {
       if (!state.flowId) {
         throw new Error("No active flow");
@@ -358,12 +373,14 @@ export const useAssessmentFlow = (
         await assessmentFlowAPI.updateArchitectureStandards(state.flowId, {
           engagement_standards: standards,
           application_overrides: overrides,
+          selected_template: selectedTemplate !== undefined ? selectedTemplate : state.selectedTemplate,
         });
 
         setState((prev) => ({
           ...prev,
           engagementStandards: standards,
           applicationOverrides: overrides,
+          selectedTemplate: selectedTemplate !== undefined ? selectedTemplate : prev.selectedTemplate,
           lastUserInteraction: new Date(),
         }));
       } catch (error) {
@@ -663,7 +680,7 @@ export const useAssessmentFlow = (
     if (shouldPoll) {
       const interval = setInterval(() => {
         loadFlowState();
-      }, 5000); // Poll every 5 seconds
+      }, 30000); // Poll every 30 seconds (reduced from 5s to minimize backend load and log noise)
 
       return () => clearInterval(interval);
     }

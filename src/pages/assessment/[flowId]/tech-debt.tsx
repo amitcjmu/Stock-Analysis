@@ -47,10 +47,10 @@ const TechDebtPage: React.FC = () => {
 
   // Set first application as selected by default
   useEffect(() => {
-    if (state.selectedApplicationIds.length > 0 && !selectedApp) {
-      setSelectedApp(state.selectedApplicationIds[0]);
+    if (state.selectedApplications.length > 0 && !selectedApp) {
+      setSelectedApp(state.selectedApplications[0].application_id);
     }
-  }, [state.selectedApplicationIds, selectedApp]);
+  }, [state.selectedApplications, selectedApp]);
 
   // Get current application data (hooks must be called before any early returns)
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
@@ -111,7 +111,8 @@ const TechDebtPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       // Save all application data
-      for (const appId of state.selectedApplicationIds) {
+      for (const app of state.selectedApplications) {
+        const appId = app.application_id;
         const components = state.applicationComponents[appId] || [];
         const techDebt = state.techDebtAnalysis[appId] || [];
 
@@ -238,10 +239,13 @@ const TechDebtPage: React.FC = () => {
 
         {/* Application Selection */}
         <ApplicationTabs
-          applications={state.selectedApplicationIds}
+          applications={state.selectedApplications.map(app => app.application_id)}
           selectedApp={selectedApp}
           onAppSelect={setSelectedApp}
-          getApplicationName={(appId) => appId} // In real implementation, get from application data
+          getApplicationName={(appId) => {
+            const app = state.selectedApplications.find(a => a.application_id === appId);
+            return app?.application_name || appId;
+          }}
         />
 
         {selectedApp && (

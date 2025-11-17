@@ -6,6 +6,7 @@ import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayo
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
 import { DependencyManagementTable } from '@/components/assessment/DependencyManagementTable';
 import { DependencyGraph } from '@/components/assessment/DependencyGraph';
+import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { assessmentDependencyApi } from '@/lib/api/assessmentDependencyApi';
 import { Button } from '@/components/ui/button';
@@ -31,14 +32,23 @@ import {
 
 // Type definitions for dependency analysis data
 interface AppServerDependency {
-  application: string;
-  server: string;
+  dependency_id?: string;
+  application_name?: string;
+  server_info?: {
+    hostname?: string;
+    name?: string;
+  };
+  dependency_type?: string;
 }
 
 interface AppAppDependency {
-  source: string;
-  target: string;
-  type: string;
+  dependency_id?: string;
+  source_app_name?: string;
+  target_app_info?: {
+    application_name?: string;
+    name?: string;
+  };
+  dependency_type?: string;
 }
 
 const DependencyPage: React.FC = () => {
@@ -47,6 +57,7 @@ const DependencyPage: React.FC = () => {
   const { state, resumeFlow } = useAssessmentFlow(flowId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<string>('');
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -54,6 +65,13 @@ const DependencyPage: React.FC = () => {
       navigate('/assess/overview', { replace: true });
     }
   }, [flowId, navigate]);
+
+  // Set first application as selected by default
+  useEffect(() => {
+    if (state.selectedApplications.length > 0 && !selectedApp) {
+      setSelectedApp(state.selectedApplications[0].application_id);
+    }
+  }, [state.selectedApplications, selectedApp]);
 
   // Fetch dependency analysis with React Query
   const { data: dependencyData, isLoading: isDependencyLoading, refetch } = useQuery({
@@ -79,6 +97,22 @@ const DependencyPage: React.FC = () => {
     staleTime: 0, // Always fresh for status checks
   });
 
+  // Use useMutation for executing dependency analysis (prevents race conditions) - MUST be before early return
+  const { mutate: executeAnalysis, isPending: isAnalyzing } = useMutation({
+    mutationFn: () => assessmentDependencyApi.executeDependencyAnalysis(flowId),
+    onSuccess: () => {
+      console.log('[DependencyPage] Dependency analysis execution started');
+      // Refetch after a short delay to allow backend to update status
+      setTimeout(() => {
+        refetch();
+      }, 2000);
+    },
+    onError: (error: unknown) => {
+      console.error('[DependencyPage] Failed to execute dependency analysis:', error);
+      alert(`Failed to execute analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
   // Prevent rendering until flow is hydrated
   if (!flowId || state.status === 'idle') {
     return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
@@ -97,22 +131,6 @@ const DependencyPage: React.FC = () => {
     console.log('[DependencyPage] Refresh dependency analysis');
     refetch();
   };
-
-  // Use useMutation for executing dependency analysis (prevents race conditions)
-  const { mutate: executeAnalysis, isPending: isAnalyzing } = useMutation({
-    mutationFn: () => assessmentDependencyApi.executeDependencyAnalysis(flowId),
-    onSuccess: () => {
-      console.log('[DependencyPage] Dependency analysis execution started');
-      // Refetch after a short delay to allow backend to update status
-      setTimeout(() => {
-        refetch();
-      }, 2000);
-    },
-    onError: (error: unknown) => {
-      console.error('[DependencyPage] Failed to execute dependency analysis:', error);
-      alert(`Failed to execute analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    },
-  });
 
   const handleExecuteAnalysis = () => {
     console.log('[DependencyPage] Executing dependency analysis...');
@@ -241,6 +259,17 @@ const DependencyPage: React.FC = () => {
               </Button>
             </div>
           </div>
+
+          {/* Application Selection */}
+          <ApplicationTabs
+            applications={state.selectedApplications.map(app => app.application_id)}
+            selectedApp={selectedApp}
+            onAppSelect={setSelectedApp}
+            getApplicationName={(appId) => {
+              const app = state.selectedApplications.find(a => a.application_id === appId);
+              return app?.application_name || appId;
+            }}
+          />
 
           {/* Status Alert */}
           {state.status === 'error' && (
@@ -380,10 +409,17 @@ const DependencyPage: React.FC = () => {
             <DependencyGraph dependencyGraph={dependencyGraph} height={600} />
           )}
 
-          {/* Dependency Management Table */}
-          {dependencyData && dependencyData.applications && dependencyData.applications.length > 0 && (
+          {/* Dependency Management Table - Always show to allow manual dependency addition */}
+          {state.selectedApplications.length > 0 && (
             <DependencyManagementTable
-              applications={dependencyData.applications}
+              applications={dependencyData?.applications || state.selectedApplications.map(app => ({
+                id: app.application_id,           // Required by AG Grid row identification
+                name: app.application_name,        // Required by "Application Name" column
+                application_name: app.application_name, // Required by "Display Name" column
+                business_criticality: app.business_criticality || '',
+                dependencies: null, // No dependencies yet
+                dependency_names: '' // Empty string for display
+              }))}
               onUpdateDependencies={handleUpdateDependencies}
             />
           )}
@@ -405,7 +441,7 @@ const DependencyPage: React.FC = () => {
                 <CardContent>
                   {appServerDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appServerDependencies.slice(0, 5).map((dep: any, index: number) => (
+                      {appServerDependencies.slice(0, 5).map((dep: AppServerDependency, index: number) => (
                         <div key={dep.dependency_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex-1">
                             <p className="font-medium">{dep.application_name || 'Unknown Application'}</p>
@@ -447,7 +483,7 @@ const DependencyPage: React.FC = () => {
                 <CardContent>
                   {appAppDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appAppDependencies.slice(0, 5).map((dep: any, index: number) => (
+                      {appAppDependencies.slice(0, 5).map((dep: AppAppDependency, index: number) => (
                         <div key={dep.dependency_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex-1">
                             <p className="font-medium">{dep.source_app_name || 'Unknown Source'}</p>

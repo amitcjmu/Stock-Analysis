@@ -106,6 +106,7 @@ export interface AssessmentFlowState {
   // Phase-specific data
   engagementStandards: ArchitectureStandard[];
   applicationOverrides: Record<string, ArchitectureStandard>;
+  selectedTemplate: string | null; // Template ID (enterprise-standard, cloud-native, security-first, performance-optimized, custom, or null)
   applicationComponents: Record<string, ApplicationComponent[]>;
   techDebtAnalysis: Record<string, TechDebtItem[]>;
   sixrDecisions: Record<string, SixRDecision>;

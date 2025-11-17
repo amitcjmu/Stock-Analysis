@@ -7,6 +7,7 @@ import { TemplateSelector } from '@/components/assessment/TemplateSelector';
 import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrides';
 import { BulkAssetMappingDialog } from '@/components/assessment/BulkAssetMappingDialog';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
+import { assessmentFlowAPI } from '@/hooks/useAssessmentFlow/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +30,7 @@ const ArchitecturePage: React.FC = () => {
 
   const [standards, setStandards] = useState(state.engagementStandards);
   const [overrides, setOverrides] = useState(state.applicationOverrides);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(state.selectedTemplate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -50,11 +52,56 @@ const ArchitecturePage: React.FC = () => {
     }
   }, [flowId, navigate]);
 
+  // Load architecture standards when page mounts (regardless of current phase)
+  useEffect(() => {
+    const loadArchitectureData = async () => {
+      if (!flowId) return;
+
+      try {
+        const archData = await assessmentFlowAPI.getArchitectureStandards(flowId);
+
+        // Set standards and template from backend
+        setStandards(archData.engagement_standards || []);
+        setOverrides(archData.application_overrides || {});
+
+        // Determine template selection
+        let templateToSet = archData.selected_template;
+        if (!templateToSet && archData.engagement_standards && archData.engagement_standards.length > 0) {
+          // Standards exist but no template saved - mark as custom
+          templateToSet = "custom";
+        }
+        setSelectedTemplate(templateToSet);
+      } catch (error) {
+        console.error('Failed to load architecture standards:', error);
+      }
+    };
+
+    loadArchitectureData();
+  }, [flowId]); // Only run when flowId changes (on mount)
+
   // Update local state when flow state changes - MUST be at top level
   useEffect(() => {
     setStandards(state.engagementStandards);
     setOverrides(state.applicationOverrides);
-  }, [state.engagementStandards, state.applicationOverrides]);
+    setSelectedTemplate(state.selectedTemplate);
+  }, [state.engagementStandards, state.applicationOverrides, state.selectedTemplate]);
+
+  // Calculate unmapped assets for bulk mapping dialog - MUST be before early return
+  const unmappedAssets = useMemo(() => {
+    return state.selectedApplications
+      .filter((app: AssessmentApplication) => {
+        // Check if the application has a canonical_application_id field
+        // If not present or null, it's unmapped
+        const appWithCanonicalId = app as AssessmentApplication & { canonical_application_id?: string | null };
+        return !appWithCanonicalId.canonical_application_id;
+      })
+      .map((app: AssessmentApplication) => ({
+        asset_id: app.application_id,
+        asset_name: app.application_name,
+        asset_type: app.application_type || 'unknown',
+        technology_stack: app.technology_stack || [],
+      }));
+  }, [state.selectedApplications]);
 
   // Prevent rendering until flow is hydrated
   if (!flowId || state.status === 'idle') {
@@ -64,7 +111,7 @@ const ArchitecturePage: React.FC = () => {
   const handleSaveDraft = async (): void => {
     setIsDraft(true);
     try {
-      await updateArchitectureStandards(standards, overrides);
+      await updateArchitectureStandards(standards, overrides, selectedTemplate);
       // Show success notification (fix for issue #639)
       toast({
         title: "Draft Saved",
@@ -97,7 +144,7 @@ const ArchitecturePage: React.FC = () => {
     setIsSubmitting(true);
     try {
       console.log('[ArchitecturePage] Updating architecture standards...');
-      await updateArchitectureStandards(standards, overrides);
+      await updateArchitectureStandards(standards, overrides, selectedTemplate);
 
       // BUG FIX (#1034): Check if initialization phase needs to be completed first
       // Backend requires phases in order: initialization → readiness_assessment → complexity_analysis → ...
@@ -262,23 +309,6 @@ const ArchitecturePage: React.FC = () => {
     }
   };
 
-  // Calculate unmapped assets for bulk mapping dialog
-  const unmappedAssets = useMemo(() => {
-    return state.selectedApplications
-      .filter((app: AssessmentApplication) => {
-        // Check if the application has a canonical_application_id field
-        // If not present or null, it's unmapped
-        const appWithCanonicalId = app as AssessmentApplication & { canonical_application_id?: string | null };
-        return !appWithCanonicalId.canonical_application_id;
-      })
-      .map((app: AssessmentApplication) => ({
-        asset_id: app.application_id,
-        asset_name: app.application_name,
-        asset_type: app.application_type || 'unknown',
-        technology_stack: app.technology_stack || [],
-      }));
-  }, [state.selectedApplications]);
-
   return (
     <SidebarProvider>
       <AssessmentFlowLayout flowId={flowId}>
@@ -339,7 +369,11 @@ const ArchitecturePage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <TemplateSelector
-              onTemplateSelect={(template) => setStandards(template.standards)}
+              selectedTemplate={selectedTemplate}
+              onTemplateSelect={(template) => {
+                setStandards(template.standards);
+                setSelectedTemplate(template.id);
+              }}
             />
           </CardContent>
         </Card>

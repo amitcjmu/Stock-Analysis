@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { collectionFlowApi } from '@/services/api/collection-flow';
+import { getPhaseUrl } from './[flowId]/utils';
 
 interface AssessmentFlow {
   id: string;
@@ -80,7 +81,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
       return Array.isArray(response) ? response : [];
     },
     staleTime: 30000,
-    refetchInterval: 15000 // Refresh every 15 seconds
+    refetchInterval: 30000 // Refresh every 30 seconds (reduced from 15s to minimize log noise)
   });
 
   // Get selected flow for widgets - MUST be defined before dependent code uses it
@@ -115,6 +116,17 @@ const AssessmentFlowOverview = (): JSX.Element => {
   //     }
   //   })();
   // }, []);
+
+  // Clear selected flow when context switches (flows list changes)
+  // Fix for localStorage/context issue: When user switches from Demo Client to Canada Life,
+  // the selectedFlowForDetails still points to a flow from Demo Client that doesn't exist
+  // in Canada Life context, causing 404 errors
+  useEffect(() => {
+    // If we have a selected flow but it's not in the current flows list, clear it
+    if (selectedFlowForDetails && !flows.some(f => f.id === selectedFlowForDetails)) {
+      setSelectedFlowForDetails(null);
+    }
+  }, [flows, selectedFlowForDetails]);
 
   // Fetch readiness for the ensured collection flow
   useEffect(() => {
@@ -215,7 +227,8 @@ const AssessmentFlowOverview = (): JSX.Element => {
       }
       if (flowId) {
         toast({ title: 'Assessment initialized', description: `${readyAppIds.length} applications included.` });
-        navigate(`/assessment/${flowId}/architecture`);
+        // Navigate to the correct phase page (will be 'initialization' → architecture)
+        navigate(getPhaseUrl(flowId, 'initialization'));
       } else {
         toast({ title: 'Initialization incomplete', description: 'No flow id was returned. Please retry shortly.', variant: 'destructive' });
       }
@@ -484,7 +497,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
                           <TableRow key={flow.id}>
                             <TableCell className="font-medium">
                               <Link
-                                to={`/assessment/${flow.id}/architecture`}
+                                to={getPhaseUrl(flow.id, flow.current_phase)}
                                 className="text-blue-600 hover:text-blue-800"
                               >
                                 {flow.id.substring(0, 8)}...

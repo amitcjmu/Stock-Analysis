@@ -149,6 +149,14 @@ class AssessmentFlow(Base):
 
     # Assessment state fields
     architecture_captured = Column(Boolean, default=False, nullable=False)
+    selected_template = Column(
+        String(100),
+        nullable=True,
+        comment=(
+            "Architecture template ID selected by user "
+            "(enterprise-standard, cloud-native, security-first, performance-optimized, custom, or NULL)"
+        ),
+    )
     user_inputs = Column(JSONB, default=lambda: {}, nullable=False)
     phase_results = Column(JSONB, default=lambda: {}, nullable=False)
     agent_insights = Column(JSONB, default=lambda: [], nullable=False)
