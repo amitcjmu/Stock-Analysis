@@ -2,7 +2,7 @@
 
 Revision ID: 127_add_data_cleansing_recommendations_table
 Revises: 126_update_alembic_version_to_new_naming
-Create Date: 2025-01-XX
+Create Date: 2025-01-13
 
 """
 
@@ -40,9 +40,10 @@ def upgrade() -> None:
     """Add data_cleansing_recommendations table for stable recommendation persistence."""
 
     # Check if table exists before creating
-    if not table_exists("data_cleansing_recommendations"):
+    if not table_exists("data_cleansing_recommendations", schema="migration"):
         op.create_table(
             "data_cleansing_recommendations",
+            schema="migration",
             sa.Column(
                 "id",
                 postgresql.UUID(as_uuid=True),
@@ -91,39 +92,55 @@ def upgrade() -> None:
             "ix_data_cleansing_recommendations_id",
             "data_cleansing_recommendations",
             ["id"],
+            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_flow_id",
             "data_cleansing_recommendations",
             ["flow_id"],
+            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_status",
             "data_cleansing_recommendations",
             ["status"],
+            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_client_account_id",
             "data_cleansing_recommendations",
             ["client_account_id"],
+            schema="migration",
         )
         op.create_index(
             "ix_data_cleansing_recommendations_engagement_id",
             "data_cleansing_recommendations",
             ["engagement_id"],
+            schema="migration",
         )
 
         # Create trigger to update updated_at timestamp
+        # Use table-specific function name to avoid collisions with other migrations
         op.execute(
             sa.text(
                 """
-                CREATE OR REPLACE FUNCTION update_updated_at_column()
-                RETURNS TRIGGER AS $$
+                DO $$
                 BEGIN
-                    NEW.updated_at = NOW();
-                    RETURN NEW;
-                END;
-                $$ language 'plpgsql';
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_proc p
+                        JOIN pg_namespace n ON p.pronamespace = n.oid
+                        WHERE n.nspname = 'public'
+                        AND p.proname = 'update_data_cleansing_recommendations_updated_at_column'
+                    ) THEN
+                        CREATE FUNCTION update_data_cleansing_recommendations_updated_at_column()
+                        RETURNS TRIGGER AS $func$
+                        BEGIN
+                            NEW.updated_at = NOW();
+                            RETURN NEW;
+                        END;
+                        $func$ language 'plpgsql';
+                    END IF;
+                END $$;
             """
             )
         )
@@ -132,9 +149,9 @@ def upgrade() -> None:
             sa.text(
                 """
                 CREATE TRIGGER update_data_cleansing_recommendations_updated_at
-                    BEFORE UPDATE ON data_cleansing_recommendations
+                    BEFORE UPDATE ON migration.data_cleansing_recommendations
                     FOR EACH ROW
-                    EXECUTE FUNCTION update_updated_at_column();
+                    EXECUTE FUNCTION update_data_cleansing_recommendations_updated_at_column();
             """
             )
         )
@@ -143,15 +160,15 @@ def upgrade() -> None:
         op.execute(
             sa.text(
                 """
-                COMMENT ON TABLE data_cleansing_recommendations IS
+                COMMENT ON TABLE migration.data_cleansing_recommendations IS
                     'Stores data cleansing recommendations with stable primary keys instead of deterministic IDs';
-                COMMENT ON COLUMN data_cleansing_recommendations.id IS
+                COMMENT ON COLUMN migration.data_cleansing_recommendations.id IS
                     'Stable UUID primary key that does not change when recommendation content changes';
-                COMMENT ON COLUMN data_cleansing_recommendations.flow_id IS
+                COMMENT ON COLUMN migration.data_cleansing_recommendations.flow_id IS
                     'Foreign key to discovery flow this recommendation belongs to';
-                COMMENT ON COLUMN data_cleansing_recommendations.category IS
+                COMMENT ON COLUMN migration.data_cleansing_recommendations.category IS
                     'Recommendation category: standardization, validation, enrichment, deduplication';
-                COMMENT ON COLUMN data_cleansing_recommendations.status IS
+                COMMENT ON COLUMN migration.data_cleansing_recommendations.status IS
                     'Action status: pending, applied, rejected';
             """
             )
@@ -165,19 +182,28 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Remove data_cleansing_recommendations table."""
 
-    if table_exists("data_cleansing_recommendations"):
+    if table_exists("data_cleansing_recommendations", schema="migration"):
         # Drop trigger first
         op.execute(
             sa.text(
                 """
                 DROP TRIGGER IF EXISTS update_data_cleansing_recommendations_updated_at
-                ON data_cleansing_recommendations;
+                ON migration.data_cleansing_recommendations;
+            """
+            )
+        )
+
+        # Drop the table-specific function if it exists (after dropping trigger)
+        op.execute(
+            sa.text(
+                """
+                DROP FUNCTION IF EXISTS update_data_cleansing_recommendations_updated_at_column() CASCADE;
             """
             )
         )
 
         # Drop table
-        op.drop_table("data_cleansing_recommendations")
+        op.drop_table("data_cleansing_recommendations", schema="migration")
         print("Dropped data_cleansing_recommendations table successfully")
     else:
         print("Table data_cleansing_recommendations does not exist, skipping drop")

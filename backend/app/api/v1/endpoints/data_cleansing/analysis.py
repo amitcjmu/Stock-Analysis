@@ -366,7 +366,13 @@ async def _load_recommendations_from_database(
         # If table doesn't exist, this will raise an exception which we'll catch
         # Ensure flow_id is a UUID object to prevent silent query failures
         flow_uuid = _ensure_uuid(flow_id)
-        query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
+        client_account_uuid = _ensure_uuid(client_account_id)
+        engagement_uuid = _ensure_uuid(engagement_id)
+        query = select(DBRecommendation).where(
+            DBRecommendation.flow_id == flow_uuid,
+            DBRecommendation.client_account_id == client_account_uuid,
+            DBRecommendation.engagement_id == engagement_uuid,
+        )
         result = await db_session.execute(query)
         db_recommendations = result.scalars().all()
 
@@ -419,8 +425,15 @@ async def _store_recommendations_to_database(
     try:
         # Get existing recommendations for this flow
         # Ensure flow_id is a UUID object to prevent silent query failures
+        # Apply tenant isolation to prevent cross-tenant data access
         flow_uuid = _ensure_uuid(flow_id)
-        query = select(DBRecommendation).where(DBRecommendation.flow_id == flow_uuid)
+        client_account_uuid = _ensure_uuid(client_account_id)
+        engagement_uuid = _ensure_uuid(engagement_id)
+        query = select(DBRecommendation).where(
+            DBRecommendation.flow_id == flow_uuid,
+            DBRecommendation.client_account_id == client_account_uuid,
+            DBRecommendation.engagement_id == engagement_uuid,
+        )
         result = await db_session.execute(query)
         existing_db_recs = result.scalars().all()
         existing_recs = {str(rec.id): rec for rec in existing_db_recs}
