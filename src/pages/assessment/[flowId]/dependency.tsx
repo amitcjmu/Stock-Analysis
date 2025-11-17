@@ -67,11 +67,12 @@ const DependencyPage: React.FC = () => {
   }, [flowId, navigate]);
 
   // Set first application as selected by default
+  // Note: Removed selectedApp from dependencies to prevent unnecessary re-runs
   useEffect(() => {
     if (state.selectedApplications.length > 0 && !selectedApp) {
       setSelectedApp(state.selectedApplications[0].application_id);
     }
-  }, [state.selectedApplications, selectedApp]);
+  }, [state.selectedApplications]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch dependency analysis with React Query
   const { data: dependencyData, isLoading: isDependencyLoading, refetch } = useQuery({

@@ -105,26 +105,26 @@ async def update_complexity_metrics(
         # Convert asset IDs to UUIDs
         asset_uuids = [ensure_uuid(aid) for aid in asset_ids]
 
-        # Update ALL assets in the application group using IN clause
-        # Note: Using IN instead of ANY for better SQLAlchemy compatibility
-        asset_uuid_strs = [str(uuid) for uuid in asset_uuids]
-        placeholders = ", ".join([f"'{uuid_str}'" for uuid_str in asset_uuid_strs])
-
-        update_query = f"""
+        # Update ALL assets in the application group using parameterized query
+        # Use PostgreSQL's ANY() function with array binding for SQL injection protection
+        update_query = text(
+            """
             UPDATE migration.assets
             SET complexity_score = :complexity_score,
                 application_type = :application_type,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id IN ({placeholders})
+            WHERE id = ANY(:asset_uuids)
               AND client_account_id = :client_account_id
               AND engagement_id = :engagement_id
         """
+        )
 
         result = await db.execute(
-            text(update_query),
+            update_query,
             {
                 "complexity_score": float(metrics.complexity_score),
                 "application_type": metrics.architecture_type,
+                "asset_uuids": asset_uuids,  # Pass list directly - PostgreSQL handles array binding
                 "client_account_id": client_uuid,
                 "engagement_id": engagement_uuid,
             },
