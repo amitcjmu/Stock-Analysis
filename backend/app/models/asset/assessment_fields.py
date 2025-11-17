@@ -39,6 +39,30 @@ class AssessmentFieldsMixin:
         JSON, comment="List of recommendations to achieve assessment readiness."
     )
 
+    # Complexity and architecture assessment fields
+    complexity_score = Column(
+        Float,
+        comment="Migration complexity score (1-10 scale) assessed during complexity analysis.",
+        info={
+            "display_name": "Complexity Score",
+            "short_hint": "1-10 scale (10=Most Complex)",
+            "category": "assessment",
+        },
+    )
+
+    application_type = Column(
+        String(SMALL_STRING_LENGTH),
+        comment=(
+            "Application architecture type (e.g., 'Monolithic', 'Microservices', "
+            "'SOA', 'Serverless', 'Event-Driven', 'Layered')."
+        ),
+        info={
+            "display_name": "Architecture Type",
+            "short_hint": "Monolithic / Microservices / SOA / Serverless / Event-Driven / Layered",
+            "category": "assessment",
+        },
+    )
+
     # Discovery timestamps
     discovered_at = Column(
         DateTime(timezone=True),

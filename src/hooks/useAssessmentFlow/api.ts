@@ -167,18 +167,13 @@ export const assessmentFlowAPI = {
   },
 
   async getArchitectureStandards(flowId: string): Promise<Response> {
-    // DEPRECATED: Get this data from assessment-status endpoint instead
-    const response = await fetch(
-      `${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`,
+    // Use apiCall for auth headers
+    return apiCall(
+      `/master-flows/${flowId}/assessment/architecture-standards`,
+      {
+        method: "GET",
+      }
     );
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to get architecture standards: ${response.statusText}`,
-      );
-    }
-
-    return response.json();
   },
 
   async getTechDebtAnalysis(flowId: string): Promise<Response> {

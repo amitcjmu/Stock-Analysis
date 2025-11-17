@@ -15,8 +15,76 @@ from app.core.database import get_db
 from app.utils.json_sanitization import sanitize_for_json
 
 from . import router
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
+
+
+@router.get("/{flow_id}/assessment/architecture-standards")
+async def get_architecture_standards_via_mfo(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> Dict[str, Any]:
+    """Get architecture standards and selected template through MFO"""
+
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+    if not engagement_id:
+        raise HTTPException(status_code=400, detail="Engagement ID required")
+
+    try:
+        from app.repositories.assessment_flow_repository import (
+            AssessmentFlowRepository,
+        )
+        from app.models.assessment_flow import AssessmentFlow
+        from uuid import UUID
+
+        repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
+
+        # Get engagement-level standards
+        engagement_standards = await repo._get_architecture_standards(engagement_id)
+
+        # Get selected template from assessment flow
+        flow_uuid = UUID(flow_id)
+        result = await db.execute(
+            select(AssessmentFlow.selected_template).where(
+                AssessmentFlow.id == flow_uuid,
+                AssessmentFlow.client_account_id == UUID(client_account_id),
+                AssessmentFlow.engagement_id == UUID(engagement_id),
+            )
+        )
+        flow_row = result.first()
+        selected_template = flow_row.selected_template if flow_row else None
+
+        # Convert to response format
+        engagement_standards_list = [
+            {
+                "requirement_type": std.requirement_type,
+                "description": std.description,
+                "mandatory": std.mandatory,
+                "supported_versions": std.supported_versions or {},
+                "requirement_details": std.requirement_details or {},
+            }
+            for std in engagement_standards
+        ]
+
+        return sanitize_for_json(
+            {
+                "flow_id": flow_id,
+                "engagement_standards": engagement_standards_list,
+                "application_overrides": {},  # Placeholder - TODO: format overrides properly
+                "selected_template": selected_template,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to get architecture standards: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get standards: {str(e)}"
+        )
 
 
 @router.put("/{flow_id}/assessment/architecture-standards")
@@ -43,8 +111,11 @@ async def update_architecture_standards_via_mfo(
 
         repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
 
-        # Extract engagement standards from request
+        # Extract engagement standards and template selection from request
         engagement_standards = standards_data.get("engagement_standards", [])
+        selected_template = standards_data.get(
+            "selected_template"
+        )  # Can be None, template ID, or "custom"
 
         # Convert engagement standards to ArchitectureRequirement objects
         arch_requirements = []
@@ -70,6 +141,28 @@ async def update_architecture_standards_via_mfo(
         # Save engagement-level standards
         if arch_requirements:
             await repo.save_architecture_standards(engagement_id, arch_requirements)
+
+        # Save selected template to assessment flow
+        from sqlalchemy import update
+        from app.models.assessment_flow import AssessmentFlow
+        from uuid import UUID
+
+        flow_uuid = UUID(flow_id)
+        await db.execute(
+            update(AssessmentFlow)
+            .where(
+                AssessmentFlow.id == flow_uuid,
+                AssessmentFlow.client_account_id == UUID(client_account_id),
+                AssessmentFlow.engagement_id == UUID(engagement_id),
+            )
+            .values(selected_template=selected_template)
+        )
+        await db.commit()
+
+        logger.info(
+            f"Updated architecture standards for flow {flow_id}: "
+            f"{len(arch_requirements)} standards, template={selected_template}"
+        )
 
         return sanitize_for_json(
             {

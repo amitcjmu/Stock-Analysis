@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 
 interface ApplicationSummaryCardProps {
   applicationId: string;
+  applicationName?: string;  // Optional application name to display instead of ID
   decision: SixRDecision;
   components: ApplicationComponent[];
   techDebt: TechDebtItem[];
@@ -29,6 +30,7 @@ const SIX_R_STRATEGIES = [
 
 export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
   applicationId,
+  applicationName,
   decision,
   components,
   techDebt,
@@ -45,9 +47,9 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
       techDebt.reduce((sum, t) => sum + (t.tech_debt_score || 0), 0) / techDebt.length : 0
   };
 
-  const compatibilityIssues = decision.component_treatments.filter(ct =>
+  const compatibilityIssues = decision.component_treatments?.filter(ct =>
     ct.compatibility_issues && ct.compatibility_issues.length > 0
-  ).length;
+  ).length || 0;
 
   return (
     <Card className={cn("print:shadow-none print:border-2", printMode && "print:mb-4")}>
@@ -55,7 +57,7 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className={cn("text-xl", compact && "text-lg")}>
-              {decision.application_name || applicationId}
+              {applicationName || applicationId}
             </CardTitle>
             <CardDescription className="mt-1">
               Application ID: {applicationId}
@@ -134,7 +136,7 @@ export const ApplicationSummaryCard: React.FC<ApplicationSummaryCardProps> = ({
             </div>
 
             {/* Risk Factors */}
-            {decision.risk_factors.length > 0 && (
+            {decision.risk_factors && decision.risk_factors.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-gray-700 flex items-center space-x-1">
                   <AlertTriangle className="h-4 w-4 text-orange-600" />

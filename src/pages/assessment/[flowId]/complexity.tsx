@@ -23,7 +23,7 @@ import { AlertCircle, ArrowRight, Loader2, BarChart3, Code2, TrendingUp, AlertTr
 const ComplexityPage: React.FC = () => {
   const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
   const navigate = useNavigate();
-  const { state, resumeFlow, toggleAutoPolling } = useAssessmentFlow(flowId, { disableAutoPolling: true });
+  const { state, resumeFlow, toggleAutoPolling, refreshApplicationData } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,12 +62,7 @@ const ComplexityPage: React.FC = () => {
     }
   }, [currentApp]);
 
-  // Prevent rendering until flow is hydrated
-  if (!flowId || state.status === 'idle') {
-    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
-  }
-
-  // Calculate architectural complexity metrics from CMDB/Discovery data
+  // Calculate architectural complexity metrics from CMDB/Discovery data - MUST be before early return
   // Uses editable state values that user can adjust
   const complexityMetrics = useMemo(() => {
     if (!currentApp) return null;
@@ -95,6 +90,11 @@ const ComplexityPage: React.FC = () => {
     };
   }, [currentApp, architectureType, customizationLevel, complexityScore]);
 
+  // Prevent rendering until flow is hydrated
+  if (!flowId || state.status === 'idle') {
+    return <div className="p-6 text-sm text-muted-foreground">Loading assessment...</div>;
+  }
+
   const handleSaveMetrics = async (): Promise<void> => {
     if (!selectedApp) {
       console.warn('[ComplexityPage] No application selected');
@@ -117,6 +117,10 @@ const ComplexityPage: React.FC = () => {
       );
 
       console.log('[ComplexityPage] Metrics saved successfully', result);
+
+      // Refetch application data to show persisted values
+      console.log('[ComplexityPage] Refreshing application data...');
+      await refreshApplicationData();
 
       // Show success feedback
       alert('Complexity metrics saved successfully!');
