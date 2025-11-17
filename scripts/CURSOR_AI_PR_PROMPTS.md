@@ -1,6 +1,6 @@
-# Quick Start - Git Workflow Scripts
+# Cursor AI PR Prompts - What to Say to Run the Workflow
 
-## 🚀 What to Say / Type
+## 🚀 What to Say / Type to Cursor AI Agent
 
 ### To Push Code (I'll automatically sync with main)
 
