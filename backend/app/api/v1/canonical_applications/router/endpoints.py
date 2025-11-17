@@ -22,6 +22,8 @@ from app.models.canonical_applications import (
     CollectionFlowApplication,
 )
 
+# AssetReadinessService moved to readiness_gaps.py
+
 from .models import MapAssetRequest, MapAssetResponse
 from .queries import (
     calculate_readiness_metadata,
@@ -377,3 +379,6 @@ async def map_asset_to_application(
         raise HTTPException(
             status_code=500, detail=f"Failed to create mapping: {str(e)}"
         )
+
+
+# Readiness gaps endpoint moved to readiness_gaps.py to keep file under 400 lines

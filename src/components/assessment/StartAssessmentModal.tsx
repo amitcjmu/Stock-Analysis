@@ -285,34 +285,47 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
         }
       }
 
-      // Fallback: If no assessment context or gap fetch failed, fetch assets and let backend discover gaps
+      // Fallback: If no assessment context or gap fetch failed, use on-demand readiness gap analysis
       if (Object.keys(missing_attributes).length === 0) {
-        console.log('⚠️  No specific gaps found, fetching assets for backend gap analysis');
+        console.log(`⚠️  No assessment flow context, fetching readiness gaps for canonical app ${app.id}`);
 
-        const assetsResponse = await apiCall<{assets: any[]}>(
-          `/api/v1/assets?canonical_application_id=${app.id}`,
-          {
-            method: 'GET',
-            headers: {
-              'X-Client-Account-ID': client.id,
-              'X-Engagement-ID': engagement.id,
-            },
+        try {
+          const gapsResponse = await apiCall<{
+            missing_attributes: Record<string, string[]>;
+            asset_count: number;
+            not_ready_count: number;
+          }>(
+            `/api/v1/canonical-applications/${app.id}/readiness-gaps`,
+            {
+              method: 'GET',
+              headers: {
+                'X-Client-Account-ID': client.id,
+                'X-Engagement-ID': engagement.id,
+              },
+            }
+          );
+
+          // Use the gap fields returned by the backend's readiness analysis
+          Object.assign(missing_attributes, gapsResponse.missing_attributes);
+
+          if (gapsResponse.asset_count === 0) {
+            toast({
+              title: 'No Assets Found',
+              description: `No assets found for application "${app.canonical_name}". Please check asset mapping.`,
+              variant: 'destructive',
+            });
+            return;
           }
-        );
 
-        const assets = assetsResponse.assets || [];
-        if (assets.length === 0) {
+          console.log(`✅ Fetched readiness gaps for ${gapsResponse.asset_count} assets (${gapsResponse.not_ready_count} not ready):`, missing_attributes);
+        } catch (error) {
+          console.error('Failed to fetch readiness gaps:', error);
           toast({
-            title: 'No Assets Found',
-            description: `No assets found for application "${app.canonical_name}". Please check asset mapping.`,
+            title: 'Gap Analysis Failed',
+            description: `Failed to analyze data gaps for "${app.canonical_name}". Please try again.`,
             variant: 'destructive',
           });
           return;
-        }
-
-        // Empty arrays = backend will run full gap analysis
-        for (const asset of assets) {
-          missing_attributes[asset.id] = [];
         }
       }
 

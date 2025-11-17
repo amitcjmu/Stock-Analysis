@@ -17,6 +17,7 @@ from app.api.v1.api_tags import APITags
 
 from .. import bulk_mapping
 from .endpoints import list_canonical_applications, map_asset_to_application
+from .readiness_gaps import get_canonical_application_readiness_gaps
 
 # Create main router
 router = APIRouter()
@@ -29,6 +30,9 @@ router.get("", tags=[APITags.CANONICAL_APPLICATIONS])(list_canonical_application
 router.post("/map-asset", tags=[APITags.CANONICAL_APPLICATIONS])(
     map_asset_to_application
 )
+router.get(
+    "/{canonical_application_id}/readiness-gaps", tags=[APITags.CANONICAL_APPLICATIONS]
+)(get_canonical_application_readiness_gaps)
 
 # Export all public symbols for backward compatibility
 __all__ = ["router"]
