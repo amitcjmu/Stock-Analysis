@@ -60,13 +60,63 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   const [expandedReasonings, setExpandedReasonings] = useState<Set<string>>(new Set());
 
   // Categorize mappings into buckets
-  const buckets = useMemo(() => categorizeMappings(fieldMappings), [fieldMappings]);
+  const buckets = useMemo(() => {
+    console.log('🔍 ThreeColumnFieldMapper - Starting categorization with:', {
+      fieldMappingsCount: fieldMappings.length,
+      sampleMappings: fieldMappings.slice(0, 3).map(m => ({
+        id: m.id,
+        source_field: m.source_field,
+        target_field: m.target_field,
+        status: m.status,
+        statusType: typeof m.status,
+        mapping_type: m.mapping_type
+      }))
+    });
+
+    const result = categorizeMappings(fieldMappings);
+
+    // Always log bucket results for debugging (not sensitive data)
+    console.log('🔍 ThreeColumnFieldMapper - Categorization result:', {
+      totalInput: fieldMappings.length,
+      autoMapped: result.autoMapped.length,
+      unmapped: result.unmapped.length,
+      approved: result.approved.length,
+      sampleAutoMapped: result.autoMapped.slice(0, 2).map(m => ({ id: m.id, source: m.source_field, target: m.target_field, status: m.status })),
+      sampleUnmapped: result.unmapped.slice(0, 2).map(m => ({ id: m.id, source: m.source_field, target: m.target_field, status: m.status })),
+      sampleApproved: result.approved.slice(0, 2).map(m => ({ id: m.id, source: m.source_field, target: m.target_field, status: m.status }))
+    });
+
+    // Additional check: verify approved mappings
+    if (result.approved.length > 0) {
+      console.log('✅ Approved mappings found:', result.approved.map(m => ({
+        id: m.id,
+        source: m.source_field,
+        target: m.target_field,
+        status: m.status
+      })));
+    } else {
+      console.warn('⚠️ No approved mappings found, but input had:', fieldMappings.filter(m => {
+        const status = (m.status || '').toLowerCase().trim();
+        return status === 'approved';
+      }).map(m => ({ id: m.id, source: m.source_field, target: m.target_field, status: m.status })));
+    }
+
+    return result;
+  }, [fieldMappings]);
 
   // Filter mappings based on search
-  const filteredBuckets = useMemo(() =>
-    filterMappingsBySearch(buckets, searchTerm),
-    [buckets, searchTerm]
-  );
+  const filteredBuckets = useMemo(() => {
+    const filtered = filterMappingsBySearch(buckets, searchTerm);
+    console.log('🔍 ThreeColumnFieldMapper - Filtered buckets:', {
+      searchTerm,
+      approvedBeforeFilter: buckets.approved.length,
+      approvedAfterFilter: filtered.approved.length,
+      autoMappedAfterFilter: filtered.autoMapped.length,
+      unmappedAfterFilter: filtered.unmapped.length,
+      sampleFilteredApproved: filtered.approved.slice(0, 2).map(m => ({ id: m.id, source: m.source_field, target: m.target_field }))
+    });
+    return filtered;
+  }, [buckets, searchTerm]);
 
   // Create bulk operation handlers
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -379,14 +429,31 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
             icon={<CheckCircle className="h-5 w-5 text-green-600" />}
             bgColor="bg-green-50 border border-green-200"
           />
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredBuckets.approved.map(mapping => (
-              <ApprovedCard
-                key={mapping.id}
-                mapping={mapping}
-                onRemove={onRemoveMapping ? handleRemove : undefined}
-              />
-            ))}
+          <div className="space-y-3 max-h-96 overflow-y-auto" style={{ minHeight: '200px' }}>
+            {(() => {
+              console.log('🔍 Rendering Approved column:', {
+                approvedCount: filteredBuckets.approved.length,
+                approvedMappings: filteredBuckets.approved.map(m => ({ id: m.id, source: m.source_field, target: m.target_field }))
+              });
+              if (filteredBuckets.approved.length === 0) {
+                return null;
+              }
+              return filteredBuckets.approved.map((mapping, index) => {
+                console.log(`🔍 Rendering ApprovedCard ${index}:`, {
+                  id: mapping.id,
+                  source: mapping.source_field,
+                  target: mapping.target_field,
+                  hasMapping: !!mapping
+                });
+                return (
+                  <ApprovedCard
+                    key={mapping.id}
+                    mapping={mapping}
+                    onRemove={onRemoveMapping ? handleRemove : undefined}
+                  />
+                );
+              });
+            })()}
             {filteredBuckets.approved.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 <ArrowRight className="h-8 w-8 mx-auto mb-2 text-gray-400" />

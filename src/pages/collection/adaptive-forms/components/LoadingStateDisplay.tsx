@@ -38,7 +38,7 @@ export const LoadingStateDisplay: React.FC<LoadingStateDisplayProps> = ({
   if (error && !isLoading) {
     return (
       <CollectionPageLayout
-        title="Adaptive Data Collection"
+        title="Adaptive Data Curation"
         description="Error initializing collection form"
       >
         <div className="flex flex-col items-center space-y-6 mt-8">
@@ -74,7 +74,7 @@ export const LoadingStateDisplay: React.FC<LoadingStateDisplayProps> = ({
       case 'pending':
         return (
           <CollectionPageLayout
-            title="Adaptive Data Collection"
+            title="Adaptive Data Curation"
             description="Generating intelligent questionnaire..."
           >
             <div className="flex flex-col items-center space-y-6 mt-8">
@@ -120,7 +120,7 @@ export const LoadingStateDisplay: React.FC<LoadingStateDisplayProps> = ({
       case 'failed':
         return (
           <CollectionPageLayout
-            title="Adaptive Data Collection"
+            title="Adaptive Data Curation"
             description="Questionnaire generation failed"
           >
             <div className="flex flex-col items-center space-y-6 mt-8">

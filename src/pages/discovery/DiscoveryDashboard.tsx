@@ -294,7 +294,7 @@ const DiscoveryDashboard: React.FC = () => {
           {/* Collection Workflow Options */}
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Data Collection Workflows</CardTitle>
+              <CardTitle>Data Curation Workflows</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Enhance discovery with additional data collection methods
               </p>

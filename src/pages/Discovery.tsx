@@ -125,7 +125,7 @@ const Discovery = (): JSX.Element => {
             <div className="mb-6 lg:mb-8">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Discovery Phase</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Aggregation Phase</h1>
                   <p className="text-lg text-gray-600">
                     AI-powered discovery and inventory of your IT landscape
                   </p>
@@ -172,7 +172,7 @@ const Discovery = (): JSX.Element => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex items-center space-x-3 mb-4">
                   <Database className="h-8 w-8 text-blue-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">Application Discovery</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Application Aggregation</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between">

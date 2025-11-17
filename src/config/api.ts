@@ -144,7 +144,7 @@ export const API_CONFIG = {
       LATEST_IMPORT_TEMP: '/data-import/latest-import-temp',
       GET_IMPORT: '/data-import/import',
       LIST_IMPORTS: '/data-import/imports',
-      AVAILABLE_TARGET_FIELDS: '/data-import/field-mappings/suggestions/available-target-fields',
+      AVAILABLE_TARGET_FIELDS: '/data-import/available-target-fields',
       CRITICAL_ATTRIBUTES_STATUS: '/data-import/critical-attributes-status',
       CONTEXT_FIELD_MAPPINGS: '/data-import/context-field-mappings',
       SIMPLE_FIELD_MAPPINGS: '/data-import/simple-field-mappings',

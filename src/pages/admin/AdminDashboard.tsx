@@ -35,7 +35,7 @@ const demoStats: DashboardStatsData = {
   engagements: {
     total: 25,
     active: 18,
-    byPhase: { "Discovery": 8, "Assessment": 5, "Planning": 3, "Migration": 2 },
+    byPhase: { "Aggregation": 8, "Assessment": 5, "Planning": 3, "Migration": 2 },
     byScope: { "Full Datacenter": 5, "Application Portfolio": 12, "Selected Apps": 8 },
     completionRate: 72.5,
     budgetUtilization: 65.8,
@@ -161,7 +161,7 @@ const AdminDashboard: React.FC = () => {
       {/* Header */}
       <AdminHeader
         title="Admin Dashboard"
-        description="Manage clients, engagements, and user access for AI Modernize Migration Platform"
+        description="Manage clients, engagements, and user access for AI Force Assess"
         onRefresh={() => refetch()}
         refreshLoading={isLoading}
         actions={[

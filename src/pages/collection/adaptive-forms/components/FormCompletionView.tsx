@@ -80,7 +80,7 @@ export const FormCompletionView: React.FC<FormCompletionViewProps> = ({
                 size="lg"
                 className="w-full"
               >
-                Continue to Discovery Phase
+                Continue to Aggregation Phase
               </Button>
 
               <div className="flex gap-3">

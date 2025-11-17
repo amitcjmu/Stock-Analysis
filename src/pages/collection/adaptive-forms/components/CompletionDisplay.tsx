@@ -80,7 +80,7 @@ export const CompletionDisplay: React.FC<CompletionDisplayProps> = ({
                 size="lg"
                 className="w-full"
               >
-                Continue to Discovery Phase
+                Continue to Aggregation Phase
               </Button>
 
               <div className="flex gap-3">

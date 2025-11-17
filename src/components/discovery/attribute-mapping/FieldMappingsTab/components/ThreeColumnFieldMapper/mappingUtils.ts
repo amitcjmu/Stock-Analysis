@@ -33,17 +33,17 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
   // SECURITY FIX: Use secure debug logging instead of verbose console.log
   debugLog('🔍 ThreeColumnFieldMapper - Field mappings data:', {
     total_mappings: fieldMappings.length,
-    sample_mappings: fieldMappings.slice(0, 3).map(m => ({
-      id: m.id,
-      source_field: m.source_field,
-      source_field_type: typeof m.source_field,
-      target_field: m.target_field,
-      target_field_type: typeof m.target_field,
-      status: m.status,
-      confidence: m.confidence,
-      mapping_type: m.mapping_type
-      // SECURITY FIX: Remove full_object to prevent sensitive data exposure
-    }))
+      sample_mappings: fieldMappings.slice(0, 3).map(m => ({
+        id: m.id,
+        source_field: m.source_field,
+        source_field_type: typeof m.source_field,
+        target_field: m.target_field,
+        target_field_type: typeof m.target_field,
+        status: m.status,
+        confidence: (m as any).confidence_score || (m as any).confidence,
+        mapping_type: m.mapping_type
+        // SECURITY FIX: Remove full_object to prevent sensitive data exposure
+      }))
   });
 
   // SECURITY FIX: Remove per-item logging in production to prevent data leaks
@@ -64,14 +64,18 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
   // 2. High confidence pending mappings (AI suggested) go to autoMapped column
   // 3. Unmapped, rejected, or no target mappings go to unmapped column (Needs Review)
   // 4. CRITICAL: Items should only appear in ONE column based on their status
-  const approved = fieldMappings.filter(m => m.status === 'approved');
+  // Use case-insensitive comparison to handle status variations
+  const normalizeStatus = (status: string | undefined) => (status || '').toLowerCase().trim();
+
+  const approved = fieldMappings.filter(m => normalizeStatus(m.status) === 'approved');
 
   const autoMapped = fieldMappings.filter(m => {
+    const status = normalizeStatus(m.status);
     // Include pending or suggested mappings that have a target field and aren't explicitly unmapped
     // BUT EXCLUDE approved items (they go in approved column only)
-    return m.status !== 'approved' &&
-           m.status !== 'rejected' &&
-           (m.status === 'pending' || m.status === 'suggested') &&
+    return status !== 'approved' &&
+           status !== 'rejected' &&
+           (status === 'pending' || status === 'suggested') &&
            m.target_field &&
            m.target_field !== '' &&
            m.target_field !== 'unmapped' &&
@@ -80,10 +84,11 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
   });
 
   const unmapped = fieldMappings.filter(m => {
+    const status = normalizeStatus(m.status);
     // Include rejected, explicitly unmapped, or fields without proper targets
     // BUT EXCLUDE approved items (they go in approved column only)
-    return m.status !== 'approved' &&
-           (m.status === 'rejected' ||
+    return status !== 'approved' &&
+           (status === 'rejected' ||
             m.mapping_type === 'unmapped' ||
             !m.target_field ||
             m.target_field === '' ||

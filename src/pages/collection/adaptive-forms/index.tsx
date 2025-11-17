@@ -633,7 +633,7 @@ const AdaptiveForms: React.FC = () => {
   if (checkingFlows) {
     return (
       <CollectionPageLayout
-        title="Adaptive Data Collection"
+        title="Adaptive Data Curation"
         description="Initializing collection workflow"
         isLoading={true}
         loadingMessage="Checking for existing collection flows..."

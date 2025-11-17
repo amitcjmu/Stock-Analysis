@@ -25,13 +25,13 @@ export const NextStepCard: React.FC<NextStepCardProps> = ({
           {isComplete ? (
             <>
               Great! All {inventoryProgress.total_assets} assets have been classified.
-              You're ready to proceed to the Application Discovery phase where AI agents
+              You're ready to proceed to the Application Curation phase where AI agents
               will identify your applications and their dependencies.
             </>
           ) : (
             <>
               {inventoryProgress.classified_assets} of {inventoryProgress.total_assets} assets
-              have been classified. Complete the classification to proceed to Application Discovery.
+              have been classified. Complete the classification to proceed to Application Aggregation.
             </>
           )}
         </p>
@@ -40,7 +40,7 @@ export const NextStepCard: React.FC<NextStepCardProps> = ({
             onClick={onContinue}
             className="w-full md:w-auto"
           >
-            Continue to Application Discovery
+            Continue to Application Aggregation
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}

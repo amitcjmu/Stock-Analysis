@@ -46,10 +46,10 @@ const DashboardOverviewStats: React.FC = () => {
 };
 
 const Index = (): JSX.Element => {
-  // Primary modules (2 rows x 3 cols): Discovery, Assess, Plan, Execute, Modernize, Decommission
+  // Primary modules (2 rows x 3 cols): Aggregation, Assess, Plan, Execute, Modernize, Decommission
   const primaryPhases = [
     {
-      title: 'Discovery/Collection',
+      title: 'Aggregation/Curation',
       description: 'Discover and inventory your applications and infrastructure',
       icon: Search,
       path: '/discovery',
@@ -125,10 +125,10 @@ const Index = (): JSX.Element => {
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                AI Modernize Migration Platform
+                AI Force Assess
               </h1>
               <p className="text-xl text-gray-600">
-                Manage your entire cloud migration journey from discovery to decommission with AI-powered automation
+                Manage your entire cloud migration journey from aggregation to decommission with AI-powered automation
               </p>
             </div>
 

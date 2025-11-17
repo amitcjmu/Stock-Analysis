@@ -543,7 +543,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
                     {formData.applicationName || formData.applicationId}
                   </span>
                 ) : (
-                  'Application Data Collection'
+                  'Application Data Curation'
                 )}
               </CardTitle>
               <CardDescription>

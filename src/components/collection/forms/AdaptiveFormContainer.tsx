@@ -195,7 +195,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
           <TabsContent value="single" className="space-y-6">
             <Card data-testid="questionnaire-panel">
               <CardHeader>
-                <CardTitle>Asset Data Collection</CardTitle>
+                <CardTitle>Asset Data Curation</CardTitle>
               </CardHeader>
               <CardContent>
                 <AdaptiveForm

@@ -50,7 +50,7 @@ const COLLECTION_PHASES = [
   },
   {
     id: 'manual_collection',
-    display_name: 'Data Collection',
+    display_name: 'Data Curation',
     description: 'Collect application data'
   },
   {

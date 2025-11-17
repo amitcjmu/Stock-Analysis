@@ -163,7 +163,7 @@ export const LazyFlowStatusMonitor = createLazyRoute(
 // Collection Sub-routes (HIGH priority - frequently accessed workflows)
 export const LazyCollectionIndex = createLazyRoute(
   () => import("@/pages/collection/Index"),
-  "Collection Overview",
+  "Curation Overview",
   LoadingPriority.HIGH,
 );
 
@@ -187,7 +187,7 @@ export const LazyDataIntegration = createLazyRoute(
 
 export const LazyCollectionProgress = createLazyRoute(
   () => import("@/pages/collection/Progress"),
-  "Collection Progress",
+  "Curation Progress",
   LoadingPriority.NORMAL,
 );
 
@@ -199,7 +199,7 @@ export const LazyCollectionGapAnalysis = createLazyRoute(
 
 export const LazyCollectionFlowManagement = createLazyRoute(
   () => import("@/pages/CollectionFlowManagementPage"),
-  "Collection Flow Management",
+  "Curation Flow Management",
   LoadingPriority.HIGH,
 );
 
@@ -211,7 +211,7 @@ export const LazyApplicationSelection = createLazyRoute(
 
 export const LazyCollectionSummary = createLazyRoute(
   () => import("@/pages/collection/Summary"),
-  "Collection Summary",
+  "Curation Summary",
   LoadingPriority.NORMAL,
 );
 

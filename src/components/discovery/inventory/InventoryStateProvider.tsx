@@ -60,7 +60,7 @@ export const InventoryStateProvider: React.FC<InventoryStateProviderProps> = ({
               <ul className="space-y-1 text-left">
                 <li>• 🏗️ Inventory Manager - Coordinating classification</li>
                 <li>• 🖥️ Server Classification Expert - Analyzing infrastructure</li>
-                <li>• 📱 Application Discovery Expert - Identifying applications</li>
+                <li>• 📱 Application Aggregation Expert - Identifying applications</li>
                 <li>• 🔧 Device Classification Expert - Categorizing devices</li>
               </ul>
             </div>

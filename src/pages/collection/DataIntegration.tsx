@@ -481,7 +481,7 @@ const DataIntegration: React.FC = () => {
               onClick={handleProceedToDiscovery}
               disabled={!validation?.isValid || isProcessing}
             >
-              {isProcessing ? 'Processing...' : 'Proceed to Discovery Phase'}
+              {isProcessing ? 'Processing...' : 'Proceed to Aggregation Phase'}
             </Button>
           </div>
         </div>

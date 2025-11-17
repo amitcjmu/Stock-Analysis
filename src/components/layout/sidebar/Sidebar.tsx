@@ -97,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   });
 
   /**
-   * Build dynamic Discovery submenu from API-driven phases
+   * Build dynamic Aggregation submenu from API-driven phases
    * Per ADR-027: Use FlowTypeConfig as single source of truth
    */
   const discoverySubmenu = React.useMemo(() => {
@@ -179,14 +179,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', path: '/', icon: Home },
     {
-      name: 'Discovery',
+      name: 'Aggregation',
       path: '/discovery',
       icon: Search,
       hasSubmenu: true,
       submenu: discoverySubmenu // ✅ API-driven submenu
     },
     {
-      name: 'Collection',
+      name: 'Curation',
       path: '/collection',
       icon: Database,
       hasSubmenu: true,
