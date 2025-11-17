@@ -26,6 +26,107 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _sync_waves_to_timeline(
+    repo: PlanningFlowRepository,
+    planning_flow_id: UUID,
+    client_account_id: UUID,
+    engagement_id: UUID,
+    wave_plan_data: Dict[str, Any],
+) -> None:
+    """
+    Synchronize wave plan data to timeline tables.
+
+    Creates or updates ProjectTimeline and TimelinePhase records based on wave data.
+    This ensures the Roadmap page can display wave planning information.
+
+    Args:
+        repo: PlanningFlowRepository instance
+        planning_flow_id: Planning flow UUID
+        client_account_id: Client account UUID
+        engagement_id: Engagement UUID
+        wave_plan_data: Wave plan data containing waves array
+    """
+    from datetime import datetime
+
+    waves = wave_plan_data.get("waves", [])
+    if not waves:
+        logger.debug("No waves in wave_plan_data, skipping timeline sync")
+        return
+
+    # Get or create timeline for this planning flow
+    timeline = await repo.get_timeline_by_planning_flow(
+        planning_flow_id=planning_flow_id,
+        client_account_id=client_account_id,
+        engagement_id=engagement_id,
+    )
+
+    if not timeline:
+        # Create new timeline
+        # Calculate overall start/end dates from waves
+        start_dates = [
+            datetime.fromisoformat(w["start_date"])
+            for w in waves
+            if w.get("start_date")
+        ]
+        end_dates = [
+            datetime.fromisoformat(w["end_date"]) for w in waves if w.get("end_date")
+        ]
+
+        overall_start = min(start_dates) if start_dates else datetime.now()
+        overall_end = max(end_dates) if end_dates else datetime.now()
+
+        timeline = await repo.create_timeline(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            planning_flow_id=planning_flow_id,
+            timeline_name="Migration Timeline",
+            overall_start_date=overall_start,
+            overall_end_date=overall_end,
+        )
+        logger.info(
+            f"Created timeline {timeline.id} for planning_flow {planning_flow_id}"
+        )
+
+    # Delete existing phases for this timeline to avoid duplicates
+    # This is safe because phases are recreation from wave data
+    from sqlalchemy import delete
+    from app.models.planning import TimelinePhase
+
+    delete_stmt = delete(TimelinePhase).where(TimelinePhase.timeline_id == timeline.id)
+    await repo.db.execute(delete_stmt)
+    logger.debug(f"Deleted existing phases for timeline {timeline.id}")
+
+    # Sync waves to timeline phases
+    for wave in waves:
+        wave_number = wave.get("wave_number", 1)
+        phase_name = wave.get("wave_name", f"Wave {wave_number}")
+        start_date_str = wave.get("start_date")
+        end_date_str = wave.get("end_date")
+        status = wave.get("status", "planned")
+
+        if not start_date_str or not end_date_str:
+            logger.warning(
+                f"Wave {wave_number} missing start/end dates, skipping phase creation"
+            )
+            continue
+
+        # Create timeline phase for this wave
+        await repo.create_timeline_phase(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            timeline_id=timeline.id,
+            phase_number=wave_number,
+            phase_name=phase_name,
+            planned_start_date=datetime.fromisoformat(start_date_str),
+            planned_end_date=datetime.fromisoformat(end_date_str),
+            wave_number=wave_number,
+            status=status,  # Use status from wave data
+        )
+        logger.debug(f"Created timeline phase for wave {wave_number}: {phase_name}")
+
+    logger.info(f"Synced {len(waves)} waves to timeline {timeline.id}")
+
+
 class UpdateWavePlanRequest(BaseModel):
     """Request model for wave plan update."""
 
@@ -163,6 +264,17 @@ async def update_wave_plan(
             engagement_id=engagement_uuid,
             **update_data,
         )
+
+        # Sync wave plan to timeline tables if wave_plan_data was updated
+        if request.wave_plan_data is not None:
+            await _sync_waves_to_timeline(
+                repo=repo,
+                planning_flow_id=planning_flow_uuid,
+                client_account_id=client_account_uuid,
+                engagement_id=engagement_uuid,
+                wave_plan_data=request.wave_plan_data,
+            )
+
         await db.commit()
 
         logger.info(
