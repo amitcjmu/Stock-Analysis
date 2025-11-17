@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Import layout components
 import Sidebar from '@/components/Sidebar';
@@ -60,6 +60,7 @@ const GUIDED_WORKFLOW_CONFIG = {
  */
 const CollectionIndex: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { setCurrentFlow, user } = useAuth();
   const [isCreatingFlow, setIsCreatingFlow] = useState<string | null>(null);
@@ -91,6 +92,103 @@ const CollectionIndex: React.FC = () => {
       }
     };
   }, []);
+
+  // Auto-start collection flow when navigated from assessment readiness
+  useEffect(() => {
+    const state = location.state as {
+      fromAssessmentReadiness?: boolean;
+      preselectedApplicationId?: string;
+      canonicalApplicationName?: string;
+    } | null;
+
+    if (state?.fromAssessmentReadiness && state?.preselectedApplicationId) {
+      console.log('[Collection Index] Detected navigation from assessment readiness');
+      console.log('[Collection Index] Application:', state.canonicalApplicationName, 'ID:', state.preselectedApplicationId);
+
+      // Clear the navigation state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+
+      // Auto-start adaptive forms collection for this application
+      const autoStartCollection = async () => {
+        if (!canCreateCollectionFlow(user)) {
+          toast({
+            title: 'Permission Denied',
+            description: `You do not have permission to create collection flows. Only analysts and above can create flows. Your role: ${getRoleName(user?.role)}`,
+            variant: 'destructive'
+          });
+          return;
+        }
+
+        setIsCreatingFlow('adaptive-forms');
+
+        try {
+          console.log('🚀 Auto-starting collection flow for application:', state.canonicalApplicationName);
+
+          // Create collection flow with adaptive forms for the specific application
+          const flowResponse = await collectionFlowApi.createFlow({
+            automation_tier: 'tier_2', // Mixed: manual forms with some automation
+            collection_config: {
+              workflow_type: 'adaptive-forms',
+              initiated_from: 'assessment_readiness',
+              preselected_application_id: state.preselectedApplicationId,
+              canonical_application_name: state.canonicalApplicationName,
+              collection_method: 'adaptive_forms',
+              form_type: 'dynamic'
+            }
+          });
+
+          console.log('✅ Collection flow created:', flowResponse.id);
+
+          // Update auth context
+          setCurrentFlow({
+            id: flowResponse.id,
+            name: `Collection: ${state.canonicalApplicationName}`,
+            type: 'collection',
+            status: flowResponse.status || 'active',
+            engagement_id: flowResponse.engagement_id
+          });
+
+          toast({
+            title: 'Collection Flow Started',
+            description: `Starting data collection for ${state.canonicalApplicationName}. You will be redirected shortly.`
+          });
+
+          // Navigate to the collection form after a brief delay
+          setTimeout(() => {
+            const currentPhase = flowResponse.current_phase || 'gap_analysis';
+            const phaseRoute = FLOW_PHASE_ROUTES.collection[currentPhase];
+
+            if (phaseRoute) {
+              const targetRoute = phaseRoute(flowResponse.id);
+              console.log(`🧭 Navigating to ${currentPhase} phase: ${targetRoute}`);
+              navigate(targetRoute);
+            } else {
+              // Fallback to adaptive forms page
+              console.warn(`⚠️ No route found for phase: ${currentPhase}, using fallback`);
+              navigate(`/collection/adaptive-forms?flowId=${flowResponse.id}`);
+            }
+          }, 1500);
+
+        } catch (error: unknown) {
+          console.error('❌ Failed to auto-start collection flow:', error);
+
+          const errorMessage = error?.response?.data?.detail ||
+                              error?.message ||
+                              'Failed to start collection workflow';
+
+          toast({
+            title: 'Collection Start Failed',
+            description: errorMessage,
+            variant: 'destructive'
+          });
+        } finally {
+          setIsCreatingFlow(null);
+        }
+      };
+
+      autoStartCollection();
+    }
+  }, [location, navigate, user, setCurrentFlow, toast]);
 
   // Fetch collection status on mount
   useEffect(() => {
