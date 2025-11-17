@@ -81,9 +81,19 @@ async def get_architecture_standards_via_mfo(
         )
 
     except Exception as e:
-        logger.error(f"Failed to get architecture standards: {str(e)}", exc_info=True)
+        logger.error(
+            f"Failed to get architecture standards for flow {flow_id}: {str(e)}",
+            exc_info=True,
+            extra={
+                "flow_id": flow_id,
+                "client_account_id": client_account_id,
+                "engagement_id": engagement_id,
+            },
+        )
+        # Generic error message to avoid leaking internal details
         raise HTTPException(
-            status_code=500, detail=f"Failed to get standards: {str(e)}"
+            status_code=500,
+            detail="Failed to retrieve architecture standards. Please contact support if the issue persists.",
         )
 
 

@@ -52,38 +52,20 @@ const ArchitecturePage: React.FC = () => {
     }
   }, [flowId, navigate]);
 
-  // Load architecture standards when page mounts (regardless of current phase)
-  useEffect(() => {
-    const loadArchitectureData = async () => {
-      if (!flowId) return;
-
-      try {
-        const archData = await assessmentFlowAPI.getArchitectureStandards(flowId);
-
-        // Set standards and template from backend
-        setStandards(archData.engagement_standards || []);
-        setOverrides(archData.application_overrides || {});
-
-        // Determine template selection
-        let templateToSet = archData.selected_template;
-        if (!templateToSet && archData.engagement_standards && archData.engagement_standards.length > 0) {
-          // Standards exist but no template saved - mark as custom
-          templateToSet = "custom";
-        }
-        setSelectedTemplate(templateToSet);
-      } catch (error) {
-        console.error('Failed to load architecture standards:', error);
-      }
-    };
-
-    loadArchitectureData();
-  }, [flowId]); // Only run when flowId changes (on mount)
-
   // Update local state when flow state changes - MUST be at top level
+  // Note: Removed duplicate useEffect that directly fetched data to prevent race condition
+  // The useAssessmentFlow hook is the single source of truth for architecture data
   useEffect(() => {
     setStandards(state.engagementStandards);
     setOverrides(state.applicationOverrides);
-    setSelectedTemplate(state.selectedTemplate);
+
+    // Determine template selection based on the hook's state
+    let templateToSet = state.selectedTemplate;
+    if (!templateToSet && state.engagementStandards && state.engagementStandards.length > 0) {
+      // Standards exist but no template saved - mark as custom
+      templateToSet = "custom";
+    }
+    setSelectedTemplate(templateToSet);
   }, [state.engagementStandards, state.applicationOverrides, state.selectedTemplate]);
 
   // Calculate unmapped assets for bulk mapping dialog - MUST be before early return
