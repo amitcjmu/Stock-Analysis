@@ -718,7 +718,18 @@ export const useAssessmentFlow = (
     navigateToPhase,
     finalizeAssessment: async () => {
       if (!state.flowId) return;
-      await assessmentFlowAPI.finalize(state.flowId);
+
+      // Get all successfully assessed applications (those with 6R decisions)
+      const appsToFinalize = Object.keys(state.sixrDecisions);
+
+      if (appsToFinalize.length === 0) {
+        throw new Error("No applications have been assessed yet");
+      }
+
+      await assessmentFlowAPI.finalize(state.flowId, appsToFinalize);
+
+      // Refresh status to pick up the "completed" state
+      await loadFlowState();
     },
     updateArchitectureStandards,
     updateApplicationComponents,

@@ -179,20 +179,19 @@ async def continue_assessment_flow(
                     )
                 )
 
-                # Update flow status based on whether this is the final phase
-                # recommendation_generation is the final phase in assessment flow
-                is_final_phase = phase.value == "recommendation_generation"
-                new_status = "completed" if is_final_phase else "in_progress"
-
+                # Keep flow in_progress until user clicks "Finalize Assessment" button
+                # Final phase (recommendation_generation) completes agent work,
+                # but flow status stays in_progress awaiting user confirmation
                 await assessment_repo.update_flow_status(
                     flow_id,
-                    new_status,
+                    "in_progress",
                 )
 
-                if is_final_phase:
+                if phase.value == "recommendation_generation":
                     logger.info(
                         safe_log_format(
-                            "[ISSUE-999] 🎉 Assessment flow {flow_id} COMPLETED - all phases finished",
+                            "[ISSUE-999] 📋 Assessment flow {flow_id} recommendations ready "
+                            "- awaiting user finalization",
                             flow_id=flow_id,
                         )
                     )

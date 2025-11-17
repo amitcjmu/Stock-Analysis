@@ -216,13 +216,13 @@ export const assessmentFlowAPI = {
     );
   },
 
-  async finalize(flowId: string): Promise<Response> {
+  async finalize(flowId: string, apps_to_finalize: string[]): Promise<Response> {
     // Use MFO endpoint for finalization with apiCall for auth headers
     return apiCall(
       `/master-flows/${flowId}/assessment/finalize`,
       {
         method: "POST",
-        body: JSON.stringify({}), // Backend expects finalization_data body
+        body: JSON.stringify({ apps_to_finalize }), // Send list of application IDs ready for planning
       }
     );
   },
