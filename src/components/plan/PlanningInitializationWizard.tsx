@@ -422,6 +422,7 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
                           <Checkbox
                             checked={selectedIds.has(app.id)}
                             onCheckedChange={() => handleToggleSelection(app.id)}
+                            id={`checkbox-${app.id}`}
                           />
                         </TableCell>
                         <TableCell className="font-medium">
