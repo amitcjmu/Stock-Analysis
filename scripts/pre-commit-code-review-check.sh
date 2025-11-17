@@ -33,16 +33,11 @@ fi
 
 # Determine which files to check
 if [ "$1" = "--staged" ]; then
-    FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(py|ts|tsx|js|jsx)$' || true)
+    FILES_CMD="git diff --cached --name-only --diff-filter=ACMR"
     CHECK_TYPE="staged"
 else
-    FILES=$(git diff --name-only --diff-filter=ACMR | grep -E '\.(py|ts|tsx|js|jsx)$' || true)
+    FILES_CMD="git diff --name-only --diff-filter=ACMR"
     CHECK_TYPE="modified"
-fi
-
-if [ -z "$FILES" ]; then
-    echo -e "${GREEN}✅ No code files to check${NC}"
-    exit 0
 fi
 
 echo -e "${CYAN}Checking $CHECK_TYPE files against code review patterns...${NC}"
@@ -51,9 +46,10 @@ echo ""
 ISSUES_FOUND=0
 FILES_CHECKED=0
 
-# Check each file
-for FILE in $FILES; do
-    if [ ! -f "$FILE" ]; then
+# Check each file (using process substitution to handle filenames with spaces)
+# Process substitution allows variable persistence outside the loop
+while IFS= read -r FILE; do
+    if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
         continue
     fi
 
@@ -163,7 +159,7 @@ for FILE in $FILES; do
         echo -e "  ${GREEN}✅ No obvious issues detected${NC}"
     fi
     echo ""
-done
+done < <($FILES_CMD | grep -E '\.(py|ts|tsx|js|jsx)$')
 
 # Summary
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

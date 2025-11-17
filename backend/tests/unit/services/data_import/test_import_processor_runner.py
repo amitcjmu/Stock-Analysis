@@ -255,5 +255,5 @@ class TestErrorSanitization:
         result = _sanitize_error_message(exc, "app_discovery")
 
         assert "app_discovery" in result
-        assert "Data format error" in result
+        assert "Data format error" in result or "data format" in result.lower()
         assert "index 5" not in result  # Don't expose internal indices

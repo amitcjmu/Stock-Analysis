@@ -163,8 +163,6 @@ class DataImportChildFlowService:
             for row in rows:
                 if isinstance(row, dict):
                     sample.append(row)
-                elif row is not None:
-                    sample.append(dict(row))
 
             logger.info(f"✅ Retrieved {len(sample)} sample records")
             return sample
