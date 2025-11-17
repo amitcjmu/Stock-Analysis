@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { ICellEditorParams } from 'ag-grid-community';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,9 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [isCancelled, setIsCancelled] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const cellRef = useRef<HTMLElement | null>(null);
 
   // Handle closing the editor
   const handleClose = useCallback((cancel = false) => {
@@ -83,6 +86,39 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
       });
     }
   }, [props.api, props.node, props.colDef.field, props.data, props.updateField, selectedAssets]);
+
+  // Calculate modal position based on cell location
+  useEffect(() => {
+    // Get the AG Grid cell element
+    const cellElement = props.eGridCell as HTMLElement;
+    if (!cellElement) return;
+
+    cellRef.current = cellElement;
+    const rect = cellElement.getBoundingClientRect();
+
+    // Position modal below the cell, or above if not enough space below
+    const modalHeight = 500;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    let top: number;
+    if (spaceBelow >= modalHeight || spaceBelow > spaceAbove) {
+      // Position below the cell
+      top = rect.bottom + window.scrollY + 4;
+    } else {
+      // Position above the cell
+      top = rect.top + window.scrollY - modalHeight - 4;
+    }
+
+    // Ensure modal doesn't go off-screen horizontally
+    const modalWidth = 500;
+    let left = rect.left + window.scrollX;
+    if (left + modalWidth > window.innerWidth) {
+      left = window.innerWidth - modalWidth - 20;
+    }
+
+    setPosition({ top, left });
+  }, [props.eGridCell]);
 
   // Parse initial value (comma-separated asset IDs - can be numbers or UUIDs)
   useEffect(() => {
@@ -225,12 +261,14 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
     }
   };
 
-  return (
+  const modalContent = (
     <div
       ref={containerRef}
       className="ag-custom-component-popup"
       style={{
-        position: 'absolute',
+        position: 'fixed',
+        top: `${position.top}px`,
+        left: `${position.left}px`,
         zIndex: 9999,
         backgroundColor: 'white',
         border: '1px solid #d1d5db',
@@ -372,6 +410,9 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
       </div>
     </div>
   );
+
+  // Render modal using portal to avoid clipping by AG Grid container
+  return createPortal(modalContent, document.body);
 });
 
 DependencyCellEditor.displayName = 'DependencyCellEditor';
