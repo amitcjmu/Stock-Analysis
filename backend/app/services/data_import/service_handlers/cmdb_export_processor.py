@@ -31,7 +31,10 @@ class CMDBExportProcessor(BaseDataImportProcessor):
         processing_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Short-circuit the processor pipeline so the caller can reuse the legacy flow.
+        Delegate to legacy CMDB discovery executor.
+
+        This processor short-circuits the standard validation/enrichment pipeline
+        to route CMDB imports through the existing discovery flow executor.
         """
         self.logger.info(
             "Delegating CMDB import %s to legacy discovery flow executor",
@@ -48,7 +51,20 @@ class CMDBExportProcessor(BaseDataImportProcessor):
         raw_records: List[Dict[str, Any]],
         processing_config: Dict[str, Any],
     ) -> Dict[str, Any]:
-        raise NotImplementedError("CMDBExportProcessor delegates to legacy executor.")
+        """
+        Not used - CMDBExportProcessor delegates via process().
+
+        This method is required by the abstract base class but should never
+        be called directly since process() handles delegation.
+        """
+        self.logger.warning(
+            "validate_data() called directly on CMDBExportProcessor - "
+            "this should not happen. Use process() instead."
+        )
+        return {
+            "valid": False,
+            "validation_errors": ["Use process() method for delegation"],
+        }
 
     async def enrich_assets(
         self,
@@ -56,4 +72,18 @@ class CMDBExportProcessor(BaseDataImportProcessor):
         validated_records: List[Dict[str, Any]],
         processing_config: Dict[str, Any],
     ) -> Dict[str, Any]:
-        raise NotImplementedError("CMDBExportProcessor delegates to legacy executor.")
+        """
+        Not used - CMDBExportProcessor delegates via process().
+
+        This method is required by the abstract base class but should never
+        be called directly since process() handles delegation.
+        """
+        self.logger.warning(
+            "enrich_assets() called directly on CMDBExportProcessor - "
+            "this should not happen. Use process() method for delegation."
+        )
+        return {
+            "assets_enriched": 0,
+            "dependencies_created": 0,
+            "performance_updated": 0,
+        }
