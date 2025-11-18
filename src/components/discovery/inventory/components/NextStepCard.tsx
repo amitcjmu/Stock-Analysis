@@ -25,7 +25,7 @@ export const NextStepCard: React.FC<NextStepCardProps> = ({
           {isComplete ? (
             <>
               Great! All {inventoryProgress.total_assets} assets have been classified.
-              You're ready to proceed to the Application Collection phase where AI agents
+              You're ready to proceed to the Application Discovery phase where AI agents
               will identify your applications and their dependencies.
             </>
           ) : (
@@ -40,7 +40,7 @@ export const NextStepCard: React.FC<NextStepCardProps> = ({
             onClick={onContinue}
             className="w-full md:w-auto"
           >
-            Continue to Application Collection
+            Continue to Application Discovery
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}

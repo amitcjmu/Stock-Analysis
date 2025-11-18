@@ -49,7 +49,7 @@ const Index = (): JSX.Element => {
   // Primary modules (2 rows x 3 cols): Discovery, Assess, Plan, Execute, Modernize, Decommission
   const primaryPhases = [
     {
-      title: 'Discovery/Collection',
+      title: 'Discovery',
       description: 'Discover and inventory your applications and infrastructure',
       icon: Search,
       path: '/discovery',
