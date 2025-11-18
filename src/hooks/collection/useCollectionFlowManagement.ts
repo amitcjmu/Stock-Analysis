@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom';
 import { collectionFlowApi } from '@/services/api/collection-flow';
 import { useToast } from '@/hooks/use-toast';
-import { useGlobalContext } from '@/contexts/GlobalContext';
 import type { tokenStorage } from '@/contexts/AuthContext/storage';
 
 // CC: Collection flow configuration interfaces
@@ -180,10 +179,6 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
 // Hook for detecting actively incomplete collection flows (INITIALIZED, RUNNING only)
 // Per ADR-012, PAUSED flows are waiting for user input and should not block new operations
 export const useActivelyIncompleteCollectionFlows = (enabled: boolean = true) => {
-  // CC Bug #10: Only poll when user context is available to prevent 400 errors
-  const { currentContext } = useGlobalContext();
-  const hasUserContext = !!currentContext?.user?.id;
-
   const queryResult = useQuery({
     queryKey: ['collection-flows', 'actively-incomplete'],
     queryFn: async () => {
@@ -195,10 +190,10 @@ export const useActivelyIncompleteCollectionFlows = (enabled: boolean = true) =>
       } catch (error: unknown) {
         console.error('❌ Failed to fetch actively incomplete flows:', error);
 
-        // CC Bug #10: Handle both auth (401) and missing context (400) errors
+        // If it's an auth error, don't throw it back to React Query
         // This prevents retries and lets the auth context handle the redirect
-        if (error?.status === 401 || error?.status === 400 || error?.isAuthError) {
-          console.warn('🔐 Authentication/context error in actively incomplete flows query - stopping retries');
+        if (error?.status === 401 || error?.isAuthError) {
+          console.warn('🔐 Authentication error in actively incomplete flows query - stopping retries');
           // Return empty array to prevent UI errors
           return [];
         }
@@ -206,8 +201,7 @@ export const useActivelyIncompleteCollectionFlows = (enabled: boolean = true) =>
         throw error;
       }
     },
-    // CC Bug #10: Only enable polling when user context is available
-    enabled: enabled && hasUserContext,
+    enabled,
     refetchInterval: (data, query) => {
       // STOP INFINITE LOOPS: Disable aggressive polling
       // Don't refetch if there was any error
