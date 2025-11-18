@@ -388,14 +388,16 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       }
 
       // Call readiness-gaps endpoint for each application to get live status
+      // IMPORTANT: Pass update_database=true to persist results to Asset.assessment_readiness
       const refreshPromises = canonicalApps.map(async (app) => {
         try {
           const gapsResponse = await apiCall<{
             missing_attributes: Record<string, string[]>;
             asset_count: number;
             not_ready_count: number;
+            updated_count?: number;
           }>(
-            `/api/v1/canonical-applications/${app.id}/readiness-gaps`,
+            `/api/v1/canonical-applications/${app.id}/readiness-gaps?update_database=true`,
             {
               method: 'GET',
               headers: {
@@ -434,12 +436,18 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
         })
       );
 
+      // Calculate total database updates (sum of updated_count from all responses)
+      const totalDbUpdates = refreshedApps.reduce((sum, app) => {
+        const response = app as any;
+        return sum + (response.updated_count || 0);
+      }, 0);
+
       toast({
         title: 'Readiness Refreshed',
-        description: `Updated readiness status for ${canonicalApps.length} applications.`,
+        description: `Updated readiness status for ${canonicalApps.length} applications (${totalDbUpdates} assets persisted to database).`,
       });
 
-      console.log(`✅ Refreshed readiness for ${canonicalApps.length} applications`);
+      console.log(`✅ Refreshed readiness for ${canonicalApps.length} applications (${totalDbUpdates} DB updates)`);
     } catch (error: any) {
       console.error('Failed to refresh readiness:', error);
       toast({

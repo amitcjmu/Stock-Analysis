@@ -9,7 +9,7 @@ import logging
 from typing import Any, Dict
 from uuid import UUID
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 async def get_canonical_application_readiness_gaps(
     canonical_application_id: UUID,
+    update_database: bool = Query(
+        False,
+        description="If true, persist readiness results to Asset.assessment_readiness field",
+    ),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context_dependency),
 ) -> Dict[str, Any]:
@@ -38,6 +42,7 @@ async def get_canonical_application_readiness_gaps(
 
     Args:
         canonical_application_id: Canonical application UUID
+        update_database: If True, persist readiness results to Asset.assessment_readiness
         db: Database session (injected)
         context: Request context with tenant scoping (injected)
 
@@ -48,7 +53,8 @@ async def get_canonical_application_readiness_gaps(
             "canonical_application_name": str,
             "missing_attributes": Dict[str, List[str]],  # asset_id -> gap field names
             "asset_count": int,
-            "not_ready_count": int
+            "not_ready_count": int,
+            "updated_count": int  # Only if update_database=True
         }
 
     Raises:
@@ -56,6 +62,13 @@ async def get_canonical_application_readiness_gaps(
         HTTPException 500: If gap analysis fails
     """
     try:
+        # DEBUG: Log parameter value to diagnose persistence issue
+        logger.warning(
+            f"🔍 DEBUG readiness_gaps endpoint called: "
+            f"canonical_app_id={canonical_application_id}, "
+            f"update_database={update_database} (type={type(update_database).__name__})"
+        )
+
         # Verify canonical application exists with tenant scoping
         app_query = select(CanonicalApplication).where(
             CanonicalApplication.id == canonical_application_id,
@@ -108,6 +121,7 @@ async def get_canonical_application_readiness_gaps(
         readiness_service = AssetReadinessService()  # CC FIX: No db in constructor
         missing_attributes: Dict[str, list[str]] = {}
         not_ready_count = 0
+        updated_count = 0
 
         for asset in assets:
             # Run gap analysis for this asset
@@ -118,9 +132,29 @@ async def get_canonical_application_readiness_gaps(
                 db=db,  # CC FIX: Pass db to method, not constructor
             )
 
+            # Determine readiness status
+            is_ready = readiness_result.is_ready_for_assessment
+            new_readiness_status = "ready" if is_ready else "not_ready"
+
+            # Update database if requested (ALWAYS update, even if value unchanged)
+            # This ensures fresh gap analysis results are persisted to database
+            if update_database:
+                old_status = asset.assessment_readiness
+                asset.assessment_readiness = new_readiness_status
+                updated_count += 1
+
+                if old_status != new_readiness_status:
+                    logger.debug(
+                        f"Changed asset {asset.id} readiness: {old_status} → {new_readiness_status}"
+                    )
+                else:
+                    logger.debug(
+                        f"Confirmed asset {asset.id} readiness: {new_readiness_status} (unchanged)"
+                    )
+
             # If asset is not ready, collect critical/high-priority gap field names
             # CC FIX: readiness_result is ComprehensiveGapReport object, not dict
-            if not readiness_result.is_ready_for_assessment:
+            if not is_ready:
                 not_ready_count += 1
                 # critical_gaps and high_priority_gaps are List[str] of field names
                 gap_fields = list(
@@ -133,19 +167,34 @@ async def get_canonical_application_readiness_gaps(
                 if gap_fields:
                     missing_attributes[str(asset.id)] = gap_fields
 
+        # Commit database changes if updates were made
+        if update_database and updated_count > 0:
+            await db.commit()
+            logger.info(
+                f"💾 Persisted readiness updates for {updated_count} assets in "
+                f"canonical application {canonical_application_id}"
+            )
+
         logger.info(
             f"✅ Analyzed readiness gaps for canonical application {canonical_application_id}: "
             f"{len(assets)} assets, {not_ready_count} not ready, "
             f"{len(missing_attributes)} assets with gaps"
+            + (f", {updated_count} DB updates" if update_database else "")
         )
 
-        return {
+        result = {
             "canonical_application_id": str(canonical_application_id),
             "canonical_application_name": canonical_app.canonical_name,
             "missing_attributes": missing_attributes,
             "asset_count": len(assets),
             "not_ready_count": not_ready_count,
         }
+
+        # Add updated_count if database was updated
+        if update_database:
+            result["updated_count"] = updated_count
+
+        return result
 
     except HTTPException:
         raise
