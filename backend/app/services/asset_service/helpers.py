@@ -16,33 +16,33 @@ def get_smart_asset_name(data: Dict[str, Any]) -> str:
     """
     Generate a smart asset name using fallback hierarchy.
 
+    CRITICAL: name and asset_name are the same thing - use either one
+    application_name is metadata only (which app the asset belongs to), NOT for naming
+    hostname is optional and NOT applicable for applications/components
+
     Tries multiple fields in order of preference:
     1. name (explicit)
-    2. hostname
-    3. server_name
-    4. asset_name
-    5. application_name
-    6. fallback with row number if available
+    2. asset_name (same as name)
+    3. hostname (only for applicable asset types: servers, databases, network devices)
+    4. server_name (only for applicable asset types)
+    5. fallback with row number if available
     """
-    # Try name field first
-    if data.get("name"):
-        return str(data["name"]).strip()
+    # Try name or asset_name first (they're the same thing)
+    name = data.get("name") or data.get("asset_name")
+    if name:
+        return str(name).strip()
 
-    # Try hostname (common for servers)
-    if data.get("hostname"):
-        return str(data["hostname"]).strip()
+    # Only use hostname for asset types where it's applicable
+    # NOT for applications or components
+    asset_type = data.get("asset_type", "").lower()
+    if asset_type not in ("application", "component", "components"):
+        # Try hostname (common for servers, databases, network devices)
+        if data.get("hostname"):
+            return str(data["hostname"]).strip()
 
-    # Try server_name
-    if data.get("server_name"):
-        return str(data["server_name"]).strip()
-
-    # Try asset_name field
-    if data.get("asset_name"):
-        return str(data["asset_name"]).strip()
-
-    # Try application_name (for applications)
-    if data.get("application_name"):
-        return str(data["application_name"]).strip()
+        # Try server_name
+        if data.get("server_name"):
+            return str(data["server_name"]).strip()
 
     # Fallback with row number if available
     if data.get("row_number"):
