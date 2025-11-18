@@ -25,13 +25,21 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 
 
 class ApproveAssetsRequest(BaseModel):
-    """Request model for asset approval with validation"""
+    """Request model for asset approval with validation
+
+    CRITICAL FIX (Issue #1072): Now accepts updated asset data to preserve user edits
+    """
 
     approved_asset_ids: List[str] = Field(
         ...,
         min_items=1,
         max_items=1000,
         description="List of asset IDs to approve (max 1000)",
+    )
+
+    updated_assets: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Updated asset data with user edits (preserves changes made in preview)",
     )
 
     @validator("approved_asset_ids")
@@ -128,10 +136,13 @@ async def approve_asset_preview(
     Approve selected assets for creation.
 
     Per Issue #907: User approves assets from preview, triggering database persistence.
+    CRITICAL FIX (Issue #1072): Now accepts and stores updated asset data with user edits.
 
     Args:
         flow_id: Master flow UUID
-        request: Validated request containing approved_asset_ids (1-1000 items)
+        request: Validated request containing:
+            - approved_asset_ids: List of asset IDs to approve (1-1000 items)
+            - updated_assets: Optional list of updated asset data with user edits
 
     Returns:
         Dictionary with created asset count and status
@@ -156,6 +167,18 @@ async def approve_asset_preview(
             detail=f"Flow {flow_id} not found",
         )
 
+    # CRITICAL FIX (Issue #1072): Store updated asset data with user edits
+    # Map updated assets by their ID for easy lookup during asset creation
+    updated_assets_map = {}
+    if request.updated_assets:
+        for updated_asset in request.updated_assets:
+            asset_id = updated_asset.get("id")
+            if asset_id:
+                updated_assets_map[asset_id] = updated_asset
+        logger.info(
+            f"📝 Storing {len(updated_assets_map)} updated assets with user edits"
+        )
+
     # CRITICAL FIX (Issue #917): Use dictionary reassignment for SQLAlchemy change tracking
     # Creating a new dictionary triggers automatic change detection for JSONB columns
     # This is cleaner than mutating in-place and using flag_modified()
@@ -163,6 +186,7 @@ async def approve_asset_preview(
     flow.flow_persistence_data = {
         **persistence_data,
         "approved_asset_ids": approved_asset_ids,
+        "updated_assets_map": updated_assets_map,  # CRITICAL FIX (Issue #1072): Store user edits
         "approval_timestamp": datetime.utcnow().isoformat(),
         "approved_by_user_id": str(current_user.id),
     }

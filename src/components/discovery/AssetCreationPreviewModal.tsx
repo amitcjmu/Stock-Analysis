@@ -107,7 +107,8 @@ export const AssetCreationPreviewModal: React.FC<
 
   // Approve assets mutation
   const approveMutation = useMutation({
-    mutationFn: (asset_ids: string[]) => approveAssets(flow_id, asset_ids),
+    mutationFn: (payload: { assetIds: string[]; updatedAssets: AssetPreviewData[] }) =>
+      approveAssets(flow_id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries(['assetPreview', flow_id]);
       queryClient.invalidateQueries(['discoveryFlow', flow_id]);
@@ -196,7 +197,15 @@ export const AssetCreationPreviewModal: React.FC<
       .map((asset) => asset.id)
       .filter((id): id is string => !!id);
 
-    approveMutation.mutate(assetIds);
+    // CRITICAL FIX (Issue #1072): Send updated asset data along with IDs
+    // Extract updated asset data for approved assets (preserve user edits)
+    const updatedAssetsData = selectedAssets.map((asset) => {
+      // Return the full asset data with user edits, excluding internal fields
+      const { isSelected, validationErrors, ...assetData } = asset;
+      return assetData;
+    });
+
+    approveMutation.mutate({ assetIds, updatedAssets: updatedAssetsData });
   };
 
   // Loading state
