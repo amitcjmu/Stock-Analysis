@@ -101,21 +101,31 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
     if (!isOpen || !client?.id || !engagement?.id) return;
 
     const fetchApplications = async () => {
+      // Reset applications state to force fresh data load
+      // This prevents stale state from persisting after "Refresh Readiness"
+      setApplications([]);
       setLoading(true);
       setError(null);
 
       try {
+        // Add cache-busting timestamp to ensure fresh data from database
+        const timestamp = Date.now();
+        console.log(`🔄 Fetching applications from DB with timestamp: ${timestamp}`);
+
         const response = await apiCall<CanonicalApplicationsResponse>(
-          `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100&include_unmapped_assets=true`,
+          `/api/v1/canonical-applications?search=${encodeURIComponent(searchQuery)}&page=1&page_size=100&include_unmapped_assets=true&_t=${timestamp}`,
           {
             method: 'GET',
             headers: {
               'X-Client-Account-ID': client.id,
               'X-Engagement-ID': engagement.id,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
             },
           }
         );
 
+        console.log(`✅ Fetched ${response.applications.length} applications from database`);
         setApplications(response.applications);
       } catch (err) {
         console.error('Failed to fetch canonical applications:', err);
@@ -417,11 +427,13 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             not_ready_asset_count: gapsResponse.not_ready_count,
             ready_asset_count: gapsResponse.asset_count - gapsResponse.not_ready_count,
             readiness_status: newReadinessStatus,
+            // Preserve updated_count for database update tracking
+            updated_count: gapsResponse.updated_count || 0,
           };
         } catch (error) {
           console.error(`Failed to refresh readiness for ${app.canonical_name}:`, error);
-          // Return original app data if refresh fails
-          return app;
+          // Return original app data if refresh fails (with 0 updates)
+          return { ...app, updated_count: 0 };
         }
       });
 
