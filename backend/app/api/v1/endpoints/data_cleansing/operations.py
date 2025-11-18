@@ -489,9 +489,15 @@ async def apply_recommendation(
             if recommendation_uuid is not None:
                 try:
                     # Find the recommendation in database
-                    rec_query = select(DBRecommendation).where(
-                        DBRecommendation.id == recommendation_uuid,
-                        DBRecommendation.flow_id == flow.flow_id,
+                    # Apply multi-tenant scoping to prevent cross-tenant data access
+                    client_account_uuid = uuid.UUID(context.client_account_id) if isinstance(context.client_account_id, str) else context.client_account_id
+                    engagement_uuid = uuid.UUID(context.engagement_id) if isinstance(context.engagement_id, str) else context.engagement_id
+                    rec_query = (
+                        select(DBRecommendation)
+                        .where(DBRecommendation.id == recommendation_uuid)
+                        .where(DBRecommendation.flow_id == flow.flow_id)
+                        .where(DBRecommendation.client_account_id == client_account_uuid)
+                        .where(DBRecommendation.engagement_id == engagement_uuid)
                     )
                     rec_result = await db.execute(rec_query)
                     db_rec = rec_result.scalar_one_or_none()
@@ -600,7 +606,7 @@ async def apply_recommendation(
         logger.info(f"Database commit successful for flow {flow_id}")
 
         logger.info(
-            f"Recommendation {recommendation_id} {request.action}ed successfully for flow {flow_id}"
+            f"Recommendation {recommendation_id} {action_status} successfully for flow {flow_id}"
         )
 
         return ApplyRecommendationResponse(

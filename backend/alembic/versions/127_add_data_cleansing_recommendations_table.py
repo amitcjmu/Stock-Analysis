@@ -120,7 +120,7 @@ def upgrade() -> None:
         )
 
         # Create trigger to update updated_at timestamp
-        # Use table-specific function name to avoid collisions with other migrations
+        # Use table-specific function name in migration schema to avoid collisions with other migrations
         op.execute(
             sa.text(
                 """
@@ -129,10 +129,10 @@ def upgrade() -> None:
                     IF NOT EXISTS (
                         SELECT 1 FROM pg_proc p
                         JOIN pg_namespace n ON p.pronamespace = n.oid
-                        WHERE n.nspname = 'public'
+                        WHERE n.nspname = 'migration'
                         AND p.proname = 'update_data_cleansing_recommendations_updated_at_column'
                     ) THEN
-                        CREATE FUNCTION update_data_cleansing_recommendations_updated_at_column()
+                        CREATE FUNCTION migration.update_data_cleansing_recommendations_updated_at_column()
                         RETURNS TRIGGER AS $func$
                         BEGIN
                             NEW.updated_at = NOW();
@@ -151,7 +151,7 @@ def upgrade() -> None:
                 CREATE TRIGGER update_data_cleansing_recommendations_updated_at
                     BEFORE UPDATE ON migration.data_cleansing_recommendations
                     FOR EACH ROW
-                    EXECUTE FUNCTION update_data_cleansing_recommendations_updated_at_column();
+                    EXECUTE FUNCTION migration.update_data_cleansing_recommendations_updated_at_column();
             """
             )
         )
@@ -194,10 +194,11 @@ def downgrade() -> None:
         )
 
         # Drop the table-specific function if it exists (after dropping trigger)
+        # Use schema-qualified function name to match creation
         op.execute(
             sa.text(
                 """
-                DROP FUNCTION IF EXISTS update_data_cleansing_recommendations_updated_at_column() CASCADE;
+                DROP FUNCTION IF EXISTS migration.update_data_cleansing_recommendations_updated_at_column() CASCADE;
             """
             )
         )

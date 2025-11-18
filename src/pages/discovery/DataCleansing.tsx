@@ -236,15 +236,28 @@ const DataCleansing: React.FC = () => {
     try {
       SecureLogger.info('Applying/rejecting recommendation', { recommendationId, action, flowId: effectiveFlowId });
 
-      // Call backend PATCH endpoint
+      // Call backend PATCH endpoint - this is the critical operation
       await applyRecommendation(effectiveFlowId, recommendationId, action);
 
       SecureLogger.info('Recommendation action completed successfully', { recommendationId, action });
 
-      // Refresh data to show updated state
-      await Promise.all([refetchAnalysis(), refresh()]);
+      // Refresh data to show updated state - handle refresh failures separately
+      // If refresh fails, the action was still successful, so don't show error to user
+      try {
+        await Promise.all([refetchAnalysis(), refresh()]);
+      } catch (refreshError) {
+        // Refresh failed but action succeeded - log error but don't show failure to user
+        SecureLogger.warn('Recommendation action succeeded but refresh failed', { 
+          refreshError, 
+          recommendationId, 
+          action, 
+          flowId: effectiveFlowId 
+        });
+        // Action was successful, UI will update on next manual refresh or page reload
+      }
 
     } catch (error) {
+      // This catch only handles applyRecommendation failures (actual operation failures)
       SecureLogger.error('Failed to apply recommendation', { error, recommendationId, action, flowId: effectiveFlowId });
       alert(`Failed to ${action === 'apply' ? 'apply' : 'reject'} recommendation. Please try again.`);
     }
@@ -353,7 +366,7 @@ const DataCleansing: React.FC = () => {
     try {
       SecureLogger.info('Resolving quality issue', { issueId, action, status, flowId: effectiveFlowId });
 
-      // Call backend PATCH endpoint with request body (NOT query params)
+      // Call backend PATCH endpoint with request body (NOT query params) - this is the critical operation
       const response = await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}`, {
         method: 'PATCH',
         headers: {
@@ -367,10 +380,24 @@ const DataCleansing: React.FC = () => {
 
       SecureLogger.info('Quality issue resolved successfully', { issueId, status });
 
-      // Refresh data to show updated state
-      await Promise.all([refetchAnalysis(), refresh()]);
+      // Refresh data to show updated state - handle refresh failures separately
+      // If refresh fails, the action was still successful, so don't show error to user
+      try {
+        await Promise.all([refetchAnalysis(), refresh()]);
+      } catch (refreshError) {
+        // Refresh failed but action succeeded - log error but don't show failure to user
+        SecureLogger.warn('Quality issue resolution succeeded but refresh failed', { 
+          refreshError, 
+          issueId, 
+          action, 
+          status, 
+          flowId: effectiveFlowId 
+        });
+        // Action was successful, UI will update on next manual refresh or page reload
+      }
 
     } catch (error) {
+      // This catch only handles PATCH failures (actual operation failures)
       SecureLogger.error('Failed to resolve quality issue', { error, issueId, action, status, flowId: effectiveFlowId });
       alert(`Failed to ${action === 'resolve' ? 'resolve' : 'ignore'} quality issue. Please try again.`);
     }
@@ -389,7 +416,7 @@ const DataCleansing: React.FC = () => {
         rowsCount: updatedRows.length 
       });
 
-      // Mark the issue as resolved (resolutions were already applied when Update Fields was clicked)
+      // Mark the issue as resolved (resolutions were already applied when Update Fields was clicked) - this is the critical operation
       await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${currentIssueId}`, {
         method: 'PATCH',
         headers: {
@@ -404,10 +431,24 @@ const DataCleansing: React.FC = () => {
       setShowIssueGrid(false);
       setCurrentIssueId(null);
       setCurrentIssueRows([]);
-      await Promise.all([refetchAnalysis(), refresh()]);
+      
+      // Refresh data to show updated state - handle refresh failures separately
+      // If refresh fails, the action was still successful, so don't show error to user
+      try {
+        await Promise.all([refetchAnalysis(), refresh()]);
+      } catch (refreshError) {
+        // Refresh failed but action succeeded - log error but don't show failure to user
+        SecureLogger.warn('Issue resolution succeeded but refresh failed', { 
+          refreshError, 
+          issueId: currentIssueId, 
+          flowId: effectiveFlowId 
+        });
+        // Action was successful, UI will update on next manual refresh or page reload
+      }
       
       alert('Issue marked as resolved. Resolution values have been applied to raw_import_records.');
     } catch (error) {
+      // This catch only handles PATCH failures (actual operation failures)
       SecureLogger.error('Failed to resolve issue', error);
       alert('Failed to resolve issue. Please try again.');
     }
@@ -835,15 +876,29 @@ const DataCleansing: React.FC = () => {
                       })
                     });
                     
-                    // Close the modal and refresh the quality issues list
+                    // Close the modal
                     setShowIssueGrid(false);
                     setCurrentIssueId(null);
                     setCurrentIssueRows([]);
-                    await Promise.all([refetchAnalysis(), refresh()]);
                     
-                    // Success: Values stored and applied - modal closed and list refreshed
+                    // Success: Values stored and applied - modal closed
                     SecureLogger.info(`Successfully stored and applied ${appliedCount} raw_import_record(s). Issue marked as resolved.`);
+                    
+                    // Refresh data to show updated state - handle refresh failures separately
+                    // If refresh fails, the action was still successful, so don't show error to user
+                    try {
+                      await Promise.all([refetchAnalysis(), refresh()]);
+                    } catch (refreshError) {
+                      // Refresh failed but action succeeded - log error but don't show failure to user
+                      SecureLogger.warn('Resolution values stored and applied successfully but refresh failed', { 
+                        refreshError, 
+                        issueId: currentIssueId, 
+                        flowId: effectiveFlowId 
+                      });
+                      // Action was successful, UI will update on next manual refresh or page reload
+                    }
                   } catch (err) {
+                    // This catch only handles POST/PATCH failures (actual operation failures)
                     SecureLogger.error('Failed to store and apply resolution values', err);
                     // Error logged - user can see issue still in list if operation failed
                   }
