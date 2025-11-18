@@ -137,7 +137,7 @@ export const INITIAL_CREWS: CrewProgress[] = [
     currentTask: 'Pending asset classification...'
   },
   {
-    name: 'Application Aggregation Crew',
+    name: 'Application Discovery Crew',
     status: 'pending',
     progress: 0,
     manager: 'Application Intelligence Lead',

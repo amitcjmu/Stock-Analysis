@@ -179,14 +179,15 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', path: '/', icon: Home },
     {
-      name: 'Aggregation',
+      name: 'Discovery',
       path: '/discovery',
       icon: Search,
       hasSubmenu: true,
+      // Build dynamic Discovery submenu from API-driven phases
       submenu: discoverySubmenu // ✅ API-driven submenu
     },
     {
-      name: 'Curation',
+      name: 'Collection',
       path: '/collection',
       icon: Database,
       hasSubmenu: true,

@@ -141,7 +141,7 @@ export const useAgentOrchestrationState = (): {
           performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
         },
         {
-          name: 'Application Aggregation Expert',
+          name: 'Application Discovery Expert',
           role: 'Identifies application assets',
           status: 'idle',
           collaborations: ['Inventory Manager', 'Server Expert', 'Device Expert'],

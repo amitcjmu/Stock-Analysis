@@ -46,10 +46,10 @@ const DashboardOverviewStats: React.FC = () => {
 };
 
 const Index = (): JSX.Element => {
-  // Primary modules (2 rows x 3 cols): Aggregation, Assess, Plan, Execute, Modernize, Decommission
+  // Primary modules (2 rows x 3 cols): Discovery, Assess, Plan, Execute, Modernize, Decommission
   const primaryPhases = [
     {
-      title: 'Aggregation/Curation',
+      title: 'Discovery/Collection',
       description: 'Discover and inventory your applications and infrastructure',
       icon: Search,
       path: '/discovery',

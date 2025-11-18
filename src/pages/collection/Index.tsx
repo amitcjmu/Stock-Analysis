@@ -426,7 +426,7 @@ const CollectionIndex: React.FC = () => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Data Curation</h1>
+            <h1 className="text-3xl font-bold">Data Collection</h1>
             <p className="text-muted-foreground">
               Collect application data for your migration portfolio
             </p>
@@ -486,7 +486,7 @@ const CollectionIndex: React.FC = () => {
       {(!collectionMetrics.hasActiveFlow || showNewFlowForm) && (
         <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
           <h2 className="mb-4 text-2xl font-bold text-gray-900">
-            Start New Data Curation
+            Start New Data Collection
           </h2>
           <p className="mb-6 text-gray-600">
             {GUIDED_WORKFLOW_CONFIG.question}

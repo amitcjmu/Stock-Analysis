@@ -33,7 +33,7 @@ export const FormLoadingStates: React.FC<FormLoadingStatesProps> = ({
       case 'pending':
         return (
           <CollectionPageLayout
-            title="Adaptive Data Curation"
+            title="Adaptive Data Collection"
             description="Generating intelligent questionnaire..."
             isLoading={true}
             loadingMessage={statusLine || "Our AI agents are analyzing your environment to generate a tailored questionnaire..."}
@@ -58,7 +58,7 @@ export const FormLoadingStates: React.FC<FormLoadingStatesProps> = ({
       case 'failed':
         return (
           <CollectionPageLayout
-            title="Adaptive Data Curation"
+            title="Adaptive Data Collection"
             description="Questionnaire generation failed"
           >
             <div className="flex flex-col items-center space-y-6 mt-8">

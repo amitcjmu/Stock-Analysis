@@ -27,7 +27,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
   return (
     <CollectionPageLayout
-      title="Adaptive Data Curation"
+      title="Adaptive Data Collection"
       description="Error initializing collection form"
     >
       <CollectionWorkflowError

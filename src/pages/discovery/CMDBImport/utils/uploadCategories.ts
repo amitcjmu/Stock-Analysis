@@ -15,7 +15,7 @@ export const uploadCategories: UploadCategory[] = [
   },
   {
     id: 'app-discovery',
-    title: 'Application Aggregation Data',
+    title: 'Application Discovery Data',
     description: 'Application portfolio and dependency scan results',
     icon: Monitor,
     color: 'bg-green-500',

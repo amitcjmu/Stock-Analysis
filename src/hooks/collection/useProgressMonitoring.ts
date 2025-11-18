@@ -160,7 +160,7 @@ export const getFlowMilestones = (flow: CollectionFlow): ProgressMilestone[] => 
         },
         {
           id: 'data-collection',
-          title: 'Data Curation',
+          title: 'Data Collection',
           description: 'Collecting application data via forms',
           achieved: isPhaseAchieved(4), // manual_collection phase
           weight: 0.35,

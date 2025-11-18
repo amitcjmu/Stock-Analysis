@@ -59,7 +59,7 @@ export const FlowBlockerDisplay: React.FC<FlowBlockerDisplayProps> = ({
   return (
     <>
       <CollectionPageLayout
-        title="Adaptive Data Curation"
+        title="Adaptive Data Collection"
         description="Collection workflow blocked - manage existing flows"
       >
         <CollectionUploadBlocker

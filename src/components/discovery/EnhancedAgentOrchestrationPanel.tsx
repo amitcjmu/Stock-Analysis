@@ -69,7 +69,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
         agents: [
           { name: 'Inventory Manager', role: 'Coordinates multi-domain classification', isManager: true },
           { name: 'Server Classification Expert', role: 'Classifies server and infrastructure assets' },
-          { name: 'Application Aggregation Expert', role: 'Identifies and categorizes applications' },
+          { name: 'Application Discovery Expert', role: 'Identifies and categorizes applications' },
           { name: 'Device Classification Expert', role: 'Classifies network devices and components' }
         ]
       },

@@ -132,14 +132,14 @@ const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-600">
             <AlertCircle className="h-5 w-5" />
-            Application Aggregation Error
+            Application Discovery Error
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-red-600 mb-4">{error}</p>
           <Button onClick={refetch} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Retry Aggregation
+            Retry Discovery
           </Button>
         </CardContent>
       </Card>
@@ -151,7 +151,7 @@ const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Application Aggregation</CardTitle>
+          <CardTitle>Application Discovery</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-600">No application portfolio data available.</p>

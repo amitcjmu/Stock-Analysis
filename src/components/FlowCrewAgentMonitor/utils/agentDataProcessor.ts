@@ -124,7 +124,7 @@ export const createAllAvailableCrews = (agentRegistryData: AgentRegistryData): C
       phase: 'dependency_analysis',
       agents: [
         'Dependency Intelligence Agent',
-        'Application Aggregation Agent',
+        'Application Discovery Agent',
         'Service Mapping Agent'
       ]
     },

@@ -47,7 +47,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
         i.category === 'infrastructure'
       );
 
-      // Extract application insights from Application Aggregation Expert
+      // Extract application insights from Application Discovery Expert
       const appInsights = insights.filter(i =>
         i.agent?.includes('Application') ||
         i.agent?.includes('App') ||

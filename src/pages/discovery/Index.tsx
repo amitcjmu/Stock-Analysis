@@ -81,7 +81,7 @@ const DiscoveryIndex = (): JSX.Element => {
 
   const discoveryPhases = [
     {
-      phase: 'Data Curation',
+      phase: 'Data Collection',
       description: 'Gather data from CMDB, monitoring tools, and code scans',
       actions: ['CMDB Import', 'Scanning Status'],
       status: 'completed',
