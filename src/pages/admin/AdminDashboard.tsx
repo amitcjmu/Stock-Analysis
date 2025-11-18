@@ -161,7 +161,7 @@ const AdminDashboard: React.FC = () => {
       {/* Header */}
       <AdminHeader
         title="Admin Dashboard"
-        description="Manage clients, engagements, and user access for AI Modernize Migration Platform"
+        description="Manage clients, engagements, and user access for AI Force Assess"
         onRefresh={() => refetch()}
         refreshLoading={isLoading}
         actions={[

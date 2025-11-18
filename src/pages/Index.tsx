@@ -125,7 +125,7 @@ const Index = (): JSX.Element => {
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                AI Modernize Migration Platform
+                AI Force Assess
               </h1>
               <p className="text-xl text-gray-600">
                 Manage your entire cloud migration journey from discovery to decommission with AI-powered automation

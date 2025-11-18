@@ -60,7 +60,9 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   const [expandedReasonings, setExpandedReasonings] = useState<Set<string>>(new Set());
 
   // Categorize mappings into buckets
-  const buckets = useMemo(() => categorizeMappings(fieldMappings), [fieldMappings]);
+  const buckets = useMemo(() => {
+    return categorizeMappings(fieldMappings);
+  }, [fieldMappings]);
 
   // Filter mappings based on search
   const filteredBuckets = useMemo(() =>
@@ -122,13 +124,11 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
       // Trigger cache invalidation and refresh after successful approval
       if (typeof window !== 'undefined' && '__invalidateFieldMappings' in window && typeof (window as { __invalidateFieldMappings?: () => Promise<void> }).__invalidateFieldMappings === 'function') {
-        console.log('🔄 Invalidating cache after individual approval');
         await (window as { __invalidateFieldMappings: () => Promise<void> }).__invalidateFieldMappings();
       }
 
       // Also trigger onRefresh to update the UI - this should refetch the data
       if (onRefresh) {
-        console.log('🔄 Triggering onRefresh to update UI with fresh data');
         await onRefresh();
       }
     } catch (error) {
@@ -155,13 +155,11 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
         // Trigger cache invalidation and refresh after successful rejection
         if (typeof window !== 'undefined' && '__invalidateFieldMappings' in window && typeof (window as { __invalidateFieldMappings?: () => Promise<void> }).__invalidateFieldMappings === 'function') {
-          console.log('🔄 Invalidating cache after individual rejection');
           await (window as { __invalidateFieldMappings: () => Promise<void> }).__invalidateFieldMappings();
         }
 
         // Also trigger onRefresh to update the UI - this should refetch the data
         if (onRefresh) {
-          console.log('🔄 Triggering onRefresh to update UI with fresh data');
           await onRefresh();
         }
       } catch (error) {
@@ -191,7 +189,6 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
     try {
       if (onRemoveMapping) {
-        console.log('🗑️  Removing approved mapping:', mappingId);
         await onRemoveMapping(mappingId);
 
         // Wait a moment for the backend to update
@@ -199,13 +196,11 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
         // Trigger cache invalidation and refresh after successful removal
         if (typeof window !== 'undefined' && '__invalidateFieldMappings' in window && typeof (window as { __invalidateFieldMappings?: () => Promise<void> }).__invalidateFieldMappings === 'function') {
-          console.log('🔄 Invalidating cache after mapping removal');
           await (window as { __invalidateFieldMappings: () => Promise<void> }).__invalidateFieldMappings();
         }
 
         // Also trigger onRefresh to update the UI - this should refetch the data
         if (onRefresh) {
-          console.log('🔄 Triggering onRefresh to update UI with fresh data');
           await onRefresh();
         }
       }
@@ -379,7 +374,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
             icon={<CheckCircle className="h-5 w-5 text-green-600" />}
             bgColor="bg-green-50 border border-green-200"
           />
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="space-y-3 max-h-96 overflow-y-auto" style={{ minHeight: '200px' }}>
             {filteredBuckets.approved.map(mapping => (
               <ApprovedCard
                 key={mapping.id}
