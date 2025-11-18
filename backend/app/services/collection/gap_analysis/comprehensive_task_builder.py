@@ -151,7 +151,11 @@ For EACH asset:
    - 0.5-0.6: Weak evidence, may be inferred from other data
    - 0.0-0.4: Low priority or may not be relevant for this asset's migration path
 
-ASSETS TO ANALYZE ({len(assets)} total, showing first 10):
+ASSETS TO ANALYZE ({len(assets)} total - ALL MUST BE ANALYZED):
+NOTE: This prompt shows only the first 10 assets as examples for token efficiency.
+You MUST analyze ALL {len(assets)} assets that were provided to you, not just these 10 samples.
+
+Asset samples (first 10 of {len(assets)}):
 {json.dumps(asset_summary, indent=2)}
 
 22 CRITICAL ATTRIBUTES FRAMEWORK (GUIDANCE, not exhaustive):
@@ -222,6 +226,7 @@ RETURN JSON FORMAT (gaps ONLY, no questionnaires):
 }}
 
 CRITICAL REMINDERS:
+- IMPORTANT: "assets_analyzed" in summary MUST be {len(assets)} (the TOTAL count), not the sample count shown above
 - Use your MIGRATION EXPERTISE to identify gaps that impact 6R strategy decisions
 - The 22 attributes are GUIDANCE - think beyond them for cloud migration needs
 - Don't create gaps just because an attribute is missing - ask "Does this block migration decisions?"

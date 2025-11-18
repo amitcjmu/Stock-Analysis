@@ -261,6 +261,7 @@ async def _generate_asset_section(
         Section dict if generation succeeds, None otherwise
     """
     import asyncio
+    import json  # CC Bug #7: Move json import to function scope for except block
     from crewai import Task
     from app.services.persistent_agents.tenant_scoped_agent_pool import (
         TenantScopedAgentPool,
@@ -349,8 +350,6 @@ async def _generate_asset_section(
             return None
 
         # Parse agent output (should be valid JSON)
-        import json
-
         # Agent returns raw string output from task execution
         agent_output = str(result)
 
