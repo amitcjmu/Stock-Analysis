@@ -178,32 +178,51 @@ class CollectionChildFlowService(CollectionChildFlowServiceBase):
             automation_tier=automation_tier,
         )
 
-        # Auto-progression logic based on gap analysis results
+        # CRITICAL FIX (Issue #1066): Query database as source of truth for pending gaps
+        # The summary metadata from gap analysis service can be incorrect/stale
+        # Database is the authoritative source for gap count and resolution status
+        from sqlalchemy import select, func
+        from app.models.collection_data_gap import CollectionDataGap
+
+        # Query actual pending gaps from database
+        pending_gaps_result = await self.db.execute(
+            select(func.count(CollectionDataGap.id)).where(
+                CollectionDataGap.collection_flow_id == child_flow.id,
+                CollectionDataGap.resolution_status == "pending",
+            )
+        )
+        actual_pending_gaps = pending_gaps_result.scalar() or 0
+
+        # Also get summary metadata for comparison/debugging
         summary = result.get("summary", {})
         gaps_persisted = summary.get("gaps_persisted", 0)
         has_pending_gaps = summary.get("has_pending_gaps", False)
 
+        # Log both values to track discrepancies
         logger.info(
-            f"Gap analysis complete: gaps_persisted={gaps_persisted}, "
-            f"has_pending_gaps={has_pending_gaps}"
+            f"Gap analysis complete - "
+            f"Database: {actual_pending_gaps} pending gaps, "
+            f"Summary metadata: gaps_persisted={gaps_persisted}, has_pending_gaps={has_pending_gaps}"
         )
 
-        if gaps_persisted > 0:
+        # IMPORTANT: Use database count for auto-progression decision
+        if actual_pending_gaps > 0:
             logger.info(
-                f"Transitioning to questionnaire_generation for persisted gaps "
-                f"(gaps_persisted={gaps_persisted})"
+                f"✅ Auto-progression: {actual_pending_gaps} pending gaps found in database → "
+                f"transitioning to questionnaire_generation"
             )
             await self.state_service.transition_phase(
                 flow_id=child_flow.id,
                 new_phase=CollectionPhase.QUESTIONNAIRE_GENERATION,
             )
-        elif not has_pending_gaps:
-            logger.info("No pending gaps - transitioning to finalization")
+        else:
+            logger.info(
+                "✅ Auto-progression: 0 pending gaps in database → "
+                "transitioning to finalization (no questionnaires needed)"
+            )
             await self.state_service.transition_phase(
                 flow_id=child_flow.id, new_phase=CollectionPhase.FINALIZATION
             )
-        else:
-            logger.info("Gaps exist but not persisted - remaining in gap_analysis")
 
         return result
 

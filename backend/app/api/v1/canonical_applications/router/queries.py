@@ -49,10 +49,7 @@ async def get_readiness_stats(
             func.sum(
                 case(
                     (
-                        and_(
-                            Asset.discovery_status == "completed",
-                            Asset.assessment_readiness == "ready",
-                        ),
+                        Asset.assessment_readiness == "ready",
                         1,
                     ),
                     else_=0,

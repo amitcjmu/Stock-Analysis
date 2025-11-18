@@ -70,11 +70,30 @@ async def get_canonical_application_readiness_gaps(
             f"update_database={update_database} (type={type(update_database).__name__})"
         )
 
+        # CC FIX: Convert context IDs to UUID objects for database queries
+        # Pattern per Serena memory: collection_gaps_qodo_bot_fixes_2025_21
+        try:
+            client_account_uuid = (
+                UUID(context.client_account_id)
+                if isinstance(context.client_account_id, str)
+                else context.client_account_id
+            )
+            engagement_uuid = (
+                UUID(context.engagement_id)
+                if isinstance(context.engagement_id, str)
+                else context.engagement_id
+            )
+        except (ValueError, TypeError) as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid tenant ID format in context: {str(e)}",
+            )
+
         # Verify canonical application exists with tenant scoping
         app_query = select(CanonicalApplication).where(
             CanonicalApplication.id == canonical_application_id,
-            CanonicalApplication.client_account_id == context.client_account_id,
-            CanonicalApplication.engagement_id == context.engagement_id,
+            CanonicalApplication.client_account_id == client_account_uuid,
+            CanonicalApplication.engagement_id == engagement_uuid,
         )
         result = await db.execute(app_query)
         canonical_app = result.scalar_one_or_none()
@@ -84,6 +103,9 @@ async def get_canonical_application_readiness_gaps(
                 status_code=404,
                 detail=f"Canonical application {canonical_application_id} not found",
             )
+
+        # CC FIX: Eagerly load canonical_name BEFORE session commits to avoid lazy-load errors
+        canonical_app_name = canonical_app.canonical_name
 
         # Get all assets linked to this canonical application
         assets_query = (
@@ -95,9 +117,8 @@ async def get_canonical_application_readiness_gaps(
             .where(
                 CollectionFlowApplication.canonical_application_id
                 == canonical_application_id,
-                CollectionFlowApplication.client_account_id
-                == context.client_account_id,
-                CollectionFlowApplication.engagement_id == context.engagement_id,
+                CollectionFlowApplication.client_account_id == client_account_uuid,
+                CollectionFlowApplication.engagement_id == engagement_uuid,
                 Asset.deleted_at.is_(
                     None
                 ),  # CC FIX: Asset uses deleted_at, not is_deleted
@@ -112,7 +133,7 @@ async def get_canonical_application_readiness_gaps(
             )
             return {
                 "canonical_application_id": str(canonical_application_id),
-                "canonical_application_name": canonical_app.canonical_name,
+                "canonical_application_name": canonical_app_name,
                 "missing_attributes": {},
                 "asset_count": 0,
                 "not_ready_count": 0,
@@ -126,10 +147,11 @@ async def get_canonical_application_readiness_gaps(
 
         for asset in assets:
             # Run gap analysis for this asset
+            # CC FIX: Pass UUIDs as strings because analyze_asset_readiness wraps them in UUID()
             readiness_result = await readiness_service.analyze_asset_readiness(
                 asset_id=asset.id,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
+                client_account_id=str(client_account_uuid),
+                engagement_id=str(engagement_uuid),
                 db=db,  # CC FIX: Pass db to method, not constructor
             )
 
@@ -185,7 +207,7 @@ async def get_canonical_application_readiness_gaps(
 
         result = {
             "canonical_application_id": str(canonical_application_id),
-            "canonical_application_name": canonical_app.canonical_name,
+            "canonical_application_name": canonical_app_name,
             "missing_attributes": missing_attributes,
             "asset_count": len(assets),
             "not_ready_count": not_ready_count,

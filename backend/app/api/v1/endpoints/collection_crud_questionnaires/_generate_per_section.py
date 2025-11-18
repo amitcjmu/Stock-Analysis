@@ -244,8 +244,9 @@ async def _generate_asset_section(
     context: RequestContext,
 ) -> Optional[dict]:
     """
-    Generate questions for ONE asset, ONE section using CrewAI agent.
+    Generate questions for ONE asset, ONE section using persistent TenantScopedAgent.
 
+    Per ADR-015: Uses TenantScopedAgentPool for persistent agent execution.
     Per ADR-035: Each call generates ~2KB JSON (vs 16KB+ for full questionnaire).
 
     Args:
@@ -259,7 +260,11 @@ async def _generate_asset_section(
     Returns:
         Section dict if generation succeeds, None otherwise
     """
-    from app.services.crewai_flows.services.crewai_service import CrewAIService
+    import asyncio
+    from crewai import Task
+    from app.services.persistent_agents.tenant_scoped_agent_pool import (
+        TenantScopedAgentPool,
+    )
 
     try:
         # Filter gaps relevant to this section
@@ -299,42 +304,45 @@ async def _generate_asset_section(
             f"Generating {section_id} questions for asset {asset.name} ({len(section_gaps)} gaps)"
         )
 
-        # Execute agent to generate questions for this section
-        crewai_service = CrewAIService()
-
-        # Use questionnaire generation crew (single agent, no memory)
-        from app.services.crewai_flows.config.crew_factory import create_crew
-        from app.services.crewai_flows.config.agent_factory import create_agent
-        from app.services.crewai_flows.config.task_factory import create_task
-
-        # Create agent for questionnaire generation
-        agent = create_agent(
-            role="Data Collection Questionnaire Specialist",
-            goal="Generate intelligent, context-aware questionnaire questions for data collection",
-            backstory="Expert at creating targeted questions based on asset characteristics and data gaps",
-            allow_delegation=False,
-            verbose=False,
+        # CC FIX (Issue #1067 - ADR-015 Compliance): Use TenantScopedAgentPool
+        # Replace legacy crew-based execution with persistent agent pattern
+        logger.debug(
+            f"🔧 Getting persistent questionnaire_generator agent for "
+            f"client={context.client_account_id}, engagement={context.engagement_id}"
         )
 
-        # Create task
-        task = create_task(
+        agent = await TenantScopedAgentPool.get_or_create_agent(
+            client_id=str(context.client_account_id),
+            engagement_id=str(context.engagement_id),
+            agent_type="questionnaire_generator",  # Existing agent type from agent pool
+        )
+
+        logger.debug(
+            f"✅ Agent retrieved: {agent.role if hasattr(agent, 'role') else 'questionnaire_generator'}"
+        )
+
+        # Extract underlying CrewAI agent from AgentWrapper (per gap_analysis pattern)
+        underlying_agent = agent._agent if hasattr(agent, "_agent") else agent
+
+        # Create Task (no Crew needed - agent executes directly per ADR-015)
+        task = Task(
             description=task_description,
             expected_output="JSON object with section questions (no markdown, valid JSON only)",
-            agent=agent,
+            agent=underlying_agent,
         )
 
-        # Create crew (memory disabled per ADR-024)
-        crew = create_crew(
-            agents=[agent],
-            tasks=[task],
-            memory=False,  # Per ADR-024: Use TenantMemoryManager instead
-            verbose=False,
+        logger.debug(
+            "🤖 Executing questionnaire generation task via persistent agent (no Crew creation)"
         )
 
-        # Execute crew
-        result = await crewai_service.execute_crew(crew)
+        # Execute task directly on persistent agent (per gap_analysis/agent_helpers.py pattern)
+        result = await asyncio.to_thread(agent.execute_task, task)
 
-        if not result or not result.get("output"):
+        logger.debug(
+            f"📤 Agent task completed for {section_id}: {str(result)[:200]}..."
+        )
+
+        if not result:
             logger.warning(
                 f"Agent returned empty result for asset {asset.name}, section {section_id}"
             )
@@ -343,7 +351,8 @@ async def _generate_asset_section(
         # Parse agent output (should be valid JSON)
         import json
 
-        agent_output = result.get("output", "")
+        # Agent returns raw string output from task execution
+        agent_output = str(result)
 
         # Strip markdown code blocks if present (agent sometimes adds despite instructions)
         if "```json" in agent_output:

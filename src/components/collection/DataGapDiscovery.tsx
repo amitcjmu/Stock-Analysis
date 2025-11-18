@@ -100,6 +100,12 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   // AI gap analysis status tracking (Issue #1043)
   const [hasAIAnalysis, setHasAIAnalysis] = useState(false);
   const [showQuestionnaireButton, setShowQuestionnaireButton] = useState(false);
+  // Option 3: AI completion detection (Issue #1067)
+  const [aiAnalysisProgress, setAiAnalysisProgress] = useState<{
+    total: number;
+    completed: number;
+    percentage: number;
+  } | null>(null);
 
   // Fetch existing gaps on mount, or scan if none exist
   useEffect(() => {
@@ -618,6 +624,56 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       return () => clearTimeout(timer);
     }
   }, [gaps, showQuestionnaireButton]);
+
+  // Option 3: Poll AI analysis status after button appears (Issue #1067)
+  useEffect(() => {
+    if (!showQuestionnaireButton || !flowId) return;
+
+    const pollAIStatus = async () => {
+      try {
+        // Get assets with gaps to check their AI analysis status
+        const response = await AssetAPI.getAssets({ page: 1, page_size: 100 });
+        const assetsWithGaps = new Set(gaps.map(g => g.asset_id).filter(Boolean));
+        const relevantAssets = response.assets.filter(a => assetsWithGaps.has(a.id));
+
+        if (relevantAssets.length === 0) {
+          // No assets with gaps - enable button immediately
+          setAiAnalysisProgress({ total: 0, completed: 0, percentage: 100 });
+          return;
+        }
+
+        // Count assets that completed AI analysis (status = 2)
+        const completedCount = relevantAssets.filter(a => a.ai_gap_analysis_status === 2).length;
+        const percentage = Math.round((completedCount / relevantAssets.length) * 100);
+
+        setAiAnalysisProgress({
+          total: relevantAssets.length,
+          completed: completedCount,
+          percentage
+        });
+
+        console.log(`🤖 AI Analysis Progress: ${completedCount}/${relevantAssets.length} assets (${percentage}%)`);
+      } catch (error) {
+        console.error('Failed to poll AI analysis status:', error);
+        // On error, assume analysis is complete to not block user
+        setAiAnalysisProgress({ total: 0, completed: 0, percentage: 100 });
+      }
+    };
+
+    // Poll immediately
+    pollAIStatus();
+
+    // Then poll every 5 seconds until 100%
+    const interval = setInterval(() => {
+      if (aiAnalysisProgress?.percentage === 100) {
+        clearInterval(interval);
+      } else {
+        pollAIStatus();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [showQuestionnaireButton, flowId, gaps, aiAnalysisProgress?.percentage]);
 
   const handleCellEditingStopped = useCallback(
     (event: CellEditingStoppedEvent<GapRowData>) => {
@@ -1293,24 +1349,40 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             )}
           </div>
 
-          {/* Continue to Questionnaire Button - P1 UX Fix for Issue #654 + 20s delay */}
+          {/* Continue to Questionnaire Button - Option 3: Show after 20s but disable until AI complete (Issue #1067) */}
           {scanSummary && onComplete && showQuestionnaireButton && (
             <div className="pt-4 mt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
-                  <p className="font-medium mb-1">Gap analysis complete!</p>
-                  <p>You can continue to the questionnaire phase or keep resolving gaps.</p>
+                  {aiAnalysisProgress && aiAnalysisProgress.percentage < 100 ? (
+                    <>
+                      <p className="font-medium mb-1">
+                        🤖 AI analyzing gaps: {aiAnalysisProgress.completed}/{aiAnalysisProgress.total} assets complete ({aiAnalysisProgress.percentage}%)
+                      </p>
+                      <p className="text-xs">Button will enable when AI analysis completes...</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium mb-1">Gap analysis complete!</p>
+                      <p>You can continue to the questionnaire phase or keep resolving gaps.</p>
+                    </>
+                  )}
                 </div>
                 <Button
                   onClick={handleContinueToQuestionnaire}
-                  disabled={isContinuing}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isContinuing || (aiAnalysisProgress ? aiAnalysisProgress.percentage < 100 : false)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
                   size="lg"
                 >
                   {isContinuing ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Proceeding...
+                    </>
+                  ) : aiAnalysisProgress && aiAnalysisProgress.percentage < 100 ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      AI Analysis in Progress ({aiAnalysisProgress.percentage}%)
                     </>
                   ) : (
                     <>

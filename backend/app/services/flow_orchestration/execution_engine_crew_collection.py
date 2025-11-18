@@ -317,51 +317,150 @@ class ExecutionEngineCollectionCrews:
     async def _execute_questionnaire_generation(
         self, agent_pool: Any, phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute questionnaire generation phase using field mapper and pattern discovery agents"""
-        logger.info("📝 Executing questionnaire generation with persistent agents")
+        """Execute per-asset questionnaire generation using AI agent service.
 
-        # TODO: Integrate with TenantScopedAgentPool.get_agent() for actual agent-based generation
-        # For now, using static questionnaire generation
+        FIX (Issue #1067 - Fix #2): Use correct per-asset generation logic.
+        Questionnaires are generated per asset (not per flow) using _start_agent_generation.
+        """
+        logger.info("📝 Executing questionnaire generation with AI agent service")
 
-        questionnaires = []
-
-        # Generate adaptive questionnaire based on gap analysis (static fallback)
-        questionnaires.append(
-            {
-                "id": "adaptive_questionnaire_001",
-                "title": "Infrastructure Assessment",
-                "description": "Fill gaps identified in infrastructure data",
-                "questions": [
-                    {
-                        "id": "q1",
-                        "question": "What is your current virtualization platform?",
-                        "type": "select",
-                        "options": ["VMware", "Hyper-V", "KVM", "Other"],
-                        "required": True,
-                    },
-                    {
-                        "id": "q2",
-                        "question": "What is your average monthly infrastructure cost?",
-                        "type": "number",
-                        "required": True,
-                    },
-                ],
-                "generated_by": "field_mapper_agent",
-                "based_on_gaps": True,
+        # Extract flow_id from phase_input (child flow ID, not master)
+        flow_id = phase_input.get("flow_id")
+        if not flow_id:
+            logger.error("❌ No flow_id in phase_input for questionnaire generation")
+            return {
+                "phase": "questionnaire_generation",
+                "status": "failed",
+                "error": "Missing flow_id in phase_input",
+                "message": "Cannot generate questionnaires without flow_id",
             }
-        )
 
-        # Store questionnaires in database for the collection flow
-        # This would be done through proper service calls in production
-        logger.info(f"📋 Generated {len(questionnaires)} adaptive questionnaires")
+        try:
+            # Import per-asset questionnaire generation service
+            from app.api.v1.endpoints.collection_crud_questionnaires.commands import (
+                _start_agent_generation,
+            )
+            from app.core.database import AsyncSessionLocal
+            from app.core.context import RequestContext
+            from app.models.collection_flow import CollectionFlow
+            from app.models.asset import Asset
+            from sqlalchemy import select
+            from uuid import UUID
 
-        return {
-            "phase": "questionnaire_generation",
-            "status": "completed",
-            "questionnaires_generated": questionnaires,
-            "agents": ["field_mapper", "pattern_discovery_agent"],
-            "message": "Adaptive questionnaires generated using persistent agents with learned patterns",
-        }
+            async with AsyncSessionLocal() as db:
+                # Get collection flow
+                flow_result = await db.execute(
+                    select(CollectionFlow).where(
+                        CollectionFlow.flow_id == UUID(flow_id),
+                        CollectionFlow.client_account_id
+                        == phase_input.get("client_account_id", "1"),
+                        CollectionFlow.engagement_id
+                        == phase_input.get("engagement_id", "1"),
+                    )
+                )
+                flow = flow_result.scalar_one_or_none()
+
+                if not flow:
+                    logger.error(f"❌ Collection flow {flow_id} not found")
+                    return {
+                        "phase": "questionnaire_generation",
+                        "status": "failed",
+                        "error": "Collection flow not found",
+                        "message": f"Cannot find flow {flow_id}",
+                    }
+
+                # Get selected assets from flow metadata
+                selected_asset_ids = []
+                if flow.flow_metadata and isinstance(flow.flow_metadata, dict):
+                    selected_asset_ids = flow.flow_metadata.get(
+                        "selected_asset_ids", []
+                    )
+
+                if not selected_asset_ids:
+                    logger.warning(f"No selected assets in flow {flow_id} metadata")
+                    return {
+                        "phase": "questionnaire_generation",
+                        "status": "failed",
+                        "error": "No assets selected for questionnaire generation",
+                        "message": "Asset selection required before questionnaire generation",
+                    }
+
+                # Get assets for questionnaire generation
+                assets_result = await db.execute(
+                    select(Asset).where(
+                        Asset.id.in_(
+                            [
+                                UUID(aid) if isinstance(aid, str) else aid
+                                for aid in selected_asset_ids
+                            ]
+                        ),
+                        Asset.client_account_id
+                        == phase_input.get("client_account_id", "1"),
+                        Asset.engagement_id == phase_input.get("engagement_id", "1"),
+                    )
+                )
+                existing_assets = list(assets_result.scalars().all())
+
+                if not existing_assets:
+                    logger.error(f"❌ No assets found for flow {flow_id}")
+                    return {
+                        "phase": "questionnaire_generation",
+                        "status": "failed",
+                        "error": "No assets found",
+                        "message": "Cannot generate questionnaires without assets",
+                    }
+
+                # Create request context for tenant scoping
+                context = RequestContext(
+                    client_account_id=phase_input.get("client_account_id", "1"),
+                    engagement_id=phase_input.get("engagement_id", "1"),
+                )
+
+                # Call per-asset questionnaire generation
+                # This creates pending questionnaires and starts background AI generation
+                questionnaire_responses = await _start_agent_generation(
+                    flow_id=flow_id,
+                    flow=flow,
+                    existing_assets=existing_assets,
+                    context=context,
+                    db=db,
+                )
+
+                questionnaire_count = (
+                    len(questionnaire_responses) if questionnaire_responses else 0
+                )
+                logger.info(
+                    f"✅ Generated {questionnaire_count} questionnaires via AI service "
+                    f"({len(existing_assets)} assets processed)"
+                )
+
+                return {
+                    "phase": "questionnaire_generation",
+                    "status": "completed",
+                    "questionnaires_generated": questionnaire_count,
+                    "generation_method": "ai_agent",
+                    "message": f"Generated {questionnaire_count} AI questionnaires for {len(existing_assets)} assets",
+                }
+
+        except ImportError as e:
+            logger.error(
+                f"❌ Cannot import questionnaire generation service: {e}",
+                exc_info=True,
+            )
+            return {
+                "phase": "questionnaire_generation",
+                "status": "failed",
+                "error": f"Service import failed: {str(e)}",
+                "message": "Questionnaire generation service unavailable",
+            }
+        except Exception as e:
+            logger.error(f"❌ Questionnaire generation failed: {e}", exc_info=True)
+            return {
+                "phase": "questionnaire_generation",
+                "status": "failed",
+                "error": str(e),
+                "message": "Unexpected error during questionnaire generation",
+            }
 
     async def _execute_manual_collection(
         self, agent_pool: Dict[str, Any], phase_input: Dict[str, Any]

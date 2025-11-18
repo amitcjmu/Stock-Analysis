@@ -87,39 +87,15 @@ async def verify_ai_gaps_consistency(assets, db):
         assets: List of Asset objects to verify
         db: AsyncSession database session
     """
-    from sqlalchemy import select, func
-    from app.models.collection_data_gap import CollectionDataGap
 
-    fixed_count = 0
-    for asset in assets:
-        # Check if gaps with AI enhancement exist for this asset (across ALL flows)
-        stmt = select(func.count()).where(
-            CollectionDataGap.asset_id == asset.id,
-            CollectionDataGap.confidence_score.is_not(None),
-        )
-        result = await db.execute(stmt)
-        ai_gaps_count = result.scalar()
-
-        if ai_gaps_count == 0:
-            # AUTO-FIX: Reset status to 0 so asset can be re-analyzed
-            logger.warning(
-                f"⚠️ Consistency issue detected and FIXED: Asset {asset.id} marked as AI-analyzed "
-                f"(status=2) but has no gaps with confidence_score - resetting to status=0"
-            )
-            asset.ai_gap_analysis_status = 0
-            asset.ai_gap_analysis_timestamp = None
-            fixed_count += 1
-        else:
-            logger.debug(
-                f"✅ Asset {asset.id} consistency verified - "
-                f"{ai_gaps_count} AI-enhanced gaps found"
-            )
-
-    if fixed_count > 0:
-        await db.commit()
-        logger.info(
-            f"🔧 Auto-fixed {fixed_count} consistency issues by resetting status to 0"
-        )
+    # REMOVED: Incorrect validation logic that assumed AI-analyzed assets must have gaps
+    # Assets with status=2 and zero gaps are CORRECT - they have complete data
+    # AI analysis confirmed no gaps exist, which is a valid outcome
+    # The previous logic incorrectly reset these assets to status=0, forcing unnecessary re-analysis
+    logger.debug(
+        "✅ Skipping legacy consistency check - AI-analyzed assets with zero gaps are valid "
+        "(complete data, not analysis failure)"
+    )
 
 
 async def process_gap_enhancement_job(  # noqa: C901
@@ -430,9 +406,38 @@ async def _auto_progress_phase(
         collection_flow = result.scalar_one_or_none()
 
         if collection_flow and collection_flow.master_flow_id:
-            logger.info(
-                f"🚀 Job {job_id}: Auto-progressing to questionnaire_generation"
+            # CRITICAL FIX (Issue #1066): Query database as source of truth for pending gaps
+            # Background worker must also check pending gaps before auto-progressing
+            # Database is authoritative - do NOT rely on summary metadata
+            from sqlalchemy import select as select_stmt, func
+            from app.models.collection_data_gap import CollectionDataGap
+
+            pending_gaps_result = await db.execute(
+                select_stmt(func.count(CollectionDataGap.id)).where(
+                    CollectionDataGap.collection_flow_id == collection_flow_id,
+                    CollectionDataGap.resolution_status == "pending",
+                )
             )
+            actual_pending_gaps = pending_gaps_result.scalar() or 0
+
+            logger.info(
+                f"📊 Job {job_id}: Gap analysis complete - "
+                f"Database shows {actual_pending_gaps} pending gaps"
+            )
+
+            # Determine target phase based on pending gaps in database
+            if actual_pending_gaps > 0:
+                target_phase = "questionnaire_generation"
+                logger.info(
+                    f"🚀 Job {job_id}: {actual_pending_gaps} pending gaps found → "
+                    f"auto-progressing to {target_phase}"
+                )
+            else:
+                target_phase = "finalization"
+                logger.info(
+                    f"✅ Job {job_id}: 0 pending gaps → "
+                    f"auto-progressing to {target_phase} (skipping questionnaires)"
+                )
 
             # IMPORTANT: Create immutable context from primitives for progression service
             # Background jobs receive only primitive IDs (str), not mutable request context.
@@ -457,14 +462,14 @@ async def _auto_progress_phase(
             )
             progression_result = await progression_service.advance_to_next_phase(
                 flow=collection_flow,
-                target_phase="questionnaire_generation",
+                target_phase=target_phase,
             )
 
             if progression_result["status"] == "success":
-                logger.info(f"✅ Job {job_id}: Advanced to questionnaire_generation")
+                logger.info(f"✅ Job {job_id}: Advanced to {target_phase}")
                 await update_job_state(
                     collection_flow_id,
-                    {"phase_progression": "advanced_to_questionnaire_generation"},
+                    {"phase_progression": f"advanced_to_{target_phase}"},
                 )
             else:
                 error_msg = progression_result.get("error")
