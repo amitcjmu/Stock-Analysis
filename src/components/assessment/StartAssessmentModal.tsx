@@ -94,6 +94,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [assetMappings, setAssetMappings] = useState<Record<string, string>>({});
   const [mappingInProgress, setMappingInProgress] = useState<string | null>(null);
+  const [refreshingReadiness, setRefreshingReadiness] = useState(false);
 
   // Fetch canonical applications and unmapped assets
   useEffect(() => {
@@ -364,6 +365,93 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
     }
   };
 
+  // Handle refreshing readiness status for all applications
+  const handleRefreshReadiness = async () => {
+    if (refreshingReadiness || !client?.id || !engagement?.id) return;
+
+    setRefreshingReadiness(true);
+    try {
+      console.log('🔄 Refreshing readiness status for all applications...');
+
+      // Get only canonical applications (not unmapped assets)
+      const canonicalApps = applications.filter(
+        (item): item is CanonicalApplication => !isUnmappedAsset(item)
+      );
+
+      if (canonicalApps.length === 0) {
+        toast({
+          title: 'No Applications',
+          description: 'No applications to refresh readiness for.',
+          variant: 'default',
+        });
+        return;
+      }
+
+      // Call readiness-gaps endpoint for each application to get live status
+      const refreshPromises = canonicalApps.map(async (app) => {
+        try {
+          const gapsResponse = await apiCall<{
+            missing_attributes: Record<string, string[]>;
+            asset_count: number;
+            not_ready_count: number;
+          }>(
+            `/api/v1/canonical-applications/${app.id}/readiness-gaps`,
+            {
+              method: 'GET',
+              headers: {
+                'X-Client-Account-ID': client.id,
+                'X-Engagement-ID': engagement.id,
+              },
+            }
+          );
+
+          // Update readiness status based on live gap analysis
+          const hasGaps = gapsResponse.not_ready_count > 0;
+          const newReadinessStatus: "ready" | "partial" | "not_ready" =
+            hasGaps ? "not_ready" : "ready";
+
+          return {
+            ...app,
+            not_ready_asset_count: gapsResponse.not_ready_count,
+            ready_asset_count: gapsResponse.asset_count - gapsResponse.not_ready_count,
+            readiness_status: newReadinessStatus,
+          };
+        } catch (error) {
+          console.error(`Failed to refresh readiness for ${app.canonical_name}:`, error);
+          // Return original app data if refresh fails
+          return app;
+        }
+      });
+
+      const refreshedApps = await Promise.all(refreshPromises);
+
+      // Update applications state with refreshed readiness data
+      setApplications((prev) =>
+        prev.map((item) => {
+          if (isUnmappedAsset(item)) return item;
+          const refreshed = refreshedApps.find((app) => app.id === item.id);
+          return refreshed || item;
+        })
+      );
+
+      toast({
+        title: 'Readiness Refreshed',
+        description: `Updated readiness status for ${canonicalApps.length} applications.`,
+      });
+
+      console.log(`✅ Refreshed readiness for ${canonicalApps.length} applications`);
+    } catch (error: any) {
+      console.error('Failed to refresh readiness:', error);
+      toast({
+        title: 'Refresh Failed',
+        description: error?.message || 'Failed to refresh readiness status. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRefreshingReadiness(false);
+    }
+  };
+
   // Handle assessment creation
   const handleCreateAssessment = async () => {
     if (selectedAppIds.size === 0) {
@@ -447,12 +535,37 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Start New Assessment
-          </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Select one or more canonical applications to assess
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Start New Assessment
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Select one or more canonical applications to assess
+              </p>
+            </div>
+            <button
+              onClick={handleRefreshReadiness}
+              disabled={refreshingReadiness || loading}
+              className="ml-4 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              title="Refresh readiness status using live gap analysis"
+            >
+              <svg
+                className={`h-4 w-4 ${refreshingReadiness ? 'animate-spin' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              {refreshingReadiness ? 'Refreshing...' : 'Refresh Readiness'}
+            </button>
+          </div>
         </div>
 
         {/* Search */}
