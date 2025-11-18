@@ -189,6 +189,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 assets_preview,
                 approved_asset_ids,
                 assets_already_created,
+                updated_assets_map,
             ) = await check_preview_and_approval(master_flow_repo, master_flow_id)
 
             # If assets were already created, skip this phase
@@ -233,8 +234,11 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 "Proceeding with creation..."
             )
 
-            # Filter to only approved assets
-            assets_data = filter_approved_assets(assets_data, approved_asset_ids)
+            # CRITICAL FIX (Issue #1072): Filter approved assets and merge user edits
+            # This ensures user edits from preview screen are used instead of original data
+            assets_data = filter_approved_assets(
+                assets_data, approved_asset_ids, updated_assets_map
+            )
 
             if not assets_data:
                 logger.warning("⚠️ No approved assets to create")
