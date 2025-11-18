@@ -215,8 +215,8 @@ INSERT INTO migration.collection_flow_applications (
 
 -- Verify the data
 SELECT
-    'Applications' as type,
-    COUNT(*) as count
+    'Applications' AS result_type,
+    COUNT(*) AS record_count
 FROM migration.assets
 WHERE client_account_id = '00000000-0000-0000-0000-000000000001'::UUID
   AND engagement_id = '00000000-0000-0000-0000-000000000001'::UUID
@@ -224,8 +224,8 @@ WHERE client_account_id = '00000000-0000-0000-0000-000000000001'::UUID
   AND name LIKE 'Test-%'
 UNION ALL
 SELECT
-    'Non-application assets' as type,
-    COUNT(*) as count
+    'Non-application assets' AS result_type,
+    COUNT(*) AS record_count
 FROM migration.assets
 WHERE client_account_id = '00000000-0000-0000-0000-000000000001'::UUID
   AND engagement_id = '00000000-0000-0000-0000-000000000001'::UUID
@@ -233,8 +233,8 @@ WHERE client_account_id = '00000000-0000-0000-0000-000000000001'::UUID
   AND name LIKE 'Test-%'
 UNION ALL
 SELECT
-    'Mapped non-app assets' as type,
-    COUNT(*) as count
+    'Mapped non-app assets' AS result_type,
+    COUNT(*) AS record_count
 FROM migration.assets a
 INNER JOIN migration.collection_flow_applications cfa ON a.id = cfa.asset_id
 WHERE a.client_account_id = '00000000-0000-0000-0000-000000000001'::UUID
