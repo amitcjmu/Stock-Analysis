@@ -1,3 +1,73 @@
+## [1.22.0] - 2025-11-18
+
+### 🎯 **Risk Assessment & Assessment Flow Maturity**
+
+This release delivers critical maturity features for the Assessment Flow, including a new Risk Assessment page, dependency visualization, and robust roadmap planning capabilities.
+
+### 🚀 **Primary Enhancements**
+
+#### **Assessment Flow Maturity**
+- **Risk Assessment Page**: Complete implementation of risk analysis with agent-driven insights (Nov 14).
+- **Dependency Graph**: Interactive D3.js/React Flow visualization for service dependencies (Nov 12).
+- **Complexity Metrics**: Full persistence and editable UI for application complexity scoring (Nov 12).
+- **Readiness UX**: New three-tab initialization modal and "Refresh Readiness" capability with auto-polling.
+- **Flow Completion**: Fixed critical blockers preventing flow finalization and transition to Planning.
+
+#### **Roadmap & Planning**
+- **Timeline Sync**: Wave planning data now synchronizes real-time with roadmap timeline tables (Nov 17).
+- **Context Breadcrumbs**: Improved navigation context across all roadmap and planning pages.
+- **Planning Wizard**: Fixed checkbox selection and state management in the planning wizard.
+
+#### **Documentation Architecture**
+- **Structure Reorganization**: Major refactoring of root documentation into organized `docs/` subdirectories (Nov 17).
+
+### 🐛 **Key Fixes**
+- **Polling Stability**: Fixed issue where polling continued when user context was unavailable (Nov 18).
+- **Questionnaire Generation**: Consolidated fixes for collection flow questionnaire generation reliability (Nov 18).
+- **Agent Exception Handling**: Fixed JSON import scope issues in agent error handlers (Nov 18).
+
+---
+
+## [1.21.5] - 2025-11-15
+
+### 🎯 **Intelligent Gap Detection & Value Prediction**
+
+Significant upgrade to the Collection Flow with multi-layer gap detection and agentic value prediction.
+
+### 🚀 **Enhancements**
+
+#### **Intelligent Gap Analysis**
+- **Multi-Layer Detection**: Implemented comprehensive gap detection covering heuristic and agentic layers (Issue #980).
+- **Async Auto-Trigger**: Gap analysis now triggers asynchronously with non-blocking UI feedback (Nov 13).
+- **AI Caching**: Implemented caching for AI gap analysis to significantly reduce LLM costs (Nov 13).
+- **Performance**: Optimized gap analysis performance, achieving 6x speed improvement (Nov 15).
+
+#### **Agentic Value Prediction**
+- **Value Prediction**: Agent pool integration for predicting missing asset values during collection.
+
+### 🐛 **Fixes**
+- **Duplicate Gaps**: Fixed issue where heuristic gaps were duplicated by AI analysis.
+- **Questionnaire Reliability**: Fixed "greenlet_spawn" errors and stabilized questionnaire generation.
+
+---
+
+## [1.21.3] - 2025-11-10
+
+### 🎯 **Observability Stack & Grafana Integration**
+
+Deployment of a comprehensive observability stack for production monitoring.
+
+### 🚀 **Enhancements**
+
+#### **Grafana Observability**
+- **Grafana Stack**: Integrated Grafana with LGTM (Loki, Grafana, Tempo, Mimir) stack.
+- **Grafana Alloy**: Migrated log collection from Promtail to Grafana Alloy for better performance.
+- **Dashboards**:
+  - **MFO Flow Lifecycle**: Real-time visualization of Master Flow Orchestrator states.
+  - **LLM Costs**: Detailed tracking of token usage and costs by model/provider.
+
+---
+
 ## [1.21.2] - 2025-11-10
 
 ### 🎯 **🐛 Fix - Agentic Questionnaire Persistence**
@@ -54,6 +124,29 @@ This release stabilizes collection gap analysis and questionnaire generation by 
 ### 🎯 **Success Metrics**
 - **Gap analysis completion rate**: ≥95 % of executions without identifier resolution failures.
 - **Questionnaire generation success**: 0 runtime `greenlet_spawn` errors observed during collection flow runs.
+
+---
+
+## [1.21.0] - 2025-11-04
+
+### 🎯 **Asset Inventory Editing & Decommission Flow**
+
+Major feature release introducing editable Asset Inventory grids and the complete Decommission Flow Phase 4 UI.
+
+### 🚀 **Enhancements**
+
+#### **Asset Inventory 2.0**
+- **AI Grid Editing**: Implemented inline editing in AG Grid for asset data (Nov 4).
+- **Soft Delete**: Added soft delete capabilities with undo functionality (Nov 4).
+- **Asset Preview**: Enhanced asset preview modal with conflict resolution improvements (Nov 4).
+- **Performance**: Optimized grid rendering and data fetching for large datasets.
+
+#### **Decommission Flow**
+- **Phase 4 UI**: Complete implementation of Decommission Flow Phase 4 user interface (Nov 4).
+- **API Integration**: Full real-time API integration for decommission workflow.
+- **FlowTypeConfig**: Added formal FlowTypeConfig registration for decommission flows.
+
+---
 
 ## [2025-10-31] - Intelligent Context-Aware Questionnaire Generation
 
@@ -1633,182 +1726,183 @@ This update adds a comprehensive design and implementation plan to expand the Co
 - Implemented truly dynamic table headers adapting to actual data structure
 - Enhanced asset type detection and smart tech stack extraction
 - Multi-format CMDB support with improved data processing
-
-## [2025-05-27] - b107702
-### Live Asset Inventory Integration
-- Connect Asset Inventory page to display real processed CMDB data
-- Add /api/v1/discovery/assets endpoint with asset standardization
-- Implement dynamic statistics, department filtering, technology stack detection
-- Complete end-to-end workflow: Upload → Analyze → Process → View
-- Transform raw CMDB data into standardized asset format
-
-## [2025-05-27] - cb61367
-### CMDB Feedback and Processing Enhancement
-- Real-time analysis updates after user feedback submission
-- Process Data button available in analysis view and editing mode
-- Asset type corrections properly update coverage and missing fields
-- Complete Upload → Analyze → Feedback → Process workflow functionality
-
-## [2025-05-27] - 6553994
-### CrewAI Performance and Reliability Fix
-- Eliminate infinite hanging by disabling DeepInfra reasoning mode
-- Switch to LiteLLM with deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
-- Disable memory=False on all agents/crews preventing OpenAI API calls
-- Achieve 5.3s average CMDB analysis time with 100% success rate
-- Production ready with zero OpenAI errors and reliable performance
-
-## [2025-05-26] - e24e469
-### Intelligent Asset Type Detection and Feedback
-- Implement context-aware AI analysis distinguishing applications, servers, databases
-- Add asset-type-specific field validation logic
-- Create user feedback interface for correcting AI analysis and asset type detection
-- Add learning mechanism processing user corrections for improved future analysis
-- Reduce false positives in missing field detection based on asset type relevance
-
-## [2025-05-26] - 08bb166
-### Enhanced CMDB Import with Processing Capabilities
-- Add interactive data table with cell-level editing functionality
-- Implement missing field addition with one-click buttons
-- Create project management with optional database storage
-- Add functional Process Data with real backend processing
-- Enhance data quality improvement and validation pipeline
-- Create dual-mode interface (analysis/editing)
-- Implement project creation dialog and metadata management
-
-## [2025-05-26] - 7608e8f
-### CMDB Import AI-Powered Analysis Feature
-- Add comprehensive CMDB Import page under Discovery phase
-- Implement drag & drop file upload with multi-format support (CSV, Excel, JSON)
-- Create AI-powered data analysis with CrewAI integration
-- Add data quality scoring and asset coverage statistics
-- Implement missing field detection and processing recommendations
-- Create centralized API configuration for improved error handling
-
-## [2025-05-26] - 795a9af
-### Railway Deployment PORT Configuration
-- Create robust startup scripts (bash and Python) handling PORT environment variable
-- Update Railway configuration to use Python startup script
-- Improve main.py with better error handling and graceful degradation
-- Extend health check start period for Railway deployment requirements
-
-## [2025-05-26] - 7dc3bab
-### DeepInfra Llama 4 Integration
-- Replace OpenAI with DeepInfra API configuration for CrewAI
-- Update CrewAI service to use Llama-4-Maverick-17B-128E-Instruct-FP8 model
-- Add DeepInfra API key and model configuration
-- Add langchain-community dependency for DeepInfra support
-- Maintain OpenAI fallback for compatibility
-
-## [2025-05-26] - 13a31c0
-### Railway Deployment Improvement
-- Fix Dockerfile health check for non-root user compatibility
-- Add missing environment variables for production deployment
-- Ensure proper security and API key configuration for Railway platform
-
-## [2025-05-26] - 78f3ad5
-### Railway Production Deployment Configuration
-- Add root-level Dockerfile for Railway deployment compatibility
-- Update railway.toml to use root Dockerfile instead of backend/Dockerfile
-- Add .railwayignore to exclude unnecessary files from deployment
-- Update main.py to use PORT environment variable for Railway
-- Add production environment variables and fix Docker build context
-
-## [2025-05-26] - 7e87f67
-### Release v0.2.0 - Sprint 1 Complete
-- Add comprehensive CHANGELOG.md documenting all features and improvements
-- Update package.json with correct project name and v0.2.0 version
-- Add backend version.py with release information and build metadata
-- Update FastAPI app to use version information from version.py
-- Mark Sprint 1 as COMPLETED with all objectives achieved
-
-## [2025-05-26] - 8b16856
-### Docker Containerization and Port Conflict Resolution
-- CRITICAL FIX: Change PostgreSQL Docker port from 5432 to 5433 avoiding local conflicts
-- Update docker-setup.sh script with correct port references
-- Update README and documentation with new port assignments
-- Complete containerization solution ready for deployment
-
-## [2025-05-26] - 1d5311d
-### Docker Setup and Documentation Enhancement
-- Add comprehensive docker-setup.sh script with authentication checks
-- Update README with three setup options: Quick, Manual, Docker
-- Provide clear instructions for Python 3.11+ requirement
-- Include Docker Hub authentication guidance
-
-## [2025-05-26] - 908dfbf
-### Repository Cleanup and Security
-- CRITICAL FIX: Remove 28,767 virtual environment files from Git tracking
-- Add comprehensive Python and virtual environment exclusions to .gitignore
-- Prevent future commits of venv/, env/, .env files and Python cache
-- Repository size significantly reduced and cleaned up
-
-## [2025-05-26] - fc0c7bb
-### Docker Configuration Optimization
-- Add .dockerignore files excluding virtual environment and large files
-- Remove obsolete version field from docker-compose.yml
-- Add comprehensive .dockerignore for both root and backend directories
-
-## [2025-05-26] - cb4e762
-### Sprint 1 Complete - FastAPI Backend with CrewAI
-- Major Features: FastAPI backend, CrewAI integration, PostgreSQL database, WebSocket support
-- Python upgrade to 3.11 for CrewAI compatibility
-- Fixed ports: Backend 8000, Frontend 8081
-- Complete Docker setup and Railway deployment readiness
-- AI Integration: CrewAI agents for migration analysis
-- Database: Migration, Asset, Assessment models with relationships
-
-## [2025-05-26] - c7f2791
-### FinOps Subpages and Navigation
-- Add FinOps subpages with comprehensive sidebar navigation links
-
-## [2025-05-26] - 27ec66d
-### FinOps Cost Analysis Implementation
-- Add comprehensive FinOps cost analysis pages and functionality
-
-## [2025-05-26] - 504fff2
-### App.tsx Build Errors Resolution
-- Resolve critical build errors in main App.tsx component
-
-## [2025-05-26] - 5b64b1f
-### Execute Phase Expansion
-- Expand Execute phase with comprehensive new pages and functionality
-
-## [2025-05-26] - d7b6d21
-### Modernize Phase Implementation
-- Implement complete Modernize phase pages and workflow
-
-## [2025-05-26] - 0f39ea8
-### Decommission Phase Pages
-- Add comprehensive Decommission phase pages and navigation
-
-## [2025-05-25] - 7f7e5a3
-### Favicon Update
-- Updated application favicon for improved branding
-
-## [2025-05-25] - 8da27d7
-### README Enhancement
-- Updated comprehensive README documentation
-
-## [2025-05-25] - 698f844
-### Agentic AI and Plan Phase UI
-- Enhance UI with Agentic AI capabilities and comprehensive Plan phase implementation
-
-## [2025-05-25] - a5866bc
-### Assess Section Implementation
-- Add comprehensive Assess section pages and navigation system
-
-## [2025-05-24] - b5a6108
-### Discovery Phase UI Mockup
-- Add comprehensive Discovery phase UI mockup and interface design
-
-## [2025-05-24] - 3edc661
-### Platform Rebranding and Phase Pages
-- Rename platform and add comprehensive phase pages throughout application
-
-## [2025-05-24] - b00c3e2
-### Multi-Page Dashboard Implementation
-- Implement comprehensive multi-page dashboard mockup with navigation
-
-## [2025-05-24] - 093a18b
-### Initial Tech Stack Implementation
-- Use modern tech stack: Vite, React, ShadCN/UI, TypeScript for foundation
+- 1636|
+- 1637|## [2025-05-27] - b107702
+- 1638|### Live Asset Inventory Integration
+- 1639|- Connect Asset Inventory page to display real processed CMDB data
+- 1640|- Add /api/v1/discovery/assets endpoint with asset standardization
+- 1641|- Implement dynamic statistics, department filtering, technology stack detection
+- 1642|- Complete end-to-end workflow: Upload → Analyze → Process → View
+- 1643|- Transform raw CMDB data into standardized asset format
+- 1644|
+- 1645|## [2025-05-27] - cb61367
+- 1646|### CMDB Feedback and Processing Enhancement
+- 1647|- Real-time analysis updates after user feedback submission
+- 1648|- Process Data button available in analysis view and editing mode
+- 1649|- Asset type corrections properly update coverage and missing fields
+- 1650|- Complete Upload → Analyze → Feedback → Process workflow functionality
+- 1651|
+- 1652|## [2025-05-27] - 6553994
+- 1653|### CrewAI Performance and Reliability Fix
+- 1654|- Eliminate infinite hanging by disabling DeepInfra reasoning mode
+- 1655|- Switch to LiteLLM with deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+- 1656|- Disable memory=False on all agents/crews preventing OpenAI API calls
+- 1657|- Achieve 5.3s average CMDB analysis time with 100% success rate
+- 1658|- Production ready with zero OpenAI errors and reliable performance
+- 1659|
+- 1660|## [2025-05-26] - e24e469
+- 1661|### Intelligent Asset Type Detection and Feedback
+- 1662|- Implement context-aware AI analysis distinguishing applications, servers, databases
+- 1663|- Add asset-type-specific field validation logic
+- 1664|- Create user feedback interface for correcting AI analysis and asset type detection
+- 1665|- Add learning mechanism processing user corrections for improved future analysis
+- 1666|- Reduce false positives in missing field detection based on asset type relevance
+- 1667|
+- 1668|## [2025-05-26] - 08bb166
+- 1669|### Enhanced CMDB Import with Processing Capabilities
+- 1670|- Add interactive data table with cell-level editing functionality
+- 1671|- Implement missing field addition with one-click buttons
+- 1672|- Create project management with optional database storage
+- 1673|- Add functional Process Data with real backend processing
+- 1674|- Enhance data quality improvement and validation pipeline
+- 1675|- Create dual-mode interface (analysis/editing)
+- 1676|- Implement project creation dialog and metadata management
+- 1677|
+- 1678|## [2025-05-26] - 7608e8f
+- 1679|### CMDB Import AI-Powered Analysis Feature
+- 1680|- Add comprehensive CMDB Import page under Discovery phase
+- 1681|- Implement drag & drop file upload with multi-format support (CSV, Excel, JSON)
+- 1682|- Create AI-powered data analysis with CrewAI integration
+- 1683|- Add data quality scoring and asset coverage statistics
+- 1684|- Implement missing field detection and processing recommendations
+- 1685|- Create centralized API configuration for improved error handling
+- 1686|
+- 1687|## [2025-05-26] - 795a9af
+- 1688|### Railway Deployment PORT Configuration
+- 1689|- Create robust startup scripts (bash and Python) handling PORT environment variable
+- 1690|- Update Railway configuration to use Python startup script
+- 1691|- Improve main.py with better error handling and graceful degradation
+- 1692|- Extend health check start period for Railway deployment requirements
+- 1693|
+- 1694|## [2025-05-26] - 7dc3bab
+- 1695|### DeepInfra Llama 4 Integration
+- 1696|- Replace OpenAI with DeepInfra API configuration for CrewAI
+- 1697|- Update CrewAI service to use Llama-4-Maverick-17B-128E-Instruct-FP8 model
+- 1698|- Add DeepInfra API key and model configuration
+- 1699|- Add langchain-community dependency for DeepInfra support
+- 1700|- Maintain OpenAI fallback for compatibility
+- 1701|
+- 1702|## [2025-05-26] - 13a31c0
+- 1703|### Railway Deployment Improvement
+- 1704|- Fix Dockerfile health check for non-root user compatibility
+- 1705|- Add missing environment variables for production deployment
+- 1706|- Ensure proper security and API key configuration for Railway platform
+- 1707|
+- 1708|## [2025-05-26] - 78f3ad5
+- 1709|### Railway Production Deployment Configuration
+- 1710|- Add root-level Dockerfile for Railway deployment compatibility
+- 1711|- Update railway.toml to use root Dockerfile instead of backend/Dockerfile
+- 1712|- Add .railwayignore to exclude unnecessary files from deployment
+- 1713|- Update main.py to use PORT environment variable for Railway
+- 1714|- Add production environment variables and fix Docker build context
+- 1715|
+- 1716|## [2025-05-26] - 7e87f67
+- 1717|### Release v0.2.0 - Sprint 1 Complete
+- 1718|- Add comprehensive CHANGELOG.md documenting all features and improvements
+- 1719|- Update package.json with correct project name and v0.2.0 version
+- 1720|- Add backend version.py with release information and build metadata
+- 1721|- Update FastAPI app to use version information from version.py
+- 1722|- Mark Sprint 1 as COMPLETED with all objectives achieved
+- 1723|
+- 1724|## [2025-05-26] - 8b16856
+- 1725|### Docker Containerization and Port Conflict Resolution
+- 1726|- CRITICAL FIX: Change PostgreSQL Docker port from 5432 to 5433 avoiding local conflicts
+- 1727|- Update docker-setup.sh script with correct port references
+- 1728|- Update README and documentation with new port assignments
+- 1729|- Complete containerization solution ready for deployment
+- 1730|
+- 1731|## [2025-05-26] - 1d5311d
+- 1732|### Docker Setup and Documentation Enhancement
+- 1733|- Add comprehensive docker-setup.sh script with authentication checks
+- 1734|- Update README with three setup options: Quick, Manual, Docker
+- 1735|- Provide clear instructions for Python 3.11+ requirement
+- 1736|- Include Docker Hub authentication guidance
+- 1737|
+- 1738|## [2025-05-26] - 908dfbf
+- 1739|### Repository Cleanup and Security
+- 1740|- CRITICAL FIX: Remove 28,767 virtual environment files from Git tracking
+- 1741|- Add comprehensive Python and virtual environment exclusions to .gitignore
+- 1742|- Prevent future commits of venv/, env/, .env files and Python cache
+- 1743|- Repository size significantly reduced and cleaned up
+- 1744|
+- 1745|## [2025-05-26] - fc0c7bb
+- 1746|### Docker Configuration Optimization
+- 1747|- Add .dockerignore files excluding virtual environment and large files
+- 1748|- Remove obsolete version field from docker-compose.yml
+- 1749|- Add comprehensive .dockerignore for both root and backend directories
+- 1750|
+- 1751|## [2025-05-26] - cb4e762
+- 1752|### Sprint 1 Complete - FastAPI Backend with CrewAI
+- 1753|- Major Features: FastAPI backend, CrewAI integration, PostgreSQL database, WebSocket support
+- 1754|- Python upgrade to 3.11 for CrewAI compatibility
+- 1755|- Fixed ports: Backend 8000, Frontend 8081
+- 1756|- Complete Docker setup and Railway deployment readiness
+- 1757|- AI Integration: CrewAI agents for migration analysis
+- 1758|- Database: Migration, Asset, Assessment models with relationships
+- 1759|
+- 1760|## [2025-05-26] - c7f2791
+- 1761|### FinOps Subpages and Navigation
+- 1762|- Add FinOps subpages with comprehensive sidebar navigation links
+- 1763|
+- 1764|## [2025-05-26] - 27ec66d
+- 1765|### FinOps Cost Analysis Implementation
+- 1766|- Add comprehensive FinOps cost analysis pages and functionality
+- 1767|
+- 1768|## [2025-05-26] - 504fff2
+- 1769|### App.tsx Build Errors Resolution
+- 1770|- Resolve critical build errors in main App.tsx component
+- 1771|
+- 1772|## [2025-05-26] - 5b64b1f
+- 1773|### Execute Phase Expansion
+- 1774|- Expand Execute phase with comprehensive new pages and functionality
+- 1775|
+- 1776|## [2025-05-26] - d7b6d21
+- 1777|### Modernize Phase Implementation
+- 1778|- Implement complete Modernize phase pages and workflow
+- 1779|
+- 1780|## [2025-05-26] - 0f39ea8
+- 1781|### Decommission Phase Pages
+- 1782|- Add comprehensive Decommission phase pages and navigation
+- 1783|
+- 1784|## [2025-05-25] - 7f7e5a3
+- 1785|### Favicon Update
+- 1786|- Updated application favicon for improved branding
+- 1787|
+- 1788|## [2025-05-25] - 8da27d7
+- 1789|### README Enhancement
+- 1790|- Updated comprehensive README documentation
+- 1791|
+- 1792|## [2025-05-25] - 698f844
+- 1793|### Agentic AI and Plan Phase UI
+- 1794|- Enhance UI with Agentic AI capabilities and comprehensive Plan phase implementation
+- 1795|
+- 1796|## [2025-05-25] - a5866bc
+- 1797|### Assess Section Implementation
+- 1798|- Add comprehensive Assess section pages and navigation system
+- 1799|
+- 1800|## [2025-05-24] - b5a6108
+- 1801|### Discovery Phase UI Mockup
+- 1802|- Add comprehensive Discovery phase UI mockup and interface design
+- 1803|
+- 1804|## [2025-05-24] - 3edc661
+- 1805|### Platform Rebranding and Phase Pages
+- 1806|- Rename platform and add comprehensive phase pages throughout application
+- 1807|
+- 1808|## [2025-05-24] - b00c3e2
+- 1809|### Multi-Page Dashboard Implementation
+- 1810|- Implement comprehensive multi-page dashboard mockup with navigation
+- 1811|
+- 1812|## [2025-05-24] - 093a18b
+- 1813|### Initial Tech Stack Implementation
+- 1814|- Use modern tech stack: Vite, React, ShadCN/UI, TypeScript for foundation
+- 1815|
