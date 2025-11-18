@@ -420,11 +420,9 @@ async def get_adaptive_questionnaires(
         # CRITICAL: For non-asset-selection phases, require selected assets
         # Filter to only the selected assets from the collection flow
         selected_asset_ids = []
-        if flow.collection_config and flow.collection_config.get(
-            "selected_application_ids"
-        ):
-            selected_asset_ids = flow.collection_config["selected_application_ids"]
-            logger.info(f"Flow has {len(selected_asset_ids)} selected application IDs")
+        if flow.flow_metadata and flow.flow_metadata.get("selected_asset_ids"):
+            selected_asset_ids = flow.flow_metadata["selected_asset_ids"]
+            logger.info(f"Flow has {len(selected_asset_ids)} selected asset IDs")
 
         # Filter assets to only those that were selected
         existing_assets = []

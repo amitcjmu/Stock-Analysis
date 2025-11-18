@@ -138,7 +138,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                 for section_id in ASSESSMENT_FLOW_SECTIONS:
                     tasks.append(
                         _generate_asset_section(
-                            redis=redis,
+                            redis=redis.client,  # Pass AsyncRedisWrapper, not RedisConnectionManager
                             flow_id=flow_id,
                             asset=asset,
                             section_id=section_id,
@@ -175,7 +175,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
             # Step 3: Aggregate sections from Redis
             logger.info(f"Aggregating sections from Redis for flow {flow_id}")
             aggregated_sections = await aggregate_sections_from_redis(
-                redis=redis,
+                redis=redis.client,  # Pass AsyncRedisWrapper, not RedisConnectionManager
                 flow_id=flow_id,
                 asset_ids=[asset.id for asset in existing_assets],
                 sections=ASSESSMENT_FLOW_SECTIONS,
@@ -216,7 +216,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
 
             # Step 5: Cleanup Redis cache
             await cleanup_redis_cache(
-                redis=redis,
+                redis=redis.client,  # CC Fix Bug #6: Pass AsyncRedisWrapper, not RedisConnectionManager
                 flow_id=flow_id,
                 asset_ids=[asset.id for asset in existing_assets],
                 sections=ASSESSMENT_FLOW_SECTIONS,
