@@ -12,6 +12,48 @@ from typing import Any, Dict, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 
+def _normalize_string_field(value: Any, field_name: str) -> Optional[str]:
+    """
+    Normalize a string field value, handling edge cases.
+
+    Args:
+        value: Field value to normalize
+        field_name: Name of the field (for logging)
+
+    Returns:
+        Normalized string or None if invalid/empty
+    """
+    if not value:
+        return None
+    try:
+        normalized = str(value).strip()
+        return normalized if normalized else None
+    except (TypeError, AttributeError):
+        logger.warning(f"Invalid {field_name} format: {type(value)}, skipping")
+        return None
+
+
+def _normalize_asset_type(asset_type_raw: Any) -> str:
+    """
+    Normalize asset type to lowercase string.
+
+    Args:
+        asset_type_raw: Raw asset type value
+
+    Returns:
+        Normalized asset type string (empty if invalid)
+    """
+    if not asset_type_raw:
+        return ""
+    try:
+        return str(asset_type_raw).strip().lower()
+    except (TypeError, AttributeError):
+        logger.warning(
+            f"Invalid asset_type format: {type(asset_type_raw)}, using default"
+        )
+        return ""
+
+
 def get_smart_asset_name(data: Dict[str, Any]) -> str:
     """
     Generate a smart asset name using fallback hierarchy.
@@ -26,29 +68,55 @@ def get_smart_asset_name(data: Dict[str, Any]) -> str:
     3. hostname (only for applicable asset types: servers, databases, network devices)
     4. server_name (only for applicable asset types)
     5. fallback with row number if available
+
+    Args:
+        data: Dictionary containing asset data fields (name, asset_name, hostname, etc.)
+
+    Returns:
+        Resolved asset name as string
+
+    Raises:
+        ValueError: If input data is invalid (non-dict type)
     """
+    # Input validation: Ensure data is a dictionary
+    if not isinstance(data, dict):
+        logger.warning(f"Invalid input type for get_smart_asset_name: {type(data)}")
+        return "Unknown Asset"
+
     # Try name or asset_name first (they're the same thing)
-    name = data.get("name") or data.get("asset_name")
+    # Handle edge cases: empty strings, None values, non-string types
+    name = _normalize_string_field(data.get("name") or data.get("asset_name"), "name")
     if name:
-        return str(name).strip()
+        return name
 
     # Only use hostname for asset types where it's applicable
     # NOT for applications or components
-    asset_type = data.get("asset_type", "").lower()
+    asset_type = _normalize_asset_type(data.get("asset_type"))
+
     if asset_type not in ("application", "component", "components"):
         # Try hostname (common for servers, databases, network devices)
-        if data.get("hostname"):
-            return str(data["hostname"]).strip()
+        hostname = _normalize_string_field(data.get("hostname"), "hostname")
+        if hostname:
+            return hostname
 
         # Try server_name
-        if data.get("server_name"):
-            return str(data["server_name"]).strip()
+        server_name = _normalize_string_field(data.get("server_name"), "server_name")
+        if server_name:
+            return server_name
 
     # Fallback with row number if available
-    if data.get("row_number"):
-        return f"Asset-{data['row_number']}"
+    row_number = data.get("row_number")
+    if row_number is not None:
+        try:
+            # Handle both int and string row numbers
+            row_num = int(row_number) if isinstance(row_number, (int, str)) else None
+            if row_num is not None:
+                return f"Asset-{row_num}"
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid row_number format: {type(row_number)}, skipping")
 
     # Last resort
+    logger.warning("No valid asset name found, using fallback 'Unknown Asset'")
     return "Unknown Asset"
 
 
