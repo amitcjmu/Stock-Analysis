@@ -2,7 +2,7 @@
 Add import_category and processing_config columns to data_imports.
 
 Revision ID: 135_add_import_category_to_data_imports
-Revises: 134_add_selected_template_to_assessment_flows
+Revises: 134_add_selected_template
 Create Date: 2025-11-12
 
 Adds support for categorising data imports and persisting per-category
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "135_add_import_category_to_data_imports"
-down_revision = "134_add_selected_template_to_assessment_flows"
+down_revision = "134_add_selected_template"
 branch_labels = None
 depends_on = None
 
