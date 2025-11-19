@@ -308,7 +308,8 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
                 "applicable_tiers": ["tier_1", "tier_2", "tier_3", "tier_4"],
                 "question_set": {},
                 "questions": [],
-                "target_gaps": target_gaps,  # CRITICAL FIX: Populate target_gaps from collection gaps
+                # Removed target_gaps - not a valid field in AdaptiveQuestionnaire model
+                # target_gaps should be stored within individual questions in the questions JSONB field
                 "validation_rules": {},
                 "completion_status": "pending",
                 "responses_collected": {},
