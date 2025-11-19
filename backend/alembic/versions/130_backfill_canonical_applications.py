@@ -45,6 +45,20 @@ def upgrade():
     # Use raw SQL for maximum control and idempotency
     conn = op.get_bind()
 
+    # Step 0: Cleanup - Delete any existing junction records with placeholder asset IDs
+    # This ensures the migration is truly idempotent and removes corrupted data from previous runs
+    conn.execute(
+        sa.text(
+            """
+        DELETE FROM migration.collection_flow_applications
+        WHERE asset_id IN (
+            '22222222-2222-2222-2222-222222222221'::UUID,
+            '22222222-2222-2222-2222-222222222222'::UUID
+        );
+    """
+        )
+    )
+
     # Step 1: Create "System Migration" collection flows (one per tenant)
     # Note: collection_flows requires flow_id, user_id, automation_tier, progress_percentage
     # We use the first available user_id from the users table as a system placeholder
@@ -83,6 +97,11 @@ def upgrade():
             FROM migration.assets
             WHERE application_name IS NOT NULL
                 AND application_name != ''
+                -- CC FIX: Exclude hardcoded placeholder asset IDs from seed data
+                AND id NOT IN (
+                    '22222222-2222-2222-2222-222222222221'::UUID,
+                    '22222222-2222-2222-2222-222222222222'::UUID
+                )
                 AND NOT EXISTS (
                     SELECT 1
                     FROM migration.collection_flow_applications cfa
@@ -140,6 +159,11 @@ def upgrade():
             FROM migration.assets
             WHERE application_name IS NOT NULL
                 AND application_name != ''
+                -- CC FIX: Exclude hardcoded placeholder asset IDs from seed data
+                AND id NOT IN (
+                    '22222222-2222-2222-2222-222222222221'::UUID,
+                    '22222222-2222-2222-2222-222222222222'::UUID
+                )
                 AND NOT EXISTS (
                     SELECT 1
                     FROM migration.collection_flow_applications cfa
@@ -200,6 +224,11 @@ def upgrade():
         FROM migration.assets a
         WHERE a.application_name IS NOT NULL
             AND a.application_name != ''
+            -- CC FIX: Exclude hardcoded placeholder asset IDs from seed data
+            AND a.id NOT IN (
+                '22222222-2222-2222-2222-222222222221'::UUID,
+                '22222222-2222-2222-2222-222222222222'::UUID
+            )
             AND NOT EXISTS (
                 SELECT 1
                 FROM migration.collection_flow_applications cfa
