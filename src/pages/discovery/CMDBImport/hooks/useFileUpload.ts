@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';
+import { parseCsvData, type CsvRecord } from '@/utils/csvParser';
 import type { UploadFile } from '../CMDBImport.types';
 
 export const useFileUpload = (): JSX.Element => {
@@ -12,38 +13,6 @@ export const useFileUpload = (): JSX.Element => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-
-  interface CsvRecord {
-    [key: string]: string | number;
-  }
-
-  const parseCsvData = useCallback(async (file: File): Promise<CsvRecord[]> => {
-    const text = await file.text();
-    const lines = text.split('\n').filter(line => line.trim());
-    console.log(`🔍 DEBUG: Parsed ${lines.length} lines from CSV file`);
-    if (lines.length <= 1) {
-      console.warn('🚨 DEBUG: CSV file has no data rows or only header');
-      return [];
-    }
-
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const records = lines.slice(1).map((line, index) => {
-      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-      const record: CsvRecord = {};
-      headers.forEach((header, headerIndex) => {
-        record[header] = values[headerIndex] || '';
-      });
-      return record;
-    });
-
-    console.log(`🔍 DEBUG: Parsed ${records.length} data records from CSV`);
-    console.log(`🔍 DEBUG: Headers: ${headers.join(', ')}`);
-    if (records.length > 0) {
-      console.log(`🔍 DEBUG: First record sample:`, records[0]);
-    }
-
-    return records;
-  }, []);
 
   const storeImportData = useCallback(async (
     csvData: CsvRecord[],
