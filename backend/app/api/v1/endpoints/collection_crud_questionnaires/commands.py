@@ -7,11 +7,12 @@ from typing import List
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
 from app.models.collection_flow import CollectionFlow, AdaptiveQuestionnaire
+from app.models.collection_data_gap import CollectionDataGap
 from app.schemas.collection_flow import AdaptiveQuestionnaireResponse
 
 # Import modular functions
@@ -87,10 +88,91 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
             )
 
             if existing:
-                # Decide whether to reuse based on completion status
+                # CRITICAL FIX: Check if questionnaire needs updating for new gaps
+                # Even completed questionnaires should be updated when new gaps are added
+
+                # Get current gaps for this asset in the CURRENT flow
+                current_gaps_result = await db.execute(
+                    select(CollectionDataGap).where(
+                        and_(
+                            CollectionDataGap.collection_flow_id == flow.id,
+                            CollectionDataGap.asset_id == asset_id,
+                            CollectionDataGap.resolution_status != "resolved",
+                        )
+                    )
+                )
+                current_gaps = current_gaps_result.scalars().all()
+                current_gap_fields = {gap.field_name for gap in current_gaps}
+
+                # Get fields already covered by existing questionnaire
+                existing_questions = (
+                    existing.questions if isinstance(existing.questions, list) else []
+                )
+                existing_fields = {
+                    q.get("field_id") or q.get("field_name") for q in existing_questions
+                }
+
+                # Find NEW gaps not covered by existing questionnaire
+                new_gap_fields = current_gap_fields - existing_fields
+
+                if new_gap_fields:
+                    # New gaps detected - UPDATE questionnaire instead of reusing
+                    logger.info(
+                        f"🔄 Updating questionnaire {existing.id} for asset {asset_id}: "
+                        f"{len(new_gap_fields)} new gaps detected ({', '.join(list(new_gap_fields)[:3])}...)"
+                    )
+
+                    # Update to current flow
+                    existing.collection_flow_id = flow.id
+
+                    # Reset status to trigger regeneration
+                    if existing.completion_status == "completed":
+                        existing.completion_status = "pending"
+                        logger.info(
+                            "   Status changed: completed → pending (will regenerate)"
+                        )
+
+                    existing.updated_at = datetime.now(timezone.utc)
+                    existing.description = (
+                        f"Updating questionnaire with {len(new_gap_fields)} new gaps..."
+                    )
+
+                    await db.commit()
+                    await db.refresh(existing)
+
+                    # Trigger background regeneration to append new questions
+                    target_asset = assets_by_id.get(asset_id_str)
+                    if target_asset:
+                        task = asyncio.create_task(
+                            _background_generate(
+                                existing.id,
+                                flow_id,
+                                master_flow_id,
+                                [asset_id_str],
+                                context,
+                            )
+                        )
+                        _background_tasks.add(task)
+                        task.add_done_callback(_background_tasks.discard)
+
+                    questionnaire_responses.append(
+                        collection_serializers.build_questionnaire_response(existing)
+                    )
+                    continue
+
+                # No new gaps - reuse as-is
                 should_reuse, reason = await should_reuse_questionnaire(existing)
 
                 if should_reuse:
+                    # Update collection_flow_id to current flow even when reusing
+                    if existing.collection_flow_id != flow.id:
+                        logger.info(
+                            f"📎 Linking questionnaire {existing.id} to current flow {flow.id}"
+                        )
+                        existing.collection_flow_id = flow.id
+                        await db.commit()
+                        await db.refresh(existing)
+
                     log_questionnaire_reuse(existing, flow_db_id, asset_id)
                     questionnaire_responses.append(
                         collection_serializers.build_questionnaire_response(existing)
@@ -159,6 +241,34 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
                 asset_id, flow_db_id, "No existing questionnaire found"
             )
 
+            # CRITICAL FIX: Fetch gaps for this asset to populate target_gaps field
+            # This prevents the infinite polling issue where frontend waits for target_gaps to be populated
+
+            gaps_result = await db.execute(
+                select(CollectionDataGap).where(
+                    and_(
+                        CollectionDataGap.collection_flow_id == flow.id,
+                        CollectionDataGap.asset_id == asset_id,
+                        CollectionDataGap.resolution_status != "resolved",
+                    )
+                )
+            )
+            gaps = gaps_result.scalars().all()
+
+            # Build target_gaps array from fetched gaps
+            target_gaps = []
+            for gap in gaps:
+                target_gaps.append(
+                    {
+                        "field_name": gap.field_name,
+                        "gap_type": gap.gap_type,
+                        "gap_category": gap.gap_category,
+                        "asset_id": str(gap.asset_id),
+                        "priority": gap.priority,
+                        "impact_on_sixr": gap.impact_on_sixr,
+                    }
+                )
+
             questionnaire_id = uuid4()
             questionnaire_data = {
                 "id": questionnaire_id,
@@ -174,6 +284,7 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
                 "applicable_tiers": ["tier_1", "tier_2", "tier_3", "tier_4"],
                 "question_set": {},
                 "questions": [],
+                "target_gaps": target_gaps,  # CRITICAL FIX: Populate target_gaps from collection gaps
                 "validation_rules": {},
                 "completion_status": "pending",
                 "responses_collected": {},
@@ -361,7 +472,11 @@ async def _background_generate(
                 # Bug fix: Previously took only questionnaires[0].questions, losing 83% of questions
                 questions = []
                 for section in questionnaires:
-                    if hasattr(section, "questions") and section.questions:
+                    # CC FIX: section is a dict, not an object - use .get() not hasattr()
+                    if isinstance(section, dict) and section.get("questions"):
+                        questions.extend(section["questions"])
+                    elif hasattr(section, "questions") and section.questions:
+                        # Fallback for object-based sections (backward compatibility)
                         questions.extend(section.questions)
 
                 logger.info(
