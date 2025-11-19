@@ -181,6 +181,24 @@ async def persist_ai_questionnaires(
         )
         return 0
 
+    # CRITICAL FIX: Build target_gaps from result_dict gaps
+    # This populates the field that frontend polls to show questionnaires
+    target_gaps = []
+    gaps_by_priority = result_dict.get("gaps", {})
+    for priority_level, gaps in gaps_by_priority.items():
+        if isinstance(gaps, list):
+            for gap in gaps:
+                target_gaps.append(
+                    {
+                        "field_name": gap.get("field_name"),
+                        "gap_type": gap.get("gap_type", "missing_field"),
+                        "gap_category": gap.get("gap_category", "unknown"),
+                        "asset_id": gap.get("asset_id"),
+                        "priority": priority_level,
+                        "impact_on_sixr": gap.get("impact_on_sixr", "medium"),
+                    }
+                )
+
     # Create AdaptiveQuestionnaire record
     questionnaire = AdaptiveQuestionnaire(
         client_account_id=collection_flow.client_account_id,
@@ -194,6 +212,7 @@ async def persist_ai_questionnaires(
         applicable_tiers=["tier_2"],  # Only AI tier generates these
         questions=all_questions,
         question_count=len(all_questions),
+        target_gaps=target_gaps,  # CRITICAL FIX: Populate target_gaps from AI analysis result
         validation_rules={},
         scoring_rules={},
         completion_status="pending",

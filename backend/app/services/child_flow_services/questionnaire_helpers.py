@@ -157,6 +157,21 @@ async def persist_questionnaires(
     for section in questionnaire_sections:
         all_questions.extend(section.get("questions", []))
 
+    # CRITICAL FIX: Build target_gaps from persisted_gaps
+    # This populates the field that frontend polls to show questionnaires
+    target_gaps = []
+    for gap in persisted_gaps:
+        target_gaps.append(
+            {
+                "field_name": gap.field_name,
+                "gap_type": gap.gap_type,
+                "gap_category": gap.gap_category,
+                "asset_id": str(gap.asset_id),
+                "priority": gap.priority,
+                "impact_on_sixr": gap.impact_on_sixr,
+            }
+        )
+
     questionnaire = AdaptiveQuestionnaire(
         client_account_id=context.client_account_id,
         engagement_id=context.engagement_id,
@@ -169,6 +184,7 @@ async def persist_questionnaires(
         applicable_tiers=["tier_1", "tier_2"],
         questions=all_questions,
         question_count=len(all_questions),
+        target_gaps=target_gaps,  # CRITICAL FIX: Populate target_gaps from persisted gaps
         validation_rules={},
         scoring_rules={},
         completion_status="pending",
