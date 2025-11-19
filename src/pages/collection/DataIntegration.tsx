@@ -14,7 +14,8 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { DataIntegrationView } from '@/components/collection/DataIntegrationView';
 import { ConflictResolver } from '@/components/collection/components/ConflictResolver';
 import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
-import { ProgressTracker } from '@/components/collection/ProgressTracker';
+// CC: ProgressTracker commented out - too complex and not updating properly with section-based generation
+// import { ProgressTracker } from '@/components/collection/ProgressTracker';
 
 // Import types
 import type {
@@ -390,9 +391,9 @@ const DataIntegration: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Progress Tracker Sidebar */}
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 gap-6">
+        {/* CC: Progress Tracker Sidebar - COMMENTED OUT (too complex, not updating properly) */}
+        {/* <div className="lg:col-span-1">
           <ProgressTracker
             formId="data-integration"
             totalSections={4}
@@ -403,10 +404,10 @@ const DataIntegration: React.FC = () => {
             timeSpent={0}
             estimatedTimeRemaining={statusCounts.pending * 120000} // 2 min per conflict
           />
-        </div>
+        </div> */}
 
         {/* Main Content */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="space-y-6">
           {/* Validation Display */}
           {validation && (
             <ValidationDisplay

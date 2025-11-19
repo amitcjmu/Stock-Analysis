@@ -26,7 +26,8 @@ import { Badge } from '@/components/ui/badge';
 // Import existing components
 import PhaseTimeline from './PhaseTimeline';
 import type { PhaseInfo } from './PhaseTimeline';
-import { ProgressTracker } from '@/components/collection/ProgressTracker';
+// CC: ProgressTracker commented out - too complex and not updating properly with section-based generation
+// import { ProgressTracker } from '@/components/collection/ProgressTracker';
 import type { ProgressMilestone } from '@/components/collection/types';
 
 export interface CollectionFlow {
@@ -384,9 +385,10 @@ export const TabbedFlowDetails: React.FC<TabbedFlowDetailsProps> = ({
             <PhaseTimeline phases={phases} currentPhase={flow.current_phase} />
           </TabsContent>
 
-          {/* Progress Tab */}
+          {/* Progress Tab - COMMENTED OUT (ProgressTracker too complex) */}
           <TabsContent value="progress" className="p-6 flex justify-center">
-            <ProgressTracker
+            {/* CC: ProgressTracker commented out - too complex and not updating properly */}
+            {/* <ProgressTracker
               formId={flow.id}
               totalSections={milestones.length}
               completedSections={milestones.filter(m => m.achieved).length}
@@ -399,7 +401,11 @@ export const TabbedFlowDetails: React.FC<TabbedFlowDetailsProps> = ({
                   ? Math.max(0, new Date(flow.estimated_completion).getTime() - Date.now())
                   : 0
               }
-            />
+            /> */}
+            <div className="text-center text-muted-foreground">
+              <p>Progress tracking temporarily disabled</p>
+              <p className="text-sm mt-2">Use the Overview tab to monitor flow progress</p>
+            </div>
           </TabsContent>
 
           {/* Details Tab */}

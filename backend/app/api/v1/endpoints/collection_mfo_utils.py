@@ -341,6 +341,12 @@ async def sync_collection_child_flow_state(
             error_message=collection_flow.error_message,
         )
 
-    # Always update progress
-    collection_flow.update_progress()
+    # Always update progress (wrap in try-except to handle greenlet_spawn issues from background tasks)
+    try:
+        collection_flow.update_progress()
+    except Exception as e:
+        logger.warning(f"Failed to update progress (non-critical): {e}")
+        # Calculate progress directly to avoid greenlet issues
+        collection_flow.progress_percentage = collection_flow.calculate_progress()
+
     await db.commit()

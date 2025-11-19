@@ -492,7 +492,11 @@ async def _background_generate(
                 duplicates_removed = 0
 
                 for question in questions:
-                    field_id = question.get("field_id") if isinstance(question, dict) else getattr(question, "field_id", None)
+                    field_id = (
+                        question.get("field_id")
+                        if isinstance(question, dict)
+                        else getattr(question, "field_id", None)
+                    )
                     if field_id and field_id in seen_field_ids:
                         duplicates_removed += 1
                         logger.debug(f"Removed duplicate question: {field_id}")

@@ -66,6 +66,7 @@ async def _add_gaps_to_existing_flow(
 
         for attr_name in missing_attrs:
             # Check if gap already exists for this asset/field combination
+            # Use scalars().all() to handle potential duplicates gracefully
             existing_gap_result = await db.execute(
                 select(CollectionDataGap).where(
                     and_(
@@ -75,13 +76,19 @@ async def _add_gaps_to_existing_flow(
                     )
                 )
             )
-            existing_gap = existing_gap_result.scalar_one_or_none()
+            existing_gaps = existing_gap_result.scalars().all()
 
-            if existing_gap:
-                gaps_skipped += 1
-                logger.debug(
-                    f"Gap already exists for asset {asset_uuid} field {attr_name}, skipping"
-                )
+            if existing_gaps:
+                gaps_skipped += len(existing_gaps)
+                if len(existing_gaps) > 1:
+                    logger.warning(
+                        f"Found {len(existing_gaps)} duplicate gaps for asset {asset_uuid} "
+                        f"field {attr_name} - skipping all (data integrity issue - consider cleanup)"
+                    )
+                else:
+                    logger.debug(
+                        f"Gap already exists for asset {asset_uuid} field {attr_name}, skipping"
+                    )
                 continue
 
             # Determine category from mapping, default to "application" if not found
@@ -189,17 +196,26 @@ async def ensure_collection_flow(
             if missing_attributes:
                 await _add_gaps_to_existing_flow(db, existing, missing_attributes)
 
-            # Bug Fix: Update collection_config with selected_application_ids from missing_attributes
+            # Bug Fix: Update flow_metadata with selected_asset_ids from missing_attributes
             # This ensures assets are pre-selected when navigating from assessment flow
             if missing_attributes:
                 from sqlalchemy.orm.attributes import flag_modified
 
                 selected_asset_ids = list(missing_attributes.keys())
+
+                # Update flow_metadata (NEW field actually being used)
+                flow_metadata = existing.flow_metadata or {}
+                flow_metadata["selected_asset_ids"] = selected_asset_ids
+                flow_metadata["use_agent_generation"] = True
+                existing.flow_metadata = flow_metadata
+                flag_modified(existing, "flow_metadata")
+
+                # Also update collection_config for backward compatibility
                 collection_config = existing.collection_config or {}
                 collection_config["selected_application_ids"] = selected_asset_ids
                 existing.collection_config = collection_config
-                # CRITICAL: Flag JSONB field as modified so SQLAlchemy detects the change
                 flag_modified(existing, "collection_config")
+
                 await db.commit()
                 await db.refresh(existing)
                 logger.info(
@@ -248,10 +264,20 @@ async def ensure_collection_flow(
                         db, general_existing, missing_attributes
                     )
 
-                    # Update collection_config with selected_application_ids
+                    # Bug Fix: Update flow_metadata with selected_asset_ids from missing_attributes
+                    # This ensures assets are pre-selected when navigating from assessment flow
                     from sqlalchemy.orm.attributes import flag_modified
 
                     selected_asset_ids = list(missing_attributes.keys())
+
+                    # Update flow_metadata (NEW field actually being used)
+                    flow_metadata = general_existing.flow_metadata or {}
+                    flow_metadata["selected_asset_ids"] = selected_asset_ids
+                    flow_metadata["use_agent_generation"] = True
+                    general_existing.flow_metadata = flow_metadata
+                    flag_modified(general_existing, "flow_metadata")
+
+                    # Also update collection_config for backward compatibility
                     collection_config = general_existing.collection_config or {}
                     collection_config["selected_application_ids"] = selected_asset_ids
                     general_existing.collection_config = collection_config
@@ -261,7 +287,8 @@ async def ensure_collection_flow(
                 await db.refresh(general_existing)
                 logger.info(
                     f"Reused existing flow {general_existing.flow_id} "
-                    f"and linked to assessment flow {assessment_flow_id}"
+                    f"and linked to assessment flow {assessment_flow_id} "
+                    f"with {len(selected_asset_ids) if missing_attributes else 0} pre-selected assets"
                 )
 
                 return collection_serializers.build_collection_flow_response(

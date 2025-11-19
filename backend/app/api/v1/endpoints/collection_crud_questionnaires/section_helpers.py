@@ -26,6 +26,7 @@ def filter_gaps_by_section(gaps: List[str], section_id: str) -> List[str]:
         List of gaps relevant to this section
     """
     # Per ADR-035: Section-to-gap mapping aligned with Issue #980
+    # UPDATED: Added 22 critical attributes for assessment readiness (85% threshold)
     section_gap_mapping = {
         "infrastructure": [
             # Column gaps: Hardware, OS, network
@@ -39,6 +40,12 @@ def filter_gaps_by_section(gaps: List[str], section_id: str) -> List[str]:
             "hostname",
             "ip_address",
             "datacenter_location",
+            # CRITICAL ATTRIBUTES (Assessment Readiness - Infrastructure)
+            "operating_system_version",  # 22 critical attributes
+            "cpu_memory_storage_specs",  # 22 critical attributes
+            "network_configuration",  # 22 critical attributes
+            "performance_baseline",  # 22 critical attributes
+            "availability_requirements",  # 22 critical attributes
         ],
         "resilience": [
             # Enrichment gaps: resilience table
@@ -51,6 +58,7 @@ def filter_gaps_by_section(gaps: List[str], section_id: str) -> List[str]:
             "failover_capability",
             "redundancy_level",
             "clustering_enabled",
+            # Note: availability_requirements is in infrastructure section (primary category)
         ],
         "compliance": [
             # Standards gaps + enrichment gaps: compliance_flags table
@@ -64,6 +72,11 @@ def filter_gaps_by_section(gaps: List[str], section_id: str) -> List[str]:
             "hipaa_compliance",
             "pci_dss_compliance",
             "security_certifications",
+            # CRITICAL ATTRIBUTES (Assessment Readiness - Business/Compliance)
+            "business_criticality_score",  # 22 critical attributes
+            "change_tolerance",  # 22 critical attributes
+            "compliance_constraints",  # 22 critical attributes
+            "stakeholder_impact",  # 22 critical attributes
         ],
         "dependencies": [
             # Enrichment gaps: dependencies table
@@ -74,6 +87,14 @@ def filter_gaps_by_section(gaps: List[str], section_id: str) -> List[str]:
             "downstream_consumers",
             "upstream_dependencies",
             "service_mesh_integration",
+            # CRITICAL ATTRIBUTES (Assessment Readiness - Application/Dependencies)
+            "technology_stack",  # 22 critical attributes
+            "architecture_pattern",  # 22 critical attributes (also in tech_debt for context)
+            "integration_dependencies",  # 22 critical attributes
+            "data_volume_characteristics",  # 22 critical attributes
+            "user_load_patterns",  # 22 critical attributes
+            "business_logic_complexity",  # 22 critical attributes
+            "configuration_complexity",  # 22 critical attributes
         ],
         "tech_debt": [
             # JSONB gaps: technical_details field
@@ -82,16 +103,21 @@ def filter_gaps_by_section(gaps: List[str], section_id: str) -> List[str]:
             "security_vulnerabilities",
             "eol_technology_assessment",
             "modernization_readiness",
-            "architecture_pattern",
+            "architecture_pattern",  # 22 critical attributes (duplicated for context)
             "test_coverage",
             "documentation_quality",
+            # CRITICAL ATTRIBUTES (Assessment Readiness - Technical Debt)
+            "code_quality_metrics",  # 22 critical attributes
+            # security_vulnerabilities already included above
+            # eol_technology_assessment already included above
+            # documentation_quality already included above
         ],
     }
 
     section_fields = section_gap_mapping.get(section_id, [])
     filtered = [gap for gap in gaps if gap in section_fields]
 
-    logger.debug(
+    logger.info(
         f"Section {section_id}: {len(filtered)}/{len(gaps)} gaps filtered "
         f"({', '.join(filtered) if filtered else 'none'})"
     )

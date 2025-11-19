@@ -10,7 +10,8 @@ import { Save, Send, ArrowLeft } from 'lucide-react';
 
 // Import collection components
 import { AdaptiveForm } from '@/components/collection/AdaptiveForm';
-import { ProgressTracker } from '@/components/collection/ProgressTracker';
+// CC: ProgressTracker commented out - too complex and not updating properly with section-based generation
+// import { ProgressTracker } from '@/components/collection/ProgressTracker';
 import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { BulkDataGrid } from '@/components/collection/BulkDataGrid';
 import { AssetSelectionForm } from '@/components/collection/AssetSelectionForm';
@@ -166,9 +167,9 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   };
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-4 gap-6 ${className}`}>
-      {/* Progress Tracker Sidebar */}
-      <div className="lg:col-span-1">
+    <div className={`grid grid-cols-1 gap-6 ${className}`}>
+      {/* CC: Progress Tracker Sidebar - COMMENTED OUT (too complex, not updating properly) */}
+      {/* <div className="lg:col-span-1">
         <ProgressTracker
           formId={formData.formId}
           totalSections={formData.sections.length}
@@ -179,10 +180,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
           timeSpent={0}
           estimatedTimeRemaining={formData.estimatedCompletionTime}
         />
-      </div>
+      </div> */}
 
       {/* Main Content */}
-      <div className="lg:col-span-3 space-y-6">
+      <div className="space-y-6">
         {/* Validation Display is now handled inside AdaptiveForm component */}
 
         {/* Form Tabs */}

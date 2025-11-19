@@ -23,8 +23,10 @@ async def cleanup_heuristic_gaps(
 ):
     """Delete heuristic gaps that weren't validated by AI comprehensive analysis.
 
-    The AI analysis is the AUTHORITATIVE source of gaps. Heuristic gaps are just
-    a quick preview and should be removed if AI determined they aren't real gaps.
+    CRITICAL (Bug #11): The AI analysis is the AUTHORITATIVE source of gaps, BUT
+    the 22 critical assessment attributes must ALWAYS be preserved to ensure 85%
+    assessment readiness threshold. Heuristic gaps are preview and can be removed
+    if AI determined they aren't real gaps, EXCEPT for critical attributes.
 
     Args:
         collection_flow_id: Collection flow UUID
@@ -37,15 +39,22 @@ async def cleanup_heuristic_gaps(
     """
     from sqlalchemy import select
     from app.models.collection_data_gap import CollectionDataGap
+    from app.services.crewai_flows.tools.critical_attributes_tool.base import (
+        CriticalAttributesDefinition,
+    )
+
+    # Bug #11: Get list of 22 critical assessment attributes to preserve
+    critical_attributes = set(CriticalAttributesDefinition.get_all_attributes())
 
     logger.info(
         f"🔍 Cleaning up heuristic gaps for {len(analyzed_assets)} analyzed assets "
-        f"(AI gaps are authoritative and replace all heuristic gaps)"
+        f"(AI gaps authoritative, BUT preserving {len(critical_attributes)} critical assessment attributes)"
     )
 
-    # Delete ALL heuristic gaps for analyzed assets
-    # AI gaps are authoritative and completely replace heuristic gaps
+    # Delete heuristic gaps EXCEPT critical assessment attributes
     deleted_count = 0
+    preserved_count = 0
+
     for asset in analyzed_assets:
         # Find all heuristic gaps for this asset in this flow
         stmt = select(CollectionDataGap).where(
@@ -56,21 +65,34 @@ async def cleanup_heuristic_gaps(
         result = await db.execute(stmt)
         heuristic_gaps = result.scalars().all()
 
-        # Delete ALL heuristic gaps - AI analysis is authoritative
+        # Delete heuristic gaps EXCEPT critical assessment attributes (Bug #11)
         for gap in heuristic_gaps:
-            await db.delete(gap)
-            deleted_count += 1
-            logger.debug(
-                f"🗑️ Deleting heuristic gap (AI analysis is authoritative): "
-                f"Asset={asset.name}, Field={gap.field_name}"
-            )
+            # Bug #11: Preserve critical assessment attributes
+            if gap.field_name in critical_attributes:
+                preserved_count += 1
+                logger.debug(
+                    f"💎 PRESERVED critical assessment attribute (Bug #11): "
+                    f"Asset={asset.name}, Field={gap.field_name}, Category={gap.gap_category}"
+                )
+                # Set confidence_score to mark as "AI-reviewed but preserved for assessment"
+                gap.confidence_score = 0.75
+                gap.suggested_resolution = (
+                    "Critical assessment attribute - required for 85% readiness"
+                )
+            else:
+                await db.delete(gap)
+                deleted_count += 1
+                logger.debug(
+                    f"🗑️ Deleted non-critical heuristic gap: "
+                    f"Asset={asset.name}, Field={gap.field_name}"
+                )
 
     await db.commit()
 
-    if deleted_count > 0:
-        logger.info(
-            f"✅ Cleaned up {deleted_count} heuristic gaps not validated by AI analysis"
-        )
+    logger.info(
+        f"✅ Deleted {deleted_count} non-critical gaps, "
+        f"💎 PRESERVED {preserved_count} critical assessment attributes (Bug #11)"
+    )
 
     return deleted_count
 
