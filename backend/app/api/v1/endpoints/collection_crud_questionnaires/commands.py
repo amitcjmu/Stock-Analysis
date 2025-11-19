@@ -483,6 +483,33 @@ async def _background_generate(
                     f"Collected {len(questions)} total questions from {len(questionnaires)} sections"
                 )
 
+                # CRITICAL FIX Bug #10: Deduplicate questions at flattening stage
+                # Issue: Agent sometimes generates duplicate questions within the same section
+                # Deduplication service only deduplicates across assets, not within sections
+                # Use field_id as unique identifier per question
+                seen_field_ids = set()
+                deduplicated_questions = []
+                duplicates_removed = 0
+
+                for question in questions:
+                    field_id = question.get("field_id") if isinstance(question, dict) else getattr(question, "field_id", None)
+                    if field_id and field_id in seen_field_ids:
+                        duplicates_removed += 1
+                        logger.debug(f"Removed duplicate question: {field_id}")
+                        continue
+                    if field_id:
+                        seen_field_ids.add(field_id)
+                    deduplicated_questions.append(question)
+
+                if duplicates_removed > 0:
+                    logger.warning(
+                        f"Removed {duplicates_removed} duplicate questions during flattening "
+                        f"({len(questions)} → {len(deduplicated_questions)} questions)"
+                    )
+                    questions = deduplicated_questions
+                else:
+                    logger.info("No duplicate questions found during flattening")
+
                 # Update questionnaire with generated questions AND progress flow status
                 await update_questionnaire_status(
                     questionnaire_id,
