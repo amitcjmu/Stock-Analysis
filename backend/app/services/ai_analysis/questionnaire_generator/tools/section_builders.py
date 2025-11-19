@@ -211,12 +211,16 @@ def group_attributes_by_category(  # noqa: C901
     """
     # Per ADR-035: Align with Issue #980 assessment flow sections
     # Categories match what assessment flow expects for 6R recommendations
+    # CRITICAL FIX (Bug #5): Pre-initialize ALL possible categories to prevent KeyError
     attrs_by_category = {
         "infrastructure": [],  # Hardware, OS, network
         "resilience": [],  # HA, DR, backup
         "compliance": [],  # GDPR, HIPAA, PCI-DSS, security
         "dependencies": [],  # Integrations, APIs
         "tech_debt": [],  # Code quality, vulnerabilities, modernization
+        "business": [],  # Business-related attributes (owners, criticality, etc.)
+        "application": [],  # Application-specific attributes (from critical attributes)
+        "technical_debt": [],  # Alias for tech_debt (some attributes use this)
     }
 
     # Track which attributes are needed and which assets need them

@@ -189,7 +189,15 @@ class LLMUsageCallback(CustomLogger):
             error_type = type(response_obj).__name__ if response_obj else "UnknownError"
             error_message = str(response_obj) if response_obj else "Unknown error"
 
-            response_time_ms = int((end_time - start_time) * 1000)
+            # CC Bug #8: Handle datetime objects from LiteLLM (should be floats but sometimes datetime)
+            from datetime import datetime, timedelta
+
+            if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            elif isinstance(end_time - start_time, timedelta):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            else:
+                response_time_ms = int((end_time - start_time) * 1000)
             feature_context = kwargs.get("metadata", {}).get(
                 "feature_context", "crewai"
             )

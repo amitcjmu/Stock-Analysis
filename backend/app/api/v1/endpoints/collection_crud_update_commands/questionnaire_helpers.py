@@ -429,7 +429,10 @@ async def _update_asset_readiness(
                     ),
                     # ✅ FIX: Update sixr_ready for Assessment Flow UI
                     # Assessment Flow queries this field to display readiness status
-                    sixr_ready=gap_report.is_ready_for_assessment,
+                    # CC FIX Bug #4: Convert boolean to string for VARCHAR column
+                    sixr_ready=(
+                        "ready" if gap_report.is_ready_for_assessment else "not_ready"
+                    ),
                 )
             )
             await db.execute(update_stmt)

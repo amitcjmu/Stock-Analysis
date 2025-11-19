@@ -21,7 +21,8 @@ import ContextBreadcrumbs from "@/components/context/ContextBreadcrumbs";
 // Import existing collection components
 import { BulkDataGrid } from "@/components/collection/BulkDataGrid";
 import { ValidationDisplay } from "@/components/collection/ValidationDisplay";
-import { ProgressTracker } from "@/components/collection/ProgressTracker";
+// CC: ProgressTracker commented out - too complex and not updating properly with section-based generation
+// import { ProgressTracker } from "@/components/collection/ProgressTracker";
 
 // Import types
 import type {
@@ -432,9 +433,9 @@ const BulkUpload: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Progress Tracker Sidebar */}
-              <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 gap-6">
+              {/* CC: Progress Tracker Sidebar - COMMENTED OUT (too complex, not updating properly) */}
+              {/* <div className="lg:col-span-1">
                 <ProgressTracker
                   formId="bulk-upload"
                   totalSections={4}
@@ -445,7 +446,7 @@ const BulkUpload: React.FC = () => {
                   timeSpent={uploadResults[0]?.processingTime || 0}
                   estimatedTimeRemaining={isProcessing ? 60000 : 0}
                 />
-              </div>
+              </div> */}
 
               {/* Main Content */}
               <div className="lg:col-span-3 space-y-6">

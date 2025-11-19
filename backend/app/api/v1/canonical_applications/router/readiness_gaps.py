@@ -108,6 +108,7 @@ async def get_canonical_application_readiness_gaps(
         canonical_app_name = canonical_app.canonical_name
 
         # Get all assets linked to this canonical application
+        # CC FIX: Exclude placeholder asset IDs (22222222-...) to prevent data corruption from affecting gap analysis
         assets_query = (
             select(Asset)
             .join(
@@ -122,6 +123,13 @@ async def get_canonical_application_readiness_gaps(
                 Asset.deleted_at.is_(
                     None
                 ),  # CC FIX: Asset uses deleted_at, not is_deleted
+                # CC FIX: Exclude placeholder asset IDs (test data corruption)
+                ~Asset.id.in_(
+                    [
+                        UUID("22222222-2222-2222-2222-222222222222"),
+                        UUID("22222222-2222-2222-2222-222222222221"),
+                    ]
+                ),
             )
         )
         result = await db.execute(assets_query)

@@ -138,7 +138,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                 for section_id in ASSESSMENT_FLOW_SECTIONS:
                     tasks.append(
                         _generate_asset_section(
-                            redis=redis,
+                            redis=redis.client,  # Pass AsyncRedisWrapper, not RedisConnectionManager
                             flow_id=flow_id,
                             asset=asset,
                             section_id=section_id,
@@ -175,9 +175,10 @@ async def _generate_questionnaires_per_section(  # noqa: C901
             # Step 3: Aggregate sections from Redis
             logger.info(f"Aggregating sections from Redis for flow {flow_id}")
             aggregated_sections = await aggregate_sections_from_redis(
-                redis=redis,
+                redis=redis.client,  # Pass AsyncRedisWrapper, not RedisConnectionManager
                 flow_id=flow_id,
-                asset_ids=[asset.id for asset in existing_assets],
+                # Per Qodo Bot: Stringify UUIDs for JSON serialization in Redis keys
+                asset_ids=[str(asset.id) for asset in existing_assets],
                 sections=ASSESSMENT_FLOW_SECTIONS,
             )
 
@@ -216,7 +217,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
 
             # Step 5: Cleanup Redis cache
             await cleanup_redis_cache(
-                redis=redis,
+                redis=redis.client,  # CC Fix Bug #6: Pass AsyncRedisWrapper, not RedisConnectionManager
                 flow_id=flow_id,
                 asset_ids=[asset.id for asset in existing_assets],
                 sections=ASSESSMENT_FLOW_SECTIONS,
@@ -261,6 +262,7 @@ async def _generate_asset_section(
         Section dict if generation succeeds, None otherwise
     """
     import asyncio
+    import json  # CC Bug #7: Move json import to function scope for except block
     from crewai import Task
     from app.services.persistent_agents.tenant_scoped_agent_pool import (
         TenantScopedAgentPool,
@@ -349,8 +351,6 @@ async def _generate_asset_section(
             return None
 
         # Parse agent output (should be valid JSON)
-        import json
-
         # Agent returns raw string output from task execution
         agent_output = str(result)
 

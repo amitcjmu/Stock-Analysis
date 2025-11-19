@@ -263,6 +263,24 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsAnalyzing(true);
 
+      // Proactively refresh auth token before starting long-running AI analysis
+      // CC Security: Conditional logging (development only) to prevent auth flow exposure
+      // Per Qodo Bot review: Console logs around auth flows can expose session behavior
+      if (import.meta.env.DEV) {
+        console.log('🔄 Refreshing auth token before manual AI gap analysis...');
+      }
+      try {
+        const { refreshAccessToken } = await import('@/lib/tokenRefresh');
+        const newToken = await refreshAccessToken();
+        if (newToken && import.meta.env.DEV) {
+          console.log('✅ Token refreshed successfully before manual analysis');
+        }
+      } catch (refreshError) {
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+        }
+      }
+
       // Start enhancement job (returns 202 Accepted immediately)
       const response = await collectionFlowApi.analyzeGaps(
         flowId,
@@ -349,6 +367,16 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
           }
         } catch (error) {
           console.error("Progress polling error:", error);
+          // If polling fails due to auth (400/401), assume completion to avoid blocking UI
+          if (error && typeof error === 'object') {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            if (status === 400 || status === 401) {
+              clearInterval(pollProgress);
+              setIsAnalyzing(false);
+              setEnhancementProgress(null);
+              console.warn('Polling stopped due to auth error - assuming analysis complete');
+            }
+          }
         }
       }, 30000); // Poll every 30 seconds
 
@@ -383,6 +411,20 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   const handleAnalyzeGapsAuto = useCallback(async () => {
     try {
       setIsAnalyzing(true);
+
+      // Proactively refresh auth token before starting long-running AI analysis
+      console.log('🔄 Refreshing auth token before AI gap analysis...');
+      try {
+        const { refreshAccessToken } = await import('@/lib/tokenRefresh');
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          console.log('✅ Token refreshed successfully before AI analysis');
+        } else {
+          console.warn('⚠️ Token refresh returned null, proceeding anyway');
+        }
+      } catch (refreshError) {
+        console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+      }
 
       console.log('📤 Auto-triggering analyze-gaps with null gaps (comprehensive analysis mode)');
 
@@ -461,6 +503,16 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
           }
         } catch (error) {
           console.error("Progress polling error:", error);
+          // If polling fails due to auth (400/401), assume completion to avoid blocking UI
+          if (error && typeof error === 'object') {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            if (status === 400 || status === 401) {
+              clearInterval(pollProgress);
+              setIsAnalyzing(false);
+              setEnhancementProgress(null);
+              console.warn('Polling stopped due to auth error - assuming analysis complete');
+            }
+          }
         }
       }, 30000); // Poll every 30 seconds
 
@@ -486,6 +538,18 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   const handleForceReAnalysis = async () => {
     try {
       setIsAnalyzing(true);
+
+      // Proactively refresh auth token before starting long-running AI analysis
+      console.log('🔄 Refreshing auth token before force re-analysis...');
+      try {
+        const { refreshAccessToken } = await import('@/lib/tokenRefresh');
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          console.log('✅ Token refreshed successfully before force re-analysis');
+        }
+      } catch (refreshError) {
+        console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+      }
 
       console.log('🔄 Force re-analysis triggered by user');
 
@@ -570,6 +634,16 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
           }
         } catch (error) {
           console.error("Progress polling error:", error);
+          // If polling fails due to auth (400/401), assume completion to avoid blocking UI
+          if (error && typeof error === 'object') {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            if (status === 400 || status === 401) {
+              clearInterval(pollProgress);
+              setIsAnalyzing(false);
+              setEnhancementProgress(null);
+              console.warn('Polling stopped due to auth error - assuming analysis complete');
+            }
+          }
         }
       }, 30000); // Poll every 30 seconds
 
@@ -613,6 +687,16 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       }
     }
   }, [gaps, scanSummary, isAnalyzing, enhancementProgress, handleAnalyzeGapsAuto]);
+
+  // Track if AI analysis has started (to prevent premature button enable)
+  const [aiAnalysisStarted, setAiAnalysisStarted] = useState<boolean>(false);
+
+  // Track AI analysis start to prevent interruption
+  useEffect(() => {
+    if (isAnalyzing || enhancementProgress) {
+      setAiAnalysisStarted(true);
+    }
+  }, [isAnalyzing, enhancementProgress]);
 
   // Delay showing questionnaire button for 20 seconds to encourage gap review
   useEffect(() => {
@@ -1354,10 +1438,10 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             <div className="pt-4 mt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
-                  {aiAnalysisProgress && aiAnalysisProgress.percentage < 100 ? (
+                  {isAnalyzing || (aiAnalysisProgress && aiAnalysisProgress.percentage < 100) ? (
                     <>
                       <p className="font-medium mb-1">
-                        🤖 AI analyzing gaps: {aiAnalysisProgress.completed}/{aiAnalysisProgress.total} assets complete ({aiAnalysisProgress.percentage}%)
+                        🤖 AI analyzing gaps: {aiAnalysisProgress?.completed || 0}/{aiAnalysisProgress?.total || 0} assets complete ({aiAnalysisProgress?.percentage || 0}%)
                       </p>
                       <p className="text-xs">Button will enable when AI analysis completes...</p>
                     </>
@@ -1370,7 +1454,11 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
                 </div>
                 <Button
                   onClick={handleContinueToQuestionnaire}
-                  disabled={isContinuing || (aiAnalysisProgress ? aiAnalysisProgress.percentage < 100 : false)}
+                  disabled={
+                    isContinuing ||
+                    isAnalyzing ||
+                    (aiAnalysisProgress && aiAnalysisProgress.percentage < 100)
+                  }
                   className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
                   size="lg"
                 >
@@ -1379,10 +1467,10 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Proceeding...
                     </>
-                  ) : aiAnalysisProgress && aiAnalysisProgress.percentage < 100 ? (
+                  ) : isAnalyzing || (aiAnalysisProgress && aiAnalysisProgress.percentage < 100) ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      AI Analysis in Progress ({aiAnalysisProgress.percentage}%)
+                      AI Analysis in Progress ({aiAnalysisProgress?.percentage || 0}%)
                     </>
                   ) : (
                     <>

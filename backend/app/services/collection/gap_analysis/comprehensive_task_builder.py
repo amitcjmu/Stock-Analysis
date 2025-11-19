@@ -85,16 +85,15 @@ def build_comprehensive_gap_analysis_task(assets: List[Asset]) -> str:
     all_critical_attrs = CriticalAttributesDefinition.get_all_attributes()
 
     return f"""
-TASK: Cloud migration readiness gap analysis for 6R strategy assessment.
+TASK: Identify missing data gaps for cloud migration assessment (6R strategy).
 
-CRITICAL INSTRUCTIONS - READ FIRST:
-1. DO NOT USE ANY TOOLS - All data you need is in the asset summary below
-2. Analyze assets DIRECTLY from the provided data - tools won't help here
-3. The asset data includes:
-   - current_fields: Data that already exists (from model fields and custom_attributes JSONB)
-   - type: Asset type (application, database, server, network_device, storage, middleware)
-4. Your job: IDENTIFY gaps that impact cloud migration/modernization decisions
-5. DO NOT generate questionnaires (happens separately when user clicks "Continue to Questionnaire")
+INSTRUCTIONS:
+1. DO NOT USE TOOLS - analyze provided asset data directly
+2. Focus on 22 critical attributes (MANDATORY for 85% assessment readiness)
+3. Identify gaps blocking 6R decisions (Rehost/Replatform/Refactor/Rearchitect/Retire/Retain)
+4. Assign priority: 1=blocks migration, 2=impacts cost/complexity, 3=optimization, 4=nice-to-have
+5. Set confidence_score (0.0-1.0): 1.0=definitely missing, 0.5=maybe relevant
+6. Return gaps ONLY (no questionnaires - those generate separately)
 
 WHY NO TOOLS:
 - You have complete Asset metadata with current_fields
@@ -158,22 +157,10 @@ You MUST analyze ALL {len(assets)} assets that were provided to you, not just th
 Asset samples (first 10 of {len(assets)}):
 {json.dumps(asset_summary, indent=2)}
 
-22 CRITICAL ATTRIBUTES FRAMEWORK (GUIDANCE, not exhaustive):
+CRITICAL ATTRIBUTES (22 total - check ALL):
 {json.dumps(all_critical_attrs, indent=2)}
 
-THINK BEYOND THE LIST:
-- What cloud services could this asset use? (Need details to evaluate)
-- What migration risks exist? (Need dependencies, SLAs, DR requirements)
-- What cost drivers are missing? (Need data volume, IOPS, network egress patterns)
-- What modernization opportunities? (Need current architecture vs cloud-native patterns)
-
-CONFIDENCE SCORE GUIDELINES (0.0-1.0):
-- 0.9-1.0: Strong evidence in asset data that this field is missing and critical
-- 0.7-0.8: Moderate evidence, likely needs attention for assessment
-- 0.5-0.6: Weak evidence, may need attention depending on 6R strategy
-- 0.0-0.4: Low priority or may be inferred from other fields
-
-RETURN JSON FORMAT (gaps ONLY, no questionnaires):
+OUTPUT FORMAT:
 {{
     "gaps": {{
         "critical": [
@@ -182,36 +169,19 @@ RETURN JSON FORMAT (gaps ONLY, no questionnaires):
                 "field_name": "technology_stack",
                 "gap_type": "missing_field",
                 "gap_category": "application",
-                "description": "Technology stack not specified - critical for 6R decision",
+                "description": "Missing - blocks 6R decision",
                 "impact_on_sixr": "high",
                 "priority": 1,
                 "confidence_score": 0.95,
                 "ai_suggestions": [
-                    "Check asset name 'Oracle Database' - likely Oracle RDBMS stack",
-                    "Review deployment manifests or config files for framework",
-                    "Request from application owner or DBA team"
+                    "Check asset name for tech stack hints",
+                    "Review deployment artifacts",
+                    "Request from owner"
                 ],
-                "suggested_resolution": "Check asset name and deployment artifacts to infer Oracle stack details"
+                "suggested_resolution": "Infer from asset name and config"
             }}
         ],
-        "high": [
-            {{
-                "asset_id": "uuid",
-                "field_name": "integration_dependencies",
-                "gap_type": "missing_field",
-                "gap_category": "application",
-                "description": "Integration dependencies unknown - important for migration sequencing",
-                "impact_on_sixr": "medium",
-                "priority": 2,
-                "confidence_score": 0.85,
-                "ai_suggestions": [
-                    "Analyze network traffic logs for API calls",
-                    "Review application configuration for service endpoints",
-                    "Interview development team about external integrations"
-                ],
-                "suggested_resolution": "Analyze application config and network patterns"
-            }}
-        ],
+        "high": [...],
         "medium": [...],
         "low": [...]
     }},

@@ -276,8 +276,9 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
           // Extract SPECIFIC gap fields from assessment analysis (critical and high-priority only)
           if (readinessSummary.asset_reports && readinessSummary.asset_reports.length > 0) {
             for (const report of readinessSummary.asset_reports) {
-              // Only include not-ready assets for this specific application
-              if (!report.is_ready) {
+              // CRITICAL FIX: Only include not-ready assets that belong to THIS canonical application
+              // Check if asset's canonical_application_id matches the selected app
+              if (!report.is_ready && report.canonical_application_id === app.id) {
                 const gapFields = [
                   ...(report.critical_gaps || []).map((gap: any) => gap.field_id || gap.field_name),
                   ...(report.high_priority_gaps || []).map((gap: any) => gap.field_id || gap.field_name),
@@ -301,6 +302,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
         console.log(`⚠️  No assessment flow context, fetching readiness gaps for canonical app ${app.id}`);
 
         try {
+          // CC FIX Bug #3: Remove manual header setting - apiCall uses getAuthHeaders() from localStorage
           const gapsResponse = await apiCall<{
             missing_attributes: Record<string, string[]>;
             asset_count: number;
@@ -309,10 +311,6 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             `/api/v1/canonical-applications/${app.id}/readiness-gaps`,
             {
               method: 'GET',
-              headers: {
-                'X-Client-Account-ID': client.id,
-                'X-Engagement-ID': engagement.id,
-              },
             }
           );
 
@@ -401,6 +399,7 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
       // IMPORTANT: Pass update_database=true to persist results to Asset.assessment_readiness
       const refreshPromises = canonicalApps.map(async (app) => {
         try {
+          // CC FIX Bug #3 (second occurrence): Remove manual header setting - apiCall uses getAuthHeaders() from localStorage
           const gapsResponse = await apiCall<{
             missing_attributes: Record<string, string[]>;
             asset_count: number;
@@ -410,10 +409,6 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
             `/api/v1/canonical-applications/${app.id}/readiness-gaps?update_database=true`,
             {
               method: 'GET',
-              headers: {
-                'X-Client-Account-ID': client.id,
-                'X-Engagement-ID': engagement.id,
-              },
             }
           );
 

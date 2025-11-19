@@ -52,8 +52,11 @@ async def _get_existing_questionnaires_tenant_scoped(
 ) -> List[AdaptiveQuestionnaireResponse]:
     """Get existing questionnaires from database with tenant scoping.
 
-    CRITICAL: Only returns questionnaires that are NOT completed.
-    Completed questionnaires should not be returned to prevent submission loops.
+    CRITICAL DEFENSIVE BEHAVIOR:
+    - Excludes COMPLETED questionnaires (prevent submission loops)
+    - Excludes FAILED questionnaires (allow automatic retry)
+
+    This ensures failed generation attempts don't block new attempts.
     """
     logger.debug(f"🔍 Querying questionnaires with collection_flow_id={flow.id}")
     logger.debug(
@@ -67,8 +70,9 @@ async def _get_existing_questionnaires_tenant_scoped(
             == flow.id,  # Use .id (PRIMARY KEY) for FK relationship
             AdaptiveQuestionnaire.client_account_id == context.client_account_id,
             AdaptiveQuestionnaire.engagement_id == context.engagement_id,
-            AdaptiveQuestionnaire.completion_status
-            != "completed",  # Exclude completed questionnaires
+            # CC Bug #9: Exclude both completed AND failed questionnaires
+            # Failed questionnaires with 0 questions should not block new generation
+            AdaptiveQuestionnaire.completion_status.notin_(["completed", "failed"]),
         )
         .order_by(AdaptiveQuestionnaire.created_at.desc())
     )
@@ -420,11 +424,9 @@ async def get_adaptive_questionnaires(
         # CRITICAL: For non-asset-selection phases, require selected assets
         # Filter to only the selected assets from the collection flow
         selected_asset_ids = []
-        if flow.collection_config and flow.collection_config.get(
-            "selected_application_ids"
-        ):
-            selected_asset_ids = flow.collection_config["selected_application_ids"]
-            logger.info(f"Flow has {len(selected_asset_ids)} selected application IDs")
+        if flow.flow_metadata and flow.flow_metadata.get("selected_asset_ids"):
+            selected_asset_ids = flow.flow_metadata["selected_asset_ids"]
+            logger.info(f"Flow has {len(selected_asset_ids)} selected asset IDs")
 
         # Filter assets to only those that were selected
         existing_assets = []

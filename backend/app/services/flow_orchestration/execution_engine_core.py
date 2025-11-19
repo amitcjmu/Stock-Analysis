@@ -272,6 +272,42 @@ class FlowExecutionCore:
                 flow_id, phase_name, agent_decision
             )
 
+        # Handle agent fail if requested
+        if agent_decision.action == PhaseAction.FAIL:
+            logger.error(
+                f"❌ Phase '{phase_name}' failed by agent decision: {agent_decision.reasoning}"
+            )
+            return {
+                "phase": phase_name,
+                "status": "failed",
+                "reason": agent_decision.reasoning,
+                "agent_decision": {
+                    "action": agent_decision.action.value,
+                    "next_phase": agent_decision.next_phase,
+                    "confidence": agent_decision.confidence,
+                    "reasoning": agent_decision.reasoning,
+                    "metadata": agent_decision.metadata,
+                },
+            }
+
+        # Handle agent complete if requested
+        if agent_decision.action == PhaseAction.COMPLETE:
+            logger.info(
+                f"✅ Phase '{phase_name}' marked complete by agent decision: {agent_decision.reasoning}"
+            )
+            return {
+                "phase": phase_name,
+                "status": "completed",
+                "reason": agent_decision.reasoning,
+                "agent_decision": {
+                    "action": agent_decision.action.value,
+                    "next_phase": agent_decision.next_phase,
+                    "confidence": agent_decision.confidence,
+                    "reasoning": agent_decision.reasoning,
+                    "metadata": agent_decision.metadata,
+                },
+            }
+
         return None
 
     async def _execute_phase_with_config(
