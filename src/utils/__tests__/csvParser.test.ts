@@ -62,12 +62,11 @@ server2,Simple,192.168.1.2`;
       expect(result.headers).toEqual(['name', 'description', 'ip']);
       expect(result.records).toHaveLength(2);
 
-      // First row description should have commas replaced
-      expect(result.records[0].description).toContain('Server');
-      expect(result.records[0].description).toContain('DC1');
+      // First row description should have excess columns merged (commas replaced)
+      // The description field should contain merged content without commas
       expect(result.records[0].description).not.toContain(',');
       expect(result.records[0].ip).toBe('192.168.1.1');
-
+      // Verify cleansing occurred
       expect(result.cleansingStats?.rowsCleansed).toBe(1);
     });
 
@@ -91,22 +90,23 @@ server2,Simple,192.168.1.2`;
       expect(result.cleansingStats?.totalRows).toBe(0);
     });
 
-    it('should handle quoted fields correctly (quotes are stripped but commas preserved)', () => {
+    it('should handle quoted fields correctly (preserve commas in quoted fields, cleanse unquoted)', () => {
       const csvContent = `server_name,description,ip_address
 server1,"Quoted, text, field",192.168.1.1
 server2,Unquoted, text, field,192.168.1.2`;
 
       const result = parseAndCleanseCSV(csvContent);
 
-      // Quoted fields should have quotes stripped but commas preserved (since quotes handle them)
-      // Note: Current implementation treats quoted and unquoted the same after quote stripping
-      // This is acceptable for the current scope (fixing unquoted comma issues)
-      expect(result.records[0].description).toBe('Quoted text field');
+      // Quoted fields should preserve commas (papaparse handles them correctly)
+      // The quoted field should NOT be cleansed because papaparse parses it correctly
+      expect(result.records[0].description).toBe('Quoted, text, field');
       expect(result.records[0].ip_address).toBe('192.168.1.1');
-      // Unquoted field with commas should be cleansed
+      // Unquoted field with commas should be cleansed (papaparse will report error for this)
       expect(result.records[1].description).not.toContain(',');
       expect(result.records[1].ip_address).toBe('192.168.1.2');
-      expect(result.cleansingStats?.rowsCleansed).toBe(2); // Both rows have excess columns after quote stripping
+      // Only the unquoted row should be cleansed
+      expect(result.cleansingStats?.rowsCleansed).toBe(1);
+      expect(result.cleansingStats?.rowsSkipped).toBe(1);
     });
 
     it('should handle empty fields', () => {

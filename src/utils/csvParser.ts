@@ -53,6 +53,30 @@ export const CSV_CLEANSING_CONFIG = {
    * Very short fields are less likely to be text descriptions
    */
   MIN_TEXT_FIELD_LENGTH: 5 as number,
+
+  /**
+   * Maximum file size in bytes to prevent DoS attacks
+   * Default: 10MB
+   */
+  MAX_FILE_SIZE: 10 * 1024 * 1024 as number,
+
+  /**
+   * Maximum number of rows to prevent resource exhaustion
+   * Default: 100,000 rows
+   */
+  MAX_ROWS: 100000 as number,
+
+  /**
+   * Maximum field length in characters to prevent large field DoS
+   * Default: 100KB per field
+   */
+  MAX_FIELD_LENGTH: 100 * 1024 as number,
+
+  /**
+   * Maximum number of columns to prevent column explosion attacks
+   * Default: 1000 columns
+   */
+  MAX_COLUMNS: 1000 as number,
 } as const;
 
 /**
@@ -85,14 +109,13 @@ function cleanseMisalignedRow(row: string, expectedColumnCount: number): string 
   // We look at fields in positions where text descriptions are common (usually middle fields)
   // and find the longest ones as they're most likely to contain the commas
 
-  // Identify candidate fields for merging (usually not the first or last column)
-  // For simplicity, we'll check fields from position 1 to expectedColumnCount-2
-  const candidateStart = Math.max(1, 0);
+  // Identify candidate fields for merging - consider all fields as potential candidates
+  const candidateStart = 0;
   const candidateEnd = Math.min(expectedColumnCount - 1, actualColumnCount - excessColumns - 1);
 
   // Find the longest field among candidates (likely the text field with commas)
-  let mergeTargetIndex = candidateStart;
-  let maxLength = parts[candidateStart]?.length || 0;
+  let mergeTargetIndex = -1;
+  let maxLength = -1;
 
   for (let i = candidateStart; i <= candidateEnd; i++) {
     if (parts[i] && parts[i].length > maxLength && parts[i].length >= CSV_CLEANSING_CONFIG.MIN_TEXT_FIELD_LENGTH) {
@@ -101,38 +124,28 @@ function cleanseMisalignedRow(row: string, expectedColumnCount: number): string 
     }
   }
 
-  // Build cleansed row by merging excess columns into the target field
-  const cleansedParts: string[] = [];
-
-  // Iterate through expected columns and merge excess where needed
-  for (let i = 0; i < expectedColumnCount; i++) {
-    if (i === mergeTargetIndex) {
-      // Merge this field with the excess columns that follow it
-      const excessStartIndex = i + 1;
-      const excessEndIndex = Math.min(excessStartIndex + excessColumns, actualColumnCount);
-      const excessParts = parts.slice(excessStartIndex, excessEndIndex);
-
-      // Merge target field with excess columns
-      const mergedValue = [
-        parts[i],
-        ...excessParts
-      ].join(CSV_CLEANSING_CONFIG.COMMA_REPLACEMENT);
-
-      cleansedParts.push(mergedValue);
-
-      // Skip past the merged excess columns when continuing
-      // We'll handle remaining parts after this loop
-      break;
-    } else {
-      // Normal field before merge target
-      cleansedParts.push(parts[i]);
-    }
+  // If no suitable target found, default to the first field to avoid errors
+  if (mergeTargetIndex === -1) {
+    mergeTargetIndex = 0;
   }
 
-  // After merging, add remaining parts that should be separate columns
-  const lastMergedIndex = mergeTargetIndex + excessColumns;
-  for (let i = lastMergedIndex + 1; i < actualColumnCount && cleansedParts.length < expectedColumnCount; i++) {
-    cleansedParts.push(parts[i]);
+  // Build cleansed row by merging excess columns into the target field
+  // Simplified single-loop approach
+  const cleansedParts: string[] = [];
+  let partIndex = 0;
+
+  while (cleansedParts.length < expectedColumnCount && partIndex < parts.length) {
+    if (cleansedParts.length === mergeTargetIndex) {
+      // This is the target column - merge it with the excess parts
+      const partsToMerge = parts.slice(partIndex, partIndex + excessColumns + 1);
+      const mergedValue = partsToMerge.join(CSV_CLEANSING_CONFIG.COMMA_REPLACEMENT);
+      cleansedParts.push(mergedValue);
+      partIndex += excessColumns + 1;
+    } else {
+      // This is a regular column
+      cleansedParts.push(parts[partIndex]);
+      partIndex++;
+    }
   }
 
   // Ensure we have exactly expectedColumnCount fields
@@ -149,12 +162,21 @@ function cleanseMisalignedRow(row: string, expectedColumnCount: number): string 
 /**
  * Parses and cleanses CSV file content
  *
- * Uses papaparse for proper CSV parsing, then applies cleansing if column mismatches are detected.
+ * Uses papaparse for proper CSV parsing, then applies cleansing only for rows that papaparse
+ * identifies as malformed (via error reporting), preventing corruption of valid quoted CSV files.
  *
  * @param fileContent - Raw CSV file content as string
  * @returns Parsed CSV data with headers and records
+ * @throws Error if file size exceeds limits or validation fails
  */
 export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
+  // Validate input size to prevent DoS attacks
+  if (fileContent.length > CSV_CLEANSING_CONFIG.MAX_FILE_SIZE) {
+    throw new Error(
+      `CSV file size (${fileContent.length} bytes) exceeds maximum allowed size (${CSV_CLEANSING_CONFIG.MAX_FILE_SIZE} bytes)`
+    );
+  }
+
   if (!fileContent || fileContent.trim().length === 0) {
     return {
       headers: [],
@@ -172,13 +194,40 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
     header: true,
     skipEmptyLines: true,
     transformHeader: (header) => header.trim().replace(/"/g, ''),
-    transform: (value) => value.trim(),
+    transform: (value) => {
+      const trimmed = value.trim();
+      // Validate field length to prevent large field DoS
+      if (trimmed.length > CSV_CLEANSING_CONFIG.MAX_FIELD_LENGTH) {
+        throw new Error(
+          `Field length (${trimmed.length}) exceeds maximum allowed length (${CSV_CLEANSING_CONFIG.MAX_FIELD_LENGTH})`
+        );
+      }
+      return trimmed;
+    },
   });
 
   const headers = parsed.meta.fields || [];
-  const expectedColumnCount = headers.length;
 
-  if (headers.length === 0) {
+  // Validate header count
+  if (headers.length > CSV_CLEANSING_CONFIG.MAX_COLUMNS) {
+    throw new Error(
+      `Number of columns (${headers.length}) exceeds maximum allowed (${CSV_CLEANSING_CONFIG.MAX_COLUMNS})`
+    );
+  }
+
+  // Validate and sanitize header names
+  const sanitizedHeaders = headers.map((header, index) => {
+    if (!header || typeof header !== 'string') {
+      return `column_${index + 1}`;
+    }
+    // Remove potentially dangerous characters, limit length
+    const sanitized = header.replace(/[^\w\s-]/g, '_').substring(0, 100);
+    return sanitized || `column_${index + 1}`;
+  });
+
+  const expectedColumnCount = sanitizedHeaders.length;
+
+  if (sanitizedHeaders.length === 0) {
     return {
       headers: [],
       records: [],
@@ -190,36 +239,47 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
     };
   }
 
-  // Track cleansing statistics
+  // Validate row count
+  if (parsed.data.length > CSV_CLEANSING_CONFIG.MAX_ROWS) {
+    throw new Error(
+      `Number of rows (${parsed.data.length}) exceeds maximum allowed (${CSV_CLEANSING_CONFIG.MAX_ROWS})`
+    );
+  }
+
+  // Track cleansing statistics and audit info
   const stats: CleansingStats = {
     totalRows: parsed.data.length,
     rowsCleansed: 0,
     rowsSkipped: 0,
   };
 
-  // Check each parsed row for column count mismatches
-  // If papaparse parsed correctly, all rows should have same column count
-  // If not, we need to detect and cleanse malformed rows
-  const records: CsvRecord[] = [];
+  // Use papaparse's error reporting to identify malformed rows
+  // This prevents corrupting valid quoted CSV files
   const lines = fileContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const linesWithoutHeader = lines.slice(1);
+
+  // Create a set of row indexes that have errors (malformed rows)
+  const errorRowIndexes = new Set<number>(
+    parsed.errors
+      .filter((e) => e.code === 'TooManyFields' || e.code === 'Quotes')
+      .map((e) => e.row || 0)
+  );
+
+  // Audit log (can be enhanced to send to logging service)
+  if (errorRowIndexes.size > 0) {
+    console.info(
+      `[CSV Parsing] Detected ${errorRowIndexes.size} malformed rows out of ${parsed.data.length} total rows`
+    );
+  }
+
+  const records: CsvRecord[] = [];
 
   for (let i = 0; i < parsed.data.length; i++) {
-    const parsedRow = parsed.data[i] as Record<string, unknown>;
+    const originalLine = linesWithoutHeader[i];
+    const needsCleansing = errorRowIndexes.has(i);
 
-    // Get original line for this row (skip header line)
-    const originalLine = lines[i + 1]; // +1 because first line is header
-
-    if (!originalLine) {
-      // Skip if no corresponding line
-      continue;
-    }
-
-    // Check if row has column mismatch by comparing original split count
-    const parts = originalLine.split(',');
-    const actualColumnCount = parts.length;
-    const needsCleansing = actualColumnCount > expectedColumnCount;
-
-    if (needsCleansing) {
+    if (needsCleansing && originalLine) {
+      // Only cleanse rows that papaparse identified as malformed
       // Apply cleansing to the original line
       const cleansedLine = cleanseMisalignedRow(originalLine, expectedColumnCount);
 
@@ -227,31 +287,50 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
       const cleansedParsed = Papa.parse(cleansedLine, {
         header: false,
         skipEmptyLines: false,
-        transform: (value) => value.trim(),
+        transform: (value) => {
+          const trimmed = value.trim();
+          if (trimmed.length > CSV_CLEANSING_CONFIG.MAX_FIELD_LENGTH) {
+            return trimmed.substring(0, CSV_CLEANSING_CONFIG.MAX_FIELD_LENGTH);
+          }
+          return trimmed;
+        },
       });
 
       // Build record from cleansed data
       const cleansedValues = cleansedParsed.data[0] as string[];
       const record: CsvRecord = {};
-      headers.forEach((header, headerIndex) => {
-        record[header] = (cleansedValues[headerIndex] || '').toString();
+      sanitizedHeaders.forEach((header, headerIndex) => {
+        const value = cleansedValues[headerIndex] || '';
+        record[header] = value.toString();
       });
 
       records.push(record);
       stats.rowsCleansed++;
+
+      // Audit log for cleansing action
+      console.info(`[CSV Cleansing] Row ${i + 1} cleansed: merged excess columns`);
     } else {
-      // Row parsed correctly, use papaparse result
+      // Row parsed correctly by papaparse, use its result directly
+      const parsedRow = parsed.data[i] as Record<string, unknown>;
       const record: CsvRecord = {};
-      headers.forEach((header) => {
-        record[header] = parsedRow[header] || '';
+      sanitizedHeaders.forEach((header, originalHeaderIndex) => {
+        // Use original header name for lookup (before sanitization)
+        const originalHeader = headers[originalHeaderIndex];
+        const value = parsedRow[originalHeader] || '';
+        record[header] = value.toString();
       });
       records.push(record);
       stats.rowsSkipped++;
     }
   }
 
+  // Final audit log
+  console.info(
+    `[CSV Parsing Complete] Parsed ${records.length} records, ${stats.rowsCleansed} cleansed, ${stats.rowsSkipped} skipped`
+  );
+
   return {
-    headers,
+    headers: sanitizedHeaders,
     records,
     cleansingStats: stats,
   };
