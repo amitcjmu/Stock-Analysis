@@ -177,7 +177,8 @@ async def _generate_questionnaires_per_section(  # noqa: C901
             aggregated_sections = await aggregate_sections_from_redis(
                 redis=redis.client,  # Pass AsyncRedisWrapper, not RedisConnectionManager
                 flow_id=flow_id,
-                asset_ids=[asset.id for asset in existing_assets],
+                # Per Qodo Bot: Stringify UUIDs for JSON serialization in Redis keys
+                asset_ids=[str(asset.id) for asset in existing_assets],
                 sections=ASSESSMENT_FLOW_SECTIONS,
             )
 

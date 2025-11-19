@@ -102,8 +102,14 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
                 existing_questions = (
                     existing.questions if isinstance(existing.questions, list) else []
                 )
+                # Per Qodo Bot: Exclude None values to prevent malformed question data
                 existing_fields = {
-                    q.get("field_id") or q.get("field_name") for q in existing_questions
+                    fid
+                    for fid in (
+                        q.get("field_id") or q.get("field_name")
+                        for q in existing_questions
+                    )
+                    if fid
                 }
 
                 # Find NEW gaps not covered by existing questionnaire
@@ -136,7 +142,13 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
 
                     # Trigger background regeneration to append new questions
                     target_asset = assets_by_id.get(asset_id_str)
-                    if target_asset:
+                    if not target_asset:
+                        # Per Qodo Bot: Log missing assets to prevent silent failures
+                        logger.error(
+                            f"Cannot regenerate questionnaire {existing.id}: "
+                            f"asset {asset_id_str} not found in assets_by_id"
+                        )
+                    else:
                         task = asyncio.create_task(
                             _background_generate(
                                 existing.id,
@@ -147,7 +159,25 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
                             )
                         )
                         _background_tasks.add(task)
-                        task.add_done_callback(_background_tasks.discard)
+
+                        # Per Qodo Bot: Robust done_callback for task cleanup and exception logging
+                        def _cleanup_background_task(t: asyncio.Task) -> None:
+                            try:
+                                _background_tasks.discard(t)
+                                exc = t.exception()
+                                if exc:
+                                    logger.error(
+                                        f"Background task failed for questionnaire {existing.id}: {exc}",
+                                        exc_info=True,
+                                    )
+                            except Exception as cb_err:
+                                # Defensive: never raise from callback
+                                logger.error(
+                                    f"Error in background task cleanup callback: {cb_err}",
+                                    exc_info=True,
+                                )
+
+                        task.add_done_callback(_cleanup_background_task)
 
                     questionnaire_responses.append(
                         collection_serializers.build_questionnaire_response(existing)
