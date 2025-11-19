@@ -20,12 +20,14 @@ logger = logging.getLogger(__name__)
 async def check_preview_and_approval(
     master_flow_repo: CrewAIFlowStateExtensionsRepository,
     master_flow_id: str,
-) -> Tuple[Optional[List[Dict]], Optional[List[str]], bool]:
+) -> Tuple[Optional[List[Dict]], Optional[List[str]], bool, Optional[Dict[str, Dict]]]:
     """
     Check if preview data exists and if assets are approved.
 
+    CRITICAL FIX (Issue #1072): Now also returns updated_assets_map with user edits
+
     Returns:
-        Tuple of (assets_preview, approved_asset_ids, assets_already_created)
+        Tuple of (assets_preview, approved_asset_ids, assets_already_created, updated_assets_map)
     """
     master_flow = await master_flow_repo.get_by_flow_id(str(master_flow_id))
     if not master_flow:
@@ -37,8 +39,16 @@ async def check_preview_and_approval(
     assets_preview = persistence_data.get("assets_preview")
     approved_asset_ids = persistence_data.get("approved_asset_ids")
     assets_already_created = persistence_data.get("assets_created", False)
+    updated_assets_map = persistence_data.get(
+        "updated_assets_map"
+    )  # CRITICAL FIX (Issue #1072)
 
-    return assets_preview, approved_asset_ids, assets_already_created
+    return (
+        assets_preview,
+        approved_asset_ids,
+        assets_already_created,
+        updated_assets_map,
+    )
 
 
 async def store_preview_data(
@@ -107,27 +117,48 @@ async def store_preview_data(
 
 
 def filter_approved_assets(
-    assets_data: List[Dict[str, Any]], approved_asset_ids: List[str]
+    assets_data: List[Dict[str, Any]],
+    approved_asset_ids: List[str],
+    updated_assets_map: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Filter assets_data to only include approved assets.
+    Filter assets_data to only include approved assets and merge user edits.
+
+    CRITICAL FIX (Issue #1072): Now merges user edits from updated_assets_map
 
     Args:
         assets_data: List of all asset data dictionaries
         approved_asset_ids: List of approved asset temp_ids (e.g., ["asset-0", "asset-1"])
+        updated_assets_map: Optional dict mapping asset_id -> updated asset data with user edits
 
     Returns:
-        List of approved asset data dictionaries
+        List of approved asset data dictionaries with user edits applied
     """
     approved_assets_data = []
+    updated_count = 0
+
     for asset_index, asset in enumerate(assets_data):
         temp_id = f"asset-{asset_index}"
         if temp_id in approved_asset_ids:
-            approved_assets_data.append(asset)
+            # CRITICAL FIX (Issue #1072): Merge user edits if available
+            if updated_assets_map and temp_id in updated_assets_map:
+                updated_asset = updated_assets_map[temp_id]
+                # Merge user edits into original asset data (user edits take precedence)
+                merged_asset = {**asset, **updated_asset}
+                # Remove the 'id' field if it exists (it's just a temp_id, not a real asset ID)
+                merged_asset.pop("id", None)
+                approved_assets_data.append(merged_asset)
+                updated_count += 1
+                logger.debug(
+                    f"✅ Applied user edits to asset {temp_id}: {list(updated_asset.keys())}"
+                )
+            else:
+                # No user edits, use original asset data
+                approved_assets_data.append(asset)
 
     logger.info(
         f"📋 Filtered to {len(approved_assets_data)} approved assets "
-        f"(from {len(assets_data)} total)"
+        f"(from {len(assets_data)} total, {updated_count} with user edits)"
     )
 
     return approved_assets_data

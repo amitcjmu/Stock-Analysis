@@ -51,15 +51,20 @@ export const getAssetPreview = async (
 
 /**
  * Approve selected assets for creation
+ *
+ * CRITICAL FIX (Issue #1072): Now accepts updated asset data to preserve user edits
  */
 export const approveAssets = async (
   flow_id: string,
-  asset_ids: string[]
+  payload: { assetIds: string[]; updatedAssets?: AssetPreviewData[] }
 ): Promise<ApproveAssetsResponse> => {
   return apiCall(`/api/v1/asset-preview/${flow_id}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ approved_asset_ids: asset_ids }), // Pydantic model expects object
+    body: JSON.stringify({
+      approved_asset_ids: payload.assetIds,
+      updated_assets: payload.updatedAssets || [],
+    }),
   });
 };
 

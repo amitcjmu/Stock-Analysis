@@ -95,7 +95,66 @@ INSTRUCTIONS:
 5. Set confidence_score (0.0-1.0): 1.0=definitely missing, 0.5=maybe relevant
 6. Return gaps ONLY (no questionnaires - those generate separately)
 
-ASSETS ({len(assets)} total):
+WHY NO TOOLS:
+- You have complete Asset metadata with current_fields
+- Data validation tools are for CSV imports, not gap analysis
+- Tools would return "0 records" because no raw import data exists at this stage
+- Direct analysis is 6x faster and more accurate
+
+YOUR MISSION - CLOUD MIGRATION READINESS:
+You are a cloud migration architect. Your goal is to identify missing data that impacts:
+- **6R Strategy Decisions**: Rehost, Replatform, Refactor, Rearchitect, Retire, Retain
+- **Cloud-Native Modernization**: Containerization, microservices, serverless viability
+- **Migration Planning**: Dependencies, sequencing, risk assessment, cost estimation
+- **Cloud Optimization**: Right-sizing, reserved instances, auto-scaling requirements
+
+For EACH asset:
+
+1. **ANALYZE FOR MIGRATION READINESS**:
+   - **Not just checking attributes** - Think about what's needed for migration decisions
+   - Consider the 22 critical attributes as GUIDANCE, not exhaustive requirements
+   - Think beyond the list: What else is critical for cloud migration?
+     * For applications: Cloud compatibility (12-factor app principles?)
+     * For databases: Cloud DB service candidates (RDS, Aurora, managed services?)
+     * For servers: Containerization readiness? VM vs serverless potential?
+     * For dependencies: Cross-region data transfer costs? Latency requirements?
+     * For compliance: Data residency? Regulatory constraints?
+     * For licensing: BYOL eligibility? License portability to cloud?
+
+2. **6R STRATEGY DECISION GAPS**:
+   - **Rehost (Lift-and-Shift)**: Need OS, specs, network config
+   - **Replatform (Lift-Tinker-Shift)**: Need technology stack, current platform details
+   - **Refactor (Re-architect for cloud)**: Need architecture patterns, coupling analysis
+   - **Rearchitect (Rebuild cloud-native)**: Need business logic complexity, API boundaries
+   - **Retire**: Need business criticality, usage patterns, replacement options
+   - **Retain (Keep on-prem)**: Need compliance constraints, data sensitivity
+
+   Identify missing data that prevents choosing the right 6R strategy!
+
+3. **CLOUD-NATIVE MODERNIZATION GAPS**:
+   - Containerization: Image size, stateless/stateful, persistent storage needs?
+   - Microservices: Service boundaries, API contracts, inter-service communication?
+   - Serverless: Event-driven patterns, cold start tolerance, execution duration?
+   - Managed Services: PaaS candidates (databases, queues, caches)?
+   - Auto-scaling: Load patterns, predictable vs burst traffic?
+
+4. **ASSIGN CRITICALITY BY IMPACT**:
+   - **critical (priority 1)**: Blocks 6R decision or migration planning
+   - **high (priority 2)**: Impacts cost estimates or migration complexity
+   - **medium (priority 3)**: Useful for optimization but not blocking
+   - **low (priority 4)**: Nice to have for long-term operational excellence
+
+5. **CONFIDENCE SCORES BASED ON EVIDENCE**:
+   - 0.9-1.0: Strong evidence in current_fields that this gap blocks migration decisions
+   - 0.7-0.8: Moderate evidence, likely needed for accurate 6R strategy
+   - 0.5-0.6: Weak evidence, may be inferred from other data
+   - 0.0-0.4: Low priority or may not be relevant for this asset's migration path
+
+ASSETS TO ANALYZE ({len(assets)} total - ALL MUST BE ANALYZED):
+NOTE: This prompt shows only the first 10 assets as examples for token efficiency.
+You MUST analyze ALL {len(assets)} assets that were provided to you, not just these 10 samples.
+
+Asset samples (first 10 of {len(assets)}):
 {json.dumps(asset_summary, indent=2)}
 
 CRITICAL ATTRIBUTES (22 total - check ALL):
@@ -136,9 +195,19 @@ OUTPUT FORMAT:
     }}
 }}
 
-RULES:
-- ALL gaps need: confidence_score, ai_suggestions (2-3 items), description
-- summary.assets_analyzed MUST be {len(assets)} (total, not sample)
-- Only create gaps that block migration decisions (not just for data completeness)
-- Return valid JSON only (no markdown, no explanations)
+CRITICAL REMINDERS:
+- IMPORTANT: "assets_analyzed" in summary MUST be {len(assets)} (the TOTAL count), not the sample count shown above
+- Use your MIGRATION EXPERTISE to identify gaps that impact 6R strategy decisions
+- The 22 attributes are GUIDANCE - think beyond them for cloud migration needs
+- Don't create gaps just because an attribute is missing - ask "Does this block migration decisions?"
+- Prioritize gaps by migration impact, not just data completeness
+- Consider cloud-native modernization opportunities (containers, serverless, managed services)
+- Every gap MUST have confidence_score field (0.0-1.0) based on migration decision impact
+- Every gap MUST have ai_suggestions array (2-3 actionable items for finding the data)
+- Every gap MUST have description explaining WHY it matters for 6R strategy or cloud migration
+- DO NOT include "questionnaire" key in response (questionnaires generated separately)
+- Return ONLY valid JSON, no markdown, no explanations
+
+YOU ARE A MIGRATION ARCHITECT, NOT A DATA AUDITOR.
+Focus on migration readiness, not just data completeness.
 """
