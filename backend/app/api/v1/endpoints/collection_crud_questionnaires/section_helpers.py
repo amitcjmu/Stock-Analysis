@@ -117,7 +117,9 @@ def filter_gaps_by_section(gaps: List[str], section_id: str) -> List[str]:
     section_fields = section_gap_mapping.get(section_id, [])
     filtered = [gap for gap in gaps if gap in section_fields]
 
-    logger.info(
+    # CC Security: Log field names at DEBUG level only (not INFO) to prevent schema exposure
+    # Per Qodo Bot review: Field names are internal schema details
+    logger.debug(
         f"Section {section_id}: {len(filtered)}/{len(gaps)} gaps filtered "
         f"({', '.join(filtered) if filtered else 'none'})"
     )

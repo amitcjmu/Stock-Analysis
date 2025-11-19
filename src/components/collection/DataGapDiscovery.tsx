@@ -264,15 +264,21 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setIsAnalyzing(true);
 
       // Proactively refresh auth token before starting long-running AI analysis
-      console.log('🔄 Refreshing auth token before manual AI gap analysis...');
+      // CC Security: Conditional logging (development only) to prevent auth flow exposure
+      // Per Qodo Bot review: Console logs around auth flows can expose session behavior
+      if (import.meta.env.DEV) {
+        console.log('🔄 Refreshing auth token before manual AI gap analysis...');
+      }
       try {
         const { refreshAccessToken } = await import('@/lib/tokenRefresh');
         const newToken = await refreshAccessToken();
-        if (newToken) {
+        if (newToken && import.meta.env.DEV) {
           console.log('✅ Token refreshed successfully before manual analysis');
         }
       } catch (refreshError) {
-        console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+        }
       }
 
       // Start enhancement job (returns 202 Accepted immediately)

@@ -46,9 +46,11 @@ async def cleanup_heuristic_gaps(
     # Bug #11: Get list of 22 critical assessment attributes to preserve
     critical_attributes = set(CriticalAttributesDefinition.get_all_attributes())
 
+    # CC Security: Log count only at INFO (not asset details) to prevent identifier exposure
+    # Per Qodo Bot review: Asset names and field names should not be in INFO-level logs
     logger.info(
         f"🔍 Cleaning up heuristic gaps for {len(analyzed_assets)} analyzed assets "
-        f"(AI gaps authoritative, BUT preserving {len(critical_attributes)} critical assessment attributes)"
+        f"(AI gaps authoritative, preserving {len(critical_attributes)} critical attributes)"
     )
 
     # Delete heuristic gaps EXCEPT critical assessment attributes

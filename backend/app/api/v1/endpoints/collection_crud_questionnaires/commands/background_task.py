@@ -171,16 +171,23 @@ async def _background_generate(
                 logger.warning(f"No questionnaires generated for flow {flow_id}")
 
     except Exception as e:
-        # Log full exception with stack trace for debugging
-        logger.error(
+        # CC Security: Log full details to DEBUG only (not INFO/ERROR) to prevent sensitive data exposure
+        logger.debug(
             f"Background generation failed for flow {flow_id}: {e}", exc_info=True
         )
-        logger.error(f"Exception type: {type(e).__name__}")
-        logger.error(f"Exception details: {str(e)}")
+        logger.debug(f"Exception type: {type(e).__name__}")
+        logger.debug(f"Exception details: {str(e)}")
+
+        # CC Security: Log generic error at ERROR level (no sensitive details)
+        logger.error(
+            f"Background generation failed for flow {flow_id} "
+            f"(exception type: {type(e).__name__})"
+        )
 
         try:
-            # Mark questionnaire as failed with detailed error
-            error_msg = f"{type(e).__name__}: {str(e)}"
+            # CC Security: Store generic error message in DB (no sensitive exception details)
+            # Per Qodo Bot review: Raw exception strings may contain secrets, SQL, tokens, or paths
+            error_msg = f"Questionnaire generation failed: {type(e).__name__}"
             async with AsyncSessionLocal() as db:
                 await update_questionnaire_status(
                     questionnaire_id, "failed", error_message=error_msg, db=db
