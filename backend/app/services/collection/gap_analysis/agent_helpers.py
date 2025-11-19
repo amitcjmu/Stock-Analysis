@@ -29,7 +29,11 @@ class AgentHelperMixin:
         Returns:
             Task output containing JSON response
         """
+        import time
         from crewai import Task
+
+        # PERFORMANCE: Track agent execution time
+        agent_start_time = time.time()
 
         # Extract underlying CrewAI agent from AgentWrapper
         # AgentWrapper has _agent attribute containing the actual BaseAgent
@@ -48,6 +52,13 @@ class AgentHelperMixin:
         # Execute task directly on agent (synchronous execution in thread pool)
         # Agent already has temperature=0.2 for consistency
         result = await asyncio.to_thread(agent.execute_task, task)
+
+        # PERFORMANCE: Log agent execution time
+        agent_elapsed_ms = (time.time() - agent_start_time) * 1000
+        logger.info(
+            f"⏱️ Agent execution completed in {agent_elapsed_ms:.0f}ms "
+            f"(result size: {len(str(result))} chars)"
+        )
 
         logger.debug(f"📤 Agent task completed: {str(result)[:200]}...")
 
