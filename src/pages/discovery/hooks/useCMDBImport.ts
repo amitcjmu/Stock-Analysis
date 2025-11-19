@@ -83,9 +83,12 @@ interface AnalysisStatusResponse {
   [key: string]: unknown;
 }
 
+// Configuration constants
+const DISCOVERY_SAMPLE_ROWS = 10;
+
 // Helper function to parse CSV file into structured data
 const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Array<Record<string, unknown>> }> => {
-  return parseCsvFileForDiscovery(file, 10);
+  return parseCsvFileForDiscovery(file, DISCOVERY_SAMPLE_ROWS);
 };
 
 // Main hook for initiating discovery workflow

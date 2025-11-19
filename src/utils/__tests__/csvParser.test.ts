@@ -24,8 +24,8 @@ server2,192.168.1.2,Windows`;
         ip_address: '192.168.1.1',
         os: 'Linux',
       });
-      expect(result.cleansingStats?.rowsCleansed).toBe(0);
-      expect(result.cleansingStats?.rowsSkipped).toBe(2);
+      expect(result.cleansing_stats?.rows_cleansed).toBe(0);
+      expect(result.cleansing_stats?.rows_skipped).toBe(2);
     });
 
     it('should handle commas in unquoted text fields', () => {
@@ -48,8 +48,8 @@ server2,Simple description,192.168.1.2`;
       expect(result.records[1].description).toBe('Simple description');
       expect(result.records[1].ip_address).toBe('192.168.1.2');
 
-      expect(result.cleansingStats?.rowsCleansed).toBe(1);
-      expect(result.cleansingStats?.rowsSkipped).toBe(1);
+      expect(result.cleansing_stats?.rows_cleansed).toBe(1);
+      expect(result.cleansing_stats?.rows_skipped).toBe(1);
     });
 
     it('should handle multiple commas in text fields', () => {
@@ -67,7 +67,7 @@ server2,Simple,192.168.1.2`;
       expect(result.records[0].description).not.toContain(',');
       expect(result.records[0].ip).toBe('192.168.1.1');
       // Verify cleansing occurred
-      expect(result.cleansingStats?.rowsCleansed).toBe(1);
+      expect(result.cleansing_stats?.rows_cleansed).toBe(1);
     });
 
     it('should handle empty CSV file', () => {
@@ -77,7 +77,7 @@ server2,Simple,192.168.1.2`;
 
       expect(result.headers).toEqual([]);
       expect(result.records).toHaveLength(0);
-      expect(result.cleansingStats?.totalRows).toBe(0);
+      expect(result.cleansing_stats?.total_rows).toBe(0);
     });
 
     it('should handle CSV with only headers', () => {
@@ -87,7 +87,7 @@ server2,Simple,192.168.1.2`;
 
       expect(result.headers).toEqual(['server_name', 'ip_address', 'os']);
       expect(result.records).toHaveLength(0);
-      expect(result.cleansingStats?.totalRows).toBe(0);
+      expect(result.cleansing_stats?.total_rows).toBe(0);
     });
 
     it('should handle quoted fields correctly (preserve commas in quoted fields, cleanse unquoted)', () => {
@@ -105,8 +105,8 @@ server2,Unquoted, text, field,192.168.1.2`;
       expect(result.records[1].description).not.toContain(',');
       expect(result.records[1].ip_address).toBe('192.168.1.2');
       // Only the unquoted row should be cleansed
-      expect(result.cleansingStats?.rowsCleansed).toBe(1);
-      expect(result.cleansingStats?.rowsSkipped).toBe(1);
+      expect(result.cleansing_stats?.rows_cleansed).toBe(1);
+      expect(result.cleansing_stats?.rows_skipped).toBe(1);
     });
 
     it('should handle empty fields', () => {
@@ -149,8 +149,8 @@ server1,Short,Long description with, multiple, commas,192.168.1.1`;
       );
       expect(hasCleanField).toBe(true);
       // The cleansing should have occurred (this is the key requirement)
-      expect(result.cleansingStats?.rowsCleansed).toBe(1);
-      expect(result.cleansingStats?.rowsSkipped).toBe(0);
+      expect(result.cleansing_stats?.rows_cleansed).toBe(1);
+      expect(result.cleansing_stats?.rows_skipped).toBe(0);
     });
 
     it('should track cleansing statistics correctly', () => {
@@ -162,9 +162,9 @@ server4,Clean,192.168.1.4`;
 
       const result = parseAndCleanseCSV(csvContent);
 
-      expect(result.cleansingStats?.totalRows).toBe(4);
-      expect(result.cleansingStats?.rowsCleansed).toBe(2); // Rows 2 and 3
-      expect(result.cleansingStats?.rowsSkipped).toBe(2); // Rows 1 and 4
+      expect(result.cleansing_stats?.total_rows).toBe(4);
+      expect(result.cleansing_stats?.rows_cleansed).toBe(2); // Rows 2 and 3
+      expect(result.cleansing_stats?.rows_skipped).toBe(2); // Rows 1 and 4
     });
   });
 
@@ -189,7 +189,7 @@ server1,Located in DC1, room A,192.168.1.1`;
       const result = await parseCsvFile(file);
 
       expect(result.records[0].description).toBe('Located in DC1 room A');
-      expect(result.cleansingStats?.rowsCleansed).toBe(1);
+      expect(result.cleansing_stats?.rows_cleansed).toBe(1);
     });
   });
 

@@ -22,13 +22,13 @@ export interface CsvRecord {
 export interface CsvParseResult {
   headers: string[];
   records: CsvRecord[];
-  cleansingStats?: CleansingStats;
+  cleansing_stats?: CleansingStats;
 }
 
 export interface CleansingStats {
-  totalRows: number;
-  rowsCleansed: number;
-  rowsSkipped: number;
+  total_rows: number;
+  rows_cleansed: number;
+  rows_skipped: number;
 }
 
 /**
@@ -178,15 +178,15 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
   }
 
   if (!fileContent || fileContent.trim().length === 0) {
-    return {
-      headers: [],
-      records: [],
-      cleansingStats: {
-        totalRows: 0,
-        rowsCleansed: 0,
-        rowsSkipped: 0,
-      },
-    };
+      return {
+        headers: [],
+        records: [],
+        cleansing_stats: {
+          total_rows: 0,
+          rows_cleansed: 0,
+          rows_skipped: 0,
+        },
+      };
   }
 
   // Use papaparse to parse CSV (handles quoted fields, newlines, etc. correctly)
@@ -228,15 +228,15 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
   const expectedColumnCount = sanitizedHeaders.length;
 
   if (sanitizedHeaders.length === 0) {
-    return {
-      headers: [],
-      records: [],
-      cleansingStats: {
-        totalRows: 0,
-        rowsCleansed: 0,
-        rowsSkipped: 0,
-      },
-    };
+      return {
+        headers: [],
+        records: [],
+        cleansing_stats: {
+          total_rows: 0,
+          rows_cleansed: 0,
+          rows_skipped: 0,
+        },
+      };
   }
 
   // Validate row count
@@ -248,9 +248,9 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
 
   // Track cleansing statistics and audit info
   const stats: CleansingStats = {
-    totalRows: parsed.data.length,
-    rowsCleansed: 0,
-    rowsSkipped: 0,
+    total_rows: parsed.data.length,
+    rows_cleansed: 0,
+    rows_skipped: 0,
   };
 
   // Use papaparse's error reporting to identify malformed rows
@@ -305,7 +305,7 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
       });
 
       records.push(record);
-      stats.rowsCleansed++;
+      stats.rows_cleansed++;
 
       // Audit log for cleansing action
       console.info(`[CSV Cleansing] Row ${i + 1} cleansed: merged excess columns`);
@@ -320,19 +320,19 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
         record[header] = value.toString();
       });
       records.push(record);
-      stats.rowsSkipped++;
+      stats.rows_skipped++;
     }
   }
 
   // Final audit log
   console.info(
-    `[CSV Parsing Complete] Parsed ${records.length} records, ${stats.rowsCleansed} cleansed, ${stats.rowsSkipped} skipped`
+    `[CSV Parsing Complete] Parsed ${records.length} records, ${stats.rows_cleansed} cleansed, ${stats.rows_skipped} skipped`
   );
 
   return {
     headers: sanitizedHeaders,
     records,
-    cleansingStats: stats,
+    cleansing_stats: stats,
   };
 }
 
@@ -349,19 +349,73 @@ export async function parseCsvFile(file: File): Promise<CsvParseResult> {
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
+        if (!text) {
+          reject(
+            new Error(
+              'Failed to read CSV file: File appears to be empty or could not be read. ' +
+                'Please ensure the file contains valid CSV data and try again.'
+            )
+          );
+          return;
+        }
         const result = parseAndCleanseCSV(text);
         resolve(result);
       } catch (error) {
-        reject(error);
+        // Provide actionable error messages for parsing failures
+        if (error instanceof Error) {
+          // Check for specific error types from parseAndCleanseCSV
+          if (error.message.includes('exceeds maximum')) {
+            reject(
+              new Error(
+                `CSV file validation failed: ${error.message}. ` +
+                  'Please reduce the file size or split it into smaller files. ' +
+                  'Maximum allowed: 10MB file size, 100,000 rows, 1000 columns.'
+              )
+            );
+          } else if (error.message.includes('Invalid CSV')) {
+            reject(
+              new Error(
+                `CSV parsing failed: ${error.message}. ` +
+                  'Please ensure the file is a valid CSV format with proper column headers. ' +
+                  'Try opening the file in a spreadsheet application to verify the format.'
+              )
+            );
+          } else {
+            reject(
+              new Error(
+                `Failed to parse CSV file: ${error.message}. ` +
+                  'Please ensure the file is a valid CSV file with UTF-8 encoding. ' +
+                  'Try opening the file in a text editor and re-saving as UTF-8 if needed.'
+              )
+            );
+          }
+        } else {
+          reject(
+            new Error(
+              'Failed to parse CSV file: Unknown error occurred. ' +
+                'Please ensure the file is a valid CSV file and try again.'
+            )
+          );
+        }
       }
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = (e) => {
+      const error = (e.target as FileReader).error;
+      const errorMsg = error?.message || 'Unknown error';
+      reject(
+        new Error(
+          `Failed to read CSV file: ${errorMsg}. ` +
+            'Please ensure the file is a valid text file with UTF-8 encoding. ' +
+            'Try opening the file in a text editor and re-saving as UTF-8 if needed.'
+        )
+      );
+    };
     reader.readAsText(file);
   });
 }
 
 /**
- * Parse CSV file and return only records (backward compatibility)
+ * Parse CSV file and return records (backward compatibility)
  *
  * @param file - File object containing CSV data
  * @returns Promise resolving to array of records

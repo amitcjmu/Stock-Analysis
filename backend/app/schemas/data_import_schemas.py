@@ -63,6 +63,14 @@ class FileMetadata(BaseModel):
     type: str
 
 
+class CleansingStats(BaseModel):
+    """Statistics about CSV data cleansing performed"""
+
+    total_rows: int
+    rows_cleansed: int
+    rows_skipped: int
+
+
 class UploadContext(BaseModel):
     """Context information for data upload"""
 
@@ -90,6 +98,7 @@ class StoreImportRequest(BaseModel):
     upload_context: UploadContext
     client_id: Optional[str] = None
     engagement_id: Optional[str] = None
+    cleansing_stats: Optional[CleansingStats] = None
 
 
 class ValidationFlow(BaseModel):

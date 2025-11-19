@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';
-import { parseCsvData, type CsvRecord } from '@/utils/csvParser';
+import { parseCsvFile, type CsvRecord } from '@/utils/csvParser';
 import type { UploadFile } from '../CMDBImport.types';
 
 export const useFileUpload = (): JSX.Element => {
@@ -189,13 +189,24 @@ export const useFileUpload = (): JSX.Element => {
       } : f));
 
       // Parse CSV data
-      const csvData = await parseCsvData(file);
+      const parseResult = await parseCsvFile(file);
+      const csvData = parseResult.records;
+      const cleansing_stats = parseResult.cleansing_stats;
 
       if (csvData.length === 0) {
         throw new Error("No valid data found in the CSV file");
       }
 
       console.log(`Parsed ${csvData.length} records from CSV file`);
+
+      // Alert user if data cleansing occurred (commas replaced with spaces)
+      if (cleansing_stats?.rows_cleansed > 0) {
+        toast({
+          title: "Data Cleansing Applied",
+          description: `Unquoted commas in text fields were replaced with spaces to ensure column alignment with imported data. ${cleansing_stats.rows_cleansed} row(s) were cleaned.`,
+          variant: "default",
+        });
+      }
 
       // Generate a proper UUID for the upload
       const uploadId = uuidv4();
@@ -217,6 +228,11 @@ export const useFileUpload = (): JSX.Element => {
         },
         client_id: effectiveClient?.id || null,
         engagement_id: effectiveEngagement?.id || null,
+        cleansing_stats: cleansing_stats ? {
+          total_rows: cleansing_stats.total_rows,
+          rows_cleansed: cleansing_stats.rows_cleansed,
+          rows_skipped: cleansing_stats.rows_skipped,
+        } : undefined,
       };
 
       // AGGRESSIVE DEBUGGING: Log payload and types
