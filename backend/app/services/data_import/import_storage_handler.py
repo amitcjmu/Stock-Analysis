@@ -14,7 +14,7 @@ from sqlalchemy import select
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.models.data_import import DataImport
-from app.schemas.data_import_schemas import StoreImportRequest
+from app.schemas.data_import_schemas import StoreImportRequest, CleansingStats
 
 from .storage_manager import ImportStorageManager
 
@@ -281,6 +281,15 @@ class ImportStorageHandler:
                     f"🗳️ Data import record created with raw records: {data_import.id}"
                 )
 
+                # Simple audit logging for CSV data cleansing
+                if (
+                    store_request.cleansing_stats
+                    and store_request.cleansing_stats.rows_cleansed > 0
+                ):
+                    await self._log_cleansing_audit(
+                        store_request.cleansing_stats, context, data_import.id
+                    )
+
                 # Now trigger the master flow using existing service
                 # import_service = DataImportService(self.db, context)  # Currently unused
 
@@ -424,3 +433,57 @@ class ImportStorageHandler:
             return self.response_builder.error_response(
                 error_message=f"Failed to store import data: {str(e)}"
             )
+
+    async def _log_cleansing_audit(
+        self,
+        cleansing_stats: CleansingStats,
+        context: RequestContext,
+        data_import_id: Any,
+    ) -> None:
+        """
+        Simple audit log for CSV data cleansing.
+
+        Args:
+            cleansing_stats: Cleansing statistics from the request
+            context: Request context with user and tenant information
+            data_import_id: ID of the data import record
+        """
+        try:
+            from app.models.rbac.audit_models import AccessAuditLog
+
+            audit_log = AccessAuditLog(
+                user_id=context.user_id,
+                action_type="data_import_cleansing",
+                resource_type="data_import",
+                resource_id=str(data_import_id),
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                result="success",
+                reason=(
+                    f"CSV data cleansing: {cleansing_stats.rows_cleansed} row(s) had "
+                    "unquoted commas replaced with spaces for column alignment during "
+                    "data import"
+                ),
+                details={
+                    "total_rows": cleansing_stats.total_rows,
+                    "rows_cleansed": cleansing_stats.rows_cleansed,
+                    "rows_skipped": cleansing_stats.rows_skipped,
+                    "cleansing_type": "comma_replacement",
+                    "cleansing_reason": "column_alignment",
+                },
+                ip_address=context.ip_address,
+                user_agent=context.user_agent,
+            )
+
+            self.db.add(audit_log)
+            await self.db.commit()
+            logger.info(
+                f"✅ Audit log created for data import cleansing: "
+                f"{cleansing_stats.rows_cleansed} rows cleansed for import {data_import_id}"
+            )
+        except Exception as e:
+            logger.warning(
+                f"⚠️ Failed to log data import cleansing audit: {str(e)}. "
+                "Import will continue without audit log."
+            )
+            # Don't raise - audit logging should not break the import flow

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { parseCsvFileForDiscovery } from '@/utils/csvParser';
 
 // Types
 export interface UploadedFile {
@@ -82,42 +83,12 @@ interface AnalysisStatusResponse {
   [key: string]: unknown;
 }
 
+// Configuration constants
+const DISCOVERY_SAMPLE_ROWS = 10;
+
 // Helper function to parse CSV file into structured data
 const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Array<Record<string, unknown>> }> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const lines = text.split('\n').filter(line => line.trim());
-
-        if (lines.length === 0) {
-          reject(new Error('File is empty'));
-          return;
-        }
-
-        // Parse headers
-        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-
-        // Parse data rows
-        const sample_data: Array<Record<string, unknown>> = [];
-        for (let i = 1; i < Math.min(lines.length, 11); i++) { // Take first 10 data rows
-          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-          const row: Record<string, unknown> = {};
-          headers.forEach((header, index) => {
-            row[header] = values[index] || '';
-          });
-          sample_data.push(row);
-        }
-
-        resolve({ headers, sample_data });
-      } catch (error) {
-        reject(new Error('Failed to parse CSV file'));
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsText(file);
-  });
+  return parseCsvFileForDiscovery(file, DISCOVERY_SAMPLE_ROWS);
 };
 
 // Main hook for initiating discovery workflow
