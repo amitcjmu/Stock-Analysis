@@ -18,25 +18,17 @@ class FlowStatusMapper:
         This prevents conflicts where the child flow is more advanced than the master flow,
         which would indicate a synchronization issue.
         """
-        # Define status hierarchy (higher index = more advanced)
-        # FIXED: Using only valid enum values from database
-        # Valid enum: initialized, asset_selection, gap_analysis, manual_collection, completed, failed, cancelled
+        # CC FIX: Define status hierarchy using ONLY valid enum values
+        # Valid collection flow enum: initialized, running, paused, completed, failed, cancelled
+        # Other values (gap_analysis, asset_selection, etc.) are PHASES, not statuses
         status_hierarchy = {
             "pending": 0,
             "initialized": 1,
             "running": 2,
-            "asset_selection": 2,
-            "manual_collection": 2,
-            "data_validation": 3,
-            "gap_analysis": 3,
-            "analysis": 3,
-            "planning": 4,
-            "assessment": 4,
-            "finalization": 5,
-            "completed": 6,
-            "failed": 7,
-            "cancelled": 7,
-            "paused": 8,
+            "paused": 3,
+            "completed": 4,
+            "failed": 5,
+            "cancelled": 5,
         }
 
         master_level = status_hierarchy.get(master_status, 0)
@@ -53,16 +45,12 @@ class FlowStatusMapper:
     @staticmethod
     def map_child_to_master_status(child_status: str) -> str:
         """Map collection flow status to master flow status"""
-        # FIXED: Using only valid enum values
-        # Valid enum: initialized, asset_selection, gap_analysis, manual_collection, completed, failed, cancelled
+        # CC FIX: Map ONLY valid collection flow enum values
+        # Valid collection flow enum: initialized, running, paused, completed, failed, cancelled
         status_mapping = {
             "initialized": "pending",
-            "asset_selection": "running",
-            "platform_detection": "running",
-            "manual_collection": "running",
-            "data_validation": "running",
-            "gap_analysis": "running",
-            "finalization": "running",
+            "running": "running",
+            "paused": "paused",
             "completed": "completed",
             "failed": "failed",
             "cancelled": "cancelled",
@@ -114,21 +102,21 @@ class FlowStatusMapper:
 
         IMPORTANT (Per ADR-012): This maps lifecycle STATUS to STATUS, NOT status to phase.
         - Master flow tracks: pending → running → completed/failed (lifecycle envelope)
-        - Child flows track: asset_selection → gap_analysis → manual_collection (operational phases)
+        - Child flows track phases in current_phase column (gap_analysis, manual_collection, etc.)
 
         Child flows OWN their current_phase progression. This function only maps
         the high-level lifecycle status for monitoring and coordination.
 
-        Valid child flow statuses: initialized, asset_selection, gap_analysis,
-        manual_collection, completed, failed, cancelled
+        Valid child flow STATUSES (enum values): initialized, running, paused, completed, failed, cancelled
+        Valid child flow PHASES (varchar): asset_selection, gap_analysis, manual_collection, etc.
         """
-        # Map master lifecycle status to child lifecycle status
-        # Note: Child flows may be in different operational phases while in same lifecycle status
+        # CC FIX: Map to valid enum values only
+        # Status goes to status column (enum), phase goes to current_phase column (varchar)
         status_mapping = {
-            "running": "gap_analysis",  # Generic "running" maps to mid-flow status
+            "running": "running",  # Map to valid enum value
             "completed": "completed",
             "failed": "failed",
-            "paused": "gap_analysis",  # Paused flows maintain their last active status
+            "paused": "paused",  # Map to valid enum value
             "pending": "initialized",
         }
         return status_mapping.get(master_status, "initialized")
