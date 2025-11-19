@@ -243,8 +243,41 @@ class ExecutionEngineAssessmentCrews(
 
         # Check that prior phases are completed
         phase_results = flow_state.phase_results or {}
+        phases_completed = flow_state.phases_completed or []
+        current_phase = flow_state.current_phase
+
+        # CRITICAL FIX: If current phase is beyond the phase we want to execute,
+        # it means we've already progressed past prior phases (e.g., returning from collection)
+        if current_phase:
+            try:
+                current_phase_idx = phase_order.index(current_phase)
+                if current_phase_idx >= current_idx:
+                    # We're already at or past the phase we want to execute
+                    # This happens when resuming from collection flow
+                    logger.info(
+                        f"✅ Phase '{phase_name}' prerequisites met - flow already at '{current_phase}' "
+                        f"(likely returning from collection flow)"
+                    )
+                    return
+            except ValueError:
+                # Current phase not in standard order, continue with normal validation
+                pass
+
+        # Normal validation: check if prior phases have results or are marked as completed
         for idx, prior_phase in enumerate(phase_order[:current_idx]):
-            if prior_phase not in phase_results:
+            # Check both phase_results and phases_completed list
+            if prior_phase not in phase_results and prior_phase not in phases_completed:
+                # Additional check: if we're past this phase index based on current_phase, it's OK
+                if current_phase:
+                    try:
+                        current_phase_idx = phase_order.index(current_phase)
+                        prior_phase_idx = phase_order.index(prior_phase)
+                        if current_phase_idx > prior_phase_idx:
+                            # We've progressed past this phase already
+                            continue
+                    except ValueError:
+                        pass
+
                 raise ValueError(
                     f"Cannot execute phase '{phase_name}' - prior phase '{prior_phase}' not completed. "
                     f"Please complete phases in order: {' → '.join(phase_order)}"

@@ -234,26 +234,18 @@ export const useAdaptiveFormFlow = (
               }
             }
 
-            // Use setTimeout to prevent "Cannot update a component while rendering" warning
-            setTimeout(() => {
-              setState((prev) => ({
-                ...prev,
-                formData: adaptiveFormData,
-                formValues: existingResponses, // Load saved responses from database
-                questionnaires: questionnaires,
-                isLoading: false,
-                error: null
-              }));
-            }, 0);
-
+            // CRITICAL FIX: Instead of updating state which shows "app-new" with 0/0 fields,
+            // reload the page to properly render the questionnaire (confirmed working by user)
             toast({
-              title: existingResponses && Object.keys(existingResponses).length > 0
-                ? "Saved Responses Loaded"
-                : "Adaptive Form Ready",
-              description: existingResponses && Object.keys(existingResponses).length > 0
-                ? `Loaded your previously saved responses. You can review and update them.`
-                : `Agent-generated questionnaire is ready for data collection.`,
+              title: "Questionnaire Ready",
+              description: "Loading your questionnaire...",
             });
+
+            // Reload the page to properly render the questionnaire
+            // This ensures all components re-initialize with the correct data
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
           }
         } catch (error) {
           console.error('Failed to convert questionnaire:', error);
@@ -289,25 +281,18 @@ export const useAdaptiveFormFlow = (
             }
           }
 
-          // Use setTimeout to prevent "Cannot update a component while rendering" warning
-          setTimeout(() => {
-            setState((prev) => ({
-              ...prev,
-              formData: adaptiveFormData,
-              formValues: existingResponses, // Load saved responses from database
-              questionnaires: questionnaires,
-              isLoading: false,
-              error: null
-            }));
-          }, 0);
-
+          // CRITICAL FIX: Reload page to properly render fallback questionnaire
+          // Same issue as with regular questionnaires - state update shows "app-new" with 0/0 fields
           toast({
-            title: "Bootstrap Form Loaded",
-            description: existingResponses && Object.keys(existingResponses).length > 0
-              ? "Using comprehensive template questionnaire. Your saved responses have been loaded."
-              : "Using comprehensive template questionnaire while AI agents work in the background.",
+            title: "Bootstrap Form Ready",
+            description: "Loading comprehensive template questionnaire...",
             variant: "default",
           });
+
+          // Reload the page to properly render the questionnaire
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         } catch (error) {
           console.error('Failed to convert fallback questionnaire:', error);
         }

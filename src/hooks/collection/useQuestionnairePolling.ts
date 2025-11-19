@@ -33,10 +33,11 @@ export interface QuestionnairePollingOptions {
   onFailed?: (_errorMessage: string) => void;
 }
 
-// CC FIX Issue #3: User-specified polling parameters (max 6 refreshes, 60-second intervals)
-const POLLING_INTERVAL_MS = 60 * 1000; // 60 seconds between polls
-const MAX_POLL_COUNT = 6; // Maximum 6 polling attempts
-const TOTAL_POLLING_TIMEOUT_MS = MAX_POLL_COUNT * POLLING_INTERVAL_MS; // 6 minutes total (6 × 60s)
+// CC FIX Issue #3: User-specified polling parameters (max 30 refreshes, 5-second intervals)
+// Updated to reduce wait time - questionnaires typically ready within 10-30 seconds
+const POLLING_INTERVAL_MS = 5 * 1000; // 5 seconds between polls (reduced from 60s for better UX)
+const MAX_POLL_COUNT = 30; // Maximum 30 polling attempts (2.5 minutes total)
+const TOTAL_POLLING_TIMEOUT_MS = MAX_POLL_COUNT * POLLING_INTERVAL_MS; // 2.5 minutes total (30 × 5s)
 const MAX_RETRY_ATTEMPTS = 3; // Allow up to 3 manual retries
 const RETRY_DELAY_BASE = 2000; // Base delay for exponential backoff
 
@@ -249,7 +250,7 @@ export const useQuestionnairePolling = ({
         // Check if we've exceeded max poll count
         if (pollCountRef.current <= MAX_POLL_COUNT) {
           console.log(`📊 Polling (attempt ${pollCountRef.current}/${MAX_POLL_COUNT}) @ useQuestionnairePolling`);
-          return POLLING_INTERVAL_MS; // 60 seconds
+          return POLLING_INTERVAL_MS; // 5 seconds
         } else {
           // We've reached the max poll count, stop polling
           console.log(`⏰ Max poll count (${MAX_POLL_COUNT}) reached, stopping polling`);
@@ -261,8 +262,8 @@ export const useQuestionnairePolling = ({
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    // Keep data for 30 seconds to prevent unnecessary re-fetching
-    staleTime: 30 * 1000,
+    // Keep data for 3 seconds to allow quick re-fetching during polling
+    staleTime: 3 * 1000,
     gcTime: 5 * 60 * 1000, // 5 minutes cache time
     retry: (failureCount, error) => {
       // Don't retry on specific errors
@@ -291,9 +292,9 @@ export const useQuestionnairePolling = ({
           console.log(`⏰ Max poll count (${MAX_POLL_COUNT}) reached after ${pollCountRef.current} attempts`);
           setIsPolling(false);
           setCompletionStatus('failed');
-          setStatusLine('Questionnaire generation timed out after 6 minutes. Please try again.');
+          setStatusLine('Questionnaire generation timed out after 2.5 minutes. Please try again.');
           setError(new Error('Questionnaire generation timed out'));
-          callbacksRef.current.onFailed?.('Questionnaire generation timed out after 6 minutes. Please try again.');
+          callbacksRef.current.onFailed?.('Questionnaire generation timed out after 2.5 minutes. Please try again.');
         }
       } else if (!isPolling && pollStartTimeRef.current === null) {
         // Start polling if not already polling
