@@ -191,8 +191,8 @@ Every query MUST include:
 - `engagement_id`: Project/session isolation
 - All tables use composite scoping for data security
 
-#### LLM Usage Tracking (MANDATORY - October 2025)
-**ALL LLM calls MUST use `multi_model_service.generate_response()`** for automatic tracking:
+#### LLM Usage Tracking (Updated November 2025)
+**Preferred for new code**: Use `multi_model_service.generate_response()` for best tracking:
 
 ```python
 from app.services.multi_model_service import multi_model_service, TaskComplexity
@@ -212,12 +212,12 @@ response = await multi_model_service.generate_response(
 - ✅ Multi-tenant context (client_account_id, engagement_id)
 - ✅ Performance metrics (response time, success rate)
 
-**NEVER use direct LLM calls** - they bypass tracking:
-- ❌ `litellm.completion()` - Use `multi_model_service` instead
-- ❌ `openai.chat.completions.create()` - Use `multi_model_service` instead
-- ❌ `LLM().call()` - Use `multi_model_service` instead
+**Note on Direct LLM Calls**:
+- Direct `litellm.completion()` calls are automatically tracked via global callback
+- Prefer `multi_model_service` for new code (better tenant context)
+- Legacy code is already tracked - no immediate changes needed
 
-**Legacy Code Exception:** If you find direct calls in existing code, wrap with tracker:
+**If Adding Tenant Context to Legacy Code**:
 ```python
 from app.services.llm_usage_tracker import llm_tracker
 
@@ -588,25 +588,90 @@ await apiCall(`/api/endpoint`, {
 
 **Backend uses FastAPI with Pydantic models that ONLY accept request bodies for POST/PUT/DELETE**
 
+### CRITICAL: JSON Sanitization Pattern (ADR-029)
+
+**LLM responses often contain malformed JSON** - always sanitize before parsing:
+
+```python
+import json
+import re
+import dirtyjson
+import math
+
+def safe_parse_llm_json(response: str) -> dict:
+    """Parse potentially malformed JSON from LLM responses."""
+    # Strip markdown code blocks
+    cleaned = re.sub(r'```json\s*|\s*```', '', response)
+
+    # Try standard JSON first
+    try:
+        return json.loads(cleaned)
+    except:
+        # Fallback to dirtyjson for malformed responses
+        try:
+            parsed = dirtyjson.loads(cleaned)
+            # Handle NaN/Infinity (not valid JSON)
+            return sanitize_json_values(parsed)
+        except:
+            raise ValueError("Unable to parse LLM response as JSON")
+
+def sanitize_json_values(obj):
+    """Replace NaN/Infinity with None for JSON serialization."""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    elif isinstance(obj, dict):
+        return {k: sanitize_json_values(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_json_values(item) for item in obj]
+    return obj
+```
+
+**Common Issues**:
+- LLM wraps JSON in markdown: ` ```json ... ``` `
+- Trailing commas in objects/arrays
+- Single quotes instead of double quotes
+- NaN/Infinity from confidence scores
+- Truncated responses at 16KB limit (see ADR-035)
+
 ### CRITICAL: API Field Naming Convention (MUST READ - Prevents Recurring Bugs)
 
-#### The Problem
-The #1 recurring bug in this codebase WAS confusion between snake_case and camelCase field names. This has been resolved.
+#### Current Status (November 2025)
+- **Migration Status**: ~80% complete, ongoing incremental migration
+- **Rule**: ALL new code MUST use snake_case exclusively
+- **Legacy Code**: May contain camelCase - refactor when touched
 
-#### The Rule - NEVER BREAK THIS (Updated Aug 2025)
-1. **Backend (Python/FastAPI)**: ALWAYS returns `snake_case` fields (e.g., `flow_id`, `client_account_id`)
-2. **Frontend (TypeScript/React)**: SHOULD use `snake_case` fields to match backend for all NEW code
-   - **IMPORTANT**: Legacy code may still use `camelCase`. When touching those areas, refactor to `snake_case` in the same PR
-   - **MIGRATION IN PROGRESS**: Some components may have mixed usage during transition
-3. **Raw API Calls**: Will receive `snake_case` and should use it directly - NO TRANSFORMATION NEEDED
-4. **Type Definitions**: Frontend interfaces should use `snake_case` ONLY for new/updated types to match backend
+#### The Rules - NEVER BREAK THESE
+1. **Backend (Python/FastAPI)**: ALWAYS uses `snake_case` fields
+   - Examples: `flow_id`, `client_account_id`, `master_flow_id`
+   - NO exceptions - backend is 100% snake_case
 
-#### Migration Notes and Warnings
-- **Legacy Utilities**: `api-field-transformer.ts` is now a NO-OP but retained for backward compatibility
-- **Incremental Migration**: When updating a component, convert ALL its field references to snake_case
-- **Type Safety**: Use explicit null/undefined checks instead of truthy checks for numeric fields (e.g., confidence_score)
-- **DO NOT**: Mix camelCase and snake_case in the same component or type definition
-- **DO**: Complete field name migration within the scope of your PR when touching a file
+2. **Frontend (TypeScript/React)**:
+   - **New Code**: MUST use `snake_case` to match backend exactly
+   - **Legacy Code**: May have `camelCase` - refactor to `snake_case` when modifying
+   - **No Transformation**: Use API fields exactly as received
+
+3. **Type Definitions**:
+   ```typescript
+   // ✅ CORRECT - New interfaces use snake_case
+   interface FlowData {
+     flow_id: string;
+     master_flow_id: string;
+     client_account_id: number;
+   }
+
+   // ❌ WRONG - Never create new camelCase interfaces
+   interface FlowData {
+     flowId: string;  // NO!
+     masterFlowId: string;  // NO!
+   }
+   ```
+
+#### Migration Guidelines
+- **When Touching Legacy Code**: Convert ALL fields in that component to snake_case
+- **api-field-transformer.ts**: Now a NO-OP, retained for compatibility
+- **Type Safety**: Use explicit checks for numeric fields: `if (confidence_score !== undefined)`
+- **PR Scope**: Complete migration for any file you modify
 
 #### For AI Agents - MANDATORY CHECKS
 Before writing ANY code that handles API responses:
@@ -788,7 +853,7 @@ Observability NOT required for:
 
 ### Common Mistakes to Avoid
 - ❌ "Persistent agents don't exist" - They DO exist and are actively used
-- ❌ "Memory is disabled globally" - Memory is ENABLED with DeepInfra patch
+- ❌ "Memory is enabled with patches" - Memory is DISABLED per ADR-024, use TenantMemoryManager
 - ❌ "Too many state tables" - UnifiedDiscoveryFlowState is a Pydantic model, not a table
 - ❌ "Reduce layers for simplicity" - Enterprise systems REQUIRE these layers
 - ❌ "Remove placeholder implementations" - They provide critical fallback resilience
@@ -820,13 +885,54 @@ Observability NOT required for:
 
 ### ADR-015: Persistent Multi-Tenant Agent Architecture
 - TenantScopedAgentPool manages agent lifecycle per tenant
-- Agents maintain memory with DeepInfra embeddings patch
+- Agents persist without memory (memory=False per ADR-024)
 - Singleton pattern with lazy initialization per tenant
 
-### ADR-019: CrewAI DeepInfra Embeddings Monkey Patch
-- Memory IS enabled via DeepInfra patch
-- Located at `backend/app/core/memory/crewai_deepinfra_patch.py`
-- Applied at startup to enable agent memory persistence
+### ADR-024: TenantMemoryManager Architecture (Supersedes ADR-019)
+- CrewAI memory is DISABLED entirely (memory=False everywhere)
+- TenantMemoryManager provides enterprise agent learning
+- PostgreSQL + pgvector for multi-tenant memory isolation
+- No DeepInfra patches or embedder configurations
+
+### ADR-025: Collection Flow Child Service Migration
+- Collection/Discovery flows use child service pattern
+- Assessment flow uses Direct Flow pattern (simpler lifecycle)
+- Child services handle complex data collection and auto-progression
+- See ADR for decision criteria on pattern selection
+
+## Recent Architectural Decisions (Nov 2025)
+
+### ADR-029: LLM Output JSON Sanitization Pattern
+- Strip markdown wrappers (```json) from LLM responses
+- Use dirtyjson for parsing malformed JSON
+- Handle NaN/Infinity values before serialization
+- Pattern: `safe_parse_llm_json()` utility function
+
+### ADR-030: Collection Flow Adaptive Questionnaire Architecture
+- Intelligent gap-based question generation
+- Shows fewer questions for assets with better data quality
+- Adaptive forms are a FEATURE not a bug (Issue #795 lesson)
+- Questions generated based on actual data gaps
+
+### ADR-035: Per-Asset, Per-Section Questionnaire Generation
+- Prevents JSON truncation at 16KB LLM response limit
+- Generates questionnaires in chunks (per-asset, per-section)
+- Uses Redis caching for efficient chunked generation
+- Fixes Bug #996-#998 (questionnaire generation failures)
+
+### ADR-036: Canonical Application Junction Table Architecture
+- Fixes 6R recommendation persistence (Bug #999)
+- Junction table maps assets ↔ canonical applications
+- Handles race conditions in concurrent collection flows
+- Includes migration for 110 orphaned assets
+
+### Other Important ADRs
+- **ADR-027**: Universal Flow Type Config Pattern
+- **ADR-028**: Eliminate Collection Phase State Duplication
+- **ADR-031**: Environment-Based Observability Architecture
+- **ADR-032**: JWT Refresh Token Security Architecture
+- **ADR-033**: Context Establishment Service Modularization
+- **ADR-034**: Asset-Centric Questionnaire Deduplication
 
 ## Critical: API Endpoint Synchronization (Post-Aug 2025 Incident)
 
