@@ -161,14 +161,32 @@ interface StatDisplayProps {
   variant: 'default' | 'secondary' | 'destructive' | 'outline';
 }
 
-const StatDisplay: React.FC<StatDisplayProps> = ({ label, count, variant }) => (
-  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{label}:</span>
-    <Badge variant={variant} className="font-semibold text-base min-w-[32px] justify-center">
-      {count}
-    </Badge>
-  </div>
-);
+const StatDisplay: React.FC<StatDisplayProps> = ({ label, count, variant }) => {
+  // Color-coded circular badges matching grid visual language
+  const getCircleStyle = () => {
+    switch (variant) {
+      case 'default': // Auto-Mapped - Blue circle with white text
+        return 'bg-blue-600 text-white';
+      case 'secondary': // Needs Review - Orange circle with black text
+        return 'bg-orange-500 text-black';
+      case 'outline': // Approved - Green circle with white text
+        return 'bg-green-600 text-white';
+      case 'destructive': // Unmapped - Red circle with white text
+        return 'bg-red-600 text-white';
+      default:
+        return 'bg-gray-600 text-white';
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-lg border border-gray-300 shadow-sm">
+      <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">{label}:</span>
+      <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${getCircleStyle()}`}>
+        {count}
+      </div>
+    </div>
+  );
+};
 
 export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
   flow_id,

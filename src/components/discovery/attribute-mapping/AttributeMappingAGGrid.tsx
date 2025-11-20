@@ -500,12 +500,12 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         <h3 className="text-sm font-semibold text-blue-900 mb-1">
           Attribute Mapping with Data Preview
         </h3>
-        <p className="text-sm text-blue-700">
-          <strong>Column Headers:</strong> Source field names from your imported CSV/JSON file.
+        <p className="text-sm text-blue-700 leading-relaxed">
+          <strong>Row 1 (Column Headers):</strong> Source field names from your imported CSV/JSON file.
           <br />
-          <strong>Row 1 (Map To):</strong> Select target fields for each source column. Green highlighting indicates auto-mapped or approved fields.
+          <strong>Row 2 (Map To):</strong> Select target fields for each source column using dropdowns. Green highlighting indicates auto-mapped or approved fields.
           <br />
-          <strong>Rows 2-9 (Data):</strong> Preview of first 8 records to verify mappings.
+          <strong>Rows 3-10 (Data Preview):</strong> First 8 records from your imported file to help verify your mapping selections.
         </p>
       </div>
 
