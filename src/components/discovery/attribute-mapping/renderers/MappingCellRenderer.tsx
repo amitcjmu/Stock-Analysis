@@ -1,0 +1,271 @@
+/**
+ * Mapping Cell Renderer - Editable dropdown for attribute mapping
+ *
+ * Provides searchable dropdown for mapping source fields to target fields with:
+ * - Status badge (Auto-Mapped/Needs Review/Approved)
+ * - Confidence score indicator
+ * - Approve/Reject action buttons
+ * - Outside click handling
+ * - Keyboard navigation (Escape, Enter)
+ *
+ * @component MappingCellRenderer
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import type { ICellRendererParams } from 'ag-grid-community';
+import { ChevronDown, Check, AlertCircle, X, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import type { FieldMappingStatus } from '@/types/api/discovery/field-mapping-types';
+
+export interface MappingCellValue {
+  target_field: string | null;
+  status: FieldMappingStatus;
+  confidence_score: number;
+  mapping_id: string;
+}
+
+export interface MappingCellRendererProps extends ICellRendererParams {
+  value: MappingCellValue;
+  sourceField: string;
+  availableTargetFields: string[];
+  onSelect?: (sourceField: string, targetField: string) => void;
+  onApprove?: (mappingId: string) => void;
+  onReject?: (mappingId: string) => void;
+}
+
+/**
+ * Get status badge styling based on mapping status
+ */
+function getStatusBadge(status: FieldMappingStatus, confidenceScore: number): {
+  label: string;
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  icon: React.ReactNode;
+} {
+  switch (status) {
+    case 'approved':
+      return {
+        label: 'Approved',
+        variant: 'default',
+        icon: <CheckCircle className="w-3 h-3" />
+      };
+    case 'suggested':
+      return {
+        label: `Suggested (${Math.round(confidenceScore * 100)}%)`,
+        variant: 'secondary',
+        icon: null
+      };
+    case 'pending':
+      return {
+        label: 'Needs Review',
+        variant: 'outline',
+        icon: <AlertCircle className="w-3 h-3 text-yellow-600" />
+      };
+    case 'rejected':
+      return {
+        label: 'Rejected',
+        variant: 'destructive',
+        icon: <X className="w-3 h-3" />
+      };
+    case 'unmapped':
+    default:
+      return {
+        label: 'Unmapped',
+        variant: 'outline',
+        icon: <AlertCircle className="w-3 h-3 text-gray-400" />
+      };
+  }
+}
+
+/**
+ * Get confidence level label based on score
+ */
+function getConfidenceLabel(score: number): string {
+  if (score >= 0.8) return `High (${Math.round(score * 100)}%)`;
+  if (score >= 0.5) return `Medium (${Math.round(score * 100)}%)`;
+  return `Low (${Math.round(score * 100)}%)`;
+}
+
+export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
+  value,
+  sourceField,
+  availableTargetFields,
+  onSelect,
+  onApprove,
+  onReject
+}) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+        setSearchTerm(''); // Reset search when closing
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isDropdownOpen]);
+
+  // Filter available fields based on search term
+  const filteredFields = searchTerm
+    ? availableTargetFields.filter(field =>
+        field.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : availableTargetFields;
+
+  // Handle field selection
+  const handleSelectField = (fieldName: string) => {
+    if (onSelect) {
+      onSelect(sourceField, fieldName);
+    }
+    setIsDropdownOpen(false);
+    setSearchTerm('');
+  };
+
+  // Get status badge configuration
+  const statusBadge = getStatusBadge(value.status, value.confidence_score);
+
+  // Determine if dropdown should be disabled
+  const isDisabled = value.status === 'approved';
+
+  return (
+    <div className="flex flex-col gap-2 p-2 w-full">
+      {/* Dropdown Section */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => !isDisabled && setIsDropdownOpen(!isDropdownOpen)}
+          disabled={isDisabled}
+          className={`
+            flex items-center justify-between w-full px-3 py-2 text-sm border rounded-md
+            transition-colors
+            ${isDisabled
+              ? 'bg-gray-50 border-gray-200 cursor-not-allowed text-gray-500'
+              : 'bg-white border-gray-300 hover:border-blue-500 cursor-pointer'
+            }
+          `}
+          aria-label={`Select target field for ${sourceField}`}
+          aria-expanded={isDropdownOpen}
+          aria-haspopup="listbox"
+        >
+          <span className="truncate font-medium">
+            {value.target_field || 'Select target field...'}
+          </span>
+          {!isDisabled && <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />}
+        </button>
+
+        {/* Dropdown Menu */}
+        {isDropdownOpen && !isDisabled && (
+          <div className="absolute z-50 mt-1 w-full min-w-[300px] bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-hidden">
+            {/* Search Input */}
+            <div className="p-2 border-b border-gray-200">
+              <input
+                type="text"
+                placeholder="Search fields..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+                aria-label="Search target fields"
+              />
+            </div>
+
+            {/* Fields List */}
+            <div className="max-h-64 overflow-y-auto" role="listbox">
+              {filteredFields.length === 0 ? (
+                <div className="px-3 py-4 text-center text-sm text-gray-500">
+                  No fields match your search
+                </div>
+              ) : (
+                filteredFields.map(field => (
+                  <button
+                    key={field}
+                    onClick={() => handleSelectField(field)}
+                    className={`
+                      w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors
+                      ${field === value.target_field ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'}
+                    `}
+                    role="option"
+                    aria-selected={field === value.target_field}
+                  >
+                    {field}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Status and Actions Section */}
+      <div className="flex items-center justify-between gap-2">
+        {/* Status Badge with Confidence */}
+        <div className="flex items-center gap-2">
+          <Badge variant={statusBadge.variant} className="flex items-center gap-1">
+            {statusBadge.icon}
+            <span className="text-xs">{statusBadge.label}</span>
+          </Badge>
+
+          {/* Confidence Score (only for suggested/pending) */}
+          {(value.status === 'suggested' || value.status === 'pending') && value.target_field && (
+            <span className="text-xs text-gray-500">
+              {getConfidenceLabel(value.confidence_score)}
+            </span>
+          )}
+        </div>
+
+        {/* Action Buttons (only for pending/suggested) */}
+        {(value.status === 'suggested' || value.status === 'pending') && value.target_field && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onApprove) {
+                  onApprove(value.mapping_id);
+                }
+              }}
+              className="p-1 rounded hover:bg-green-100 transition-colors group"
+              title="Approve mapping"
+              aria-label="Approve mapping"
+            >
+              <Check className="w-4 h-4 text-gray-400 group-hover:text-green-600" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onReject) {
+                  onReject(value.mapping_id);
+                }
+              }}
+              className="p-1 rounded hover:bg-red-100 transition-colors group"
+              title="Reject mapping"
+              aria-label="Reject mapping"
+            >
+              <X className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

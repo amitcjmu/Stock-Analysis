@@ -84,6 +84,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
               learnedMappings={learnedMappings}
               clientAccountId={clientAccountId}
               engagementId={engagementId}
+              sessionInfo={sessionInfo}
             />
           </FieldMappingErrorBoundary>
         );
