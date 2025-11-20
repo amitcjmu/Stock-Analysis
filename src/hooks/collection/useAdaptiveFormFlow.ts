@@ -205,29 +205,61 @@ export const useAdaptiveFormFlow = (
     currentPhase, // CRITICAL: Pass current phase to prevent race condition
     onReady: useCallback(async (questionnaires: CollectionQuestionnaire[]) => {
       console.log('🎉 Questionnaire ready from new polling hook:', questionnaires);
+
       // Convert questionnaires and update state - use timeout to prevent React warning
       if (questionnaires.length > 0) {
         try {
-          const adaptiveFormData = convertQuestionnairesToFormData(
-            questionnaires[0],
-            applicationId,
-            applications // FIX: Pass applications for UUID-to-name lookup
-          );
+          // CRITICAL FIX: Convert ALL questionnaires and merge their sections
+          // Each questionnaire represents one asset's questions
+          const allFormData = questionnaires.map((q) => {
+            return convertQuestionnairesToFormData(
+              q,
+              applicationId,
+              applications // FIX: Pass applications for UUID-to-name lookup
+            );
+          });
+
+          // Merge all sections from all questionnaires into a single form
+          // Each section maintains asset_id in field metadata for proper grouping
+          const mergedSections = allFormData.flatMap(formData => formData.sections);
+          const totalFields = allFormData.reduce((sum, fd) => sum + fd.totalFields, 0);
+          const requiredFields = allFormData.reduce((sum, fd) => sum + fd.requiredFields, 0);
+
+          const adaptiveFormData = {
+            formId: allFormData[0].formId,
+            applicationId: applicationId || 'app-new',
+            applicationName: allFormData.length > 1
+              ? `${allFormData.length} Assets`
+              : allFormData[0].applicationName,
+            sections: mergedSections,
+            totalFields,
+            requiredFields,
+            estimatedCompletionTime: Math.max(...allFormData.map(fd => fd.estimatedCompletionTime || 20)),
+            confidenceImpactScore: allFormData.reduce((sum, fd) => sum + (fd.confidenceImpactScore || 0.85), 0) / allFormData.length
+          };
 
           if (validateFormDataStructure(adaptiveFormData)) {
-            // CRITICAL FIX: Fetch saved responses from database when loading questionnaire
+            // CRITICAL FIX: Fetch saved responses from database for ALL questionnaires
             let existingResponses: CollectionFormData = {};
             if (state.flowId) {
               try {
-                const savedResponsesData = await collectionFlowApi.getQuestionnaireResponses(
-                  state.flowId,
-                  questionnaires[0].id,
+                // Fetch responses for all questionnaires and merge them
+                const allResponsesPromises = questionnaires.map(q =>
+                  collectionFlowApi.getQuestionnaireResponses(state.flowId!, q.id)
                 );
-                if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
-                  existingResponses = savedResponsesData.responses;
-                  console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from database:`, existingResponses);
+                const allResponsesData = await Promise.all(allResponsesPromises);
+
+                // Merge all responses into a single object
+                allResponsesData.forEach(savedResponsesData => {
+                  if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
+                    existingResponses = { ...existingResponses, ...savedResponsesData.responses };
+                  }
+                });
+
+                if (Object.keys(existingResponses).length > 0) {
+                  console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from database across ${questionnaires.length} questionnaires`);
                 } else {
-                  console.log('📝 No saved responses found in database for this questionnaire');
+                  console.log('📝 No saved responses found in database for any questionnaire');
                 }
               } catch (err) {
                 console.warn("Failed to fetch saved responses from database:", err);
@@ -248,7 +280,7 @@ export const useAdaptiveFormFlow = (
 
             toast({
               title: "Questionnaire Ready",
-              description: "Your adaptive form is now ready.",
+              description: `Your adaptive form is ready with ${questionnaires.length} asset${questionnaires.length > 1 ? 's' : ''}.`,
             });
           }
         } catch (error) {
@@ -262,23 +294,52 @@ export const useAdaptiveFormFlow = (
       // Handle fallback questionnaire - use timeout to prevent React warning
       if (questionnaires.length > 0) {
         try {
-          const adaptiveFormData = convertQuestionnairesToFormData(
-            questionnaires[0],
-            applicationId,
-            applications // FIX: Pass applications for UUID-to-name lookup
-          );
+          // CRITICAL FIX: Convert ALL fallback questionnaires and merge their sections
+          const allFormData = questionnaires.map((q) => {
+            return convertQuestionnairesToFormData(
+              q,
+              applicationId,
+              applications // FIX: Pass applications for UUID-to-name lookup
+            );
+          });
 
-          // CRITICAL FIX: Fetch saved responses from database for fallback questionnaire too
+          // Merge all sections from all questionnaires
+          const mergedSections = allFormData.flatMap(formData => formData.sections);
+          const totalFields = allFormData.reduce((sum, fd) => sum + fd.totalFields, 0);
+          const requiredFields = allFormData.reduce((sum, fd) => sum + fd.requiredFields, 0);
+
+          const adaptiveFormData = {
+            formId: allFormData[0].formId,
+            applicationId: applicationId || 'app-new',
+            applicationName: allFormData.length > 1
+              ? `${allFormData.length} Assets`
+              : allFormData[0].applicationName,
+            sections: mergedSections,
+            totalFields,
+            requiredFields,
+            estimatedCompletionTime: Math.max(...allFormData.map(fd => fd.estimatedCompletionTime || 20)),
+            confidenceImpactScore: allFormData.reduce((sum, fd) => sum + (fd.confidenceImpactScore || 0.85), 0) / allFormData.length
+          };
+
+          // CRITICAL FIX: Fetch saved responses from database for ALL fallback questionnaires
           let existingResponses: CollectionFormData = {};
           if (state.flowId) {
             try {
-              const savedResponsesData = await collectionFlowApi.getQuestionnaireResponses(
-                state.flowId,
-                questionnaires[0].id,
+              // Fetch responses for all questionnaires and merge them
+              const allResponsesPromises = questionnaires.map(q =>
+                collectionFlowApi.getQuestionnaireResponses(state.flowId!, q.id)
               );
-              if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
-                existingResponses = savedResponsesData.responses;
-                console.log(`📝 Loaded ${Object.keys(existingResponses).length} saved responses from database:`, existingResponses);
+              const allResponsesData = await Promise.all(allResponsesPromises);
+
+              // Merge all responses
+              allResponsesData.forEach(savedResponsesData => {
+                if (savedResponsesData?.responses && Object.keys(savedResponsesData.responses).length > 0) {
+                  existingResponses = { ...existingResponses, ...savedResponsesData.responses };
+                }
+              });
+
+              if (Object.keys(existingResponses).length > 0) {
+                console.log(`📝 FALLBACK: Loaded ${Object.keys(existingResponses).length} saved responses from database across ${questionnaires.length} questionnaires`);
               }
             } catch (err) {
               console.warn("Failed to fetch saved responses from database:", err);
@@ -299,7 +360,7 @@ export const useAdaptiveFormFlow = (
 
           toast({
             title: "Bootstrap Form Ready",
-            description: "Comprehensive template questionnaire is now ready.",
+            description: `Comprehensive template questionnaire is ready with ${questionnaires.length} asset${questionnaires.length > 1 ? 's' : ''}.`,
             variant: "default",
           });
         } catch (error) {

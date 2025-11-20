@@ -268,7 +268,9 @@ const AdaptiveForms: React.FC = () => {
   // Pass formValues to calculate real-time completion percentage
   // CRITICAL: Must be defined BEFORE navigation handlers that use it
   const assetGroups = React.useMemo(() => {
-    if (!formData?.sections) return [];
+    if (!formData?.sections) {
+      return [];
+    }
 
     // Extract all questions from sections
     const allQuestions = formData.sections.flatMap(section =>
