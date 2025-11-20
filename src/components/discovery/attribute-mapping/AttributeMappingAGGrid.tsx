@@ -516,7 +516,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           suppressCellFocus={false}
           animateRows={false}
           suppressMovableColumns={false} // Allow column reordering
-          cellSelection={true} // Enable cell selection (replaces deprecated enableRangeSelection)
+          rowSelection="multiple" // Community feature - enable row selection
         />
       </div>
     </div>

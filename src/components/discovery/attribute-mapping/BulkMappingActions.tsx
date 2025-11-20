@@ -162,9 +162,9 @@ interface StatDisplayProps {
 }
 
 const StatDisplay: React.FC<StatDisplayProps> = ({ label, count, variant }) => (
-  <div className="flex items-center gap-2">
-    <span className="text-sm text-gray-600">{label}:</span>
-    <Badge variant={variant} className="font-semibold">
+  <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{label}:</span>
+    <Badge variant={variant} className="font-semibold text-base min-w-[32px] justify-center">
       {count}
     </Badge>
   </div>
@@ -298,9 +298,9 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
 
   return (
     <>
-      <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-white border-b-2 border-gray-200">
         {/* Statistics Section */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <StatDisplay
             label="Auto-Mapped"
             count={stats.auto_mapped}
