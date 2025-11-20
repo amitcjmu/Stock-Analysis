@@ -227,13 +227,31 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         // Enable editing for mapping row only
         editable: (params) => params.data?.rowType === 'mapping',
 
-        // ✅ TASK 2: Green highlighting for auto-mapped/approved columns
+        // Value formatter for object/complex data types
+        valueFormatter: (params) => {
+          if (params.data?.rowType === 'data') {
+            const value = params.value;
+            if (value === null || value === undefined) return '-';
+            if (typeof value === 'object') return JSON.stringify(value);
+            return String(value);
+          }
+          return params.value;
+        },
+
+        // ✅ TASK 2: Green highlighting for auto-mapped/approved columns ONLY
         cellStyle: (params) => {
+          // Only apply styling to mapping row cells
           if (params.data?.rowType === 'mapping') {
             const mappingData = params.value as MappingCellData;
-            const status = mappingData?.status;
 
-            // Green background for suggested or approved
+            // Safety check - ensure mappingData exists and has status
+            if (!mappingData || !mappingData.status) {
+              return {};
+            }
+
+            const status = mappingData.status;
+
+            // Green background ONLY for suggested or approved mappings
             if (status === 'suggested' || status === 'approved') {
               return {
                 backgroundColor: '#d1fae5', // green-100
@@ -249,12 +267,10 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
               };
             }
           }
+
+          // Default: no special styling
           return {};
         },
-
-        // ✅ TASK 3: Fix dropdown visibility with cellRendererPopup
-        cellRendererPopup: true,
-        cellEditorPopup: true,
 
         // Custom cell renderer based on row type
         cellRenderer: (params) => {
@@ -495,7 +511,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           suppressCellFocus={false}
           animateRows={false}
           suppressMovableColumns={false} // Allow column reordering
-          enableRangeSelection={true} // Enable range selection
+          cellSelection={true} // Enable cell selection (replaces deprecated enableRangeSelection)
         />
       </div>
     </div>

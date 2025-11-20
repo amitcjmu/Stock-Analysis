@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { ICellRendererParams } from 'ag-grid-community';
 import { ChevronDown, Check, AlertCircle, X, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -95,7 +96,9 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -146,14 +149,27 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
   // Get status badge configuration
   const statusBadge = getStatusBadge(value.status, value.confidence_score);
 
+  // Calculate dropdown position when opened
+  useEffect(() => {
+    if (isDropdownOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: Math.max(rect.width, 350), // Minimum 350px width for comfortable viewing
+      });
+    }
+  }, [isDropdownOpen]);
+
   // Determine if dropdown should be disabled
   const isDisabled = value.status === 'approved';
 
   return (
     <div className="flex flex-col gap-2 p-2 w-full h-full">
       {/* Dropdown Section */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative">
         <button
+          ref={buttonRef}
           onClick={() => !isDisabled && setIsDropdownOpen(!isDropdownOpen)}
           disabled={isDisabled}
           className={`
@@ -181,14 +197,20 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
           )}
         </button>
 
-        {/* Dropdown Menu */}
-        {isDropdownOpen && !isDisabled && (
+        {/* Dropdown Menu - Rendered via Portal to document.body */}
+        {isDropdownOpen && !isDisabled && createPortal(
           <div
-            className="absolute z-[9999] mt-1 w-full min-w-[300px] bg-white border-2 border-blue-400 rounded-lg shadow-2xl max-h-80 overflow-hidden"
-            style={{ zIndex: 9999 }}
+            ref={dropdownRef}
+            className="fixed bg-white border-2 border-blue-400 rounded-lg shadow-2xl max-h-96 overflow-hidden"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+              zIndex: 10000,
+            }}
           >
             {/* Search Input */}
-            <div className="p-2 border-b-2 border-gray-200 bg-gray-50">
+            <div className="p-3 border-b-2 border-gray-200 bg-gray-50">
               <input
                 type="text"
                 placeholder="Search fields..."
@@ -201,9 +223,9 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
             </div>
 
             {/* Fields List */}
-            <div className="max-h-64 overflow-y-auto bg-white" role="listbox">
+            <div className="max-h-80 overflow-y-auto bg-white" role="listbox">
               {filteredFields.length === 0 ? (
-                <div className="px-3 py-4 text-center text-sm text-gray-500">
+                <div className="px-4 py-6 text-center text-sm text-gray-500">
                   No fields match your search
                 </div>
               ) : (
@@ -212,7 +234,7 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
                     key={field}
                     onClick={() => handleSelectField(field)}
                     className={`
-                      w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors border-b border-gray-100
+                      w-full text-left px-4 py-3 text-sm hover:bg-blue-50 transition-colors border-b border-gray-100
                       ${field === value.target_field ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:text-blue-600'}
                     `}
                     role="option"
@@ -223,7 +245,8 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
                 ))
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

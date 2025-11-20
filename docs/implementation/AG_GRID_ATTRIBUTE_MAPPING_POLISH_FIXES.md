@@ -92,30 +92,60 @@ cellStyle: (params) => {
 
 ### 3. Fix Dropdown Menu Visibility - CRITICAL BUG FIX
 
-**Problem**: AG Grid's `overflow: hidden` on cells clipped the dropdown menu (z-index issue).
+**Problem**: AG Grid's `overflow: hidden` on cells clipped the dropdown menu. Initial attempt with `cellRendererPopup: true` failed.
 
 **Solution**:
-- Added `cellRendererPopup: true` to column definitions (line 256)
-- Added `cellEditorPopup: true` for consistency (line 257)
-- AG Grid now renders the dropdown in a popup layer outside the cell container
+- Use React Portal (`createPortal`) to render dropdown directly to `document.body`
+- Calculate dropdown position using `getBoundingClientRect()` for accurate placement
+- Set minimum width of 350px for comfortable field selection
+- Position dropdown outside AG Grid's cell hierarchy entirely
 
-**Code Added**:
+**Code Changes** (MappingCellRenderer.tsx):
 ```typescript
-// ✅ TASK 3: Fix dropdown visibility with cellRendererPopup
-cellRendererPopup: true,
-cellEditorPopup: true,
+import { createPortal } from 'react-dom';
+
+// Calculate dropdown position when opened
+useEffect(() => {
+  if (isDropdownOpen && buttonRef.current) {
+    const rect = buttonRef.current.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY + 4,
+      left: rect.left + window.scrollX,
+      width: Math.max(rect.width, 350), // Minimum 350px width
+    });
+  }
+}, [isDropdownOpen]);
+
+// Render dropdown via portal
+{isDropdownOpen && !isDisabled && createPortal(
+  <div
+    className="fixed bg-white border-2 border-blue-400 rounded-lg shadow-2xl"
+    style={{
+      top: `${dropdownPosition.top}px`,
+      left: `${dropdownPosition.left}px`,
+      width: `${dropdownPosition.width}px`,
+      zIndex: 10000,
+    }}
+  >
+    {/* Dropdown content */}
+  </div>,
+  document.body
+)}
 ```
 
 **Before/After**:
 ```diff
 - Dropdown menu rendered inside cell → clipped by overflow:hidden
-+ Dropdown menu rendered in popup layer → fully visible with proper z-index
+- cellRendererPopup: true → Still clipped (AG Grid limitation)
++ React Portal to document.body → Fully visible, proper positioning
++ Minimum 350px width → Comfortable field selection
 ```
 
 **Why This Works**:
-- `cellRendererPopup: true` tells AG Grid to render the component in a portal-like popup
-- Popup is positioned absolutely outside the grid cell hierarchy
-- No z-index conflicts with grid scrolling containers
+- `createPortal` renders dropdown completely outside AG Grid's DOM hierarchy
+- No cell overflow or z-index conflicts
+- Dynamic positioning based on button location
+- Dropdown has comfortable width and height for field list
 
 ---
 

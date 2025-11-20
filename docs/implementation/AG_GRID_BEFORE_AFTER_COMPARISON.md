@@ -108,7 +108,7 @@
 
 ---
 
-### AFTER (Popup Dropdown)
+### AFTER (React Portal Dropdown)
 
 ```
 ┌──────────────────────────┐
@@ -117,7 +117,7 @@
 │ Status Badge   ✓ ✗       │  ← Action buttons
 └──────────────────────────┘
         ↓
-┌─────────────────────────────┐  ← Rendered in POPUP LAYER (outside cell)
+┌─────────────────────────────┐  ← Rendered via React Portal to document.body
 │ Search fields...            │
 ├─────────────────────────────┤
 │ customer_name               │
@@ -126,10 +126,11 @@
 │ customer_phone              │
 │ customer_address            │
 │ ... (scrollable)            │
+│ ... (350px min width)       │
 └─────────────────────────────┘
 ```
 
-**Solution**: `cellRendererPopup: true` renders dropdown in AG Grid's popup layer with proper z-index.
+**Solution**: React `createPortal` renders dropdown to `document.body` with dynamic positioning using `getBoundingClientRect()`.
 
 ---
 
@@ -168,10 +169,13 @@
     filter: true,
     editable: (params) => params.data?.rowType === 'mapping',
 
-+   // ✅ Green highlighting for auto-mapped/approved
++   // ✅ Green highlighting ONLY for auto-mapped/approved columns
 +   cellStyle: (params) => {
 +     if (params.data?.rowType === 'mapping') {
-+       const status = (params.value as MappingCellData)?.status;
++       const mappingData = params.value as MappingCellData;
++       if (!mappingData || !mappingData.status) return {};
++
++       const status = mappingData.status;
 +       if (status === 'suggested' || status === 'approved') {
 +         return { backgroundColor: '#d1fae5', borderLeft: '4px solid #10b981' };
 +       }
@@ -181,10 +185,6 @@
 +     }
 +     return {};
 +   },
-
-+   // ✅ Fix dropdown visibility
-+   cellRendererPopup: true,
-+   cellEditorPopup: true,
 
     cellRenderer: (params) => {
       if (params.data?.rowType === 'mapping') {
@@ -198,6 +198,46 @@
       }
     }
   };
+```
+
+### 2.1. Dropdown Visibility Fix (MappingCellRenderer.tsx)
+
+```diff
++ import { createPortal } from 'react-dom';
+
++ // Calculate dropdown position dynamically
++ const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
++ const buttonRef = useRef<HTMLButtonElement>(null);
++
++ useEffect(() => {
++   if (isDropdownOpen && buttonRef.current) {
++     const rect = buttonRef.current.getBoundingClientRect();
++     setDropdownPosition({
++       top: rect.bottom + window.scrollY + 4,
++       left: rect.left + window.scrollX,
++       width: Math.max(rect.width, 350), // Min 350px for comfortable viewing
++     });
++   }
++ }, [isDropdownOpen]);
+
+- {/* Dropdown rendered inline - CLIPPED */}
+- <div className="absolute z-[9999] ...">
++ {/* Dropdown rendered via Portal - FULLY VISIBLE */}
++ {isDropdownOpen && createPortal(
++   <div
++     className="fixed bg-white border-2 ..."
++     style={{
++       top: `${dropdownPosition.top}px`,
++       left: `${dropdownPosition.left}px`,
++       width: `${dropdownPosition.width}px`,
++       zIndex: 10000,
++     }}
++   >
+      {/* Search and fields list */}
+-   </div>
++   </div>,
++   document.body
++ )}
 ```
 
 ### 3. Grid Data Transformation
