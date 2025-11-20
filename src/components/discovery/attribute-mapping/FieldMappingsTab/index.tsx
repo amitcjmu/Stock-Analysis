@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { RefreshCw, LayoutGrid, Columns } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useFieldOptions } from "../../../../contexts/FieldOptionsContext";
+import { useTargetFields } from "../../../../hooks/discovery/attribute-mapping/useTargetFields";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { apiCall } from "../../../../config/api";
 
@@ -84,6 +84,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   clientAccountId,
   engagementId,
   sessionInfo,
+  flowId,
+  importCategory,
 }) => {
   // ============================================================================
   // STATE & HOOKS
@@ -102,10 +104,16 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
 
   const queryClient = useQueryClient();
   const { client, engagement, getAuthHeaders } = useAuth();
-  const { availableFields, isLoading: fieldsLoading } = useFieldOptions();
 
-  // Get flow_id from sessionInfo
-  const flow_id = sessionInfo?.flowId;
+  // Use useTargetFields hook which supports flowId and importCategory
+  // This replaces useFieldOptions() which required FieldOptionsProvider
+  const {
+    fields: availableFields,
+    isLoading: fieldsLoading,
+  } = useTargetFields({ flowId, importCategory });
+
+  // Get flow_id from sessionInfo or flowId prop
+  const flow_id = flowId || sessionInfo?.flowId;
 
   // ============================================================================
   // VIEW MODE PERSISTENCE
