@@ -139,12 +139,12 @@
 | Row Type         | Before | After | Change | Reason                                    |
 |------------------|--------|-------|--------|-------------------------------------------|
 | Column Headers   | 40px   | 40px  | -      | Standard AG Grid header height            |
-| **Mapping Row**  | 50px   | 70px  | +20px  | Space for dropdown + status + actions     |
+| **Mapping Row**  | 50px   | 100px | +50px  | Space for dropdown + status + actions (fully visible) |
 | Header Row       | 40px   | (Removed) | -40px  | Eliminated redundant row                  |
 | Data Rows        | 40px   | 40px  | -      | Standard row height                       |
-| **Total (9 rows)** | 450px | 400px | -50px  | **Overall reduction in grid height!**    |
+| **Total (9 rows)** | 450px | 420px | -30px  | **Overall reduction in grid height!**    |
 
-**Net Effect**: Despite taller mapping row, removing the redundant header row reduces total height by 50px.
+**Net Effect**: Despite taller mapping row (100px), removing the redundant header row still reduces total height by 30px.
 
 ---
 

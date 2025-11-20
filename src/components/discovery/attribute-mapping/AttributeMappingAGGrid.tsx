@@ -407,8 +407,8 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   const getRowHeight = useCallback((params: { data: GridRowData }) => {
     if (!params.data) return 40;
 
-    // Mapping row: 70px (taller for dropdown + status badges + action buttons)
-    if (params.data.rowType === 'mapping') return 70;
+    // Mapping row: 100px (taller for dropdown + status badges + action buttons to be fully visible)
+    if (params.data.rowType === 'mapping') return 100;
 
     // Data rows: 40px
     return 40;
