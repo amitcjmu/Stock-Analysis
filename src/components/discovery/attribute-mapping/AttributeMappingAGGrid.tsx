@@ -5,13 +5,13 @@
  *
  * Features:
  * - Dynamic column generation from imported data structure
- * - Three row types:
- *   1. Mapping Row: Editable mapping cells with status indicators
- *   2. Header Row: Source CSV/JSON column headers
- *   3. Data Preview Rows: Top 8 rows of imported data
+ * - Two row types:
+ *   1. Mapping Row: Editable mapping cells with status indicators and green highlighting
+ *   2. Data Preview Rows: Top 8 rows of imported data
  * - AG Grid professional appearance with ag-theme-quartz
  * - Performance optimized with useMemo hooks
  * - Type-safe props interface
+ * - Visual feedback: Green highlighting for auto-mapped/approved columns
  *
  * Architecture Pattern: AI Grid (per Serena memory ai-grid-inventory-editing-pattern-2025-01)
  * Reference Implementation: AGGridAssetTable.tsx
@@ -33,7 +33,6 @@ import type { FieldMappingItem } from '@/types/api/discovery/field-mapping-types
 
 // Import custom cell renderers
 import { MappingCellRenderer } from './renderers/MappingCellRenderer';
-import { ColumnHeaderRenderer } from './renderers/ColumnHeaderRenderer';
 import { DataCellRenderer } from './renderers/DataCellRenderer';
 
 // ============================================================================
@@ -84,10 +83,10 @@ interface MappingCellData {
 /**
  * Row type discriminator
  */
-type RowType = 'mapping' | 'header' | 'data';
+type RowType = 'mapping' | 'data';
 
 /**
- * Grid row data structure (3 types of rows)
+ * Grid row data structure (2 types of rows)
  */
 interface GridRowData {
   /** Row type discriminator */
@@ -204,12 +203,6 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
               Map To:
             </div>
           );
-        } else if (rowType === 'header') {
-          return (
-            <div className="flex items-center h-full font-medium text-gray-600 italic">
-              Source:
-            </div>
-          );
         } else if (rowType === 'data') {
           return (
             <div className="flex items-center h-full text-gray-500">
@@ -234,6 +227,35 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         // Enable editing for mapping row only
         editable: (params) => params.data?.rowType === 'mapping',
 
+        // ✅ TASK 2: Green highlighting for auto-mapped/approved columns
+        cellStyle: (params) => {
+          if (params.data?.rowType === 'mapping') {
+            const mappingData = params.value as MappingCellData;
+            const status = mappingData?.status;
+
+            // Green background for suggested or approved
+            if (status === 'suggested' || status === 'approved') {
+              return {
+                backgroundColor: '#d1fae5', // green-100
+                borderLeft: '4px solid #10b981', // green-500
+              };
+            }
+
+            // Yellow background for pending review
+            if (status === 'pending') {
+              return {
+                backgroundColor: '#fef3c7', // yellow-100
+                borderLeft: '4px solid #f59e0b', // yellow-500
+              };
+            }
+          }
+          return {};
+        },
+
+        // ✅ TASK 3: Fix dropdown visibility with cellRendererPopup
+        cellRendererPopup: true,
+        cellEditorPopup: true,
+
         // Custom cell renderer based on row type
         cellRenderer: (params) => {
           if (!params.data) return null;
@@ -254,12 +276,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
             );
           }
 
-          // Row 2: Header row - use ColumnHeaderRenderer
-          if (params.data.rowType === 'header') {
-            return <ColumnHeaderRenderer {...params} value={params.value as string} />;
-          }
-
-          // Rows 3-10: Data preview - use DataCellRenderer
+          // Rows 2-9: Data preview - use DataCellRenderer
           if (params.data.rowType === 'data') {
             return <DataCellRenderer {...params} value={params.value} />;
           }
@@ -290,10 +307,9 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   // ============================================================================
 
   /**
-   * Transform field mappings and imported data into 3 row types
-   * Row 1: Mapping row (editable)
-   * Row 2: Header row (source field names)
-   * Rows 3-10: Data preview (top 8 records)
+   * Transform field mappings and imported data into 2 row types
+   * Row 1: Mapping row (editable with status-based highlighting)
+   * Rows 2-9: Data preview (top 8 records)
    */
   const gridData = useMemo<GridRowData[]>(() => {
     // Handle empty data case
@@ -323,17 +339,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
       } as MappingCellData;
     });
 
-    // ROW 2: Header row (source field names)
-    const headerRow: GridRowData = {
-      rowType: 'header',
-      id: 'header-row',
-    };
-
-    sourceFields.forEach((header) => {
-      headerRow[header] = header;
-    });
-
-    // ROWS 3-10: Data preview (top 8 records)
+    // ROWS 2-9: Data preview (top 8 records)
     const dataRows: GridRowData[] = imported_data
       .slice(0, 8)
       .map((record, idx) => ({
@@ -342,7 +348,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         ...record.raw_data,
       }));
 
-    return [mappingRow, headerRow, ...dataRows];
+    return [mappingRow, ...dataRows];
   }, [imported_data, field_mappings]);
 
   // ============================================================================
@@ -358,25 +364,20 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
     // Mapping row: Lighter background, bold text
     if (params.data.rowType === 'mapping') {
       return {
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#f9fafb',
         fontWeight: 600,
-        height: '50px',
       };
     }
 
-    // Header row: Gray background, italic
-    if (params.data.rowType === 'header') {
+    // Data rows: Alternating stripes for better readability
+    if (params.data.rowType === 'data') {
+      const rowIndex = params.node.rowIndex || 0;
       return {
-        backgroundColor: '#e5e7eb',
-        fontStyle: 'italic',
-        height: '40px',
+        backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
       };
     }
 
-    // Data rows: Normal styling
-    return {
-      height: '40px',
-    };
+    return {};
   }, []);
 
   /**
@@ -385,10 +386,10 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   const getRowHeight = useCallback((params: { data: GridRowData }) => {
     if (!params.data) return 40;
 
-    // Mapping row: 50px (taller for status badges)
-    if (params.data.rowType === 'mapping') return 50;
+    // Mapping row: 70px (taller for dropdown + status badges + action buttons)
+    if (params.data.rowType === 'mapping') return 70;
 
-    // All other rows: 40px
+    // Data rows: 40px
     return 40;
   }, []);
 
@@ -466,11 +467,11 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           Attribute Mapping with Data Preview
         </h3>
         <p className="text-sm text-blue-700">
-          <strong>Row 1 (Map To):</strong> Select target fields for each source column. Status badges show mapping confidence.
+          <strong>Column Headers:</strong> Source field names from your imported CSV/JSON file.
           <br />
-          <strong>Row 2 (Source):</strong> Original CSV/JSON column headers from your imported data.
+          <strong>Row 1 (Map To):</strong> Select target fields for each source column. Green highlighting indicates auto-mapped or approved fields.
           <br />
-          <strong>Rows 3-10 (Data):</strong> Preview of first 8 records to verify mappings.
+          <strong>Rows 2-9 (Data):</strong> Preview of first 8 records to verify mappings.
         </p>
       </div>
 
