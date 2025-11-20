@@ -234,18 +234,22 @@ export const useAdaptiveFormFlow = (
               }
             }
 
-            // CRITICAL FIX: Instead of updating state which shows "app-new" with 0/0 fields,
-            // reload the page to properly render the questionnaire (confirmed working by user)
+            // Update state with form data and saved responses
+            setTimeout(() => {
+              setState((prev) => ({
+                ...prev,
+                formData: adaptiveFormData,
+                formValues: existingResponses,
+                questionnaires: questionnaires,
+                isLoading: false,
+                error: null
+              }));
+            }, 0);
+
             toast({
               title: "Questionnaire Ready",
-              description: "Loading your questionnaire...",
+              description: "Your adaptive form is now ready.",
             });
-
-            // Reload the page to properly render the questionnaire
-            // This ensures all components re-initialize with the correct data
-            setTimeout(() => {
-              window.location.reload();
-            }, 500);
           }
         } catch (error) {
           console.error('Failed to convert questionnaire:', error);
@@ -281,18 +285,23 @@ export const useAdaptiveFormFlow = (
             }
           }
 
-          // CRITICAL FIX: Reload page to properly render fallback questionnaire
-          // Same issue as with regular questionnaires - state update shows "app-new" with 0/0 fields
+          // Update state with fallback form data and saved responses
+          setTimeout(() => {
+            setState((prev) => ({
+              ...prev,
+              formData: adaptiveFormData,
+              formValues: existingResponses,
+              questionnaires: questionnaires,
+              isLoading: false,
+              error: null
+            }));
+          }, 0);
+
           toast({
             title: "Bootstrap Form Ready",
-            description: "Loading comprehensive template questionnaire...",
+            description: "Comprehensive template questionnaire is now ready.",
             variant: "default",
           });
-
-          // Reload the page to properly render the questionnaire
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
         } catch (error) {
           console.error('Failed to convert fallback questionnaire:', error);
         }
