@@ -238,6 +238,19 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           return params.value;
         },
 
+        // Value parser for object data types (required to prevent warning #48)
+        valueParser: (params) => {
+          // For data rows, parse JSON strings back to objects if needed
+          if (params.data?.rowType === 'data' && typeof params.newValue === 'string') {
+            try {
+              return JSON.parse(params.newValue);
+            } catch {
+              return params.newValue;
+            }
+          }
+          return params.newValue;
+        },
+
         // ✅ TASK 2: Green highlighting for auto-mapped/approved columns ONLY
         cellStyle: (params) => {
           // Only apply styling to mapping row cells
@@ -516,7 +529,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           suppressCellFocus={false}
           animateRows={false}
           suppressMovableColumns={false} // Allow column reordering
-          rowSelection="multiple" // Community feature - enable row selection
+          rowSelection={{ mode: 'multiRow' }} // AG Grid v32.2+ object format
         />
       </div>
     </div>
