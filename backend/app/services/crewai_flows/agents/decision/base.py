@@ -28,6 +28,7 @@ class PhaseAction(Enum):
     SKIP = "skip"
     RETRY = "retry"
     FAIL = "fail"
+    COMPLETE = "complete"
 
 
 class AgentDecision:

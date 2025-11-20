@@ -253,22 +253,67 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
     rows_skipped: 0,
   };
 
-  // Use papaparse's error reporting to identify malformed rows
-  // This prevents corrupting valid quoted CSV files
+  // Use papaparse's error reporting AND column count checking to identify malformed rows
+  // This prevents corrupting valid quoted CSV files, but also catches column misalignment
   const lines = fileContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   const linesWithoutHeader = lines.slice(1);
 
-  // Create a set of row indexes that have errors (malformed rows)
-  const errorRowIndexes = new Set<number>(
+  // Create a set of row indexes that have errors (malformed rows) from papaparse
+  const errorRowIndexesFromParser = new Set<number>(
     parsed.errors
       .filter((e) => e.code === 'TooManyFields' || e.code === 'Quotes')
       .map((e) => e.row || 0)
   );
 
+  // Additionally check for column count mismatches by parsing without headers
+  // This catches unquoted commas that papaparse might parse incorrectly
+  const errorRowIndexes = new Set<number>(errorRowIndexesFromParser);
+
+  // Parse first line as header to get expected column count
+  const headerLine = lines[0];
+  const headerParsed = Papa.parse(headerLine, {
+    header: false,
+    skipEmptyLines: false,
+  });
+  const expectedColumnCountFromHeader = (headerParsed.data[0] as string[])?.length || expectedColumnCount;
+
+  // Check each data row for column count mismatches
+  console.info(
+    `[CSV Detection] Checking ${linesWithoutHeader.length} rows for column mismatches. Expected columns: ${expectedColumnCountFromHeader}`
+  );
+
+  for (let i = 0; i < linesWithoutHeader.length; i++) {
+    const rowLine = linesWithoutHeader[i];
+    if (!rowLine) continue;
+
+    // Parse this row without header to get actual column count
+    const rowParsed = Papa.parse(rowLine, {
+      header: false,
+      skipEmptyLines: false,
+    });
+    const actualColumnCount = (rowParsed.data[0] as string[])?.length || 0;
+    const rowValues = (rowParsed.data[0] as string[]) || [];
+
+    // If column count doesn't match, this row likely has unquoted commas causing misalignment
+    if (actualColumnCount > expectedColumnCountFromHeader) {
+      errorRowIndexes.add(i);
+      console.warn(
+        `[CSV Detection] ⚠️ Row ${i + 1} has column mismatch: expected ${expectedColumnCountFromHeader}, got ${actualColumnCount} - likely unquoted commas`
+      );
+      console.warn(`[CSV Detection] Row ${i + 1} content preview: ${rowLine.substring(0, 150)}...`);
+      console.warn(`[CSV Detection] Row ${i + 1} parsed values:`, rowValues);
+    } else if (actualColumnCount < expectedColumnCountFromHeader) {
+      // Log but don't cleanse - missing columns might be intentional
+      console.warn(
+        `[CSV Detection] Row ${i + 1} has fewer columns: expected ${expectedColumnCountFromHeader}, got ${actualColumnCount}`
+      );
+    }
+  }
+
   // Audit log (can be enhanced to send to logging service)
   if (errorRowIndexes.size > 0) {
     console.info(
-      `[CSV Parsing] Detected ${errorRowIndexes.size} malformed rows out of ${parsed.data.length} total rows`
+      `[CSV Parsing] Detected ${errorRowIndexes.size} malformed rows out of ${parsed.data.length} total rows (${errorRowIndexesFromParser.size} from papaparse errors, ${errorRowIndexes.size - errorRowIndexesFromParser.size} from column count checks)`
     );
   }
 
@@ -279,9 +324,9 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
     const needsCleansing = errorRowIndexes.has(i);
 
     if (needsCleansing && originalLine) {
-      // Only cleanse rows that papaparse identified as malformed
-      // Apply cleansing to the original line
-      const cleansedLine = cleanseMisalignedRow(originalLine, expectedColumnCount);
+      // Only cleanse rows that papaparse identified as malformed OR column count mismatch detected
+      // Apply cleansing to the original line using the detected expected column count
+      const cleansedLine = cleanseMisalignedRow(originalLine, expectedColumnCountFromHeader || expectedColumnCount);
 
       // Parse cleansed line with papaparse
       const cleansedParsed = Papa.parse(cleansedLine, {
@@ -308,7 +353,7 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
       stats.rows_cleansed++;
 
       // Audit log for cleansing action
-      console.info(`[CSV Cleansing] Row ${i + 1} cleansed: merged excess columns`);
+      console.info(`[CSV Cleansing] Row ${i + 1} cleansed: merged excess columns (unquoted commas replaced with spaces)`);
     } else {
       // Row parsed correctly by papaparse, use its result directly
       const parsedRow = parsed.data[i] as Record<string, unknown>;
@@ -328,6 +373,16 @@ export function parseAndCleanseCSV(fileContent: string): CsvParseResult {
   console.info(
     `[CSV Parsing Complete] Parsed ${records.length} records, ${stats.rows_cleansed} cleansed, ${stats.rows_skipped} skipped`
   );
+
+  if (stats.rows_cleansed > 0) {
+    console.warn(
+      `[CSV Parsing] ⚠️ DATA CLEANSING WAS APPLIED: ${stats.rows_cleansed} row(s) had unquoted commas replaced with spaces`
+    );
+  } else {
+    console.info(
+      `[CSV Parsing] ✅ No cleansing needed - all CSV data is properly formatted (commas are correctly quoted)`
+    );
+  }
 
   return {
     headers: sanitizedHeaders,
