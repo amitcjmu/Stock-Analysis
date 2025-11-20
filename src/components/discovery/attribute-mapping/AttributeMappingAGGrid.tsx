@@ -244,23 +244,24 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           if (params.data?.rowType === 'mapping') {
             const mappingData = params.value as MappingCellData;
 
-            // Safety check - ensure mappingData exists and has status
-            if (!mappingData || !mappingData.status) {
+            // Safety check - ensure mappingData exists, has status, AND has a target field
+            if (!mappingData || !mappingData.status || !mappingData.target_field) {
               return {};
             }
 
             const status = mappingData.status;
+            const hasValidTarget = mappingData.target_field && mappingData.target_field.trim() !== '';
 
-            // Green background ONLY for suggested or approved mappings
-            if (status === 'suggested' || status === 'approved') {
+            // Green background ONLY for suggested/approved mappings WITH valid target fields
+            if (hasValidTarget && (status === 'suggested' || status === 'approved')) {
               return {
                 backgroundColor: '#d1fae5', // green-100
                 borderLeft: '4px solid #10b981', // green-500
               };
             }
 
-            // Yellow background for pending review
-            if (status === 'pending') {
+            // Yellow background for pending review WITH valid target fields
+            if (hasValidTarget && status === 'pending') {
               return {
                 backgroundColor: '#fef3c7', // yellow-100
                 borderLeft: '4px solid #f59e0b', // yellow-500
@@ -347,12 +348,16 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         (m) => m.source_field === source_field
       );
 
-      mappingRow[source_field] = {
+      const cellData: MappingCellData = {
         target_field: mapping?.target_field || null,
         status: mapping?.status || 'unmapped',
         confidence_score: mapping?.confidence_score || 0,
         mapping_id: mapping?.id,
-      } as MappingCellData;
+      };
+
+      console.log(`📊 Grid cell data for ${source_field}:`, cellData);
+
+      mappingRow[source_field] = cellData;
     });
 
     // ROWS 2-9: Data preview (top 8 records)

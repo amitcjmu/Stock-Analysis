@@ -177,11 +177,29 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   // ============================================================================
 
   const handleApproveAll = useCallback(async () => {
-    // Approve all auto-mapped (suggested) field mappings
-    const suggestedMappings = fieldMappings.filter(m => m.status === 'suggested');
+    // Approve all auto-mapped (suggested) field mappings with valid target fields
+    const suggestedMappings = fieldMappings.filter(m =>
+      m.status === 'suggested' &&
+      m.target_field !== null &&
+      m.target_field !== undefined &&
+      m.target_field.trim() !== ''
+    );
+
+    console.log('🔍 Approve All - Found suggested mappings:', suggestedMappings.length);
+    console.log('🔍 All mappings statuses:', fieldMappings.map(m => ({
+      source: m.source_field,
+      target: m.target_field,
+      status: m.status
+    })));
+
+    if (suggestedMappings.length === 0) {
+      console.warn('⚠️ No suggested mappings found to approve');
+      return;
+    }
 
     for (const mapping of suggestedMappings) {
       try {
+        console.log(`✅ Approving mapping: ${mapping.source_field} → ${mapping.target_field}`);
         onMappingAction(mapping.id, 'approve');
       } catch (error) {
         console.error(`Failed to approve mapping ${mapping.id}:`, error);
