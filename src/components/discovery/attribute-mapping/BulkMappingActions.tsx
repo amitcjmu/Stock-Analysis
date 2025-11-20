@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { CheckCircle, XCircle, RotateCcw, Download, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from "react";
+import {
+  CheckCircle,
+  XCircle,
+  RotateCcw,
+  Download,
+  Loader2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,9 +17,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import type { FieldMappingItem } from '@/types/api/discovery/field-mapping-types';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/alert-dialog";
+import type { FieldMappingItem } from "@/types/api/discovery/field-mapping-types";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * BulkMappingActions Component
@@ -34,10 +40,12 @@ interface BulkMappingActionsProps {
   flow_id: string;
   /** All field mappings for statistics calculation and export */
   field_mappings: FieldMappingItem[];
-  /** Callback to approve all auto-mapped suggestions */
-  onApproveAll: () => Promise<void>;
-  /** Callback to reject all mappings */
-  onRejectAll: () => Promise<void>;
+  /** Selected source fields from grid */
+  selectedSourceFields: string[];
+  /** Callback to approve selected mappings */
+  onApproveSelected: () => Promise<void>;
+  /** Callback to reject selected mappings */
+  onRejectSelected: () => Promise<void>;
   /** Callback to reset mappings to AI suggestions */
   onReset: () => Promise<void>;
   /** Optional callback for custom export logic (falls back to CSV export) */
@@ -54,24 +62,26 @@ interface MappingStatistics {
 /**
  * Calculate mapping statistics from field mappings array
  */
-const calculateStatistics = (mappings: FieldMappingItem[]): MappingStatistics => {
+const calculateStatistics = (
+  mappings: FieldMappingItem[],
+): MappingStatistics => {
   return mappings.reduce(
     (stats, mapping) => {
       const status = mapping.status.toLowerCase();
 
-      if (status === 'suggested') {
+      if (status === "suggested") {
         stats.auto_mapped++;
-      } else if (status === 'approved') {
+      } else if (status === "approved") {
         stats.approved++;
-      } else if (status === 'pending') {
+      } else if (status === "pending") {
         stats.needs_review++;
-      } else if (status === 'unmapped') {
+      } else if (status === "unmapped") {
         stats.unmapped++;
       }
 
       return stats;
     },
-    { auto_mapped: 0, needs_review: 0, approved: 0, unmapped: 0 }
+    { auto_mapped: 0, needs_review: 0, approved: 0, unmapped: 0 },
   );
 };
 
@@ -81,63 +91,80 @@ const calculateStatistics = (mappings: FieldMappingItem[]): MappingStatistics =>
  */
 const exportMappingsToCSV = (mappings: FieldMappingItem[]): void => {
   try {
-    console.log('🔄 Starting field mappings CSV export...', { count: mappings.length });
+    console.log("🔄 Starting field mappings CSV export...", {
+      count: mappings.length,
+    });
 
     if (!mappings || mappings.length === 0) {
-      console.warn('⚠️ No mappings to export');
+      console.warn("⚠️ No mappings to export");
       return;
     }
 
     // CSV headers
-    const headers = ['Source Field', 'Target Field', 'Status', 'Confidence Score', 'Mapping Type', 'Agent Reasoning'];
-    const csvHeaders = headers.join(',');
+    const headers = [
+      "Source Field",
+      "Target Field",
+      "Status",
+      "Confidence Score",
+      "Mapping Type",
+      "Agent Reasoning",
+    ];
+    const csvHeaders = headers.join(",");
 
     // CSV rows with security measures
-    const csvRows = mappings.map(mapping => {
-      const confidencePercent = mapping.confidence_score !== undefined
-        ? `${(mapping.confidence_score * 100).toFixed(0)}%`
-        : 'N/A';
+    const csvRows = mappings.map((mapping) => {
+      const confidencePercent =
+        mapping.confidence_score !== undefined
+          ? `${(mapping.confidence_score * 100).toFixed(0)}%`
+          : "N/A";
 
       const fields = [
         mapping.source_field,
         mapping.target_field,
         mapping.status,
         confidencePercent,
-        mapping.field_type || 'auto',
-        mapping.agent_reasoning || ''
+        mapping.field_type || "auto",
+        mapping.agent_reasoning || "",
       ];
 
-      return fields.map(value => {
-        let stringValue = value !== null && value !== undefined ? String(value) : '';
+      return fields
+        .map((value) => {
+          let stringValue =
+            value !== null && value !== undefined ? String(value) : "";
 
-        // Remove newlines/tabs that could break CSV structure
-        stringValue = stringValue.replace(/[\r\n\t]/g, ' ');
+          // Remove newlines/tabs that could break CSV structure
+          stringValue = stringValue.replace(/[\r\n\t]/g, " ");
 
-        // Security: Prevent CSV formula injection
-        let needsQuoting = false;
-        if (stringValue.length > 0 && /^[=+\-@|]/.test(stringValue)) {
-          stringValue = `'${stringValue}`;
-          needsQuoting = true;
-        }
+          // Security: Prevent CSV formula injection
+          let needsQuoting = false;
+          if (stringValue.length > 0 && /^[=+\-@|]/.test(stringValue)) {
+            stringValue = `'${stringValue}`;
+            needsQuoting = true;
+          }
 
-        // Always wrap in quotes if contains special characters
-        if (needsQuoting || stringValue.includes(',') || stringValue.includes('"')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      }).join(',');
+          // Always wrap in quotes if contains special characters
+          if (
+            needsQuoting ||
+            stringValue.includes(",") ||
+            stringValue.includes('"')
+          ) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(",");
     });
 
-    const csvContent = [csvHeaders, ...csvRows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = [csvHeaders, ...csvRows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
 
     // Create and trigger download
-    const timestamp = new Date().toISOString().split('T')[0];
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `field-mappings-${timestamp}.csv`);
-    link.style.visibility = 'hidden';
+    const timestamp = new Date().toISOString().split("T")[0];
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `field-mappings-${timestamp}.csv`);
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -145,9 +172,9 @@ const exportMappingsToCSV = (mappings: FieldMappingItem[]): void => {
     // Clean up
     window.URL.revokeObjectURL(url);
 
-    console.log('✅ CSV export completed successfully');
+    console.log("✅ CSV export completed successfully");
   } catch (error) {
-    console.error('❌ Error exporting CSV:', error);
+    console.error("❌ Error exporting CSV:", error);
     throw error; // Let parent handle toast notification
   }
 };
@@ -158,30 +185,34 @@ const exportMappingsToCSV = (mappings: FieldMappingItem[]): void => {
 interface StatDisplayProps {
   label: string;
   count: number;
-  variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  variant: "default" | "secondary" | "destructive" | "outline";
 }
 
 const StatDisplay: React.FC<StatDisplayProps> = ({ label, count, variant }) => {
-  // Color-coded circular badges matching grid visual language
+  // Color-coded circular badges matching EXACT grid colors
   const getCircleStyle = () => {
     switch (variant) {
-      case 'default': // Auto-Mapped - Blue circle with white text
-        return 'bg-blue-600 text-white';
-      case 'secondary': // Needs Review - Orange circle with black text
-        return 'bg-orange-500 text-black';
-      case 'outline': // Approved - Green circle with white text
-        return 'bg-green-600 text-white';
-      case 'destructive': // Unmapped - Red circle with white text
-        return 'bg-red-600 text-white';
+      case "default": // Auto-Mapped - Blue (suggested mapping)
+        return "bg-blue-500 text-white";
+      case "secondary": // Needs Review - Yellow (matches grid yellow #fef3c7 border)
+        return "bg-yellow-500 text-black";
+      case "outline": // Approved - Green (matches grid green #d1fae5)
+        return "bg-green-500 text-white";
+      case "destructive": // Unmapped - Gray (no mapping)
+        return "bg-gray-500 text-white";
       default:
-        return 'bg-gray-600 text-white';
+        return "bg-gray-600 text-white";
     }
   };
 
   return (
     <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-lg border border-gray-300 shadow-sm">
-      <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">{label}:</span>
-      <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${getCircleStyle()}`}>
+      <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+        {label}:
+      </span>
+      <div
+        className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${getCircleStyle()}`}
+      >
         {count}
       </div>
     </div>
@@ -191,10 +222,11 @@ const StatDisplay: React.FC<StatDisplayProps> = ({ label, count, variant }) => {
 export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
   flow_id,
   field_mappings,
-  onApproveAll,
-  onRejectAll,
+  selectedSourceFields,
+  onApproveSelected,
+  onRejectSelected,
   onReset,
-  onExport
+  onExport,
 }) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -205,32 +237,32 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
   const stats = calculateStatistics(field_mappings);
 
   /**
-   * Handle approve all auto-mapped suggestions
+   * Handle approve selected mappings
    */
-  const handleApproveAll = async (): Promise<void> => {
-    if (stats.auto_mapped === 0) {
+  const handleApproveSelected = async (): Promise<void> => {
+    if (selectedSourceFields.length === 0) {
       toast({
-        title: 'No mappings to approve',
-        description: 'There are no auto-mapped suggestions to approve.',
-        variant: 'default'
+        title: "No mappings selected",
+        description: "Please select one or more columns to approve.",
+        variant: "default",
       });
       return;
     }
 
     setIsProcessing(true);
     try {
-      await onApproveAll();
+      await onApproveSelected();
       toast({
-        title: 'Success',
-        description: `Approved ${stats.auto_mapped} auto-mapped suggestion(s).`,
-        variant: 'default'
+        title: "Success",
+        description: `Approved ${selectedSourceFields.length} selected mapping(s).`,
+        variant: "default",
       });
     } catch (error) {
-      console.error('❌ Error approving mappings:', error);
+      console.error("❌ Error approving mappings:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to approve mappings. Please try again.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to approve mappings. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -238,24 +270,24 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
   };
 
   /**
-   * Handle reject all mappings (with confirmation)
+   * Handle reject selected mappings (with confirmation)
    */
-  const handleRejectAll = async (): Promise<void> => {
+  const handleRejectSelected = async (): Promise<void> => {
     setShowRejectDialog(false);
     setIsProcessing(true);
     try {
-      await onRejectAll();
+      await onRejectSelected();
       toast({
-        title: 'Success',
-        description: 'All mappings have been rejected.',
-        variant: 'default'
+        title: "Success",
+        description: `Rejected ${selectedSourceFields.length} selected mapping(s).`,
+        variant: "default",
       });
     } catch (error) {
-      console.error('❌ Error rejecting mappings:', error);
+      console.error("❌ Error rejecting mappings:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to reject mappings. Please try again.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to reject mappings. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -271,16 +303,16 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
     try {
       await onReset();
       toast({
-        title: 'Success',
-        description: 'Mappings have been reset to AI suggestions.',
-        variant: 'default'
+        title: "Success",
+        description: "Mappings have been reset to AI suggestions.",
+        variant: "default",
       });
     } catch (error) {
-      console.error('❌ Error resetting mappings:', error);
+      console.error("❌ Error resetting mappings:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to reset mappings. Please try again.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to reset mappings. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -299,17 +331,17 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
         // Default to CSV export
         exportMappingsToCSV(field_mappings);
         toast({
-          title: 'Export Successful',
+          title: "Export Successful",
           description: `Exported ${field_mappings.length} mapping(s) to CSV.`,
-          variant: 'default'
+          variant: "default",
         });
       }
     } catch (error) {
-      console.error('❌ Error exporting mappings:', error);
+      console.error("❌ Error exporting mappings:", error);
       toast({
-        title: 'Export Failed',
-        description: 'Failed to export mappings. Please try again.',
-        variant: 'destructive'
+        title: "Export Failed",
+        description: "Failed to export mappings. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -344,9 +376,9 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
         {/* Actions Section */}
         <div className="flex items-center gap-3">
           <Button
-            onClick={handleApproveAll}
-            disabled={isProcessing || stats.auto_mapped === 0}
-            variant="default"
+            onClick={handleApproveSelected}
+            disabled={isProcessing || selectedSourceFields.length === 0}
+            className="bg-green-600 hover:bg-green-700 text-white"
             size="sm"
           >
             {isProcessing ? (
@@ -354,17 +386,17 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
             ) : (
               <CheckCircle className="w-4 h-4 mr-2" />
             )}
-            Approve All Auto-Mapped
+            Approve Selected
           </Button>
 
           <Button
             onClick={() => setShowRejectDialog(true)}
-            disabled={isProcessing || field_mappings.length === 0}
-            variant="outline"
+            disabled={isProcessing || selectedSourceFields.length === 0}
+            className="bg-red-600 hover:bg-red-700 text-white"
             size="sm"
           >
             <XCircle className="w-4 h-4 mr-2" />
-            Reject All
+            Reject Selected
           </Button>
 
           <Button
@@ -389,23 +421,24 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
         </div>
       </div>
 
-      {/* Reject All Confirmation Dialog */}
+      {/* Reject Selected Confirmation Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject All Mappings?</AlertDialogTitle>
+            <AlertDialogTitle>Reject Selected Mappings?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will reject all field mappings. You can recreate them later by running the mapping process again.
-              This action cannot be undone.
+              This will reject {selectedSourceFields.length} selected field
+              mapping(s). You can recreate them later by running the mapping
+              process again. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleRejectAll}
+              onClick={handleRejectSelected}
               className="bg-red-600 hover:bg-red-700"
             >
-              Reject All
+              Reject Selected
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -417,9 +450,10 @@ export const BulkMappingActions: React.FC<BulkMappingActionsProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Reset All Mappings?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will clear all manual overrides and restore the original AI-suggested mappings.
-              Any approved or manually modified mappings will be reset to their suggested state.
-              This action cannot be undone.
+              This will clear all manual overrides and restore the original
+              AI-suggested mappings. Any approved or manually modified mappings
+              will be reset to their suggested state. This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

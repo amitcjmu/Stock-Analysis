@@ -17,23 +17,19 @@
  * Reference Implementation: AGGridAssetTable.tsx
  */
 
-import React, { useMemo, useCallback, useEffect } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import type {
-  ColDef,
-  GridReadyEvent,
-  RowClassParams,
-} from 'ag-grid-community';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import React, { useMemo, useCallback, useEffect } from "react";
+import { AgGridReact } from "ag-grid-react";
+import type { ColDef, GridReadyEvent, RowClassParams } from "ag-grid-community";
+import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import type { FieldMappingItem } from '@/types/api/discovery/field-mapping-types';
+import type { FieldMappingItem } from "@/types/api/discovery/field-mapping-types";
 
 // Import custom cell renderers
-import { MappingCellRenderer } from './renderers/MappingCellRenderer';
-import { DataCellRenderer } from './renderers/DataCellRenderer';
+import { MappingCellRenderer } from "./renderers/MappingCellRenderer";
+import { DataCellRenderer } from "./renderers/DataCellRenderer";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -83,7 +79,7 @@ interface MappingCellData {
 /**
  * Row type discriminator
  */
-type RowType = 'mapping' | 'data';
+type RowType = "mapping" | "data";
 
 /**
  * Grid row data structure (2 types of rows)
@@ -124,6 +120,9 @@ export interface AttributeMappingAGGridProps {
   /** Callback when user rejects a mapping */
   onRejectMapping: (mapping_id: string) => void;
 
+  /** Callback when selection changes */
+  onSelectionChange?: (selectedSourceFields: string[]) => void;
+
   /** Optional loading state */
   isLoading?: boolean;
 }
@@ -140,11 +139,18 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   onMappingChange,
   onApproveMapping,
   onRejectMapping,
+  onSelectionChange,
   isLoading = false,
 }) => {
+  const [gridApi, setGridApi] = React.useState<GridReadyEvent["api"] | null>(
+    null,
+  );
+  const [selectedColumns, setSelectedColumns] = React.useState<Set<string>>(
+    new Set(),
+  );
   // Add custom AG Grid tooltip styling (from AGGridAssetTable.tsx:102-122)
   useEffect(() => {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       .ag-tooltip {
         background-color: #1f2937 !important;
@@ -184,30 +190,70 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
 
     const cols: Array<ColDef<GridRowData>> = [];
 
-    // Add Row Type Indicator Column (pinned left)
+    // Add Row Type Indicator Column with "Select All" checkbox (pinned left)
     cols.push({
-      headerName: 'Row Type',
-      field: 'rowType',
-      width: 120,
-      pinned: 'left',
+      field: "rowType",
+      width: 100,
+      pinned: "left",
       sortable: false,
       filter: false,
       resizable: false,
+
+      // Custom header with "Select All" checkbox
+      headerComponent: () => {
+        const allSelected = sourceFields.every((sf) => selectedColumns.has(sf));
+        const someSelected =
+          sourceFields.some((sf) => selectedColumns.has(sf)) && !allSelected;
+
+        const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+          const newSelected = new Set(selectedColumns);
+          if (e.target.checked) {
+            // Select all source fields
+            sourceFields.forEach((sf) => newSelected.add(sf));
+          } else {
+            // Deselect all source fields
+            sourceFields.forEach((sf) => newSelected.delete(sf));
+          }
+          setSelectedColumns(newSelected);
+
+          // Notify parent of selection change
+          if (onSelectionChange) {
+            onSelectionChange(Array.from(newSelected));
+          }
+        };
+
+        return (
+          <div className="flex items-center gap-2 w-full h-full">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={(input) => {
+                if (input) {
+                  input.indeterminate = someSelected;
+                }
+              }}
+              onChange={handleSelectAll}
+              className="w-4 h-4 cursor-pointer"
+              title="Select All Columns"
+            />
+            <span className="font-semibold text-xs">Row Type</span>
+          </div>
+        );
+      },
+
       cellRenderer: (params) => {
         if (!params.data) return null;
 
         const rowType = params.data.rowType;
-        if (rowType === 'mapping') {
+        if (rowType === "mapping") {
           return (
             <div className="flex items-center h-full font-semibold text-blue-700">
               Map To:
             </div>
           );
-        } else if (rowType === 'data') {
+        } else if (rowType === "data") {
           return (
-            <div className="flex items-center h-full text-gray-500">
-              Data:
-            </div>
+            <div className="flex items-center h-full text-gray-500">Data:</div>
           );
         }
         return null;
@@ -218,21 +264,54 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
     sourceFields.forEach((source_field) => {
       const colDef: ColDef<GridRowData> = {
         field: source_field,
-        headerName: source_field, // ✅ CRITICAL FIX: Show source field name in header
         width: 200,
         resizable: true,
         sortable: true, // Enable sorting for better UX
-        filter: true,   // Enable filtering for data rows
+        filter: true, // Enable filtering for data rows
+
+        // Custom header component with checkbox
+        headerComponent: () => {
+          const isSelected = selectedColumns.has(source_field);
+
+          const handleCheckboxChange = (
+            e: React.ChangeEvent<HTMLInputElement>,
+          ) => {
+            const newSelected = new Set(selectedColumns);
+            if (e.target.checked) {
+              newSelected.add(source_field);
+            } else {
+              newSelected.delete(source_field);
+            }
+            setSelectedColumns(newSelected);
+
+            // Notify parent of selection change
+            if (onSelectionChange) {
+              onSelectionChange(Array.from(newSelected));
+            }
+          };
+
+          return (
+            <div className="flex items-center gap-2 w-full h-full">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={handleCheckboxChange}
+                className="w-4 h-4 cursor-pointer"
+              />
+              <span className="font-semibold">{source_field}</span>
+            </div>
+          );
+        },
 
         // Enable editing for mapping row only
-        editable: (params) => params.data?.rowType === 'mapping',
+        editable: (params) => params.data?.rowType === "mapping",
 
         // Value formatter for object/complex data types
         valueFormatter: (params) => {
-          if (params.data?.rowType === 'data') {
+          if (params.data?.rowType === "data") {
             const value = params.value;
-            if (value === null || value === undefined) return '-';
-            if (typeof value === 'object') return JSON.stringify(value);
+            if (value === null || value === undefined) return "-";
+            if (typeof value === "object") return JSON.stringify(value);
             return String(value);
           }
           return params.value;
@@ -241,7 +320,10 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         // Value parser for object data types (required to prevent warning #48)
         valueParser: (params) => {
           // For data rows, parse JSON strings back to objects if needed
-          if (params.data?.rowType === 'data' && typeof params.newValue === 'string') {
+          if (
+            params.data?.rowType === "data" &&
+            typeof params.newValue === "string"
+          ) {
             try {
               return JSON.parse(params.newValue);
             } catch {
@@ -254,30 +336,39 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         // ✅ TASK 2: Green highlighting for auto-mapped/approved columns ONLY
         cellStyle: (params) => {
           // Only apply styling to mapping row cells
-          if (params.data?.rowType === 'mapping') {
+          if (params.data?.rowType === "mapping") {
             const mappingData = params.value as MappingCellData;
 
             // Safety check - ensure mappingData exists, has status, AND has a target field
-            if (!mappingData || !mappingData.status || !mappingData.target_field) {
+            if (
+              !mappingData ||
+              !mappingData.status ||
+              !mappingData.target_field
+            ) {
               return {};
             }
 
             const status = mappingData.status;
-            const hasValidTarget = mappingData.target_field && mappingData.target_field.trim() !== '';
+            const hasValidTarget =
+              mappingData.target_field &&
+              mappingData.target_field.trim() !== "";
 
             // Green background ONLY for suggested/approved mappings WITH valid target fields
-            if (hasValidTarget && (status === 'suggested' || status === 'approved')) {
+            if (
+              hasValidTarget &&
+              (status === "suggested" || status === "approved")
+            ) {
               return {
-                backgroundColor: '#d1fae5', // green-100
-                borderLeft: '4px solid #10b981', // green-500
+                backgroundColor: "#d1fae5", // green-100
+                borderLeft: "4px solid #10b981", // green-500
               };
             }
 
             // Yellow background for pending review WITH valid target fields
-            if (hasValidTarget && status === 'pending') {
+            if (hasValidTarget && status === "pending") {
               return {
-                backgroundColor: '#fef3c7', // yellow-100
-                borderLeft: '4px solid #f59e0b', // yellow-500
+                backgroundColor: "#fef3c7", // yellow-100
+                borderLeft: "4px solid #f59e0b", // yellow-500
               };
             }
           }
@@ -291,7 +382,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           if (!params.data) return null;
 
           // Row 1: Mapping row - use MappingCellRenderer
-          if (params.data.rowType === 'mapping') {
+          if (params.data.rowType === "mapping") {
             const mappingData = params.value as MappingCellData;
             return (
               <MappingCellRenderer
@@ -300,14 +391,16 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
                 sourceField={source_field}
                 availableTargetFields={available_target_fields}
                 onSelect={onMappingChange}
-                onApprove={mappingData?.mapping_id ? onApproveMapping : undefined}
+                onApprove={
+                  mappingData?.mapping_id ? onApproveMapping : undefined
+                }
                 onReject={mappingData?.mapping_id ? onRejectMapping : undefined}
               />
             );
           }
 
           // Rows 2-9: Data preview - use DataCellRenderer
-          if (params.data.rowType === 'data') {
+          if (params.data.rowType === "data") {
             return <DataCellRenderer {...params} value={params.value} />;
           }
 
@@ -316,13 +409,14 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
 
         // Tooltip for full value display
         tooltipValueGetter: (params) => {
-          if (params.data?.rowType === 'data') {
+          if (params.data?.rowType === "data") {
             const value = params.value;
-            if (value === null || value === undefined) return '';
-            if (typeof value === 'object') return JSON.stringify(value, null, 2);
+            if (value === null || value === undefined) return "";
+            if (typeof value === "object")
+              return JSON.stringify(value, null, 2);
             return String(value);
           }
-          return '';
+          return "";
         },
       };
 
@@ -330,7 +424,15 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
     });
 
     return cols;
-  }, [imported_data, available_target_fields, onMappingChange, onApproveMapping, onRejectMapping]);
+  }, [
+    imported_data,
+    available_target_fields,
+    onMappingChange,
+    onApproveMapping,
+    onRejectMapping,
+    selectedColumns,
+    onSelectionChange,
+  ]);
 
   // ============================================================================
   // ROW DATA TRANSFORMATION
@@ -351,19 +453,19 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
 
     // ROW 1: Mapping row
     const mappingRow: GridRowData = {
-      rowType: 'mapping',
-      id: 'mapping-row',
+      rowType: "mapping",
+      id: "mapping-row",
     };
 
     // Populate mapping row with field mapping data
     sourceFields.forEach((source_field) => {
       const mapping = field_mappings.find(
-        (m) => m.source_field === source_field
+        (m) => m.source_field === source_field,
       );
 
       const cellData: MappingCellData = {
         target_field: mapping?.target_field || null,
-        status: mapping?.status || 'unmapped',
+        status: mapping?.status || "unmapped",
         confidence_score: mapping?.confidence_score || 0,
         mapping_id: mapping?.id,
       };
@@ -377,7 +479,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
     const dataRows: GridRowData[] = imported_data
       .slice(0, 8)
       .map((record, idx) => ({
-        rowType: 'data' as RowType,
+        rowType: "data" as RowType,
         id: `data-${idx}`,
         ...record.raw_data,
       }));
@@ -396,18 +498,18 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
     if (!params.data) return {};
 
     // Mapping row: Lighter background, bold text
-    if (params.data.rowType === 'mapping') {
+    if (params.data.rowType === "mapping") {
       return {
-        backgroundColor: '#f9fafb',
+        backgroundColor: "#f9fafb",
         fontWeight: 600,
       };
     }
 
     // Data rows: Alternating stripes for better readability
-    if (params.data.rowType === 'data') {
+    if (params.data.rowType === "data") {
       const rowIndex = params.node.rowIndex || 0;
       return {
-        backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
+        backgroundColor: rowIndex % 2 === 0 ? "#ffffff" : "#f9fafb",
       };
     }
 
@@ -421,7 +523,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
     if (!params.data) return 40;
 
     // Mapping row: 100px (taller for dropdown + status badges + action buttons to be fully visible)
-    if (params.data.rowType === 'mapping') return 100;
+    if (params.data.rowType === "mapping") return 100;
 
     // Data rows: 40px
     return 40;
@@ -432,11 +534,15 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   // ============================================================================
 
   const onGridReady = useCallback((params: GridReadyEvent<GridRowData>) => {
+    // Store grid API reference
+    setGridApi(params.api);
+
     // Auto-size columns to fit content (matches inventory pattern)
     params.api.autoSizeAllColumns(false);
 
     // If total width is less than container, fit to container
-    const allColumnIds = params.api.getAllDisplayedColumns()?.map(col => col.getColId()) || [];
+    const allColumnIds =
+      params.api.getAllDisplayedColumns()?.map((col) => col.getColId()) || [];
     if (allColumnIds.length > 0) {
       params.api.sizeColumnsToFit();
     }
@@ -455,12 +561,12 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
       tooltipValueGetter: (params) => {
         // Show tooltip for all cell values
         const value = params.value;
-        if (value === null || value === undefined) return '';
-        if (typeof value === 'object') return JSON.stringify(value, null, 2);
+        if (value === null || value === undefined) return "";
+        if (typeof value === "object") return JSON.stringify(value, null, 2);
         return String(value);
       },
     }),
-    []
+    [],
   );
 
   // ============================================================================
@@ -501,18 +607,41 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           Attribute Mapping with Data Preview
         </h3>
         <p className="text-sm text-blue-700 leading-relaxed">
-          <strong>Row 1 (Column Headers):</strong> Source field names from your imported CSV/JSON file.
+          <strong>Row 1 (Column Headers):</strong> Source field names from your
+          imported CSV/JSON file.
           <br />
-          <strong>Row 2 (Map To):</strong> Select target fields for each source column using dropdowns. Green highlighting indicates auto-mapped or approved fields.
+          <strong>Row 2 (Map To):</strong> Select target fields for each source
+          column using dropdowns. Use checkboxes to select columns for bulk
+          approval or rejection.
           <br />
-          <strong>Rows 3-10 (Data Preview):</strong> First 8 records from your imported file to help verify your mapping selections.
+          <strong>Rows 3-10 (Data Preview):</strong> First 8 records from your
+          imported file to help verify your mapping selections.
+          <br />
+          <br />
+          <strong>Color Legend:</strong>{" "}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-blue-500"></span>
+            <span>Auto-Mapped</span>
+          </span>
+          {" • "}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span>Needs Review</span>
+          </span>
+          {" • "}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span>
+            <span>Approved</span>
+          </span>
+          {" • "}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-full bg-gray-500"></span>
+            <span>Unmapped</span>
+          </span>
         </p>
       </div>
 
-      <div
-        className="ag-theme-quartz"
-        style={{ height: 600, width: '100%' }}
-      >
+      <div className="ag-theme-quartz" style={{ height: 600, width: "100%" }}>
         <AgGridReact<GridRowData>
           theme="legacy"
           rowData={gridData}
@@ -529,7 +658,6 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           suppressCellFocus={false}
           animateRows={false}
           suppressMovableColumns={false} // Allow column reordering
-          rowSelection={{ mode: 'multiRow' }} // AG Grid v32.2+ object format
         />
       </div>
     </div>
