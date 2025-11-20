@@ -144,7 +144,7 @@ if SQLALCHEMY_AVAILABLE:
     AsyncSessionLocal = async_sessionmaker(
         engine,
         class_=AsyncSession,
-        expire_on_commit=False,
+        expire_on_commit=False,  # Keep objects in memory after commit to avoid lazy-load in wrong contexts
         autocommit=False,
         autoflush=False,
     )

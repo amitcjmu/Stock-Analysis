@@ -91,6 +91,9 @@ async def list_assessment_flows_via_mfo(
                     "created_at": flow.created_at.isoformat(),
                     "updated_at": flow.updated_at.isoformat(),
                     "created_by": created_by,
+                    # Fix for tenant context extraction (issue from screenshot)
+                    "client_account_id": str(flow.client_account_id),
+                    "engagement_id": str(flow.engagement_id),
                 }
             )
 

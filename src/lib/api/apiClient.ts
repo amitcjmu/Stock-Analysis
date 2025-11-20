@@ -318,13 +318,6 @@ class ApiClient {
 
       // Prepare body
       let body: string | FormData | undefined;
-      console.log('[ApiClient.executeRequest] Body processing:', {
-        method,
-        endpoint: normalizedEndpoint,
-        optionsBody: options.body,
-        optionsBodyType: typeof options.body,
-        optionsBodyUndefined: options.body === undefined
-      });
 
       if (options.body !== undefined) {
         if (options.body instanceof FormData) {
@@ -334,12 +327,6 @@ class ApiClient {
         } else {
           body = JSON.stringify(options.body);
         }
-        console.log('[ApiClient.executeRequest] Body prepared:', {
-          bodyType: typeof body,
-          bodyValue: body instanceof FormData ? 'FormData' : body
-        });
-      } else {
-        console.log('[ApiClient.executeRequest] ⚠️ options.body is UNDEFINED - no body will be sent!');
       }
 
       // Create abort controller for timeout

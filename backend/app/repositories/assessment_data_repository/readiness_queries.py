@@ -11,7 +11,10 @@ from uuid import UUID
 from sqlalchemy import and_, select, func
 
 from app.core.logging import get_logger
-from app.models.canonical_applications import CanonicalApplication
+from app.models.canonical_applications import (
+    CanonicalApplication,
+    CollectionFlowApplication,
+)
 from app.models.assessment_flow import AssessmentFlow
 from app.models.collected_data_inventory import CollectedDataInventory
 from app.models.discovery_flow import DiscoveryFlow
@@ -47,8 +50,20 @@ class ReadinessQueriesMixin:
                 logger.warning(f"Assessment flow not found: {flow_id}")
                 return self._empty_readiness_data()
 
-            # Fetch applications in this engagement
-            applications = await self._get_applications()
+            # ISSUE-6: Get selected application IDs from flow
+            selected_app_ids = flow.selected_canonical_application_ids or []
+
+            # Fetch applications filtered by selected IDs
+            if selected_app_ids:
+                applications = await self._get_selected_applications(selected_app_ids)
+                logger.info(
+                    f"[ISSUE-6] Filtered to {len(applications)} selected applications for readiness assessment"
+                )
+            else:
+                logger.warning(
+                    "[ISSUE-6] No selected IDs, using all applications for readiness assessment"
+                )
+                applications = await self._get_applications()
 
             # Fetch discovery flow results if available
             discovery_data = await self._get_discovery_data()
@@ -81,7 +96,10 @@ class ReadinessQueriesMixin:
         try:
             query = select(AssessmentFlow).where(
                 and_(
-                    AssessmentFlow.flow_id == UUID(flow_id),
+                    AssessmentFlow.id
+                    == UUID(
+                        flow_id
+                    ),  # Fixed: AssessmentFlow uses 'id' not 'flow_id' (ISSUE-999)
                     AssessmentFlow.client_account_id == self.client_account_id,
                     AssessmentFlow.engagement_id == self.engagement_id,
                 )
@@ -106,6 +124,163 @@ class ReadinessQueriesMixin:
         except Exception as e:
             logger.warning(f"Error fetching applications: {e}")
             return []
+
+    async def _get_selected_applications(
+        self, application_ids: List[Any]
+    ) -> List[CanonicalApplication]:
+        """
+        Get specific applications by IDs with tenant scoping.
+
+        ISSUE-999: Added for per-application 6R strategy generation.
+
+        Args:
+            application_ids: List of canonical application UUIDs
+
+        Returns:
+            List of CanonicalApplication models matching the IDs
+        """
+        try:
+            from uuid import UUID
+
+            # Convert string IDs to UUID objects if needed
+            uuid_ids = []
+            for app_id in application_ids:
+                if isinstance(app_id, str):
+                    uuid_ids.append(UUID(app_id))
+                elif isinstance(app_id, UUID):
+                    uuid_ids.append(app_id)
+                else:
+                    logger.warning(
+                        f"[ISSUE-999] Skipping invalid application ID type: {type(app_id)}"
+                    )
+
+            if not uuid_ids:
+                logger.warning(
+                    "[ISSUE-999] No valid application IDs provided, returning empty list"
+                )
+                return []
+
+            query = select(CanonicalApplication).where(
+                and_(
+                    CanonicalApplication.client_account_id == self.client_account_id,
+                    CanonicalApplication.engagement_id == self.engagement_id,
+                    CanonicalApplication.id.in_(uuid_ids),
+                )
+            )
+            result = await self.db.execute(query)
+            apps = list(result.scalars().all())
+
+            logger.info(
+                f"[ISSUE-999] Retrieved {len(apps)} applications "
+                f"from {len(uuid_ids)} requested IDs"
+            )
+
+            return apps
+        except Exception as e:
+            logger.error(
+                f"[ISSUE-999] Error fetching selected applications: {e}", exc_info=True
+            )
+            return []
+
+    async def _get_applications_with_assets(
+        self, application_ids: List[Any]
+    ) -> Dict[str, List[Asset]]:
+        """
+        Get comprehensive asset data for selected applications.
+
+        Queries collection_flow_applications to link canonical applications with their assets,
+        then fetches full asset details for comprehensive data serialization.
+
+        Args:
+            application_ids: List of canonical application UUIDs
+
+        Returns:
+            Dictionary mapping canonical_application_id -> List[Asset]
+        """
+        try:
+            from uuid import UUID
+
+            # Convert string IDs to UUID objects if needed
+            uuid_ids = []
+            for app_id in application_ids:
+                if isinstance(app_id, str):
+                    uuid_ids.append(UUID(app_id))
+                elif isinstance(app_id, UUID):
+                    uuid_ids.append(app_id)
+                else:
+                    logger.warning(
+                        f"Skipping invalid application ID type: {type(app_id)}"
+                    )
+
+            if not uuid_ids:
+                logger.warning("No valid application IDs provided for asset query")
+                return {}
+
+            # Query collection_flow_applications to get asset IDs for each app
+            cfa_query = select(CollectionFlowApplication).where(
+                and_(
+                    CollectionFlowApplication.client_account_id
+                    == self.client_account_id,
+                    CollectionFlowApplication.engagement_id == self.engagement_id,
+                    CollectionFlowApplication.canonical_application_id.in_(uuid_ids),
+                    CollectionFlowApplication.asset_id.isnot(None),
+                )
+            )
+            cfa_result = await self.db.execute(cfa_query)
+            cfa_records = list(cfa_result.scalars().all())
+
+            logger.info(
+                f"Found {len(cfa_records)} collection_flow_application records "
+                f"for {len(uuid_ids)} applications"
+            )
+
+            # Build mapping: canonical_app_id -> [asset_ids]
+            app_asset_map: Dict[UUID, List[UUID]] = {}
+            all_asset_ids = []
+            for cfa in cfa_records:
+                app_id = cfa.canonical_application_id
+                asset_id = cfa.asset_id
+                if app_id and asset_id:
+                    if app_id not in app_asset_map:
+                        app_asset_map[app_id] = []
+                    app_asset_map[app_id].append(asset_id)
+                    all_asset_ids.append(asset_id)
+
+            # Fetch all assets in single query
+            if all_asset_ids:
+                asset_query = select(Asset).where(
+                    and_(
+                        Asset.client_account_id == self.client_account_id,
+                        Asset.engagement_id == self.engagement_id,
+                        Asset.id.in_(all_asset_ids),
+                    )
+                )
+                asset_result = await self.db.execute(asset_query)
+                assets_list = list(asset_result.scalars().all())
+
+                # Build asset lookup
+                asset_lookup = {asset.id: asset for asset in assets_list}
+
+                # Build final mapping: canonical_app_id -> [Asset objects]
+                result_map: Dict[str, List[Asset]] = {}
+                for app_id, asset_ids in app_asset_map.items():
+                    assets = [
+                        asset_lookup[aid] for aid in asset_ids if aid in asset_lookup
+                    ]
+                    result_map[str(app_id)] = assets
+
+                logger.info(
+                    f"Retrieved {len(assets_list)} assets for {len(result_map)} applications"
+                )
+
+                return result_map
+            else:
+                logger.warning("No assets found for selected applications")
+                return {}
+
+        except Exception as e:
+            logger.error(f"Error fetching applications with assets: {e}", exc_info=True)
+            return {}
 
     async def _get_servers(self) -> List[Asset]:
         """Get all server assets for this engagement with tenant scoping.

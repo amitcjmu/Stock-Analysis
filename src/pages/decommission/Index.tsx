@@ -80,12 +80,12 @@ const DecommissionOverview: React.FC = () => {
 
     // Calculate compliance score (average across flows with runtime_state)
     const flowsWithCompliance = flows.filter(f => {
-      const runtime = f.runtime_state as unknown as { compliance_score?: number };
+      const runtime = f.runtime_state as { compliance_score?: number };
       return runtime?.compliance_score !== undefined;
     });
     const avgCompliance = flowsWithCompliance.length > 0
       ? flowsWithCompliance.reduce((sum, f) => {
-          const runtime = f.runtime_state as unknown as { compliance_score?: number };
+          const runtime = f.runtime_state as { compliance_score?: number };
           return sum + (runtime?.compliance_score || 0);
         }, 0) / flowsWithCompliance.length
       : 0;

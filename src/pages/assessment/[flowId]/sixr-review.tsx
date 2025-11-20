@@ -19,7 +19,8 @@ import {
   Shield,
   TrendingUp,
   Database,
-  GitBranch
+  GitBranch,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SixRDecision } from '@/hooks/useAssessmentFlow';
@@ -55,7 +56,9 @@ const SixRStrategyReview: React.FC = () => {
   const {
     state,
     updateSixRDecision,
-    resumeFlow
+    resumeFlow,
+    refreshApplicationData,
+    toggleAutoPolling
   } = useAssessmentFlow(flowId);
 
   const [selectedApp, setSelectedApp] = useState<string>('');
@@ -72,10 +75,10 @@ const SixRStrategyReview: React.FC = () => {
 
   // Set first application as selected by default
   useEffect(() => {
-    if (state.selectedApplicationIds.length > 0 && !selectedApp) {
-      setSelectedApp(state.selectedApplicationIds[0]);
+    if (state.selectedApplications.length > 0 && !selectedApp) {
+      setSelectedApp(state.selectedApplications[0].application_id);
     }
-  }, [state.selectedApplicationIds, selectedApp]);
+  }, [state.selectedApplications, selectedApp]);
 
   // Get current application data - MUST be at top level before any early returns
   const currentAppDecision = selectedApp ? state.sixrDecisions[selectedApp] : null;
@@ -125,7 +128,8 @@ const SixRStrategyReview: React.FC = () => {
     );
   }
 
-  if (state.selectedApplicationIds.length === 0) {
+  // CC: Fixed bug - check selectedApplications (populated) not selectedApplicationIds (may be empty)
+  if (state.selectedApplications.length === 0) {
     return (
       <AssessmentFlowLayout flowId={flowId}>
         <div className="p-6 text-center">
@@ -206,7 +210,7 @@ const SixRStrategyReview: React.FC = () => {
     console.log('[SixRReview] handleSubmit called', {
       flowId,
       acceptedCount: acceptedRecommendations.size,
-      totalApps: state.selectedApplicationIds.length,
+      totalApps: state.selectedApplications.length,
       isSubmitting,
       isLoading: state.isLoading,
     });
@@ -215,6 +219,7 @@ const SixRStrategyReview: React.FC = () => {
     try {
       console.log('[SixRReview] Resuming flow to next phase...');
       const resumeResponse = await resumeFlow({
+        phase: 'risk_assessment',
         action: 'continue',
         data: {
           accepted_recommendations: Array.from(acceptedRecommendations)
@@ -255,8 +260,8 @@ const SixRStrategyReview: React.FC = () => {
     }
   };
 
-  const allRecommendationsReviewed = state.selectedApplicationIds.every(
-    appId => acceptedRecommendations.has(appId) || !state.sixrDecisions[appId]
+  const allRecommendationsReviewed = state.selectedApplications.every(
+    app => acceptedRecommendations.has(app.application_id) || !state.sixrDecisions[app.application_id]
   );
 
   return (
@@ -264,12 +269,46 @@ const SixRStrategyReview: React.FC = () => {
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">
-            6R Strategy Review
-          </h1>
-          <p className="text-gray-600">
-            Review migration recommendations, dependencies, and risk assessment for selected applications
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                6R Strategy Review
+              </h1>
+              <p className="text-gray-600">
+                Review migration recommendations, dependencies, and risk assessment for selected applications
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refreshApplicationData()}
+                disabled={state.isLoading}
+              >
+                {state.isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Refresh Data
+              </Button>
+              <Button
+                variant={state.autoPollingEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={toggleAutoPolling}
+                className="gap-2"
+              >
+                {state.autoPollingEnabled ? (
+                  <>
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Auto-refresh On
+                  </>
+                ) : (
+                  <>Auto-refresh Off</>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Status Alert */}
@@ -297,7 +336,7 @@ const SixRStrategyReview: React.FC = () => {
             <div className="flex items-center justify-between">
               <CardTitle>Review Progress</CardTitle>
               <Badge variant={allRecommendationsReviewed ? "default" : "secondary"}>
-                {acceptedRecommendations.size} of {state.selectedApplicationIds.length} reviewed
+                {acceptedRecommendations.size} of {state.selectedApplications.length} reviewed
               </Badge>
             </div>
           </CardHeader>
@@ -306,7 +345,7 @@ const SixRStrategyReview: React.FC = () => {
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: `${(acceptedRecommendations.size / state.selectedApplicationIds.length) * 100}%`
+                  width: `${(acceptedRecommendations.size / state.selectedApplications.length) * 100}%`
                 }}
               />
             </div>
@@ -320,18 +359,18 @@ const SixRStrategyReview: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {state.selectedApplicationIds.map((appId) => {
-                const isAccepted = acceptedRecommendations.has(appId);
-                const hasDecision = !!state.sixrDecisions[appId];
+              {state.selectedApplications.map((app) => {
+                const isAccepted = acceptedRecommendations.has(app.application_id);
+                const hasDecision = !!state.sixrDecisions[app.application_id];
 
                 return (
                   <Button
-                    key={appId}
-                    variant={selectedApp === appId ? 'default' : 'outline'}
-                    onClick={() => setSelectedApp(appId)}
+                    key={app.application_id}
+                    variant={selectedApp === app.application_id ? 'default' : 'outline'}
+                    onClick={() => setSelectedApp(app.application_id)}
                     className="relative"
                   >
-                    {appId}
+                    {app.application_name}
                     {isAccepted && (
                       <CheckCircle className="h-3 w-3 ml-2 text-green-600" />
                     )}

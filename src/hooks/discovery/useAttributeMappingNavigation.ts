@@ -95,7 +95,8 @@ export const useAttributeMappingNavigation = (
 
   const handleContinueToDataCleansing = useCallback(async () => {
     try {
-      // Extract flow ID from flowState or fall back to flow object
+      // BUG FIX (#995): Extract flow ID from flowState or fall back to flow object
+      // Note: extractedFlowId is already being used by useUnifiedDiscoveryFlow (line 93)
       const rawFlowId = extractFlowId(flowState) || extractFlowId(flow as FlowStateInput);
 
       console.log('🔍 DEBUG: Flow ID resolution:', {
@@ -105,15 +106,23 @@ export const useAttributeMappingNavigation = (
         flow_flow_id: (flow as any)?.flow_id,
         flow_flowId: (flow as any)?.flowId,
         flow_id: (flow as any)?.id,
+        extractedFlowId,
         rawFlowId
       });
 
       const flowId = rawFlowId ? await getCorrectFlowId(rawFlowId) : null;
 
+      // BUG FIX (#995): Improve error message with more details for debugging
       if (!flowId) {
+        console.error('🚨 Cannot continue: No flow ID available', {
+          rawFlowId,
+          extractedFlowId,
+          flowState,
+          flow
+        });
         toast({
           title: "Error",
-          description: "No active flow found. Please start a new discovery flow.",
+          description: "No active flow found. Please start a new discovery flow or return to the overview page.",
           variant: "destructive"
         });
         return;

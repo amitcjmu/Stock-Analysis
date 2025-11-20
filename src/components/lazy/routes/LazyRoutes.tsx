@@ -277,6 +277,11 @@ export const LazyAssessmentTechDebt = createLazyRoute(
   "Assessment Tech Debt",
 );
 
+export const LazyAssessmentRisk = createLazyRoute(
+  () => import("@/pages/assessment/[flowId]/risk"),
+  "Assessment Risk Analysis",
+);
+
 // Bug #869 fix: Re-added LazyAssessmentSixRReview for Dependencies and Risk Assessment phases
 export const LazyAssessmentSixRReview = createLazyRoute(
   () => import("@/pages/assessment/[flowId]/sixr-review"),

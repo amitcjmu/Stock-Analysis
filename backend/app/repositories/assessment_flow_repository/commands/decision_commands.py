@@ -75,17 +75,19 @@ class DecisionCommands:
     async def mark_apps_ready_for_planning(self, flow_id: str, app_ids: List[str]):
         """Mark applications as ready for planning flow"""
 
-        # Update individual decisions
-        await self.db.execute(
-            update(SixRDecision)
-            .where(
-                and_(
-                    SixRDecision.assessment_flow_id == flow_id,
-                    SixRDecision.application_id.in_(app_ids),
-                )
-            )
-            .values(ready_for_planning=True)
-        )
+        # NOTE: SixRDecision table not used in new assessment flow architecture
+        # 6R decisions are stored in phase_results JSONB, not separate table
+        # Commenting out legacy code that referenced non-existent table:
+        # await self.db.execute(
+        #     update(SixRDecision)
+        #     .where(
+        #         and_(
+        #             SixRDecision.assessment_flow_id == flow_id,
+        #             SixRDecision.application_id.in_(app_ids),
+        #         )
+        #     )
+        #     .values(ready_for_planning=True)
+        # )
 
         # Update flow apps_ready_for_planning list
         await self.db.execute(
@@ -100,4 +102,4 @@ class DecisionCommands:
         )
 
         await self.db.commit()
-        logger.info(f"Marked {len(app_ids)} apps ready for planning")
+        logger.info(f"Marked {len(app_ids)} apps ready for planning in flow {flow_id}")

@@ -10,6 +10,13 @@ import type {
   BulkFieldMappingLearningRequest
 } from '../../../../services/api/discoveryFlowService';
 
+export interface SessionInfo {
+  flowId: string | null;
+  availableDataImports: Array<{ id: string; name?: string; [key: string]: unknown }>;
+  selectedDataImportId: string | null;
+  hasMultipleSessions: boolean;
+}
+
 export interface FieldMappingsTabProps {
   fieldMappings: FieldMapping[];
   isAnalyzing: boolean;
@@ -24,6 +31,7 @@ export interface FieldMappingsTabProps {
   learnedMappings?: Set<string>;
   clientAccountId?: string;
   engagementId?: string;
+  sessionInfo?: SessionInfo;
   // Continue to data cleansing props
   canContinueToDataCleansing?: boolean;
   onContinueToDataCleansing?: () => void;

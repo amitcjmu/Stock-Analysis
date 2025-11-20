@@ -27,8 +27,9 @@ const TechDebtPage: React.FC = () => {
     state,
     updateApplicationComponents,
     updateTechDebtAnalysis,
-    resumeFlow
-  } = useAssessmentFlow(flowId);
+    resumeFlow,
+    toggleAutoPolling
+  } = useAssessmentFlow(flowId, { disableAutoPolling: true });
 
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [severityFilter, setSeverityFilter] = useState<SeverityLevel | 'all'>('all');
@@ -46,10 +47,10 @@ const TechDebtPage: React.FC = () => {
 
   // Set first application as selected by default
   useEffect(() => {
-    if (state.selectedApplicationIds.length > 0 && !selectedApp) {
-      setSelectedApp(state.selectedApplicationIds[0]);
+    if (state.selectedApplications.length > 0 && !selectedApp) {
+      setSelectedApp(state.selectedApplications[0].application_id);
     }
-  }, [state.selectedApplicationIds, selectedApp]);
+  }, [state.selectedApplications, selectedApp]);
 
   // Get current application data (hooks must be called before any early returns)
   const currentAppComponents = selectedApp ? state.applicationComponents[selectedApp] || [] : [];
@@ -110,7 +111,8 @@ const TechDebtPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       // Save all application data
-      for (const appId of state.selectedApplicationIds) {
+      for (const app of state.selectedApplications) {
+        const appId = app.application_id;
         const components = state.applicationComponents[appId] || [];
         const techDebt = state.techDebtAnalysis[appId] || [];
 
@@ -119,9 +121,14 @@ const TechDebtPage: React.FC = () => {
       }
 
       await resumeFlow({
+        phase: 'tech_debt_assessment',
+        action: 'continue',
         components: state.applicationComponents,
         techDebtAnalysis: state.techDebtAnalysis
       });
+
+      // Navigate to Risk Assessment phase
+      navigate(`/assessment/${flowId}/risk`);
     } catch (error) {
       console.error('Failed to submit tech debt analysis:', error);
     } finally {
@@ -149,9 +156,10 @@ const TechDebtPage: React.FC = () => {
     }
   };
 
+  // CC: Fixed bug - check selectedApplications (populated) not selectedApplicationIds (may be empty)
   // Bug #640 fix: Improved guard to check loading state before showing error
   // Don't show "No Applications Selected" error while data is still loading
-  if (state.selectedApplicationIds.length === 0) {
+  if (state.selectedApplications.length === 0) {
     // If still loading, show loading indicator instead of error
     if (state.isLoading) {
       return <div className="p-6 text-sm text-muted-foreground">Loading application data...</div>;
@@ -209,12 +217,35 @@ const TechDebtPage: React.FC = () => {
           />
         )}
 
+        {/* Auto-Polling Control */}
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <span className="text-sm text-muted-foreground">Auto-refresh:</span>
+          <Button
+            variant={state.autoPollingEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={toggleAutoPolling}
+            className="gap-2"
+          >
+            {state.autoPollingEnabled ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                On
+              </>
+            ) : (
+              <>Off</>
+            )}
+          </Button>
+        </div>
+
         {/* Application Selection */}
         <ApplicationTabs
-          applications={state.selectedApplicationIds}
+          applications={state.selectedApplications.map(app => app.application_id)}
           selectedApp={selectedApp}
           onAppSelect={setSelectedApp}
-          getApplicationName={(appId) => appId} // In real implementation, get from application data
+          getApplicationName={(appId) => {
+            const app = state.selectedApplications.find(a => a.application_id === appId);
+            return app?.application_name || appId;
+          }}
         />
 
         {selectedApp && (

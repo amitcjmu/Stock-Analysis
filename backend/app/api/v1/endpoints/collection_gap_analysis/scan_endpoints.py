@@ -100,6 +100,28 @@ async def scan_gaps(
             db=db,
         )
 
+        # Persist scan summary to gap_analysis_results for frontend retrieval
+        from sqlalchemy import update
+        from app.models.collection_flow import CollectionFlow
+        from uuid import UUID
+
+        try:
+            await db.execute(
+                update(CollectionFlow)
+                .where(CollectionFlow.id == UUID(str(collection_flow.id)))
+                .values(
+                    gap_analysis_results={
+                        "summary": result.get("summary", {}),
+                        "status": result.get("status", "SCAN_COMPLETE"),
+                    }
+                )
+            )
+            await db.commit()
+            logger.info("💾 Persisted scan summary to gap_analysis_results")
+        except Exception as store_error:
+            logger.error(f"⚠️ Failed to persist scan summary: {store_error}")
+            # Don't fail the request if persistence fails
+
         return ScanGapsResponse(**result)
 
     except HTTPException:

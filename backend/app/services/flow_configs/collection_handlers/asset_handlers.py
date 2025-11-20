@@ -195,7 +195,8 @@ class AssetHandlers(CollectionHandlerBase):
 
         # CRITICAL FIX: Also query responses that don't have gap_id linked
         # This handles cases where responses were created but gap_id wasn't set
-        # SECURITY FIX: Add tenant scoping to prevent data leaks
+        # CC FIX Bug #11: Remove non-existent client_account_id and engagement_id columns
+        # Tenant scoping is already enforced via collection_flow_id FK relationship
         resolved_rows = await db.execute(
             text(
                 "SELECT DISTINCT "
@@ -207,15 +208,11 @@ class AssetHandlers(CollectionHandlerBase):
                 "FROM migration.collection_questionnaire_responses r "
                 "LEFT JOIN migration.collection_data_gaps g ON g.id = r.gap_id "
                 "WHERE r.collection_flow_id = :flow_id "
-                "AND r.client_account_id = :client_account_id "
-                "AND r.engagement_id = :engagement_id "
-                "AND (g.resolution_status = 'resolved' OR r.gap_id IS NULL)"
+                "AND (g.resolution_status = 'resolved' OR r.gap_id IS NULL) "
                 "AND r.response_value IS NOT NULL"
             ),
             {
                 "flow_id": collection_flow_id,
-                "client_account_id": client_uuid,
-                "engagement_id": engagement_uuid,
             },
         )
         resolved = resolved_rows.fetchall()
@@ -327,11 +324,14 @@ class AssetHandlers(CollectionHandlerBase):
                 )
                 .values(**update_payload)
             )
+            # CC FIX Bug #11: Don't commit here - let caller manage transaction atomicity
+            # The caller (_commit_with_writeback) commits all changes atomically together
             try:
                 await db.execute(stmt)
-                await db.commit()
+                # ❌ REMOVED: await db.commit() - breaks atomic transaction in caller
+                logger.info(f"✅ Staged asset updates for {len(batch_ids)} asset(s)")
             except Exception:
-                await db.rollback()
+                # ❌ REMOVED: await db.rollback() - caller will handle rollback
                 logger.exception(
                     "Write-back batch failed",
                     extra={
@@ -342,6 +342,7 @@ class AssetHandlers(CollectionHandlerBase):
                         "engagement_id": str(engagement_uuid),
                     },
                 )
+                raise  # Re-raise to let caller handle transaction rollback
 
             # Handle compliance_constraints separately for asset_compliance_flags table
             if (
@@ -460,9 +461,9 @@ class AssetHandlers(CollectionHandlerBase):
                 existing_scopes = set(existing.compliance_scopes or [])
                 new_scopes = existing_scopes.union(set(compliance_scopes))
                 existing.compliance_scopes = list(new_scopes)
-                await db.commit()
+                # CC FIX Bug #11: Don't commit - let caller manage transaction
                 logger.info(
-                    f"Updated compliance flags for asset {asset_id}: {new_scopes}"
+                    f"Staged compliance flags update for asset {asset_id}: {new_scopes}"
                 )
             else:
                 # Create new compliance flags record
@@ -471,9 +472,9 @@ class AssetHandlers(CollectionHandlerBase):
                     compliance_scopes=compliance_scopes,
                 )
                 db.add(compliance_flags)
-                await db.commit()
+                # CC FIX Bug #11: Don't commit - let caller manage transaction
                 logger.info(
-                    f"Created compliance flags for asset {asset_id}: {compliance_scopes}"
+                    f"Staged compliance flags creation for asset {asset_id}: {compliance_scopes}"
                 )
 
 

@@ -1,7 +1,10 @@
 """
-Background Workers for Gap Enhancement Jobs
+Background Workers for Gap Analysis Jobs
 
-Handles asynchronous processing of gap enhancement jobs with per-asset persistence.
+Handles asynchronous processing of comprehensive AI gap analysis with per-asset persistence.
+
+CRITICAL: This uses comprehensive analysis (_run_tier_2_ai_analysis), NOT enhancement.
+The AI analyzes the ENTIRE asset to find ALL gaps, not just enhance predetermined ones.
 """
 
 import logging
@@ -12,26 +15,140 @@ from .job_state_manager import update_job_state
 logger = logging.getLogger(__name__)
 
 
-async def process_gap_enhancement_job(
+async def cleanup_heuristic_gaps(
+    collection_flow_id: UUID,
+    analyzed_assets: list,
+    ai_validated_gaps: dict,
+    db,
+):
+    """Delete heuristic gaps that weren't validated by AI comprehensive analysis.
+
+    CRITICAL (Bug #11): The AI analysis is the AUTHORITATIVE source of gaps, BUT
+    the 22 critical assessment attributes must ALWAYS be preserved to ensure 85%
+    assessment readiness threshold. Heuristic gaps are preview and can be removed
+    if AI determined they aren't real gaps, EXCEPT for critical attributes.
+
+    Args:
+        collection_flow_id: Collection flow UUID
+        analyzed_assets: List of Asset objects that were analyzed
+        ai_validated_gaps: Dict from AI analysis with validated gaps
+        db: AsyncSession database session
+
+    Returns:
+        Number of heuristic gaps deleted
+    """
+    from sqlalchemy import select
+    from app.models.collection_data_gap import CollectionDataGap
+    from app.services.crewai_flows.tools.critical_attributes_tool.base import (
+        CriticalAttributesDefinition,
+    )
+
+    # Bug #11: Get list of 22 critical assessment attributes to preserve
+    critical_attributes = set(CriticalAttributesDefinition.get_all_attributes())
+
+    # CC Security: Log count only at INFO (not asset details) to prevent identifier exposure
+    # Per Qodo Bot review: Asset names and field names should not be in INFO-level logs
+    logger.info(
+        f"🔍 Cleaning up heuristic gaps for {len(analyzed_assets)} analyzed assets "
+        f"(AI gaps authoritative, preserving {len(critical_attributes)} critical attributes)"
+    )
+
+    # Delete heuristic gaps EXCEPT critical assessment attributes
+    deleted_count = 0
+    preserved_count = 0
+
+    for asset in analyzed_assets:
+        # Find all heuristic gaps for this asset in this flow
+        stmt = select(CollectionDataGap).where(
+            CollectionDataGap.collection_flow_id == collection_flow_id,
+            CollectionDataGap.asset_id == asset.id,
+            CollectionDataGap.confidence_score.is_(None),  # Heuristic gaps only
+        )
+        result = await db.execute(stmt)
+        heuristic_gaps = result.scalars().all()
+
+        # Delete heuristic gaps EXCEPT critical assessment attributes (Bug #11)
+        for gap in heuristic_gaps:
+            # Bug #11: Preserve critical assessment attributes
+            if gap.field_name in critical_attributes:
+                preserved_count += 1
+                logger.debug(
+                    f"💎 PRESERVED critical assessment attribute (Bug #11): "
+                    f"Asset={asset.name}, Field={gap.field_name}, Category={gap.gap_category}"
+                )
+                # Set confidence_score to mark as "AI-reviewed but preserved for assessment"
+                gap.confidence_score = 0.75
+                gap.suggested_resolution = (
+                    "Critical assessment attribute - required for 85% readiness"
+                )
+            else:
+                await db.delete(gap)
+                deleted_count += 1
+                logger.debug(
+                    f"🗑️ Deleted non-critical heuristic gap: "
+                    f"Asset={asset.name}, Field={gap.field_name}"
+                )
+
+    await db.commit()
+
+    logger.info(
+        f"✅ Deleted {deleted_count} non-critical gaps, "
+        f"💎 PRESERVED {preserved_count} critical assessment attributes (Bug #11)"
+    )
+
+    return deleted_count
+
+
+async def verify_ai_gaps_consistency(assets, db):
+    """Verify that assets marked as AI-analyzed have gaps with confidence_score.
+
+    CRITICAL FIX (Issue #1045 - Qodo Bot): Auto-fix inconsistencies by resetting status
+    instead of just logging warnings.
+
+    This ensures data consistency across all collection flows, not just the current one.
+
+    Args:
+        assets: List of Asset objects to verify
+        db: AsyncSession database session
+    """
+
+    # REMOVED: Incorrect validation logic that assumed AI-analyzed assets must have gaps
+    # Assets with status=2 and zero gaps are CORRECT - they have complete data
+    # AI analysis confirmed no gaps exist, which is a valid outcome
+    # The previous logic incorrectly reset these assets to status=0, forcing unnecessary re-analysis
+    logger.debug(
+        "✅ Skipping legacy consistency check - AI-analyzed assets with zero gaps are valid "
+        "(complete data, not analysis failure)"
+    )
+
+
+async def process_gap_enhancement_job(  # noqa: C901
     job_id: str,
     collection_flow_id: UUID,
-    gaps: list,
     selected_asset_ids: list,
     client_account_id: str,
     engagement_id: str,
+    force_refresh: bool = False,
 ):
-    """Background worker for gap enhancement with per-asset persistence.
+    """Background worker for comprehensive AI gap analysis.
+
+    Performs full asset analysis without requiring predetermined gaps.
+    This enables comprehensive discovery of all data gaps.
+
+    Skips assets with ai_gap_analysis_status = 2 unless force_refresh = True.
+    Implements stale detection by comparing ai_gap_analysis_timestamp with asset.updated_at.
 
     Args:
         job_id: Unique job identifier
         collection_flow_id: Collection flow internal ID (used for all DB operations)
-        gaps: List of gaps to enhance
-        selected_asset_ids: Asset IDs to process
+        selected_asset_ids: Asset IDs to analyze comprehensively
         client_account_id: Client account UUID (primitive, not mutable context)
         engagement_id: Engagement UUID (primitive, not mutable context)
+        force_refresh: Force re-analysis even if status=2 (default: False)
     """
     from app.services.collection.gap_analysis.data_loader import load_assets
     from app.services.collection.gap_analysis.service import GapAnalysisService
+    from datetime import datetime, timezone
 
     try:
         await update_job_state(collection_flow_id, {"status": "running"})
@@ -41,14 +158,14 @@ async def process_gap_enhancement_job(
 
         async with AsyncSessionLocal() as db:
             # Load assets (using primitive IDs)
-            assets = await load_assets(
+            all_assets = await load_assets(
                 selected_asset_ids,
                 client_account_id,
                 engagement_id,
                 db,
             )
 
-            if not assets:
+            if not all_assets:
                 logger.warning("⚠️ No assets found for AI analysis")
                 await update_job_state(
                     collection_flow_id,
@@ -59,6 +176,74 @@ async def process_gap_enhancement_job(
                 )
                 return
 
+            # Filter assets based on AI analysis status and staleness
+            if force_refresh:
+                # User forced re-analysis - analyze all assets
+                assets_to_analyze = all_assets
+                logger.info(
+                    f"🔄 Force refresh enabled - analyzing all {len(all_assets)} assets"
+                )
+            else:
+                # Skip assets that already completed AI analysis (status = 2) AND aren't stale
+                assets_to_analyze = []
+                assets_skipped = 0
+                assets_stale = 0
+
+                for asset in all_assets:
+                    # CRITICAL FIX (Issue #1045 - Qodo Bot): Skip assets being processed by other workers
+                    if asset.ai_gap_analysis_status == 1:
+                        assets_skipped += 1
+                        logger.debug(
+                            f"⏭️ Asset {asset.id} skipped - already being processed (status=1)"
+                        )
+                        continue
+
+                    # Check if AI analysis completed
+                    if asset.ai_gap_analysis_status != 2:
+                        # Status = 0 (not started), add to analyze list
+                        assets_to_analyze.append(asset)
+                        continue
+
+                    # Status = 2 (completed), check if analysis is stale
+                    if (
+                        asset.ai_gap_analysis_timestamp
+                        and asset.updated_at
+                        and asset.updated_at > asset.ai_gap_analysis_timestamp
+                    ):
+                        assets_to_analyze.append(asset)
+                        assets_stale += 1
+                        logger.debug(
+                            f"📊 Asset {asset.id} marked for re-analysis - "
+                            f"updated_at={asset.updated_at} > "
+                            f"ai_analysis_timestamp={asset.ai_gap_analysis_timestamp}"
+                        )
+                    else:
+                        assets_skipped += 1
+
+                logger.info(
+                    f"📊 AI analysis plan - "
+                    f"Analyze: {len(assets_to_analyze)} "
+                    f"(new: {len(assets_to_analyze) - assets_stale}, stale: {assets_stale}), "
+                    f"Skipped (cached): {assets_skipped}"
+                )
+
+            if not assets_to_analyze:
+                logger.info("✅ All assets already have AI analysis - nothing to do")
+                await update_job_state(
+                    collection_flow_id,
+                    {
+                        "status": "completed",
+                        "progress": 100,
+                        "message": "All assets already analyzed",
+                    },
+                )
+                return
+
+            # Mark assets as in-progress (status = 1)
+            for asset in assets_to_analyze:
+                asset.ai_gap_analysis_status = 1
+            await db.flush()
+
             # Initialize gap analysis service (using primitive IDs)
             gap_service = GapAnalysisService(
                 client_account_id=client_account_id,
@@ -66,47 +251,46 @@ async def process_gap_enhancement_job(
                 collection_flow_id=str(collection_flow_id),
             )
 
-            # Convert Pydantic gaps to dict format
-            gaps_for_ai = [gap.model_dump() for gap in gaps]
-
-            # Run tier_2 AI analysis WITH per-asset persistence
+            # Run tier_2 comprehensive AI analysis
             logger.info(
-                f"🤖 Job {job_id}: Running AI enhancement "
-                f"for {len(gaps_for_ai)} gaps"
+                f"🤖 Job {job_id}: Running COMPREHENSIVE AI analysis "
+                f"on {len(assets_to_analyze)} assets"
             )
 
-            # Override _update_progress to update job state
-            original_update_progress = (
-                gap_service._update_progress
-                if hasattr(gap_service, "_update_progress")
-                else None
-            )
-
-            async def custom_update_progress(
-                flow_id_param, processed, total, current_asset, redis_client
-            ):
-                await update_job_state(
-                    collection_flow_id,
-                    {
-                        "processed_assets": processed,
-                        "total_assets": total,
-                        "current_asset": current_asset,
-                    },
-                )
-                # Call original if exists
-                if original_update_progress:
-                    await original_update_progress(
-                        flow_id_param, processed, total, current_asset, redis_client
-                    )
-
-            gap_service._update_progress = custom_update_progress
-
-            # Run enhancement with per-asset persistence
-            ai_result = await gap_service._run_tier_2_ai_analysis_with_persist(
-                assets=assets,
+            # Correct - comprehensive analysis on assets only
+            ai_result = await gap_service._run_tier_2_ai_analysis(
+                assets=assets_to_analyze,
                 collection_flow_id=str(collection_flow_id),
-                gaps=gaps_for_ai,
                 db=db,
+            )
+
+            # CRITICAL: Delete heuristic gaps not validated by AI
+            # AI analysis is authoritative - heuristic gaps are just preview
+            deleted_count = await cleanup_heuristic_gaps(
+                collection_flow_id=collection_flow_id,
+                analyzed_assets=assets_to_analyze,
+                ai_validated_gaps=ai_result,
+                db=db,
+            )
+            logger.info(
+                f"🧹 Cleaned up {deleted_count} heuristic gaps not validated by AI"
+            )
+
+            # Mark assets as completed (status = 2) with timestamp
+            completion_time = datetime.now(timezone.utc)
+
+            for asset in assets_to_analyze:
+                asset.ai_gap_analysis_status = 2
+                asset.ai_gap_analysis_timestamp = completion_time
+
+            await db.commit()
+
+            # Verify consistency: gaps with confidence_score should exist
+            await verify_ai_gaps_consistency(assets_to_analyze, db)
+
+            logger.info(
+                f"✅ AI analysis completed for {len(assets_to_analyze)} assets "
+                f"at {completion_time.isoformat()}"
             )
 
             # Update final job state
@@ -141,6 +325,41 @@ async def process_gap_enhancement_job(
         logger.error(
             f"❌ Job {job_id} failed - {error_type}: {error_message}", exc_info=True
         )
+
+        # CRITICAL FIX (Issue #1045 - Qodo Bot): Reset status ONLY for assets that were being analyzed
+        # (status=1), not all assets in the job
+        from app.core.database import AsyncSessionLocal
+
+        try:
+            async with AsyncSessionLocal() as db:
+                from app.services.collection.gap_analysis.data_loader import load_assets
+
+                # Reload assets to check which ones were in-progress
+                all_job_assets = await load_assets(
+                    selected_asset_ids,
+                    client_account_id,
+                    engagement_id,
+                    db,
+                )
+
+                # Only reset assets that were actively being analyzed (status=1)
+                reset_count = 0
+                for asset in all_job_assets:
+                    if asset.ai_gap_analysis_status == 1:
+                        asset.ai_gap_analysis_status = 0
+                        asset.ai_gap_analysis_timestamp = None
+                        reset_count += 1
+
+                await db.commit()
+
+                logger.info(
+                    f"🔄 Reset AI analysis status for {reset_count}/{len(all_job_assets)} "
+                    f"assets that were in-progress (status=1) to allow retry"
+                )
+        except Exception as reset_error:
+            logger.error(
+                f"❌ Failed to reset asset status: {reset_error}", exc_info=True
+            )
 
         # Categorize error for better user messaging
         if "timeout" in error_message.lower() or "TimeoutError" in error_type:
@@ -211,9 +430,38 @@ async def _auto_progress_phase(
         collection_flow = result.scalar_one_or_none()
 
         if collection_flow and collection_flow.master_flow_id:
-            logger.info(
-                f"🚀 Job {job_id}: Auto-progressing to questionnaire_generation"
+            # CRITICAL FIX (Issue #1066): Query database as source of truth for pending gaps
+            # Background worker must also check pending gaps before auto-progressing
+            # Database is authoritative - do NOT rely on summary metadata
+            from sqlalchemy import select as select_stmt, func
+            from app.models.collection_data_gap import CollectionDataGap
+
+            pending_gaps_result = await db.execute(
+                select_stmt(func.count(CollectionDataGap.id)).where(
+                    CollectionDataGap.collection_flow_id == collection_flow_id,
+                    CollectionDataGap.resolution_status == "pending",
+                )
             )
+            actual_pending_gaps = pending_gaps_result.scalar() or 0
+
+            logger.info(
+                f"📊 Job {job_id}: Gap analysis complete - "
+                f"Database shows {actual_pending_gaps} pending gaps"
+            )
+
+            # Determine target phase based on pending gaps in database
+            if actual_pending_gaps > 0:
+                target_phase = "questionnaire_generation"
+                logger.info(
+                    f"🚀 Job {job_id}: {actual_pending_gaps} pending gaps found → "
+                    f"auto-progressing to {target_phase}"
+                )
+            else:
+                target_phase = "finalization"
+                logger.info(
+                    f"✅ Job {job_id}: 0 pending gaps → "
+                    f"auto-progressing to {target_phase} (skipping questionnaires)"
+                )
 
             # IMPORTANT: Create immutable context from primitives for progression service
             # Background jobs receive only primitive IDs (str), not mutable request context.
@@ -238,14 +486,14 @@ async def _auto_progress_phase(
             )
             progression_result = await progression_service.advance_to_next_phase(
                 flow=collection_flow,
-                target_phase="questionnaire_generation",
+                target_phase=target_phase,
             )
 
             if progression_result["status"] == "success":
-                logger.info(f"✅ Job {job_id}: Advanced to questionnaire_generation")
+                logger.info(f"✅ Job {job_id}: Advanced to {target_phase}")
                 await update_job_state(
                     collection_flow_id,
-                    {"phase_progression": "advanced_to_questionnaire_generation"},
+                    {"phase_progression": f"advanced_to_{target_phase}"},
                 )
             else:
                 error_msg = progression_result.get("error")

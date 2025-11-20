@@ -512,6 +512,77 @@ export class AssessmentFlowApiClient {
       throw error;
     }
   }
+
+  /**
+   * Check if a specific phase has completed and saved results.
+   *
+   * Fix for Issue #1048: Verify backend phase execution before updating frontend state.
+   *
+   * @param flowId - Assessment flow ID
+   * @param phaseName - Phase name to check (e.g., "tech_debt_assessment")
+   * @returns Phase completion status and results
+   */
+  async getPhaseCompletionStatus(
+    flowId: string,
+    phaseName: string
+  ): Promise<{
+    status: 'completed' | 'pending';
+    phase_name: string;
+    results: Record<string, any> | null;
+    completed_at?: string;
+  }> {
+    try {
+      const response = await apiClient.get(
+        `/master-flows/${flowId}/assessment/phase/${phaseName}/status`
+      );
+
+      return response;
+    } catch (error) {
+      console.error(`Failed to get phase ${phaseName} status:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Poll for phase completion with timeout.
+   *
+   * Fix for Issue #1048: Wait for backend to confirm phase execution.
+   *
+   * @param flowId - Assessment flow ID
+   * @param phaseName - Phase name to wait for
+   * @param timeoutMs - Maximum time to wait (default: 60 seconds)
+   * @param intervalMs - Polling interval (default: 2 seconds)
+   * @returns Phase completion status or throws after timeout
+   */
+  async waitForPhaseCompletion(
+    flowId: string,
+    phaseName: string,
+    timeoutMs: number = 60000,
+    intervalMs: number = 2000
+  ): Promise<{
+    status: 'completed' | 'pending';
+    phase_name: string;
+    results: Record<string, any> | null;
+    completed_at?: string;
+  }> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeoutMs) {
+      const status = await this.getPhaseCompletionStatus(flowId, phaseName);
+
+      if (status.status === 'completed') {
+        return status;
+      }
+
+      // Wait before next poll
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+
+    throw new Error(
+      `Phase ${phaseName} did not complete within ${timeoutMs}ms. ` +
+        `This may indicate a backend execution failure.`
+    );
+  }
 }
 
 // =============================================================================

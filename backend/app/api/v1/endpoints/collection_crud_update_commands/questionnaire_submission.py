@@ -31,6 +31,7 @@ from .questionnaire_helpers import (
     _resolve_gaps_and_update_flow,
     _commit_with_writeback,
     _update_asset_readiness,
+    _create_canonical_app_for_questionnaire,
 )
 
 if TYPE_CHECKING:
@@ -39,7 +40,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-async def submit_questionnaire_response(
+async def submit_questionnaire_response(  # noqa: C901 - Reduced from 19 to 16, orchestrates workflow
     flow_id: str,
     questionnaire_id: str,
     request_data: "QuestionnaireSubmissionRequest",
@@ -160,6 +161,30 @@ async def submit_questionnaire_response(
 
         # ✅ CRITICAL FIX (Issue #980): Flush response records to database immediately
         await _flush_response_records(db, response_records, flow.id)
+
+        # ISSUE-999 Phase 2: Create canonical application and junction record
+        # This ensures questionnaire path has same behavior as bulk import path
+        application_name = None
+
+        # Extract application_name from multiple sources (prioritized)
+        if form_metadata and "application_name" in form_metadata:
+            application_name = form_metadata.get("application_name")
+        elif (
+            validated_asset
+            and hasattr(validated_asset, "application_name")
+            and validated_asset.application_name
+        ):
+            application_name = validated_asset.application_name
+
+        if application_name and application_name.strip():
+            await _create_canonical_app_for_questionnaire(
+                application_name=application_name,
+                asset_id=asset_id,
+                flow=flow,
+                context=context,
+                current_user=current_user,
+                db=db,
+            )
 
         # CRITICAL UX FIX: Extract asset_ids from response records for readiness re-analysis
         asset_ids_to_reanalyze = await _extract_asset_ids_for_reanalysis(

@@ -37,8 +37,9 @@ export default function WaveModal({ wave, onSave, onClose }: WaveModalProps): JS
   useEffect(() => {
     if (wave) {
       setWaveName(wave.wave_name);
-      setStartDate(wave.start_date || '');
-      setEndDate(wave.end_date || '');
+      // Convert ISO datetime to YYYY-MM-DD for date inputs
+      setStartDate(wave.start_date ? wave.start_date.split('T')[0] : '');
+      setEndDate(wave.end_date ? wave.end_date.split('T')[0] : '');
       setStatus(wave.status);
       setDescription(wave.description || '');
     } else {
@@ -81,9 +82,15 @@ export default function WaveModal({ wave, onSave, onClose }: WaveModalProps): JS
       status,
     };
 
-    // Add optional fields
-    if (start_date) waveData.start_date = start_date;
-    if (end_date) waveData.end_date = end_date;
+    // Add optional fields - convert YYYY-MM-DD to ISO datetime
+    if (start_date) {
+      // Convert to ISO datetime with UTC timezone
+      waveData.start_date = new Date(start_date + 'T00:00:00Z').toISOString();
+    }
+    if (end_date) {
+      // Convert to ISO datetime with UTC timezone
+      waveData.end_date = new Date(end_date + 'T23:59:59Z').toISOString();
+    }
     if (description.trim()) waveData.description = description;
 
     // Preserve existing applications if editing

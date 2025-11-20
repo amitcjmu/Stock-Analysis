@@ -76,7 +76,9 @@ class FlowExecutionCore:
 
         # Initialize modular components
         self.agents = ExecutionEngineAgentHandlers(
-            master_repo, self.phase_transition_agent
+            master_repo,
+            self.phase_transition_agent,
+            db_session=self.db,  # Bug #1055: Pass db_session
         )
         self.phase_utils = ExecutionEnginePhaseUtils(master_repo, self.flow_registry)
         self.state_utils = ExecutionEngineStateUtils(master_repo, context)
@@ -269,6 +271,42 @@ class FlowExecutionCore:
             return await self.phase_utils.skip_to_next_phase(
                 flow_id, phase_name, agent_decision
             )
+
+        # Handle agent fail if requested
+        if agent_decision.action == PhaseAction.FAIL:
+            logger.error(
+                f"❌ Phase '{phase_name}' failed by agent decision: {agent_decision.reasoning}"
+            )
+            return {
+                "phase": phase_name,
+                "status": "failed",
+                "reason": agent_decision.reasoning,
+                "agent_decision": {
+                    "action": agent_decision.action.value,
+                    "next_phase": agent_decision.next_phase,
+                    "confidence": agent_decision.confidence,
+                    "reasoning": agent_decision.reasoning,
+                    "metadata": agent_decision.metadata,
+                },
+            }
+
+        # Handle agent complete if requested
+        if agent_decision.action == PhaseAction.COMPLETE:
+            logger.info(
+                f"✅ Phase '{phase_name}' marked complete by agent decision: {agent_decision.reasoning}"
+            )
+            return {
+                "phase": phase_name,
+                "status": "completed",
+                "reason": agent_decision.reasoning,
+                "agent_decision": {
+                    "action": agent_decision.action.value,
+                    "next_phase": agent_decision.next_phase,
+                    "confidence": agent_decision.confidence,
+                    "reasoning": agent_decision.reasoning,
+                    "metadata": agent_decision.metadata,
+                },
+            }
 
         return None
 

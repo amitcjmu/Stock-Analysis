@@ -5,7 +5,7 @@ Core repository class with initialization and helper methods.
 Per ADR-024: All queries MUST include client_account_id and engagement_id scoping.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,15 +71,75 @@ class AssessmentDataRepository(
 
     # === SERIALIZATION METHODS ===
 
-    def _serialize_application(self, app: CanonicalApplication) -> Dict[str, Any]:
-        """Serialize canonical application model to dictionary."""
-        return {
+    def _serialize_application(
+        self, app: CanonicalApplication, assets: List[Asset] = None
+    ) -> Dict[str, Any]:
+        """Serialize canonical application with comprehensive asset data.
+
+        Args:
+            app: CanonicalApplication model
+            assets: List of Asset models associated with this application
+
+        Returns:
+            Dictionary with comprehensive application and asset data for agent analysis
+        """
+        base_data = {
             "id": str(app.id),
             "name": app.canonical_name,
             "business_criticality": app.business_criticality,
             "description": app.description,
             "technology_stack": app.technology_stack or {},
+            "application_type": app.application_type,
+            "confidence_score": app.confidence_score,
+            "is_verified": app.is_verified,
         }
+
+        # Add comprehensive asset data if available
+        if assets:
+            serialized_assets = []
+            for asset in assets:
+                asset_data = {
+                    "id": str(asset.id),
+                    "name": asset.name or asset.asset_name,
+                    "asset_type": asset.asset_type,
+                    "operating_system": asset.operating_system,
+                    "os_version": asset.os_version,
+                    "cpu_cores": asset.cpu_cores,
+                    "memory_gb": asset.memory_gb,
+                    "storage_gb": asset.storage_gb,
+                    "environment": asset.environment,
+                    "location": asset.location,
+                    "datacenter": asset.datacenter,
+                    "hostname": asset.hostname,
+                    "ip_address": asset.ip_address,
+                    "business_owner": asset.business_owner,
+                    "technical_owner": asset.technical_owner,
+                    "department": asset.department,
+                    "criticality": asset.criticality,
+                    "migration_complexity": asset.migration_complexity,
+                    "six_r_strategy": asset.six_r_strategy,
+                    # JSON/JSONB fields with rich metadata
+                    "custom_attributes": asset.custom_attributes or {},
+                    "dependencies": asset.dependencies or {},
+                    "related_assets": asset.related_assets or {},
+                    "technology_stack": asset.technology_stack,
+                    "phase_context": asset.phase_context or {},
+                }
+                serialized_assets.append(asset_data)
+
+            base_data["assets"] = serialized_assets
+
+            # Aggregate key insights across assets for quick reference
+            operating_systems = list(
+                {a.operating_system for a in assets if a.operating_system}
+            )
+            base_data["operating_systems"] = operating_systems
+            base_data["total_assets"] = len(assets)
+            base_data["environments"] = list(
+                {a.environment for a in assets if a.environment}
+            )
+
+        return base_data
 
     def _serialize_server(self, srv: Asset) -> Dict[str, Any]:
         """Serialize server asset to dictionary.
@@ -110,10 +170,10 @@ class AssessmentDataRepository(
         self, flow: AssessmentFlow, phase_name: str
     ) -> Dict[str, Any]:
         """Extract results for a specific phase from flow state."""
-        if not flow or not flow.flow_state:
+        if not flow or not flow.phase_results:
             return {}
 
-        phase_data = flow.flow_state.get(phase_name, {})
+        phase_data = flow.phase_results.get(phase_name, {})
         return phase_data if isinstance(phase_data, dict) else {}
 
     def _extract_business_constraints(self, flow: AssessmentFlow) -> Dict[str, Any]:

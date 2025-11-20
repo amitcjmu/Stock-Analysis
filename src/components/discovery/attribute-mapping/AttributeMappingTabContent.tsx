@@ -89,6 +89,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
               learnedMappings={learnedMappings}
               clientAccountId={clientAccountId}
               engagementId={engagementId}
+              sessionInfo={sessionInfo}
               // Continue to data cleansing props
               canContinueToDataCleansing={canContinueToDataCleansing}
               onContinueToDataCleansing={onContinueToDataCleansing}

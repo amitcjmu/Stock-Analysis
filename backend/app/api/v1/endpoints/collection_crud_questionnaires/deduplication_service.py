@@ -38,6 +38,10 @@ def deduplicate_common_questions(
     for section in sections:
         section_id = section.get("section_id", "unknown")
 
+        logger.debug(
+            f"Processing section {section_id} with {len(section.get('questions', []))} questions"
+        )
+
         for question in section.get("questions", []):
             field_id = question.get("field_id")
             if not field_id:
@@ -47,6 +51,11 @@ def deduplicate_common_questions(
             # Use composite key: section_id:field_id
             # This allows same field_id in different sections
             composite_key = f"{section_id}:{field_id}"
+
+            logger.debug(
+                f"Processing question: composite_key={composite_key}, "
+                f"already_seen={composite_key in question_map}"
+            )
 
             if composite_key in question_map:
                 # Duplicate found - merge asset_ids

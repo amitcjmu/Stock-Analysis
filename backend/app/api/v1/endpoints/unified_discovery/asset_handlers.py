@@ -366,3 +366,86 @@ async def get_assets_summary(
             status_code=500,
             detail=f"Failed to get asset summary: {str(e)}",
         )
+
+
+@router.get("/assets/{asset_id}")
+async def get_single_asset(
+    asset_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_request_context),
+):
+    """
+    Get a single asset by ID.
+
+    Required for AI gap analysis status checking in frontend.
+    Returns asset with ai_gap_analysis_status and ai_gap_analysis_timestamp fields.
+    """
+    from uuid import UUID
+    from sqlalchemy import select
+    from app.models.asset.models import Asset
+
+    try:
+        # Validate context headers
+        validation_error = _validate_context_with_fallback(context, "read")
+        if validation_error:
+            raise validation_error
+
+        # Parse and validate UUID
+        try:
+            asset_uuid = UUID(asset_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid asset ID format: {asset_id}. Must be a valid UUID.",
+            )
+
+        # Query asset with tenant scoping
+        stmt = select(Asset).where(
+            Asset.id == asset_uuid,
+            Asset.client_account_id == context.client_account_id,
+            Asset.engagement_id == context.engagement_id,
+        )
+        result = await db.execute(stmt)
+        asset = result.scalar_one_or_none()
+
+        if not asset:
+            raise HTTPException(status_code=404, detail=f"Asset {asset_id} not found")
+
+        logger.info(
+            safe_log_format(
+                "Retrieved asset: {asset_id} with AI status: {status}",
+                asset_id=str(asset.id),
+                status=asset.ai_gap_analysis_status,
+            )
+        )
+
+        # Return asset as dict (FastAPI will serialize to JSON)
+        return {
+            "id": str(asset.id),
+            "name": asset.name,
+            "asset_type": asset.asset_type,
+            "environment": asset.environment,
+            "application_name": asset.application_name,
+            "ai_gap_analysis_status": asset.ai_gap_analysis_status,
+            "ai_gap_analysis_timestamp": (
+                asset.ai_gap_analysis_timestamp.isoformat()
+                if asset.ai_gap_analysis_timestamp
+                else None
+            ),
+            "created_at": asset.created_at.isoformat() if asset.created_at else None,
+            "updated_at": asset.updated_at.isoformat() if asset.updated_at else None,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            safe_log_format(
+                "Get single asset endpoint failed: {error}",
+                error=str(e),
+            )
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get asset: {str(e)}",
+        )

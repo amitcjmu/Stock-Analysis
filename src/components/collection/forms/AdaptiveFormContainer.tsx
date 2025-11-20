@@ -10,7 +10,8 @@ import { Save, Send, ArrowLeft } from 'lucide-react';
 
 // Import collection components
 import { AdaptiveForm } from '@/components/collection/AdaptiveForm';
-import { ProgressTracker } from '@/components/collection/ProgressTracker';
+// CC: ProgressTracker commented out - too complex and not updating properly with section-based generation
+// import { ProgressTracker } from '@/components/collection/ProgressTracker';
 import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { BulkDataGrid } from '@/components/collection/BulkDataGrid';
 import { AssetSelectionForm } from '@/components/collection/AssetSelectionForm';
@@ -36,6 +37,8 @@ export interface AdaptiveFormContainerProps {
   isSaving?: boolean;
   isSubmitting?: boolean;
   completionStatus?: "pending" | "ready" | "fallback" | "failed" | null;
+  // BUG FIX (#997): Add prop to indicate if assets are selected
+  hasSelectedAssets?: boolean;
   onFieldChange: (fieldId: string, value: unknown) => void;
   onValidationChange: (validation: FormValidationResult) => void;
   onSave: () => void;
@@ -52,6 +55,8 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   isSaving = false,
   isSubmitting = false,
   completionStatus = null,
+  // BUG FIX (#997): Extract hasSelectedAssets prop with default true for backward compatibility
+  hasSelectedAssets = true,
   onFieldChange,
   onValidationChange,
   onSave,
@@ -93,16 +98,16 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
     );
   }
 
-  // If no sections are available, this likely means no assets have been selected
-  // OR questionnaire generation timed out/failed
-  // Show asset selection form to allow user to proceed
-  // BUT: Don't show this if questionnaire is still being generated (pending status)
-  // Explicitly check for terminal statuses to prevent UI flicker during state transitions
-  const showFallback =
+  // BUG FIX (#997): If no sections are available, check if assets are actually selected
+  // If assets ARE selected but questionnaire failed, DON'T show asset selection error
+  // Instead, the parent component should handle showing a fallback questionnaire
+  // Only show asset selection if assets are NOT selected
+  const showAssetSelection =
     (!formData.sections || formData.sections.length === 0) &&
-    (completionStatus === 'ready' || completionStatus === 'fallback' || completionStatus === 'failed');
+    (completionStatus === 'ready' || completionStatus === 'fallback' || completionStatus === 'failed') &&
+    !hasSelectedAssets; // Only show if no assets selected
 
-  if (showFallback) {
+  if (showAssetSelection) {
     // Create a bootstrap asset selection form
     const assetSelectionFormData = {
       formId: 'bootstrap_asset_selection',
@@ -162,9 +167,9 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
   };
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-4 gap-6 ${className}`}>
-      {/* Progress Tracker Sidebar */}
-      <div className="lg:col-span-1">
+    <div className={`grid grid-cols-1 gap-6 ${className}`}>
+      {/* CC: Progress Tracker Sidebar - COMMENTED OUT (too complex, not updating properly) */}
+      {/* <div className="lg:col-span-1">
         <ProgressTracker
           formId={formData.formId}
           totalSections={formData.sections.length}
@@ -175,10 +180,10 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
           timeSpent={0}
           estimatedTimeRemaining={formData.estimatedCompletionTime}
         />
-      </div>
+      </div> */}
 
       {/* Main Content */}
-      <div className="lg:col-span-3 space-y-6">
+      <div className="space-y-6">
         {/* Validation Display is now handled inside AdaptiveForm component */}
 
         {/* Form Tabs */}

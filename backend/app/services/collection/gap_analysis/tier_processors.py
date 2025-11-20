@@ -13,9 +13,9 @@ from app.services.persistent_agents.tenant_scoped_agent_pool import (
     TenantScopedAgentPool,
 )
 
+from .comprehensive_task_builder import build_comprehensive_gap_analysis_task
 from .gap_persistence import persist_gaps
 from .output_parser import parse_task_output
-from .task_builder import build_task_description
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +79,11 @@ class TierProcessorMixin:
             f"✅ Agent created: {agent.role if hasattr(agent, 'role') else 'gap_analysis_specialist'}"
         )
 
-        # Create and execute task
-        task_description = build_task_description(assets)
-        logger.debug(f"📝 Task description length: {len(task_description)} chars")
+        # Create and execute task (Per PR #1043: comprehensive gap analysis only, no questionnaires)
+        task_description = build_comprehensive_gap_analysis_task(assets)
+        logger.debug(
+            f"📝 Task description length: {len(task_description)} chars (comprehensive gap analysis - no questionnaires)"
+        )
 
         task_output = await self._execute_agent_task(agent, task_description)
         logger.debug(f"📤 Task output received: {str(task_output)[:200]}...")
@@ -92,17 +94,20 @@ class TierProcessorMixin:
             len(v) if isinstance(v, list) else 0
             for v in result_dict.get("gaps", {}).values()
         )
-        questionnaire_sections = len(
-            result_dict.get("questionnaire", {}).get("sections", [])
-        )
         logger.info(
-            f"📊 Parsed result - Gaps: {total_gaps}, "
-            f"Questionnaire sections: {questionnaire_sections}"
+            f"📊 Parsed result - Gaps: {total_gaps} (confidence scores expected)"
         )
 
         # Persist gaps to database
         logger.debug("💾 Persisting gaps to database...")
         gaps_count = await persist_gaps(result_dict, assets, db, collection_flow_id)
         result_dict["summary"]["gaps_persisted"] = gaps_count
+
+        # Per PR #1043: Questionnaire generation happens separately
+        # This auto-trigger phase only analyzes gaps and assigns confidence scores
+        logger.debug(
+            "ℹ️ Questionnaire generation skipped - happens when user clicks 'Continue to Questionnaire'"
+        )
+        result_dict["summary"]["questionnaires_persisted"] = 0
 
         return result_dict

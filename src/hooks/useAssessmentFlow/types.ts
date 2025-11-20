@@ -25,6 +25,7 @@ export type AssessmentPhase =
   | "architecture_minimums"
   | "tech_debt_analysis"
   | "component_sixr_strategies"
+  | "recommendation_generation" // Issue #7 fix: Add backend phase name
   | "app_on_page_generation"
   | "finalization";
 
@@ -105,6 +106,7 @@ export interface AssessmentFlowState {
   // Phase-specific data
   engagementStandards: ArchitectureStandard[];
   applicationOverrides: Record<string, ArchitectureStandard>;
+  selectedTemplate: string | null; // Template ID (enterprise-standard, cloud-native, security-first, performance-optimized, custom, or null)
   applicationComponents: Record<string, ApplicationComponent[]>;
   techDebtAnalysis: Record<string, TechDebtItem[]>;
   sixrDecisions: Record<string, SixRDecision>;
@@ -115,6 +117,7 @@ export interface AssessmentFlowState {
   error: string | null;
   lastUserInteraction: Date | null;
   appsReadyForPlanning: string[];
+  autoPollingEnabled: boolean; // User-controlled auto-polling toggle
 
   // Phase failure tracking (Fix for issue #818)
   hasFailedPhases?: boolean;
@@ -175,4 +178,5 @@ export interface UseAssessmentFlowReturn {
   getApplicationsNeedingReview: () => string[];
   isPhaseComplete: (phase: AssessmentPhase) => boolean;
   refreshApplicationData: () => Promise<void>;
+  toggleAutoPolling: () => void; // Toggle auto-polling on/off
 }

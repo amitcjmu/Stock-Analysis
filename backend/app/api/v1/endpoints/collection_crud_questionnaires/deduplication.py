@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_existing_questionnaire_for_asset(
+    client_account_id: UUID,
     engagement_id: UUID,
     asset_id: UUID,
     db: AsyncSession,
@@ -23,7 +24,8 @@ async def get_existing_questionnaire_for_asset(
     """Check if questionnaire already exists for this asset in this engagement.
 
     Args:
-        engagement_id: Current engagement ID (tenant scope)
+        client_account_id: Current client account ID (org-level tenant scope)
+        engagement_id: Current engagement ID (project-level tenant scope)
         asset_id: Asset ID to check
         db: Database session
 
@@ -31,12 +33,13 @@ async def get_existing_questionnaire_for_asset(
         Existing AdaptiveQuestionnaire if found, None otherwise
 
     Note:
-        Only returns questionnaires that are NOT failed.
-        Failed questionnaires are treated as non-existent (retry generation).
+        Filters OUT failed questionnaires - they will be retried by caller.
+        Multi-tenant isolation: client_account_id + engagement_id scoping.
     """
     try:
         result = await db.execute(
             select(AdaptiveQuestionnaire).where(
+                AdaptiveQuestionnaire.client_account_id == client_account_id,
                 AdaptiveQuestionnaire.engagement_id == engagement_id,
                 AdaptiveQuestionnaire.asset_id == asset_id,
                 AdaptiveQuestionnaire.completion_status != "failed",

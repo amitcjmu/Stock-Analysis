@@ -1,5 +1,4 @@
-import React from 'react'
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +17,7 @@ interface Template {
 }
 
 interface TemplateSelectorProps {
+  selectedTemplate: string | null;  // Template ID from database
   onTemplateSelect: (template: Template) => void;
 }
 
@@ -195,8 +195,13 @@ const getCategoryColor = (category: Template['category']): unknown => {
   }
 };
 
-export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSelect }) => {
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ selectedTemplate: initialTemplate, onTemplateSelect }) => {
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(initialTemplate || '');
+
+  // Update local state when prop changes (e.g., after loading from database)
+  useEffect(() => {
+    setSelectedTemplate(initialTemplate || '');
+  }, [initialTemplate]);
 
   const handleTemplateSelect = (templateId: string): void => {
     setSelectedTemplate(templateId);
@@ -287,12 +292,12 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onTemplateSe
       {/* Custom Template Option */}
       <div className="pt-4 border-t border-gray-200">
         <Button
-          variant="outline"
+          variant={selectedTemplate === 'custom' ? 'default' : 'outline'}
           onClick={() => handleTemplateSelect('custom')}
           className="w-full"
         >
           <Database className="h-4 w-4 mr-2" />
-          Start with Custom Standards
+          {selectedTemplate === 'custom' ? 'Custom Standards (Active)' : 'Start with Custom Standards'}
         </Button>
       </div>
     </div>

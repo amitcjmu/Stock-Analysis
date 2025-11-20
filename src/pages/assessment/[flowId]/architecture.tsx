@@ -7,6 +7,7 @@ import { TemplateSelector } from '@/components/assessment/TemplateSelector';
 import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrides';
 import { BulkAssetMappingDialog } from '@/components/assessment/BulkAssetMappingDialog';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
+import { assessmentFlowAPI } from '@/hooks/useAssessmentFlow/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,13 +22,15 @@ const ArchitecturePage: React.FC = () => {
     state,
     updateArchitectureStandards,
     resumeFlow,
-    refreshApplicationData
-  } = useAssessmentFlow(flowId);
+    refreshApplicationData,
+    toggleAutoPolling
+  } = useAssessmentFlow(flowId, { disableAutoPolling: true });
   const navigate = useNavigate();
   const { client, engagement } = useAuth();
 
   const [standards, setStandards] = useState(state.engagementStandards);
   const [overrides, setOverrides] = useState(state.applicationOverrides);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(state.selectedTemplate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -50,10 +53,37 @@ const ArchitecturePage: React.FC = () => {
   }, [flowId, navigate]);
 
   // Update local state when flow state changes - MUST be at top level
+  // Note: Removed duplicate useEffect that directly fetched data to prevent race condition
+  // The useAssessmentFlow hook is the single source of truth for architecture data
   useEffect(() => {
     setStandards(state.engagementStandards);
     setOverrides(state.applicationOverrides);
-  }, [state.engagementStandards, state.applicationOverrides]);
+
+    // Determine template selection based on the hook's state
+    let templateToSet = state.selectedTemplate;
+    if (!templateToSet && state.engagementStandards && state.engagementStandards.length > 0) {
+      // Standards exist but no template saved - mark as custom
+      templateToSet = "custom";
+    }
+    setSelectedTemplate(templateToSet);
+  }, [state.engagementStandards, state.applicationOverrides, state.selectedTemplate]);
+
+  // Calculate unmapped assets for bulk mapping dialog - MUST be before early return
+  const unmappedAssets = useMemo(() => {
+    return state.selectedApplications
+      .filter((app: AssessmentApplication) => {
+        // Check if the application has a canonical_application_id field
+        // If not present or null, it's unmapped
+        const appWithCanonicalId = app as AssessmentApplication & { canonical_application_id?: string | null };
+        return !appWithCanonicalId.canonical_application_id;
+      })
+      .map((app: AssessmentApplication) => ({
+        asset_id: app.application_id,
+        asset_name: app.application_name,
+        asset_type: app.application_type || 'unknown',
+        technology_stack: app.technology_stack || [],
+      }));
+  }, [state.selectedApplications]);
 
   // Prevent rendering until flow is hydrated
   if (!flowId || state.status === 'idle') {
@@ -63,7 +93,7 @@ const ArchitecturePage: React.FC = () => {
   const handleSaveDraft = async (): void => {
     setIsDraft(true);
     try {
-      await updateArchitectureStandards(standards, overrides);
+      await updateArchitectureStandards(standards, overrides, selectedTemplate);
       // Show success notification (fix for issue #639)
       toast({
         title: "Draft Saved",
@@ -90,15 +120,50 @@ const ArchitecturePage: React.FC = () => {
       hasOverrides: Object.keys(overrides).length,
       isSubmitting,
       isLoading: state.isLoading,
+      currentPhase: state.currentPhase,
     });
 
     setIsSubmitting(true);
     try {
       console.log('[ArchitecturePage] Updating architecture standards...');
-      await updateArchitectureStandards(standards, overrides);
+      await updateArchitectureStandards(standards, overrides, selectedTemplate);
 
-      console.log('[ArchitecturePage] Resuming flow...');
-      const resumeResponse = await resumeFlow({ standards, overrides });
+      // BUG FIX (#1034): Check if initialization phase needs to be completed first
+      // Backend requires phases in order: initialization → readiness_assessment → complexity_analysis → ...
+      // If current phase is null or 'initialization', complete initialization first
+      const currentPhase = state.currentPhase;
+      const needsInitialization = !currentPhase || currentPhase === 'initialization';
+
+      console.log('[ArchitecturePage] Phase check:', {
+        currentPhase,
+        needsInitialization,
+      });
+
+      // Execute initialization phase first if needed
+      if (needsInitialization) {
+        console.log('[ArchitecturePage] Executing initialization phase...');
+        try {
+          await resumeFlow({
+            phase: 'initialization',
+            action: 'continue',
+            standards,
+            overrides
+          });
+          console.log('[ArchitecturePage] Initialization phase completed');
+        } catch (initError) {
+          console.warn('[ArchitecturePage] Initialization phase failed, continuing anyway:', initError);
+          // Continue to readiness_assessment even if initialization fails
+          // as it may be optional/implicit in some cases
+        }
+      }
+
+      console.log('[ArchitecturePage] Resuming flow with readiness_assessment...');
+      const resumeResponse = await resumeFlow({
+        phase: 'readiness_assessment',
+        action: 'continue',
+        standards,
+        overrides
+      });
 
       console.log('[ArchitecturePage] Flow resumed successfully', {
         newPhase: resumeResponse.current_phase,
@@ -226,23 +291,6 @@ const ArchitecturePage: React.FC = () => {
     }
   };
 
-  // Calculate unmapped assets for bulk mapping dialog
-  const unmappedAssets = useMemo(() => {
-    return state.selectedApplications
-      .filter((app: AssessmentApplication) => {
-        // Check if the application has a canonical_application_id field
-        // If not present or null, it's unmapped
-        const appWithCanonicalId = app as AssessmentApplication & { canonical_application_id?: string | null };
-        return !appWithCanonicalId.canonical_application_id;
-      })
-      .map((app: AssessmentApplication) => ({
-        asset_id: app.application_id,
-        asset_name: app.application_name,
-        asset_type: app.application_type || 'unknown',
-        technology_stack: app.technology_stack || [],
-      }));
-  }, [state.selectedApplications]);
-
   return (
     <SidebarProvider>
       <AssessmentFlowLayout flowId={flowId}>
@@ -273,6 +321,26 @@ const ArchitecturePage: React.FC = () => {
           </div>
         )}
 
+        {/* Auto-Polling Control */}
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <span className="text-sm text-muted-foreground">Auto-refresh:</span>
+          <Button
+            variant={state.autoPollingEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={toggleAutoPolling}
+            className="gap-2"
+          >
+            {state.autoPollingEnabled ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                On
+              </>
+            ) : (
+              <>Off</>
+            )}
+          </Button>
+        </div>
+
         {/* Template Selection */}
         <Card>
           <CardHeader>
@@ -283,7 +351,11 @@ const ArchitecturePage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <TemplateSelector
-              onTemplateSelect={(template) => setStandards(template.standards)}
+              selectedTemplate={selectedTemplate}
+              onTemplateSelect={(template) => {
+                setStandards(template.standards);
+                setSelectedTemplate(template.id);
+              }}
             />
           </CardContent>
         </Card>

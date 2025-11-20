@@ -22,6 +22,8 @@ from .assessment_flow.export import router as export_router
 from .assessment_flow.recommendation_acceptance import (
     router as recommendation_acceptance_router,
 )
+from .assessment_flow.recovery import router as recovery_router
+from .assessment_flow.dependency_endpoints import router as dependency_router
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +42,10 @@ router.include_router(
 )
 router.include_router(finalization_router, tags=[APITags.FLOW_FINALIZATION])
 router.include_router(export_router, tags=[APITags.ASSESSMENT_FLOW_EXPORT])
+router.include_router(recovery_router, tags=[APITags.ASSESSMENT_FLOW_MANAGEMENT])
+router.include_router(dependency_router, tags=[APITags.ASSESSMENT_FLOW_MANAGEMENT])
 
 logger.info(
     "Assessment Flow API endpoints initialized with modular architecture "
-    "(including recommendation acceptance and export)"
+    "(including recommendation acceptance, export, recovery, and dependency analysis)"
 )

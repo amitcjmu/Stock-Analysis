@@ -99,13 +99,13 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Migration Complexity</span>
               <Badge variant="outline">
-                {decision.component_treatments.length} components
+                {decision.component_treatments?.length || 0} components
               </Badge>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Architecture Changes</span>
               <Badge variant="outline">
-                {decision.architecture_exceptions.length} exceptions
+                {decision.architecture_exceptions?.length || 0} exceptions
               </Badge>
             </div>
           </div>
@@ -114,7 +114,7 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
         {/* Risk Assessment */}
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-gray-700">Risk Factors</h4>
-          {decision.risk_factors.length === 0 ? (
+          {!decision.risk_factors || decision.risk_factors.length === 0 ? (
             <p className="text-sm text-green-600">No significant risks identified</p>
           ) : (
             <div className="space-y-2">
@@ -162,13 +162,13 @@ export const BusinessImpactAssessment: React.FC<BusinessImpactAssessmentProps> =
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Components Analyzed:</span>
-              <span className="font-medium">{decision.component_treatments.length}</span>
+              <span className="font-medium">{decision.component_treatments?.length || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Compatibility Validated:</span>
               <span className="font-medium">
-                {decision.component_treatments.filter(ct => ct.compatibility_validated).length}/
-                {decision.component_treatments.length}
+                {decision.component_treatments?.filter(ct => ct.compatibility_validated).length || 0}/
+                {decision.component_treatments?.length || 0}
               </span>
             </div>
           </div>

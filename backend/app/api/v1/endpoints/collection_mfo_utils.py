@@ -194,9 +194,12 @@ async def initialize_mfo_flow_execution(
                 start_collection_phase_loop_background,
             )
 
+            # Create MFO instance to inject into fallback runner
+            mfo = MasterFlowOrchestrator(db, context)
+
             asyncio.create_task(
                 start_collection_phase_loop_background(
-                    master_flow_id, context, initial_state
+                    master_flow_id, context, initial_state, orchestrator=mfo
                 )
             )
             logger.info(
@@ -287,10 +290,26 @@ async def sync_collection_child_flow_state(
 
     # Handle completion and phase transitions
     if phase_result.get("status") == "completed" and not next_phase:
-        # Flow completed successfully
-        collection_flow.status = CollectionFlowStatus.COMPLETED.value
-        collection_flow.current_phase = "finalization"
-        logger.info(f"Collection flow {collection_flow.flow_id} completed")
+        # CRITICAL FIX (Issue #1066): Check current phase before marking flow COMPLETED
+        # Phases like questionnaire_generation require user input and should PAUSE, not COMPLETE
+        user_input_phases = [
+            "asset_selection",
+            "questionnaire_generation",
+            "manual_collection",
+        ]
+
+        if collection_flow.current_phase in user_input_phases:
+            # Phase execution completed, but flow needs user input - PAUSE it
+            collection_flow.status = CollectionFlowStatus.PAUSED.value
+            logger.info(
+                f"Collection flow {collection_flow.flow_id} phase completed - "
+                f"PAUSED at {collection_flow.current_phase} (user input required)"
+            )
+        else:
+            # Flow completed successfully (e.g., reached finalization)
+            collection_flow.status = CollectionFlowStatus.COMPLETED.value
+            collection_flow.current_phase = "finalization"
+            logger.info(f"Collection flow {collection_flow.flow_id} completed")
 
     elif next_phase:
         # Transition to next phase
@@ -322,6 +341,12 @@ async def sync_collection_child_flow_state(
             error_message=collection_flow.error_message,
         )
 
-    # Always update progress
-    collection_flow.update_progress()
+    # Always update progress (wrap in try-except to handle greenlet_spawn issues from background tasks)
+    try:
+        collection_flow.update_progress()
+    except Exception as e:
+        logger.warning(f"Failed to update progress (non-critical): {e}")
+        # Calculate progress directly to avoid greenlet issues
+        collection_flow.progress_percentage = collection_flow.calculate_progress()
+
     await db.commit()

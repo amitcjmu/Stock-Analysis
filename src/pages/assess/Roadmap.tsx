@@ -5,6 +5,8 @@ import { CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 const Roadmap = (): JSX.Element => {
   const { isAuthenticated } = useAuth();
@@ -51,35 +53,42 @@ const Roadmap = (): JSX.Element => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 flex items-center justify-center">
-          <Spinner size="lg" />
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 flex items-center justify-center">
+            <Spinner size="lg" />
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800">Error loading roadmap data. Please try again later.</p>
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 p-8">
+            <ContextBreadcrumbs showContextSelector={true} />
+            <div className="max-w-7xl mx-auto">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800">Error loading roadmap data. Please try again later.</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar />
-      <div className="flex-1 ml-64">
-        <main className="p-8">
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <ContextBreadcrumbs showContextSelector={true} />
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Migration Roadmap</h1>
@@ -93,12 +102,19 @@ const Roadmap = (): JSX.Element => {
 
             {/* Roadmap Timeline */}
             <div className="space-y-8">
-              {roadmapData?.waves.map((wave) => (
+              {!roadmapData?.waves || roadmapData.waves.length === 0 ? (
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Roadmap Data Available</h3>
+                  <p className="text-gray-600">Create a wave plan to see your migration roadmap.</p>
+                </div>
+              ) : (
+                roadmapData.waves.map((wave) => (
                 <div key={wave.wave} className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">{wave.wave} Migration Timeline</h2>
 
                   <div className="space-y-6">
-                    {wave.phases.map((phase, index) => (
+                    {wave.phases?.map((phase, index) => (
                       <div key={phase.name} className="relative">
                         <div className="flex items-center space-x-4">
                           {getStatusIcon(phase.status)}
@@ -115,14 +131,14 @@ const Roadmap = (): JSX.Element => {
                           </div>
                         </div>
 
-                        {index < wave.phases.length - 1 && (
+                        {index < (wave.phases?.length || 0) - 1 && (
                           <div className="absolute left-2 top-8 w-0.5 h-8 bg-gray-200"></div>
                         )}
                       </div>
                     ))}
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
 
             {/* Timeline Overview */}
@@ -156,6 +172,7 @@ const Roadmap = (): JSX.Element => {
         </main>
       </div>
     </div>
+    </SidebarProvider>
   );
 };
 

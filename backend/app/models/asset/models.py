@@ -316,6 +316,25 @@ class Asset(
         comment="User ID who performed the soft delete.",
     )
 
+    # AI Gap Analysis Tracking (Migration 093)
+    ai_gap_analysis_status = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment=(
+            "AI gap analysis status: 0 = not started, 1 = in progress, "
+            "2 = completed. Per-asset, shared across all collection flows."
+        ),
+    )
+    ai_gap_analysis_timestamp = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment=(
+            "Timestamp when AI gap analysis completed (status = 2). "
+            "Used to detect stale analysis when compared with asset.updated_at."
+        ),
+    )
+
     # Relationships
     client_account = relationship("ClientAccount")
     migration = relationship("Migration", back_populates="assets")
@@ -347,6 +366,24 @@ class Asset(
     )
     vulnerabilities = relationship(
         "AssetVulnerabilities",
+        back_populates="asset",
+        lazy="selectin",
+    )
+    tech_debt = relationship(
+        "app.models.asset_enrichments.AssetTechDebt",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    performance_metrics = relationship(
+        "app.models.asset_enrichments.AssetPerformanceMetrics",
+        uselist=False,
+        back_populates="asset",
+        lazy="selectin",
+    )
+    cost_optimization = relationship(
+        "app.models.asset_enrichments.AssetCostOptimization",
+        uselist=False,
         back_populates="asset",
         lazy="selectin",
     )

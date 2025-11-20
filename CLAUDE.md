@@ -86,12 +86,96 @@ This is NOT over-engineering - it's REQUIRED for enterprise resilience
 
 ### Critical Architecture Patterns
 
+#### ⚠️ CRITICAL: MFO Flow ID Pattern (READ THIS FIRST!)
+
+**This is a RECURRING BUG pattern** - read before implementing ANY flow endpoints!
+
+The MFO uses a **two-table pattern** with **TWO DIFFERENT UUIDs** per flow:
+- **Master Flow ID**: Internal MFO routing (`crewai_flow_state_extensions.flow_id`)
+- **Child Flow ID**: User-facing identifier (`assessment_flows.id`, `discovery_flows.id`, etc.)
+
+**THE GOLDEN RULES**:
+1. **URL paths receive CHILD flow IDs** (user-facing: `/execute/{flow_id}`)
+2. **MFO methods expect MASTER flow IDs** (`orchestrator.execute_phase(master_id, ...)`)
+3. **ALWAYS resolve master_flow_id from child table BEFORE calling MFO**
+4. **Include child flow_id in phase_input** for persistence
+
+**CORRECT PATTERN** (copy this verbatim):
+```python
+@router.post("/execute/{flow_id}")  # ← Child ID from URL
+async def execute_something(flow_id: str, db: AsyncSession, context: RequestContext):
+    # Step 1: Query child flow table using child ID
+    stmt = select(AssessmentFlow).where(
+        AssessmentFlow.id == UUID(flow_id),  # ← Child ID
+        AssessmentFlow.client_account_id == context.client_account_id,
+        AssessmentFlow.engagement_id == context.engagement_id,
+    )
+    result = await db.execute(stmt)
+    child_flow = result.scalar_one_or_none()
+
+    if not child_flow or not child_flow.master_flow_id:
+        raise HTTPException(status_code=404, detail="Flow not found")
+
+    # Step 2: Extract master flow ID
+    master_flow_id = child_flow.master_flow_id  # ← FK to master flow
+
+    # Step 3: Call MFO with MASTER ID, pass CHILD ID in phase_input
+    orchestrator = MasterFlowOrchestrator(db, context)
+    result = await orchestrator.execute_phase(
+        str(master_flow_id),  # ← MASTER flow ID (MFO routing)
+        "phase_name",
+        {"flow_id": flow_id}  # ← CHILD flow ID (persistence)
+    )
+
+    return {"success": True, "flow_id": flow_id}  # Return child ID
+```
+
+**Reference**: See Serena memory `mfo_two_table_flow_id_pattern_critical` for full details.
+
+**Example Files**:
+- `backend/app/api/v1/endpoints/assessment_flow/mfo_integration/create.py`
+- `backend/app/api/v1/endpoints/collection_flow/lifecycle.py`
+
+**Common Mistakes**:
+- ❌ Passing child ID to `MFO.execute_phase()` → "Flow not found" errors
+- ❌ Querying `AssessmentFlow.flow_id` → AttributeError (use `.id`)
+- ❌ Missing `flow_id` in `phase_input` → Phase results won't persist
+
+#### Flow Execution Pattern Selection (CRITICAL - ADR-025)
+
+**Two execution patterns exist** - choose based on flow characteristics:
+
+**Child Service Pattern** (Collection, Discovery, Decommission):
+- ✅ Use when: Multi-phase data collection, questionnaire generation, auto-progression
+- ✅ Provides: Centralized phase routing, state abstraction, auto-progression logic
+- ✅ Files: `backend/app/services/child_flow_services/{flow}_child_flow_service.py`
+
+**Direct Flow Pattern** (Assessment):
+- ✅ Use when: Analysis workflows, linear phases, simpler state management
+- ✅ Provides: Direct CrewAI integration, simpler architecture
+- ✅ Files: `backend/app/services/crewai_flows/unified_{flow}_flow.py`
+
+**Decision Criteria**:
+```
+Does flow collect data via questionnaires?
+├─ Yes → Does it have auto-progression logic?
+│         ├─ Yes → Use Child Service Pattern
+│         └─ No → Consider Child Service Pattern
+└─ No → Is it analyzing existing data?
+          ├─ Yes → Use Direct Flow Pattern (like Assessment)
+          └─ No → Evaluate complexity
+```
+
+**IMPORTANT**: ADR-025 applies to Collection Flow only. Assessment Flow correctly uses Direct Flow Pattern.
+
+**See**: `docs/adr/025-collection-flow-child-service-migration.md` section "When to Use Child Service Pattern"
+
 #### Master Flow Orchestrator (MFO) Pattern
 The MFO is the single source of truth for all workflow operations:
 - **Entry Point**: `/api/v1/master-flows/*` endpoints ONLY
-- **Two-Table Architecture**:
+- **Two-Table Architecture** (see critical pattern above):
   - `crewai_flow_state_extensions`: Master flow lifecycle (running/paused/completed)
-  - `discovery_flows`: Child flow operational data (phases, UI state)
+  - `assessment_flows` / `discovery_flows` / `collection_flows`: Child flow operational data
 - **Never** call legacy `/api/v1/discovery/*` endpoints directly
 
 #### State Management Flow
@@ -107,8 +191,8 @@ Every query MUST include:
 - `engagement_id`: Project/session isolation
 - All tables use composite scoping for data security
 
-#### LLM Usage Tracking (MANDATORY - October 2025)
-**ALL LLM calls MUST use `multi_model_service.generate_response()`** for automatic tracking:
+#### LLM Usage Tracking (Updated November 2025)
+**Preferred for new code**: Use `multi_model_service.generate_response()` for best tracking:
 
 ```python
 from app.services.multi_model_service import multi_model_service, TaskComplexity
@@ -128,12 +212,12 @@ response = await multi_model_service.generate_response(
 - ✅ Multi-tenant context (client_account_id, engagement_id)
 - ✅ Performance metrics (response time, success rate)
 
-**NEVER use direct LLM calls** - they bypass tracking:
-- ❌ `litellm.completion()` - Use `multi_model_service` instead
-- ❌ `openai.chat.completions.create()` - Use `multi_model_service` instead
-- ❌ `LLM().call()` - Use `multi_model_service` instead
+**Note on Direct LLM Calls**:
+- Direct `litellm.completion()` calls are automatically tracked via global callback
+- Prefer `multi_model_service` for new code (better tenant context)
+- Legacy code is already tracked - no immediate changes needed
 
-**Legacy Code Exception:** If you find direct calls in existing code, wrap with tracker:
+**If Adding Tenant Context to Legacy Code**:
 ```python
 from app.services.llm_usage_tracker import llm_tracker
 
@@ -321,10 +405,12 @@ patterns = await memory_manager.retrieve_similar_patterns(
 
 **Endpoints**: `/api/v1/assessment-flow/*` (MFO-integrated per ADR-006)
 
+**Execution Pattern**: Direct `UnifiedAssessmentFlow` (does NOT use child service pattern - see ADR-025)
+
 **Flow Progression**:
 1. Create assessment flow → Master flow in `crewai_flow_state_extensions`
 2. Child flow in `assessment_flows` tracks operational state
-3. Phases: Architecture Standards → Tech Debt → 6R Decisions
+3. Phases: Architecture Standards → Tech Debt → Dependency Analysis → 6R Decisions
 4. Accept recommendations → Update `Asset.six_r_strategy`
 5. Export results → PDF/Excel/JSON
 
@@ -332,10 +418,18 @@ patterns = await memory_manager.retrieve_similar_patterns(
 - **Master Table**: `crewai_flow_state_extensions` (lifecycle: running/paused/completed)
 - **Child Table**: `assessment_flows` (operational: phases, UI state, selected applications)
 
+**Why No Child Service Pattern**:
+- Assessment is analysis-focused (not data collection)
+- Linear phase progression (no auto-progression logic)
+- No questionnaire generation
+- Simpler state management than Collection/Discovery flows
+- Direct CrewAI flow works efficiently
+
 **Key Files**:
 - Backend: `backend/app/api/v1/endpoints/assessment_flow/`
 - Frontend: `src/lib/api/assessmentFlow.ts`
 - MFO Integration: `backend/app/api/v1/endpoints/assessment_flow/mfo_integration.py`
+- CrewAI Flow: `backend/app/services/crewai_flows/unified_assessment_flow.py`
 
 **Deprecated**: `/api/v1/6r/*` endpoints (HTTP 410 Gone - use Assessment Flow instead)
 
@@ -494,25 +588,90 @@ await apiCall(`/api/endpoint`, {
 
 **Backend uses FastAPI with Pydantic models that ONLY accept request bodies for POST/PUT/DELETE**
 
+### CRITICAL: JSON Sanitization Pattern (ADR-029)
+
+**LLM responses often contain malformed JSON** - always sanitize before parsing:
+
+```python
+import json
+import re
+import dirtyjson
+import math
+
+def safe_parse_llm_json(response: str) -> dict:
+    """Parse potentially malformed JSON from LLM responses."""
+    # Strip markdown code blocks
+    cleaned = re.sub(r'```json\s*|\s*```', '', response)
+
+    # Try standard JSON first
+    try:
+        return json.loads(cleaned)
+    except:
+        # Fallback to dirtyjson for malformed responses
+        try:
+            parsed = dirtyjson.loads(cleaned)
+            # Handle NaN/Infinity (not valid JSON)
+            return sanitize_json_values(parsed)
+        except:
+            raise ValueError("Unable to parse LLM response as JSON")
+
+def sanitize_json_values(obj):
+    """Replace NaN/Infinity with None for JSON serialization."""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    elif isinstance(obj, dict):
+        return {k: sanitize_json_values(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_json_values(item) for item in obj]
+    return obj
+```
+
+**Common Issues**:
+- LLM wraps JSON in markdown: ` ```json ... ``` `
+- Trailing commas in objects/arrays
+- Single quotes instead of double quotes
+- NaN/Infinity from confidence scores
+- Truncated responses at 16KB limit (see ADR-035)
+
 ### CRITICAL: API Field Naming Convention (MUST READ - Prevents Recurring Bugs)
 
-#### The Problem
-The #1 recurring bug in this codebase WAS confusion between snake_case and camelCase field names. This has been resolved.
+#### Current Status (November 2025)
+- **Migration Status**: ~80% complete, ongoing incremental migration
+- **Rule**: ALL new code MUST use snake_case exclusively
+- **Legacy Code**: May contain camelCase - refactor when touched
 
-#### The Rule - NEVER BREAK THIS (Updated Aug 2025)
-1. **Backend (Python/FastAPI)**: ALWAYS returns `snake_case` fields (e.g., `flow_id`, `client_account_id`)
-2. **Frontend (TypeScript/React)**: SHOULD use `snake_case` fields to match backend for all NEW code
-   - **IMPORTANT**: Legacy code may still use `camelCase`. When touching those areas, refactor to `snake_case` in the same PR
-   - **MIGRATION IN PROGRESS**: Some components may have mixed usage during transition
-3. **Raw API Calls**: Will receive `snake_case` and should use it directly - NO TRANSFORMATION NEEDED
-4. **Type Definitions**: Frontend interfaces should use `snake_case` ONLY for new/updated types to match backend
+#### The Rules - NEVER BREAK THESE
+1. **Backend (Python/FastAPI)**: ALWAYS uses `snake_case` fields
+   - Examples: `flow_id`, `client_account_id`, `master_flow_id`
+   - NO exceptions - backend is 100% snake_case
 
-#### Migration Notes and Warnings
-- **Legacy Utilities**: `api-field-transformer.ts` is now a NO-OP but retained for backward compatibility
-- **Incremental Migration**: When updating a component, convert ALL its field references to snake_case
-- **Type Safety**: Use explicit null/undefined checks instead of truthy checks for numeric fields (e.g., confidence_score)
-- **DO NOT**: Mix camelCase and snake_case in the same component or type definition
-- **DO**: Complete field name migration within the scope of your PR when touching a file
+2. **Frontend (TypeScript/React)**:
+   - **New Code**: MUST use `snake_case` to match backend exactly
+   - **Legacy Code**: May have `camelCase` - refactor to `snake_case` when modifying
+   - **No Transformation**: Use API fields exactly as received
+
+3. **Type Definitions**:
+   ```typescript
+   // ✅ CORRECT - New interfaces use snake_case
+   interface FlowData {
+     flow_id: string;
+     master_flow_id: string;
+     client_account_id: number;
+   }
+
+   // ❌ WRONG - Never create new camelCase interfaces
+   interface FlowData {
+     flowId: string;  // NO!
+     masterFlowId: string;  // NO!
+   }
+   ```
+
+#### Migration Guidelines
+- **When Touching Legacy Code**: Convert ALL fields in that component to snake_case
+- **api-field-transformer.ts**: Now a NO-OP, retained for compatibility
+- **Type Safety**: Use explicit checks for numeric fields: `if (confidence_score !== undefined)`
+- **PR Scope**: Complete migration for any file you modify
 
 #### For AI Agents - MANDATORY CHECKS
 Before writing ANY code that handles API responses:
@@ -532,6 +691,137 @@ Before writing ANY code that handles API responses:
 ### Development Environment Configuration
 - Use /opt/homebrew/bin/gh for all Git CLI tools and /opt/homebrew/bin/python3.11@ for all Python executions in the app
 - Never attempt to run npm run dev locally as ALL app related testing needs to be done on docker instances locally. The app runs on localhost:8081 NOT on port 3000
+
+### CRITICAL: Observability Enforcement (MANDATORY - November 2025)
+
+**All LLM calls and CrewAI task executions MUST be instrumented for cost tracking and performance monitoring.**
+
+See `/docs/guidelines/OBSERVABILITY_PATTERNS.md` for full documentation.
+
+#### LLM Call Tracking (Automatic)
+
+**All LLM calls are automatically tracked** via `litellm_tracking_callback.py` installed at app startup. No action needed for basic tracking.
+
+**For new code**, use `multi_model_service` for best tenant context:
+```python
+from app.services.multi_model_service import multi_model_service, TaskComplexity
+
+response = await multi_model_service.generate_response(
+    prompt="Your prompt",
+    task_type="analysis",
+    complexity=TaskComplexity.SIMPLE,
+    client_account_id=client_account_id,
+    engagement_id=engagement_id
+)
+# ✅ Automatically logged to llm_usage_logs with costs
+```
+
+**Legacy code** with direct `litellm.completion()` calls:
+- Already tracked via global LiteLLM callback (no changes needed)
+- Add tenant context to metadata if possible:
+```python
+response = litellm.completion(
+    model="deepinfra/llama-4",
+    messages=[...],
+    metadata={
+        "feature_context": "readiness_assessment",
+        "client_account_id": 1,
+        "engagement_id": 123
+    }
+)
+```
+
+#### Agent Task Tracking (Manual Integration Required)
+
+**MANDATORY for all CrewAI task execution** (enforced by pre-commit hooks):
+
+```python
+from app.services.crewai_flows.handlers.callback_handler_integration import (
+    CallbackHandlerIntegration
+)
+
+# 1. Create callback handler with tenant context
+callback_handler = CallbackHandlerIntegration.create_callback_handler(
+    flow_id=str(master_flow.flow_id),
+    context={
+        "client_account_id": str(master_flow.client_account_id),
+        "engagement_id": str(master_flow.engagement_id),
+        "flow_type": "assessment",  # or "discovery", "collection"
+        "phase": "readiness"
+    }
+)
+callback_handler.setup_callbacks()
+
+# 2. Create task
+task = Task(
+    description="Your task description",
+    expected_output="Expected output format",
+    agent=(agent._agent if hasattr(agent, "_agent") else agent)
+)
+
+# 3. Register task start BEFORE execution
+callback_handler._step_callback({
+    "type": "starting",
+    "status": "starting",
+    "agent": "readiness_assessor",
+    "task": "readiness_assessment",
+    "content": "Starting task description"
+})
+
+# 4. Execute task
+future = task.execute_async(context=context_str)
+result = await asyncio.wrap_future(future)
+
+# 5. Mark completion with status
+callback_handler._task_completion_callback({
+    "agent": "readiness_assessor",
+    "task_name": "readiness_assessment",
+    "status": "completed" if result else "failed",
+    "task_id": "readiness_task",
+    "output": result
+})
+```
+
+#### Pre-Commit Enforcement
+
+Pre-commit hooks will **block commits** that violate observability patterns:
+
+**CRITICAL** (blocks commit):
+- `task.execute_async()` without `CallbackHandler` in scope
+
+**ERROR** (blocks commit):
+- Direct `litellm.completion()` calls (use `multi_model_service` instead)
+
+**WARNING** (allows commit):
+- `crew.kickoff()` without `callbacks` parameter
+
+#### Viewing Observability Data
+
+**Grafana Dashboards** (http://localhost:9999):
+- **LLM Costs**: `/d/llm-costs/` - Cost tracking by model/provider
+- **Agent Activity**: `/d/agent-activity/` - Agent performance and usage
+- **CrewAI Flows**: `/d/crewai-flows/` - Flow execution metrics
+
+**Database Tables**:
+- `migration.llm_usage_logs` - All LLM API calls with costs
+- `migration.agent_task_history` - CrewAI task execution tracking
+- `migration.llm_model_pricing` - Cost per 1K tokens by model
+
+#### Why This Matters
+
+1. **Cost Control**: Track LLM spending by model, provider, feature (average $0.50-$2.00 per flow)
+2. **Performance**: Identify slow agents and bottlenecks (target: <5s response time)
+3. **Quality**: Monitor success rates and error patterns (target: >95% success rate)
+4. **Multi-Tenant**: Understand usage per client and engagement for billing
+5. **Debugging**: Trace agent task execution flow with detailed logs
+
+#### Exemptions
+
+Observability NOT required for:
+- Test code (`backend/tests/`)
+- Migration scripts (`backend/alembic/versions/`)
+- Utility scripts (unless they call LLMs)
+- Legacy code before November 2025 (but encouraged to adopt)
 
 ## Architectural Review Guidelines for AI Agents
 
@@ -563,7 +853,7 @@ Before writing ANY code that handles API responses:
 
 ### Common Mistakes to Avoid
 - ❌ "Persistent agents don't exist" - They DO exist and are actively used
-- ❌ "Memory is disabled globally" - Memory is ENABLED with DeepInfra patch
+- ❌ "Memory is enabled with patches" - Memory is DISABLED per ADR-024, use TenantMemoryManager
 - ❌ "Too many state tables" - UnifiedDiscoveryFlowState is a Pydantic model, not a table
 - ❌ "Reduce layers for simplicity" - Enterprise systems REQUIRE these layers
 - ❌ "Remove placeholder implementations" - They provide critical fallback resilience
@@ -595,13 +885,54 @@ Before writing ANY code that handles API responses:
 
 ### ADR-015: Persistent Multi-Tenant Agent Architecture
 - TenantScopedAgentPool manages agent lifecycle per tenant
-- Agents maintain memory with DeepInfra embeddings patch
+- Agents persist without memory (memory=False per ADR-024)
 - Singleton pattern with lazy initialization per tenant
 
-### ADR-019: CrewAI DeepInfra Embeddings Monkey Patch
-- Memory IS enabled via DeepInfra patch
-- Located at `backend/app/core/memory/crewai_deepinfra_patch.py`
-- Applied at startup to enable agent memory persistence
+### ADR-024: TenantMemoryManager Architecture (Supersedes ADR-019)
+- CrewAI memory is DISABLED entirely (memory=False everywhere)
+- TenantMemoryManager provides enterprise agent learning
+- PostgreSQL + pgvector for multi-tenant memory isolation
+- No DeepInfra patches or embedder configurations
+
+### ADR-025: Collection Flow Child Service Migration
+- Collection/Discovery flows use child service pattern
+- Assessment flow uses Direct Flow pattern (simpler lifecycle)
+- Child services handle complex data collection and auto-progression
+- See ADR for decision criteria on pattern selection
+
+## Recent Architectural Decisions (Nov 2025)
+
+### ADR-029: LLM Output JSON Sanitization Pattern
+- Strip markdown wrappers (```json) from LLM responses
+- Use dirtyjson for parsing malformed JSON
+- Handle NaN/Infinity values before serialization
+- Pattern: `safe_parse_llm_json()` utility function
+
+### ADR-030: Collection Flow Adaptive Questionnaire Architecture
+- Intelligent gap-based question generation
+- Shows fewer questions for assets with better data quality
+- Adaptive forms are a FEATURE not a bug (Issue #795 lesson)
+- Questions generated based on actual data gaps
+
+### ADR-035: Per-Asset, Per-Section Questionnaire Generation
+- Prevents JSON truncation at 16KB LLM response limit
+- Generates questionnaires in chunks (per-asset, per-section)
+- Uses Redis caching for efficient chunked generation
+- Fixes Bug #996-#998 (questionnaire generation failures)
+
+### ADR-036: Canonical Application Junction Table Architecture
+- Fixes 6R recommendation persistence (Bug #999)
+- Junction table maps assets ↔ canonical applications
+- Handles race conditions in concurrent collection flows
+- Includes migration for 110 orphaned assets
+
+### Other Important ADRs
+- **ADR-027**: Universal Flow Type Config Pattern
+- **ADR-028**: Eliminate Collection Phase State Duplication
+- **ADR-031**: Environment-Based Observability Architecture
+- **ADR-032**: JWT Refresh Token Security Architecture
+- **ADR-033**: Context Establishment Service Modularization
+- **ADR-034**: Asset-Centric Questionnaire Deduplication
 
 ## Critical: API Endpoint Synchronization (Post-Aug 2025 Incident)
 

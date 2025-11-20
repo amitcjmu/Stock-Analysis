@@ -52,7 +52,7 @@ export class AssetAPI {
   /**
    * Get a single asset by ID
    */
-  static async getAsset(id: number): Promise<Asset> {
+  static async getAsset(id: string): Promise<Asset> {
     const endpoint = `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/${id}`;
     return await apiCall(endpoint);
   }

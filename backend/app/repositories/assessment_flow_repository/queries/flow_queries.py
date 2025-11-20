@@ -6,7 +6,7 @@ import logging
 import uuid
 from typing import List, Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -43,6 +43,8 @@ class FlowQueries:
         # Get main flow record with eager loading
         # Note: Only load relationships that have assessment_flow_id FK in database
         # Per E2E testing Issue #2 fix: Only application_overrides has the FK
+        # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
+        # Frontend/MFO uses master_flow_id, but some code uses child flow ID
         result = await self.db.execute(
             select(AssessmentFlow)
             .options(
@@ -50,7 +52,10 @@ class FlowQueries:
             )
             .where(
                 and_(
-                    AssessmentFlow.id == flow_id,
+                    or_(
+                        AssessmentFlow.id == flow_id,
+                        AssessmentFlow.master_flow_id == flow_id,
+                    ),
                     AssessmentFlow.client_account_id == self.client_account_id,
                 )
             )
@@ -176,3 +181,38 @@ class FlowQueries:
             .order_by(AssessmentFlow.updated_at.desc())
         )
         return result.scalars().all()
+
+    async def get_by_flow_id(self, flow_id: str) -> Optional[AssessmentFlow]:
+        """
+        Get raw AssessmentFlow model by flow ID.
+
+        Used for lightweight operations like zombie detection where
+        full state object is not needed.
+
+        Args:
+            flow_id: UUID string of the flow
+
+        Returns:
+            AssessmentFlow model or None if not found
+
+        Note:
+            Respects multi-tenant isolation via self.client_account_id
+        """
+        from uuid import UUID
+
+        # Convert string to UUID if needed
+        flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
+        # CRITICAL (Bug #999): Support both child flow ID and master_flow_id
+        result = await self.db.execute(
+            select(AssessmentFlow).where(
+                and_(
+                    or_(
+                        AssessmentFlow.id == flow_uuid,
+                        AssessmentFlow.master_flow_id == flow_uuid,
+                    ),
+                    AssessmentFlow.client_account_id == self.client_account_id,
+                )
+            )
+        )
+        return result.scalar_one_or_none()

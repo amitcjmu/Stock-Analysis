@@ -202,6 +202,7 @@ class ApplicationGapReport(BaseModel):
     - Application metadata (name, description, type, business unit)
     - Technology stack completeness
     - Business context fields (owners, stakeholders, user base)
+    - CRITICAL (Bug #11): All 22 critical assessment attributes with proper gap_category
     """
 
     missing_metadata: List[str] = Field(
@@ -216,6 +217,14 @@ class ApplicationGapReport(BaseModel):
         default_factory=list,
         description="Missing business context fields",
     )
+    # Bug #11: Add categorized critical attributes for proper section mapping
+    missing_critical_attributes: Dict[str, List[str]] = Field(
+        default_factory=dict,
+        description=(
+            "Missing critical assessment attributes by category "
+            "(infrastructure, dependencies, compliance, tech_debt)"
+        ),
+    )
     completeness_score: float = Field(
         ge=0.0,
         le=1.0,
@@ -228,6 +237,15 @@ class ApplicationGapReport(BaseModel):
                 "missing_metadata": ["application_description", "business_unit"],
                 "incomplete_tech_stack": ["programming_languages", "frameworks"],
                 "missing_business_context": ["business_owner_name"],
+                "missing_critical_attributes": {
+                    "infrastructure": [
+                        "operating_system_version",
+                        "cpu_memory_storage_specs",
+                    ],
+                    "dependencies": ["technology_stack", "architecture_pattern"],
+                    "compliance": ["business_criticality_score"],
+                    "tech_debt": ["code_quality_metrics"],
+                },
                 "completeness_score": 0.4,
             }
         }

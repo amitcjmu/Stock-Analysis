@@ -97,13 +97,47 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   const criticalFieldMappings = useMemo(() => {
     const safeFieldMappings = Array.isArray(fieldMappings) ? fieldMappings : [];
 
-    return safeFieldMappings.filter(mapping => {
-      const targetField = mapping.targetAttribute?.toLowerCase();
-      const sourceField = mapping.sourceField?.toLowerCase();
+    const filtered = safeFieldMappings.filter(mapping => {
+      // Support both snake_case (API format) and camelCase (legacy format)
+      const targetField = (mapping.target_field || (mapping as any).targetAttribute || (mapping as any).targetField)?.toLowerCase();
+      const sourceField = (mapping.source_field || (mapping as any).sourceField)?.toLowerCase();
 
       // Include if target field is critical, or if source field name suggests it might be critical
       return targetField && criticalFieldNames.has(targetField) ||
              sourceField && criticalFieldNames.has(sourceField);
+    });
+
+    // Normalize field mappings to ensure they have the correct structure for ThreeColumnFieldMapper
+    return filtered.map((mapping, index) => {
+      // Ensure the mapping has all required properties in snake_case format
+      const sourceField = (mapping as any).source_field || (mapping as any).sourceField || '';
+      const targetField = (mapping as any).target_field || (mapping as any).targetAttribute || (mapping as any).targetField || null;
+      
+      // Generate unique ID: use existing id, or create from fields, or use index as fallback
+      const generateId = () => {
+        if (mapping.id) {
+          return mapping.id;
+        }
+        if (sourceField && targetField) {
+          return `${sourceField}_${targetField}`;
+        }
+        if (sourceField) {
+          return `${sourceField}_${index}`;
+        }
+        // Final fallback: use index to ensure uniqueness
+        return `mapping_${index}`;
+      };
+
+      const normalized: any = {
+        ...mapping,
+        id: generateId(),
+        source_field: sourceField,
+        target_field: targetField,
+        status: (mapping as any).status || 'pending',
+        mapping_type: (mapping as any).mapping_type || (mapping as any).mappingType || 'auto',
+        confidence_score: (mapping as any).confidence_score || (mapping as any).confidence || 0.5
+      };
+      return normalized;
     });
   }, [fieldMappings, criticalFieldNames]);
 
@@ -117,14 +151,6 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
     });
   }, [availableFields, criticalFieldNames]);
 
-  // Debug logging
-  console.log('🎯 CriticalAttributesTab - Debug info:', {
-    totalFieldMappings: fieldMappings.length,
-    criticalFieldMappings: criticalFieldMappings.length,
-    totalAvailableFields: availableFields.length,
-    criticalAvailableFields: criticalAvailableFields.length,
-    criticalFieldNames: Array.from(criticalFieldNames).slice(0, 10) // First 10 for debugging
-  });
 
   if (isAnalyzing) {
     return (

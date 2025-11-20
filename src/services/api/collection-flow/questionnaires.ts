@@ -1,4 +1,4 @@
-import { apiCall } from "@/config/api";
+import { apiCall } from "@/lib/api/apiClient";
 import { CollectionFlowClient } from "./client";
 import type {
   AdaptiveQuestionnaireResponse,
@@ -142,8 +142,9 @@ export class QuestionnairesApi extends CollectionFlowClient {
   // Phase 2: Two-Phase Gap Analysis - AI Enhancement (Non-Blocking)
   async analyzeGaps(
     flowId: string,
-    gaps: DataGap[],
+    gaps: DataGap[] | null,
     selectedAssetIds: string[],
+    force_refresh: boolean = false, // New parameter for force re-analysis
   ): Promise<{
     job_id: string;
     status: string;
@@ -151,11 +152,26 @@ export class QuestionnairesApi extends CollectionFlowClient {
     message: string;
   }> {
     // Returns 202 Accepted with job_id immediately (non-blocking)
-    return await apiCall(`${this.baseUrl}/flows/${flowId}/analyze-gaps`, {
-      method: "POST",
-      body: JSON.stringify({ gaps, selected_asset_ids: selectedAssetIds }),
-      timeout: 10000, // 10s timeout for job submission
-    });
+    // Import retry utility at the top of the function to avoid circular dependencies
+    const { withRetry } = await import("@/utils/retry");
+
+    return await withRetry(
+      () => apiCall(`${this.baseUrl}/flows/${flowId}/analyze-gaps`, {
+        method: "POST",
+        body: JSON.stringify({
+          gaps,
+          selected_asset_ids: selectedAssetIds,
+          force_refresh, // Pass force_refresh flag to backend
+        }),
+        timeout: 10000, // 10s timeout for job submission
+      }),
+      {
+        maxAttempts: 5,
+        initialDelay: 2000, // Start with 2 seconds
+        maxDelay: 30000,    // Cap at 30 seconds
+        exponentialBackoff: true,
+      }
+    );
   }
 
   // Poll enhancement progress (for non-blocking AI analysis)
@@ -172,10 +188,21 @@ export class QuestionnairesApi extends CollectionFlowClient {
     error_category?: string;
     user_message?: string;
   }> {
-    return await apiCall(`${this.baseUrl}/flows/${flowId}/enhancement-progress`, {
-      method: "GET",
-      timeout: 5000,
-    });
+    // Import retry utility at the top of the function to avoid circular dependencies
+    const { withRetry } = await import("@/utils/retry");
+
+    return await withRetry(
+      () => apiCall(`${this.baseUrl}/flows/${flowId}/enhancement-progress`, {
+        method: "GET",
+        timeout: 5000,
+      }),
+      {
+        maxAttempts: 5,
+        initialDelay: 2000, // Start with 2 seconds
+        maxDelay: 30000,    // Cap at 30 seconds
+        exponentialBackoff: true,
+      }
+    );
   }
 
   // Update gap with manual resolution

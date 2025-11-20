@@ -127,13 +127,16 @@ const DataValidation: React.FC = () => {
 
   // Handler for triggering validation
   const handleTriggerValidation = async (): Promise<void> => {
+    // BUG FIX (#994): Improve error message and add user-facing alert
     if (!effectiveFlowId) {
-      SecureLogger.error('No flow ID available for triggering validation');
+      const errorMsg = `No flow ID available for triggering validation. URL flow_id: ${urlFlowId || 'none'}, Resolved flow_id: ${effectiveFlowId || 'none'}`;
+      SecureLogger.error(errorMsg);
+      alert('Cannot run validation: No active discovery flow found. Please start a new discovery flow or select an existing one.');
       return;
     }
 
     try {
-      SecureLogger.info('Triggering data validation for flow');
+      SecureLogger.info('Triggering data validation for flow', { flowId: effectiveFlowId });
 
       await executeFlowPhase('data_validation', {
         force_refresh: true,
@@ -143,6 +146,7 @@ const DataValidation: React.FC = () => {
       SecureLogger.info('Data validation triggered successfully');
     } catch (error) {
       SecureLogger.error('Failed to trigger data validation', error);
+      alert(`Failed to run validation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // Always refresh to get the latest state, even if triggering failed
       await refresh();

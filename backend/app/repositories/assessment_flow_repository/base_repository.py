@@ -47,7 +47,7 @@ from .commands import (
 )
 
 # Import query handlers
-from .queries import AnalyticsQueries, FlowQueries, StateQueries
+from .queries import AnalyticsQueries, DecisionQueries, FlowQueries, StateQueries
 
 # Import specifications
 from .specifications import FlowSpecifications
@@ -79,6 +79,7 @@ class AssessmentFlowRepository(ContextAwareRepository):
         self._flow_queries = FlowQueries(db, client_account_id)
         self._analytics_queries = AnalyticsQueries(db, client_account_id)
         self._state_queries = StateQueries(db, client_account_id)
+        self._decision_queries = DecisionQueries(db, client_account_id, engagement_id)
 
         # Initialize specifications
         self._flow_specs = FlowSpecifications(db, client_account_id)
@@ -102,6 +103,22 @@ class AssessmentFlowRepository(ContextAwareRepository):
     ) -> Optional[AssessmentFlowState]:
         """Get complete assessment flow state with all related data"""
         return await self._flow_queries.get_assessment_flow_state(flow_id)
+
+    async def get_by_flow_id(self, flow_id: str) -> Optional[AssessmentFlow]:
+        """
+        Get raw assessment flow model by ID.
+
+        Lightweight method for operations that only need basic flow data,
+        such as zombie detection. Use get_assessment_flow_state() if you
+        need the full enriched state object.
+
+        Args:
+            flow_id: UUID string of the flow
+
+        Returns:
+            AssessmentFlow model or None if not found
+        """
+        return await self._flow_queries.get_by_flow_id(flow_id)
 
     async def update_flow_phase(
         self,
@@ -360,6 +377,22 @@ class AssessmentFlowRepository(ContextAwareRepository):
     async def get_flow_analytics(self, flow_id: str) -> Dict[str, Any]:
         """Get analytics data for a flow"""
         return await self._analytics_queries.get_flow_analytics(flow_id)
+
+    async def get_all_sixr_decisions(self, flow_id: str) -> Dict[str, Dict[str, Any]]:
+        """
+        Retrieve all 6R decisions for applications in assessment flow.
+
+        This method queries multiple data sources in priority order:
+        1. phase_results['recommendation_generation']['applications'] (primary)
+        2. assets table where six_r_strategy IS NOT NULL (fallback)
+
+        Args:
+            flow_id: Assessment flow UUID
+
+        Returns:
+            Dict keyed by application_id with 6R decision data
+        """
+        return await self._decision_queries.get_all_sixr_decisions(flow_id)
 
     # === PRIVATE HELPER METHODS ===
 

@@ -77,6 +77,10 @@ export interface Asset {
   created_at: string;
   updated_at?: string;
 
+  // AI Gap Analysis Status Tracking (Issue #1043)
+  ai_gap_analysis_status?: number;  // 0=not started, 1=in progress, 2=completed
+  ai_gap_analysis_timestamp?: string;  // Timestamp when AI analysis completed
+
   // Soft delete fields (Issue #912)
   deleted_at?: string;
   deleted_by?: string;

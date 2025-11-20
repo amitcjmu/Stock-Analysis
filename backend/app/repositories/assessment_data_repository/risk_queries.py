@@ -52,8 +52,20 @@ class RiskQueriesMixin:
                 flow, "dependency_analysis"
             )
 
-            # Get applications with business criticality
-            applications = await self._get_applications()
+            # ISSUE-6: Get selected application IDs from flow
+            selected_app_ids = flow.selected_canonical_application_ids or []
+
+            # Get applications with business criticality, filtered by selected IDs
+            if selected_app_ids:
+                applications = await self._get_selected_applications(selected_app_ids)
+                logger.info(
+                    f"[ISSUE-6] Filtered to {len(applications)} selected applications for risk assessment"
+                )
+            else:
+                logger.warning(
+                    "[ISSUE-6] No selected IDs, using all applications for risk assessment"
+                )
+                applications = await self._get_applications()
 
             # Calculate business impact indicators
             business_impact = await self._calculate_business_impact(applications)

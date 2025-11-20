@@ -24,6 +24,7 @@ import type {
 
 export const useAssessmentFlow = (
   initialFlowId?: string,
+  options?: { disableAutoPolling?: boolean }
 ): UseAssessmentFlowReturn => {
   const navigate = useNavigate();
   const { user, client, engagement, getAuthHeaders } = useAuth();
@@ -46,6 +47,7 @@ export const useAssessmentFlow = (
     applicationCount: 0, // Add application count
     engagementStandards: [],
     applicationOverrides: {},
+    selectedTemplate: null, // No template selected initially
     applicationComponents: {},
     techDebtAnalysis: {},
     sixrDecisions: {},
@@ -54,6 +56,7 @@ export const useAssessmentFlow = (
     error: null,
     lastUserInteraction: null,
     appsReadyForPlanning: [],
+    autoPollingEnabled: !options?.disableAutoPolling, // Default based on options
     agentUpdates: [],
   });
 
@@ -70,14 +73,27 @@ export const useAssessmentFlow = (
             break;
           }
 
+          case "initialization":
+          case "readiness_assessment":
+          case "architecture":
           case "architecture_minimums": {
+            // Load architecture standards for all architecture-related phases
             const archData = await assessmentFlowAPI.getArchitectureStandards(
               state.flowId,
             );
+
+            // If no template is saved but standards exist, detect if they match a template or are custom
+            let templateToSet = archData.selected_template;
+            if (!templateToSet && archData.engagement_standards && archData.engagement_standards.length > 0) {
+              // Standards exist but no template saved - mark as custom
+              templateToSet = "custom";
+            }
+
             setState((prev) => ({
               ...prev,
               engagementStandards: archData.engagement_standards,
               applicationOverrides: archData.application_overrides,
+              selectedTemplate: templateToSet,
             }));
             break;
           }
@@ -97,19 +113,16 @@ export const useAssessmentFlow = (
           }
 
           case "component_sixr_strategies":
-          case "app_on_page_generation": {
+          case "app_on_page_generation":
+          case "recommendation_generation": {
+            // Issue #7 fix: Load 6R decisions for recommendation_generation phase
             const decisionsData = await assessmentFlowAPI.getSixRDecisions(
               state.flowId,
             );
+            // Backend returns decisions as a dictionary already, not an array
             setState((prev) => ({
               ...prev,
-              sixrDecisions: decisionsData.decisions.reduce(
-                (acc: Record<string, SixRDecision>, decision: SixRDecision) => {
-                  acc[decision.application_id] = decision;
-                  return acc;
-                },
-                {},
-              ),
+              sixrDecisions: decisionsData.decisions || {},
             }));
             break;
           }
@@ -350,6 +363,7 @@ export const useAssessmentFlow = (
     async (
       standards: ArchitectureStandard[],
       overrides: Record<string, ArchitectureStandard>,
+      selectedTemplate?: string | null,
     ) => {
       if (!state.flowId) {
         throw new Error("No active flow");
@@ -359,12 +373,14 @@ export const useAssessmentFlow = (
         await assessmentFlowAPI.updateArchitectureStandards(state.flowId, {
           engagement_standards: standards,
           application_overrides: overrides,
+          selected_template: selectedTemplate !== undefined ? selectedTemplate : state.selectedTemplate,
         });
 
         setState((prev) => ({
           ...prev,
           engagementStandards: standards,
           applicationOverrides: overrides,
+          selectedTemplate: selectedTemplate !== undefined ? selectedTemplate : prev.selectedTemplate,
           lastUserInteraction: new Date(),
         }));
       } catch (error) {
@@ -640,6 +656,36 @@ export const useAssessmentFlow = (
     // Intentionally omitting loadFlowState to prevent infinite loop
   ]);
 
+  // Toggle auto-polling on/off (user-controlled)
+  const toggleAutoPolling = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      autoPollingEnabled: !prev.autoPollingEnabled,
+    }));
+  }, []);
+
+  // Auto-polling when assessment is in progress
+  // Poll every 5 seconds to detect phase completion and update UI automatically
+  // Stop polling when reaching recommendation_generation (final assessment phase)
+  // Respects both options.disableAutoPolling (default) and state.autoPollingEnabled (user toggle)
+  useEffect(() => {
+    const shouldPoll =
+      !options?.disableAutoPolling && // Respect disableAutoPolling option
+      state.autoPollingEnabled && // Respect user toggle
+      state.status === "in_progress" &&
+      state.flowId &&
+      clientAccountId &&
+      state.currentPhase !== "recommendation_generation"; // Stop polling on final phase
+
+    if (shouldPoll) {
+      const interval = setInterval(() => {
+        loadFlowState();
+      }, 30000); // Poll every 30 seconds (reduced from 5s to minimize backend load and log noise)
+
+      return () => clearInterval(interval);
+    }
+  }, [state.status, state.currentPhase, state.flowId, clientAccountId, loadFlowState, options?.disableAutoPolling, state.autoPollingEnabled]);
+
   // Expose loadApplicationData for manual refresh
   const refreshApplicationData = useCallback(() => {
     return loadApplicationData();
@@ -672,12 +718,25 @@ export const useAssessmentFlow = (
     navigateToPhase,
     finalizeAssessment: async () => {
       if (!state.flowId) return;
-      await assessmentFlowAPI.finalize(state.flowId);
+
+      // Get all successfully assessed applications (those with 6R decisions)
+      const appsToFinalize = Object.keys(state.sixrDecisions);
+
+      if (appsToFinalize.length === 0) {
+        throw new Error("No applications have been assessed yet");
+      }
+
+      await assessmentFlowAPI.finalize(state.flowId, appsToFinalize);
+
+      // Refresh status to pick up the "completed" state
+      await loadFlowState();
     },
     updateArchitectureStandards,
     updateApplicationComponents,
     updateTechDebtAnalysis,
     updateSixRDecision,
+    subscribeToUpdates: () => {}, // Placeholder for real-time updates
+    unsubscribeFromUpdates: () => {}, // Placeholder for real-time updates
     refreshStatus, // NEW: Manual refresh function
     startPolling, // DEPRECATED: kept for backward compatibility but does nothing
     stopPolling,
@@ -686,5 +745,6 @@ export const useAssessmentFlow = (
     getApplicationsNeedingReview,
     isPhaseComplete,
     refreshApplicationData, // Add method to refresh application data
+    toggleAutoPolling, // Toggle auto-polling on/off
   };
 };

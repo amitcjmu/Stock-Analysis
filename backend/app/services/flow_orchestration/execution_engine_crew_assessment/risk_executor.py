@@ -9,6 +9,9 @@ from typing import Any, Dict
 
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.services.crewai_flows.handlers.callback_handler_integration import (
+    CallbackHandlerIntegration,
+)
 
 logger = get_logger(__name__)
 
@@ -35,8 +38,10 @@ class RiskExecutorMixin:
         try:
 
             # Build phase-specific input
+            # CRITICAL FIX (ISSUE-999): Use assessment flow ID, not master flow ID!
+            assessment_flow_id = phase_input.get("flow_id", str(master_flow.flow_id))
             crew_inputs = await input_builders.build_risk_input(
-                str(master_flow.flow_id), phase_input
+                assessment_flow_id, phase_input
             )
 
             # Log risk input preparation
@@ -83,6 +88,31 @@ Return results as valid JSON with keys: risk_score, critical_risks, six_r_recomm
             # Convert context dict to JSON string (CrewAI expects string context)
             context_str = json.dumps(crew_inputs)
 
+            # CC Phase 3: Setup callback handler for observability
+            from app.core.context import RequestContext
+
+            callback_context = RequestContext(
+                client_account_id=str(master_flow.client_account_id),
+                engagement_id=str(master_flow.engagement_id),
+                flow_id=str(master_flow.flow_id),
+            )
+            callback_handler = CallbackHandlerIntegration.create_callback_handler(
+                flow_id=str(master_flow.flow_id),
+                context=callback_context,
+            )
+            callback_handler.setup_callbacks()
+
+            # Register task start
+            callback_handler._step_callback(
+                {
+                    "type": "starting",
+                    "status": "starting",
+                    "agent": "risk_assessor",
+                    "task": "risk_assessment",
+                    "content": f"Starting risk assessment with prior phases: {', '.join(prior_phases)}",
+                }
+            )
+
             # CRITICAL FIX: task.execute_async() returns concurrent.futures.Future (threading)
             # Must use asyncio.wrap_future() to convert to awaitable asyncio.Future
             import asyncio
@@ -114,6 +144,18 @@ Return results as valid JSON with keys: risk_score, critical_risks, six_r_recomm
 
             # Per ADR-029: Sanitize LLM output to remove NaN/Infinity before JSON serialization
             parsed_result = sanitize_for_json(parsed_result)
+
+            # CC Phase 3: Register task completion
+            callback_handler._task_completion_callback(
+                {
+                    "agent": "risk_assessor",
+                    "task_name": "risk_assessment",
+                    "status": "completed",
+                    "task_id": "risk_task",
+                    "output": parsed_result,
+                    "duration": execution_time,
+                }
+            )
 
             logger.info(f"✅ Risk assessment completed in {execution_time:.2f}s")
 

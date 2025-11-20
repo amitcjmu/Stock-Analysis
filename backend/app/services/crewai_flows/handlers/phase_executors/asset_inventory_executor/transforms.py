@@ -9,6 +9,7 @@ import logging
 from typing import Dict, Any
 
 from app.models.data_import.core import RawImportRecord
+from app.services.asset_service.helpers import get_smart_asset_name
 
 from .type_converters import parse_asset_tags, parse_boolean
 from .field_mapping_utils import (
@@ -64,17 +65,16 @@ def transform_raw_record_to_asset(
             )
 
         # Extract basic asset information with smart name resolution
-        # CRITICAL FIX: Prioritize application_name over asset_name to avoid using
-        # technical identifiers (serial numbers, UUIDs) as asset names
-        name = (
-            asset_data_source.get("name")
-            or asset_data_source.get(
-                "application_name"
-            )  # Check application_name before asset_name
-            or asset_data_source.get("hostname")
-            or asset_data_source.get("server_name")
-            or asset_data_source.get("asset_name")  # Demoted: only use as last resort
-            or f"Asset-{record.row_number}"
+        # CRITICAL: Use centralized get_smart_asset_name() to avoid duplication
+        # This ensures consistent naming logic across the codebase
+        # Pass row_number for fallback naming if needed
+        asset_data_with_row = {**asset_data_source, "row_number": record.row_number}
+        name = get_smart_asset_name(asset_data_with_row)
+
+        # Audit log: Record name resolution outcome for compliance
+        logger.debug(
+            f"Asset name resolved: '{name}' for record {record.row_number} "
+            f"(source: {asset_data_source.get('name') or asset_data_source.get('asset_name') or 'fallback'})"
         )
 
         # Determine asset type with intelligent classification
@@ -83,8 +83,9 @@ def transform_raw_record_to_asset(
         asset_type = classify_asset_type(asset_data_for_classification)
 
         # Build comprehensive asset data
+        # Note: name is already normalized by get_smart_asset_name()
         asset_data = {
-            "name": str(name).strip(),
+            "name": name,
             "asset_type": asset_type,
             "description": asset_data_source.get(
                 "description",

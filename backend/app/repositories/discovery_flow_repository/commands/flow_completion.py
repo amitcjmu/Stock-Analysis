@@ -19,8 +19,24 @@ logger = logging.getLogger(__name__)
 class FlowCompletionCommands(FlowCommandsBase):
     """Handles flow completion operations"""
 
-    async def mark_flow_complete(self, flow_id: str) -> Optional[DiscoveryFlow]:
-        """Mark flow as complete"""
+    async def mark_flow_complete(
+        self, flow_id: str, readiness_scores: Optional[dict] = None
+    ) -> Optional[DiscoveryFlow]:
+        """
+        Mark flow as complete.
+
+        Args:
+            flow_id: The flow ID to mark as complete
+            readiness_scores: Optional readiness scores calculated by service layer.
+                            If not provided, default scores will be used.
+
+        Returns:
+            Updated DiscoveryFlow or None if not found
+
+        Note:
+            Readiness score calculation should be performed in the service layer
+            and passed to this repository method for data persistence only.
+        """
 
         # Ensure flow_id is UUID
         flow_uuid = self._ensure_uuid(flow_id)
@@ -35,18 +51,15 @@ class FlowCompletionCommands(FlowCommandsBase):
         state_data["status"] = "complete"
         state_data["completed_at"] = datetime.utcnow().isoformat()
 
-        # Calculate final readiness scores
-        # CC FIX: Make readiness calculator import optional to prevent completion failures
-        try:
-            from app.services.crewai_flows.readiness_calculator import (
-                calculate_readiness_scores,
-            )
-
-            readiness_scores = calculate_readiness_scores(state_data)
+        # Use provided readiness scores or defaults
+        # Repository layer does NOT calculate business logic - only persists data
+        if readiness_scores:
             state_data["readiness_scores"] = readiness_scores
-        except ImportError as e:
-            logger.warning(f"⚠️ Readiness calculator not available: {e}")
-            # Provide default readiness scores as fallback
+        else:
+            # Provide default readiness scores if service layer didn't provide them
+            logger.info(
+                f"No readiness scores provided by service layer for {flow_id}, using defaults"
+            )
             state_data["readiness_scores"] = {
                 "overall": 85.0,
                 "data_quality": 80.0,
@@ -87,23 +100,32 @@ class FlowCompletionCommands(FlowCommandsBase):
 
         return updated_flow
 
-    async def complete_discovery_flow(self, flow_id: str) -> Optional[DiscoveryFlow]:
+    async def complete_discovery_flow(
+        self, flow_id: str, readiness_scores: Optional[dict] = None
+    ) -> Optional[DiscoveryFlow]:
         """
         Complete discovery flow and prepare for assessment handoff.
-        This method wraps mark_flow_complete with additional discovery-specific logic.
+
+        Args:
+            flow_id: The flow ID to complete
+            readiness_scores: Optional readiness scores calculated by service layer
+
+        Returns:
+            Completed DiscoveryFlow or None if not found
+
+        Note:
+            This repository method only handles data persistence.
+            Master flow coordination should be performed by the service layer.
         """
         try:
             logger.info(f"🏁 Completing discovery flow: {flow_id}")
 
             # Use the existing mark_flow_complete method
-            completed_flow = await self.mark_flow_complete(flow_id)
+            completed_flow = await self.mark_flow_complete(flow_id, readiness_scores)
 
             if not completed_flow:
                 logger.error(f"❌ Failed to complete flow {flow_id} - flow not found")
                 return None
-
-            # Update master flow state as well
-            await self._update_master_flow_completion(flow_id)
 
             logger.info(f"✅ Discovery flow completed successfully: {flow_id}")
             return completed_flow

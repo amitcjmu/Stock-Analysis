@@ -183,6 +183,29 @@ class ReportTransformer:
                 }
             )
 
+        # Bug #11: Extract critical assessment attributes with proper gap_category
+        # This is CRITICAL for section filtering in section_helpers.py
+        for (
+            category,
+            field_names,
+        ) in report.application_gaps.missing_critical_attributes.items():
+            for field_name in field_names:
+                gaps.append(
+                    {
+                        "asset_id": asset_id,
+                        "asset_name": asset_name,
+                        "field_name": field_name,
+                        "gap_type": "missing_critical_attribute",
+                        # CORRECT category (infra, deps, compliance, tech_debt)
+                        "gap_category": category,
+                        # All 22 critical attrs are priority 1 for readiness
+                        "priority": 1,
+                        "current_value": None,
+                        "suggested_resolution": f"Critical assessment attribute for {category} section",
+                        "confidence_score": None,
+                    }
+                )
+
         # NOTE: Standards violations are NOT treated as data gaps
         # Standards violations (e.g., java_versions, dotnet_versions, api_design) are
         # compliance issues, not missing data fields. They should be handled separately

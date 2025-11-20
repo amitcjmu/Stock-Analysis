@@ -930,11 +930,12 @@ export const masterFlowService = {
           return {
             application_id: group.canonical_application_id || `unmapped-${group.canonical_application_name}`,
             application_name: group.canonical_application_name,
-            application_type: group.asset_types?.[0] || 'application',  // Use first asset type if available
+            application_type: group.application_type || group.asset_types?.[0] || 'application',  // Saved value > asset type > default
             environment: 'production',  // Default - not in group data
             business_criticality,
             technology_stack: [],  // Not available in group summary
-            complexity_score: Math.min(group.asset_count, 10),  // Asset count as proxy for complexity
+            complexity_score: group.complexity_score !== undefined ? group.complexity_score : Math.min(group.asset_count, 10),  // Saved value > asset count
+            customization_level: group.customization_level,  // Include saved customization level
             readiness_score: Math.round(readiness_score * 10) / 10,  // Round to 1 decimal
             discovery_completed_at: new Date().toISOString(),  // Not available in group data
           };

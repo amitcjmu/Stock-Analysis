@@ -71,7 +71,7 @@ export const SixRDecisionRationale: React.FC<SixRDecisionRationaleProps> = ({
         </div>
 
         {/* Risk Factors */}
-        {decision.risk_factors.length > 0 && (
+        {decision.risk_factors && decision.risk_factors.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-gray-700 flex items-center space-x-1">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
@@ -111,29 +111,31 @@ export const SixRDecisionRationale: React.FC<SixRDecisionRationaleProps> = ({
         )}
 
         {/* Component Summary */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700">Component Strategy Summary</h4>
-          <div className="space-y-1">
-            {decision.component_treatments.slice(0, 5).map((treatment, index) => (
-              <div key={index} className="flex items-center justify-between text-sm">
-                <span className="text-gray-600 truncate flex-1">
-                  {treatment.component_name}
-                </span>
-                <Badge variant="outline" className="ml-2 text-xs">
-                  {treatment.recommended_strategy}
-                </Badge>
-              </div>
-            ))}
-            {decision.component_treatments.length > 5 && (
-              <p className="text-xs text-gray-500">
-                +{decision.component_treatments.length - 5} more components
-              </p>
-            )}
+        {decision.component_treatments && decision.component_treatments.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-gray-700">Component Strategy Summary</h4>
+            <div className="space-y-1">
+              {decision.component_treatments.slice(0, 5).map((treatment, index) => (
+                <div key={index} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 truncate flex-1">
+                    {treatment.component_name}
+                  </span>
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {treatment.recommended_strategy}
+                  </Badge>
+                </div>
+              ))}
+              {decision.component_treatments.length > 5 && (
+                <p className="text-xs text-gray-500">
+                  +{decision.component_treatments.length - 5} more components
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Move Group Hints */}
-        {decision.move_group_hints.length > 0 && (
+        {decision.move_group_hints && decision.move_group_hints.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-gray-700">Migration Planning Hints</h4>
             <div className="space-y-1">

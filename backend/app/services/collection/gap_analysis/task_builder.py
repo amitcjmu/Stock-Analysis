@@ -345,6 +345,9 @@ def build_section_specific_task(
     Per ADR-035: Batched generation to avoid 16KB+ JSON truncation.
     Each call generates ~2KB JSON for a single assessment flow section.
 
+    IMPORTANT: Questionnaire generation now PRIORITIZES assessment-critical attributes
+    to ensure 85% readiness threshold is met from first submission.
+
     Args:
         asset_data: Single asset context (name, type, OS, EOL status, enrichment data)
         gaps: Gaps relevant to this section only (e.g., ["operating_system", "cpu_cores"])
@@ -398,24 +401,32 @@ SECTION TO GENERATE: {section_id}
 
 CRITICAL REQUIREMENTS:
 
-1. INTELLIGENT, CONTEXT-AWARE OPTIONS:
+1. **ASSESSMENT READINESS PRIORITY (NEW - MANDATORY)**:
+   - **These gaps are needed for 85% assessment readiness threshold**
+   - **Generate questions for ALL gaps listed above - they're assessment-critical**
+   - If a gap is in the list, it MUST have a question (no skipping)
+   - Focus on priority 1 (critical) attributes first, then priority 2/3
+
+2. INTELLIGENT, CONTEXT-AWARE OPTIONS:
    - For AIX systems: Include AIX version options (aix_7.3, aix_7.2, aix_7.1)
    - For Windows systems: Include Windows version options (windows_2019, windows_2022)
    - For Linux systems: Include Linux distro options (rhel_8, ubuntu_22, centos_7)
    - For EOL technology: Prioritize modernization/migration questions
    - For compliance: Include specific compliance frameworks (GDPR, HIPAA, PCI-DSS)
 
-2. KEEP RESPONSE UNDER 2KB:
-   - Maximum 10-15 questions per section
-   - Focus on most critical gaps only
-   - Use concise option labels (avoid verbose descriptions)
+3. KEEP RESPONSE COMPACT (CRITICAL):
+   - Maximum 5-8 questions per section (NOT 10-15!)
+   - Maximum 4-5 options per question (NOT 8+!)
+   - Focus on ONLY the most critical gaps from the list
+   - Use concise option labels (2-4 words max, NOT full sentences)
+   - If >8 gaps provided, prioritize and skip lower-priority ones
 
-3. RETURN VALID JSON ONLY:
+4. RETURN VALID JSON ONLY:
    - No markdown code blocks (no ```json)
    - No explanatory text before or after JSON
    - Properly closed brackets and quotes
 
-RETURN JSON FORMAT:
+RETURN JSON FORMAT (COMPACT - MAX 5 OPTIONS PER QUESTION):
 {{
   "section_id": "{section_id}",
   "section_title": "{section_titles[section_id]}",
@@ -423,25 +434,20 @@ RETURN JSON FORMAT:
   "questions": [
     {{
       "field_id": "operating_system",
-      "question_text": "What is the Operating System for {asset_data.get('asset_name', 'this asset')}?",
+      "question_text": "Operating System for {asset_data.get('asset_name', 'this asset')}?",
       "field_type": "select",
       "options": [
-        {{"value": "aix_7.3", "label": "IBM AIX 7.3"}},
-        {{"value": "aix_7.2", "label": "IBM AIX 7.2"}},
-        {{"value": "aix_7.1", "label": "IBM AIX 7.1"}},
-        {{"value": "windows_2022", "label": "Windows Server 2022"}},
-        {{"value": "windows_2019", "label": "Windows Server 2019"}},
-        {{"value": "rhel_8", "label": "Red Hat Enterprise Linux 8"}},
-        {{"value": "ubuntu_22", "label": "Ubuntu 22.04 LTS"}},
-        {{"value": "other", "label": "Other (specify in notes)"}}
+        {{"value": "aix", "label": "AIX"}},
+        {{"value": "windows", "label": "Windows"}},
+        {{"value": "linux", "label": "Linux"}},
+        {{"value": "unix", "label": "Unix"}},
+        {{"value": "other", "label": "Other"}}
       ],
       "required": true,
       "category": "{section_id}",
       "metadata": {{
         "asset_ids": ["{asset_data.get('asset_id', 'unknown')}"],
-        "asset_name": "{asset_data.get('asset_name', 'Unknown Asset')}",
-        "intelligent_options": true,
-        "eol_aware": true
+        "asset_name": "{asset_data.get('asset_name', 'Unknown Asset')}"
       }}
     }}
   ]

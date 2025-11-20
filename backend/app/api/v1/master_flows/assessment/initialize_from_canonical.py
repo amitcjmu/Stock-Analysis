@@ -126,6 +126,34 @@ async def initialize_assessment_from_canonical(
             f"with 0 assets. These will create empty application groups."
         )
 
+    # Step 3.5: CRITICAL VALIDATION - Verify asset readiness before creating flow
+    # Per user requirement: "ensure pre-requisites are met BEFORE they go through"
+    if all_asset_ids:
+        from app.services.integrations.discovery_integration import (
+            DiscoveryFlowIntegration,
+        )
+
+        discovery_integration = DiscoveryFlowIntegration()
+        try:
+            await discovery_integration.verify_applications_ready_for_assessment(
+                db=db,
+                application_ids=[str(aid) for aid in all_asset_ids],
+                client_account_id=client_account_id,
+            )
+            logger.info(
+                f"✅ Validated {len(all_asset_ids)} assets are ready for assessment"
+            )
+        except ValueError as e:
+            logger.error(f"❌ Asset readiness validation failed: {str(e)}")
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Assets not ready for assessment",
+                    "message": str(e),
+                    "action": "Complete discovery and data collection for all assets before starting assessment",
+                },
+            )
+
     # Step 4: Create assessment flow using existing service
     from app.services.assessment.application_resolver import (
         AssessmentApplicationResolver,
@@ -147,21 +175,19 @@ async def initialize_assessment_from_canonical(
         ),
     )
 
-    # Step 5: Use existing FlowCommands.create_assessment_flow
-    from app.repositories.assessment_flow_repository import AssessmentFlowRepository
-
-    repo = AssessmentFlowRepository(
-        db=db,
-        client_account_id=client_account_id,
-        engagement_id=engagement_id,
-        user_id=context.user_id,
+    # Step 5: Use service layer for flow creation (per 7-layer architecture)
+    from app.services.assessment.assessment_flow_lifecycle_service import (
+        AssessmentFlowLifecycleService,
     )
 
-    # Create flow with asset IDs (backward compatible field name)
-    flow_id = await repo.create_assessment_flow(
+    lifecycle_service = AssessmentFlowLifecycleService(db=db, context=context)
+
+    # Create flow with asset IDs through service layer
+    flow_id = await lifecycle_service.create_assessment_flow(
         engagement_id=str(engagement_id),
         selected_application_ids=[str(aid) for aid in all_asset_ids],
         created_by=context.user_id,
+        collection_flow_id=request.optional_collection_flow_id,
     )
 
     # Step 6: Update flow metadata with traceability info

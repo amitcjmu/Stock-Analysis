@@ -8,7 +8,7 @@ need a simpler execution model.
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import select
@@ -17,17 +17,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.services.flow_contracts.interfaces import IFlowOrchestrator
 from app.api.v1.endpoints.collection_utils import (
     sync_collection_child_flow_state,
     log_collection_failure,
 )
 
+# TYPE_CHECKING block for circular dependency avoidance
+if TYPE_CHECKING:
+    pass
+
 logger = logging.getLogger(__name__)
 
 
 async def start_collection_phase_loop_background(
-    master_flow_id: UUID, context: RequestContext, initial_state: Dict[str, Any]
+    master_flow_id: UUID,
+    context: RequestContext,
+    initial_state: Dict[str, Any],
+    orchestrator: Optional[IFlowOrchestrator] = None,
 ) -> None:
     """Background task for sequential phase execution when CrewAI unavailable.
 
@@ -35,6 +42,7 @@ async def start_collection_phase_loop_background(
         master_flow_id: Master flow ID
         context: Request context
         initial_state: Initial state for the flow
+        orchestrator: Optional injected flow orchestrator (avoids circular import)
     """
     phases = [
         "initialization",
@@ -48,7 +56,22 @@ async def start_collection_phase_loop_background(
 
     async with AsyncSessionLocal() as db:
         try:
-            mfo = MasterFlowOrchestrator(db, context)
+            # Use injected orchestrator or lazy import MFO
+            # NOTE: Lazy import is INTENTIONAL (per ADR-006) to break circular dependency:
+            #   - MFO imports from flow_orchestration (FlowErrorHandler, etc.)
+            #   - collection_phase_runner is in flow_orchestration
+            #   - Lazy import allows runtime resolution after modules loaded
+            #   - Dependency injection (orchestrator param) enables testing with mocks
+            # This is NOT inconsistent - it's a documented architectural pattern
+            # for breaking circular dependencies while maintaining testability.
+            if orchestrator is None:
+                from app.services.master_flow_orchestrator import (  # noqa: F811
+                    MasterFlowOrchestrator,
+                )
+
+                mfo = MasterFlowOrchestrator(db, context)
+            else:
+                mfo = orchestrator
 
             for phase in phases:
                 logger.info(f"Executing collection phase: {phase}")
@@ -118,6 +141,7 @@ async def execute_collection_phase_directly(
     master_flow_id: UUID,
     phase_name: str,
     phase_input: Optional[Dict[str, Any]] = None,
+    orchestrator: Optional[IFlowOrchestrator] = None,
 ) -> Dict[str, Any]:
     """Execute a single collection phase directly.
 
@@ -129,12 +153,21 @@ async def execute_collection_phase_directly(
         master_flow_id: Master flow ID
         phase_name: Name of the phase to execute
         phase_input: Optional phase input
+        orchestrator: Optional injected flow orchestrator (avoids circular import)
 
     Returns:
         Phase execution result
     """
     try:
-        mfo = MasterFlowOrchestrator(db, context)
+        # Use injected orchestrator or lazy import MFO
+        if orchestrator is None:
+            from app.services.master_flow_orchestrator import (  # noqa: F811
+                MasterFlowOrchestrator,
+            )
+
+            mfo = MasterFlowOrchestrator(db, context)
+        else:
+            mfo = orchestrator
 
         result = await mfo.execute_phase(
             flow_id=str(master_flow_id),

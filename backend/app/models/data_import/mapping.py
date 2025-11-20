@@ -8,6 +8,7 @@ from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.ext.hybrid import hybrid_property
 
 try:
     from app.core.database import Base
@@ -131,6 +132,14 @@ class ImportFieldMapping(Base):
         onupdate=func.now(),
         comment="Timestamp of the last update to this record.",
     )
+
+    @hybrid_property
+    def is_approved(self) -> bool:
+        return self.status == "approved"
+
+    @is_approved.expression
+    def is_approved(cls):
+        return cls.status == "approved"
 
     # Relationships
     data_import = relationship("DataImport", back_populates="field_mappings")

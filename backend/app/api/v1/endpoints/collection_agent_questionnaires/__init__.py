@@ -1,14 +1,16 @@
 """
 Collection Agent Questionnaire Endpoints
-Modularized implementation for agent-driven questionnaire generation.
+Status polling endpoint for agent-driven questionnaire generation.
 
-This module preserves the public API of the original collection_agent_questionnaires.py file
-while organizing the code into logical modules for better maintainability.
+DEPRECATION NOTICE (Nov 2025):
+- generation.py module REMOVED (dead code per ADR-035)
+- POST /questionnaires/generate endpoint REMOVED (never used by frontend)
+- Per ADR-035: Use MFO auto-progression or _start_agent_generation instead
+- Only GET /questionnaires/status remains (actively used by QuestionnaireGenerationModal.tsx)
 
-Modules:
-- router.py: Main API endpoints for questionnaire status and generation
+Remaining modules:
+- router.py: Questionnaire status polling endpoint
 - helpers.py: Utility functions for building context and managing state
-- generation.py: Agent-driven questionnaire generation logic
 - bootstrap.py: Fallback questionnaire generation
 """
 
@@ -22,16 +24,15 @@ from .helpers import (
     calculate_completeness,
     identify_gaps,
 )
-from .generation import generate_questionnaire_with_agent
 from .bootstrap import get_bootstrap_questionnaire
 
 # Define public API for export
+# REMOVED: generate_questionnaire_with_agent (deprecated per ADR-035)
 __all__ = [
     "router",
     "build_agent_context",
     "mark_generation_failed",
     "calculate_completeness",
     "identify_gaps",
-    "generate_questionnaire_with_agent",
     "get_bootstrap_questionnaire",
 ]

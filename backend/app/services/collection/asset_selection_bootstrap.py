@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow
@@ -133,7 +134,13 @@ async def generate_asset_selection_bootstrap(
         # Store questionnaire in flow config for retrieval
         flow.collection_config["bootstrap_questionnaire"] = questionnaire
 
+        # CRITICAL: Tell SQLAlchemy the JSONB column changed (prevents mutation tracking issues)
+        # Bug #1102: Without flag_modified(), in-place dict modifications don't trigger DB updates
+        # This caused bootstrap questionnaires to never persist, regenerating on every request
+        flag_modified(flow, "collection_config")
+
         await db.flush()
+        await db.commit()  # Commit changes to database to persist questionnaire
 
         logger.info(
             f"Generated bootstrap questionnaire for flow {flow.flow_id} with {len(available_assets)} available assets"

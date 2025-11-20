@@ -130,8 +130,7 @@ class ResourceSkillOperationsMixin:
                     ResourceSkill.wave_id == wave_id,
                     ResourceSkill.client_account_id == client_account_id,
                     ResourceSkill.engagement_id == engagement_id,
-                    ResourceSkill.has_gap
-                    == True,  # noqa: E712 - Per coding-agent-guide.md
+                    ResourceSkill.has_gap,  # Per coding-agent-guide.md
                 )
             )
 

@@ -276,6 +276,99 @@ async def _commit_with_writeback(
         raise
 
 
+async def _create_canonical_app_for_questionnaire(
+    application_name: str,
+    asset_id: UUID,
+    flow: CollectionFlow,
+    context: RequestContext,
+    current_user: User,
+    db: AsyncSession,
+) -> None:
+    """Create canonical application and junction record for questionnaire submission.
+
+    This ensures questionnaire path has same behavior as bulk import path.
+    Non-blocking: failures don't halt questionnaire submission.
+
+    ISSUE-999 Phase 2: Canonicalization for Questionnaire Path
+    """
+    try:
+        logger.info(
+            f"[ISSUE-999-PHASE2] Creating canonical app for questionnaire: "
+            f"'{application_name}' (asset: {asset_id})"
+        )
+
+        # Import models
+        from app.models.canonical_applications.canonical_application import (
+            CanonicalApplication,
+        )
+        from app.models.canonical_applications.collection_flow_app import (
+            CollectionFlowApplication,
+        )
+        from uuid import uuid4
+
+        # Create/find canonical application (with Phase 1 retry logic)
+        canonical_app, is_new, variant = (
+            await CanonicalApplication.find_or_create_canonical(
+                db=db,
+                application_name=application_name,
+                client_account_id=UUID(context.client_account_id),
+                engagement_id=UUID(context.engagement_id),
+                user_id=current_user.id if current_user else None,
+            )
+        )
+
+        logger.info(
+            f"[ISSUE-999-PHASE2] Canonical app: {canonical_app.canonical_name} "
+            f"(ID: {canonical_app.id}, is_new: {is_new})"
+        )
+
+        # Check if junction record already exists
+        from sqlalchemy import select as sa_select
+
+        existing_junction_result = await db.execute(
+            sa_select(CollectionFlowApplication).where(
+                CollectionFlowApplication.asset_id == asset_id,
+                CollectionFlowApplication.collection_flow_id == flow.id,
+            )
+        )
+        junction_exists = existing_junction_result.scalar_one_or_none() is not None
+
+        if not junction_exists:
+            # Create junction record
+            junction_record = CollectionFlowApplication(
+                id=uuid4(),
+                collection_flow_id=flow.id,
+                asset_id=asset_id,
+                application_name=application_name,
+                canonical_application_id=canonical_app.id,
+                name_variant_id=variant.id if variant else None,
+                client_account_id=UUID(context.client_account_id),
+                engagement_id=UUID(context.engagement_id),
+                deduplication_method="questionnaire_auto",
+                match_confidence=canonical_app.confidence_score,
+                collection_status="pending",
+            )
+            db.add(junction_record)
+
+            logger.info(
+                f"[ISSUE-999-PHASE2] Created junction record: "
+                f"asset {asset_id} → canonical app {canonical_app.id}"
+            )
+        else:
+            logger.info(
+                f"[ISSUE-999-PHASE2] Junction record already exists for "
+                f"asset {asset_id} in flow {flow.id}"
+            )
+
+    except Exception as e:
+        logger.error(
+            f"[ISSUE-999-PHASE2] Failed to create canonical app for questionnaire: {e}",
+            exc_info=True,
+        )
+        # Don't fail entire submission - canonical app creation is non-critical
+        # The asset and questionnaire responses are still valid without it
+
+
 async def _update_asset_readiness(
     asset_ids_to_reanalyze: list,
     request_data: "QuestionnaireSubmissionRequest",
@@ -336,7 +429,10 @@ async def _update_asset_readiness(
                     ),
                     # ✅ FIX: Update sixr_ready for Assessment Flow UI
                     # Assessment Flow queries this field to display readiness status
-                    sixr_ready=gap_report.is_ready_for_assessment,
+                    # CC FIX Bug #4: Convert boolean to string for VARCHAR column
+                    sixr_ready=(
+                        "ready" if gap_report.is_ready_for_assessment else "not_ready"
+                    ),
                 )
             )
             await db.execute(update_stmt)

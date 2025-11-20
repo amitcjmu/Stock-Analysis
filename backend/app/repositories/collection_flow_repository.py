@@ -77,51 +77,82 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
         collection_config: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> CollectionFlow:
-        """Create a new collection flow with Master Flow Orchestrator (MFO) integration."""
-        from app.core.context import RequestContext
-        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        """
+        Create a new collection flow (data persistence only).
 
+        DEPRECATED: Use CollectionFlowLifecycleService.create_flow_with_orchestration()
+        for new code. This method is retained for backward compatibility with tests.
+
+        This method ONLY handles data persistence. For full flow creation with
+        MFO integration, use the lifecycle service.
+
+        Args:
+            flow_name: Name of the collection flow
+            automation_tier: Automation tier (tier_1, tier_2, tier_3, tier_4)
+            flow_metadata: Optional flow metadata
+            collection_config: Optional collection configuration
+            **kwargs: Additional parameters (flow_id, master_flow_id, etc.)
+
+        Returns:
+            Created CollectionFlow instance
+        """
         # Generate flow_id if not provided
         flow_id = kwargs.get("flow_id") or str(uuid.uuid4())
 
-        # Prepare context for MFO
-        context = RequestContext(
-            client_account_id=self.client_account_id,
-            engagement_id=self.engagement_id,
-            user_id=kwargs.get("user_id", "system"),
-        )
-
-        # Prepare master flow configuration
-        master_flow_config = {
+        # Prepare flow data (DATA PERSISTENCE ONLY - no orchestration)
+        flow_data = {
+            "flow_id": flow_id,
             "flow_name": flow_name,
-            "automation_tier": automation_tier,
-            "metadata": flow_metadata or {},
-            "collection_config": collection_config or {},
-        }
-
-        # Prepare master flow initial state
-        initial_state = {
+            "automation_tier": AutomationTier(automation_tier),
+            "status": CollectionFlowStatus.INITIALIZED,
             "current_phase": "initialization",
             "progress_percentage": 0.0,
-            "collection_config": collection_config or {},
             "flow_metadata": flow_metadata or {},
+            "collection_config": collection_config or {},
+            "client_account_id": self.client_account_id,
+            "engagement_id": self.engagement_id,
+            # master_flow_id should be provided via kwargs if needed
+            **kwargs,
         }
 
-        # Use existing transaction to create both master and child flows atomically
-        # Step 1: Register flow with Master Flow Orchestrator (ADR-006 pattern)
-        mfo = MasterFlowOrchestrator(self.db, context)
-        master_flow_id, master_flow_data = await mfo.create_flow(
-            flow_type="collection",
-            flow_name=flow_name,
-            configuration=master_flow_config,
-            initial_state=initial_state,
-            atomic=True,  # Prevents internal commits
+        # Use parent class create method with no commit since we're in existing transaction
+        collection_flow = await super().create(commit=False, **flow_data)
+
+        logger.info(
+            f"✅ Collection flow created (data only): flow_id={flow_id}, "
+            f"master_flow_id={kwargs.get('master_flow_id', 'none')}"
         )
 
-        # Step 2: Flush to make master flow ID available for FK relationship
-        await self.db.flush()
+        return collection_flow
 
-        # Step 3: Create child collection flow with master_flow_id linkage
+    async def create_with_master_flow(
+        self,
+        flow_id: str,
+        flow_name: str,
+        automation_tier: str,
+        master_flow_id: uuid.UUID,
+        flow_metadata: Optional[Dict[str, Any]] = None,
+        collection_config: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> CollectionFlow:
+        """
+        Create a new collection flow with master flow linkage (data persistence only).
+
+        This method is called by CollectionFlowLifecycleService after MFO registration.
+        Repository ONLY handles data persistence, service handles orchestration.
+
+        Args:
+            flow_id: Child flow ID (user-facing identifier)
+            flow_name: Name of the collection flow
+            automation_tier: Automation tier
+            master_flow_id: Master flow ID (from MFO)
+            flow_metadata: Optional flow metadata
+            collection_config: Optional collection configuration
+            **kwargs: Additional parameters
+
+        Returns:
+            Created CollectionFlow instance
+        """
         flow_data = {
             "flow_id": flow_id,
             "flow_name": flow_name,
@@ -140,10 +171,9 @@ class CollectionFlowRepository(ContextAwareRepository[CollectionFlow]):
         # Use parent class create method with no commit since we're in existing transaction
         collection_flow = await super().create(commit=False, **flow_data)
 
-        # Transaction will be automatically committed by get_db() context manager
         logger.info(
-            f"✅ Collection flow created with MFO integration: "
-            f"flow_id={flow_id}, master_flow_id={master_flow_id}"
+            f"✅ Collection flow data persisted: flow_id={flow_id}, "
+            f"master_flow_id={master_flow_id}"
         )
 
         return collection_flow

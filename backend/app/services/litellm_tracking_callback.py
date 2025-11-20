@@ -53,15 +53,36 @@ class LLMUsageCallback(CustomLogger):
             # Extract metadata
             model = kwargs.get("model", "unknown")
 
-            # Determine provider from model name
-            if "deepinfra" in model.lower():
-                provider = "deepinfra"
-            elif "openai" in model.lower() or "gpt" in model.lower():
-                provider = "openai"
-            elif "anthropic" in model.lower() or "claude" in model.lower():
-                provider = "anthropic"
-            else:
-                provider = "unknown"
+            # Get provider from LiteLLM's own detection (more reliable than parsing model name)
+            # LiteLLM stores the provider it detected in response_obj._hidden_params
+            provider = "unknown"
+            if hasattr(response_obj, "_hidden_params"):
+                provider = response_obj._hidden_params.get(
+                    "custom_llm_provider", "unknown"
+                )
+
+            # Fallback: Try to extract from litellm_params in kwargs
+            if provider == "unknown" and "litellm_params" in kwargs:
+                provider = kwargs["litellm_params"].get(
+                    "custom_llm_provider", "unknown"
+                )
+
+            # Last resort: Determine provider from model name
+            if provider == "unknown":
+                if "deepinfra" in model.lower():
+                    provider = "deepinfra"
+                elif "openai" in model.lower() or "gpt" in model.lower():
+                    provider = "openai"
+                elif "anthropic" in model.lower() or "claude" in model.lower():
+                    provider = "anthropic"
+                else:
+                    # Check if model starts with known provider patterns
+                    if (
+                        model.startswith("meta-llama/")
+                        or model.startswith("google/")
+                        or model.startswith("mistralai/")
+                    ):
+                        provider = "deepinfra"  # DeepInfra hosts these models
 
             # Extract token usage
             usage = getattr(response_obj, "usage", None)
@@ -142,13 +163,41 @@ class LLMUsageCallback(CustomLogger):
         """Called when LiteLLM call fails."""
         try:
             model = kwargs.get("model", "unknown")
-            provider = "deepinfra" if "deepinfra" in model.lower() else "unknown"
+
+            # Use same provider detection logic as success event
+            provider = "unknown"
+            if "litellm_params" in kwargs:
+                provider = kwargs["litellm_params"].get(
+                    "custom_llm_provider", "unknown"
+                )
+
+            if provider == "unknown":
+                if "deepinfra" in model.lower():
+                    provider = "deepinfra"
+                elif "openai" in model.lower() or "gpt" in model.lower():
+                    provider = "openai"
+                elif "anthropic" in model.lower() or "claude" in model.lower():
+                    provider = "anthropic"
+                elif (
+                    model.startswith("meta-llama/")
+                    or model.startswith("google/")
+                    or model.startswith("mistralai/")
+                ):
+                    provider = "deepinfra"
 
             # Get error details
             error_type = type(response_obj).__name__ if response_obj else "UnknownError"
             error_message = str(response_obj) if response_obj else "Unknown error"
 
-            response_time_ms = int((end_time - start_time) * 1000)
+            # CC Bug #8: Handle datetime objects from LiteLLM (should be floats but sometimes datetime)
+            from datetime import datetime, timedelta
+
+            if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            elif isinstance(end_time - start_time, timedelta):
+                response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            else:
+                response_time_ms = int((end_time - start_time) * 1000)
             feature_context = kwargs.get("metadata", {}).get(
                 "feature_context", "crewai"
             )

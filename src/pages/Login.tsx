@@ -241,7 +241,7 @@ const Login: React.FC = () => {
       await login(loginData.email, loginData.password);
       toast({
         title: "Login Successful",
-        description: "Welcome to AI Modernize Migration Platform",
+        description: "Welcome to AI Force Assess",
       });
     } catch (err) {
       setError((err as Error).message);
@@ -349,7 +349,7 @@ const Login: React.FC = () => {
           </CardTitle>
           <CardDescription>
             {isLogin
-              ? 'Access AI Modernize Migration Platform'
+              ? 'Access AI Force Assess'
               : 'Request access to the migration platform'
             }
           </CardDescription>

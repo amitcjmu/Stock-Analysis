@@ -100,6 +100,11 @@ async def update_flow_applications(
         # Flush to persist flow updates
         await db.flush()
 
+        # CC FIX: Eagerly load collection_config before deduplication to prevent lazy-load errors
+        # Without this, accessing collection_flow.collection_config after commit triggers
+        # MissingGreenlet error because session is expired
+        _ = collection_flow.collection_config
+
         # Process applications with deduplication service
         (
             processed_count,

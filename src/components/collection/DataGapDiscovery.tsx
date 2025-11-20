@@ -6,8 +6,7 @@ import type {
   CellEditingStoppedEvent,
 } from "ag-grid-community";
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+// AG Grid CSS imported globally in main.tsx
 import {
   Sparkles,
   RefreshCw,
@@ -35,6 +34,7 @@ import {
   type DataGap,
   type GapUpdate,
 } from "@/services/api/collection-flow";
+import { AssetAPI } from "@/lib/api/assets";
 
 interface DataGapDiscoveryProps {
   flowId: string;
@@ -85,6 +85,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     critical_gaps: number;
     execution_time_ms: number;
   } | null>(null);
+  const [agenticScanTime, setAgenticScanTime] = useState<number | null>(null);
   const [modifiedGaps, setModifiedGaps] = useState<Set<string>>(new Set());
   const [enhancementProgress, setEnhancementProgress] = useState<{
     job_id: string;
@@ -96,6 +97,15 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   } | null>(null);
   const [selectedGaps, setSelectedGaps] = useState<GapRowData[]>([]);
   const [isContinuing, setIsContinuing] = useState(false);
+  // AI gap analysis status tracking (Issue #1043)
+  const [hasAIAnalysis, setHasAIAnalysis] = useState(false);
+  const [showQuestionnaireButton, setShowQuestionnaireButton] = useState(false);
+  // Option 3: AI completion detection (Issue #1067)
+  const [aiAnalysisProgress, setAiAnalysisProgress] = useState<{
+    total: number;
+    completed: number;
+    percentage: number;
+  } | null>(null);
 
   // Fetch existing gaps on mount, or scan if none exist
   useEffect(() => {
@@ -108,6 +118,38 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         if (existingGaps && existingGaps.length > 0) {
           // Backend always returns database UUIDs - no transformation needed
           setGaps(existingGaps);
+
+          // Try to retrieve scan summary from collection flow's gap_analysis_results
+          try {
+            const flowDetails = await collectionFlowApi.getFlow(flowId);
+            const gapAnalysisResults = flowDetails.gap_analysis_results;
+
+            if (gapAnalysisResults && gapAnalysisResults.summary) {
+              // Use persisted scan summary if available
+              setScanSummary({
+                total_gaps: gapAnalysisResults.summary.total_gaps || existingGaps.length,
+                critical_gaps: gapAnalysisResults.summary.critical_gaps || existingGaps.filter(g => g.priority === 1).length,
+                execution_time_ms: gapAnalysisResults.summary.execution_time_ms || 0,
+              });
+            } else {
+              // Fallback: Generate summary from existing gaps
+              const criticalCount = existingGaps.filter(g => g.priority === 1).length;
+              setScanSummary({
+                total_gaps: existingGaps.length,
+                critical_gaps: criticalCount,
+                execution_time_ms: 0, // Not available
+              });
+            }
+          } catch (flowError) {
+            console.error("Failed to load flow details:", flowError);
+            // Fallback: Generate summary from existing gaps
+            const criticalCount = existingGaps.filter(g => g.priority === 1).length;
+            setScanSummary({
+              total_gaps: existingGaps.length,
+              critical_gaps: criticalCount,
+              execution_time_ms: 0, // Not available
+            });
+          }
         } else if (selectedAssetIds.length > 0) {
           // No existing gaps, trigger a scan if assets are selected
           handleScanGaps();
@@ -126,6 +168,33 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     loadGaps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowId, selectedAssetIds]);
+
+  // Check if selected assets have AI analysis completed (status = 2)
+  useEffect(() => {
+    const checkAIStatus = async () => {
+      if (selectedAssetIds.length === 0) {
+        setHasAIAnalysis(false);
+        return;
+      }
+
+      try {
+        // Fetch assets to check ai_gap_analysis_status
+        const assetPromises = selectedAssetIds.map(id => AssetAPI.getAsset(id));
+        const assets = await Promise.all(assetPromises);
+
+        // Check if all selected assets have completed AI analysis (status = 2)
+        const allCompleted = assets.every(asset => asset.ai_gap_analysis_status === 2);
+        setHasAIAnalysis(allCompleted);
+
+        console.log(`📊 AI analysis status check - ${allCompleted ? 'All assets analyzed' : 'Some assets need analysis'}`);
+      } catch (error) {
+        console.error('Failed to check AI analysis status:', error);
+        setHasAIAnalysis(false);
+      }
+    };
+
+    checkAIStatus();
+  }, [selectedAssetIds]);
 
   const handleScanGaps = async () => {
     try {
@@ -194,6 +263,24 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     try {
       setIsAnalyzing(true);
 
+      // Proactively refresh auth token before starting long-running AI analysis
+      // CC Security: Conditional logging (development only) to prevent auth flow exposure
+      // Per Qodo Bot review: Console logs around auth flows can expose session behavior
+      if (import.meta.env.DEV) {
+        console.log('🔄 Refreshing auth token before manual AI gap analysis...');
+      }
+      try {
+        const { refreshAccessToken } = await import('@/lib/tokenRefresh');
+        const newToken = await refreshAccessToken();
+        if (newToken && import.meta.env.DEV) {
+          console.log('✅ Token refreshed successfully before manual analysis');
+        }
+      } catch (refreshError) {
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+        }
+      }
+
       // Start enhancement job (returns 202 Accepted immediately)
       const response = await collectionFlowApi.analyzeGaps(
         flowId,
@@ -226,6 +313,14 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
           if (progress.status === "completed") {
             clearInterval(pollProgress);
+
+            // Calculate agentic scan time if we have job timestamps
+            if (progress.updated_at && enhancementProgress) {
+              const startTime = new Date(enhancementProgress.job_id.split('_')[2] * 1000); // Extract timestamp from job ID
+              const endTime = new Date(progress.updated_at);
+              const durationMs = endTime.getTime() - startTime.getTime();
+              setAgenticScanTime(Math.round(durationMs));
+            }
 
             // Re-scan gaps to get AI enhancements from database
             try {
@@ -272,6 +367,16 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
           }
         } catch (error) {
           console.error("Progress polling error:", error);
+          // If polling fails due to auth (400/401), assume completion to avoid blocking UI
+          if (error && typeof error === 'object') {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            if (status === 400 || status === 401) {
+              clearInterval(pollProgress);
+              setIsAnalyzing(false);
+              setEnhancementProgress(null);
+              console.warn('Polling stopped due to auth error - assuming analysis complete');
+            }
+          }
         }
       }, 30000); // Poll every 30 seconds
 
@@ -279,7 +384,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       // Bug #892 Fix: Provide more actionable error messages
       let errorMessage = "Failed to start enhancement. Please try again.";
       if (error && typeof error === 'object') {
-        const status = (error as any).response?.status;
+        const status = (error as { response?: { status?: number } }).response?.status;
         if (status === 409) {
           errorMessage = "An enhancement job is already running. Please wait for it to complete.";
         } else if (status === 429) {
@@ -301,6 +406,358 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
       setEnhancementProgress(null);
     }
   };
+
+  // ✅ Auto-trigger handler (non-blocking)
+  const handleAnalyzeGapsAuto = useCallback(async () => {
+    try {
+      setIsAnalyzing(true);
+
+      // Proactively refresh auth token before starting long-running AI analysis
+      console.log('🔄 Refreshing auth token before AI gap analysis...');
+      try {
+        const { refreshAccessToken } = await import('@/lib/tokenRefresh');
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          console.log('✅ Token refreshed successfully before AI analysis');
+        } else {
+          console.warn('⚠️ Token refresh returned null, proceeding anyway');
+        }
+      } catch (refreshError) {
+        console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+      }
+
+      console.log('📤 Auto-triggering analyze-gaps with null gaps (comprehensive analysis mode)');
+
+      // Call existing endpoint with null gaps
+      // Backend will perform comprehensive AI analysis on assets
+      // force_refresh = false to skip assets with ai_gap_analysis_status = 2
+      const response = await collectionFlowApi.analyzeGaps(
+        flowId,
+        null, // null - triggers comprehensive analysis in backend
+        selectedAssetIds,
+        false // force_refresh = false (skip completed assets)
+      );
+
+      console.log('✅ AI enhancement job queued:', response.job_id);
+
+      // Start polling for progress (same pattern as handleAnalyzeGaps)
+      let attempts = 0;
+      const maxAttempts = 24; // 12 minutes max (30s interval)
+
+      const pollProgress = setInterval(async () => {
+        try {
+          const progress = await collectionFlowApi.getEnhancementProgress(flowId);
+
+          setEnhancementProgress({
+            job_id: response.job_id,
+            status: progress.status,
+            processed: progress.processed,
+            total: progress.total,
+            current_asset: progress.current_asset,
+            percentage: progress.percentage,
+          });
+
+          if (progress.status === "completed") {
+            clearInterval(pollProgress);
+
+            // Re-fetch gaps to get AI enhancements from database
+            try {
+              const updatedGaps = await collectionFlowApi.getGaps(flowId);
+              setGaps(updatedGaps);
+
+              toast({
+                title: "Auto-Enhancement Complete",
+                description: `Enhanced ${progress.processed} assets successfully`,
+                variant: "default",
+              });
+            } catch (fetchError) {
+              console.error("Failed to fetch enhanced gaps:", fetchError);
+            }
+
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          } else if (progress.status === "failed") {
+            clearInterval(pollProgress);
+            const errorDescription = progress.user_message ||
+              progress.error ||
+              "AI enhancement encountered an error. You can manually trigger it again.";
+            toast({
+              title: "Auto-Enhancement Failed",
+              description: errorDescription,
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            clearInterval(pollProgress);
+            toast({
+              title: "Enhancement Timeout",
+              description: "Enhancement is taking longer than expected. You can manually trigger it again.",
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+        } catch (error) {
+          console.error("Progress polling error:", error);
+          // If polling fails due to auth (400/401), assume completion to avoid blocking UI
+          if (error && typeof error === 'object') {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            if (status === 400 || status === 401) {
+              clearInterval(pollProgress);
+              setIsAnalyzing(false);
+              setEnhancementProgress(null);
+              console.warn('Polling stopped due to auth error - assuming analysis complete');
+            }
+          }
+        }
+      }, 30000); // Poll every 30 seconds
+
+    } catch (error: unknown) {
+      console.error('Failed to auto-trigger AI analysis:', error);
+
+      // Non-blocking error - user can still manually trigger via "Analyze with AI" button
+      if (error instanceof Error && error.message.includes('already running')) {
+        // Job already exists - existing polling will pick it up
+        console.log('Job already running - existing polling will track progress');
+      } else {
+        toast({
+          title: "Background Analysis",
+          description: "AI enhancement could not auto-start. You can manually trigger it using the button.",
+          variant: "default"
+        });
+      }
+      setIsAnalyzing(false);
+    }
+  }, [flowId, selectedAssetIds, toast]);
+
+  // Force re-analysis handler (for manual re-triggering)
+  const handleForceReAnalysis = async () => {
+    try {
+      setIsAnalyzing(true);
+
+      // Proactively refresh auth token before starting long-running AI analysis
+      console.log('🔄 Refreshing auth token before force re-analysis...');
+      try {
+        const { refreshAccessToken } = await import('@/lib/tokenRefresh');
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          console.log('✅ Token refreshed successfully before force re-analysis');
+        }
+      } catch (refreshError) {
+        console.warn('⚠️ Token refresh failed, proceeding anyway:', refreshError);
+      }
+
+      console.log('🔄 Force re-analysis triggered by user');
+
+      const response = await collectionFlowApi.analyzeGaps(
+        flowId,
+        null,
+        selectedAssetIds,
+        true // force_refresh = true (re-analyze all assets)
+      );
+
+      console.log('✅ Force re-analysis job queued:', response.job_id);
+
+      toast({
+        title: "Re-Analysis Started",
+        description: "All assets will be re-analyzed with AI. This may take a few minutes.",
+        variant: "default",
+      });
+
+      // Start polling for progress (same pattern as auto-trigger)
+      let attempts = 0;
+      const maxAttempts = 24; // 12 minutes max (30s interval)
+
+      const pollProgress = setInterval(async () => {
+        try {
+          const progress = await collectionFlowApi.getEnhancementProgress(flowId);
+
+          setEnhancementProgress({
+            job_id: response.job_id,
+            status: progress.status,
+            processed: progress.processed,
+            total: progress.total,
+            current_asset: progress.current_asset,
+            percentage: progress.percentage,
+          });
+
+          if (progress.status === "completed") {
+            clearInterval(pollProgress);
+
+            // Re-fetch gaps to get updated AI enhancements
+            try {
+              const updatedGaps = await collectionFlowApi.getGaps(flowId);
+              setGaps(updatedGaps);
+
+              // Update AI analysis status
+              setHasAIAnalysis(true);
+
+              toast({
+                title: "Re-Analysis Complete",
+                description: `Re-analyzed ${progress.processed} assets successfully`,
+                variant: "default",
+              });
+            } catch (fetchError) {
+              console.error("Failed to fetch enhanced gaps:", fetchError);
+            }
+
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          } else if (progress.status === "failed") {
+            clearInterval(pollProgress);
+            const errorDescription = progress.user_message ||
+              progress.error ||
+              "Re-analysis failed. Please try again.";
+            toast({
+              title: "Re-Analysis Failed",
+              description: errorDescription,
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            clearInterval(pollProgress);
+            toast({
+              title: "Re-Analysis Timeout",
+              description: "Re-analysis is taking longer than expected.",
+              variant: "destructive",
+            });
+            setIsAnalyzing(false);
+            setEnhancementProgress(null);
+          }
+        } catch (error) {
+          console.error("Progress polling error:", error);
+          // If polling fails due to auth (400/401), assume completion to avoid blocking UI
+          if (error && typeof error === 'object') {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            if (status === 400 || status === 401) {
+              clearInterval(pollProgress);
+              setIsAnalyzing(false);
+              setEnhancementProgress(null);
+              console.warn('Polling stopped due to auth error - assuming analysis complete');
+            }
+          }
+        }
+      }, 30000); // Poll every 30 seconds
+
+    } catch (error: unknown) {
+      console.error('Failed to force re-analysis:', error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to start re-analysis. Please try again.";
+      toast({
+        title: "Re-Analysis Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setIsAnalyzing(false);
+    }
+  };
+
+  // ✅ Auto-trigger AI-enhanced gap analysis after heuristic scan completes
+  useEffect(() => {
+    // Only auto-trigger if:
+    // 1. Heuristic gaps exist (scan completed)
+    // 2. Not already analyzing
+    // 3. No enhancement progress (not already running)
+    // 4. Scan summary exists (scan just completed)
+    if (
+      gaps.length > 0 &&
+      !isAnalyzing &&
+      !enhancementProgress &&
+      scanSummary
+    ) {
+      // Check if gaps already have AI enhancements (confidence_score is populated by AI)
+      const hasAIEnhancements = gaps.some(gap =>
+        gap.confidence_score !== null && gap.confidence_score !== undefined
+      );
+
+      if (!hasAIEnhancements) {
+        console.log('🚀 Auto-triggering AI-enhanced gap analysis');
+        handleAnalyzeGapsAuto();
+      } else {
+        console.log('✅ Gaps already have AI enhancements - skipping auto-trigger');
+      }
+    }
+  }, [gaps, scanSummary, isAnalyzing, enhancementProgress, handleAnalyzeGapsAuto]);
+
+  // Track if AI analysis has started (to prevent premature button enable)
+  const [aiAnalysisStarted, setAiAnalysisStarted] = useState<boolean>(false);
+
+  // Track AI analysis start to prevent interruption
+  useEffect(() => {
+    if (isAnalyzing || enhancementProgress) {
+      setAiAnalysisStarted(true);
+    }
+  }, [isAnalyzing, enhancementProgress]);
+
+  // Delay showing questionnaire button for 20 seconds to encourage gap review
+  useEffect(() => {
+    if (gaps.length > 0 && !showQuestionnaireButton) {
+      const timer = setTimeout(() => {
+        setShowQuestionnaireButton(true);
+      }, 20000); // 20 seconds delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [gaps, showQuestionnaireButton]);
+
+  // Option 3: Poll AI analysis status after button appears (Issue #1067)
+  useEffect(() => {
+    if (!showQuestionnaireButton || !flowId) return;
+
+    const pollAIStatus = async () => {
+      try {
+        // Get assets with gaps to check their AI analysis status
+        const response = await AssetAPI.getAssets({ page: 1, page_size: 100 });
+        const assetsWithGaps = new Set(gaps.map(g => g.asset_id).filter(Boolean));
+        const relevantAssets = response.assets.filter(a => assetsWithGaps.has(a.id));
+
+        if (relevantAssets.length === 0) {
+          // No assets with gaps - enable button immediately
+          setAiAnalysisProgress({ total: 0, completed: 0, percentage: 100 });
+          return;
+        }
+
+        // Count assets that completed AI analysis (status = 2)
+        const completedCount = relevantAssets.filter(a => a.ai_gap_analysis_status === 2).length;
+        const percentage = Math.round((completedCount / relevantAssets.length) * 100);
+
+        setAiAnalysisProgress({
+          total: relevantAssets.length,
+          completed: completedCount,
+          percentage
+        });
+
+        console.log(`🤖 AI Analysis Progress: ${completedCount}/${relevantAssets.length} assets (${percentage}%)`);
+      } catch (error) {
+        console.error('Failed to poll AI analysis status:', error);
+        // On error, assume analysis is complete to not block user
+        setAiAnalysisProgress({ total: 0, completed: 0, percentage: 100 });
+      }
+    };
+
+    // Poll immediately
+    pollAIStatus();
+
+    // Then poll every 5 seconds until 100%
+    const interval = setInterval(() => {
+      if (aiAnalysisProgress?.percentage === 100) {
+        clearInterval(interval);
+      } else {
+        pollAIStatus();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [showQuestionnaireButton, flowId, gaps, aiAnalysisProgress?.percentage]);
 
   const handleCellEditingStopped = useCallback(
     (event: CellEditingStoppedEvent<GapRowData>) => {
@@ -781,6 +1238,23 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Gap Analysis Status Message */}
+      {scanSummary && (
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {hasAIAnalysis ? (
+            <p className="text-green-700 font-medium">
+              ✅ AI-enhanced gap analysis is complete.
+              Review gaps below and accept/reject AI classifications.
+            </p>
+          ) : (
+            <p className="text-blue-700 font-medium">
+              📊 Heuristic gap analysis is complete.
+              AI enhancement {isAnalyzing ? 'is running' : 'will run automatically'}.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Summary Card */}
       {scanSummary && (
         <Card>
@@ -790,27 +1264,57 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               Gap Analysis Summary
             </CardTitle>
             <CardDescription>
-              Fast programmatic scan across {scanSummary.total_gaps} gaps
+              {agenticScanTime
+                ? `Heuristic + AI analysis complete across ${gaps.length} final gaps`
+                : `Fast programmatic scan across ${scanSummary.total_gaps} gaps`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-5 gap-4">
+              {/* Single row with all metrics */}
               <div>
-                <div className="text-sm text-gray-600">Total Gaps</div>
+                <div className="text-sm text-gray-600">Assets</div>
+                <div className="text-2xl font-bold">
+                  {selectedAssetIds.length}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">Analyzed</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Initial Gaps</div>
                 <div className="text-2xl font-bold">
                   {scanSummary.total_gaps}
                 </div>
+                <div className="text-xs text-gray-500 mt-1">Heuristic scan</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Agentic Gaps</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {gaps.length}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">After AI analysis</div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">Critical Gaps</div>
                 <div className="text-2xl font-bold text-red-600">
                   {scanSummary.critical_gaps}
                 </div>
+                <div className="text-xs text-gray-500 mt-1">Heuristic priority</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">Scan Time</div>
-                <div className="text-2xl font-bold">
-                  {scanSummary.execution_time_ms}ms
+                <div className="text-sm text-gray-600">
+                  {agenticScanTime ? 'Agentic Scan Time' : 'Scan Time'}
+                </div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {agenticScanTime ? (
+                    agenticScanTime < 1000
+                      ? `${agenticScanTime}ms`
+                      : `${(agenticScanTime / 1000).toFixed(1)}s`
+                  ) : (
+                    scanSummary.execution_time_ms > 0 ? `${scanSummary.execution_time_ms}ms` : 'N/A'
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {agenticScanTime ? 'AI analysis' : 'Heuristic'}
                 </div>
               </div>
             </div>
@@ -833,98 +1337,140 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-            <Button
-              onClick={handleScanGaps}
-              disabled={isScanning || selectedAssetIds.length === 0}
-              variant="outline"
-            >
-              {isScanning ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              {isScanning ? "Scanning..." : "Re-scan Gaps"}
-            </Button>
+            {/* Row 1: Scan and Analysis Actions */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                onClick={handleScanGaps}
+                disabled={isScanning || selectedAssetIds.length === 0}
+                variant="outline"
+              >
+                {isScanning ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                {isScanning ? "Scanning..." : "Re-scan Gaps"}
+              </Button>
 
-            <Button
-              onClick={handleAnalyzeGaps}
-              disabled={isAnalyzing || gaps.length === 0}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {isAnalyzing ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              {isAnalyzing ? "Analyzing..." : "Perform Agentic Analysis"}
-            </Button>
+              <Button
+                onClick={handleAnalyzeGaps}
+                disabled={isAnalyzing || gaps.length === 0}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {isAnalyzing ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                {isAnalyzing ? "Analyzing..." : "Agentic Gap Resolution Analysis"}
+              </Button>
 
-            {/* Progress Display for Non-Blocking AI Enhancement */}
-            {enhancementProgress && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-700">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                <span>
-                  Processing: {enhancementProgress.processed}/{enhancementProgress.total} assets
-                  {enhancementProgress.current_asset && ` - ${enhancementProgress.current_asset}`}
-                  ({Math.round((enhancementProgress.processed / enhancementProgress.total) * 100)}%)
-                </span>
+              {/* Force Re-Analysis Button - Only show when AI analysis completed */}
+              {hasAIAnalysis && (
+                <Button
+                  onClick={handleForceReAnalysis}
+                  disabled={isAnalyzing}
+                  variant="outline"
+                  className="text-yellow-600 hover:bg-yellow-50"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Force Re-Analysis
+                </Button>
+              )}
+
+              {/* Progress Display for Non-Blocking AI Enhancement */}
+              {enhancementProgress && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-md text-sm text-purple-700">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>
+                    Processing: {enhancementProgress.processed}/{enhancementProgress.total} assets
+                    {enhancementProgress.current_asset && ` - ${enhancementProgress.current_asset}`}
+                    ({Math.round((enhancementProgress.processed / enhancementProgress.total) * 100)}%)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Row 2: Accept/Reject Actions - Only show when AI analysis completed */}
+            {hasAIAnalysis && (
+              <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-gray-200">
+                <div className="text-sm text-gray-600 font-medium mr-2">
+                  AI Recommendations:
+                </div>
+
+                {/* Accept Selected Button - Only show when gaps are selected */}
+                {selectedGaps.length > 0 && (
+                  <Button
+                    onClick={handleAcceptSelected}
+                    disabled={isSaving}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Accept Selected ({selectedGaps.length})
+                  </Button>
+                )}
+
+                <Button
+                  onClick={handleBulkAccept}
+                  disabled={isSaving || gaps.length === 0}
+                  variant="outline"
+                  className="text-green-600 hover:bg-green-50"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Accept All (High Confidence)
+                </Button>
+
+                <Button
+                  onClick={handleBulkReject}
+                  disabled={isSaving || gaps.length === 0}
+                  variant="outline"
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Reject All AI Suggestions
+                </Button>
               </div>
             )}
-
-            <div className="flex-1" />
-
-            {/* Accept Selected Button - Only show when gaps are selected */}
-            {selectedGaps.length > 0 && (
-              <Button
-                onClick={handleAcceptSelected}
-                disabled={isSaving}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Accept Selected ({selectedGaps.length})
-              </Button>
-            )}
-
-            <Button
-              onClick={handleBulkAccept}
-              disabled={isSaving || gaps.length === 0}
-              variant="outline"
-              className="text-green-600 hover:bg-green-50"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Accept All (High Confidence)
-            </Button>
-
-            <Button
-              onClick={handleBulkReject}
-              disabled={isSaving || gaps.length === 0}
-              variant="outline"
-              className="text-red-600 hover:bg-red-50"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Reject All AI Suggestions
-            </Button>
           </div>
 
-          {/* Continue to Questionnaire Button - P1 UX Fix for Issue #654 */}
-          {scanSummary && onComplete && (
+          {/* Continue to Questionnaire Button - Option 3: Show after 20s but disable until AI complete (Issue #1067) */}
+          {scanSummary && onComplete && showQuestionnaireButton && (
             <div className="pt-4 mt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
-                  <p className="font-medium mb-1">Gap analysis complete!</p>
-                  <p>You can continue to the questionnaire phase or keep resolving gaps.</p>
+                  {isAnalyzing || (aiAnalysisProgress && aiAnalysisProgress.percentage < 100) ? (
+                    <>
+                      <p className="font-medium mb-1">
+                        🤖 AI analyzing gaps: {aiAnalysisProgress?.completed || 0}/{aiAnalysisProgress?.total || 0} assets complete ({aiAnalysisProgress?.percentage || 0}%)
+                      </p>
+                      <p className="text-xs">Button will enable when AI analysis completes...</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium mb-1">Gap analysis complete!</p>
+                      <p>You can continue to the questionnaire phase or keep resolving gaps.</p>
+                    </>
+                  )}
                 </div>
                 <Button
                   onClick={handleContinueToQuestionnaire}
-                  disabled={isContinuing}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={
+                    isContinuing ||
+                    isAnalyzing ||
+                    (aiAnalysisProgress && aiAnalysisProgress.percentage < 100)
+                  }
+                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
                   size="lg"
                 >
                   {isContinuing ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Proceeding...
+                    </>
+                  ) : isAnalyzing || (aiAnalysisProgress && aiAnalysisProgress.percentage < 100) ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      AI Analysis in Progress ({aiAnalysisProgress?.percentage || 0}%)
                     </>
                   ) : (
                     <>
@@ -935,7 +1481,20 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
               </div>
             </div>
           )}
-          </div>
+
+          {/* Timer message while waiting for questionnaire button */}
+          {scanSummary && onComplete && !showQuestionnaireButton && (
+            <div className="pt-4 mt-4 border-t border-gray-200">
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                <p className="text-sm text-yellow-800 font-medium">
+                  ⏱️ Please review the data gaps above before proceeding.
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Continue button will appear shortly...
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

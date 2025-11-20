@@ -10,6 +10,9 @@ from typing import Any, Dict
 from app.core.security.secure_logging import safe_log_format
 from app.models.assessment_flow import AssessmentPhase
 from app.core.database import get_db
+from app.services.flow_orchestration.phase_execution_lock_manager import (
+    phase_lock_manager,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +37,19 @@ async def continue_assessment_flow(
         phase: Current assessment phase to execute
         user_id: User identifier for audit trail
     """
+    # CRITICAL (Issue #999): Ensure lock is released even if execution fails
+    # This prevents lock leaks that would block future executions
     try:
         logger.info(
             safe_log_format(
-                "🚀 Starting agent execution for assessment flow {flow_id} phase {phase_value}",
+                "[ISSUE-999] 🚀 BACKGROUND TASK STARTED: Assessment flow agent execution "
+                "for flow_id={flow_id}, phase={phase_value}, "
+                "client={client_id}, engagement={eng_id}, user={user_id}",
                 flow_id=flow_id,
                 phase_value=phase.value,
+                client_id=client_account_id,
+                eng_id=engagement_id,
+                user_id=user_id,
             )
         )
 
@@ -137,19 +147,54 @@ async def continue_assessment_flow(
                     phase_input=phase_input,
                 )
 
+                # CRITICAL FIX (Issue #1048): Check if phase execution succeeded
+                # execute_assessment_phase returns error dict instead of raising exception
+                if result.get("status") == "error" or "error" in result:
+                    error_msg = result.get(
+                        "error", result.get("message", "Unknown error")
+                    )
+                    logger.error(
+                        safe_log_format(
+                            "[ISSUE-1048] ❌ BACKGROUND TASK FAILED: Assessment flow {flow_id} "
+                            "phase {phase_value} execution failed: {error_msg}",
+                            flow_id=flow_id,
+                            phase_value=phase.value,
+                            error_msg=error_msg,
+                        )
+                    )
+                    # Keep flow in progress (phase failed but flow continues)
+                    # Note: Using "in_progress" not "error" - AssessmentFlowStatus enum
+                    await assessment_repo.update_flow_status(
+                        flow_id,
+                        "in_progress",
+                    )
+                    return  # Exit without logging success
+
                 logger.info(
                     safe_log_format(
-                        "✅ Assessment flow {flow_id} phase {phase_value} completed successfully",
+                        "[ISSUE-999] ✅ BACKGROUND TASK COMPLETED: Assessment flow {flow_id} "
+                        "phase {phase_value} completed successfully. Agents executed and results stored.",
                         flow_id=flow_id,
                         phase_value=phase.value,
                     )
                 )
 
-                # Update flow status to reflect completion
+                # Keep flow in_progress until user clicks "Finalize Assessment" button
+                # Final phase (recommendation_generation) completes agent work,
+                # but flow status stays in_progress awaiting user confirmation
                 await assessment_repo.update_flow_status(
                     flow_id,
-                    "in_progress",  # Keep in progress for next phase
+                    "in_progress",
                 )
+
+                if phase.value == "recommendation_generation":
+                    logger.info(
+                        safe_log_format(
+                            "[ISSUE-999] 📋 Assessment flow {flow_id} recommendations ready "
+                            "- awaiting user finalization",
+                            flow_id=flow_id,
+                        )
+                    )
 
                 break  # Exit the async for loop
 
@@ -160,12 +205,11 @@ async def continue_assessment_flow(
                     ),
                     exc_info=True,
                 )
-                # Update flow to error state
+                # Keep flow in progress (agent execution failed)
                 try:
                     await assessment_repo.update_flow_status(
                         flow_id,
-                        "error",
-                        current_phase=phase.value,
+                        "in_progress",
                     )
                 except Exception:
                     pass  # Best effort
@@ -177,6 +221,17 @@ async def continue_assessment_flow(
                 "Failed to initialize assessment flow execution: {str_e}", str_e=str(e)
             ),
             exc_info=True,
+        )
+    finally:
+        # CRITICAL (Issue #999): Always release lock, even on exception
+        # This prevents deadlocks and allows retries after failures
+        phase_lock_manager.release_lock(flow_id, phase.value)
+        logger.info(
+            safe_log_format(
+                "[ISSUE-999] 🔓 Released execution lock for flow_id={flow_id}, phase={phase_value}",
+                flow_id=flow_id,
+                phase_value=phase.value,
+            )
         )
 
 

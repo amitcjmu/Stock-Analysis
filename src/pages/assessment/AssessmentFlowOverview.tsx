@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { collectionFlowApi } from '@/services/api/collection-flow';
+import { getPhaseUrl } from './[flowId]/utils';
 
 interface AssessmentFlow {
   id: string;
@@ -32,6 +33,8 @@ interface AssessmentFlow {
   created_at: string;
   updated_at: string;
   created_by: string;
+  client_account_id: string; // Added for tenant context extraction
+  engagement_id: string; // Added for tenant context extraction
 }
 
 interface AssessmentFlowMetrics {
@@ -65,6 +68,36 @@ const AssessmentFlowOverview = (): JSX.Element => {
     return c >= READINESS_THRESHOLD && d >= READINESS_THRESHOLD && (readiness.apps_ready_for_assessment || 0) > 0;
   }, [readiness]);
 
+  // Fetch assessment flows from MFO list endpoint (MOVED UP - must be before flowForWidgets useMemo)
+  const { data: flows = [], isLoading: flowsLoading } = useQuery<AssessmentFlow[]>({
+    queryKey: ['assessment-flows'],
+    queryFn: async () => {
+      const headers = getAuthHeaders();
+      const response = await apiCall('/master-flows/list', {
+        method: 'GET',
+        headers
+      });
+
+      return Array.isArray(response) ? response : [];
+    },
+    staleTime: 30000,
+    refetchInterval: 30000 // Refresh every 30 seconds (reduced from 15s to minimize log noise)
+  });
+
+  // Get selected flow for widgets - MUST be defined before dependent code uses it
+  const flowForWidgets = useMemo(() => {
+    if (selectedFlowForDetails && flows.some(f => f.id === selectedFlowForDetails)) {
+      return flows.find(f => f.id === selectedFlowForDetails);
+    }
+    // Auto-select first processing or initialized flow
+    return flows.find(f => f.status === 'processing' || f.status === 'initialized') || flows[0];
+  }, [selectedFlowForDetails, flows]);
+
+  // Extract multi-tenant context from selected flow (not user object)
+  // Fix for "Assessment flow not found" errors - use flow's own tenant context
+  const clientAccountId = flowForWidgets?.client_account_id || user?.client_account_id || '1';
+  const engagementId = flowForWidgets?.engagement_id || user?.engagement_id || undefined;
+
   // Bug #668 Fix: Removed auto-ensureFlow() call that was creating flows with 0 gaps
   // Collection flows should only be created when user explicitly clicks "Collect Missing Data"
   // which passes the missing_attributes to create targeted gaps
@@ -83,6 +116,17 @@ const AssessmentFlowOverview = (): JSX.Element => {
   //     }
   //   })();
   // }, []);
+
+  // Clear selected flow when context switches (flows list changes)
+  // Fix for localStorage/context issue: When user switches from Demo Client to Canada Life,
+  // the selectedFlowForDetails still points to a flow from Demo Client that doesn't exist
+  // in Canada Life context, causing 404 errors
+  useEffect(() => {
+    // If we have a selected flow but it's not in the current flows list, clear it
+    if (selectedFlowForDetails && !flows.some(f => f.id === selectedFlowForDetails)) {
+      setSelectedFlowForDetails(null);
+    }
+  }, [flows, selectedFlowForDetails]);
 
   // Fetch readiness for the ensured collection flow
   useEffect(() => {
@@ -126,22 +170,6 @@ const AssessmentFlowOverview = (): JSX.Element => {
   const { data: metrics, isLoading: metricsLoading } = useQuery<AssessmentFlowMetrics>({
     queryKey: ['assessment-flow-metrics'],
     queryFn: async () => ({ total_flows: 0, active_flows: 0, completed_flows: 0, total_applications_assessed: 0 })
-  });
-
-  // Fetch assessment flows from MFO list endpoint
-  const { data: flows = [], isLoading: flowsLoading } = useQuery<AssessmentFlow[]>({
-    queryKey: ['assessment-flows'],
-    queryFn: async () => {
-      const headers = getAuthHeaders();
-      const response = await apiCall('/master-flows/list', {
-        method: 'GET',
-        headers
-      });
-
-      return Array.isArray(response) ? response : [];
-    },
-    staleTime: 30000,
-    refetchInterval: 15000 // Refresh every 15 seconds
   });
 
   const getStatusIcon = (status: string): JSX.Element => {
@@ -199,7 +227,8 @@ const AssessmentFlowOverview = (): JSX.Element => {
       }
       if (flowId) {
         toast({ title: 'Assessment initialized', description: `${readyAppIds.length} applications included.` });
-        navigate(`/assessment/${flowId}/architecture`);
+        // Navigate to the correct phase page (will be 'initialization' → architecture)
+        navigate(getPhaseUrl(flowId, 'initialization'));
       } else {
         toast({ title: 'Initialization incomplete', description: 'No flow id was returned. Please retry shortly.', variant: 'destructive' });
       }
@@ -211,19 +240,6 @@ const AssessmentFlowOverview = (): JSX.Element => {
   };
 
   const showNotReadyBanner = !isEnsuringFlow && collectionFlowId && !readinessPasses;
-
-  // Get selected flow for widgets (either manually selected or first processing/initialized flow)
-  const flowForWidgets = useMemo(() => {
-    if (selectedFlowForDetails && flows.some(f => f.id === selectedFlowForDetails)) {
-      return flows.find(f => f.id === selectedFlowForDetails);
-    }
-    // Auto-select first processing or initialized flow
-    return flows.find(f => f.status === 'processing' || f.status === 'initialized') || flows[0];
-  }, [selectedFlowForDetails, flows]);
-
-  // Extract multi-tenant context from user
-  const clientAccountId = user?.client_account_id || '1'; // Default fallback
-  const engagementId = user?.engagement_id || undefined;
 
   const handleCollectMissingData = () => {
     if (collectionFlowId) {
@@ -246,7 +262,11 @@ const AssessmentFlowOverview = (): JSX.Element => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <StartAssessmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <StartAssessmentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        assessmentFlowId={flowForWidgets?.id}
+      />
       <div className="hidden lg:block w-64 border-r bg-white">
         <Sidebar />
       </div>
@@ -481,7 +501,7 @@ const AssessmentFlowOverview = (): JSX.Element => {
                           <TableRow key={flow.id}>
                             <TableCell className="font-medium">
                               <Link
-                                to={`/assessment/${flow.id}/architecture`}
+                                to={getPhaseUrl(flow.id, flow.current_phase)}
                                 className="text-blue-600 hover:text-blue-800"
                               >
                                 {flow.id.substring(0, 8)}...
