@@ -37,7 +37,6 @@ export interface QuestionnairePollingOptions {
 // Updated to reduce wait time - questionnaires typically ready within 10-30 seconds
 const POLLING_INTERVAL_MS = 5 * 1000; // 5 seconds between polls (reduced from 60s for better UX)
 const MAX_POLL_COUNT = 30; // Maximum 30 polling attempts (2.5 minutes total)
-const TOTAL_POLLING_TIMEOUT_MS = MAX_POLL_COUNT * POLLING_INTERVAL_MS; // 2.5 minutes total (30 × 5s)
 const MAX_RETRY_ATTEMPTS = 3; // Allow up to 3 manual retries
 const RETRY_DELAY_BASE = 2000; // Base delay for exponential backoff
 
