@@ -346,7 +346,18 @@ async def sync_collection_child_flow_state(
         collection_flow.update_progress()
     except Exception as e:
         logger.warning(f"Failed to update progress (non-critical): {e}")
-        # Calculate progress directly to avoid greenlet issues
-        collection_flow.progress_percentage = collection_flow.calculate_progress()
+        # Calculate progress directly inline to avoid any lazy-loaded attribute access
+        # This prevents greenlet_spawn errors in background tasks
+        phase_weights = {
+            "initialization": 0,
+            "asset_selection": 15,
+            "gap_analysis": 40,
+            "questionnaire_generation": 60,
+            "manual_collection": 80,
+            "data_validation": 95,
+            "finalization": 100,
+        }
+        current_phase = getattr(collection_flow, "current_phase", None)
+        collection_flow.progress_percentage = phase_weights.get(current_phase, 0.0)
 
     await db.commit()
