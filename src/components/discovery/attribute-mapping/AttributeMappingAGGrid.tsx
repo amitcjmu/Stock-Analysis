@@ -183,15 +183,53 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
     // Extract source fields from first record's raw_data
     const sourceFields = Object.keys(imported_data[0].raw_data);
 
+    const cols: Array<ColDef<GridRowData>> = [];
+
+    // Add Row Type Indicator Column (pinned left)
+    cols.push({
+      headerName: 'Row Type',
+      field: 'rowType',
+      width: 120,
+      pinned: 'left',
+      sortable: false,
+      filter: false,
+      resizable: false,
+      cellRenderer: (params) => {
+        if (!params.data) return null;
+
+        const rowType = params.data.rowType;
+        if (rowType === 'mapping') {
+          return (
+            <div className="flex items-center h-full font-semibold text-blue-700">
+              Map To:
+            </div>
+          );
+        } else if (rowType === 'header') {
+          return (
+            <div className="flex items-center h-full font-medium text-gray-600 italic">
+              Source:
+            </div>
+          );
+        } else if (rowType === 'data') {
+          return (
+            <div className="flex items-center h-full text-gray-500">
+              Data:
+            </div>
+          );
+        }
+        return null;
+      },
+    });
+
     // Create column definition for each source field
-    return sourceFields.map((source_field) => {
+    sourceFields.forEach((source_field) => {
       const colDef: ColDef<GridRowData> = {
         field: source_field,
-        headerName: '', // No default header (custom header via Row 2)
+        headerName: source_field, // ✅ CRITICAL FIX: Show source field name in header
         width: 200,
         resizable: true,
-        sortable: false, // Disable sorting (not meaningful for mapping interface)
-        filter: false,   // Disable filtering (not meaningful for mapping interface)
+        sortable: true, // Enable sorting for better UX
+        filter: true,   // Enable filtering for data rows
 
         // Enable editing for mapping row only
         editable: (params) => params.data?.rowType === 'mapping',
@@ -241,9 +279,11 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
         },
       };
 
-      return colDef;
+      cols.push(colDef);
     });
-  }, [imported_data]);
+
+    return cols;
+  }, [imported_data, available_target_fields, onMappingChange, onApproveMapping, onRejectMapping]);
 
   // ============================================================================
   // ROW DATA TRANSFORMATION
@@ -357,8 +397,14 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   // ============================================================================
 
   const onGridReady = useCallback((params: GridReadyEvent<GridRowData>) => {
-    // Auto-size columns on initial load
-    params.api.sizeColumnsToFit();
+    // Auto-size columns to fit content (matches inventory pattern)
+    params.api.autoSizeAllColumns(false);
+
+    // If total width is less than container, fit to container
+    const allColumnIds = params.api.getAllDisplayedColumns()?.map(col => col.getColId()) || [];
+    if (allColumnIds.length > 0) {
+      params.api.sizeColumnsToFit();
+    }
   }, []);
 
   // ============================================================================
@@ -367,10 +413,17 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
 
   const defaultColDef = useMemo<ColDef<GridRowData>>(
     () => ({
-      sortable: false,
-      filter: false,
+      sortable: true,
+      filter: true,
       resizable: true,
-      suppressMovable: false,
+      minWidth: 150,
+      tooltipValueGetter: (params) => {
+        // Show tooltip for all cell values
+        const value = params.value;
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'object') return JSON.stringify(value, null, 2);
+        return String(value);
+      },
     }),
     []
   );
@@ -407,6 +460,20 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
 
   return (
     <div className="w-full h-full">
+      {/* Descriptive Header (matches inventory pattern) */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="text-sm font-semibold text-blue-900 mb-1">
+          Attribute Mapping with Data Preview
+        </h3>
+        <p className="text-sm text-blue-700">
+          <strong>Row 1 (Map To):</strong> Select target fields for each source column. Status badges show mapping confidence.
+          <br />
+          <strong>Row 2 (Source):</strong> Original CSV/JSON column headers from your imported data.
+          <br />
+          <strong>Rows 3-10 (Data):</strong> Preview of first 8 records to verify mappings.
+        </p>
+      </div>
+
       <div
         className="ag-theme-quartz"
         style={{ height: 600, width: '100%' }}
@@ -416,7 +483,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           rowData={gridData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
-          headerHeight={0} // No default header (Row 2 serves as header)
+          headerHeight={40} // ✅ CRITICAL FIX: Enable column headers (was 0)
           getRowHeight={getRowHeight}
           getRowStyle={getRowStyle}
           onGridReady={onGridReady}
@@ -426,6 +493,8 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
           suppressRowHoverHighlight={false}
           suppressCellFocus={false}
           animateRows={false}
+          suppressMovableColumns={false} // Allow column reordering
+          enableRangeSelection={true} // Enable range selection
         />
       </div>
     </div>

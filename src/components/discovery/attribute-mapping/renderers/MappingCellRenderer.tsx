@@ -150,35 +150,45 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
   const isDisabled = value.status === 'approved';
 
   return (
-    <div className="flex flex-col gap-2 p-2 w-full">
+    <div className="flex flex-col gap-2 p-2 w-full h-full">
       {/* Dropdown Section */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => !isDisabled && setIsDropdownOpen(!isDropdownOpen)}
           disabled={isDisabled}
           className={`
-            flex items-center justify-between w-full px-3 py-2 text-sm border rounded-md
-            transition-colors
+            flex items-center justify-between w-full px-3 py-2 text-sm border-2 rounded-md
+            transition-all shadow-sm
             ${isDisabled
               ? 'bg-gray-50 border-gray-200 cursor-not-allowed text-gray-500'
-              : 'bg-white border-gray-300 hover:border-blue-500 cursor-pointer'
+              : 'bg-white border-gray-400 hover:border-blue-500 hover:shadow-md cursor-pointer'
             }
+            ${isDropdownOpen ? 'border-blue-500 shadow-md ring-2 ring-blue-100' : ''}
           `}
           aria-label={`Select target field for ${sourceField}`}
           aria-expanded={isDropdownOpen}
           aria-haspopup="listbox"
         >
-          <span className="truncate font-medium">
-            {value.target_field || 'Select target field...'}
+          <span className={`truncate font-medium ${value.target_field ? 'text-gray-900' : 'text-gray-400'}`}>
+            {value.target_field || 'Click to select target field...'}
           </span>
-          {!isDisabled && <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />}
+          {!isDisabled && (
+            <ChevronDown
+              className={`w-4 h-4 flex-shrink-0 ml-2 transition-transform ${
+                isDropdownOpen ? 'transform rotate-180 text-blue-600' : 'text-gray-400'
+              }`}
+            />
+          )}
         </button>
 
         {/* Dropdown Menu */}
         {isDropdownOpen && !isDisabled && (
-          <div className="absolute z-50 mt-1 w-full min-w-[300px] bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-hidden">
+          <div
+            className="absolute z-[9999] mt-1 w-full min-w-[300px] bg-white border-2 border-blue-400 rounded-lg shadow-2xl max-h-80 overflow-hidden"
+            style={{ zIndex: 9999 }}
+          >
             {/* Search Input */}
-            <div className="p-2 border-b border-gray-200">
+            <div className="p-2 border-b-2 border-gray-200 bg-gray-50">
               <input
                 type="text"
                 placeholder="Search fields..."
@@ -191,7 +201,7 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
             </div>
 
             {/* Fields List */}
-            <div className="max-h-64 overflow-y-auto" role="listbox">
+            <div className="max-h-64 overflow-y-auto bg-white" role="listbox">
               {filteredFields.length === 0 ? (
                 <div className="px-3 py-4 text-center text-sm text-gray-500">
                   No fields match your search
@@ -202,8 +212,8 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
                     key={field}
                     onClick={() => handleSelectField(field)}
                     className={`
-                      w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors
-                      ${field === value.target_field ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'}
+                      w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors border-b border-gray-100
+                      ${field === value.target_field ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:text-blue-600'}
                     `}
                     role="option"
                     aria-selected={field === value.target_field}
