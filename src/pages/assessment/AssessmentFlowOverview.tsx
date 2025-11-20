@@ -262,7 +262,11 @@ const AssessmentFlowOverview = (): JSX.Element => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <StartAssessmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <StartAssessmentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        assessmentFlowId={flowForWidgets?.id}
+      />
       <div className="hidden lg:block w-64 border-r bg-white">
         <Sidebar />
       </div>

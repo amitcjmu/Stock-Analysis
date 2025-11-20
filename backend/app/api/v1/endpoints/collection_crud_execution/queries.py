@@ -216,6 +216,29 @@ async def ensure_collection_flow(
                 existing.collection_config = collection_config
                 flag_modified(existing, "collection_config")
 
+                # CRITICAL FIX: Update assessment flow's selected_asset_ids to match collection
+                # This ensures the assessment flow shows the correct assets after returning from collection
+                if assessment_flow_id:
+                    from app.models.assessment_flow import AssessmentFlow
+
+                    assessment_result = await db.execute(
+                        select(AssessmentFlow).where(
+                            AssessmentFlow.id == assessment_uuid,
+                            AssessmentFlow.client_account_id
+                            == context.client_account_id,
+                            AssessmentFlow.engagement_id == context.engagement_id,
+                        )
+                    )
+                    assessment_flow = assessment_result.scalar_one_or_none()
+
+                    if assessment_flow:
+                        assessment_flow.selected_asset_ids = selected_asset_ids
+                        flag_modified(assessment_flow, "selected_asset_ids")
+                        logger.info(
+                            f"Updated assessment flow {assessment_flow_id} with "
+                            f"{len(selected_asset_ids)} selected assets"
+                        )
+
                 await db.commit()
                 await db.refresh(existing)
                 logger.info(
@@ -282,6 +305,28 @@ async def ensure_collection_flow(
                     collection_config["selected_application_ids"] = selected_asset_ids
                     general_existing.collection_config = collection_config
                     flag_modified(general_existing, "collection_config")
+
+                    # CRITICAL FIX: Update assessment flow's selected_asset_ids to match collection
+                    # This ensures the assessment flow shows the correct assets after returning from collection
+                    from app.models.assessment_flow import AssessmentFlow
+
+                    assessment_result = await db.execute(
+                        select(AssessmentFlow).where(
+                            AssessmentFlow.id == assessment_uuid,
+                            AssessmentFlow.client_account_id
+                            == context.client_account_id,
+                            AssessmentFlow.engagement_id == context.engagement_id,
+                        )
+                    )
+                    assessment_flow = assessment_result.scalar_one_or_none()
+
+                    if assessment_flow and missing_attributes:
+                        assessment_flow.selected_asset_ids = selected_asset_ids
+                        flag_modified(assessment_flow, "selected_asset_ids")
+                        logger.info(
+                            f"Updated assessment flow {assessment_flow_id} with "
+                            f"{len(selected_asset_ids)} selected assets"
+                        )
 
                 await db.commit()
                 await db.refresh(general_existing)

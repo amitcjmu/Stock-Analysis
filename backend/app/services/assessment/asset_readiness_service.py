@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
 from app.models.assessment_flow import AssessmentFlow
+from app.models.canonical_applications import CollectionFlowApplication
 from app.services.gap_detection import GapAnalyzer
 from app.services.gap_detection.schemas import ComprehensiveGapReport
 
@@ -195,6 +196,22 @@ class AssetReadinessService:
             },
         )
 
+        # Query canonical application mapping for all assets
+        # This provides the canonical_application_id for each asset
+        canonical_mapping = {}
+        if detailed and assets:
+            mapping_stmt = select(
+                CollectionFlowApplication.asset_id,
+                CollectionFlowApplication.canonical_application_id,
+            ).where(
+                CollectionFlowApplication.asset_id.in_([asset.id for asset in assets]),
+                CollectionFlowApplication.client_account_id == UUID(client_account_id),
+                CollectionFlowApplication.engagement_id == UUID(engagement_id),
+            )
+            mapping_result = await db.execute(mapping_stmt)
+            for row in mapping_result:
+                canonical_mapping[row.asset_id] = row.canonical_application_id
+
         # Analyze each asset
         ready_count = 0
         not_ready_count = 0
@@ -228,11 +245,17 @@ class AssetReadinessService:
 
                 # Include detailed report if requested
                 if detailed:
+                    # Get canonical application ID from mapping
+                    canonical_app_id = canonical_mapping.get(asset.id)
+
                     asset_reports.append(
                         {
                             "asset_id": str(asset.id),
                             "asset_name": getattr(asset, "asset_name", "unknown"),
                             "asset_type": asset_type,
+                            "canonical_application_id": (
+                                str(canonical_app_id) if canonical_app_id else None
+                            ),
                             "is_ready": report.is_ready_for_assessment,
                             "overall_completeness": report.overall_completeness,
                             "readiness_blockers": report.readiness_blockers,

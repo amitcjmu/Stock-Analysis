@@ -17,6 +17,12 @@ from .tech_debt_executor import TechDebtExecutorMixin
 from .risk_executor import RiskExecutorMixin
 from .recommendation_executor import RecommendationExecutorMixin
 from .recommendation_executor_asset_update import AssetUpdateMixin  # ISSUE-999
+from .phase_validation_helpers import (
+    get_phase_order,
+    check_phase_progression_resumption,
+    is_prior_phase_completed,
+    validate_asset_readiness,
+)
 
 logger = get_logger(__name__)
 
@@ -219,17 +225,8 @@ class ExecutionEngineAssessmentCrews(
         if not flow_state:
             raise ValueError(f"Assessment flow {master_flow.flow_id} not found")
 
-        # Define phase progression order
-        # Phase order must match assessment_flow_config.py phases list
-        # (No "initialization" phase - that's a flow-level handler, not a phase)
-        phase_order = [
-            "readiness_assessment",
-            "complexity_analysis",
-            "dependency_analysis",
-            "tech_debt_assessment",
-            "risk_assessment",
-            "recommendation_generation",
-        ]
+        # Get phase order
+        phase_order = get_phase_order()
 
         # Get current phase index
         try:
@@ -241,38 +238,33 @@ class ExecutionEngineAssessmentCrews(
             )
             return
 
-        # Check that prior phases are completed
+        # Extract flow state data
         phase_results = flow_state.phase_results or {}
-        for idx, prior_phase in enumerate(phase_order[:current_idx]):
-            if prior_phase not in phase_results:
+        phases_completed = flow_state.phases_completed or []
+        current_phase = flow_state.current_phase
+
+        # CRITICAL FIX: Check if resuming from collection flow (early return)
+        if check_phase_progression_resumption(
+            phase_name, current_phase, phase_order, current_idx
+        ):
+            return
+
+        # Normal validation: check if prior phases have results or are marked as completed
+        for prior_phase in phase_order[:current_idx]:
+            if not is_prior_phase_completed(
+                prior_phase, phase_results, phases_completed, current_phase, phase_order
+            ):
                 raise ValueError(
                     f"Cannot execute phase '{phase_name}' - prior phase '{prior_phase}' not completed. "
                     f"Please complete phases in order: {' → '.join(phase_order)}"
                 )
 
         # For first phase only: Validate asset readiness
-        if phase_name == "readiness_assessment" or phase_name == "initialization":
+        if phase_name in ("readiness_assessment", "initialization"):
             selected_app_ids = flow_state.selected_application_ids or []
-            if selected_app_ids:
-                from app.services.integrations.discovery_integration import (
-                    DiscoveryFlowIntegration,
-                )
-
-                discovery_integration = DiscoveryFlowIntegration()
-                try:
-                    await discovery_integration.verify_applications_ready_for_assessment(
-                        db=self.crew_utils.db,
-                        application_ids=selected_app_ids,
-                        client_account_id=master_flow.client_account_id,
-                    )
-                    logger.info(
-                        f"✅ Phase prerequisite validation passed: "
-                        f"{len(selected_app_ids)} assets ready for '{phase_name}'"
-                    )
-                except ValueError as e:
-                    raise ValueError(
-                        f"Cannot execute phase '{phase_name}' - asset readiness check failed: {str(e)}"
-                    )
+            await validate_asset_readiness(
+                self.crew_utils.db, master_flow, phase_name, selected_app_ids
+            )
 
         logger.info(f"✅ All prerequisites met for phase '{phase_name}'")
 

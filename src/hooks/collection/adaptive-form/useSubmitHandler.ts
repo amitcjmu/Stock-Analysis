@@ -251,9 +251,10 @@ export function useSubmitHandler({
             : "Your answers have been saved. Returning to assessment flow...",
         });
 
-        // Redirect back to assessment flow
+        // Redirect back to assessment flow architecture page
+        // Using the assessment flow ID to return to the correct assessment
         setTimeout(() => {
-          window.location.href = `/assess/overview?flowId=${assessmentFlowId}`;
+          window.location.href = `/assessment/${assessmentFlowId}/architecture`;
         }, 2000);
 
         return; // Exit early - don't check for more questionnaires
