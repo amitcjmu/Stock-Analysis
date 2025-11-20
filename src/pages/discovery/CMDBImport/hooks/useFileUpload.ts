@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';
-import { parseCsvFile, type CsvRecord } from '@/utils/csvParser';
+import { parseCsvFile, parseCsvData, type CsvRecord } from '@/utils/csvParser';
 import type { UploadFile } from '../CMDBImport.types';
 
 export const useFileUpload = (): JSX.Element => {
