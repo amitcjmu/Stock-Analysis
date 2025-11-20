@@ -328,6 +328,8 @@ async def get_adaptive_questionnaires(
                         "questionnaire"
                     ):
                         bootstrap_q = bootstrap_result["questionnaire"]
+                        # Ensure bootstrap is committed (defense-in-depth)
+                        await db.commit()
                         logger.info(
                             f"Successfully generated bootstrap questionnaire for flow {flow_id}"
                         )

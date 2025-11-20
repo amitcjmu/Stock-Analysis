@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.context import RequestContext
 from app.core.rbac_utils import COLLECTION_CREATE_ROLES, require_role
@@ -239,6 +240,11 @@ def _update_flow_after_import(
         str(asset.id) for asset in created_assets if str(asset.id) not in existing_ids
     ]
     collection_flow.collection_config["selected_assets"][asset_key].extend(new_ids)
+
+    # CRITICAL: Tell SQLAlchemy the JSONB column changed (prevents mutation tracking issues)
+    # Bug #1102: Without flag_modified(), in-place dict modifications don't trigger DB updates
+    # This ensures bulk import config changes persist across requests
+    flag_modified(collection_flow, "collection_config")
 
     # Update flow status after successful import
     # Per ADR-012: Status reflects lifecycle, not phase
