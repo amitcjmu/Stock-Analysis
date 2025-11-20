@@ -84,7 +84,6 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   clientAccountId,
   engagementId,
   sessionInfo,
-  engagementId,
   canContinueToDataCleansing,
   onContinueToDataCleansing
 }) => {
@@ -425,8 +424,9 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           )}
         </>
       ) : (
-        /* Tabbed View */
-        <ThreeColumnFieldMapper
+        <>
+          {/* Tabbed View */}
+          <ThreeColumnFieldMapper
           fieldMappings={safeFieldMappings}
           availableFields={availableFields}
           onMappingAction={onMappingAction}
@@ -439,27 +439,12 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           learnedMappings={learnedMappings}
           clientAccountId={clientAccountId}
           engagementId={engagementId}
+          // Continue to data cleansing props
+          canContinueToDataCleansing={canContinueToDataCleansing}
+          onContinueToDataCleansing={onContinueToDataCleansing}
         />
+        </>
       )}
-    <div className="space-y-6">
-      <ThreeColumnFieldMapper
-        fieldMappings={safeFieldMappings}
-        availableFields={availableFields}
-        onMappingAction={onMappingAction}
-        onRemoveMapping={onRemoveMapping}
-        onMappingChange={onMappingChange}
-        onRefresh={onRefresh}
-        // Pass learning props to the mapper
-        onApproveMappingWithLearning={onApproveMappingWithLearning}
-        onRejectMappingWithLearning={onRejectMappingWithLearning}
-        onBulkLearnMappings={onBulkLearnMappings}
-        learnedMappings={learnedMappings}
-        clientAccountId={clientAccountId}
-        engagementId={engagementId}
-        // Continue to data cleansing props
-        canContinueToDataCleansing={canContinueToDataCleansing}
-        onContinueToDataCleansing={onContinueToDataCleansing}
-      />
     </div>
   );
 };

@@ -43,7 +43,6 @@ def upgrade() -> None:
     if not table_exists("data_cleansing_recommendations", schema="migration"):
         op.create_table(
             "data_cleansing_recommendations",
-            schema="migration",
             sa.Column(
                 "id",
                 postgresql.UUID(as_uuid=True),
@@ -85,6 +84,7 @@ def upgrade() -> None:
                 nullable=False,
                 server_default=sa.text("NOW()"),
             ),
+            schema="migration",
         )
 
         # Create indexes

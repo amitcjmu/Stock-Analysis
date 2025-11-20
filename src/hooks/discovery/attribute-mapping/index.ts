@@ -1,5 +1,8 @@
 // Main hooks
-export { useAttributeMappingLogicModular, useAttributeMappingLogic } from './useAttributeMappingLogicModular';
+export {
+  useAttributeMappingLogicModular,
+  useAttributeMappingLogic,
+} from './useAttributeMappingLogicModular';
 export { useAttributeMappingComposition } from './useAttributeMappingComposition';
 
 // Specialized hooks
@@ -15,4 +18,15 @@ export { useSmartFlowResolver } from './useSmartFlowResolver';
 export { usePhaseAwareFlowResolver } from './usePhaseAwareFlowResolver';
 
 // Types (re-export from centralized types file)
-export type * from './types';
+export type {
+  FlowDetectionResult,
+  FieldMapping,
+  FieldMappingsResult,
+  ImportDataResult,
+  CriticalAttribute,
+  CriticalAttributesResult,
+  AttributeMappingActionsResult,
+  MappingProgress,
+  AttributeMappingStateResult,
+  AttributeMappingLogicResult,
+} from './types';
