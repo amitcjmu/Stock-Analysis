@@ -210,15 +210,42 @@ class ImportProcessorBackgroundRunner:
                 )
                 return
 
+            # Qodo bot: Provide actionable context in success response
+            validation_result = result.get("validation", {})
+            enrichment_result = result.get("enrichment", {})
+            validation_errors = validation_result.get("validation_errors", [])
+            warnings = validation_result.get("warnings", [])
+            unmatched_components = enrichment_result.get("unmatched_components", 0)
+
+            phase_data = {
+                "message": f"{import_category} import enrichment completed",
+                "validation": validation_result,
+                "enrichment": enrichment_result,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+
+            # Add actionable context for partial failures
+            if validation_errors:
+                phase_data["actionable_context"] = (
+                    f"Import completed with {len(validation_errors)} validation error(s). "
+                    "Please review the validation errors and correct your data."
+                )
+            if unmatched_components > 0:
+                phase_data["actionable_context"] = (
+                    f"Import completed but {unmatched_components} component(s) could not be matched. "
+                    "These may need manual review or additional data."
+                )
+            if warnings:
+                phase_data["warnings_count"] = len(warnings)
+                phase_data["actionable_context"] = (
+                    f"Import completed with {len(warnings)} warning(s). "
+                    "Please review warnings for data quality issues."
+                )
+
             await update_flow_status(
                 flow_id=master_flow_id,
                 status="completed",
-                phase_data={
-                    "message": f"{import_category} import enrichment completed",
-                    "validation": result.get("validation"),
-                    "enrichment": result.get("enrichment"),
-                    "timestamp": datetime.utcnow().isoformat(),
-                },
+                phase_data=phase_data,
                 context=context,
             )
 
@@ -232,16 +259,42 @@ class ImportProcessorBackgroundRunner:
                 exc_info=True,  # Full stack trace in logs
             )
 
-            # Sanitize error message before exposing to users
+            # Qodo bot: Provide actionable context in error response
             sanitized_message = _sanitize_error_message(exc, import_category)
+
+            # Extract actionable context from exception if available
+            actionable_context = sanitized_message
+            if hasattr(exc, "validation_errors") and exc.validation_errors:
+                actionable_context = (
+                    f"{sanitized_message} "
+                    f"Found {len(exc.validation_errors)} validation error(s). "
+                    "Please review your data format and required fields."
+                )
+            elif "validation" in str(exc).lower():
+                actionable_context = (
+                    f"{sanitized_message} "
+                    "Please check your data format and ensure all required fields are present."
+                )
+            elif "database" in str(exc).lower() or "connection" in str(exc).lower():
+                actionable_context = (
+                    f"{sanitized_message} "
+                    "This appears to be a temporary system issue. Please try again in a few moments."
+                )
 
             await update_flow_status(
                 flow_id=master_flow_id,
                 status="failed",
                 phase_data={
                     "error": sanitized_message,
+                    "actionable_context": actionable_context,
                     "error_type": type(exc).__name__,  # Type only, not full message
                     "timestamp": datetime.utcnow().isoformat(),
+                    "troubleshooting_steps": [
+                        "Verify your data format matches the expected schema",
+                        "Check that all required fields are present",
+                        "Ensure data values are in the correct format (e.g., numbers, dates)",
+                        "If the issue persists, contact support with the error type and timestamp",
+                    ],
                 },
                 context=context,
             )

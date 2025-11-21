@@ -46,10 +46,16 @@ class GenericCommandMixin:
             return []
 
         # Validate all asset IDs exist in a single query
-        # SKIP_TENANT_CHECK: Asset IDs are already tenant-scoped (passed from caller)
-        # These IDs were created in the same tenant context and are validated upstream
+        # Qodo bot: Add tenant filters for defense-in-depth (even though IDs are tenant-scoped upstream)
         all_ids = [UUID(source_asset_id)] + [UUID(tid) for tid in target_asset_ids]
-        stmt = select(Asset).where(Asset.id.in_(all_ids))  # SKIP_TENANT_CHECK
+        stmt = select(Asset).where(
+            Asset.id.in_(all_ids)
+        )  # SKIP_TENANT_CHECK: Conditional filters added below
+        # Add tenant filters for defense-in-depth security
+        if hasattr(self, "client_account_id") and self.client_account_id:
+            stmt = stmt.where(Asset.client_account_id == UUID(self.client_account_id))
+        if hasattr(self, "engagement_id") and self.engagement_id:
+            stmt = stmt.where(Asset.engagement_id == UUID(self.engagement_id))
         result = await self.db.execute(stmt)
         found_assets = {str(asset.id): asset for asset in result.scalars().all()}
 
@@ -67,15 +73,26 @@ class GenericCommandMixin:
             )
 
         # Check for existing dependencies to avoid duplicates
-        # SKIP_TENANT_CHECK: Asset IDs are already tenant-scoped (passed from caller)
-        existing_stmt = select(AssetDependency).where(
+        # Qodo bot: Add tenant filters for defense-in-depth security
+        existing_stmt = select(
+            AssetDependency
+        ).where(  # SKIP_TENANT_CHECK: Conditional filters added below
             and_(
                 AssetDependency.asset_id == UUID(source_asset_id),
                 AssetDependency.depends_on_asset_id.in_(
                     [UUID(tid) for tid in target_asset_ids]
                 ),
             )
-        )  # SKIP_TENANT_CHECK
+        )
+        # Add tenant filters for defense-in-depth security
+        if hasattr(self, "client_account_id") and self.client_account_id:
+            existing_stmt = existing_stmt.where(
+                AssetDependency.client_account_id == UUID(self.client_account_id)
+            )
+        if hasattr(self, "engagement_id") and self.engagement_id:
+            existing_stmt = existing_stmt.where(
+                AssetDependency.engagement_id == UUID(self.engagement_id)
+            )
         existing_result = await self.db.execute(existing_stmt)
         existing_deps = {
             str(dep.depends_on_asset_id): dep for dep in existing_result.scalars().all()
@@ -155,25 +172,41 @@ class GenericCommandMixin:
             Created AssetDependency object
         """
         # Validate both assets exist
-        assets = await self.db.execute(
-            # SKIP_TENANT_CHECK - Service-level/monitoring query
-            select(Asset).where(Asset.id.in_([source_asset_id, target_asset_id]))
-        )
+        # Qodo bot: Add tenant filters for defense-in-depth security
+        stmt = select(Asset).where(
+            Asset.id.in_([source_asset_id, target_asset_id])
+        )  # SKIP_TENANT_CHECK: Conditional filters added below
+        # Add tenant filters for defense-in-depth security
+        if hasattr(self, "client_account_id") and self.client_account_id:
+            stmt = stmt.where(Asset.client_account_id == UUID(self.client_account_id))
+        if hasattr(self, "engagement_id") and self.engagement_id:
+            stmt = stmt.where(Asset.engagement_id == UUID(self.engagement_id))
+        assets = await self.db.execute(stmt)
 
         found_assets = list(assets.scalars())
         if len(found_assets) != 2:
             raise ValueError(f"Invalid asset IDs: {source_asset_id}, {target_asset_id}")
 
         # Check if dependency already exists
-        existing = await self.db.execute(
-            # SKIP_TENANT_CHECK - Service-level/monitoring query
-            select(AssetDependency).where(
-                and_(
-                    AssetDependency.asset_id == source_asset_id,
-                    AssetDependency.depends_on_asset_id == target_asset_id,
-                )
+        # Qodo bot: Add tenant filters for defense-in-depth security
+        existing_stmt = select(
+            AssetDependency
+        ).where(  # SKIP_TENANT_CHECK: Conditional filters added below
+            and_(
+                AssetDependency.asset_id == source_asset_id,
+                AssetDependency.depends_on_asset_id == target_asset_id,
             )
         )
+        # Add tenant filters for defense-in-depth security
+        if hasattr(self, "client_account_id") and self.client_account_id:
+            existing_stmt = existing_stmt.where(
+                AssetDependency.client_account_id == UUID(self.client_account_id)
+            )
+        if hasattr(self, "engagement_id") and self.engagement_id:
+            existing_stmt = existing_stmt.where(
+                AssetDependency.engagement_id == UUID(self.engagement_id)
+            )
+        existing = await self.db.execute(existing_stmt)
 
         existing_dep = existing.scalar()
         if existing_dep:

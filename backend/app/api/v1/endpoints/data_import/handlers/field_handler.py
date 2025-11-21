@@ -545,35 +545,23 @@ async def get_available_target_fields(
             f"{len(skipped_wrong_category)} wrong category"
         )
 
-        # Final verification - log actual field names being returned
-        if len(fields) <= 20:  # Only log if manageable number
-            returned_field_names = [f.get("name") for f in fields]
-            logger.info(f"📋 Fields being returned: {returned_field_names}")
+        # Summary-level logging only (Qodo bot: reduce excessive logging)
+        logger.info(
+            f"📋 Returning {len(fields)} fields for category '{normalized_category}'"
+        )
 
-        # Debug logging for app_discovery to verify correct fields
+        # Summary logging for app_discovery (counts only, no field names)
         if normalized_category == "app_discovery":
-            asset_field_names = [
-                f["name"] for f in filtered_fields if f.get("category") != "dependency"
-            ]
-            dependency_field_names = [
-                f["name"] for f in filtered_fields if f.get("category") == "dependency"
-            ]
-            dep_fields_display = (
-                dependency_field_names[:10]
-                if len(dependency_field_names) > 10
-                else dependency_field_names
+            asset_field_count = sum(
+                1 for f in filtered_fields if f.get("category") != "dependency"
+            )
+            dependency_field_count = sum(
+                1 for f in filtered_fields if f.get("category") == "dependency"
             )
             logger.info(
-                f"📊 app_discovery fields breakdown: {len(asset_field_names)} asset fields "
-                f"({asset_field_names}), {len(dependency_field_names)} dependency fields "
-                f"({dep_fields_display})"
+                f"📊 app_discovery fields: {asset_field_count} asset fields, "
+                f"{dependency_field_count} dependency fields"
             )
-
-            # Log first few skipped fields to understand what's being filtered out
-            if skipped_wrong_category:
-                logger.info(
-                    f"🚫 Sample skipped fields (not for app_discovery): {skipped_wrong_category[:5]}"
-                )
 
         # Group fields by category
         categories = {}

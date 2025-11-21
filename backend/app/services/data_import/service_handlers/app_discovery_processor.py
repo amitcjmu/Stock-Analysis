@@ -146,39 +146,17 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
 
         Returns dict with: port, protocol_name, conn_count, bytes_total, first_seen, last_seen
         """
-        component_name = record.get("component_name", "unknown")
-        dep_target = record.get("dependency_target", "unknown")
-        self.logger.info(
-            f"🔍 [DEPENDENCY EXTRACTION] Processing dependency for "
-            f"{component_name} → {dep_target}"
-        )
-        self.logger.info(
-            f"📋 [DEPENDENCY EXTRACTION] All record keys: {sorted(list(record.keys()))}"
-        )
-
+        # Summary-level logging only (Qodo bot: reduce sensitive logging)
         # Extract port
         port_raw = record.get("port") or record.get("Port") or record.get("PORT")
-        self.logger.info(
-            f"🔍 [PORT] Raw port value: {port_raw} "
-            f"(type: {type(port_raw)}, repr: {repr(port_raw)})"
-        )
         port = None
         if port_raw is not None:
             try:
                 if isinstance(port_raw, int):
                     port = port_raw
-                    self.logger.info(f"✅ [PORT] Port is already int: {port}")
                 else:
                     port = int(float(str(port_raw).strip()))
-                    self.logger.info(
-                        f"✅ [PORT] Parsed port: {port} "
-                        f"(from '{port_raw}' type={type(port_raw)})"
-                    )
-            except (ValueError, TypeError) as e:
-                self.logger.warning(
-                    f"⚠️ [PORT] Failed to parse port '{port_raw}' "
-                    f"(type={type(port_raw)}): {e}"
-                )
+            except (ValueError, TypeError):
                 port = None
 
         # Extract protocol
@@ -187,7 +165,6 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
             or record.get("protocol")
             or record.get("Protocol")
         )
-        self.logger.info(f"🔍 [PROTOCOL] protocol_name: {protocol_name}")
 
         # Extract connection count
         conn_count_raw = (
@@ -197,45 +174,16 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
             or record.get("connectionCount")
             or record.get("connCount")
         )
-        self.logger.info(
-            f"🔍 [CONN_COUNT] Raw value: {conn_count_raw} "
-            f"(type: {type(conn_count_raw)}, repr: {repr(conn_count_raw)})"
-        )
-        conn_val = record.get("conn_count")
-        conn_count_val = record.get("connection_count")
-        conn_count_title = record.get("Connection Count")
-        self.logger.info(
-            f"🔍 [CONN_COUNT] Tried keys: conn_count={conn_val}, "
-            f"connection_count={conn_count_val}, "
-            f"Connection Count={conn_count_title}"
-        )
 
         conn_count = None
         if conn_count_raw is not None:
             try:
                 if isinstance(conn_count_raw, int):
                     conn_count = conn_count_raw
-                    self.logger.info(
-                        f"✅ [CONN_COUNT] conn_count is already int: {conn_count}"
-                    )
                 else:
                     conn_count = int(float(str(conn_count_raw).strip()))
-                    self.logger.info(
-                        f"✅ [CONN_COUNT] Parsed: {conn_count} "
-                        f"(from '{conn_count_raw}' type={type(conn_count_raw)})"
-                    )
-            except (ValueError, TypeError) as e:
-                self.logger.warning(
-                    f"⚠️ [CONN_COUNT] Failed to parse '{conn_count_raw}' "
-                    f"(type={type(conn_count_raw)}): {e}"
-                )
+            except (ValueError, TypeError):
                 conn_count = None
-        else:
-            record_keys = list(record.keys())
-            self.logger.warning(
-                f"⚠️ [CONN_COUNT] conn_count is None - not found. "
-                f"Record keys: {record_keys}"
-            )
 
         # Extract bytes_total
         bytes_total_raw = (
@@ -256,12 +204,6 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
         # Extract timestamps
         first_seen = record.get("first_seen")
         last_seen = record.get("last_seen")
-
-        self.logger.info(
-            f"📊 [DEPENDENCY EXTRACTION] Final extracted values: "
-            f"port={port}, protocol_name={protocol_name}, conn_count={conn_count}, "
-            f"bytes_total={bytes_total}, first_seen={first_seen}, last_seen={last_seen}"
-        )
 
         return {
             "port": port,
