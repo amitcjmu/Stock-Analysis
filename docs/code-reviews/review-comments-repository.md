@@ -111,14 +111,14 @@ await update_flow_status(
 ### ❌ Generic Error Messages Without Context
 **Issue:** Error messages lack actionable context, making debugging difficult for users  
 **Why:** Users can't resolve issues without understanding what went wrong  
-**Example:** `"An error occurred"` without indicating what operation failed  
+**Example:** `"An error occurred"` or `"Failed to read file"` without context  
 **Check:**
 - Include operation context: `"Failed to validate uploaded file"`
 - Include affected resource: `"Record at row 5 missing required field 'server_name'"`
-- Include next steps: `"Please check file format and try again"`
+- Include troubleshooting steps: `"Please check file format and try again"`
 - Balance detail with security (don't expose internal details)
 
-**Reference:** PR #1046 - Qodo review on generic failure paths
+**Reference:** PR #1046 - Qodo review on generic failure paths; PR #1091 - CSV parsing error handling
 
 ---
 
@@ -132,16 +132,33 @@ await update_flow_status(
 
 **Reference:** PR #581 - flow_processing_converters.py lines 74-80
 
+### ❌ Field Naming Convention Violation (camelCase vs snake_case)
+**Issue:** Frontend using camelCase for API fields when backend returns snake_case  
+**Why:** Field name mismatches cause data loss, silent failures, recurring bugs  
+**Example:** `cleansingStats` vs `cleansing_stats`, `totalRows` vs `total_rows`  
+**Check:** Frontend SHOULD use snake_case fields to match backend for all NEW code; Check interface definitions match backend schemas
+
+**Reference:** PR #1091 - Qodo bot BLOCKING review on field naming convention
+
+### ❌ Missing Enum Values
+**Issue:** Code references enum value that doesn't exist in enum definition  
+**Why:** Runtime AttributeError, flow breaks silently  
+**Example:** `if action == PhaseAction.COMPLETE:` but `COMPLETE` not defined in enum  
+**Check:** When checking enum values, verify they exist in enum definition; When adding enum checks, ensure corresponding value exists
+
+**Reference:** PR #1107 - PhaseAction enum missing COMPLETE value
+
 ### ❌ Magic Numbers
-**Issue:** Hardcoded numbers in calculations without context (e.g., `/ 6`, `* 100`)  
+**Issue:** Hardcoded numbers in calculations without context (e.g., `/ 6`, `* 100`, `10`)  
 **Why:** Unclear meaning, hard to update if value changes, poor maintainability  
-**Example:** `progress = round((completed / 6) * 100, 1)`  
+**Example:** `progress = round((completed / 6) * 100, 1)` or `parseCsvFileForDiscovery(file, 10)`  
 **Check:** 
 - Define named constants at module level
-- Use descriptive names: `TOTAL_DISCOVERY_PHASES = 6`
+- Use descriptive names: `TOTAL_DISCOVERY_PHASES = 6`, `DISCOVERY_SAMPLE_ROWS = 10`
 - Add comments explaining the constant
+- Replace ALL hardcoded numbers, even in function calls
 
-**Reference:** PR #581 - operations.py lines 303, 388
+**Reference:** PR #581 - operations.py lines 303, 388; PR #1091 - useCMDBImport.ts line 88
 
 ---
 
@@ -537,9 +554,9 @@ Use this before submitting PRs:
 
 ---
 
-**Last Updated:** November 17, 2025  
+**Last Updated:** November 20, 2025  
 **Initial Contributors:** Ram, CryptoYogiLLC  
-**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance
+**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes
 
 ---
 

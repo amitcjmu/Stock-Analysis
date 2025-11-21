@@ -138,6 +138,140 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
             "normalized_records": normalization.normalized_records,
         }
 
+    def _extract_network_discovery_fields(
+        self, record: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Extract network discovery fields from record (Issue #833).
+
+        Returns dict with: port, protocol_name, conn_count, bytes_total, first_seen, last_seen
+        """
+        component_name = record.get("component_name", "unknown")
+        dep_target = record.get("dependency_target", "unknown")
+        self.logger.info(
+            f"🔍 [DEPENDENCY EXTRACTION] Processing dependency for "
+            f"{component_name} → {dep_target}"
+        )
+        self.logger.info(
+            f"📋 [DEPENDENCY EXTRACTION] All record keys: {sorted(list(record.keys()))}"
+        )
+
+        # Extract port
+        port_raw = record.get("port") or record.get("Port") or record.get("PORT")
+        self.logger.info(
+            f"🔍 [PORT] Raw port value: {port_raw} "
+            f"(type: {type(port_raw)}, repr: {repr(port_raw)})"
+        )
+        port = None
+        if port_raw is not None:
+            try:
+                if isinstance(port_raw, int):
+                    port = port_raw
+                    self.logger.info(f"✅ [PORT] Port is already int: {port}")
+                else:
+                    port = int(float(str(port_raw).strip()))
+                    self.logger.info(
+                        f"✅ [PORT] Parsed port: {port} "
+                        f"(from '{port_raw}' type={type(port_raw)})"
+                    )
+            except (ValueError, TypeError) as e:
+                self.logger.warning(
+                    f"⚠️ [PORT] Failed to parse port '{port_raw}' "
+                    f"(type={type(port_raw)}): {e}"
+                )
+                port = None
+
+        # Extract protocol
+        protocol_name = (
+            record.get("protocol_name")
+            or record.get("protocol")
+            or record.get("Protocol")
+        )
+        self.logger.info(f"🔍 [PROTOCOL] protocol_name: {protocol_name}")
+
+        # Extract connection count
+        conn_count_raw = (
+            record.get("conn_count")
+            or record.get("connection_count")
+            or record.get("Connection Count")
+            or record.get("connectionCount")
+            or record.get("connCount")
+        )
+        self.logger.info(
+            f"🔍 [CONN_COUNT] Raw value: {conn_count_raw} "
+            f"(type: {type(conn_count_raw)}, repr: {repr(conn_count_raw)})"
+        )
+        conn_val = record.get("conn_count")
+        conn_count_val = record.get("connection_count")
+        conn_count_title = record.get("Connection Count")
+        self.logger.info(
+            f"🔍 [CONN_COUNT] Tried keys: conn_count={conn_val}, "
+            f"connection_count={conn_count_val}, "
+            f"Connection Count={conn_count_title}"
+        )
+
+        conn_count = None
+        if conn_count_raw is not None:
+            try:
+                if isinstance(conn_count_raw, int):
+                    conn_count = conn_count_raw
+                    self.logger.info(
+                        f"✅ [CONN_COUNT] conn_count is already int: {conn_count}"
+                    )
+                else:
+                    conn_count = int(float(str(conn_count_raw).strip()))
+                    self.logger.info(
+                        f"✅ [CONN_COUNT] Parsed: {conn_count} "
+                        f"(from '{conn_count_raw}' type={type(conn_count_raw)})"
+                    )
+            except (ValueError, TypeError) as e:
+                self.logger.warning(
+                    f"⚠️ [CONN_COUNT] Failed to parse '{conn_count_raw}' "
+                    f"(type={type(conn_count_raw)}): {e}"
+                )
+                conn_count = None
+        else:
+            record_keys = list(record.keys())
+            self.logger.warning(
+                f"⚠️ [CONN_COUNT] conn_count is None - not found. "
+                f"Record keys: {record_keys}"
+            )
+
+        # Extract bytes_total
+        bytes_total_raw = (
+            record.get("bytes_total")
+            or record.get("bytes")
+            or record.get("Bytes Total")
+        )
+        bytes_total = None
+        if bytes_total_raw is not None:
+            try:
+                if isinstance(bytes_total_raw, int):
+                    bytes_total = bytes_total_raw
+                else:
+                    bytes_total = int(float(str(bytes_total_raw).strip()))
+            except (ValueError, TypeError):
+                bytes_total = None
+
+        # Extract timestamps
+        first_seen = record.get("first_seen")
+        last_seen = record.get("last_seen")
+
+        self.logger.info(
+            f"📊 [DEPENDENCY EXTRACTION] Final extracted values: "
+            f"port={port}, protocol_name={protocol_name}, conn_count={conn_count}, "
+            f"bytes_total={bytes_total}, first_seen={first_seen}, last_seen={last_seen}"
+        )
+
+        return {
+            "port": port,
+            "protocol_name": protocol_name,
+            "conn_count": conn_count,
+            "bytes_total": bytes_total,
+            "first_seen": first_seen,
+            "last_seen": last_seen,
+        }
+
     async def enrich_assets(
         self,
         data_import_id: uuid.UUID,
@@ -169,14 +303,39 @@ class ApplicationDiscoveryProcessor(BaseDataImportProcessor):
                 continue
 
             try:
-                await self.dependency_repository.create_dependency(
+                # Extract network discovery fields
+                network_fields = self._extract_network_discovery_fields(record)
+
+                self.logger.info(
+                    f"🚀 [CREATE_DEPENDENCY] Creating dependency: "
+                    f"source={source_asset.name} ({source_asset.id}) → "
+                    f"target={target_asset.name} ({target_asset.id}) with "
+                    f"port={network_fields['port']}, "
+                    f"conn_count={network_fields['conn_count']}, "
+                    f"protocol={network_fields['protocol_name']}"
+                )
+
+                dependency = await self.dependency_repository.create_dependency(
                     source_asset_id=str(source_asset.id),
                     target_asset_id=str(target_asset.id),
                     dependency_type=record.get("dependency_type")
                     or "application_dependency",
                     confidence_score=record.get("confidence_score") or 0.7,
                     description=self._build_dependency_description(record),
+                    port=network_fields["port"],
+                    protocol_name=network_fields["protocol_name"],
+                    conn_count=network_fields["conn_count"],
+                    bytes_total=network_fields["bytes_total"],
+                    first_seen=network_fields["first_seen"],
+                    last_seen=network_fields["last_seen"],
                 )
+
+                self.logger.info(
+                    f"✅ [CREATE_DEPENDENCY] Dependency created: ID={dependency.id}, "
+                    f"port={dependency.port}, conn_count={dependency.conn_count}, "
+                    f"protocol={dependency.protocol_name}"
+                )
+
                 dependencies_created += 1
             except Exception as exc:
                 self.logger.warning(

@@ -26,6 +26,7 @@ import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 import type { FieldMappingItem } from "@/types/api/discovery/field-mapping-types";
+import type { TargetField } from "@/contexts/FieldOptionsContext";
 
 // Import custom cell renderers
 import { MappingCellRenderer } from "./renderers/MappingCellRenderer";
@@ -108,8 +109,11 @@ export interface AttributeMappingAGGridProps {
   /** Imported data records */
   imported_data: ImportedDataRecord[];
 
-  /** Available target fields for mapping dropdown */
+  /** Available target fields for mapping dropdown (field names as strings) */
   available_target_fields: string[];
+
+  /** Optional: Full target field objects for display_name lookup */
+  available_target_fields_metadata?: TargetField[];
 
   /** Callback when user changes a field mapping */
   onMappingChange: (source_field: string, target_field: string) => void;
@@ -136,6 +140,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   field_mappings,
   imported_data,
   available_target_fields,
+  available_target_fields_metadata,
   onMappingChange,
   onApproveMapping,
   onRejectMapping,
@@ -390,6 +395,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
                 value={mappingData}
                 sourceField={source_field}
                 availableTargetFields={available_target_fields}
+                availableTargetFieldsMetadata={available_target_fields_metadata}
                 onSelect={onMappingChange}
                 onApprove={
                   mappingData?.mapping_id ? onApproveMapping : undefined
@@ -427,6 +433,7 @@ export const AttributeMappingAGGrid: React.FC<AttributeMappingAGGridProps> = ({
   }, [
     imported_data,
     available_target_fields,
+    available_target_fields_metadata,
     onMappingChange,
     onApproveMapping,
     onRejectMapping,

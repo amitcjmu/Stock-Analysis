@@ -107,10 +107,12 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
 
   // Use useTargetFields hook which supports flowId and importCategory
   // This replaces useFieldOptions() which required FieldOptionsProvider
+  console.log('📋 [FieldMappingsTab] useTargetFields called with:', { flowId, importCategory });
   const {
     fields: availableFields,
     isLoading: fieldsLoading,
   } = useTargetFields({ flowId, importCategory });
+  console.log('✅ [FieldMappingsTab] useTargetFields returned:', { fieldsCount: availableFields.length, importCategory });
 
   // Get flow_id from sessionInfo or flowId prop
   const flow_id = flowId || sessionInfo?.flowId;
@@ -421,6 +423,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
               field_mappings={safeFieldMappings}
               imported_data={importedData}
               available_target_fields={availableFields.map((f) => f.name)}
+              available_target_fields_metadata={availableFields}
               onMappingChange={handleMappingChangeForGrid}
               onApproveMapping={handleApproveMappingForGrid}
               onRejectMapping={handleRejectMappingForGrid}

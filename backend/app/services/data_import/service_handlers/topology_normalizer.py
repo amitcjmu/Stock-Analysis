@@ -143,10 +143,20 @@ def _normalize_single_record(
         "avg_latency_ms": _safe_float(record.get("avg_latency_ms")),
         "call_count": _safe_int(record.get("call_count")),
         "error_rate_percent": _safe_float(record.get("error_rate_percent")),
-        "port": _safe_int(record.get("port")),
+        "port": record.get(
+            "port"
+        ),  # Keep as original value, parse in processor (Issue #833: handle comma-separated numbers)
         "protocol": _safe_str(record.get("protocol")),
         "confidence_score": _safe_float(record.get("confidence_score"), default=0.7),
         "source_system": _safe_str(record.get("source_system") or source_system),
+        # Network Discovery Fields (Issue #833) - Preserve raw values, parse in processor
+        "conn_count": record.get("conn_count") or record.get("connection_count"),
+        "bytes_total": record.get("bytes_total") or record.get("bytes"),
+        "first_seen": record.get("first_seen"),  # Keep as string/date
+        "last_seen": record.get("last_seen"),  # Keep as string/date
+        "protocol_name": _safe_str(
+            record.get("protocol_name") or record.get("protocol")
+        ),
         "raw_record": record,
     }
     normalized["application_dependency"] = normalized.get("dependency_target")

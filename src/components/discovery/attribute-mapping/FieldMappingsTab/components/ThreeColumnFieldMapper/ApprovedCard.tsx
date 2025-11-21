@@ -8,9 +8,14 @@
 import React from 'react';
 import { ArrowRight, X } from 'lucide-react';
 import type { CardProps } from './types';
+import type { TargetField } from '../../types';
 import { formatFieldValue, formatTargetAttribute } from './mappingUtils';
 
-const ApprovedCard: React.FC<CardProps> = ({ mapping, onRemove }) => {
+interface ApprovedCardProps extends CardProps {
+  availableFields?: TargetField[];
+}
+
+const ApprovedCard: React.FC<ApprovedCardProps> = ({ mapping, onRemove, availableFields }) => {
   const handleRemoveClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click event
     if (onRemove && mapping?.id) {
@@ -35,7 +40,7 @@ const ApprovedCard: React.FC<CardProps> = ({ mapping, onRemove }) => {
           </span>
           <ArrowRight className="h-4 w-4 text-gray-400" />
           <span className="text-green-600 font-medium">
-            {formatTargetAttribute(mapping?.target_field ?? 'Unassigned')}
+            {formatTargetAttribute(mapping?.target_field ?? 'Unassigned', availableFields)}
           </span>
         </div>
 

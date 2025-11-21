@@ -135,7 +135,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
         ) : (
           <>
             <span className="font-medium text-blue-600">
-              {formatTargetAttribute(mapping.target_field)}
+              {formatTargetAttribute(mapping.target_field, availableFields)}
             </span>
             {availableFields && onMappingChange && (
               <button

@@ -12,6 +12,7 @@ export interface TargetField {
   description: string;
   category: string;
   is_custom?: boolean;
+  import_types?: string[]; // Array of import categories this field applies to (e.g., ["cmdb", "infrastructure"])
 }
 
 export interface FieldOptionsContextType {

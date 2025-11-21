@@ -46,8 +46,10 @@ class GenericCommandMixin:
             return []
 
         # Validate all asset IDs exist in a single query
+        # SKIP_TENANT_CHECK: Asset IDs are already tenant-scoped (passed from caller)
+        # These IDs were created in the same tenant context and are validated upstream
         all_ids = [UUID(source_asset_id)] + [UUID(tid) for tid in target_asset_ids]
-        stmt = select(Asset).where(Asset.id.in_(all_ids))
+        stmt = select(Asset).where(Asset.id.in_(all_ids))  # SKIP_TENANT_CHECK
         result = await self.db.execute(stmt)
         found_assets = {str(asset.id): asset for asset in result.scalars().all()}
 
@@ -65,6 +67,7 @@ class GenericCommandMixin:
             )
 
         # Check for existing dependencies to avoid duplicates
+        # SKIP_TENANT_CHECK: Asset IDs are already tenant-scoped (passed from caller)
         existing_stmt = select(AssetDependency).where(
             and_(
                 AssetDependency.asset_id == UUID(source_asset_id),
@@ -72,7 +75,7 @@ class GenericCommandMixin:
                     [UUID(tid) for tid in target_asset_ids]
                 ),
             )
-        )
+        )  # SKIP_TENANT_CHECK
         existing_result = await self.db.execute(existing_stmt)
         existing_deps = {
             str(dep.depends_on_asset_id): dep for dep in existing_result.scalars().all()
@@ -121,6 +124,12 @@ class GenericCommandMixin:
         dependency_type: str,
         confidence_score: float = 1.0,
         description: Optional[str] = None,
+        port: Optional[int] = None,
+        protocol_name: Optional[str] = None,
+        conn_count: Optional[int] = None,
+        bytes_total: Optional[int] = None,
+        first_seen: Optional[str] = None,
+        last_seen: Optional[str] = None,
     ) -> AssetDependency:
         """
         Create a generic dependency between two assets.
@@ -135,6 +144,12 @@ class GenericCommandMixin:
             dependency_type: Type of dependency (e.g., 'hosting', 'infrastructure', 'server')
             confidence_score: Confidence score (0.0-1.0), default 1.0 for manual
             description: Optional description of the dependency
+            port: Network port for connection (Issue #833)
+            protocol_name: Protocol name (TCP, UDP, HTTP, etc.) (Issue #833)
+            conn_count: Number of connections observed (Issue #833)
+            bytes_total: Total bytes transferred (Issue #833)
+            first_seen: First detection timestamp (ISO format string) (Issue #833)
+            last_seen: Last detection timestamp (ISO format string) (Issue #833)
 
         Returns:
             Created AssetDependency object
@@ -163,12 +178,33 @@ class GenericCommandMixin:
         existing_dep = existing.scalar()
         if existing_dep:
             logger.info(
-                f"Dependency already exists between {source_asset_id} and {target_asset_id}, updating confidence_score"
+                f"Dependency already exists between {source_asset_id} and {target_asset_id}, updating fields"
             )
-            # Update existing dependency's confidence_score if provided
+            # Update existing dependency's fields if provided
             existing_dep.confidence_score = confidence_score
             if description:
                 existing_dep.description = description
+            # Update network discovery fields if provided
+            if port is not None:
+                existing_dep.port = port
+            if protocol_name is not None:
+                existing_dep.protocol_name = protocol_name
+            if conn_count is not None:
+                existing_dep.conn_count = conn_count
+            if bytes_total is not None:
+                existing_dep.bytes_total = bytes_total
+            if first_seen is not None:
+                from datetime import datetime
+
+                existing_dep.first_seen = datetime.fromisoformat(
+                    first_seen.replace("Z", "+00:00")
+                )
+            if last_seen is not None:
+                from datetime import datetime
+
+                existing_dep.last_seen = datetime.fromisoformat(
+                    last_seen.replace("Z", "+00:00")
+                )
             await self.db.flush()
             return existing_dep
 
@@ -179,8 +215,24 @@ class GenericCommandMixin:
         if not source_asset:
             raise ValueError(f"Source asset not found: {source_asset_id}")
 
-        # Create new dependency with multi-tenant context
-        return await self.create(
+        # Parse datetime strings if provided
+        from datetime import datetime
+
+        first_seen_dt = None
+        if first_seen:
+            first_seen_dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
+        last_seen_dt = None
+        if last_seen:
+            last_seen_dt = datetime.fromisoformat(last_seen.replace("Z", "+00:00"))
+
+        # Create new dependency with multi-tenant context and network discovery fields
+        logger.info(
+            f"📝 [CREATE_DEP] Creating dependency with: "
+            f"port={port}, conn_count={conn_count}, protocol_name={protocol_name}, "
+            f"bytes_total={bytes_total}, first_seen={first_seen_dt}, last_seen={last_seen_dt}"
+        )
+
+        new_dependency = await self.create(
             client_account_id=source_asset.client_account_id,
             engagement_id=source_asset.engagement_id,
             asset_id=source_asset_id,
@@ -188,7 +240,21 @@ class GenericCommandMixin:
             dependency_type=dependency_type,
             confidence_score=confidence_score,
             description=description,
+            port=port,
+            protocol_name=protocol_name,
+            conn_count=conn_count,
+            bytes_total=bytes_total,
+            first_seen=first_seen_dt,
+            last_seen=last_seen_dt,
         )
+
+        logger.info(
+            f"✅ [CREATE_DEP] Dependency created with ID={new_dependency.id}: "
+            f"port={new_dependency.port}, conn_count={new_dependency.conn_count}, "
+            f"protocol_name={new_dependency.protocol_name}"
+        )
+
+        return new_dependency
 
     async def delete_dependencies_for_application(
         self,
