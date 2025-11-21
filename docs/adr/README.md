@@ -39,6 +39,9 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-032](032-jwt-refresh-token-security-architecture.md) | JWT Refresh Token Security Architecture | Accepted | 2025-10-30 |
 | [ADR-033](033-context-establishment-service-modularization.md) | Context Establishment Service Modularization | Accepted | 2025-10-30 |
 | [ADR-034](034-asset-centric-questionnaire-deduplication.md) | Asset-Centric Questionnaire Deduplication | Accepted | 2025-11-06 |
+| [ADR-035](035-per-asset-per-section-questionnaire-generation-with-redis.md) | Per-Asset, Per-Section Questionnaire Generation with Redis | Accepted | 2025-11-11 |
+| [ADR-036](036-canonical-application-junction-table-architecture.md) | Canonical Application Junction Table Architecture | Accepted | 2025-11-12 |
+| [ADR-037](037-intelligent-gap-detection-and-questionnaire-generation.md) | Intelligent Gap Detection and Questionnaire Generation Architecture | Proposed | 2025-11-20 |
 
 ## ADR Template
 

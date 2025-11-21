@@ -18,7 +18,8 @@ export const useFileUpload = (): JSX.Element => {
     csvData: CsvRecord[],
     file: File,
     uploadId: string,
-    categoryId: string
+    categoryId: string,
+    cleansing_stats?: { total_rows: number; rows_cleansed: number; rows_skipped: number }
   ): Promise<{import_flow_id: string | null, flow_id: string | null}> => {
     if (!uploadId) {
       console.error('No upload ID available for storing data.');
@@ -61,6 +62,11 @@ export const useFileUpload = (): JSX.Element => {
           },
           client_id: effectiveClient?.id || null,
           engagement_id: effectiveEngagement?.id || null,
+          cleansing_stats: cleansing_stats ? {
+            total_rows: cleansing_stats.total_rows,
+            rows_cleansed: cleansing_stats.rows_cleansed,
+            rows_skipped: cleansing_stats.rows_skipped,
+          } : undefined,
         }),
       });
 
@@ -200,11 +206,13 @@ export const useFileUpload = (): JSX.Element => {
       console.log(`Parsed ${csvData.length} records from CSV file`);
 
       // Alert user if data cleansing occurred (commas replaced with spaces)
-      if (cleansing_stats?.rows_cleansed > 0) {
+      if (cleansing_stats && cleansing_stats.rows_cleansed > 0) {
+        console.log(`📢 Data cleansing applied: ${cleansing_stats.rows_cleansed} row(s) cleaned`);
         toast({
           title: "Data Cleansing Applied",
           description: `Unquoted commas in text fields were replaced with spaces to ensure column alignment with imported data. ${cleansing_stats.rows_cleansed} row(s) were cleaned.`,
           variant: "default",
+          duration: 10000, // Show for 10 seconds so user can read it
         });
       }
 
@@ -250,7 +258,7 @@ export const useFileUpload = (): JSX.Element => {
       });
 
 
-      const { import_flow_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
+      const { import_flow_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId, cleansing_stats);
 
       console.log('🔍 Flow IDs returned from storeImportData:', {
         import_flow_id,

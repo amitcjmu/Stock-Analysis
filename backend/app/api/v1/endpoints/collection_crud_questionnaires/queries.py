@@ -389,7 +389,9 @@ async def get_adaptive_questionnaires(
                                     }
                                 ],
                                 validation_rules={},
-                                completion_status="pending",
+                                # Changed from "pending" to "ready" so frontend
+                                # shows message instead of loading spinner
+                                completion_status="ready",
                                 responses_collected={},
                                 created_at=datetime.now(timezone.utc),
                                 completed_at=None,
