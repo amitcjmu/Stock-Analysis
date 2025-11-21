@@ -293,7 +293,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
     checkForConflicts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flowId, flow?.phase_state]);
+  }, [flowId, flow?.phase_state, flow?.status]);
 
   // CRITICAL FIX: Close conflict modal if flow becomes terminal while modal is open
   React.useEffect(() => {

@@ -72,7 +72,7 @@ const Inventory = (): JSX.Element => {
       console.log(`⚠️ Closing preview modal: Flow became terminal state (${flowStatus})`);
       setShowPreviewModal(false);
     }
-  }, [showPreviewModal, isFlowTerminal, flowStatus]);
+  }, [showPreviewModal, isFlowTerminalState]);
 
   // Debug info for flow detection
   console.log('🔍 Inventory flow detection:', {
