@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from app.models.asset import Asset
 from app.models.data_import import DataImport
 from .field_metadata import (
     INTERNAL_SYSTEM_FIELDS,
@@ -170,9 +171,6 @@ def generate_display_name_from_field_name(field_name: str) -> str:
 async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
     """Get actual fields from the assets table schema."""
     try:
-        # Get Asset model for metadata extraction
-        from app.models.asset import Asset
-
         # Get table schema information
         result = await db.execute(
             text(
@@ -612,9 +610,13 @@ async def get_available_target_fields(
         }
 
     except Exception as e:
-        logger.error(f"Error getting available target fields: {e}")
+        logger.error(f"Error getting available target fields: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve target fields: {str(e)}"
+            status_code=500,
+            detail=(
+                "Failed to retrieve target fields. "
+                "Please check that the database connection is available and try again."
+            ),
         )
 
 
@@ -634,7 +636,11 @@ async def get_target_field_categories(
         return {"success": True, "categories": categories, "total": len(categories)}
 
     except Exception as e:
-        logger.error(f"Error getting field categories: {e}")
+        logger.error(f"Error getting field categories: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve field categories: {str(e)}"
+            status_code=500,
+            detail=(
+                "Failed to retrieve field categories. "
+                "Please check that the database connection is available and try again."
+            ),
         )
