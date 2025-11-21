@@ -325,6 +325,30 @@ logger.error("Validation failed", extra={
 **Example:** Test doesn't verify behavior when API call fails  
 **Check:** Test both success and failure scenarios
 
+### ❌ Missing E2E Tests for New Workflows
+**Issue:** New features/workflows only have unit tests, missing end-to-end user journey tests  
+**Why:** Unit tests verify individual functions, but don't validate complete user workflows; Common review comment - reviewers expect E2E coverage for new features  
+**Example:** Added new import type (app-discovery) with backend logic and frontend UI, but no E2E test covering the complete workflow  
+**Check:**
+- For new workflows/features, create E2E tests in `tests/e2e/` directory
+- Test complete user journey: login → upload → processing → results
+- Focus on workflow completion, not specific field values
+- Follow existing E2E test patterns (see `tests/e2e/discovery/` for examples)
+- Verify UI interactions and navigation work correctly
+
+**E2E Test Pattern:**
+```typescript
+// ✅ GOOD: Complete workflow E2E test
+test('should complete app-discovery import workflow', async ({ page }) => {
+  await page.goto('/discovery/cmdb-import');
+  // Upload file, verify attribute mapping, verify completion
+  // Focus on workflow, not specific field values
+  await expect(page.locator('[data-testid="import-complete"]')).toBeVisible();
+});
+```
+
+**Reference:** PR #1046 - Multi-Type Data Import Feature (common review comment pattern)
+
 ---
 
 ## Performance Considerations
@@ -531,6 +555,7 @@ Use this before submitting PRs:
 - [ ] Manual verification completed
 - [ ] **Refactoring integrity verified (line counts, field counts, signature preservation)**
 - [ ] **Used Cursor tools (grep, codebase_search) to verify completeness**
+- [ ] **E2E tests added for new workflows/features (not just unit tests)**
 
 ---
 
@@ -554,9 +579,9 @@ Use this before submitting PRs:
 
 ---
 
-**Last Updated:** November 20, 2025  
+**Last Updated:** November 21, 2025  
 **Initial Contributors:** Ram, CryptoYogiLLC  
-**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes
+**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes, #1046 - Multi-Type Data Import Feature
 
 ---
 
