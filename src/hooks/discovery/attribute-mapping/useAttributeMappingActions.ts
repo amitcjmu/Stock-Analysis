@@ -567,6 +567,15 @@ export const useAttributeMappingActions = (
 
   // Practical validation for continuing to data cleansing - no dependency on agent decisions
   const canContinueToDataCleansing = useCallback(() => {
+    // CRITICAL FIX: Check if flow is in terminal state - disable navigation for completed/cancelled flows
+    const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
+    const flowStatus = (flow as FlowUpdate | DiscoveryFlowData | { status?: string })?.status;
+
+    if (flowStatus && TERMINAL_STATES.includes(flowStatus.toLowerCase())) {
+      console.log(`❌ Cannot continue: Flow is in terminal state (${flowStatus})`);
+      return false;
+    }
+
     // Ensure we have field mappings first - critical check
     if (!fieldMappings || fieldMappings.length === 0) {
       console.log('❌ No field mappings available - cannot continue');

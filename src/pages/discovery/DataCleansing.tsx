@@ -538,9 +538,17 @@ const DataCleansing: React.FC = () => {
   // 2. All questions answered and has progress OR
   // 3. No data to cleanse (total_records === 0) and phase is current
   const noDataToProcess = cleansingProgress.total_records === 0 && currentPhase === 'data_cleansing';
-  const canContinueToInventory = isDataCleansingComplete ||
+
+  // CRITICAL FIX: Check if flow is in terminal state - disable navigation for completed/cancelled flows
+  const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
+  const flowStatus = flow?.status;
+  const isFlowTerminal = flowStatus ? TERMINAL_STATES.includes(flowStatus.toLowerCase()) : false;
+
+  const canContinueToInventory = !isFlowTerminal && (
+    isDataCleansingComplete ||
     (allQuestionsAnswered && hasMinimumProgress) ||
-    (noDataToProcess && allQuestionsAnswered);
+    (noDataToProcess && allQuestionsAnswered)
+  );
 
   // Enhanced data samples for display - extract from flow state with proper type casting
   const rawDataSample = flow?.raw_data?.slice(0, 3) || [];

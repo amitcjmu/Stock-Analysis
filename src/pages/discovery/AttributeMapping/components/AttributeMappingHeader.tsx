@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity, CheckCircle } from 'lucide-react';
+import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity, CheckCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AttributeMappingState } from '../types';
@@ -43,6 +43,11 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
 }) => {
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
 
+  // CRITICAL FIX: Disable Execute button when flow is in terminal state
+  // Terminal states: completed, cancelled, failed, aborted, deleted
+  const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
+  const isFlowTerminal = flowStatus ? TERMINAL_STATES.includes(flowStatus.toLowerCase()) : false;
+
   // Count mappings that need review
   // CC FIX: Align filter logic with ThreeColumnFieldMapper's categorization
   // Must match the "Needs Review" column logic in mappingUtils.ts
@@ -63,8 +68,22 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
 
   return (
     <>
+      {/* Show completion message if flow is completed */}
+      {isFlowTerminal && flowStatus?.toLowerCase() === 'completed' && (
+        <Alert className="mb-6 border-green-200 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            <strong>Discovery Flow Completed Successfully</strong>
+            <p className="mt-1">
+              The discovery flow has been completed. All field mappings and data processing have been finished.
+              You can review the results below or proceed to the next phase of your migration.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Show alert if flow is paused and waiting for approval */}
-      {isFlowPaused && hasFieldMappings && (
+      {isFlowPaused && hasFieldMappings && !isFlowTerminal && (
         <Alert className="mb-6 border-blue-200 bg-blue-50">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
@@ -72,6 +91,19 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
             <p className="mt-1">
               The discovery flow has generated field mapping suggestions and is waiting for your approval.
               Please review the mappings below, make any necessary adjustments, and click "Continue to Data Cleansing" to resume the flow.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Show alert if flow is cancelled or failed */}
+      {isFlowTerminal && flowStatus && flowStatus.toLowerCase() !== 'completed' && (
+        <Alert className="mb-6 border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            <strong>Flow {flowStatus.charAt(0).toUpperCase() + flowStatus.slice(1)}</strong>
+            <p className="mt-1">
+              The discovery flow has been {flowStatus.toLowerCase()}. No further actions can be performed on this flow.
             </p>
           </AlertDescription>
         </Alert>
@@ -132,9 +164,10 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
 
         <Button
           onClick={onTriggerAnalysis}
-          disabled={isAgenticLoading}
+          disabled={isAgenticLoading || isFlowTerminal}
           variant="outline"
           className="flex items-center space-x-2"
+          title={isFlowTerminal ? `Cannot execute: Flow is ${flowStatus}` : 'Trigger field mapping analysis'}
         >
           <Zap className="h-4 w-4" />
           <span>Trigger Analysis</span>
@@ -143,10 +176,10 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
         {needsReviewCount > 0 && (
           <Button
             onClick={onBulkApproveNeedsReview}
-            disabled={isAgenticLoading}
+            disabled={isAgenticLoading || isFlowTerminal}
             variant="outline"
             className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 border-blue-300"
-            title={`Approve ${needsReviewCount} unmapped ${needsReviewCount === 1 ? 'field' : 'fields'} as custom_attributes`}
+            title={isFlowTerminal ? `Cannot approve: Flow is ${flowStatus}` : `Approve ${needsReviewCount} unmapped ${needsReviewCount === 1 ? 'field' : 'fields'} as custom_attributes`}
           >
             <CheckCircle className="h-4 w-4 text-blue-600" />
             <span className="text-blue-700">
@@ -158,19 +191,22 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
         {onReprocessMappings && hasFieldMappings && (
           <Button
             onClick={onReprocessMappings}
-            disabled={isAgenticLoading}
+            disabled={isAgenticLoading || isFlowTerminal}
             variant="outline"
             className="flex items-center space-x-2"
+            title={isFlowTerminal ? `Cannot reprocess: Flow is ${flowStatus}` : 'Reprocess Mappings'}
           >
             <RefreshCw className="h-4 w-4" />
             <span>Reprocess Mappings</span>
           </Button>
         )}
 
-        {canContinueToDataCleansing && (
+        {canContinueToDataCleansing && !isFlowTerminal && (
           <Button
             onClick={onContinueToDataCleansing}
             className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
+            disabled={isFlowTerminal}
+            title={isFlowTerminal ? `Cannot continue: Flow is ${flowStatus}` : 'Continue to data cleansing phase'}
           >
             <span>Continue to Data Cleansing</span>
             <ArrowRight className="h-4 w-4" />

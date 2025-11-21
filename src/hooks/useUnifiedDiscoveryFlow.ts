@@ -454,9 +454,10 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       }
 
       // Stop polling for terminal states or when waiting for approval
-      if (state?.status === 'completed' || state?.status === 'failed' ||
-          state?.status === 'cancelled' || state?.status === 'waiting_for_approval' ||
-          state?.awaitingUserApproval) {
+      // CRITICAL FIX: Include all terminal states to prevent continued polling after flow completion
+      const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
+      if (state?.status && (TERMINAL_STATES.includes(state.status.toLowerCase()) ||
+          state?.status === 'waiting_for_approval' || state?.awaitingUserApproval)) {
         setPollingEnabled(false);
         return false;
       }
