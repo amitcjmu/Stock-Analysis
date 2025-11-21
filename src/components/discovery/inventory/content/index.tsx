@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../../../hooks/useUnifiedDiscoveryFlow';
+import { isFlowTerminal } from '../../../../constants/flowStates';
 import type { Asset } from '../../../../types/asset';
 import SecureLogger from '../../../../utils/secureLogger';
 import { assetConflictService } from '../../../../services/api/assetConflictService';
@@ -241,11 +242,10 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       });
 
       // CRITICAL FIX: Don't show conflict modal if flow is in terminal state
-      const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
       const flowStatus = flow?.status;
-      const isFlowTerminal = flowStatus ? TERMINAL_STATES.includes(flowStatus.toLowerCase()) : false;
+      const isFlowTerminalState = isFlowTerminal(flowStatus);
 
-      if (has_conflicts && !isFlowTerminal) {
+      if (has_conflicts && !isFlowTerminalState) {
         try {
           SecureLogger.info('Conflict resolution pending, fetching conflicts', {
             flowId,
@@ -281,7 +281,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           setShowConflictModal(false);
         }
       } else {
-        if (isFlowTerminal) {
+        if (isFlowTerminalState) {
           console.log(`⚠️ [ConflictDetection] Skipping conflict check: Flow is in terminal state (${flowStatus})`);
           setShowConflictModal(false);
           setAssetConflicts([]);
@@ -297,11 +297,10 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
   // CRITICAL FIX: Close conflict modal if flow becomes terminal while modal is open
   React.useEffect(() => {
-    const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
     const flowStatus = flow?.status;
-    const isFlowTerminal = flowStatus ? TERMINAL_STATES.includes(flowStatus.toLowerCase()) : false;
+    const isFlowTerminalState = isFlowTerminal(flowStatus);
 
-    if (showConflictModal && isFlowTerminal) {
+    if (showConflictModal && isFlowTerminalState) {
       console.log(`⚠️ [ConflictDetection] Closing conflict modal: Flow became terminal state (${flowStatus})`);
       setShowConflictModal(false);
       setAssetConflicts([]);

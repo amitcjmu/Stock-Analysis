@@ -10,6 +10,7 @@ import InventoryContent from '../../components/discovery/inventory/InventoryCont
 import { AssetCreationPreviewModal } from '../../components/discovery/AssetCreationPreviewModal';
 import { useInventoryFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { isFlowTerminal } from '../../constants/flowStates';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Inventory = (): JSX.Element => {
@@ -32,9 +33,8 @@ const Inventory = (): JSX.Element => {
   const { flowState: flow } = useUnifiedDiscoveryFlow(effectiveFlowId || null);
 
   // CRITICAL FIX: Check if flow is in terminal state
-  const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
   const flowStatus = flow?.status;
-  const isFlowTerminal = flowStatus ? TERMINAL_STATES.includes(flowStatus.toLowerCase()) : false;
+  const isFlowTerminalState = isFlowTerminal(flowStatus);
 
   // Auto-show preview modal on mount if flow is available (Issue #907)
   // CRITICAL FIX: Don't show modal if flow is in terminal state
@@ -43,11 +43,11 @@ const Inventory = (): JSX.Element => {
       effectiveFlowId,
       showPreviewModal,
       flowStatus: flow?.status,
-      isFlowTerminal,
-      willAttemptOpen: !!effectiveFlowId && !showPreviewModal && !isFlowTerminal
+      isFlowTerminalState,
+      willAttemptOpen: !!effectiveFlowId && !showPreviewModal && !isFlowTerminalState
     });
 
-    if (effectiveFlowId && !showPreviewModal && !isFlowTerminal) {
+    if (effectiveFlowId && !showPreviewModal && !isFlowTerminalState) {
       console.log('✅ Scheduling modal open in 500ms for flow:', effectiveFlowId);
 
       // Small delay to ensure UI is ready
@@ -60,7 +60,7 @@ const Inventory = (): JSX.Element => {
         console.log('🧹 Cleaning up modal timer');
         clearTimeout(timer);
       };
-    } else if (isFlowTerminal) {
+    } else if (isFlowTerminalState) {
       console.log(`⚠️ Skipping modal open: Flow is in terminal state (${flowStatus})`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,7 +68,7 @@ const Inventory = (): JSX.Element => {
 
   // CRITICAL FIX: Close modal if flow becomes terminal while modal is open
   useEffect(() => {
-    if (showPreviewModal && isFlowTerminal) {
+    if (showPreviewModal && isFlowTerminalState) {
       console.log(`⚠️ Closing preview modal: Flow became terminal state (${flowStatus})`);
       setShowPreviewModal(false);
     }

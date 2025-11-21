@@ -25,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
+import { isFlowTerminal } from '@/constants/flowStates';
 import type { FieldMapping } from '@/types/api/discovery/field-mapping-types';
 import type { DiscoveryFlowData } from '@/types/discovery';
 import type { FlowUpdate } from '../../useFlowUpdates'
@@ -568,10 +569,9 @@ export const useAttributeMappingActions = (
   // Practical validation for continuing to data cleansing - no dependency on agent decisions
   const canContinueToDataCleansing = useCallback(() => {
     // CRITICAL FIX: Check if flow is in terminal state - disable navigation for completed/cancelled flows
-    const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
     const flowStatus = (flow as FlowUpdate | DiscoveryFlowData | { status?: string })?.status;
 
-    if (flowStatus && TERMINAL_STATES.includes(flowStatus.toLowerCase())) {
+    if (isFlowTerminal(flowStatus)) {
       console.log(`❌ Cannot continue: Flow is in terminal state (${flowStatus})`);
       return false;
     }

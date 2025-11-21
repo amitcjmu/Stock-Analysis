@@ -227,7 +227,22 @@ export const TERMINAL_STATUSES = [
   FLOW_STATUSES.COMPLETED,
   FLOW_STATUSES.FAILED,
   FLOW_STATUSES.CANCELLED,
-  FLOW_STATUSES.ARCHIVED
+  FLOW_STATUSES.ARCHIVED,
+  'aborted', // Additional terminal state not in FLOW_STATUSES enum
+  'deleted'  // Additional terminal state not in FLOW_STATUSES enum
+] as const;
+
+/**
+ * Array of all terminal flow states as lowercase strings.
+ * Use this for case-insensitive status checks.
+ */
+export const TERMINAL_STATES = [
+  'completed',
+  'cancelled',
+  'failed',
+  'aborted',
+  'deleted',
+  'archived'
 ] as const;
 
 export const ERROR_STATUSES = [
@@ -247,6 +262,18 @@ export const isActiveStatus = (status: FlowStatus): boolean => {
 
 export const isTerminalStatus = (status: FlowStatus): boolean => {
   return (TERMINAL_STATUSES as readonly FlowStatus[]).includes(status);
+};
+
+/**
+ * Check if a flow status (as string) is in a terminal state.
+ * Case-insensitive check for compatibility with various API responses.
+ * 
+ * @param status - Flow status string (can be any case)
+ * @returns true if the status is a terminal state
+ */
+export const isFlowTerminal = (status: string | undefined | null): boolean => {
+  if (!status) return false;
+  return TERMINAL_STATES.includes(status.toLowerCase() as typeof TERMINAL_STATES[number]);
 };
 
 export const isErrorStatus = (status: FlowStatus): boolean => {

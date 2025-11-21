@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { isFlowTerminal } from '../../constants/flowStates';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
 import { useLatestImport, useAssets, useDataCleansingStats, useDataCleansingAnalysis, useTriggerDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingQueries';
 import { downloadRawData, downloadCleanedData } from '../../services/dataCleansingService';
@@ -540,11 +541,10 @@ const DataCleansing: React.FC = () => {
   const noDataToProcess = cleansingProgress.total_records === 0 && currentPhase === 'data_cleansing';
 
   // CRITICAL FIX: Check if flow is in terminal state - disable navigation for completed/cancelled flows
-  const TERMINAL_STATES = ['completed', 'cancelled', 'failed', 'aborted', 'deleted'];
   const flowStatus = flow?.status;
-  const isFlowTerminal = flowStatus ? TERMINAL_STATES.includes(flowStatus.toLowerCase()) : false;
+  const isFlowTerminalState = isFlowTerminal(flowStatus);
 
-  const canContinueToInventory = !isFlowTerminal && (
+  const canContinueToInventory = !isFlowTerminalState && (
     isDataCleansingComplete ||
     (allQuestionsAnswered && hasMinimumProgress) ||
     (noDataToProcess && allQuestionsAnswered)
