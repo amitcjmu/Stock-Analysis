@@ -28,6 +28,7 @@ def _check_single_asset_conflict(
     existing_by_name_type: Dict[Tuple[str, str], Asset],
     existing_by_hostname: Dict[str, Asset],
     existing_by_ip: Dict[str, Asset],
+    existing_by_environment: Dict[str, Asset],
 ) -> Optional[Dict[str, Any]]:
     """
     Check if single asset conflicts with existing assets.
@@ -41,12 +42,14 @@ def _check_single_asset_conflict(
         existing_by_name_type: Name+type composite index (for conflict details)
         existing_by_hostname: Hostname index
         existing_by_ip: IP address index
+        existing_by_environment: Environment index
 
     Returns:
         Conflict dictionary or None
     """
     hostname = asset_data.get("hostname")
     ip = asset_data.get("ip_address")
+    environment = asset_data.get("environment")
     name = get_smart_asset_name(asset_data)
     asset_type = asset_data.get("asset_type", "Unknown")
 
@@ -88,6 +91,17 @@ def _check_single_asset_conflict(
         return {
             "conflict_type": "ip_address",
             "conflict_key": ip,
+            "existing_asset_id": existing.id,
+            "existing_asset_data": serialize_asset_for_comparison(existing),
+            "new_asset_data": asset_data,
+        }
+
+    # Check environment (quaternary check)
+    if environment and environment in existing_by_environment:
+        existing = existing_by_environment[environment]
+        return {
+            "conflict_type": "environment",
+            "conflict_key": environment,
             "existing_asset_id": existing.id,
             "existing_asset_data": serialize_asset_for_comparison(existing),
             "new_asset_data": asset_data,
@@ -138,6 +152,7 @@ async def bulk_prepare_conflicts(
     # Step 1: Extract all unique identifiers from batch
     hostnames = {a.get("hostname") for a in assets_data if a.get("hostname")}
     ip_addresses = {a.get("ip_address") for a in assets_data if a.get("ip_address")}
+    environments = {a.get("environment") for a in assets_data if a.get("environment")}
     # name+asset_type composite for reduced false positives
     name_type_pairs = {
         (get_smart_asset_name(a), a.get("asset_type", "Unknown"))
@@ -148,6 +163,7 @@ async def bulk_prepare_conflicts(
     # Step 2: Bulk fetch existing assets (ONE query per field type)
     existing_by_hostname = {}
     existing_by_ip = {}
+    existing_by_environment = {}
     existing_by_name = {}  # CRITICAL FIX: name-only index (matches DB constraint)
     existing_by_name_type = {}  # name+type composite (for conflict details)
 
@@ -191,6 +207,26 @@ async def bulk_prepare_conflicts(
                 existing_by_ip[asset.ip_address] = asset
         logger.debug(f"  Found {len(existing_by_ip)} existing assets by IP")
 
+    if environments:
+        # Process in chunks to avoid parameter limits
+        env_list = list(environments)
+        for i in range(0, len(env_list), CHUNK_SIZE):
+            chunk = env_list[i : i + CHUNK_SIZE]
+            # SKIP_TENANT_CHECK - Service-level/monitoring query
+            stmt = select(Asset).where(
+                and_(
+                    Asset.client_account_id == client_id,
+                    Asset.engagement_id == engagement_id,
+                    Asset.environment.in_(chunk),
+                    Asset.environment.is_not(None),
+                    Asset.environment != "",
+                )
+            )
+            result = await service_instance.db.execute(stmt)
+            for asset in result.scalars().all():
+                existing_by_environment[asset.environment] = asset
+        logger.debug(f"  Found {len(existing_by_environment)} existing assets by environment")
+
     # CRITICAL FIX: Query by NAME alone (matches database constraint)
     # Database constraint: ix_assets_unique_name_per_context on (client_account_id, engagement_id, name)
     # We MUST check name alone, not name+asset_type, to match the actual constraint
@@ -233,6 +269,7 @@ async def bulk_prepare_conflicts(
             existing_by_name_type,
             existing_by_hostname,
             existing_by_ip,
+            existing_by_environment,
         )
 
         if conflict:
