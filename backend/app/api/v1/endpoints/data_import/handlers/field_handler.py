@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 APP_DISCOVERY_ASSET_FIELDS = {
-    "id",
     "name",
     "hostname",
     "application_name",
@@ -40,7 +39,132 @@ APP_DISCOVERY_EXCLUDED_DEP_FIELDS = {
     "engagement_id",
     "created_at",
     "updated_at",
+    "confidence_score",  # Not required for app dependency imports
 }
+
+# Derived/Computed fields that should not appear in CMDB imports
+# These are calculated fields, not actual CMDB data fields
+DERIVED_FIELDS_EXCLUDED = {
+    "ai_gap_analysis_status",
+    "ai_gap_analysis_timestamp",
+    "assessment_readiness",
+    "assessment_readiness_score",
+    "assessment_blockers",
+    "assessment_recommendations",
+    "quality_score",
+    "completeness_score",
+    "confidence_score",
+    "complexity_score",  # Already excluded via assessment category, but adding for clarity
+}
+
+# Field-to-Import-Type Mapping
+# Explicit mapping for specific fields that need precise control
+# Extend this as new import types are added or fields need specific mappings
+FIELD_IMPORT_TYPES = {
+    # Universal fields - appear in all import types
+    "hostname": ["cmdb", "app_discovery", "infrastructure"],
+    "asset_name": ["cmdb", "app_discovery", "infrastructure"],
+    "asset_type": [
+        "cmdb",
+        "infrastructure",
+    ],  # Removed app_discovery - not required for app dependency
+    "name": ["cmdb", "app_discovery", "infrastructure"],
+    "id": [
+        "cmdb",
+        "infrastructure",
+    ],  # Removed app_discovery - not required for app dependency
+    "description": ["cmdb", "app_discovery", "infrastructure"],
+    # Infrastructure-specific fields (NOT in app_discovery)
+    "ip_address": ["cmdb", "infrastructure"],
+    "mac_address": ["cmdb", "infrastructure"],
+    "subnet": ["cmdb", "infrastructure"],
+    "vlan": ["cmdb", "infrastructure"],
+    "rack_location": ["cmdb", "infrastructure"],
+    "datacenter": ["cmdb", "infrastructure"],
+    "availability_zone": [
+        "cmdb",
+        "infrastructure",
+    ],  # Cloud infrastructure, not app discovery
+    "fqdn": ["cmdb", "infrastructure"],  # Network infrastructure
+    "location": ["cmdb", "infrastructure"],  # Physical location
+    "environment": ["cmdb", "infrastructure"],  # Infrastructure environment
+    "operating_system": ["cmdb", "infrastructure"],
+    "os_version": ["cmdb", "infrastructure"],
+    "cpu_cores": ["cmdb", "infrastructure"],
+    "memory_gb": ["cmdb", "infrastructure"],
+    "storage_gb": ["cmdb", "infrastructure"],
+    "technology_stack": ["cmdb", "infrastructure"],
+    "criticality": ["cmdb", "infrastructure"],
+    "hosting_model": ["cmdb", "infrastructure"],
+    "server_role": ["cmdb", "infrastructure"],
+    "database_type": ["cmdb", "infrastructure"],
+    "database_version": ["cmdb", "infrastructure"],
+    "database_size_gb": ["cmdb", "infrastructure"],
+    # Performance fields (NOT in app_discovery)
+    "cpu_utilization_percent": ["cmdb", "infrastructure"],
+    "memory_utilization_percent": ["cmdb", "infrastructure"],
+    "disk_iops": ["cmdb", "infrastructure"],
+    "network_throughput_mbps": ["cmdb", "infrastructure"],
+    "cpu_utilization_percent_max": ["cmdb", "infrastructure"],
+    "memory_utilization_percent_max": ["cmdb", "infrastructure"],
+    "storage_free_gb": ["cmdb", "infrastructure"],
+    "storage_used_gb": ["cmdb", "infrastructure"],
+    "tech_debt_flags": ["cmdb", "infrastructure"],
+    # Resilience fields (NOT in app_discovery)
+    "rto_minutes": ["cmdb", "infrastructure"],
+    "rpo_minutes": ["cmdb", "infrastructure"],
+    # App discovery specific fields
+    "application_name": ["cmdb", "app_discovery"],
+    # Dependency fields are handled separately in get_asset_dependency_fields()
+}
+
+# Category-to-Import-Type default mapping
+# Used as fallback when field is not in explicit FIELD_IMPORT_TYPES mapping
+# NOTE: Do NOT add app_discovery to category fallbacks - only explicit fields should have it
+CATEGORY_TO_IMPORT_TYPES = {
+    "identification": [
+        "cmdb",
+        "infrastructure",
+    ],  # Removed app_discovery - only explicit fields get it
+    "technical": ["cmdb", "infrastructure"],
+    "performance": ["cmdb", "infrastructure"],
+    "business": ["cmdb"],
+    "migration": ["cmdb"],
+    "dependency": ["app_discovery"],  # Dependency fields
+    "resilience": ["cmdb", "infrastructure"],
+    "other": ["cmdb"],  # Default fallback
+}
+
+
+def get_field_import_types(field_name: str, category: str) -> List[str]:
+    """
+    Determine which import types a field applies to.
+
+    Priority:
+    1. Check explicit FIELD_IMPORT_TYPES mapping (field-specific)
+    2. Fall back to CATEGORY_TO_IMPORT_TYPES (category-based)
+    3. Default to ["cmdb"] if nothing matches
+
+    This ensures all dynamically discovered fields get import_types metadata.
+    """
+    # Check explicit field mapping first
+    if field_name in FIELD_IMPORT_TYPES:
+        return FIELD_IMPORT_TYPES[field_name]
+
+    # Fall back to category-based mapping
+    if category in CATEGORY_TO_IMPORT_TYPES:
+        return CATEGORY_TO_IMPORT_TYPES[category]
+
+    # Default fallback
+    return ["cmdb"]
+
+
+def generate_display_name_from_field_name(field_name: str) -> str:
+    """
+    Generate a display name from a snake_case field name.
+    Converts 'field_name' to 'Field Name'.
+    """
+    return field_name.replace("_", " ").replace("-", " ").title()
 
 
 async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
@@ -79,6 +203,10 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
             if field_name in INTERNAL_SYSTEM_FIELDS:
                 continue
 
+            # Skip derived/computed fields (not actual CMDB data fields)
+            if field_name in DERIVED_FIELDS_EXCLUDED:
+                continue
+
             # Map PostgreSQL type to frontend type
             pg_type = col.data_type
             field_type = TYPE_MAPPINGS.get(pg_type, "string")
@@ -106,6 +234,14 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 # Log but don't fail - just use defaults
                 logger.debug(f"Could not extract metadata for {field_name}: {e}")
 
+            # Skip assessment and migration category fields
+            if category in ["assessment", "migration"]:
+                continue
+
+            # Ensure display_name is never None - generate from field_name if needed
+            if display_name is None:
+                display_name = generate_display_name_from_field_name(field_name)
+
             field_info = {
                 "name": field_name,
                 "display_name": display_name,
@@ -118,6 +254,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 "max_length": col.character_maximum_length,
                 "precision": col.numeric_precision,
                 "scale": col.numeric_scale,
+                "import_types": get_field_import_types(field_name, category),
             }
 
             fields.append(field_info)
@@ -137,6 +274,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                     "description": "Recovery Time Objective in minutes (Asset Resilience)",
                     "category": "resilience",
                     "nullable": True,
+                    "import_types": get_field_import_types("rto_minutes", "resilience"),
                 },
                 {
                     "name": "rpo_minutes",
@@ -147,104 +285,14 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                     "description": "Recovery Point Objective in minutes (Asset Resilience)",
                     "category": "resilience",
                     "nullable": True,
+                    "import_types": get_field_import_types("rpo_minutes", "resilience"),
                 },
             ]
         )
 
-        # asset_dependencies: key relationship attributes needed for application dependency imports
-        dependency_fields = [
-            {
-                "name": "dependency_type",
-                "display_name": "Dependency Type",
-                "short_hint": "Category of the dependency (database, API, storage, etc.)",
-                "type": "string",
-                "required": False,
-                "description": "Type of relationship between the source and target assets.",
-                "category": "dependency",
-                "nullable": False,
-            },
-            {
-                "name": "description",
-                "display_name": "Dependency Description",
-                "short_hint": "Narrative describing how the assets interact",
-                "type": "text",
-                "required": False,
-                "description": "Describes the nature or purpose of the dependency.",
-                "category": "dependency",
-                "nullable": True,
-            },
-            {
-                "name": "relationship_nature",
-                "display_name": "Relationship Nature",
-                "short_hint": "Logical nature such as hosting, data, API",
-                "type": "string",
-                "required": False,
-                "description": "Nature of the relationship (e.g., hosting, API, data feed).",
-                "category": "dependency",
-                "nullable": True,
-            },
-            {
-                "name": "direction",
-                "display_name": "Direction",
-                "short_hint": "Flow direction between source and target",
-                "type": "string",
-                "required": False,
-                "description": "Indicates if the dependency flows inbound, outbound, or bidirectional.",
-                "category": "dependency",
-                "nullable": True,
-            },
-            {
-                "name": "port",
-                "display_name": "Port",
-                "short_hint": "Network port observed for this dependency",
-                "type": "integer",
-                "required": False,
-                "description": "Network port number observed for the dependency connection.",
-                "category": "dependency",
-                "nullable": True,
-            },
-            {
-                "name": "protocol_name",
-                "display_name": "Protocol",
-                "short_hint": "Protocol such as TCP, UDP, HTTP",
-                "type": "string",
-                "required": False,
-                "description": "Protocol name detected for the dependency traffic.",
-                "category": "dependency",
-                "nullable": True,
-            },
-            {
-                "name": "conn_count",
-                "display_name": "Connection Count",
-                "short_hint": "Number of observed connections",
-                "type": "integer",
-                "required": False,
-                "description": "Total number of connections observed between the assets.",
-                "category": "dependency",
-                "nullable": True,
-            },
-            {
-                "name": "first_seen",
-                "display_name": "First Seen",
-                "short_hint": "Timestamp when the dependency was first observed",
-                "type": "datetime",
-                "required": False,
-                "description": "First time this dependency was detected.",
-                "category": "dependency",
-                "nullable": True,
-            },
-            {
-                "name": "last_seen",
-                "display_name": "Last Seen",
-                "short_hint": "Most recent observation timestamp",
-                "type": "datetime",
-                "required": False,
-                "description": "Most recent time this dependency was detected.",
-                "category": "dependency",
-                "nullable": True,
-            },
-        ]
-        fields.extend(dependency_fields)
+        # Note: Dependency fields are NOT added here for CMDB imports.
+        # They are only included when explicitly requested for app_discovery imports
+        # via get_application_dependency_target_fields() or get_asset_dependency_fields().
 
         logger.info(f"Total fields including related tables: {len(fields)}")
         return fields
@@ -270,6 +318,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 "max_length": None,
                 "precision": None,
                 "scale": None,
+                "import_types": get_field_import_types("asset_name", "identification"),
             },
             {
                 "name": "hostname",
@@ -281,6 +330,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 "max_length": None,
                 "precision": None,
                 "scale": None,
+                "import_types": get_field_import_types("hostname", "identification"),
             },
             {
                 "name": "ip_address",
@@ -292,6 +342,7 @@ async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 "max_length": None,
                 "precision": None,
                 "scale": None,
+                "import_types": get_field_import_types("ip_address", "identification"),
             },
         ]
 
@@ -341,6 +392,7 @@ async def get_asset_dependency_fields(db: AsyncSession) -> List[Dict[str, Any]]:
                 "max_length": col.character_maximum_length,
                 "precision": col.numeric_precision,
                 "scale": col.numeric_scale,
+                "import_types": get_field_import_types(field_name, "dependency"),
             }
         )
 
@@ -426,10 +478,104 @@ async def get_available_target_fields(
             flow_id,
         )
 
-        if resolved_category == "app_discovery":
-            fields = await get_application_dependency_target_fields(db)
-        else:
-            fields = await get_assets_table_fields(db)
+        # Get all fields with import_types metadata
+        fields = await get_assets_table_fields(db)
+
+        # Normalize category for filtering: "app-discovery" -> "app_discovery", "cmdb_export" -> "cmdb"
+        normalized_category = resolved_category or "cmdb_export"
+        normalized_category = (
+            normalized_category.lower().replace("-", "_").replace("cmdb_export", "cmdb")
+        )
+
+        # For app_discovery import type, also include dependency fields from asset_dependencies table
+        # These include: port, protocol_name (communication type), conn_count (count),
+        # bytes_total, criticality, first_seen, last_seen, etc.
+        if normalized_category == "app_discovery":
+            dependency_fields = await get_asset_dependency_fields(db)
+            fields.extend(dependency_fields)
+            logger.info(
+                f"Added {len(dependency_fields)} dependency fields for app_discovery import type: "
+                f"{[f['name'] for f in dependency_fields]}"
+            )
+
+        # Backend filtering: Only return fields that match the resolved import_category
+        # This reduces data transfer and ensures frontend gets only relevant fields
+        # Frontend filtering remains as a safety net for other use cases
+        fields_before_filter = len(fields)
+        logger.info(
+            f"🔍 Backend filtering START: {fields_before_filter} fields "
+            f"before filter for category '{normalized_category}'"
+        )
+
+        filtered_fields = []
+        skipped_no_import_types = []
+        skipped_wrong_category = []
+
+        for field in fields:
+            field_name = field.get("name", "unknown")
+            # Field must have import_types defined
+            field_import_types = field.get("import_types", [])
+            if not field_import_types:
+                # Skip fields without import_types metadata
+                skipped_no_import_types.append(field_name)
+                continue
+
+            # Check if field's import_types includes the normalized category
+            if normalized_category in field_import_types:
+                filtered_fields.append(field)
+            else:
+                skipped_wrong_category.append(
+                    f"{field_name} (has {field_import_types})"
+                )
+
+        # CRITICAL: Replace fields with filtered list
+        # This MUST happen - fields after this point should only contain filtered results
+        fields = filtered_fields
+
+        # Verify filtering worked
+        if len(fields) > fields_before_filter:
+            logger.error(
+                f"❌ FILTERING ERROR: Filtered fields ({len(fields)}) > "
+                f"original fields ({fields_before_filter})! "
+                f"This should never happen. Check filtering logic."
+            )
+
+        logger.info(
+            f"✅ Backend filtering COMPLETE: {fields_before_filter} → {len(fields)} fields "
+            f"for category '{normalized_category}'. "
+            f"Skipped: {len(skipped_no_import_types)} no import_types, "
+            f"{len(skipped_wrong_category)} wrong category"
+        )
+
+        # Final verification - log actual field names being returned
+        if len(fields) <= 20:  # Only log if manageable number
+            returned_field_names = [f.get("name") for f in fields]
+            logger.info(f"📋 Fields being returned: {returned_field_names}")
+
+        # Debug logging for app_discovery to verify correct fields
+        if normalized_category == "app_discovery":
+            asset_field_names = [
+                f["name"] for f in filtered_fields if f.get("category") != "dependency"
+            ]
+            dependency_field_names = [
+                f["name"] for f in filtered_fields if f.get("category") == "dependency"
+            ]
+            dep_fields_display = (
+                dependency_field_names[:10]
+                if len(dependency_field_names) > 10
+                else dependency_field_names
+            )
+            logger.info(
+                f"📊 app_discovery fields breakdown: {len(asset_field_names)} asset fields "
+                f"({asset_field_names}), {len(dependency_field_names)} dependency fields "
+                f"({dep_fields_display})"
+            )
+
+            # Log first few skipped fields to understand what's being filtered out
+            if skipped_wrong_category:
+                logger.info(
+                    f"🚫 Sample skipped fields (not for app_discovery): {skipped_wrong_category[:5]}"
+                )
 
         # Group fields by category
         categories = {}
@@ -443,7 +589,9 @@ async def get_available_target_fields(
         required_count = sum(1 for field in fields if field["required"])
 
         # Log field details for debugging
-        logger.info(f"Retrieved {len(fields)} target fields from assets table schema:")
+        logger.info(
+            f"Retrieved {len(fields)} target fields from assets table schema (filtered for '{normalized_category}'):"
+        )
         for category, category_fields in categories.items():
             logger.info(f"  {category}: {len(category_fields)} fields")
 
