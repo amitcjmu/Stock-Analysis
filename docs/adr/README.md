@@ -106,14 +106,17 @@ For new team members, we recommend reading ADRs in this order:
 21. **ADR-029** - LLM Output JSON Sanitization Pattern - Handling LLM JSON parsing
 22. **ADR-030** - Collection Flow Adaptive Questionnaire Architecture - Intelligent questionnaire generation
 23. **ADR-034** - Asset-Centric Questionnaire Deduplication - Questionnaires bound to assets, not flows
-24. **ADR-023** - Collection Flow Phase Redesign - Removing unimplemented platform detection phases
-25. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
-26. **ADR-031** - Enterprise Observability Architecture - Grafana stack for Azure/Railway environments
-27. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
+24. **ADR-035** - Per-Asset, Per-Section Questionnaire Generation with Redis - Prevent JSON truncation with batched generation
+25. **ADR-036** - Canonical Application Junction Table Architecture - Fix 6R recommendation persistence
+26. **ADR-037** - Intelligent Gap Detection and Questionnaire Generation Architecture - Six-source data awareness and tool-free agent execution
+27. **ADR-023** - Collection Flow Phase Redesign - Removing unimplemented platform detection phases
+28. **ADR-017** - Redis-Backed Failure Journal and DLQ - Failure recovery and dead letter queue
+29. **ADR-031** - Enterprise Observability Architecture - Grafana stack for Azure/Railway environments
+30. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
 
 ### Legacy Context
-27. **ADR-005** - Database Consolidation Architecture - Historical database decisions
-28. **ADR-002** - API Consolidation Strategy - API versioning and migration
-29. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
-30. **ADR-019** - CrewAI DeepInfra Embeddings Monkey Patch - Historical memory patch approach (superseded by ADR-024)
-31. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)
+31. **ADR-005** - Database Consolidation Architecture - Historical database decisions
+32. **ADR-002** - API Consolidation Strategy - API versioning and migration
+33. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
+34. **ADR-019** - CrewAI DeepInfra Embeddings Monkey Patch - Historical memory patch approach (superseded by ADR-024)
+35. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)

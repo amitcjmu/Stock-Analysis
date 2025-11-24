@@ -1,0 +1,614 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "intelligent-gap-detection",
+    "title": "Intelligent Gap Detection & Questionnaire Generation",
+    "tags": ["gap-detection", "questionnaire", "collection-flow", "performance"],
+    "style": "dark",
+    "timezone": "utc",
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "editable": true,
+    "graphTooltip": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Gap Scan Performance (Target: <500ms)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 400},
+                {"color": "red", "value": 500}
+              ]
+            },
+            "decimals": 0
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT AVG(response_time_ms) as avg_time FROM migration.llm_usage_logs WHERE feature_context = 'intelligent_gap_detection' AND created_at >= NOW() - INTERVAL '1 hour' AND success = true",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 2,
+        "title": "Question Generation Time (Target: <2s)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1.5},
+                {"color": "red", "value": 2.0}
+              ]
+            },
+            "decimals": 2
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT AVG(response_time_ms) / 1000.0 as avg_time FROM migration.llm_usage_logs WHERE feature_context IN ('section_question_generator', 'data_awareness_agent') AND created_at >= NOW() - INTERVAL '1 hour' AND success = true",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 3,
+        "title": "LLM Cost Per Question (Target: <$0.008)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.007},
+                {"color": "red", "value": 0.008}
+              ]
+            },
+            "decimals": 4
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT AVG(total_cost) as avg_cost FROM migration.llm_usage_logs WHERE feature_context = 'section_question_generator' AND created_at >= NOW() - INTERVAL '1 hour' AND success = true",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Input Tokens (Target: <3500)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 3000},
+                {"color": "red", "value": 3500}
+              ]
+            },
+            "decimals": 0
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT AVG(input_tokens) as avg_tokens FROM migration.llm_usage_logs WHERE feature_context = 'section_question_generator' AND created_at >= NOW() - INTERVAL '1 hour' AND success = true",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Gap Scan Count Per Flow (Target: 1)",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 6
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "spanNulls": false
+            },
+            "color": {
+              "mode": "palette-classic"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 2},
+                {"color": "red", "value": 3}
+              ]
+            }
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT date_trunc('minute', created_at) as time, flow_id, COUNT(*) as scan_count FROM migration.llm_usage_logs WHERE feature_context = 'intelligent_gap_detection' AND created_at >= NOW() - INTERVAL '6 hours' GROUP BY time, flow_id ORDER BY time",
+            "format": "time_series",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 6,
+        "title": "Question Generation Performance Over Time",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 6
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "spanNulls": false
+            },
+            "color": {
+              "mode": "palette-classic"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "p95"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "p50"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}
+              ]
+            }
+          ]
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT date_trunc('minute', created_at) as time, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY response_time_ms) as p50, PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY response_time_ms) as p95 FROM migration.llm_usage_logs WHERE feature_context IN ('section_question_generator', 'data_awareness_agent') AND created_at >= NOW() - INTERVAL '6 hours' AND success = true GROUP BY time ORDER BY time",
+            "format": "time_series",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 7,
+        "title": "False Gap Detection Rate (Target: 0)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 14
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "decimals": 0
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT COUNT(*) as false_gaps FROM migration.collection_data_gaps WHERE is_true_gap = false AND created_at >= NOW() - INTERVAL '1 hour'",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 8,
+        "title": "Duplicate Question Rate (Target: 0)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 14
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "decimals": 0
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT COUNT(*) as duplicate_count FROM (SELECT collection_flow_id, questions_json->>'question_text' as question_text, COUNT(*) as cnt FROM migration.questionnaires WHERE created_at >= NOW() - INTERVAL '1 hour' GROUP BY collection_flow_id, questions_json->>'question_text' HAVING COUNT(*) > 1) as duplicates",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 9,
+        "title": "Total Cost Savings (vs Baseline)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 14
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.05},
+                {"color": "green", "value": 0.10}
+              ]
+            },
+            "decimals": 3
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT (0.017 - AVG(total_cost)) * COUNT(*) as savings FROM migration.llm_usage_logs WHERE feature_context = 'section_question_generator' AND created_at >= NOW() - INTERVAL '1 hour' AND success = true",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 10,
+        "title": "Success Rate by Feature",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 14
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 90},
+                {"color": "green", "value": 95}
+              ]
+            },
+            "decimals": 1
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT (COUNT(*) FILTER (WHERE success = true)::float / COUNT(*) * 100) as success_rate FROM migration.llm_usage_logs WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent') AND created_at >= NOW() - INTERVAL '1 hour'",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 11,
+        "title": "Cost Breakdown by Feature Context",
+        "type": "piechart",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 4
+          }
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT feature_context, SUM(total_cost) as total_cost FROM migration.llm_usage_logs WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent') AND created_at >= NOW() - INTERVAL '6 hours' AND success = true GROUP BY feature_context ORDER BY total_cost DESC",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "pie",
+          "tooltip": {
+            "mode": "single"
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Token Usage Trend",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "bars",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "fillOpacity": 80,
+              "spanNulls": false,
+              "stacking": {
+                "mode": "normal"
+              }
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "input_tokens"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}},
+                {"id": "displayName", "value": "Input Tokens"}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "output_tokens"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}},
+                {"id": "displayName", "value": "Output Tokens"}
+              ]
+            }
+          ]
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT date_trunc('minute', created_at) as time, SUM(input_tokens) as input_tokens, SUM(output_tokens) as output_tokens FROM migration.llm_usage_logs WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent') AND created_at >= NOW() - INTERVAL '6 hours' AND success = true GROUP BY time ORDER BY time",
+            "format": "time_series",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        }
+      },
+      {
+        "id": 13,
+        "title": "Recent LLM Errors",
+        "type": "table",
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 28
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "left",
+              "filterable": true
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "created_at"},
+              "properties": [
+                {"id": "custom.width", "value": 180}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "error_type"},
+              "properties": [
+                {"id": "custom.width", "value": 150}
+              ]
+            }
+          ]
+        },
+        "targets": [
+          {
+            "rawSql": "SELECT created_at, feature_context, model_name, error_type, LEFT(error_message, 100) as error_message FROM migration.llm_usage_logs WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent') AND success = false AND created_at >= NOW() - INTERVAL '6 hours' ORDER BY created_at DESC LIMIT 50",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "type": "postgres",
+          "uid": "migration-db"
+        },
+        "options": {
+          "showHeader": true,
+          "footer": {
+            "show": false
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "client_account",
+          "type": "query",
+          "label": "Client Account",
+          "query": "SELECT DISTINCT client_account_id FROM migration.llm_usage_logs WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent')",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "migration-db"
+          },
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "engagement",
+          "type": "query",
+          "label": "Engagement",
+          "query": "SELECT DISTINCT engagement_id FROM migration.llm_usage_logs WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent')",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "migration-db"
+          },
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": {
+            "type": "postgres",
+            "uid": "migration-db"
+          },
+          "enable": true,
+          "iconColor": "rgba(255, 96, 96, 1)",
+          "query": "SELECT created_at as time, 'Deployment' as text, 'ADR-037 Implementation' as tags FROM migration.llm_usage_logs WHERE feature_context = 'intelligent_gap_detection' ORDER BY created_at DESC LIMIT 1"
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}

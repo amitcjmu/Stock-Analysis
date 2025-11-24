@@ -1,0 +1,545 @@
+# Grafana Alert Configuration for Intelligent Gap Detection
+# ADR-037: Performance and quality monitoring alerts
+# https://grafana.com/docs/grafana/latest/alerting/
+
+apiVersion: 1
+
+groups:
+  - name: intelligent_gap_detection_performance
+    interval: 1m
+    rules:
+      - uid: gap_scan_performance_degradation
+        title: Gap Scan Performance Degradation
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600  # Last 1 hour
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT AVG(response_time_ms) as avg_time
+                FROM migration.llm_usage_logs
+                WHERE feature_context = 'intelligent_gap_detection'
+                  AND created_at >= NOW() - INTERVAL '1 hour'
+                  AND success = true
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Gap scan performance exceeds target threshold
+          description: |
+            Average gap scan response time is {{ $values.A.Value }} ms, which exceeds the target of 500ms.
+            This may indicate:
+            - Database query performance issues
+            - Excessive data source checking
+            - Need for query optimization
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/gap-scan-performance.md
+        labels:
+          severity: warning
+          component: intelligent_gap_detection
+          team: backend
+        thresholds:
+          - evaluator:
+              params:
+                - 500  # Target: <500ms
+              type: gt
+            operator:
+              type: and
+
+      - uid: question_generation_slow
+        title: Question Generation Time Excessive
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600  # Last 1 hour
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT AVG(response_time_ms) / 1000.0 as avg_time_sec
+                FROM migration.llm_usage_logs
+                WHERE feature_context IN ('section_question_generator', 'data_awareness_agent')
+                  AND created_at >= NOW() - INTERVAL '1 hour'
+                  AND success = true
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Question generation taking longer than expected
+          description: |
+            Average question generation time is {{ $values.A.Value }}s, exceeding target of 2s.
+            Potential causes:
+            - LLM API latency
+            - Prompt complexity
+            - Token limit issues
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/question-generation-slow.md
+        labels:
+          severity: warning
+          component: section_question_generator
+          team: ai-ml
+        thresholds:
+          - evaluator:
+              params:
+                - 2.0  # Target: <2s per question
+              type: gt
+            operator:
+              type: and
+
+      - uid: end_to_end_flow_timeout
+        title: End-to-End Flow Duration Exceeds Target
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                WITH flow_durations AS (
+                  SELECT
+                    flow_id,
+                    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) as duration_sec
+                  FROM migration.llm_usage_logs
+                  WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent')
+                    AND created_at >= NOW() - INTERVAL '1 hour'
+                    AND success = true
+                    AND flow_id IS NOT NULL
+                  GROUP BY flow_id
+                )
+                SELECT AVG(duration_sec) as avg_duration
+                FROM flow_durations
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: Collection flow taking longer than 15s target
+          description: |
+            Average end-to-end flow duration is {{ $values.A.Value }}s, exceeding 15s target.
+            Impact: Poor user experience, potential timeout issues.
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/flow-performance.md
+        labels:
+          severity: warning
+          component: collection_flow
+          team: backend
+        thresholds:
+          - evaluator:
+              params:
+                - 15  # Target: <15s for 9 questions
+              type: gt
+            operator:
+              type: and
+
+  - name: intelligent_gap_detection_cost
+    interval: 5m
+    rules:
+      - uid: llm_cost_per_question_high
+        title: LLM Cost Per Question Exceeds Budget
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT AVG(total_cost) as avg_cost
+                FROM migration.llm_usage_logs
+                WHERE feature_context = 'section_question_generator'
+                  AND created_at >= NOW() - INTERVAL '1 hour'
+                  AND success = true
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: Question generation cost exceeds budget threshold
+          description: |
+            Average cost per question is ${{ $values.A.Value }}, exceeding target of $0.008.
+            Cost spike may be due to:
+            - Model pricing change
+            - Increased token usage
+            - Inefficient prompts
+            Action: Review LLM costs at /finops/llm-costs
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/llm-cost-spike.md
+        labels:
+          severity: warning
+          component: llm_costs
+          team: finops
+        thresholds:
+          - evaluator:
+              params:
+                - 0.008  # Target: <$0.008 per question
+              type: gt
+            operator:
+              type: and
+
+      - uid: input_tokens_excessive
+        title: Input Tokens Exceeding Optimization Target
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT AVG(input_tokens) as avg_tokens
+                FROM migration.llm_usage_logs
+                WHERE feature_context = 'section_question_generator'
+                  AND created_at >= NOW() - INTERVAL '1 hour'
+                  AND success = true
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 20m
+        annotations:
+          summary: Input token usage higher than optimization target
+          description: |
+            Average input tokens: {{ $values.A.Value }}, target: <3,500
+            High token usage increases costs and latency.
+            Review prompt optimization opportunities.
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/token-optimization.md
+        labels:
+          severity: info
+          component: prompt_engineering
+          team: ai-ml
+        thresholds:
+          - evaluator:
+              params:
+                - 3500  # Target: <3,500 tokens
+              type: gt
+            operator:
+              type: and
+
+      - uid: daily_cost_budget_exceeded
+        title: Daily LLM Cost Budget Exceeded
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 86400  # Last 24 hours
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT SUM(total_cost) as daily_cost
+                FROM migration.llm_usage_logs
+                WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent')
+                  AND created_at >= NOW() - INTERVAL '24 hours'
+                  AND success = true
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: Daily intelligent gap detection cost exceeds budget
+          description: |
+            Total cost in last 24h: ${{ $values.A.Value }}
+            Budget: $50/day (configurable per client)
+            Consider implementing rate limiting or optimizing prompts.
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/cost-budget.md
+        labels:
+          severity: critical
+          component: llm_costs
+          team: finops
+        thresholds:
+          - evaluator:
+              params:
+                - 50.0  # $50/day budget (adjust per environment)
+              type: gt
+            operator:
+              type: and
+
+  - name: intelligent_gap_detection_quality
+    interval: 5m
+    rules:
+      - uid: false_gap_detected
+        title: False Gap Detection Occurred
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT COUNT(*) as false_gap_count
+                FROM migration.collection_data_gaps
+                WHERE is_true_gap = false
+                  AND created_at >= NOW() - INTERVAL '1 hour'
+              format: table
+        noDataState: OK  # No false gaps is OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: False gap detected (data exists elsewhere)
+          description: |
+            {{ $values.A.Value }} false gap(s) detected in the last hour.
+            This indicates the intelligent gap scanner missed data in one of the 6 sources:
+            1. Standard columns
+            2. Custom attributes
+            3. Enrichment data
+            4. Environment field
+            5. Canonical applications
+            6. Related assets
+            Action: Review gap scanner logic in IntelligentGapScanner.
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/false-gaps.md
+        labels:
+          severity: critical
+          component: gap_detection_accuracy
+          team: backend
+        thresholds:
+          - evaluator:
+              params:
+                - 0  # Target: 0 false gaps
+              type: gt
+            operator:
+              type: and
+
+      - uid: duplicate_questions_detected
+        title: Duplicate Questions Across Sections
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT COUNT(*) as duplicate_count
+                FROM (
+                  SELECT
+                    collection_flow_id,
+                    questions_json->>'question_text' as question_text,
+                    COUNT(*) as cnt
+                  FROM migration.questionnaires
+                  WHERE created_at >= NOW() - INTERVAL '1 hour'
+                  GROUP BY collection_flow_id, questions_json->>'question_text'
+                  HAVING COUNT(*) > 1
+                ) as duplicates
+              format: table
+        noDataState: OK  # No duplicates is OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Duplicate questions found across sections
+          description: |
+            {{ $values.A.Value }} duplicate question(s) detected.
+            Cross-section deduplication may not be working correctly.
+            Review SectionQuestionGenerator logic.
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/duplicate-questions.md
+        labels:
+          severity: warning
+          component: question_deduplication
+          team: backend
+        thresholds:
+          - evaluator:
+              params:
+                - 0  # Target: 0 duplicates
+              type: gt
+            operator:
+              type: and
+
+      - uid: gap_detection_success_rate_low
+        title: Gap Detection Success Rate Below Target
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT
+                  (COUNT(*) FILTER (WHERE success = true)::float / NULLIF(COUNT(*), 0) * 100) as success_rate
+                FROM migration.llm_usage_logs
+                WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent')
+                  AND created_at >= NOW() - INTERVAL '1 hour'
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: Intelligent gap detection success rate below 95%
+          description: |
+            Success rate: {{ $values.A.Value }}%
+            Target: >95%
+            Check recent errors in LLM usage logs for root cause.
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/low-success-rate.md
+        labels:
+          severity: warning
+          component: reliability
+          team: backend
+        thresholds:
+          - evaluator:
+              params:
+                - 95  # Target: >95% success rate
+              type: lt
+            operator:
+              type: and
+
+  - name: intelligent_gap_detection_reliability
+    interval: 2m
+    rules:
+      - uid: gap_scan_cache_inefficiency
+        title: Gap Scan Cache Efficiency Low
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                WITH flow_scans AS (
+                  SELECT
+                    flow_id,
+                    COUNT(*) as scan_count,
+                    CASE WHEN COUNT(*) = 1 THEN 1 ELSE 0 END as cache_hit
+                  FROM migration.llm_usage_logs
+                  WHERE feature_context = 'intelligent_gap_detection'
+                    AND created_at >= NOW() - INTERVAL '1 hour'
+                    AND success = true
+                    AND flow_id IS NOT NULL
+                  GROUP BY flow_id
+                )
+                SELECT
+                  ROUND(SUM(cache_hit)::numeric / NULLIF(COUNT(*), 0) * 100, 2) as cache_efficiency
+                FROM flow_scans
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Gap scan cache efficiency below target
+          description: |
+            Cache efficiency: {{ $values.A.Value }}%
+            Target: >90% (1 scan per flow)
+            Multiple scans per flow indicate Redis caching issues.
+            Check Redis connectivity and cache TTL (5 minutes).
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/cache-efficiency.md
+        labels:
+          severity: warning
+          component: redis_cache
+          team: infrastructure
+        thresholds:
+          - evaluator:
+              params:
+                - 90  # Target: >90% cache efficiency
+              type: lt
+            operator:
+              type: and
+
+      - uid: llm_api_high_error_rate
+        title: LLM API Error Rate High
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800  # Last 30 minutes
+              to: 0
+            datasourceUid: migration-db
+            model:
+              rawSql: |
+                SELECT
+                  (COUNT(*) FILTER (WHERE success = false)::float / NULLIF(COUNT(*), 0) * 100) as error_rate
+                FROM migration.llm_usage_logs
+                WHERE feature_context IN ('intelligent_gap_detection', 'section_question_generator', 'data_awareness_agent')
+                  AND created_at >= NOW() - INTERVAL '30 minutes'
+              format: table
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High error rate detected for LLM API calls
+          description: |
+            Error rate: {{ $values.A.Value }}%
+            Threshold: >10%
+            Potential causes:
+            - DeepInfra API outage
+            - Rate limiting
+            - Invalid API keys
+            - Network issues
+            Check LLM provider status page.
+          runbook_url: https://github.com/your-org/migrate-ui-orchestrator/docs/runbooks/llm-api-errors.md
+        labels:
+          severity: critical
+          component: llm_integration
+          team: backend
+        thresholds:
+          - evaluator:
+              params:
+                - 10  # >10% error rate is critical
+              type: gt
+            operator:
+              type: and
+
+# Notification channels configuration
+contactPoints:
+  - name: backend-team
+    receivers:
+      - uid: backend-slack
+        type: slack
+        settings:
+          url: ${SLACK_WEBHOOK_BACKEND}  # Configure in Grafana env
+          text: |
+            {{ range .Alerts }}
+            **{{ .Labels.severity | toUpper }}**: {{ .Annotations.summary }}
+            {{ .Annotations.description }}
+            [View Dashboard](http://localhost:9999/d/intelligent-gap-detection)
+            {{ end }}
+
+  - name: finops-team
+    receivers:
+      - uid: finops-email
+        type: email
+        settings:
+          addresses: finops@yourcompany.com
+          subject: "[FinOps Alert] {{ .GroupLabels.component }}"
+
+  - name: ai-ml-team
+    receivers:
+      - uid: ai-ml-slack
+        type: slack
+        settings:
+          url: ${SLACK_WEBHOOK_AI_ML}
+
+# Notification policies
+policies:
+  - receiver: backend-team
+    matchers:
+      - severity = critical
+      - team = backend
+    group_by: ['component']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+
+  - receiver: finops-team
+    matchers:
+      - component = llm_costs
+    group_by: ['component']
+    group_wait: 1m
+    group_interval: 30m
+    repeat_interval: 24h
+
+  - receiver: ai-ml-team
+    matchers:
+      - team = ai-ml
+    group_by: ['component']
+    group_wait: 1m
+    group_interval: 10m
+    repeat_interval: 12h

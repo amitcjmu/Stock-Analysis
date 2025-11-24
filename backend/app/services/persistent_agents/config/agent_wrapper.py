@@ -301,7 +301,8 @@ class AgentWrapper:
                 import json
 
                 # CRITICAL FIX: For questionnaire_generator, provide FULL data to LLM
-                # The LLM needs complete gap data to decide how to use the questionnaire_generation tool
+                # Per ADR-037 #1114: Agent no longer uses tools - gaps provided directly in prompt
+                # The LLM generates questionnaires directly from the provided data structure
                 # Other agents can use summaries since they work with record-level data
                 if self._agent_type == "questionnaire_generator":
                     # Provide complete data structure for questionnaire generation
@@ -318,15 +319,14 @@ class AgentWrapper:
                             f"3. Question text must be clear and specific (not vague like "
                             f"'provide compliance flags')\n"
                             f"4. Each question should help resolve specific data gaps\n\n"
-                            f"Use your questionnaire_generation tool with this data:\n\n"
+                            f"Use the following data to generate the questionnaire:\n\n"
                             f"```json\n{data_json}\n```\n\n"
-                            f"The tool expects:\n"
+                            f"Data structure:\n"
                             f"- data_gaps: Dict with missing_critical_fields, "
                             f"unmapped_attributes, data_quality_issues\n"
                             f"- business_context: Dict with engagement_id, "
                             f"client_account_id, asset information\n\n"
-                            f"Call the questionnaire_generation tool with the data above. "
-                            f"The tool will generate properly structured MCQ questions with "
+                            f"Generate properly structured MCQ questions with "
                             f"clear options for users to select from."
                         )
                     except Exception as e:

@@ -57,7 +57,7 @@ AGENT_TYPE_CONFIGS = {
         "backstory": "Expert in adaptive form generation with deep understanding of migration requirements, "
         "specializing in creating targeted questions that resolve data gaps for all asset types including "
         "applications, infrastructure, databases, and cloud resources.",
-        "tools": ["questionnaire_generation", "gap_analysis", "asset_intelligence"],
+        "tools": [],  # Per ADR-037 #1114: Remove tools - gaps provided in prompt
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
     },

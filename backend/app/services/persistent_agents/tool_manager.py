@@ -84,6 +84,19 @@ class AgentToolManager:
         tools_added = 0
 
         try:
+            # Per ADR-037 #1114: Check if agent config has tools disabled (empty list)
+            from app.services.persistent_agents.agent_pool_constants import (
+                get_agent_config,
+            )
+
+            config = get_agent_config(agent_type)
+            if config.get("tools") is not None and len(config.get("tools", [])) == 0:
+                logger.info(
+                    f"Skipping tool loading for {agent_type} - "
+                    f"agent config has empty tools list (tools=[]) per ADR-037 #1114"
+                )
+                return 0
+
             if agent_type == "discovery":
                 # Discovery-specific tools - lazy import
                 from app.services.crewai_flows.tools.asset_creation_tool import (
@@ -340,6 +353,9 @@ class AgentToolManager:
 
         try:
             from app.services.persistent_agents.tool_adders import ToolAdders
+            from app.services.persistent_agents.agent_pool_constants import (
+                get_agent_config,
+            )
 
             # Extract context information
             client_account_id, engagement_id, service_registry = (
@@ -368,8 +384,21 @@ class AgentToolManager:
             ]:
                 ToolAdders.add_data_analysis_tools(context_info, tools)
 
+            # Per ADR-037 #1114: Skip business tools if agent config has empty tools list
+            agent_config = get_agent_config(agent_type)
+            has_tools_disabled = (
+                agent_config.get("tools") is not None
+                and len(agent_config.get("tools", [])) == 0
+            )
+
             if agent_type in ["questionnaire_generator", "six_r_analyzer"]:
-                ToolAdders.add_business_analysis_tools(context_info, tools)
+                if not has_tools_disabled:
+                    ToolAdders.add_business_analysis_tools(context_info, tools)
+                else:
+                    logger.info(
+                        f"Skipping business analysis tools for {agent_type} - "
+                        f"agent config has empty tools list per ADR-037 #1114"
+                    )
 
             # Per COLLECTION_FLOW_TWO_CRITICAL_ISSUES.md:
             # Removed global add_quality_tools() and add_legacy_tools()
