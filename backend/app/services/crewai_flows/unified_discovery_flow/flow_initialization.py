@@ -94,9 +94,17 @@ class FlowInitializer:
         state.raw_data = self.raw_data
         state.metadata = self.metadata
 
-        # Set data_import_id to flow_id for direct raw data flows
-        # This ensures field mapping persistence works correctly
-        state.data_import_id = state.flow_id
+        # Prefer explicit data_import_id/metadata from initialization payload
+        metadata_import_id = None
+        if isinstance(self.metadata, dict):
+            metadata_import_id = (
+                self.metadata.get("data_import_id")
+                or self.metadata.get("import_id")
+                or self.metadata.get("data_import")
+            )
+
+        # Set data_import_id to actual import ID when available, otherwise flow_id
+        state.data_import_id = metadata_import_id or state.flow_id
 
         # Log the initialized values
         logger.info(

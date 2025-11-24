@@ -14,7 +14,6 @@ import { ContextMigrationProvider } from './contexts/GlobalContext/compatibility
 
 // Legacy context providers (for backward compatibility)
 import { ChatFeedbackProvider } from './contexts/ChatFeedbackContext';
-import { FieldOptionsProvider } from './contexts/FieldOptionsContext';
 import { DialogProvider } from './contexts/DialogContext';
 import GlobalChatFeedback from './components/GlobalChatFeedback';
 
@@ -501,14 +500,12 @@ const AppWithGlobalContext = (): JSX.Element => {
           >
             {/* Legacy context providers for backward compatibility */}
             <ContextMigrationProvider useGlobalContext={true}>
-              <FieldOptionsProvider>
-                <DialogProvider>
-                  <ChatFeedbackProvider>
-                    <AuthenticatedAppWithGlobalContext />
-                    <GlobalChatFeedback />
-                  </ChatFeedbackProvider>
-                </DialogProvider>
-              </FieldOptionsProvider>
+              <DialogProvider>
+                <ChatFeedbackProvider>
+                  <AuthenticatedAppWithGlobalContext />
+                  <GlobalChatFeedback />
+                </ChatFeedbackProvider>
+              </DialogProvider>
             </ContextMigrationProvider>
           </GlobalContextProvider>
         </LazyLoadingProvider>

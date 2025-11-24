@@ -67,6 +67,18 @@ Deployment of a comprehensive observability stack for production monitoring.
   - **LLM Costs**: Detailed tracking of token usage and costs by model/provider.
 
 ---
+=======
+## [1.21.3] - 2025-11-15
+
+### 🛡️ **Fix - Discovery flow blocking across import categories**
+- **Change Type**: Frontend fix
+- **Impact**: Application dependency uploads once again honor the “one active discovery flow per tenant” rule instead of starting parallel imports.
+- **Technical Details**: `useIncompleteFlowDetection` now pulls all active flows (without server-side filtering) and applies a normalized discovery-type whitelist so `UploadBlocker` triggers for `app_discovery`, topology, and future multi-type imports the same way it already does for CMDB flows.
+- **Backend Guard**: `ImportStorageHandler` now invokes `ImportValidator.validate_no_incomplete_discovery_flow()` before creating a new import; conflicts short-circuit with a 409 so `/data-import/upload` enforces the same one-flow-at-a-time rule even if the UI has not refreshed yet. The validator now treats early-phase flows (even with 0 % progress) as active, so dependency imports are blocked immediately after the first run starts.
+
+### 📊 **Result**
+- Users are prevented from launching a new import whenever any discovery flow (CMDB or non-CMDB) is still running, matching previously accepted CMDB behavior.
+>>>>>>> 997dd2d92 (feat: ensure discovery flow blocking across imports)
 
 ## [1.21.2] - 2025-11-10
 

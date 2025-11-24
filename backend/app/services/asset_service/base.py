@@ -297,25 +297,21 @@ class AssetService:
                     security_zone=asset_data.get("security_zone"),
                     database_type=asset_data.get("database_type"),
                     database_version=asset_data.get("database_version"),
-                    database_size_gb=asset_data.get("database_size_gb"),
+                    # database_size_gb is included in **numeric_fields above (via convert_numeric_fields)
                     pii_flag=asset_data.get("pii_flag"),
                     application_data_classification=asset_data.get(
                         "application_data_classification"
                     ),
-                    cpu_utilization_percent_max=asset_data.get(
-                        "cpu_utilization_percent_max"
-                    ),
-                    memory_utilization_percent_max=asset_data.get(
-                        "memory_utilization_percent_max"
-                    ),
-                    storage_free_gb=asset_data.get("storage_free_gb"),
+                    # cpu_utilization_percent_max is included in **numeric_fields above
+                    # memory_utilization_percent_max is included in **numeric_fields above
+                    # storage_free_gb is included in **numeric_fields above
                     has_saas_replacement=asset_data.get("has_saas_replacement"),
                     risk_level=asset_data.get("risk_level"),
                     tshirt_size=asset_data.get("tshirt_size"),
                     proposed_treatmentplan_rationale=asset_data.get(
                         "proposed_treatmentplan_rationale"
                     ),
-                    annual_cost_estimate=asset_data.get("annual_cost_estimate"),
+                    # annual_cost_estimate is included in **numeric_fields above
                     status=AssetStatus.DISCOVERED,
                     migration_status=AssetStatus.DISCOVERED,
                     created_at=datetime.utcnow(),

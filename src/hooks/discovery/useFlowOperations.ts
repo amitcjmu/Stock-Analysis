@@ -24,6 +24,20 @@ export interface IncompleteFlow {
   engagement_id?: string;
 }
 
+const DISCOVERY_FLOW_TYPES = new Set([
+  'discovery',
+  'unified_discovery',
+  'discovery_v3',
+  'discovery_flow',
+  'data_import',
+  'application_discovery',
+  'application_dependency',
+  'app_discovery',
+  'topology_import',
+]);
+
+const TERMINATED_STATUSES = new Set(['completed', 'cancelled', 'deleted']);
+
 // Hook to detect incomplete flows
 export const useIncompleteFlowDetection = (): unknown => {
   const { client, engagement } = useAuth();
@@ -54,11 +68,43 @@ export const useIncompleteFlowDetection = (): unknown => {
         // Filter flows
 
         // Filter for incomplete flows (match backend logic: not completed, cancelled, or deleted)
-        const incompleteFlows = allFlows.filter((flow: unknown) =>
-          flow.status !== 'completed' &&
-          flow.status !== 'cancelled' &&
-          flow.status !== 'deleted'
-        ).map((flow: unknown) => {
+        const incompleteFlows = allFlows
+        .filter((flow: any) => {
+          const status = (flow.status || '').toLowerCase();
+          if (TERMINATED_STATUSES.has(status)) {
+            return false;
+          }
+
+          const rawType =
+            (flow.flow_type ||
+              flow.flowType ||
+              flow.flow_type_name ||
+              ''
+            ).toString().toLowerCase();
+
+          if (rawType && DISCOVERY_FLOW_TYPES.has(rawType)) {
+            return true;
+          }
+
+          const inferredName =
+            (flow.flow_name || flow.flowName || '').toString().toLowerCase();
+          if (inferredName.includes('discovery')) {
+            return true;
+          }
+
+          const importCategory =
+            (flow.import_category ||
+              flow.metadata?.import_category ||
+              flow.flow_configuration?.import_category ||
+              ''
+            ).toString().toLowerCase();
+          if (importCategory && importCategory !== 'unknown') {
+            return true;
+          }
+
+          return false;
+        })
+        .map((flow: unknown) => {
           // Get the flow ID from various possible fields
           const flowId = flow.master_flow_id || flow.flowId || flow.flow_id;
 
@@ -86,7 +132,7 @@ export const useIncompleteFlowDetection = (): unknown => {
           client_account_id: flow.client_account_id,
           engagement_id: flow.engagement_id,
           // Additional fields for compatibility
-          flow_name: flow.flowType || 'Discovery Flow',
+          flow_name: flow.flow_name || flow.flowName || flow.flowType || 'Discovery Flow',
           flow_description: flow.metadata?.description || '',
           can_resume: flow.status !== 'failed',
           // Add agent_insights field to prevent undefined errors

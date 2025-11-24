@@ -56,6 +56,8 @@ class ImportStorageManager:
         status: str = "processing",
         engagement_id: Optional[str] = None,
         imported_by: Optional[str] = None,
+        import_category: Optional[str] = None,
+        processing_config: Optional[Dict[str, Any]] = None,
     ) -> DataImport:
         """
         Store import data and create DataImport record.
@@ -65,6 +67,8 @@ class ImportStorageManager:
             filename: Name of the imported file
             file_content_type: MIME type of the file
             import_type: Type of import (e.g., 'cmdb')
+            import_category: High-level category for processor routing
+            processing_config: Optional processor configuration overrides
             status: Initial status for the import
             engagement_id: Optional engagement ID
             imported_by: Optional user ID who imported
@@ -80,6 +84,8 @@ class ImportStorageManager:
             status=status,
             engagement_id=engagement_id,
             imported_by=imported_by,
+            import_category=import_category,
+            processing_config=processing_config,
         )
 
     async def find_or_create_import(

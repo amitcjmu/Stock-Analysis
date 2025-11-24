@@ -290,29 +290,48 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             # Step 4: No conflicts - proceed with normal completion
             logger.info("✅ No conflicts detected, proceeding with phase completion")
 
-            # CC: Assets already created in Step 2, just mark records as processed
-            all_assets = created_assets + duplicate_assets
-            await mark_records_processed(db_session, raw_records, all_assets)
+            # Calculate totals BEFORE determining if flow should be marked complete
+            total_created = len(created_assets)
+            total_duplicates = len(duplicate_assets)
+            has_successful_assets = total_created > 0 or total_duplicates > 0
 
-            # Mark asset_inventory phase as complete and complete the discovery flow
-            # This is the final phase of discovery, so mark flow as completed (Qodo Issue #2)
-            await persist_asset_inventory_completion(
-                db_session,
-                flow_id=str(discovery_flow_id),
-                client_account_id=str(client_account_id),
-                engagement_id=str(engagement_id),
-                mark_flow_complete=True,  # Single source of truth for completion
-            )
+            # Only mark records as processed if we have assets (created or duplicates)
+            if has_successful_assets:
+                all_assets = created_assets + duplicate_assets
+                await mark_records_processed(db_session, raw_records, all_assets)
 
-            # Mark assets as created in flow_persistence_data (Issue #907)
-            await mark_assets_created(
-                master_flow_repo, master_flow_id, len(created_assets), db_session
-            )
+                # Mark asset_inventory phase as complete and complete the discovery flow
+                # This is the final phase of discovery, so mark flow as completed (Qodo Issue #2)
+                # BUT only if assets were successfully created or duplicates found
+                await persist_asset_inventory_completion(
+                    db_session,
+                    flow_id=str(discovery_flow_id),
+                    client_account_id=str(client_account_id),
+                    engagement_id=str(engagement_id),
+                    mark_flow_complete=True,  # Single source of truth for completion
+                )
+
+                # Mark assets as created in flow_persistence_data (Issue #907)
+                await mark_assets_created(
+                    master_flow_repo, master_flow_id, len(created_assets), db_session
+                )
+            else:
+                # All assets failed - don't mark flow as complete
+                logger.error(
+                    f"❌ All assets failed to create - not marking flow as complete. "
+                    f"Created: {total_created}, Duplicates: {total_duplicates}, Failed: {failed_count}"
+                )
+                # Still mark phase as complete to prevent re-execution, but don't mark flow as complete
+                await persist_asset_inventory_completion(
+                    db_session,
+                    flow_id=str(discovery_flow_id),
+                    client_account_id=str(client_account_id),
+                    engagement_id=str(engagement_id),
+                    mark_flow_complete=False,  # Don't mark flow complete if all assets failed
+                )
 
             # Transaction will be committed by caller
 
-            total_created = len(created_assets)
-            total_duplicates = len(duplicate_assets)
             logger.info(
                 f"🎉 Asset inventory phase completed: {total_created} new assets, "
                 f"{total_duplicates} duplicates, {failed_count} failed"
@@ -331,10 +350,11 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             elif total_duplicates > 0:
                 message = f"All {total_duplicates} assets already exist in inventory. No new assets were created."
             else:
-                message = "No assets were created or found"
+                message = f"All {failed_count} assets failed to create. Flow not marked as completed."
 
+            # Return status based on whether assets were successfully processed
             return {
-                "status": "completed",
+                "status": "completed" if has_successful_assets else "failed",
                 "phase": "asset_inventory",
                 "message": message,
                 "assets_created": total_created,

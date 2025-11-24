@@ -24,6 +24,8 @@ export interface FieldMappingsTabProps {
   onRemoveMapping?: (mappingId: string) => Promise<void>;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   onRefresh?: () => void;
+  flowId?: string | null;
+  importCategory?: string | null;
   // New learning-related props
   onApproveMappingWithLearning?: (mappingId: string, request: FieldMappingLearningApprovalRequest) => Promise<void>;
   onRejectMappingWithLearning?: (mappingId: string, request: FieldMappingLearningRejectionRequest) => Promise<void>;

@@ -91,13 +91,20 @@ export const EnhancedFieldDropdown: React.FC<EnhancedFieldDropdownProps> = ({
     }
   };
 
+  // Look up display_name from availableFields when displaying the selected value
+  const getDisplayName = (fieldName: string): string => {
+    if (!fieldName) return placeholder;
+    const field = safeAvailableFields.find(f => f?.name === fieldName);
+    return field?.display_name || fieldName;
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between min-w-[200px] px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
-        <span className="truncate font-medium text-blue-600">{value || placeholder}</span>
+        <span className="truncate font-medium text-blue-600">{getDisplayName(value)}</span>
         <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

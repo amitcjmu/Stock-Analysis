@@ -22,6 +22,8 @@ interface SessionInfo {
   availableDataImports: Array<{ id: string; name?: string; [key: string]: unknown }>;
   selectedDataImportId: string | null;
   hasMultipleSessions: boolean;
+  importCategory?: string;
+  preferredColumns?: string[];
 }
 
 interface ImportedDataTabProps {
@@ -58,6 +60,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
 
   // Get flow_id from sessionInfo
   const flow_id = sessionInfo?.flowId;
+  const preferredColumns = sessionInfo?.preferredColumns;
+  const importCategory = sessionInfo?.importCategory;
 
   // 🚀 React Query with context-aware caching - now uses flow-specific endpoint
   const {
@@ -217,13 +221,27 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
     };
   }, [importResponse, queryError]);
 
+  const allColumns = useMemo(
+    () => (importData.length > 0 ? Object.keys(importData[0].raw_data) : []),
+    [importData]
+  );
+
   // Set default columns when data loads (memoized)
   useEffect(() => {
-    if (importData.length > 0 && selectedColumns.length === 0) {
-      const columns = Object.keys(importData[0].raw_data);
-      setSelectedColumns(columns.slice(0, 6));
+    if (importData.length === 0) return;
+
+    if (preferredColumns && preferredColumns.length > 0) {
+      const availablePreferred = preferredColumns.filter(col => allColumns.includes(col));
+      if (availablePreferred.length > 0) {
+        setSelectedColumns(availablePreferred);
+        return;
+      }
     }
-  }, [importData, selectedColumns.length]);
+
+    if (selectedColumns.length === 0) {
+      setSelectedColumns(allColumns.slice(0, 6));
+    }
+  }, [importData, preferredColumns, allColumns, selectedColumns.length]);
 
   const filteredData = importData.filter(record => {
     if (!searchTerm) return true;
@@ -240,8 +258,6 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
   );
 
   const totalPages = Math.ceil(filteredData.length / recordsPerPage);
-
-  const allColumns = importData.length > 0 ? Object.keys(importData[0].raw_data) : [];
 
   const toggleColumn = (column: string): unknown => {
     setSelectedColumns(prev =>
@@ -388,6 +404,14 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "", sessi
                 Data may be outdated
               </span>
             )}
+              {importCategory === 'app_discovery' && (
+                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  Application dependency import • spotlight on&nbsp;
+                  {(preferredColumns && preferredColumns.length > 0)
+                    ? preferredColumns.join(', ')
+                    : 'application, hostname, dependency'}
+                </span>
+              )}
           </div>
           <div className="flex items-center space-x-2">
             <button
