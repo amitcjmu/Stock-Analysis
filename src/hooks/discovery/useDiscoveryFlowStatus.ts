@@ -17,6 +17,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { useAuth } from '@/contexts/AuthContext';
+import { isFlowTerminal } from '@/constants/flowStates';
 import type { FlowStatusResponse } from '@/types/api';
 
 interface UseDiscoveryFlowStatusOptions {
@@ -34,9 +35,6 @@ interface UseDiscoveryFlowStatusOptions {
   onError?: (error: Error) => void;
 }
 
-// Terminal states that should stop polling
-const TERMINAL_STATES = ['completed', 'failed', 'cancelled', 'aborted', 'deleted'];
-
 // States that indicate waiting for user action
 const WAITING_STATES = ['waiting_for_approval', 'paused'];
 
@@ -50,7 +48,7 @@ export const shouldPollFlow = (status?: FlowStatusResponse): boolean => {
   if (!status) return false;
 
   // Stop polling for terminal states
-  if (TERMINAL_STATES.includes(status.status)) return false;
+  if (isFlowTerminal(status.status)) return false;
 
   // Stop polling when waiting for user action
   if (WAITING_STATES.includes(status.status)) return false;
