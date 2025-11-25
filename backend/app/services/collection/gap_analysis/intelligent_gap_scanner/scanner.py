@@ -102,13 +102,16 @@ class IntelligentGapScanner:
                 data_sources_checked: List[DataSource] = []
 
                 # Source 1: Standard column
+                # ✅ FIX Bug #4: Use correct DataSource parameter names
+                # (source_type, field_path, value, confidence) NOT (source, location, value)
                 std_value = self._check_standard_column(asset, field_id)
                 if std_value is not None:
                     data_sources_checked.append(
                         DataSource(
-                            source="standard_column",
-                            location=f"assets.{field_id}",
+                            source_type="standard_column",
+                            field_path=f"assets.{field_id}",
                             value=std_value,
+                            confidence=1.0,  # Highest confidence (authoritative)
                         )
                     )
 
@@ -119,9 +122,10 @@ class IntelligentGapScanner:
                 if jsonb_value is not None:
                     data_sources_checked.append(
                         DataSource(
-                            source="custom_attributes",
-                            location=f"custom_attributes.{field_id}",
+                            source_type="custom_attributes",
+                            field_path=f"custom_attributes.{field_id}",
                             value=jsonb_value,
+                            confidence=0.95,  # Structured data
                         )
                     )
 
@@ -132,9 +136,10 @@ class IntelligentGapScanner:
                 if enrichment_value is not None:
                     data_sources_checked.append(
                         DataSource(
-                            source="enrichment_tables",
-                            location=f"enrichment.{field_id}",
+                            source_type="enrichment_tables",
+                            field_path=f"enrichment.{field_id}",
                             value=enrichment_value,
+                            confidence=0.90,  # Assessed data
                         )
                     )
 
@@ -142,9 +147,10 @@ class IntelligentGapScanner:
                 if field_id == "environment" and asset.environment:
                     data_sources_checked.append(
                         DataSource(
-                            source="environment_field",
-                            location="assets.environment",
+                            source_type="environment_field",
+                            field_path="assets.environment",
                             value=asset.environment,
+                            confidence=0.85,  # Metadata
                         )
                     )
 
@@ -155,9 +161,10 @@ class IntelligentGapScanner:
                 if canonical_value is not None:
                     data_sources_checked.append(
                         DataSource(
-                            source="canonical_applications",
-                            location=f"canonical_apps.{field_id}",
+                            source_type="canonical_applications",
+                            field_path=f"canonical_apps.{field_id}",
                             value=canonical_value,
+                            confidence=0.80,  # Derived data
                         )
                     )
 
@@ -168,9 +175,10 @@ class IntelligentGapScanner:
                 if related_value is not None:
                     data_sources_checked.append(
                         DataSource(
-                            source="related_assets",
-                            location=f"related_assets.{field_id}",
+                            source_type="related_assets",
+                            field_path=f"related_assets.{field_id}",
                             value=related_value,
+                            confidence=0.70,  # Propagated data
                         )
                     )
 
@@ -237,3 +245,44 @@ class IntelligentGapScanner:
             if field_id in section_meta["fields"]:
                 return section_meta["fields"][field_id].get("label", field_id)
         return field_id.replace("_", " ").title()
+
+    # Wrapper methods for testing data extraction logic
+    def _extract_from_canonical_apps(
+        self, canonical_apps: List[Any], field_id: str
+    ) -> Optional[DataSource]:
+        """
+        Wrapper for testing canonical apps extraction.
+
+        Returns DataSource if value found, None otherwise.
+        """
+        value = self.data_extractors.extract_from_canonical_apps(
+            canonical_apps, field_id
+        )
+        if value is not None:
+            return DataSource(
+                source_type="canonical_applications",
+                field_path=f"canonical_apps.{field_id}",
+                value=value,
+                confidence=0.80,
+            )
+        return None
+
+    def _extract_from_related_assets(
+        self, related_assets: List[Asset], field_id: str
+    ) -> Optional[DataSource]:
+        """
+        Wrapper for testing related assets extraction.
+
+        Returns DataSource if value found, None otherwise.
+        """
+        value = self.data_extractors.extract_from_related_assets(
+            related_assets, field_id
+        )
+        if value is not None:
+            return DataSource(
+                source_type="related_assets",
+                field_path=f"related_assets.{field_id}",
+                value=value,
+                confidence=0.70,
+            )
+        return None

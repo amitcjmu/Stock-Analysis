@@ -119,6 +119,30 @@ class DataExtractors:
         if field_id in ["canonical_application_id", "canonical_app_id"]:
             return str(canonical_apps[0].id) if canonical_apps else None
 
+        # Database type from database canonical applications
+        if field_id == "database_type" and canonical_apps:
+            # If this is a database application, return its canonical_name
+            # (e.g., "PostgreSQL", "MySQL", "Oracle")
+            for app in canonical_apps:
+                if (
+                    hasattr(app, "application_type")
+                    and app.application_type == "database"
+                ):
+                    return app.canonical_name
+                # Also check if canonical_name suggests it's a database
+                if hasattr(app, "canonical_name"):
+                    db_keywords = [
+                        "postgres",
+                        "mysql",
+                        "oracle",
+                        "mongodb",
+                        "redis",
+                        "sql",
+                    ]
+                    name_lower = app.canonical_name.lower()
+                    if any(keyword in name_lower for keyword in db_keywords):
+                        return app.canonical_name
+
         if "application" in field_id.lower() and canonical_apps:
             # Generic application-related field - return first app name
             return canonical_apps[0].name

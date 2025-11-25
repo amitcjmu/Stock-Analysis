@@ -875,7 +875,6 @@ async def migrate_custom_attrs_to_standard_columns(
             if 1 <= cpu_int <= 1024:  # Reasonable range
                 if not dry_run:
                     asset.cpu_cores = cpu_int
-                    await db.commit()
 
                 migrations.append({
                     "asset_id": str(asset.id),
@@ -887,6 +886,10 @@ async def migrate_custom_attrs_to_standard_columns(
         except (ValueError, TypeError):
             # Invalid data - log but skip
             pass
+
+    # Commit all updates once (more efficient than per-asset commits)
+    if not dry_run and migrations:
+        await db.commit()
 
     return {
         "total_migrated": len(migrations),

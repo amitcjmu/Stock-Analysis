@@ -328,7 +328,7 @@
         },
         "targets": [
           {
-            "rawSql": "SELECT COUNT(*) as duplicate_count FROM (SELECT collection_flow_id, questions_json->>'question_text' as question_text, COUNT(*) as cnt FROM migration.questionnaires WHERE created_at >= NOW() - INTERVAL '1 hour' GROUP BY collection_flow_id, questions_json->>'question_text' HAVING COUNT(*) > 1) as duplicates",
+            "rawSql": "SELECT COUNT(*) as duplicate_count FROM (SELECT collection_flow_id, questions_json->>'question_text' as question_text, COUNT(*) as cnt FROM migration.questionnaires WHERE $__timeFilter(created_at) GROUP BY collection_flow_id, questions_json->>'question_text' HAVING COUNT(*) > 1) as duplicates",
             "format": "table",
             "refId": "A"
           }

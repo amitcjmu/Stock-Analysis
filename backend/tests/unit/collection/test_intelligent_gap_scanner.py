@@ -375,7 +375,9 @@ class TestCanonicalApplications:
 
         result = scanner._extract_from_canonical_apps([mock_db_app], "database_type")
         assert result is not None
-        assert result.value == "database"
+        assert (
+            result.value == "PostgreSQL"
+        )  # Returns canonical_name, not application_type
 
     @pytest.mark.asyncio
     async def test_canonical_app_no_match(self, scanner):
