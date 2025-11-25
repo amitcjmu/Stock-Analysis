@@ -28,11 +28,19 @@ logger = logging.getLogger(__name__)
 async def _get_flow_by_id(
     flow_id: str, db: AsyncSession, context: RequestContext
 ) -> CollectionFlow:
-    """Get and validate collection flow by ID."""
+    """Get and validate collection flow by ID.
+
+    MFO Two-Table Pattern: Accept either flow_id (manually set UUID) or id (PK).
+    This provides flexible lookup since frontend may pass either value.
+    See: .serena/memories/mfo_two_table_flow_id_pattern_critical.md
+    """
     logger.debug(f"🔍 _get_flow_by_id called with flow_id={flow_id}")
+    flow_uuid = UUID(flow_id)
     flow_result = await db.execute(
         select(CollectionFlow).where(
-            CollectionFlow.flow_id == UUID(flow_id),
+            # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+            (CollectionFlow.flow_id == flow_uuid)
+            | (CollectionFlow.id == flow_uuid),
             CollectionFlow.engagement_id == context.engagement_id,
             CollectionFlow.client_account_id == context.client_account_id,
         )
@@ -221,7 +229,9 @@ async def get_adaptive_questionnaires(
 
                     await db.execute(
                         sql_update(CollectionFlow)
-                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        # MFO Two-Table Pattern: Update using flow.id (PK)
+                        # We already have the flow object, use its PK for update
+                        .where(CollectionFlow.id == flow.id)
                         .values(
                             current_phase="manual_collection",
                             status="paused",  # Awaiting user questionnaire input

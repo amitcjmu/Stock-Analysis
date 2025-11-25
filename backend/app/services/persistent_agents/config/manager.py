@@ -99,8 +99,30 @@ class AgentConfigManager:
                         "✅ CrewAI compat shim: Set OPENAI_API_KEY for agent creation"
                     )
 
-            # Get LLM for the agent
-            llm = get_crewai_llm() if LLM_CONFIG_AVAILABLE else None
+            # Check if agent has specific LLM configuration
+            agent_llm_config = config.get("llm_config")
+
+            if agent_llm_config and LLM_CONFIG_AVAILABLE:
+                # Agent has specific LLM config - use it
+                from app.services.llm_config import get_crewai_llm_with_config
+
+                llm = get_crewai_llm_with_config(
+                    model=agent_llm_config.get(
+                        "model", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+                    ),
+                    temperature=agent_llm_config.get("temperature", 0.1),
+                    max_tokens=agent_llm_config.get("max_tokens", 4096),
+                    provider=agent_llm_config.get("provider", "deepinfra"),
+                )
+                logger.info(
+                    f"✅ Agent {agent_type} using custom LLM config: "
+                    f"model={agent_llm_config.get('model')}, "
+                    f"max_tokens={agent_llm_config.get('max_tokens', 4096)}"
+                )
+            else:
+                # Use default LLM config
+                llm = get_crewai_llm() if LLM_CONFIG_AVAILABLE else None
+                logger.debug(f"Agent {agent_type} using default LLM config")
 
             # Get tools for this agent type
             tools = AgentToolManager.get_agent_tools(agent_type, context_info)
@@ -115,7 +137,7 @@ class AgentConfigManager:
                 goal=config["goal"],
                 backstory=config["backstory"],
                 tools=tools,
-                llm=llm,
+                llm=llm,  # ← Now uses agent-specific LLM if available
                 memory=False,  # Per ADR-024: CrewAI memory disabled, use TenantMemoryManager
                 verbose=config.get("verbose", True),
                 allow_delegation=config.get("allow_delegation", False),

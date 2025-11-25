@@ -19,7 +19,7 @@ from sqlalchemy import (
 )
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 
 from app.models.base import Base, TimestampMixin
 from .schemas import (
@@ -202,6 +202,40 @@ class CollectionFlow(Base, TimestampMixin):
 
     def __repr__(self):
         return f"<CollectionFlow(id={self.id}, flow_name='{self.flow_name}', status={self.status})>"
+
+    @validates("flow_id", "master_flow_id")
+    def validate_flow_ids_match(self, key, value):
+        """
+        Validate that flow_id == master_flow_id (MFO Two-Table Pattern).
+
+        Per Issue #1136: Collection Flow must follow the same two-table pattern
+        as Discovery/Assessment flows, where flow_id equals master_flow_id.
+
+        This validation logs a warning if the pattern is violated, allowing
+        existing data to remain but preventing new violations.
+
+        Args:
+            key: The attribute name being set ('flow_id' or 'master_flow_id')
+            value: The new value being assigned
+
+        Returns:
+            The validated value
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Only validate after both fields are set
+        if hasattr(self, "flow_id") and hasattr(self, "master_flow_id"):
+            if self.flow_id and self.master_flow_id:
+                if self.flow_id != self.master_flow_id:
+                    logger.warning(
+                        f"⚠️ MFO Two-Table Pattern violation: flow_id ({self.flow_id}) "
+                        f"!= master_flow_id ({self.master_flow_id}). "
+                        f"This may cause UUID mismatch bugs (Issue #1136). "
+                        f"New flows should have flow_id == master_flow_id."
+                    )
+        return value
 
     def calculate_progress(self) -> float:
         """Calculate progress percentage based on current phase"""

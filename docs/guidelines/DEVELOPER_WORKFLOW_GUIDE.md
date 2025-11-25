@@ -21,6 +21,8 @@ git pull origin main
 git checkout -b fix/your-descriptive-fix-name
 ```
 
+**Note:** After creating a branch, if you continue working and `main` has moved forward, use `./scripts/sync-with-main.sh` to keep your branch up to date before pushing.
+
 **Branch Naming Conventions:**
 - `fix/` - Bug fixes (e.g., `fix/collection-flow-resume-errors`)
 - `feat/` - New features (e.g., `feat/asset-agnostic-collection`)
@@ -249,6 +251,20 @@ git commit -m "refactor: Implement modular flow handlers"
 - `style:` - Code formatting
 - `docs:` - Documentation changes
 
+### Code Review Check (Recommended)
+
+Before committing, review code against common patterns:
+
+```bash
+# Check changed files against code review repository patterns
+./scripts/pre-commit-code-review-check.sh
+
+# Or check only staged files
+./scripts/pre-commit-code-review-check.sh --staged
+```
+
+This helps catch common issues before PR review. See `docs/code-reviews/review-comments-repository.md` for full pattern list.
+
 ### Handling Pre-commit Failures
 ```bash
 # If pre-commit fails, fix issues and re-stage
@@ -261,13 +277,44 @@ git commit --no-verify -m "fix: Emergency commit after pre-commit fixes"
 
 ## 7. Pushing to Git
 
+### ⚠️ CRITICAL: Sync with Main First
+
+**Always sync your branch with the latest `main` before pushing** to prevent merge conflicts and keep PRs clean.
+
+**Recommended: Use the sync script (automatic):**
 ```bash
+# Sync with main and push (recommended)
+./scripts/sync-with-main.sh --push
+
+# Or just sync without pushing
+./scripts/sync-with-main.sh
+
+# Or use the safe push wrapper
+./scripts/git-safe-push.sh origin fix/your-descriptive-fix-name
+```
+
+**Manual sync (if needed):**
+```bash
+# Fetch latest main
+git fetch origin main
+
+# Rebase onto main
+git pull origin main --rebase
+
 # Push your branch
 git push origin fix/your-descriptive-fix-name
 
 # For first push of new branch
 git push -u origin fix/your-descriptive-fix-name
 ```
+
+**Why this matters:**
+- Prevents merge conflicts in PRs
+- Keeps PRs clean (no "merge main" commits)
+- Ensures code is always based on latest main
+- Required workflow for Cursor AI agent
+
+See `scripts/README.md` for detailed documentation on the sync scripts.
 
 ## 8. Creating a GitHub PR
 

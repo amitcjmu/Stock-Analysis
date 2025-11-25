@@ -191,9 +191,11 @@ litellm.set_verbose = False  # Reduce verbosity
 # Default parameters for DeepInfra models
 DEEPINFRA_PARAMS = {
     "temperature": 0.1,
-    "max_tokens": 4096,
+    "max_tokens": 4096,  # Default for agents without custom llm_config
     # Explicitly avoid logprobs for DeepInfra
     "logprobs": False,
+    # NOTE: Agents with llm_config in agent_pool_constants.py can override max_tokens
+    # Example: gap_analysis_specialist uses 16384 tokens for comprehensive gap analysis
 }
 
 # Embeddings configuration for CrewAI
@@ -257,6 +259,49 @@ def get_crewai_llm(
         model_string = f"deepinfra/{model}"
         logging.info(f"Returning model string: '{model_string}'")
         return model_string
+
+
+def get_crewai_llm_with_config(
+    model: str,
+    temperature: float = 0.1,
+    max_tokens: int = 4096,
+    provider: str = "deepinfra",
+) -> Any:
+    """
+    Create CrewAI-compatible LLM with custom configuration.
+
+    Unlike get_crewai_llm(), this is NOT cached - each agent gets its own instance
+    with specific max_tokens configuration.
+
+    Args:
+        model: Model name (e.g., "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
+        temperature: LLM temperature (default: 0.1)
+        max_tokens: Maximum tokens for response (default: 4096)
+        provider: LLM provider (default: "deepinfra")
+
+    Returns:
+        CrewAI LLM instance configured with custom settings
+    """
+    from crewai import LLM
+
+    api_key = os.getenv("DEEPINFRA_API_KEY")
+    if not api_key:
+        raise ValueError("DEEPINFRA_API_KEY not configured")
+
+    logging.info(
+        f"Configuring LLM with custom config: Model='{model}', "
+        f"Temperature='{temperature}', Max_Tokens='{max_tokens}', Provider='{provider}'"
+    )
+
+    llm = LLM(
+        model=f"{provider}/{model}",
+        api_key=api_key,
+        temperature=temperature,
+        max_tokens=max_tokens,  # ← Key difference: custom max_tokens
+    )
+
+    logging.info(f"Created CrewAI LLM instance with custom config for model: '{model}'")
+    return llm
 
 
 # Create a custom response processor to fix DeepInfra responses

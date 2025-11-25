@@ -382,6 +382,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
                 key={mapping.id}
                 mapping={mapping}
                 onRemove={onRemoveMapping ? handleRemove : undefined}
+                availableFields={availableFields}
               />
             ))}
             {filteredBuckets.approved.length === 0 && (

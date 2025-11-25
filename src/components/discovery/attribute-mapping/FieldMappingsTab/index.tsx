@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { RefreshCw, LayoutGrid, Columns } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useFieldOptions } from "../../../../contexts/FieldOptionsContext";
+import { useTargetFields } from "../../../../hooks/discovery/attribute-mapping/useTargetFields";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { apiCall } from "../../../../config/api";
 
@@ -84,6 +84,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   clientAccountId,
   engagementId,
   sessionInfo,
+  flowId,
+  importCategory,
   canContinueToDataCleansing,
   onContinueToDataCleansing
 }) => {
@@ -104,10 +106,18 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
 
   const queryClient = useQueryClient();
   const { client, engagement, getAuthHeaders } = useAuth();
-  const { availableFields, isLoading: fieldsLoading } = useFieldOptions();
 
-  // Get flow_id from sessionInfo
-  const flow_id = sessionInfo?.flowId;
+  // Use useTargetFields hook which supports flowId and importCategory
+  // This replaces useFieldOptions() which required FieldOptionsProvider
+  console.log('📋 [FieldMappingsTab] useTargetFields called with:', { flowId, importCategory });
+  const {
+    fields: availableFields,
+    isLoading: fieldsLoading,
+  } = useTargetFields({ flowId, importCategory });
+  console.log('✅ [FieldMappingsTab] useTargetFields returned:', { fieldsCount: availableFields.length, importCategory });
+
+  // Get flow_id from sessionInfo or flowId prop
+  const flow_id = flowId || sessionInfo?.flowId;
 
   // ============================================================================
   // VIEW MODE PERSISTENCE
@@ -415,6 +425,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
               field_mappings={safeFieldMappings}
               imported_data={importedData}
               available_target_fields={availableFields.map((f) => f.name)}
+              available_target_fields_metadata={availableFields}
               onMappingChange={handleMappingChangeForGrid}
               onApproveMapping={handleApproveMappingForGrid}
               onRejectMapping={handleRejectMappingForGrid}

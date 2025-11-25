@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../../../hooks/useUnifiedDiscoveryFlow';
+import { isFlowTerminal } from '../../../../constants/flowStates';
 import type { Asset } from '../../../../types/asset';
 import SecureLogger from '../../../../utils/secureLogger';
 import { assetConflictService } from '../../../../services/api/assetConflictService';
@@ -240,7 +241,11 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         phase_state_keys: flow?.phase_state ? Object.keys(flow.phase_state) : [],
       });
 
-      if (has_conflicts) {
+      // CRITICAL FIX: Don't show conflict modal if flow is in terminal state
+      const flowStatus = flow?.status;
+      const isFlowTerminalState = isFlowTerminal(flowStatus);
+
+      if (has_conflicts && !isFlowTerminalState) {
         try {
           SecureLogger.info('Conflict resolution pending, fetching conflicts', {
             flowId,
@@ -276,13 +281,31 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           setShowConflictModal(false);
         }
       } else {
-        console.log('ℹ️ [ConflictDetection] No conflict flag set, skipping fetch');
+        if (isFlowTerminalState) {
+          console.log(`⚠️ [ConflictDetection] Skipping conflict check: Flow is in terminal state (${flowStatus})`);
+          setShowConflictModal(false);
+          setAssetConflicts([]);
+        } else {
+          console.log('ℹ️ [ConflictDetection] No conflict flag set, skipping fetch');
+        }
       }
     };
 
     checkForConflicts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flowId, flow?.phase_state]);
+  }, [flowId, flow?.phase_state, flow?.status]);
+
+  // CRITICAL FIX: Close conflict modal if flow becomes terminal while modal is open
+  React.useEffect(() => {
+    const flowStatus = flow?.status;
+    const isFlowTerminalState = isFlowTerminal(flowStatus);
+
+    if (showConflictModal && isFlowTerminalState) {
+      console.log(`⚠️ [ConflictDetection] Closing conflict modal: Flow became terminal state (${flowStatus})`);
+      setShowConflictModal(false);
+      setAssetConflicts([]);
+    }
+  }, [showConflictModal, flow?.status]);
 
   // Handle conflict resolution completion
   const handleConflictResolutionComplete = async (): Promise<void> => {

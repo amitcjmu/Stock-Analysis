@@ -1,75 +1,33 @@
-import React from 'react'
-import { useState } from 'react'
-import { useMemo, useEffect } from 'react'
+import React, { useMemo } from 'react';
 import { Target, AlertTriangle } from 'lucide-react';
 import ThreeColumnFieldMapper from './FieldMappingsTab/components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';
-import type { TargetField } from './FieldMappingsTab/types';
-import { useAuth } from '../../../contexts/AuthContext';
-import { apiCall, API_CONFIG } from '../../../config/api';
 import type { FieldMapping } from '../../../types/api/discovery/field-mapping-types';
+import { useTargetFields } from '../../../hooks/discovery/attribute-mapping/useTargetFields';
 
 interface CriticalAttributesTabProps {
   fieldMappings?: FieldMapping[];
-  availableFields?: TargetField[];
   onMappingAction?: (mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
   isAnalyzing?: boolean;
+  flowId?: string | null;
+  importCategory?: string;
 }
 
 const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   fieldMappings = [],
-  availableFields: propAvailableFields = [],
   onMappingAction,
   onMappingChange,
   onRefresh,
   isLoading = false,
-  isAnalyzing = false
+  isAnalyzing = false,
+  flowId,
+  importCategory,
 }) => {
-  const { client, engagement } = useAuth();
-  const [availableFields, setAvailableFields] = useState<TargetField[]>(propAvailableFields);
-
-  // Load available target fields with error handling
-  useEffect(() => {
-    const fetchAvailableFields = async (): Promise<void> => {
-      try {
-        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
-          method: 'GET',
-          headers: {
-            'X-Client-Account-ID': client?.id?.toString(),
-            'X-Engagement-ID': engagement?.id?.toString()
-          }
-        });
-
-        if (response?.fields) {
-          setAvailableFields(response.fields);
-        } else if (response?.data?.available_fields) {
-          setAvailableFields(response.data.available_fields);
-        } else {
-          // Fallback: provide basic field options
-          setAvailableFields([
-            { name: 'hostname', type: 'string', required: true, description: 'Server hostname', category: 'identity' },
-            { name: 'ip_address', type: 'string', required: true, description: 'IP address', category: 'network' },
-            { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'system' },
-            { name: 'application_name', type: 'string', required: false, description: 'Application name', category: 'application' }
-          ]);
-        }
-      } catch (error) {
-        console.error('Error fetching available fields:', error);
-        // Provide fallback fields so the component doesn't break
-        setAvailableFields([
-          { name: 'hostname', type: 'string', required: true, description: 'Server hostname', category: 'identity' },
-          { name: 'ip_address', type: 'string', required: true, description: 'IP address', category: 'network' },
-          { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'system' }
-        ]);
-      }
-    };
-
-    if (client?.id && engagement?.id) {
-      fetchAvailableFields();
-    }
-  }, [client?.id, engagement?.id]);
+  const {
+    fields: availableFields,
+  } = useTargetFields({ flowId, importCategory });
   // Define critical field names based on business requirements
   const criticalFieldNames = useMemo(() => new Set([
     // Core Identity Fields

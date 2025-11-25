@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { isFlowTerminal } from '@/constants/flowStates';
 import { InventoryContentFallback } from '../InventoryContentFallback';
 
 interface LoadingStateProps {
@@ -89,6 +90,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     };
   }, []);
 
+  // CRITICAL FIX: Check if flow is in terminal state - disable inventory buttons for completed/cancelled flows
+  const flowStatus = flow?.status;
+  const isFlowTerminalState = isFlowTerminal(flowStatus);
+
   // Check if we need to execute the asset inventory phase
   // FIX #447: Support both phases_completed array and phase_completion object
   const dataCleansingDone =
@@ -98,7 +103,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     !(flow?.phases_completed?.includes('asset_inventory') ||
       flow?.phase_completion?.inventory === true);
 
-  const shouldExecuteInventoryPhase = flow &&
+  const shouldExecuteInventoryPhase = !isFlowTerminalState && flow &&
     dataCleansingDone &&
     inventoryNotDone &&
     flow.current_phase !== 'asset_inventory' &&
@@ -189,7 +194,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                       }
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isExecutingPhase}
+                    disabled={isExecutingPhase || isFlowTerminalState}
+                    title={isFlowTerminalState ? `Cannot execute: Flow is ${flowStatus}` : 'Run asset inventory manually'}
                   >
                     Run Asset Inventory Manually
                   </Button>
@@ -251,7 +257,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                       }
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isExecutingPhase}
+                    disabled={isExecutingPhase || isFlowTerminalState}
+                    title={isFlowTerminalState ? `Cannot execute: Flow is ${flowStatus}` : 'Create asset inventory'}
                   >
                     Create Asset Inventory
                   </Button>

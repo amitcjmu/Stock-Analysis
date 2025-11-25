@@ -14,6 +14,7 @@ import type {
   DataRecord,
   AssetProperties
 } from '../types/hooks/flow-types';
+import { isFlowTerminal } from '../constants/flowStates';
 import SecureLogger from '../utils/secureLogger';
 import SecureStorage from '../utils/secureStorage';
 
@@ -454,9 +455,9 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       }
 
       // Stop polling for terminal states or when waiting for approval
-      if (state?.status === 'completed' || state?.status === 'failed' ||
-          state?.status === 'cancelled' || state?.status === 'waiting_for_approval' ||
-          state?.awaitingUserApproval) {
+      // CRITICAL FIX: Include all terminal states to prevent continued polling after flow completion
+      if (state?.status && (isFlowTerminal(state.status) ||
+          state?.status === 'waiting_for_approval' || state?.awaitingUserApproval)) {
         setPollingEnabled(false);
         return false;
       }

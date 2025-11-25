@@ -7,7 +7,6 @@ by composing the modular services into a cohesive API for the endpoints.
 
 import json
 from typing import Any, Dict, Optional
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -15,7 +14,13 @@ from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.models.data_import import DataImport
 from app.schemas.data_import_schemas import StoreImportRequest, CleansingStats
+from app.services.data_import.background_execution_service import (
+    BackgroundExecutionService,
+    ImportProcessorBackgroundRunner,
+)
+from .import_validator import ImportValidator
 
+from .child_flow_service import DataImportChildFlowService
 from .storage_manager import ImportStorageManager
 
 # from .import_service import DataImportService  # Currently unused
@@ -23,6 +28,44 @@ from .transaction_manager import ImportTransactionManager
 from .response_builder import ImportResponseBuilder
 
 logger = get_logger(__name__)
+
+VALID_IMPORT_CATEGORIES = {
+    "cmdb_export",
+    "app_discovery",
+    "infrastructure",
+    "sensitive_data",
+}
+
+IMPORT_CATEGORY_ALIASES = {
+    "cmdb": "cmdb_export",
+    "cmdbexport": "cmdb_export",
+    "cmdb_export": "cmdb_export",
+    "application_discovery": "app_discovery",
+    "application": "app_discovery",
+    "app_discovery": "app_discovery",
+    "app-discovery": "app_discovery",
+    "infrastructure_assessment": "infrastructure",
+    "infrastructure": "infrastructure",
+    "infra": "infrastructure",
+    "sensitive": "sensitive_data",
+    "sensitive_data": "sensitive_data",
+    "sensitive-data": "sensitive_data",
+    "sensitive_data_assets": "sensitive_data",
+}
+
+
+def _normalize_import_category(raw_value: Optional[str]) -> str:
+    """Normalize arbitrary category strings to canonical values."""
+    if not raw_value:
+        return "cmdb_export"
+
+    normalized = raw_value.strip().lower().replace(" ", "_").replace("-", "_")
+    mapped = IMPORT_CATEGORY_ALIASES.get(normalized, normalized)
+    if mapped in VALID_IMPORT_CATEGORIES:
+        return mapped
+
+    logger.warning("Unknown import category '%s'; defaulting to cmdb_export", raw_value)
+    return "cmdb_export"
 
 
 class ImportStorageHandler:
@@ -45,6 +88,7 @@ class ImportStorageHandler:
         self.db = db
         self.client_account_id = client_account_id
         self.response_builder = ImportResponseBuilder()
+        self.validator = ImportValidator(db, client_account_id)
 
     async def get_latest_import_data(
         self, context: RequestContext
@@ -256,6 +300,39 @@ class ImportStorageHandler:
             Response dictionary with import results
         """
         try:
+            # Guardrail: prevent multiple active discovery flows per tenant/engagement
+            if context.client_account_id and context.engagement_id:
+                flow_validation = (
+                    await self.validator.validate_no_incomplete_discovery_flow(
+                        context.client_account_id, context.engagement_id
+                    )
+                )
+
+                if not flow_validation.get("can_proceed", True):
+                    logger.warning(
+                        "Blocking data import for client %s / engagement %s due to active discovery flow: %s",
+                        context.client_account_id,
+                        context.engagement_id,
+                        flow_validation.get("existing_flow"),
+                    )
+                    return self.response_builder.conflict_response(
+                        conflict_message=flow_validation.get(
+                            "message",
+                            (
+                                "An existing discovery flow is still active. "
+                                "Please complete it before starting a new import."
+                            ),
+                        ),
+                        existing_flow=flow_validation.get("existing_flow"),
+                        recommendations=flow_validation.get("recommendations"),
+                    )
+            else:
+                logger.debug(
+                    "Skipping active flow validation - missing client (%s) or engagement (%s)",
+                    context.client_account_id,
+                    context.engagement_id,
+                )
+
             # Use transaction manager for atomic operations
             transaction_manager = ImportTransactionManager(self.db)
 
@@ -267,6 +344,13 @@ class ImportStorageHandler:
                     self.db, context.client_account_id
                 )
 
+                raw_category = (
+                    store_request.import_category
+                    or store_request.upload_context.intended_type
+                )
+                import_category = _normalize_import_category(raw_category)
+                processing_config = store_request.processing_config or {}
+
                 # Create data_import record and store raw_import_records directly
                 data_import = await storage_ops.store_import_data(
                     file_content=json.dumps(store_request.file_data).encode("utf-8"),
@@ -276,6 +360,8 @@ class ImportStorageHandler:
                     status="processing",
                     engagement_id=context.engagement_id,
                     imported_by=context.user_id,
+                    import_category=import_category,
+                    processing_config=processing_config,
                 )
                 logger.info(
                     f"🗳️ Data import record created with raw records: {data_import.id}"
@@ -290,9 +376,6 @@ class ImportStorageHandler:
                         store_request.cleansing_stats, context, data_import.id
                     )
 
-                # Now trigger the master flow using existing service
-                # import_service = DataImportService(self.db, context)  # Currently unused
-
                 # 🔧 CC FIX: Ensure CrewAI environment is configured BEFORE creating MFO
                 # This prevents "OPENAI_API_KEY is required" errors during initialize_all_flows()
                 # which is called in MasterFlowOrchestrator.__init__ -> core.py:90-94
@@ -303,119 +386,45 @@ class ImportStorageHandler:
                     "✅ CrewAI environment configured for MasterFlowOrchestrator initialization"
                 )
 
-                # Create the master flow and link it to the data import
-                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-                orchestrator = MasterFlowOrchestrator(self.db, context)
-                configuration = {
-                    "source": "data_import",
-                    "import_id": str(data_import.id),
-                    "filename": store_request.metadata.filename,
-                    "import_timestamp": datetime.utcnow().isoformat(),
-                }
-                initial_state = {
-                    "raw_data": store_request.file_data,  # Pass actual CSV data, not metadata wrapper
-                    "data_import_id": str(data_import.id),
-                }
-
-                # Convert any UUID objects to strings for JSON serialization
-                def convert_uuids_to_str(obj):
-                    import uuid
-
-                    if isinstance(obj, uuid.UUID):
-                        return str(obj)
-                    elif isinstance(obj, dict):
-                        return {k: convert_uuids_to_str(v) for k, v in obj.items()}
-                    elif isinstance(obj, (list, tuple, set)):
-                        return type(obj)(convert_uuids_to_str(item) for item in obj)
-                    return obj
-
-                flow_result = await orchestrator.create_flow(
-                    flow_type="discovery",
-                    flow_name=f"Discovery Import {data_import.id}",
-                    configuration=convert_uuids_to_str(configuration),
-                    initial_state=convert_uuids_to_str(initial_state),
-                    atomic=True,
+                child_flow_service = DataImportChildFlowService(self.db, context)
+                flow_metadata = await child_flow_service.create_import_flow(
+                    data_import=data_import,
+                    storage_ops=storage_ops,
+                    raw_records=store_request.file_data,
+                    import_category=import_category,
+                    processing_config=processing_config,
                 )
-
-                master_flow_id = (
-                    flow_result[0] if isinstance(flow_result, tuple) else flow_result
-                )
-                if not master_flow_id:
-                    raise Exception(
-                        "Failed to create master flow - no flow ID returned"
-                    )
-
-                # Create the linked DiscoveryFlow record
-                from app.services.discovery_flow_service import DiscoveryFlowService
-
-                discovery_service = DiscoveryFlowService(self.db, context)
-                metadata = {
-                    "source": "data_import",
-                    "import_id": str(data_import.id),
-                    "master_flow_id": str(master_flow_id),
-                    "import_timestamp": datetime.utcnow().isoformat(),
-                }
-
-                # Derive detected columns from CSV data to avoid timing/race conditions
-                detected_columns = []
-                if (
-                    isinstance(store_request.file_data, list)
-                    and store_request.file_data
-                ):
-                    sample_row = store_request.file_data[0]
-                    if isinstance(sample_row, dict):
-                        detected_columns = sorted(list(sample_row.keys()))
-                        metadata["detected_columns"] = detected_columns
-
-                await discovery_service.create_discovery_flow(
-                    flow_id=str(master_flow_id),
-                    raw_data=store_request.file_data,  # Store actual CSV records
-                    metadata=convert_uuids_to_str(metadata),
-                    data_import_id=str(data_import.id),
-                    user_id=str(context.user_id),
-                    master_flow_id=str(master_flow_id),
-                )
-
-                # Update the DataImport record with the flow_id
-                await storage_ops.update_import_with_flow_id(
-                    data_import_id=data_import.id, flow_id=str(master_flow_id)
-                )
-
-                # Set flow data for background execution
-                data_import.master_flow_id = master_flow_id
-                data_import.flow_execution_data = {
-                    "flow_id": str(master_flow_id),
-                    "file_data": store_request.file_data,
-                }
 
                 logger.info(
-                    f"🗳️ Transaction completed - data_import {data_import.id} with "
-                    f"{data_import.total_records} raw records committed to database"
+                    "🗳️ Transaction completed - data_import %s linked to master flow %s",
+                    data_import.id,
+                    flow_metadata["master_flow_id"],
                 )
 
-            # Start background flow execution AFTER transaction commits
-            # This prevents race conditions where the flow isn't visible to status queries
+            # Start background processing AFTER transaction commits to avoid race conditions
             if (
                 hasattr(data_import, "flow_execution_data")
                 and data_import.flow_execution_data
             ):
+                flow_execution_data = data_import.flow_execution_data
+                flow_id = flow_execution_data["flow_id"]
                 logger.info(
-                    f"🚀 Starting background flow execution for {data_import.flow_execution_data['flow_id']}"
+                    "🚀 Starting background import execution for flow_id=%s", flow_id
                 )
-                from app.services.data_import import BackgroundExecutionService
 
                 background_service = BackgroundExecutionService(
                     self.db, context.client_account_id
                 )
-                await background_service.start_background_flow_execution(
-                    flow_id=data_import.flow_execution_data["flow_id"],
-                    file_data=data_import.flow_execution_data["file_data"],
+                processor_runner = ImportProcessorBackgroundRunner(background_service)
+                await processor_runner.start_background_import_execution(
+                    master_flow_id=flow_id,
+                    data_import_id=str(data_import.id),
+                    raw_records=flow_execution_data.get("file_data", []),
+                    import_category=flow_execution_data.get("import_category"),
+                    processing_config=flow_execution_data.get("processing_config", {}),
                     context=context,
                 )
-                logger.info(
-                    f"✅ Background flow execution started for {data_import.flow_execution_data['flow_id']}"
-                )
+                logger.info("✅ Background import execution started for %s", flow_id)
 
             return self.response_builder.success_response(
                 data_import_id=str(data_import.id),

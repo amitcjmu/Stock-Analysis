@@ -1,39 +1,53 @@
-"""Per-Asset, Per-Section Questionnaire Generation with Redis Caching.
+"""Per-Asset, Per-Section Questionnaire Generation with Intelligent Gap Detection.
 
-Per ADR-035: Orchestrates batched agent calls to avoid 16KB+ JSON truncation.
-Generates ~2KB responses per (asset, section) combination.
+Per ADR-037 (Issue #1115): Orchestrates intelligent 2-phase questionnaire generation.
+Replaces ProgrammaticGapScanner with IntelligentGapScanner (6-source checking).
 
-Architecture:
-1. For each asset, generate questions per assessment flow section
-2. Store intermediate results in Redis cache
-3. Aggregate sections from Redis
-4. Deduplicate common questions across assets
-5. Return final questionnaire structure
+Architecture (per ADR-037):
+1. IntelligentGapScanner: Scan ALL assets for TRUE gaps (6 sources, cached)
+2. DataAwarenessAgent: Create comprehensive data map (ONE-TIME)
+3. SectionQuestionGenerator: Generate questions (per-asset, per-section, NO TOOLS)
+4. Cross-section deduplication (track questions across sections)
+5. Persist questionnaires to database
+
+Performance Target: <15s for 9 questions (vs 44s with old pattern)
 
 Benefits:
-- No JSON truncation (16KB+ → 2KB per call)
-- Agent maintains intelligence (AIX options for AIX systems)
-- Common questions deduplicated (asked once, applied to multiple assets)
-- Aligned with Issue #980 assessment flow sections
+- TRUE gaps only (no false questions for data-exists-elsewhere)
+- Data awareness context (intelligent option generation)
+- Tool-free agent (no tool calling overhead)
+- Cross-section deduplication (no duplicate questions)
+- Redis caching for performance
+
+CC Generated for Issue #1115 - Orchestration Layer Integration
+Parent Issue: #1109 - Intelligent Gap Detection and Questionnaire Generation
 """
 
-import asyncio
+import json
 import logging
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+from app.core.redis_config import RedisConnectionManager
 from app.models.asset import Asset
-from app.services.collection.gap_scanner.scanner import ProgrammaticGapScanner
-from app.services.collection.gap_analysis.task_builder import (
-    build_section_specific_task,
+
+# Intelligent gap detection components (ADR-037)
+from app.services.collection.gap_analysis.intelligent_gap_scanner import (
+    IntelligentGapScanner,
+)
+from app.services.collection.gap_analysis.models import IntelligentGap
+from app.services.collection.gap_analysis.data_awareness_agent import (
+    DataAwarenessAgent,
+)
+from app.services.collection.gap_analysis.section_question_generator import (
+    SectionQuestionGenerator,
 )
 
-# Import Redis and helper functions
+# Keep legacy helpers for Redis operations
 from .section_helpers import (
-    filter_gaps_by_section,
     store_section_in_redis,
     aggregate_sections_from_redis,
     cleanup_redis_cache,
@@ -60,124 +74,246 @@ async def _generate_questionnaires_per_section(  # noqa: C901
     db: AsyncSession,
 ) -> List[dict]:
     """
-    Generate questionnaires per asset, per section with Redis caching.
+    Generate questionnaires per asset, per section with intelligent gap detection.
 
-    Per ADR-035: Batched generation to avoid 16KB+ JSON truncation.
-    Each agent call generates ~2KB for a single (asset, section) combination.
+    Per ADR-037 (Issue #1115): Uses IntelligentGapScanner, DataAwarenessAgent,
+    and SectionQuestionGenerator for intelligent 2-phase generation.
+
+    Architecture:
+    1. IntelligentGapScanner: Scan ALL assets for TRUE gaps (6 sources, cached)
+    2. DataAwarenessAgent: Create comprehensive data map (ONE-TIME)
+    3. SectionQuestionGenerator: Generate questions (per-asset, per-section, NO TOOLS)
+    4. Cross-section deduplication (track questions across sections)
+    5. Persist questionnaires to database
 
     Args:
-        flow_id: Child collection flow ID (for logging)
-        flow_db_id: Collection flow primary key (for gap analysis per ADR-025)
+        flow_id: Child collection flow ID (for logging and cache keys)
+        flow_db_id: Collection flow primary key (for multi-tenant scoping)
         existing_assets: List of Asset objects to generate questionnaires for
         context: RequestContext with client_account_id, engagement_id
-        db: Database session for gap analysis
+        db: Database session for intelligent gap scanning
 
     Returns:
         List of section dicts with deduplicated questions
 
     Raises:
-        Exception: If gap analysis fails or agent calls fail
+        Exception: If intelligent gap scanning fails or agent calls fail
     """
-    from app.core.redis_config import RedisConnectionManager
-
     try:
-        # Step 1: Run gap analysis for all assets
+        # Step 1: Intelligent gap scanning (6 sources, cached)
         logger.info(
-            f"Starting per-section questionnaire generation for "
+            f"🔍 Starting intelligent questionnaire generation for "
             f"{len(existing_assets)} asset(s) in flow {flow_id} "
-            f"(flow_db_id: {flow_db_id})"
+            f"(client={context.client_account_id}, engagement={context.engagement_id})"
         )
 
-        gap_scanner = ProgrammaticGapScanner()
-        # CC FIX Issue #2: Pass flow_db_id (collection_flows.id PK) instead of master_flow_id
-        # Per ADR-025: Use collection_flows.id for foreign keys and background jobs
-        gap_results = await gap_scanner.scan_assets_for_gaps(
-            selected_asset_ids=[str(asset.id) for asset in existing_assets],
-            collection_flow_id=str(flow_db_id),  # Use primary key, not master flow UUID
-            client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id),
-            db=db,
-        )
-
-        if not gap_results or not gap_results.get("gaps"):
-            logger.warning(f"No gaps found for assets in flow {flow_id}")
-            return []
-
-        # Group gaps by asset_id for efficient lookup
-        gaps_by_asset = {}
-        for gap in gap_results["gaps"]:
-            asset_id = gap.get("asset_id")
-            if asset_id:
-                if asset_id not in gaps_by_asset:
-                    gaps_by_asset[asset_id] = []
-                gaps_by_asset[asset_id].append(gap.get("field_name"))
-
-        logger.info(
-            f"Gap analysis complete: {len(gaps_by_asset)} asset(s) with gaps, "
-            f"{gap_results.get('summary', {}).get('total_gaps', 0)} total gaps"
-        )
-
-        # Step 2: Generate questions per asset, per section with Redis caching
+        # Initialize Redis for caching
         redis = RedisConnectionManager()
         await redis.initialize()
 
         try:
-            # Generate sections in parallel for all (asset, section) combinations
-            tasks = []
+            cache_key = f"intelligent_gaps:{flow_id}"
+            cached_gaps = None
+
+            # Try to get cached gaps
+            if redis.is_available():
+                try:
+                    cached_data = await redis.client.get(cache_key)
+                    if cached_data:
+                        cached_gaps = json.loads(cached_data)
+                        logger.info(
+                            f"✅ Using cached intelligent gaps for flow {flow_id}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Redis cache read failed, proceeding without cache: {e}"
+                    )
+
+            if cached_gaps:
+                # Reconstruct IntelligentGap objects from cached dicts
+                intelligent_gaps = {
+                    asset_id: [IntelligentGap.from_dict(gap_dict) for gap_dict in gaps]
+                    for asset_id, gaps in cached_gaps.items()
+                }
+            else:
+                # Scan gaps using IntelligentGapScanner (6 sources)
+                scanner = IntelligentGapScanner(
+                    db,  # Positional argument (not db_session=)
+                    context.client_account_id,
+                    context.engagement_id,
+                )
+
+                intelligent_gaps = {}
+                for asset in existing_assets:
+                    gaps = await scanner.scan_gaps(asset)
+                    # Keep as IntelligentGap objects (not dicts) for DataAwarenessAgent
+                    intelligent_gaps[str(asset.id)] = gaps
+
+                # Cache for 5 minutes (serialize to dicts for JSON)
+                if redis.is_available():
+                    try:
+                        serialized_gaps = {
+                            asset_id: [gap.to_dict() for gap in gaps]
+                            for asset_id, gaps in intelligent_gaps.items()
+                        }
+                        await redis.client.set(
+                            cache_key,
+                            json.dumps(serialized_gaps),
+                            ex=300,  # 5 min TTL
+                        )
+                        logger.info(f"✅ Cached intelligent gaps for flow {flow_id}")
+                    except Exception as e:
+                        logger.warning(f"Redis cache write failed, continuing: {e}")
+
+            # Count TRUE gaps (now accessing IntelligentGap objects, not dicts)
+            total_true_gaps = sum(
+                len([g for g in gaps if g.is_true_gap])
+                for gaps in intelligent_gaps.values()
+            )
+
+            logger.info(
+                f"📊 Intelligent gap scanning complete: "
+                f"{total_true_gaps} TRUE gaps found "
+                f"({len(existing_assets)} assets, 6 sources checked)"
+            )
+
+            if total_true_gaps == 0:
+                logger.info(
+                    f"No TRUE gaps found for flow {flow_id}, skipping questionnaire generation"
+                )
+                return []
+
+            # Step 2: Data awareness map (ONE-TIME)
+            logger.info(f"🧠 Creating data awareness map (ONE-TIME for flow {flow_id})")
+
+            data_awareness_agent = DataAwarenessAgent()
+            data_map = await data_awareness_agent.create_data_map(
+                flow_id=flow_id,
+                assets=existing_assets,
+                intelligent_gaps=intelligent_gaps,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+            )
+
+            logger.info(
+                f"✅ Data awareness map created with "
+                f"{len(data_map.get('assets', []))} assets analyzed"
+            )
+
+            # Step 3: Generate questions per-asset, per-section (NO TOOLS)
+            logger.info(
+                f"📝 Starting section question generation "
+                f"({len(existing_assets)} assets × {len(ASSESSMENT_FLOW_SECTIONS)} sections)"
+            )
+
+            section_generator = SectionQuestionGenerator()
+            all_sections = []
+            previously_asked = []  # For cross-section deduplication
+
             for asset in existing_assets:
-                # CRITICAL FIX: gap scanner returns asset_id as string, but asset.id is UUID
-                # Must convert to string for dictionary lookup to work
-                asset_gaps = gaps_by_asset.get(str(asset.id), [])
-                if not asset_gaps:
+                asset_gaps = intelligent_gaps.get(str(asset.id), [])
+                true_gaps = [g for g in asset_gaps if g.is_true_gap]
+
+                if not true_gaps:
                     logger.info(
-                        f"Asset {asset.name} ({asset.id}) has no gaps, skipping questionnaire generation"
+                        f"Asset {asset.name} ({asset.id}) has no TRUE gaps, skipping"
                     )
                     continue
 
-                # Generate questions for each assessment flow section
+                # Group gaps by section
+                gaps_by_section = {}
+                for gap in true_gaps:
+                    section = gap["section"]
+                    if section not in gaps_by_section:
+                        gaps_by_section[section] = []
+                    gaps_by_section[section].append(gap)
+
+                # Generate questions per section
                 for section_id in ASSESSMENT_FLOW_SECTIONS:
-                    tasks.append(
-                        _generate_asset_section(
-                            redis=redis.client,  # Pass AsyncRedisWrapper, not RedisConnectionManager
-                            flow_id=flow_id,
-                            asset=asset,
-                            section_id=section_id,
-                            all_gaps=asset_gaps,
-                            context=context,
+                    section_gaps = gaps_by_section.get(section_id, [])
+
+                    if not section_gaps:
+                        logger.debug(
+                            f"No TRUE gaps for section '{section_id}' on asset {asset.name}, skipping"
                         )
+                        continue
+
+                    # Convert gap dicts back to IntelligentGap objects for generator
+                    # (IntelligentGap already imported at top of file)
+                    from app.services.collection.gap_analysis.models import DataSource
+
+                    gap_objects = []
+                    for gap_dict in section_gaps:
+                        data_sources = [
+                            DataSource(
+                                source_type=ds["source_type"],
+                                field_path=ds["field_path"],
+                                value=ds["value"],
+                                confidence=ds["confidence"],
+                            )
+                            for ds in gap_dict["data_found"]
+                        ]
+                        gap_objects.append(
+                            IntelligentGap(
+                                field_id=gap_dict["field_id"],
+                                field_name=gap_dict["field_name"],
+                                priority=gap_dict["priority"],
+                                data_found=data_sources,
+                                is_true_gap=gap_dict["is_true_gap"],
+                                confidence_score=gap_dict["confidence_score"],
+                                section=gap_dict["section"],
+                                suggested_question=gap_dict.get("suggested_question"),
+                                metadata=gap_dict.get("metadata", {}),
+                            )
+                        )
+
+                    # Generate questions for this section
+                    questions = await section_generator.generate_questions_for_section(
+                        asset=asset,
+                        section_id=section_id,
+                        true_gaps=gap_objects,
+                        data_map=data_map,
+                        previously_asked_questions=previously_asked,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
                     )
 
-            if not tasks:
-                logger.warning(f"No generation tasks created for flow {flow_id}")
-                return []
+                    if questions:
+                        # Store section in Redis for aggregation
+                        section_data = {
+                            "section_id": section_id,
+                            "asset_id": str(asset.id),
+                            "questions": questions,
+                        }
 
-            logger.info(
-                f"Executing {len(tasks)} parallel agent calls "
-                f"({len(existing_assets)} assets × "
-                f"{len(ASSESSMENT_FLOW_SECTIONS)} sections)"
-            )
-
-            # Execute all (asset, section) generations in parallel
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # Log any errors but continue with successful results
-            failed_count = sum(1 for r in results if isinstance(r, Exception))
-            if failed_count > 0:
-                logger.warning(
-                    f"{failed_count}/{len(results)} section generations failed, continuing with successful results"
-                )
-                for i, result in enumerate(results):
-                    if isinstance(result, Exception):
-                        logger.error(
-                            f"Section generation failed: {result}", exc_info=result
+                        await store_section_in_redis(
+                            redis=redis.client,
+                            flow_id=flow_id,
+                            asset_id=asset.id,
+                            section_id=section_id,
+                            section_data=section_data,
+                            ttl=3600,  # 1 hour TTL
                         )
 
-            # Step 3: Aggregate sections from Redis
-            logger.info(f"Aggregating sections from Redis for flow {flow_id}")
+                        all_sections.append(section_data)
+
+                        # Track for cross-section deduplication
+                        previously_asked.extend([q["question_text"] for q in questions])
+
+                        logger.info(
+                            f"✅ Generated {len(questions)} questions for "
+                            f"asset {asset.name}, section '{section_id}'"
+                        )
+
+            if not all_sections:
+                logger.warning(f"No sections generated for flow {flow_id}")
+                return []
+
+            # Step 4: Aggregate sections from Redis
+            logger.info(f"📦 Aggregating sections from Redis for flow {flow_id}")
             aggregated_sections = await aggregate_sections_from_redis(
-                redis=redis.client,  # Pass AsyncRedisWrapper, not RedisConnectionManager
+                redis=redis.client,
                 flow_id=flow_id,
-                # Per Qodo Bot: Stringify UUIDs for JSON serialization in Redis keys
                 asset_ids=[str(asset.id) for asset in existing_assets],
                 sections=ASSESSMENT_FLOW_SECTIONS,
             )
@@ -186,12 +322,11 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                 logger.warning(f"No sections aggregated from Redis for flow {flow_id}")
                 return []
 
-            # Step 4: Deduplicate common questions across assets
+            # Step 5: Deduplicate common questions across assets
             logger.info(
-                f"Deduplicating questions across {len(existing_assets)} asset(s)"
+                f"🔄 Deduplicating questions across {len(existing_assets)} asset(s)"
             )
 
-            # Build assets_data for deduplication context
             assets_data = [
                 {
                     "id": str(asset.id),
@@ -210,17 +345,23 @@ async def _generate_questionnaires_per_section(  # noqa: C901
             dedup_stats = dedup_result.get("deduplication_stats", {})
 
             logger.info(
-                f"Deduplication complete: {dedup_stats.get('original_count', 0)} questions → "
+                f"✅ Deduplication complete: {dedup_stats.get('original_count', 0)} questions → "
                 f"{dedup_stats.get('deduplicated_count', 0)} questions "
                 f"({dedup_stats.get('reduction_percentage', 0):.1f}% reduction)"
             )
 
-            # Step 5: Cleanup Redis cache
+            # Step 6: Cleanup Redis cache
             await cleanup_redis_cache(
-                redis=redis.client,  # CC Fix Bug #6: Pass AsyncRedisWrapper, not RedisConnectionManager
+                redis=redis.client,
                 flow_id=flow_id,
                 asset_ids=[asset.id for asset in existing_assets],
                 sections=ASSESSMENT_FLOW_SECTIONS,
+            )
+
+            logger.info(
+                f"🎉 Intelligent questionnaire generation complete for flow {flow_id}: "
+                f"{len(deduplicated_sections)} sections with "
+                f"{dedup_stats.get('deduplicated_count', 0)} questions"
             )
 
             return deduplicated_sections
@@ -230,172 +371,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
 
     except Exception as e:
         logger.error(
-            f"Per-section questionnaire generation failed for flow {flow_id}: {e}",
+            f"❌ Intelligent questionnaire generation failed for flow {flow_id}: {e}",
             exc_info=True,
         )
         raise
-
-
-async def _generate_asset_section(
-    redis,
-    flow_id: str,
-    asset: Asset,
-    section_id: str,
-    all_gaps: List[str],
-    context: RequestContext,
-) -> Optional[dict]:
-    """
-    Generate questions for ONE asset, ONE section using persistent TenantScopedAgent.
-
-    Per ADR-015: Uses TenantScopedAgentPool for persistent agent execution.
-    Per ADR-035: Each call generates ~2KB JSON (vs 16KB+ for full questionnaire).
-
-    Args:
-        redis: RedisConnectionManager instance
-        flow_id: Collection flow ID
-        asset: Asset object to generate questions for
-        section_id: Assessment flow section (infrastructure, resilience, etc.)
-        all_gaps: All gaps for this asset (will be filtered by section)
-        context: RequestContext with client_account_id, engagement_id
-
-    Returns:
-        Section dict if generation succeeds, None otherwise
-    """
-    import asyncio
-    import json  # CC Bug #7: Move json import to function scope for except block
-    from crewai import Task
-    from app.services.persistent_agents.tenant_scoped_agent_pool import (
-        TenantScopedAgentPool,
-    )
-
-    try:
-        # Filter gaps relevant to this section
-        section_gaps = filter_gaps_by_section(all_gaps, section_id)
-
-        if not section_gaps:
-            logger.debug(
-                f"No gaps for asset {asset.name} ({asset.id}) in section {section_id}, skipping"
-            )
-            return None
-
-        # Build asset context for intelligent option generation
-        asset_data = {
-            "asset_id": str(asset.id),
-            "asset_name": asset.name,
-            "asset_type": asset.asset_type,
-            "operating_system": asset.operating_system,
-            "os_version": getattr(asset, "os_version", None),
-            "eol_technology": getattr(asset, "eol_technology", False),
-        }
-
-        # Build business context for multi-tenant scoping
-        business_context = {
-            "engagement_id": str(context.engagement_id),
-            "client_account_id": str(context.client_account_id),
-        }
-
-        # Generate agent task prompt
-        task_description = build_section_specific_task(
-            asset_data=asset_data,
-            gaps=section_gaps,
-            section_id=section_id,
-            business_context=business_context,
-        )
-
-        logger.info(
-            f"Generating {section_id} questions for asset {asset.name} ({len(section_gaps)} gaps)"
-        )
-
-        # CC FIX (Issue #1067 - ADR-015 Compliance): Use TenantScopedAgentPool
-        # Replace legacy crew-based execution with persistent agent pattern
-        logger.debug(
-            f"🔧 Getting persistent questionnaire_generator agent for "
-            f"client={context.client_account_id}, engagement={context.engagement_id}"
-        )
-
-        agent = await TenantScopedAgentPool.get_or_create_agent(
-            client_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id),
-            agent_type="questionnaire_generator",  # Existing agent type from agent pool
-        )
-
-        logger.debug(
-            f"✅ Agent retrieved: {agent.role if hasattr(agent, 'role') else 'questionnaire_generator'}"
-        )
-
-        # Extract underlying CrewAI agent from AgentWrapper (per gap_analysis pattern)
-        underlying_agent = agent._agent if hasattr(agent, "_agent") else agent
-
-        # Create Task (no Crew needed - agent executes directly per ADR-015)
-        task = Task(
-            description=task_description,
-            expected_output="JSON object with section questions (no markdown, valid JSON only)",
-            agent=underlying_agent,
-        )
-
-        logger.debug(
-            "🤖 Executing questionnaire generation task via persistent agent (no Crew creation)"
-        )
-
-        # Execute task directly on persistent agent (per gap_analysis/agent_helpers.py pattern)
-        result = await asyncio.to_thread(agent.execute_task, task)
-
-        logger.debug(
-            f"📤 Agent task completed for {section_id}: {str(result)[:200]}..."
-        )
-
-        if not result:
-            logger.warning(
-                f"Agent returned empty result for asset {asset.name}, section {section_id}"
-            )
-            return None
-
-        # Parse agent output (should be valid JSON)
-        # Agent returns raw string output from task execution
-        agent_output = str(result)
-
-        # Strip markdown code blocks if present (agent sometimes adds despite instructions)
-        if "```json" in agent_output:
-            agent_output = agent_output.split("```json")[1].split("```")[0].strip()
-        elif "```" in agent_output:
-            agent_output = agent_output.split("```")[1].split("```")[0].strip()
-
-        section_data = json.loads(agent_output)
-
-        # Validate section structure
-        if not isinstance(section_data, dict) or "questions" not in section_data:
-            logger.error(
-                f"Invalid section structure from agent for asset {asset.name}, section {section_id}: {section_data}"
-            )
-            return None
-
-        # Store in Redis for aggregation
-        await store_section_in_redis(
-            redis=redis,
-            flow_id=flow_id,
-            asset_id=asset.id,
-            section_id=section_id,
-            section_data=section_data,
-            ttl=3600,  # 1 hour TTL
-        )
-
-        logger.info(
-            f"Generated {len(section_data.get('questions', []))} questions for asset {asset.name}, section {section_id}"
-        )
-
-        return section_data
-
-    except json.JSONDecodeError as e:
-        logger.error(
-            f"JSON parse error for asset {asset.name}, section {section_id}: {e}",
-            exc_info=True,
-        )
-        logger.error(f"Agent output that failed to parse: {agent_output[:500]}...")
-        return None
-
-    except Exception as e:
-        logger.error(
-            f"Section generation failed for asset {asset.name}, section {section_id}: {e}",
-            exc_info=True,
-        )
-        return None

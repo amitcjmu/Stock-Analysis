@@ -109,6 +109,27 @@ class AssetConflictService:
         Raises:
             ValidationError: If resolution action validation fails
         """
+        # Get import_category from conflict record (if available) to determine if dependency fields should be extracted
+        import_category = None
+        try:
+            from app.models.asset_conflict_resolution import AssetConflictResolution
+            from app.models.data_import.core import DataImport
+
+            # Fetch conflict record to get data_import_id
+            conflict_record = await self.db.get(
+                AssetConflictResolution, UUID(resolution.conflict_id)
+            )
+            if conflict_record and conflict_record.data_import_id:
+                # Query DataImport to get import_category
+                data_import = await self.db.get(
+                    DataImport, conflict_record.data_import_id
+                )
+                if data_import:
+                    import_category = data_import.import_category
+        except Exception as e:
+            logger.debug(
+                f"Could not determine import_category for conflict {resolution.conflict_id}: {e}"
+            )
         result: Dict[str, Any] = {
             "created_asset_id": None,
             "created_dependency_ids": [],
@@ -174,6 +195,64 @@ class AssetConflictService:
             result["created_asset_id"] = new_asset.id
             logger.info(f"Created new asset {new_asset.id} from conflict resolution")
 
+            # Extract dependency fields ONLY for app-discovery imports (Issue #833)
+            # Check import_category from data_import_id to determine if dependency fields should be extracted
+            port = None
+            protocol_name = None
+            conn_count = None
+            bytes_total = None
+            first_seen = None
+            last_seen = None
+
+            # Only extract dependency fields for app-discovery imports
+            if import_category:
+                # Normalize import_category for comparison
+                normalized_category = import_category.lower().replace("-", "_")
+                if normalized_category in [
+                    "app_discovery",
+                    "app-discovery",
+                    "app_dependency",
+                ]:
+                    # Extract dependency fields from raw record data
+                    # These fields should be in new_asset_data's custom_attributes or raw_data
+                    raw_data = (
+                        resolution.new_asset_data.get("raw_data")
+                        or resolution.new_asset_data.get("custom_attributes")
+                        or {}
+                    )
+
+                    # Extract dependency fields with type conversion
+                    port = raw_data.get("port")
+                    if port is not None:
+                        try:
+                            port = int(port)
+                        except (ValueError, TypeError):
+                            port = None
+
+                    protocol_name = raw_data.get("protocol_name")
+
+                    conn_count = raw_data.get("conn_count")
+                    if conn_count is not None:
+                        try:
+                            conn_count = int(conn_count)
+                        except (ValueError, TypeError):
+                            conn_count = None
+
+                    bytes_total = raw_data.get("bytes_total")
+                    if bytes_total is not None:
+                        try:
+                            bytes_total = int(bytes_total)
+                        except (ValueError, TypeError):
+                            bytes_total = None
+
+                    first_seen = raw_data.get("first_seen")
+                    last_seen = raw_data.get("last_seen")
+
+                    logger.debug(
+                        f"Extracted dependency fields for app-discovery conflict resolution: "
+                        f"conn_count={conn_count}, port={port}, protocol={protocol_name}"
+                    )
+
             # Create dependency: Parent → Existing Asset
             if resolution.existing_asset_id:
                 dep1 = await self.dependency_repository.create_dependency(
@@ -187,12 +266,19 @@ class AssetConflictService:
                         f"Manual dependency created via conflict resolution: "
                         f"{resolution.dependency_selection.parent_asset_name} → Existing Asset"
                     ),
+                    port=port,
+                    protocol_name=protocol_name,
+                    conn_count=conn_count,
+                    bytes_total=bytes_total,
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
                 result["created_dependency_ids"].append(dep1.id)
                 logger.info(
                     f"Created dependency {dep1.id}: Parent "
                     f"{resolution.dependency_selection.parent_asset_id} → "
-                    f"Existing {resolution.existing_asset_id}"
+                    f"Existing {resolution.existing_asset_id} "
+                    f"(conn_count={conn_count}, port={port}, protocol={protocol_name})"
                 )
 
             # Create dependency: Parent → New Asset
@@ -205,12 +291,19 @@ class AssetConflictService:
                     f"Manual dependency created via conflict resolution: "
                     f"{resolution.dependency_selection.parent_asset_name} → New Asset"
                 ),
+                port=port,
+                protocol_name=protocol_name,
+                conn_count=conn_count,
+                bytes_total=bytes_total,
+                first_seen=first_seen,
+                last_seen=last_seen,
             )
             result["created_dependency_ids"].append(dep2.id)
             logger.info(
                 f"Created dependency {dep2.id}: Parent "
                 f"{resolution.dependency_selection.parent_asset_id} → "
-                f"New {new_asset.id}"
+                f"New {new_asset.id} "
+                f"(conn_count={conn_count}, port={port}, protocol={protocol_name})"
             )
 
             return result

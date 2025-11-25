@@ -1,5 +1,12 @@
 # Code Review Comments Repository
 
+**Testing References (review before adding tests)**
+- [docs/testing/testing-strategy.md](../testing/testing-strategy.md)
+- [docs/testing/QA_GUIDE.md](../testing/QA_GUIDE.md)
+- [docs/testing/README.md](../testing/README.md)
+- [docs/testing/Discovery-Flow-UnitTest-Coverage.md](../testing/Discovery-Flow-UnitTest-Coverage.md)
+- [docs/testing/CrewAIAgents-UnitTest-Coverage.md](../testing/CrewAIAgents-UnitTest-Coverage.md)
+
 > **Purpose:** Central repository of common review feedback to maintain code quality standards.  
 > **Usage:** Reference this before creating PRs to avoid common pitfalls.  
 > **Update:** Team members should add new patterns as they encounter them in reviews.
@@ -69,6 +76,50 @@
 
 **Reference:** PR #581 - operations.py lines 249-275
 
+### ❌ Exposing Internal Error Details to End Users
+**Issue:** Error messages include raw exception strings (`str(exc)`) that expose internal system details  
+**Why:** Security risk - internal stack traces, file paths, database errors visible to users; Poor UX - technical jargon confuses users  
+**Example:** `phase_data={"error": str(exc)}` or `detail=str(exc)` in HTTP responses  
+**Check:**
+- Sanitize error messages before exposing to users
+- Map internal exceptions to user-friendly messages
+- Log full details internally (with `exc_info=True`)
+- Return generic messages to users: `"An error occurred processing your request. Please contact support."`
+- Include actionable context: `"File validation failed. Please check that all required fields are present."`
+
+**Sanitization Pattern:**
+```python
+# ❌ BAD: Exposes internal details
+await update_flow_status(
+    flow_id=flow_id,
+    status="failed",
+    phase_data={"error": str(exc)},  # Exposes file paths, DB errors
+)
+
+# ✅ GOOD: Sanitized user message
+error_message = self._sanitize_error(exc)  # Maps to user-friendly message
+logger.error("Processing failed", exc_info=True)  # Full details in logs
+await update_flow_status(
+    flow_id=flow_id,
+    status="failed",
+    phase_data={"error": error_message},  # Safe user message
+)
+```
+
+**Reference:** PR #1046 - Qodo review comments on error detail exposure
+
+### ❌ Generic Error Messages Without Context
+**Issue:** Error messages lack actionable context, making debugging difficult for users  
+**Why:** Users can't resolve issues without understanding what went wrong  
+**Example:** `"An error occurred"` or `"Failed to read file"` without context  
+**Check:**
+- Include operation context: `"Failed to validate uploaded file"`
+- Include affected resource: `"Record at row 5 missing required field 'server_name'"`
+- Include troubleshooting steps: `"Please check file format and try again"`
+- Balance detail with security (don't expose internal details)
+
+**Reference:** PR #1046 - Qodo review on generic failure paths; PR #1091 - CSV parsing error handling
+
 ---
 
 ## Type Safety & Code Quality
@@ -81,16 +132,33 @@
 
 **Reference:** PR #581 - flow_processing_converters.py lines 74-80
 
+### ❌ Field Naming Convention Violation (camelCase vs snake_case)
+**Issue:** Frontend using camelCase for API fields when backend returns snake_case  
+**Why:** Field name mismatches cause data loss, silent failures, recurring bugs  
+**Example:** `cleansingStats` vs `cleansing_stats`, `totalRows` vs `total_rows`  
+**Check:** Frontend SHOULD use snake_case fields to match backend for all NEW code; Check interface definitions match backend schemas
+
+**Reference:** PR #1091 - Qodo bot BLOCKING review on field naming convention
+
+### ❌ Missing Enum Values
+**Issue:** Code references enum value that doesn't exist in enum definition  
+**Why:** Runtime AttributeError, flow breaks silently  
+**Example:** `if action == PhaseAction.COMPLETE:` but `COMPLETE` not defined in enum  
+**Check:** When checking enum values, verify they exist in enum definition; When adding enum checks, ensure corresponding value exists
+
+**Reference:** PR #1107 - PhaseAction enum missing COMPLETE value
+
 ### ❌ Magic Numbers
-**Issue:** Hardcoded numbers in calculations without context (e.g., `/ 6`, `* 100`)  
+**Issue:** Hardcoded numbers in calculations without context (e.g., `/ 6`, `* 100`, `10`)  
 **Why:** Unclear meaning, hard to update if value changes, poor maintainability  
-**Example:** `progress = round((completed / 6) * 100, 1)`  
+**Example:** `progress = round((completed / 6) * 100, 1)` or `parseCsvFileForDiscovery(file, 10)`  
 **Check:** 
 - Define named constants at module level
-- Use descriptive names: `TOTAL_DISCOVERY_PHASES = 6`
+- Use descriptive names: `TOTAL_DISCOVERY_PHASES = 6`, `DISCOVERY_SAMPLE_ROWS = 10`
 - Add comments explaining the constant
+- Replace ALL hardcoded numbers, even in function calls
 
-**Reference:** PR #581 - operations.py lines 303, 388
+**Reference:** PR #581 - operations.py lines 303, 388; PR #1091 - useCMDBImport.ts line 88
 
 ---
 
@@ -133,6 +201,98 @@
 
 **Reference:** PR #581 - operations.py logging consistency
 
+### ❌ Missing Audit Logs for Critical Operations
+**Issue:** Critical operations (file uploads, data imports, exports) don't emit structured audit log entries  
+**Why:** Security compliance requires audit trails for sensitive operations; No traceability for security incidents; Regulatory violations (SOC2, GDPR audit requirements)  
+**Example:** Upload endpoint performs file upload, category routing, background processing without audit logging  
+**Check:**
+- Use `AuditLoggingService` for critical operations (data imports, exports, uploads)
+- Include user ID, action, outcome, metadata in audit logs
+- Log both success and failure cases
+- Store audit logs in database, not just application logs
+
+**Audit Logging Pattern:**
+```python
+from app.services.collection_flow.audit_logging.logger import AuditLoggingService
+from app.services.collection_flow.audit_logging.base import AuditEventType, AuditSeverity
+
+# ❌ BAD: No audit logging
+@router.post("/upload")
+async def upload_data_import(...):
+    # Process upload...
+    return {"success": True}
+
+# ✅ GOOD: Structured audit logging
+@router.post("/upload")
+async def upload_data_import(..., db: AsyncSession, context: RequestContext):
+    audit_service = AuditLoggingService(db, context)
+    try:
+        # Process upload...
+        await audit_service.log_user_action(
+            flow_id=master_flow_id,
+            action="data_import_upload",
+            details={
+                "filename": file.filename,
+                "file_size": len(file_bytes),
+                "import_category": normalized_category,
+                "record_count": len(records),
+                "status": "success",
+            },
+        )
+        return {"success": True}
+    except Exception as exc:
+        await audit_service.log_security_event(
+            event_type=AuditEventType.FLOW_FAILED,
+            description="Data import upload failed",
+            flow_id=master_flow_id,
+            details={
+                "filename": file.filename,
+                "import_category": normalized_category,
+                "error_type": type(exc).__name__,
+                "status": "failed",
+            },
+        )
+        raise
+```
+
+**When to Audit Log:**
+- File uploads/downloads
+- Data imports/exports
+- User authentication/authorization
+- Configuration changes
+- Data deletion
+- Security-sensitive operations
+
+**Reference:** PR #1046 - Qodo review comments on missing audit logs; `data_cleansing/audit_utils.py` for example implementation
+
+### ❌ Logging Sensitive Data
+**Issue:** Logs include raw user data, file contents, or sensitive identifiers that could expose PII or confidential information  
+**Why:** Log files may be accessible to multiple team members or external services; Compliance violations (GDPR, HIPAA); Security breach risk  
+**Example:** `logger.error("Failed to parse file: %s", file_contents)` or `logger.info("Processing user data: %s", raw_records[:10])`  
+**Check:**
+- Never log raw file contents or user data
+- Redact PII before logging (IPs, emails, IDs)
+- Use summaries: `"Processing 150 records"` not `"Processing: {raw_records}"`
+- Log metadata only: filenames, counts, status codes
+- Use structured logging with sanitization
+
+**Sanitization Pattern:**
+```python
+# ❌ BAD: Logs sensitive data
+logger.info(f"Processing records: {raw_records[:5]}")
+logger.error(f"Validation failed for: {user_input}")
+
+# ✅ GOOD: Logs metadata only
+logger.info(f"Processing {len(raw_records)} records from {filename}")
+logger.error("Validation failed", extra={
+    "record_count": len(raw_records),
+    "error_type": "missing_required_fields",
+    # No raw data
+})
+```
+
+**Reference:** PR #1046 - Qodo review comments on log content risk
+
 ---
 
 ## Architecture & Design
@@ -164,6 +324,30 @@
 **Why:** Production errors not caught, poor error handling goes unnoticed  
 **Example:** Test doesn't verify behavior when API call fails  
 **Check:** Test both success and failure scenarios
+
+### ❌ Missing E2E Tests for New Workflows
+**Issue:** New features/workflows only have unit tests, missing end-to-end user journey tests  
+**Why:** Unit tests verify individual functions, but don't validate complete user workflows; Common review comment - reviewers expect E2E coverage for new features  
+**Example:** Added new import type (app-discovery) with backend logic and frontend UI, but no E2E test covering the complete workflow  
+**Check:**
+- For new workflows/features, create E2E tests in `tests/e2e/` directory
+- Test complete user journey: login → upload → processing → results
+- Focus on workflow completion, not specific field values
+- Follow existing E2E test patterns (see `tests/e2e/discovery/` for examples)
+- Verify UI interactions and navigation work correctly
+
+**E2E Test Pattern:**
+```typescript
+// ✅ GOOD: Complete workflow E2E test
+test('should complete app-discovery import workflow', async ({ page }) => {
+  await page.goto('/discovery/cmdb-import');
+  // Upload file, verify attribute mapping, verify completion
+  // Focus on workflow, not specific field values
+  await expect(page.locator('[data-testid="import-complete"]')).toBeVisible();
+});
+```
+
+**Reference:** PR #1046 - Multi-Type Data Import Feature (common review comment pattern)
 
 ---
 
@@ -356,6 +540,10 @@ Use this before submitting PRs:
 - [ ] All imports at module top (no local imports in functions)
 - [ ] Reusing existing database sessions (no new session creation mid-transaction)
 - [ ] Error handling with try-catch and fallbacks
+- [ ] Error messages sanitized (no `str(exc)` exposed to users)
+- [ ] Error messages include actionable context
+- [ ] Audit logging added for critical operations (uploads, imports, exports)
+- [ ] Sensitive data not logged (no raw file contents, PII, user data)
 - [ ] No magic numbers - using named constants
 - [ ] Type safety - using dataclasses not SimpleNamespace
 - [ ] All function signature changes verified across codebase
@@ -367,6 +555,7 @@ Use this before submitting PRs:
 - [ ] Manual verification completed
 - [ ] **Refactoring integrity verified (line counts, field counts, signature preservation)**
 - [ ] **Used Cursor tools (grep, codebase_search) to verify completeness**
+- [ ] **E2E tests added for new workflows/features (not just unit tests)**
 
 ---
 
@@ -390,9 +579,9 @@ Use this before submitting PRs:
 
 ---
 
-**Last Updated:** October 14, 2025  
+**Last Updated:** November 21, 2025  
 **Initial Contributors:** Ram, CryptoYogiLLC  
-**Source PR:** #581 - Discovery Flow Status Fixes
+**Source PRs:** #581 - Discovery Flow Status Fixes, #1046 - Qodo Review Compliance, #1091 - Data Cleansing Feature, #1107 - Data Cleansing Bug Fixes, #1046 - Multi-Type Data Import Feature
 
 ---
 

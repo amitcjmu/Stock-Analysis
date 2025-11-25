@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { isFlowTerminal } from '../../constants/flowStates';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
 import { useLatestImport, useAssets, useDataCleansingStats, useDataCleansingAnalysis, useTriggerDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingQueries';
 import { downloadRawData, downloadCleanedData, applyRecommendation } from '../../services/dataCleansingService';
@@ -736,9 +737,16 @@ const DataCleansing: React.FC = () => {
   // 2. All questions answered and has progress OR
   // 3. No data to cleanse (total_records === 0) and phase is current
   const noDataToProcess = cleansingProgress.total_records === 0 && currentPhase === 'data_cleansing';
-  const canContinueToInventory = isDataCleansingComplete ||
+
+  // CRITICAL FIX: Check if flow is in terminal state - disable navigation for completed/cancelled flows
+  const flowStatus = flow?.status;
+  const isFlowTerminalState = isFlowTerminal(flowStatus);
+
+  const canContinueToInventory = !isFlowTerminalState && (
+    isDataCleansingComplete ||
     (allQuestionsAnswered && hasMinimumProgress) ||
-    (noDataToProcess && allQuestionsAnswered);
+    (noDataToProcess && allQuestionsAnswered)
+  );
 
   // Enhanced data samples for display - extract from flow state with proper type casting
   const rawDataSample = flow?.raw_data?.slice(0, 3) || [];

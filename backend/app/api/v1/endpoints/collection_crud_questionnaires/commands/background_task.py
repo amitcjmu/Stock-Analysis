@@ -130,9 +130,12 @@ async def _background_generate(
                 )
 
                 # Progress flow to manual_collection phase now that questionnaire is ready
+                # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+                flow_uuid = UUID(flow_id)
                 flow_result = await db.execute(
                     select(CollectionFlow).where(
-                        CollectionFlow.flow_id == UUID(flow_id)
+                        (CollectionFlow.flow_id == flow_uuid)
+                        | (CollectionFlow.id == flow_uuid)
                     )
                 )
                 current_flow = flow_result.scalar_one_or_none()
@@ -144,7 +147,8 @@ async def _background_generate(
                 ]:
                     await db.execute(
                         sql_update(CollectionFlow)
-                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        # MFO Two-Table Pattern: Update using PK (we have the flow object)
+                        .where(CollectionFlow.id == current_flow.id)
                         .values(
                             current_phase="manual_collection",
                             status="paused",  # FIXED: Use valid enum value (awaiting user questionnaire input)
@@ -195,9 +199,12 @@ async def _background_generate(
 
                 # Per ADR-035: Surface error to flow status (no silent failures)
                 # Update flow status to show questionnaire generation failed
+                # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+                flow_uuid = UUID(flow_id)
                 flow_result = await db.execute(
                     select(CollectionFlow).where(
-                        CollectionFlow.flow_id == UUID(flow_id)
+                        (CollectionFlow.flow_id == flow_uuid)
+                        | (CollectionFlow.id == flow_uuid)
                     )
                 )
                 current_flow = flow_result.scalar_one_or_none()
@@ -205,7 +212,8 @@ async def _background_generate(
                 if current_flow:
                     await db.execute(
                         sql_update(CollectionFlow)
-                        .where(CollectionFlow.flow_id == UUID(flow_id))
+                        # MFO Two-Table Pattern: Update using PK (we have the flow object)
+                        .where(CollectionFlow.id == current_flow.id)
                         .values(
                             status="failed",  # Mark flow as failed
                             current_phase="questionnaire_generation",  # Show which phase failed

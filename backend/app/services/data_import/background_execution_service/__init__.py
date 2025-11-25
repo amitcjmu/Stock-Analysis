@@ -10,6 +10,7 @@ background_execution_service.py file.
 """
 
 from .core import BackgroundExecutionService
+from .import_processor_runner import ImportProcessorBackgroundRunner
 from .utils import (
     calculate_progress_percentage,
     determine_final_status,
@@ -22,6 +23,7 @@ from .utils import (
 __all__ = [
     # Main service class
     "BackgroundExecutionService",
+    "ImportProcessorBackgroundRunner",
     # Utility functions
     "calculate_progress_percentage",
     "determine_final_status",

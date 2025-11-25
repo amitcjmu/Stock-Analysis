@@ -7,6 +7,7 @@
  * - Approve/Reject action buttons
  * - Outside click handling
  * - Keyboard navigation (Escape, Enter)
+ * - Display name support (if metadata provided)
  *
  * @component MappingCellRenderer
  */
@@ -17,6 +18,7 @@ import type { ICellRendererParams } from "ag-grid-community";
 import { ChevronDown, Check, AlertCircle, X, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { FieldMappingStatus } from "@/types/api/discovery/field-mapping-types";
+import type { TargetField } from "@/contexts/FieldOptionsContext";
 
 export interface MappingCellValue {
   target_field: string | null;
@@ -29,6 +31,7 @@ export interface MappingCellRendererProps extends ICellRendererParams {
   value: MappingCellValue;
   sourceField: string;
   availableTargetFields: string[];
+  availableTargetFieldsMetadata?: TargetField[];
   onSelect?: (sourceField: string, targetField: string) => void;
   onApprove?: (mappingId: string) => void;
   onReject?: (mappingId: string) => void;
@@ -93,6 +96,7 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
   value,
   sourceField,
   availableTargetFields,
+  availableTargetFieldsMetadata,
   onSelect,
   onApprove,
   onReject,
@@ -136,11 +140,30 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
     }
   }, [isDropdownOpen]);
 
-  // Filter available fields based on search term
+  // Helper to get display_name for a field name
+  const getDisplayName = (fieldName: string | null): string => {
+    if (!fieldName) return "Click to select target field...";
+    if (availableTargetFieldsMetadata) {
+      const field = availableTargetFieldsMetadata.find((f) => f?.name === fieldName);
+      return field?.display_name || fieldName;
+    }
+    return fieldName;
+  };
+
+  // Filter available fields based on search term (search by name and display_name if metadata available)
   const filteredFields = searchTerm
-    ? availableTargetFields.filter((field) =>
-        field.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+    ? availableTargetFields.filter((field) => {
+        const term = searchTerm.toLowerCase();
+        if (availableTargetFieldsMetadata) {
+          const fieldMeta = availableTargetFieldsMetadata.find((f) => f?.name === field);
+          return (
+            field.toLowerCase().includes(term) ||
+            fieldMeta?.display_name?.toLowerCase().includes(term) ||
+            fieldMeta?.short_hint?.toLowerCase().includes(term)
+          );
+        }
+        return field.toLowerCase().includes(term);
+      })
     : availableTargetFields;
 
   // Handle field selection
@@ -195,7 +218,7 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
           <span
             className={`truncate font-medium ${value.target_field ? "text-gray-900" : "text-gray-400"}`}
           >
-            {value.target_field || "Click to select target field..."}
+            {getDisplayName(value.target_field)}
           </span>
           {!isDisabled && (
             <ChevronDown
@@ -242,20 +265,30 @@ export const MappingCellRenderer: React.FC<MappingCellRendererProps> = ({
                     No fields match your search
                   </div>
                 ) : (
-                  filteredFields.map((field) => (
-                    <button
-                      key={field}
-                      onClick={() => handleSelectField(field)}
-                      className={`
-                      w-full text-left px-4 py-3 text-sm hover:bg-blue-50 transition-colors border-b border-gray-100
-                      ${field === value.target_field ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:text-blue-600"}
-                    `}
-                      role="option"
-                      aria-selected={field === value.target_field}
-                    >
-                      {field}
-                    </button>
-                  ))
+                  filteredFields.map((field) => {
+                    const fieldMeta = availableTargetFieldsMetadata?.find((f) => f?.name === field);
+                    const displayName = fieldMeta?.display_name || field;
+                    const isSelected = field === value.target_field;
+                    return (
+                      <button
+                        key={field}
+                        onClick={() => handleSelectField(field)}
+                        className={`
+                        w-full text-left px-4 py-3 text-sm hover:bg-blue-50 transition-colors border-b border-gray-100
+                        ${isSelected ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:text-blue-600"}
+                      `}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{displayName}</span>
+                          {fieldMeta?.short_hint && (
+                            <span className="text-xs text-gray-500 mt-0.5">{fieldMeta.short_hint}</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>,

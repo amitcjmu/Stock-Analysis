@@ -147,8 +147,17 @@ export const formatFieldValue = (field: unknown): string => {
   }
 };
 
-export const formatTargetAttribute = (target_field: unknown): string => {
+import type { TargetField } from '../../types';
+
+export const formatTargetAttribute = (target_field: unknown, availableFields?: TargetField[]): string => {
   if (typeof target_field === 'string') {
+    // Look up display_name from availableFields if provided
+    if (availableFields && target_field) {
+      const field = availableFields.find(f => f?.name === target_field);
+      if (field?.display_name) {
+        return field.display_name;
+      }
+    }
     return target_field || 'No target mapping';
   } else if (typeof target_field === 'object' && target_field !== null) {
     return JSON.stringify(target_field);

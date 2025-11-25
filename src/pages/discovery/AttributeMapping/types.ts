@@ -138,6 +138,8 @@ export interface SessionInfo {
   availableDataImports: DataImport[];
   selectedDataImportId: string | null;
   hasMultipleSessions: boolean;
+  importCategory?: string;
+  preferredColumns?: string[];
 }
 
 export interface AttributeMappingProps {

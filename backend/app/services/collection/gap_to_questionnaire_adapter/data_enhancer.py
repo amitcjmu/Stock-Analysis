@@ -65,13 +65,17 @@ class DataEnhancer:
         if asset.ip_address:
             existing_values["ip_address"] = asset.ip_address
 
-        # Add enrichment data if available
-        if hasattr(asset, "enrichment_data") and asset.enrichment_data:
-            enrichment = asset.enrichment_data
-            if enrichment.database_version:
-                existing_values["database_version"] = enrichment.database_version
-            if enrichment.backup_frequency:
-                existing_values["backup_frequency"] = enrichment.backup_frequency
+        # ✅ FIX Bug #11 (DataEnhancer enrichment_data AttributeError):
+        # Asset model has technical_details JSONB (NOT enrichment_data)
+        # technical_details is a dict, NOT an object with attributes
+        if hasattr(asset, "technical_details") and asset.technical_details:
+            enrichment = asset.technical_details
+            # Access as dict keys, not object attributes
+            if isinstance(enrichment, dict):
+                if enrichment.get("database_version"):
+                    existing_values["database_version"] = enrichment["database_version"]
+                if enrichment.get("backup_frequency"):
+                    existing_values["backup_frequency"] = enrichment["backup_frequency"]
 
         # Add to data_gaps
         if existing_values:

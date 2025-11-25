@@ -111,6 +111,11 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         }
 
         # Flow-type specific analysis using modular components
+        # CRITICAL FIX (Bug #1135): Add defensive logging before calling flow-specific analysis
+        logger.info(
+            f"📊 Analyzing phase '{phase}' for flow_type '{flow_type}'"
+        )
+
         if flow_type == "discovery":
             discovery_analysis = DiscoveryAnalysis.analyze_discovery_phase_results(
                 phase, results, state
@@ -179,12 +184,40 @@ class PhaseTransitionAgent(BaseDecisionAgent):
                 current_phase, analysis
             )
         else:
+            # CRITICAL FIX (Bug #1135): Don't silently default to "completed" for unknown flow types
+            # This was causing collection flows to be marked as complete prematurely
+            logger.error(
+                f"❌ Unknown flow type '{effective_flow_type}' for phase '{current_phase}'. "
+                f"Valid flow types: discovery, collection, assessment"
+            )
+
             # Default progression using flow registry fallback
+            # Only use this for assessment or other future flow types
+            next_phase = DecisionUtils.get_next_phase(
+                current_phase, effective_flow_type
+            )
+
+            if next_phase is None:
+                # If flow registry doesn't know the next phase, this is a terminal phase
+                logger.warning(
+                    f"⚠️ No next phase found for '{current_phase}' in '{effective_flow_type}' flow. "
+                    "Marking as FAIL instead of silently completing."
+                )
+                return AgentDecision(
+                    action=PhaseAction.FAIL,
+                    next_phase="",
+                    confidence=0.7,
+                    reasoning=f"Unknown flow type '{effective_flow_type}' with no registered next phase",
+                    metadata={
+                        "error": "unknown_flow_type",
+                        "flow_type": effective_flow_type,
+                        "phase": current_phase,
+                    },
+                )
+
             return AgentDecision(
                 action=PhaseAction.PROCEED,
-                next_phase=DecisionUtils.get_next_phase(
-                    current_phase, effective_flow_type
-                ),
+                next_phase=next_phase,
                 confidence=0.8,
                 reasoning=f"Phase {current_phase} completed successfully in {effective_flow_type} flow",
                 metadata=analysis,
@@ -201,9 +234,28 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             phase_result = agent_context.get("phase_result", {})
             flow_state = agent_context.get("flow_state")
 
+            # CRITICAL FIX (Bug #1135): Extract flow_type from agent_context
+            # This was missing, causing all flows to default to "discovery"
+            flow_type = agent_context.get("flow_type")
+
             logger.info(
-                f"🤖 PhaseTransitionAgent.get_decision called for phase: {current_phase}"
+                f"🤖 PhaseTransitionAgent.get_decision called for phase: {current_phase}, flow_type: {flow_type}"
             )
+
+            # ✅ FIX Bug #6 (Questionnaire Generation Skipped):
+            # questionnaire_generation must execute FIRST before evaluation
+            # Pre-execution decision should PROCEED, post-execution evaluates results
+            if current_phase == "questionnaire_generation" and flow_type == "collection":
+                logger.info(
+                    "✅ questionnaire_generation phase - allowing execution (evaluation happens post-execution)"
+                )
+                return AgentDecision(
+                    action=PhaseAction.PROCEED,
+                    next_phase="",  # Phase handler determines next
+                    confidence=1.0,
+                    reasoning="Questionnaire generation phase must execute to create questionnaires",
+                    metadata={"pre_execution_decision": True},
+                )
 
             if not flow_state:
                 logger.warning("⚠️ No flow state provided in agent context")
@@ -233,9 +285,10 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             else:
                 state = flow_state
 
-            # Use the existing analyze_phase_transition method
+            # CRITICAL FIX (Bug #1135): Pass flow_type to analyze_phase_transition
+            # This ensures collection flows use CollectionAnalysis, not DiscoveryAnalysis
             decision = await self.analyze_phase_transition(
-                current_phase, phase_result, state
+                current_phase, phase_result, state, flow_type=flow_type
             )
 
             logger.info(
@@ -307,14 +360,27 @@ class PhaseTransitionAgent(BaseDecisionAgent):
 
             # Extract flow_type from runtime context instead of using self.flow_type default
             # Per ADR-023/ADR-028: Flow type must be determined from actual flow state
+            # CRITICAL FIX (Bug #1135): Add defensive logging to diagnose flow_type misidentification
+            flow_type_from_context = agent_context.get("flow_type")
+            flow_type_from_result = phase_result.get("flow_type")
+            flow_type_from_state = getattr(state, "flow_type", None)
+
+            logger.info(
+                f"🔍 Flow type determination chain: "
+                f"context={flow_type_from_context}, "
+                f"result={flow_type_from_result}, "
+                f"state={flow_type_from_state}, "
+                f"default={self.flow_type}"
+            )
+
             flow_type = (
-                agent_context.get("flow_type")  # First priority: explicit context
-                or phase_result.get("flow_type")  # Second: phase result metadata
-                or getattr(state, "flow_type", None)  # Third: flow state attribute
+                flow_type_from_context  # First priority: explicit context
+                or flow_type_from_result  # Second: phase result metadata
+                or flow_type_from_state  # Third: flow state attribute
                 or self.flow_type  # Fallback: agent default (discovery)
             )
 
-            logger.info(f"🔍 Extracted flow_type for phase transition: {flow_type}")
+            logger.info(f"✅ Using flow_type for phase transition: {flow_type}")
 
             # Bug #1055: Extract db_session from agent_context for database queries
             db_session = agent_context.get("db_session")

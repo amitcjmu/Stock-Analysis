@@ -67,6 +67,7 @@ export const useFileUpload = (): JSX.Element => {
             rows_cleansed: cleansing_stats.rows_cleansed,
             rows_skipped: cleansing_stats.rows_skipped,
           } : undefined,
+          import_category: categoryId
         }),
       });
 

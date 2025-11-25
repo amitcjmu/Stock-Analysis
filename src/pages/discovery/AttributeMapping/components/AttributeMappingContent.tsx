@@ -90,6 +90,17 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
     );
     setIsLearningServiceEnabled(hasRequiredAuth && hasLearningEndpoints);
   }, [client?.id, engagement?.id]);
+  const phaseState = (flowState as unknown as { phase_state?: Record<string, unknown> })?.phase_state || {};
+  const importCategory =
+    (phaseState?.import_category as string) ||
+    (flowState as unknown as { import_category?: string })?.import_category ||
+    (flowState?.metadata?.import_category as string) ||
+    (agenticData?.metadata?.import_category as string);
+  const preferredColumns =
+    importCategory === 'app_discovery'
+      ? ['application_name', 'component_name', 'host_name', 'application_dependency']
+      : undefined;
+
 
   // Load learned mappings on component mount
   useEffect(() => {
@@ -281,7 +292,9 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
             flowId: flowId || effectiveFlowId,
             availableDataImports: availableDataImports,
             selectedDataImportId: selectedDataImportId || effectiveFlowId,
-            hasMultipleSessions: availableDataImports && availableDataImports.length > 1
+            hasMultipleSessions: availableDataImports && availableDataImports.length > 1,
+            importCategory,
+            preferredColumns
           }}
           // Learning-related props
           onApproveMappingWithLearning={isLearningServiceEnabled ? handleApproveMappingWithLearning : undefined}
@@ -290,7 +303,8 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
           learnedMappings={learnedMappings}
           clientAccountId={client?.id?.toString()}
           engagementId={engagement?.id?.toString()}
-          // Continue to data cleansing props
+          flowId={flowId || effectiveFlowId}
+          importCategory={importCategory}
           canContinueToDataCleansing={canContinueToDataCleansing}
           onContinueToDataCleansing={onContinueToDataCleansing}
         />
