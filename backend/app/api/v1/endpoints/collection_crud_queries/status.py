@@ -98,15 +98,21 @@ async def get_collection_flow(
     """
     try:
         # Bug #799 Fix: Check both flow_id and id columns for flexible lookup
-        # IMPORTANT: COMPLETED flows need different treatment than CANCELLED/FAILED:
-        # - COMPLETED: Should be queryable for assessment transition (include_completed=True)
-        # - CANCELLED/FAILED: Should never be queryable (always excluded)
+        # IMPORTANT: Flow status exclusion rules (updated Bug #5):
+        # - COMPLETED: Queryable based on include_completed flag (for assessment transition)
+        # - FAILED: Queryable (users need to see failure details in Progress Monitor)
+        # - CANCELLED: Never queryable (terminal state with no useful data)
         flow_uuid = UUID(flow_id)
 
+        # ✅ FIX Bug #5 (Inconsistent FAILED flow handling):
+        # - List endpoint (lists.py:59) INCLUDES FAILED flows
+        # - Get-by-id endpoint was EXCLUDING FAILED flows → 404 errors
+        # - Fix: Allow FAILED flows to be queried (users need to see failure details in Progress Monitor)
+        # - Only exclude CANCELLED flows (terminal state with no useful data)
         # Build status exclusion list based on include_completed flag
         excluded_statuses = [
             CollectionFlowStatus.CANCELLED.value,
-            CollectionFlowStatus.FAILED.value,
+            # REMOVED: CollectionFlowStatus.FAILED.value - FAILED flows must be queryable
         ]
         if not include_completed:
             excluded_statuses.append(CollectionFlowStatus.COMPLETED.value)

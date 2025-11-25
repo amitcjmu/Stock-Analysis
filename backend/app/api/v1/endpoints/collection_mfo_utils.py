@@ -341,23 +341,26 @@ async def sync_collection_child_flow_state(
             error_message=collection_flow.error_message,
         )
 
-    # Always update progress (wrap in try-except to handle greenlet_spawn issues from background tasks)
+    # ✅ FIX Bug #8 (SQLAlchemy greenlet_spawn error):
+    # Use __dict__ to avoid lazy-loading current_phase in background tasks
+    # This prevents: "greenlet_spawn has not been called; can't call await_only() here"
     try:
-        collection_flow.update_progress()
+        # Access current_phase directly from __dict__ to avoid lazy load
+        current_phase = collection_flow.__dict__.get("current_phase", None)
+        if current_phase:
+            phase_weights = {
+                "initialization": 0,
+                "asset_selection": 15,
+                "gap_analysis": 40,
+                "questionnaire_generation": 60,
+                "manual_collection": 80,
+                "data_validation": 95,
+                "finalization": 100,
+            }
+            collection_flow.progress_percentage = phase_weights.get(current_phase, 0.0)
     except Exception as e:
         logger.warning(f"Failed to update progress (non-critical): {e}")
-        # Calculate progress directly inline to avoid any lazy-loaded attribute access
-        # This prevents greenlet_spawn errors in background tasks
-        phase_weights = {
-            "initialization": 0,
-            "asset_selection": 15,
-            "gap_analysis": 40,
-            "questionnaire_generation": 60,
-            "manual_collection": 80,
-            "data_validation": 95,
-            "finalization": 100,
-        }
-        current_phase = getattr(collection_flow, "current_phase", None)
-        collection_flow.progress_percentage = phase_weights.get(current_phase, 0.0)
+        # Fallback to 0 progress
+        collection_flow.progress_percentage = 0.0
 
     await db.commit()

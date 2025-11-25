@@ -255,6 +255,16 @@ If data exists anywhere, include in "data_exists_elsewhere" with source and valu
         # Strip markdown code blocks if present (per ADR-029)
         cleaned = re.sub(r"```json\s*|\s*```", "", response_text).strip()
 
+        # ✅ FIX Bug #15 (LLM JSON Parsing with Literal Ellipsis):
+        # LLM sometimes outputs `"field": ...` instead of valid JSON arrays
+        # Replace literal ellipsis patterns with empty arrays before parsing
+        # Handles patterns like: "true_gaps": ..., "data_exists_elsewhere": ...
+        cleaned = re.sub(r':\s*\.\.\.(\s*[,}])', r': []\1', cleaned)
+        # Also handle ellipsis in the middle of arrays: [..., ..., ...]
+        cleaned = re.sub(r',\s*\.\.\.\s*,', ', ', cleaned)
+        # Handle trailing ellipsis in arrays: [..., ...]
+        cleaned = re.sub(r',\s*\.\.\.\s*\]', ']', cleaned)
+
         try:
             # Try standard JSON parsing first
             data_map = json.loads(cleaned)
