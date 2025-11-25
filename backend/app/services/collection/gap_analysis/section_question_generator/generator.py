@@ -238,13 +238,40 @@ class SectionQuestionGenerator:
 
     def _validate_question(self, question: Dict[str, Any]) -> bool:
         """
-        Validate question has required fields.
+        Validate question has required fields and enforces MCQ format.
+
+        CRITICAL: All questions MUST be MCQ format (select/radio) with options.
+        Free-text inputs produce noisy data that's hard to validate and use
+        in assessment gap analysis.
 
         Args:
             question: Question dict from LLM
 
         Returns:
-            True if valid, False otherwise
+            True if valid MCQ question, False otherwise
         """
         required_fields = ["field_id", "question_text", "input_type"]
-        return all(field in question for field in required_fields)
+        if not all(field in question for field in required_fields):
+            return False
+
+        # ENFORCE MCQ FORMAT: Reject free-text input types
+        input_type = question.get("input_type", "").lower()
+        allowed_types = ["select", "radio", "multiselect", "multi_select"]
+
+        if input_type not in allowed_types:
+            logger.warning(
+                f"Rejecting non-MCQ question '{question.get('field_id')}' "
+                f"with input_type '{input_type}' - only select/radio allowed"
+            )
+            return False
+
+        # ENFORCE OPTIONS: MCQ questions must have predefined options
+        options = question.get("options")
+        if not options or not isinstance(options, list) or len(options) < 2:
+            logger.warning(
+                f"Rejecting question '{question.get('field_id')}' "
+                f"without valid options array (MCQ requires 2+ options)"
+            )
+            return False
+
+        return True
