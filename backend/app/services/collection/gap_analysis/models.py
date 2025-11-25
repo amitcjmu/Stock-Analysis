@@ -9,7 +9,7 @@ Per ADR-037: Intelligent Gap Detection and Questionnaire Generation Architecture
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -176,3 +176,133 @@ class IntelligentGap:
             "suggested_question": self.suggested_question,
             "metadata": self.metadata,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "IntelligentGap":
+        """
+        Reconstruct IntelligentGap object from dictionary.
+
+        This is the inverse of to_dict() and is used to deserialize
+        IntelligentGap objects from Redis cache or JSON responses.
+
+        Args:
+            data: Dictionary with IntelligentGap fields (from to_dict())
+
+        Returns:
+            IntelligentGap object reconstructed from dictionary
+
+        Example:
+            >>> gap_dict = gap.to_dict()
+            >>> reconstructed = IntelligentGap.from_dict(gap_dict)
+            >>> assert gap.field_id == reconstructed.field_id
+        """
+        # Reconstruct DataSource objects from dicts
+        data_sources = [
+            DataSource(
+                source_type=ds["source_type"],
+                field_path=ds["field_path"],
+                value=ds["value"],
+                confidence=ds["confidence"],
+            )
+            for ds in data.get("data_found", [])
+        ]
+
+        return cls(
+            field_id=data["field_id"],
+            field_name=data["field_name"],
+            priority=data["priority"],
+            data_found=data_sources,
+            is_true_gap=data["is_true_gap"],
+            confidence_score=data["confidence_score"],
+            section=data["section"],
+            suggested_question=data.get("suggested_question"),
+            metadata=data.get("metadata", {}),
+        )
+
+
+# Field metadata for Collection Flow questionnaire generation
+# Maps sections to fields that should be checked for gaps
+COLLECTION_FLOW_FIELD_METADATA: Dict[str, Dict[str, Any]] = {
+    "infrastructure": {
+        "name": "Infrastructure",
+        "fields": {
+            "operating_system": {"label": "Operating System", "importance": "critical"},
+            "os_version": {"label": "OS Version", "importance": "high"},
+            "cpu_cores": {"label": "CPU Cores", "importance": "high"},
+            "memory_gb": {"label": "Memory (GB)", "importance": "high"},
+            "storage_gb": {"label": "Storage (GB)", "importance": "high"},
+            "ip_address": {"label": "IP Address", "importance": "medium"},
+            "fqdn": {"label": "Fully Qualified Domain Name", "importance": "medium"},
+            "virtualization_platform": {
+                "label": "Virtualization Platform",
+                "importance": "medium",
+            },
+        },
+    },
+    "resilience": {
+        "name": "Resilience",
+        "fields": {
+            "availability_requirements": {
+                "label": "Availability Requirements",
+                "importance": "critical",
+            },
+            "performance_baseline": {
+                "label": "Performance Baseline",
+                "importance": "high",
+            },
+            "backup_strategy": {"label": "Backup Strategy", "importance": "high"},
+            "disaster_recovery_plan": {
+                "label": "Disaster Recovery Plan",
+                "importance": "high",
+            },
+        },
+    },
+    "compliance": {
+        "name": "Compliance & Security",
+        "fields": {
+            "compliance_constraints": {
+                "label": "Compliance Requirements",
+                "importance": "critical",
+            },
+            "security_vulnerabilities": {
+                "label": "Security Vulnerabilities",
+                "importance": "critical",
+            },
+            "encryption_requirements": {
+                "label": "Encryption Requirements",
+                "importance": "high",
+            },
+        },
+    },
+    "dependencies": {
+        "name": "Dependencies",
+        "fields": {
+            "integration_dependencies": {
+                "label": "Integration Dependencies",
+                "importance": "critical",
+            },
+            "technology_stack": {"label": "Technology Stack", "importance": "high"},
+            "architecture_pattern": {
+                "label": "Architecture Pattern",
+                "importance": "medium",
+            },
+        },
+    },
+    "tech_debt": {
+        "name": "Technical Debt",
+        "fields": {
+            "code_quality_metrics": {
+                "label": "Code Quality Metrics",
+                "importance": "medium",
+            },
+            "eol_technology_assessment": {
+                "label": "End-of-Life Technology Assessment",
+                "importance": "high",
+            },
+            "documentation_quality": {
+                "label": "Documentation Quality",
+                "importance": "medium",
+            },
+        },
+    },
+}

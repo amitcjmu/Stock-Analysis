@@ -26,6 +26,11 @@ AGENT_TYPE_CONFIGS = {
         "tools": [],  # No tools - direct JSON output required for gap enhancement
         "max_retries": 3,
         "memory_enabled": False,  # Per ADR-024: Use TenantMemoryManager instead
+        "llm_config": {  # Per ADR-037: Large context for comprehensive gap analysis
+            "provider": "deepinfra",
+            "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+            "max_tokens": 16384,  # 4x default - handles 10-15 assets with comprehensive gaps
+        },
     },
     "business_impact_assessor": {
         "role": "Business Impact Assessment Agent",

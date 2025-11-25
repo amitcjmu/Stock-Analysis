@@ -38,6 +38,7 @@ from app.models.asset import Asset
 from app.services.collection.gap_analysis.intelligent_gap_scanner import (
     IntelligentGapScanner,
 )
+from app.services.collection.gap_analysis.models import IntelligentGap
 from app.services.collection.gap_analysis.data_awareness_agent import (
     DataAwarenessAgent,
 )
@@ -129,36 +130,44 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                     )
 
             if cached_gaps:
-                intelligent_gaps = cached_gaps
+                # Reconstruct IntelligentGap objects from cached dicts
+                intelligent_gaps = {
+                    asset_id: [IntelligentGap.from_dict(gap_dict) for gap_dict in gaps]
+                    for asset_id, gaps in cached_gaps.items()
+                }
             else:
                 # Scan gaps using IntelligentGapScanner (6 sources)
                 scanner = IntelligentGapScanner(
-                    db_session=db,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
+                    db,  # Positional argument (not db_session=)
+                    context.client_account_id,
+                    context.engagement_id,
                 )
 
                 intelligent_gaps = {}
                 for asset in existing_assets:
                     gaps = await scanner.scan_gaps(asset)
-                    # Convert IntelligentGap objects to serializable dicts
-                    intelligent_gaps[str(asset.id)] = [gap.to_dict() for gap in gaps]
+                    # Keep as IntelligentGap objects (not dicts) for DataAwarenessAgent
+                    intelligent_gaps[str(asset.id)] = gaps
 
-                # Cache for 5 minutes
+                # Cache for 5 minutes (serialize to dicts for JSON)
                 if redis.is_available():
                     try:
+                        serialized_gaps = {
+                            asset_id: [gap.to_dict() for gap in gaps]
+                            for asset_id, gaps in intelligent_gaps.items()
+                        }
                         await redis.client.set(
                             cache_key,
-                            json.dumps(intelligent_gaps),
+                            json.dumps(serialized_gaps),
                             ex=300,  # 5 min TTL
                         )
                         logger.info(f"✅ Cached intelligent gaps for flow {flow_id}")
                     except Exception as e:
                         logger.warning(f"Redis cache write failed, continuing: {e}")
 
-            # Count TRUE gaps
+            # Count TRUE gaps (now accessing IntelligentGap objects, not dicts)
             total_true_gaps = sum(
-                len([g for g in gaps if g["is_true_gap"]])
+                len([g for g in gaps if g.is_true_gap])
                 for gaps in intelligent_gaps.values()
             )
 
@@ -203,7 +212,7 @@ async def _generate_questionnaires_per_section(  # noqa: C901
 
             for asset in existing_assets:
                 asset_gaps = intelligent_gaps.get(str(asset.id), [])
-                true_gaps = [g for g in asset_gaps if g["is_true_gap"]]
+                true_gaps = [g for g in asset_gaps if g.is_true_gap]
 
                 if not true_gaps:
                     logger.info(
@@ -230,10 +239,8 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                         continue
 
                     # Convert gap dicts back to IntelligentGap objects for generator
-                    from app.services.collection.gap_analysis.models import (
-                        IntelligentGap,
-                        DataSource,
-                    )
+                    # (IntelligentGap already imported at top of file)
+                    from app.services.collection.gap_analysis.models import DataSource
 
                     gap_objects = []
                     for gap_dict in section_gaps:
