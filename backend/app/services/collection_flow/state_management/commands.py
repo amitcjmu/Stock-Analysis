@@ -72,35 +72,47 @@ class CollectionFlowCommandService:
                 CrewAIFlowStateExtensions,
             )
 
-            # Generate unique flow ID
-            flow_id = uuid.uuid4()
-
-            # ADR-028: Initialize phase in master flow if provided
-            if master_flow_id:
-                master_flow_result = await self.db.execute(
-                    select(CrewAIFlowStateExtensions).where(
-                        CrewAIFlowStateExtensions.flow_id == master_flow_id
-                    )
+            # MFO Two-Table Pattern: flow_id MUST equal master_flow_id
+            # This aligns Collection Flow with Discovery/Assessment patterns
+            # See Issue #1136 for details
+            if not master_flow_id:
+                raise ValueError(
+                    "master_flow_id is required for collection flow initialization. "
+                    "Create master flow first via MFO."
                 )
-                master_flow = master_flow_result.scalar_one_or_none()
 
-                if master_flow:
-                    # Add initial phase transition to master flow (single source of truth)
-                    master_flow.add_phase_transition(
-                        phase=CollectionPhase.GAP_ANALYSIS.value,
-                        status="active",
-                        metadata={
-                            "started_directly": True,
-                            "reason": "Default collection flow starts at gap analysis phase (v4 plan)",
-                            "skip_platform_detection": True,
-                            "skip_automated_collection": True,
-                        },
-                    )
+            # ADR-028: Initialize phase in master flow
+            master_flow_result = await self.db.execute(
+                select(CrewAIFlowStateExtensions).where(
+                    CrewAIFlowStateExtensions.flow_id == master_flow_id
+                )
+            )
+            master_flow = master_flow_result.scalar_one_or_none()
+
+            if not master_flow:
+                raise ValueError(
+                    f"Master flow {master_flow_id} not found. "
+                    "Violates ADR-006 (MFO is single source of truth)."
+                )
+
+            # Add initial phase transition to master flow (single source of truth)
+            master_flow.add_phase_transition(
+                phase=CollectionPhase.GAP_ANALYSIS.value,
+                status="active",
+                metadata={
+                    "started_directly": True,
+                    "reason": "Default collection flow starts at gap analysis phase (v4 plan)",
+                    "skip_platform_detection": True,
+                    "skip_automated_collection": True,
+                },
+            )
 
             # Create the collection flow (no phase_state per ADR-028)
+            # flow_id = master_flow_id per MFO Two-Table Pattern
             collection_flow = CollectionFlow(
-                id=uuid.uuid4(),
-                flow_id=flow_id,
+                # id will auto-generate (different value, that's OK)
+                flow_id=master_flow_id,  # ✅ SAME as master_flow_id
+                master_flow_id=master_flow_id,  # ✅ SAME as flow_id
                 flow_name=flow_name,
                 client_account_id=uuid.UUID(self.client_account_id),
                 engagement_id=uuid.UUID(self.engagement_id),
@@ -110,8 +122,7 @@ class CollectionFlowCommandService:
                 current_phase=CollectionPhase.GAP_ANALYSIS.value,
                 # phase_state removed per ADR-028 - master flow is source of truth
                 collection_config=collection_config or {},
-                metadata=metadata or {},
-                master_flow_id=master_flow_id,
+                flow_metadata=metadata or {},
                 discovery_flow_id=discovery_flow_id,
             )
 

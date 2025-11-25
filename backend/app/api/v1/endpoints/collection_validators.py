@@ -140,10 +140,13 @@ async def validate_collection_flow_exists(
         HTTPException: If collection flow not found
     """
     try:
+        # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+        flow_uuid = UUID(flow_id)
         result = await db.execute(
             # SKIP_TENANT_CHECK - Service-level/monitoring query
             select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
+                (CollectionFlow.flow_id == flow_uuid)
+                | (CollectionFlow.id == flow_uuid),
                 CollectionFlow.engagement_id == engagement_id,
             )
         )
@@ -330,33 +333,31 @@ async def validate_flow_belongs_to_engagement(
     db: AsyncSession,
     flow_id: str,
     engagement_id: UUID,
-    flow_table_column: str = "flow_id",
+    flow_table_column: str = "flow_id",  # Deprecated parameter - kept for backward compatibility
 ) -> bool:
     """Validate that a flow belongs to the specified engagement.
 
+    MFO Two-Table Pattern: Queries by EITHER flow_id OR id (flexible lookup).
+    The flow_table_column parameter is now deprecated and ignored.
+
     Args:
         db: Database session
-        flow_id: Flow ID to check
+        flow_id: Flow ID to check (accepts either flow_id or id column value)
         engagement_id: Expected engagement ID
-        flow_table_column: Column name to check (flow_id or id)
+        flow_table_column: DEPRECATED - Kept for backward compatibility, always uses flexible lookup
 
     Returns:
         True if flow belongs to engagement, False otherwise
     """
     try:
+        # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+        flow_uuid = UUID(flow_id)
         # SKIP_TENANT_CHECK - Service-level/monitoring query
-        if flow_table_column == "flow_id":
-            # SKIP_TENANT_CHECK - Service-level/monitoring query
-            query = select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
-                CollectionFlow.engagement_id == engagement_id,
-            )
-        else:
-            # SKIP_TENANT_CHECK - Service-level/monitoring query
-            query = select(CollectionFlow).where(
-                CollectionFlow.id == UUID(flow_id),
-                CollectionFlow.engagement_id == engagement_id,
-            )
+        query = select(CollectionFlow).where(
+            (CollectionFlow.flow_id == flow_uuid)
+            | (CollectionFlow.id == flow_uuid),
+            CollectionFlow.engagement_id == engagement_id,
+        )
 
         result = await db.execute(query)
         flow = result.scalar_one_or_none()

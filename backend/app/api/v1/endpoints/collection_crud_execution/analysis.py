@@ -50,9 +50,12 @@ async def rerun_gap_analysis(
         from datetime import datetime, timezone, timedelta
 
         # Validate flow exists and belongs to user's engagement
+        # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+        flow_uuid = UUID(flow_id)
         flow_result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
+                (CollectionFlow.flow_id == flow_uuid)
+                | (CollectionFlow.id == flow_uuid),
                 CollectionFlow.engagement_id == context.engagement_id,
                 CollectionFlow.client_account_id == context.client_account_id,
             )

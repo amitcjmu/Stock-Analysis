@@ -91,12 +91,14 @@ async def persist_gaps(
                     "ai_suggestions": gap.get("ai_suggestions"),  # AI enhancement field
                 }
 
-                # ✅ FIX: Use PostgreSQL upsert with conflict resolution
-                # Matches tier 1 pattern from gap_scanner/persistence.py
+                # ✅ FIX Bug #1: Use PostgreSQL upsert with conflict resolution
+                # CRITICAL: Include collection_flow_id in update set to handle gaps moving between flows
+                # Constraint: uq_gaps_dedup (collection_flow_id, field_name, gap_type, asset_id)
                 stmt = insert(CollectionDataGap).values(**gap_record)
                 stmt = stmt.on_conflict_do_update(
                     constraint="uq_gaps_dedup",
                     set_={
+                        "collection_flow_id": gap_record["collection_flow_id"],  # Allow gaps to move between flows
                         "priority": gap_record["priority"],
                         "suggested_resolution": gap_record["suggested_resolution"],
                         "description": gap_record["description"],

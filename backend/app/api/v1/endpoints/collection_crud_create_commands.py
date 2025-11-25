@@ -107,14 +107,41 @@ async def create_collection_from_discovery(
         )
 
         # Create collection flow (session handles transaction automatically)
-        # Create collection flow record
-        flow_id = uuid.uuid4()
+        # Step 1: Create master flow first to get the flow ID
         flow_name = collection_utils.format_flow_display_name(
             len(selected_application_ids)
         )
 
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        # Create master flow BEFORE child flow to get master_flow_id
+        master_flow_id, master_flow_data = await orchestrator.create_flow(
+            flow_type="collection",
+            flow_name=flow_name,
+            initial_state={
+                "automation_tier": collection_config["automation_tier"],
+                "collection_config": collection_config,
+                "start_phase": "gap_analysis",
+            },
+            atomic=False,
+        )
+
+        if not master_flow_id:
+            raise ValueError(
+                "MFO creation failed - transaction will be automatically rolled back"
+            )
+
+        # MFO Two-Table Pattern: flow_id MUST equal master_flow_id
+        # This aligns Collection Flow with Discovery/Assessment patterns
+        # See Issue #1136 for details
+        master_flow_uuid = uuid.UUID(master_flow_id)
+
+        # Step 2: Create collection flow with flow_id = master_flow_id
         collection_flow = CollectionFlow(
-            flow_id=flow_id,
+            flow_id=master_flow_uuid,  # ✅ SAME as master_flow_id
+            master_flow_id=master_flow_uuid,  # ✅ SAME as flow_id
             flow_name=flow_name,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
@@ -134,7 +161,7 @@ async def create_collection_from_discovery(
         await db.flush()  # Make ID available for foreign key relationships
         await db.refresh(collection_flow)
 
-        # Initialize with Master Flow Orchestrator within the same transaction
+        # Update flow_input with actual flow_id for phase handlers
         flow_input = {
             "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
@@ -142,27 +169,6 @@ async def create_collection_from_discovery(
             # Skip platform detection since we have Discovery data
             "start_phase": "gap_analysis",
         }
-
-        # Create the flow through MFO with atomic=True to prevent internal commits
-        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-        orchestrator = MasterFlowOrchestrator(db, context)
-
-        master_flow_id, master_flow_data = await orchestrator.create_flow(
-            flow_type="collection",
-            flow_name=flow_name,
-            initial_state=flow_input,
-            atomic=False,
-        )
-
-        # Update collection flow with master flow ID
-        # Convert string to UUID for master_flow_id field
-        if not master_flow_id:
-            raise ValueError(
-                "MFO creation failed - transaction will be automatically rolled back"
-            )
-
-        collection_flow.master_flow_id = uuid.UUID(master_flow_id)
         # Transaction context manager will handle the final commit
 
         # Check if initial phase requires user input before executing
@@ -272,9 +278,6 @@ async def create_collection_flow(
             raise HTTPException(status_code=409, detail=error_detail)
 
         # Create collection flow (session handles transaction automatically)
-        # Create flow record
-        flow_id = uuid.uuid4()
-
         # Per ADR-028: phase_state eliminated - phase tracking will be added to master flow
         # Phase tracking will be managed via master flow's phase_transitions after creation
 
@@ -300,8 +303,36 @@ async def create_collection_flow(
                 f"Pre-selected {len(selected_asset_ids)} assets from missing_attributes for flow"
             )
 
+        # Step 1: Create master flow FIRST to get master_flow_id
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
+        orchestrator = MasterFlowOrchestrator(db, context)
+
+        master_flow_id, master_flow_data = await orchestrator.create_flow(
+            flow_type="collection",
+            flow_name=collection_utils.format_flow_display_name(),
+            initial_state={
+                "automation_tier": flow_data.automation_tier,
+                "collection_config": collection_config,
+                "start_phase": "asset_selection",
+            },
+            atomic=True,  # Fixed: We're in a transaction, don't commit internally
+        )
+
+        if not master_flow_id:
+            raise RuntimeError(
+                "MFO creation failed - transaction will be automatically rolled back"
+            )
+
+        # MFO Two-Table Pattern: flow_id MUST equal master_flow_id
+        # This aligns Collection Flow with Discovery/Assessment patterns
+        # See Issue #1136 for details
+        master_flow_uuid = uuid.UUID(master_flow_id)
+
+        # Step 2: Create collection flow with flow_id = master_flow_id
         collection_flow = CollectionFlow(
-            flow_id=flow_id,
+            flow_id=master_flow_uuid,  # ✅ SAME as master_flow_id
+            master_flow_id=master_flow_uuid,  # ✅ SAME as flow_id
             flow_name=collection_utils.format_flow_display_name(),
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
@@ -332,34 +363,13 @@ async def create_collection_flow(
                 missing_attributes=flow_data.missing_attributes,
             )
 
-        # Initialize with Master Flow Orchestrator within the same transaction
+        # Update flow_input with actual flow_id for phase handlers
         flow_input = {
             "flow_id": str(collection_flow.flow_id),
             "automation_tier": collection_flow.automation_tier,
             "collection_config": collection_flow.collection_config,
             "start_phase": "asset_selection",
         }
-
-        # Create the flow through MFO with atomic=True to prevent internal commits
-        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-        orchestrator = MasterFlowOrchestrator(db, context)
-
-        master_flow_id, master_flow_data = await orchestrator.create_flow(
-            flow_type="collection",
-            flow_name=collection_flow.flow_name,
-            initial_state=flow_input,
-            atomic=True,  # Fixed: We're in a transaction, don't commit internally
-        )
-
-        # Update collection flow with master flow ID
-        # Convert string to UUID for master_flow_id field
-        if not master_flow_id:
-            raise RuntimeError(
-                "MFO creation failed - transaction will be automatically rolled back"
-            )
-
-        collection_flow.master_flow_id = uuid.UUID(master_flow_id)
         # Transaction context manager will handle the final commit
 
         # Check if initial phase requires user input before executing

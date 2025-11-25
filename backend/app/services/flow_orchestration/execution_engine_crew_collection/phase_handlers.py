@@ -214,12 +214,20 @@ async def execute_questionnaire_generation(
         from sqlalchemy import select
 
         async with AsyncSessionLocal() as db:
-            # CRITICAL FIX (Issue #1067): Query by PRIMARY KEY (id), not flow_id field
-            # phase_input["flow_id"] now contains child flow ID (collection_flow.id)
-            # per prepare_phase_input() which follows MFO Two-Table Flow ID pattern
+            # MFO Two-Table Pattern: Accept EITHER flow_id, master_flow_id, or id
+            # After Issue #1136 fix, flow_id == master_flow_id, but we check all three
+            # for backward compatibility with existing data
+            from sqlalchemy import or_
+
+            flow_uuid = UUID(flow_id)
+
             flow_result = await db.execute(
                 select(CollectionFlow).where(
-                    CollectionFlow.id == UUID(flow_id),  # ← PRIMARY KEY lookup
+                    or_(
+                        CollectionFlow.flow_id == flow_uuid,
+                        CollectionFlow.master_flow_id == flow_uuid,
+                        CollectionFlow.id == flow_uuid,  # Fallback for old data
+                    ),
                     CollectionFlow.client_account_id
                     == phase_input.get("client_account_id", "1"),
                     CollectionFlow.engagement_id
@@ -230,7 +238,8 @@ async def execute_questionnaire_generation(
 
             if not flow:
                 logger.error(
-                    f"❌ Collection flow {flow_id} not found (queried by id={flow_id})"
+                    f"❌ Collection flow not found for UUID: {flow_uuid}. "
+                    f"Tried flow_id, master_flow_id, and id columns."
                 )
                 return {
                     "phase": "questionnaire_generation",

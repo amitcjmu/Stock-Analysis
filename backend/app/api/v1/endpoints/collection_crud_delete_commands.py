@@ -53,9 +53,12 @@ async def delete_flow(
     require_role(current_user, COLLECTION_DELETE_ROLES, "delete collection flows")
 
     try:
+        # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+        flow_uuid = UUID(flow_id)
         result = await db.execute(
             select(CollectionFlow).where(
-                CollectionFlow.flow_id == UUID(flow_id),
+                (CollectionFlow.flow_id == flow_uuid)
+                | (CollectionFlow.id == flow_uuid),
                 CollectionFlow.client_account_id == context.client_account_id,
                 CollectionFlow.engagement_id == context.engagement_id,
             )
@@ -190,9 +193,12 @@ async def batch_delete_flows(
 
         for flow_id in flow_ids:
             try:
+                # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
+                flow_uuid = UUID(flow_id)
                 result = await db.execute(
                     select(CollectionFlow).where(
-                        CollectionFlow.flow_id == UUID(flow_id),
+                        (CollectionFlow.flow_id == flow_uuid)
+                        | (CollectionFlow.id == flow_uuid),
                         CollectionFlow.client_account_id == context.client_account_id,
                         CollectionFlow.engagement_id == context.engagement_id,
                     )
