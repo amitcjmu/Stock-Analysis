@@ -230,9 +230,16 @@ async def _check_all_questionnaires_completed(
     completed_questionnaires = list(completed_questionnaires_result.scalars().all())
 
     # Build set of asset IDs that have completed questionnaires
-    # Each questionnaire's target_gaps contains the asset_id it applies to
+    # CC FIX: Check asset_id column FIRST (primary source), then fallback to target_gaps
+    # The asset_id column is set during questionnaire creation and is the authoritative source
+    # target_gaps may be empty in ADR-037 per-section generation flow
     assets_with_completed_questionnaires = set()
     for questionnaire in completed_questionnaires:
+        # Primary: Check the questionnaire's asset_id column directly
+        if questionnaire.asset_id:
+            assets_with_completed_questionnaires.add(str(questionnaire.asset_id))
+
+        # Fallback: Check target_gaps for legacy questionnaires
         # target_gaps structure: [{"asset_id": "uuid", "field": "...", ...}, ...]
         if questionnaire.target_gaps:
             for gap in questionnaire.target_gaps:
