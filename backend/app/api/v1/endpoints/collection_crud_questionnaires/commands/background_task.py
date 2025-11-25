@@ -109,6 +109,20 @@ async def _background_generate(
                     current_flow = flow_result.scalar_one_or_none()
 
                     if current_flow:
+                        # ✅ Bug #31 Fix: Set metadata flags for "no gaps" case too
+                        updated_metadata = current_flow.flow_metadata or {}
+                        updated_metadata["questionnaire_ready"] = True
+                        updated_metadata["agent_questionnaire_id"] = str(
+                            questionnaire_id
+                        )
+                        updated_metadata["questionnaire_generating"] = False
+                        updated_metadata["no_gaps_detected"] = (
+                            True  # Signal asset is complete
+                        )
+                        updated_metadata["generation_completed_at"] = datetime.now(
+                            timezone.utc
+                        ).isoformat()
+
                         await db.execute(
                             sql_update(CollectionFlow)
                             .where(CollectionFlow.id == current_flow.id)
@@ -116,6 +130,7 @@ async def _background_generate(
                                 current_phase="completed",  # Collection not needed
                                 status="completed",
                                 progress_percentage=100.0,
+                                flow_metadata=updated_metadata,  # ✅ Bug #31: Set metadata
                                 updated_at=datetime.now(timezone.utc),
                             )
                         )
@@ -131,6 +146,17 @@ async def _background_generate(
                 for section in questionnaires:
                     # CC FIX: section is a dict, not an object - use .get() not hasattr()
                     if isinstance(section, dict) and section.get("questions"):
+                        # CC FIX: Propagate section category to each question for frontend grouping
+                        # Section structure has category field (from aggregate_sections_from_redis)
+                        # but individual questions need it for frontend formDataTransformation.ts
+                        section_category = section.get("category") or section.get(
+                            "section_id", ""
+                        ).replace("section_", "")
+                        for question in section["questions"]:
+                            if isinstance(question, dict):
+                                question["category"] = (
+                                    question.get("category") or section_category
+                                )
                         questions.extend(section["questions"])
                     elif hasattr(section, "questions") and section.questions:
                         # Fallback for object-based sections (backward compatibility)
@@ -195,6 +221,16 @@ async def _background_generate(
                     "gap_analysis",
                     "questionnaire_generation",  # Fix: Include this phase for proper transition
                 ]:
+                    # ✅ Bug #31 Fix: Update flow_metadata with questionnaire_ready flag
+                    # The /questionnaires/status endpoint checks these flags to detect completion
+                    updated_metadata = current_flow.flow_metadata or {}
+                    updated_metadata["questionnaire_ready"] = True
+                    updated_metadata["agent_questionnaire_id"] = str(questionnaire_id)
+                    updated_metadata["questionnaire_generating"] = False
+                    updated_metadata["generation_completed_at"] = datetime.now(
+                        timezone.utc
+                    ).isoformat()
+
                     await db.execute(
                         sql_update(CollectionFlow)
                         # MFO Two-Table Pattern: Update using PK (we have the flow object)
@@ -202,10 +238,14 @@ async def _background_generate(
                             current_phase="manual_collection",
                             status="paused",  # FIXED: Use valid enum value (awaiting user questionnaire input)
                             progress_percentage=50.0,  # Questionnaire generated = 50% progress
+                            flow_metadata=updated_metadata,  # ✅ Bug #31: Set metadata flags
                             updated_at=datetime.now(timezone.utc),
                         )
                     )
                     await db.commit()
+                    logger.info(
+                        f"✅ Bug #31 Fix: Set questionnaire_ready=True for flow {flow_id}"
+                    )
                     logger.info(
                         f"Progressed flow {flow_id} to manual_collection phase with status=paused"
                     )
