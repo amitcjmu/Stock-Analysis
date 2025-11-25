@@ -192,65 +192,12 @@ Every query MUST include:
 - All tables use composite scoping for data security
 
 #### LLM Usage Tracking (Updated November 2025)
-**Preferred for new code**: Use `multi_model_service.generate_response()` for best tracking:
+**When writing code that calls LLMs** (CrewAI agents, direct completions, embeddings):
+- Use `multi_model_service.generate_response()` for new code - provides automatic cost tracking, tenant context, and correct model selection (Gemma 3 for chat, Llama 4 for agentic)
+- Legacy `litellm.completion()` calls are auto-tracked via global callback - no changes needed
+- All usage logged to `migration.llm_usage_logs` with costs viewable at `/finops/llm-costs`
 
-```python
-from app.services.multi_model_service import multi_model_service, TaskComplexity
-
-# ✅ CORRECT - Automatic tracking to llm_usage_logs table
-response = await multi_model_service.generate_response(
-    prompt="Your prompt here",
-    task_type="chat",  # or "field_mapping", "analysis", etc.
-    complexity=TaskComplexity.SIMPLE  # or AGENTIC for complex tasks
-)
-```
-
-**Benefits of using `multi_model_service`:**
-- ✅ Automatic logging to `llm_usage_logs` table with cost calculation
-- ✅ Correct model selection (Gemma 3 for chat, Llama 4 for agentic)
-- ✅ Token counting and request/response tracking
-- ✅ Multi-tenant context (client_account_id, engagement_id)
-- ✅ Performance metrics (response time, success rate)
-
-**Note on Direct LLM Calls**:
-- Direct `litellm.completion()` calls are automatically tracked via global callback
-- Prefer `multi_model_service` for new code (better tenant context)
-- Legacy code is already tracked - no immediate changes needed
-
-**If Adding Tenant Context to Legacy Code**:
-```python
-from app.services.llm_usage_tracker import llm_tracker
-
-async with llm_tracker.track_llm_call(
-    provider="deepinfra",
-    model=model_name,
-    feature_context="crew_execution"
-) as usage_log:
-    response = litellm.completion(model=model, messages=messages)
-    usage_log.input_tokens = response.usage.prompt_tokens
-    usage_log.output_tokens = response.usage.completion_tokens
-```
-
-**Viewing LLM Costs:** Navigate to `/finops/llm-costs` in the frontend to see:
-- Real-time usage by model (e.g., "Deepinfra: gemma-3-4b-it")
-- Token consumption and cost breakdown
-- Usage trends and optimization recommendations
-
-**Database Tables:**
-- `migration.llm_usage_logs` - Individual LLM API calls
-- `migration.llm_model_pricing` - Cost per 1K tokens by model
-- `migration.llm_usage_summary` - Aggregated usage statistics
-
-**Automatic Tracking via LiteLLM Callback:**
-- All LLM calls (including CrewAI) automatically tracked via LiteLLM callback
-- Installed at app startup in `app/app_setup/lifecycle.py:116`
-- Logs to `llm_usage_logs` even for legacy code using direct LiteLLM calls
-- Tracks: Llama 4 (CrewAI), Gemma 3 (OpenAI), and all LLM providers
-
-**Reference:**
-- `app/services/multi_model_service.py:169-577` - Multi-model service
-- `app/services/litellm_tracking_callback.py` - LiteLLM callback for CrewAI tracking
-- `app/app_setup/lifecycle.py:113-120` - Callback installation at startup
+**See Observability section below** for full patterns, code examples, and pre-commit enforcement rules.
 
 #### TenantMemoryManager - Enterprise Agent Memory (October 2025)
 **CrewAI built-in memory is DISABLED** (ADR-024). All agent learning uses TenantMemoryManager:
@@ -320,123 +267,21 @@ TenantScopedAgentPool → Agent Instance → Tools → Database
                     Agent UI Bridge → Frontend Display
 ```
 
-#### CrewAI Memory Configuration (CRITICAL - ADR-024)
-
-**RULE**: CrewAI memory is **DISABLED** by default. Use `TenantMemoryManager` for all agent learning.
-
-**Why Memory is Disabled**:
-- ADR-024 (October 2025) replaced CrewAI's ChromaDB-based memory with enterprise `TenantMemoryManager`
-- Eliminates 401/422 errors from DeepInfra/OpenAI embedding conflicts
-- Provides multi-tenant isolation (client_account_id, engagement_id scoping)
-- Uses native PostgreSQL + pgvector (already in stack)
-- Better performance and enterprise data classification
-
-**Configuration Defaults**:
-```python
-# From crew_factory/config.py (lines 100, 147)
-CrewConfig.DEFAULT_AGENT_CONFIG["memory"] = False
-CrewConfig.DEFAULT_CREW_CONFIG["memory"] = False
-```
-
-**NEVER Override These Defaults**:
-- ❌ **DO NOT** set `memory=True` in agent or crew creation
-- ❌ **DO NOT** enable memory in `agent_pool_constants.py`
-- ❌ **DO NOT** apply memory patches at startup (violates ADR-024)
-
-**If You See `memory=True` in Code**:
-1. This is legacy code from pre-October 2025
-2. Change to `memory=False` with comment: `# Per ADR-024: Use TenantMemoryManager`
-3. If agent needs learning, integrate `TenantMemoryManager.store_learning()`
-
-**Using TenantMemoryManager for Agent Learning**:
-```python
-from app.services.crewai_flows.memory.tenant_memory_manager import (
-    TenantMemoryManager,
-    LearningScope
-)
-
-# After agent completes task
-memory_manager = TenantMemoryManager(
-    crewai_service=crewai_service,
-    database_session=db
-)
-
-await memory_manager.store_learning(
-    client_account_id=client_account_id,
-    engagement_id=engagement_id,
-    scope=LearningScope.ENGAGEMENT,
-    pattern_type="field_mapping",
-    pattern_data={
-        "source_field": "cust_name",
-        "target_field": "customer_name",
-        "confidence": 0.95
-    }
-)
-
-# Before agent execution - retrieve patterns
-patterns = await memory_manager.retrieve_similar_patterns(
-    client_account_id=client_account_id,
-    engagement_id=engagement_id,
-    scope=LearningScope.ENGAGEMENT,
-    pattern_type="field_mapping",
-    query_context={"source_field": "customer"}
-)
-```
-
-**Common Mistakes to Avoid**:
-1. ❌ Re-enabling memory patches at startup (violates explicit configuration principle)
-2. ❌ Using `EmbedderConfig` to configure CrewAI memory (superseded by TenantMemoryManager)
-3. ❌ Setting `memory_enabled: True` in agent pool constants
-4. ❌ Proposing to "fix" CrewAI memory instead of using TenantMemoryManager
-
-**If You See Memory Errors in Production**:
-- **Root Cause**: Legacy `memory=True` settings not yet migrated
-- **Fix**: Change to `memory=False` + integrate TenantMemoryManager
-- **Do NOT**: Re-enable global memory patches or embedder configuration
-
-**References**:
-- `/docs/adr/024-tenant-memory-manager-architecture.md` - Full architectural decision
-- `/docs/development/TENANT_MEMORY_STRATEGY.md` - Implementation strategy
-- `backend/app/services/crewai_flows/memory/tenant_memory_manager/` - Implementation
-
 ### Assessment Flow Architecture
 
 **Purpose**: Cloud readiness assessment and 6R migration recommendation
 
 **Endpoints**: `/api/v1/assessment-flow/*` (MFO-integrated per ADR-006)
 
-**Execution Pattern**: Direct `UnifiedAssessmentFlow` (does NOT use child service pattern - see ADR-025)
+**Execution Pattern**: Direct Flow (NOT Child Service) - Assessment analyzes existing data with linear phases; see ADR-025 for pattern selection criteria.
 
-**Flow Progression**:
-1. Create assessment flow → Master flow in `crewai_flow_state_extensions`
-2. Child flow in `assessment_flows` tracks operational state
-3. Phases: Architecture Standards → Tech Debt → Dependency Analysis → 6R Decisions
-4. Accept recommendations → Update `Asset.six_r_strategy`
-5. Export results → PDF/Excel/JSON
-
-**Two-Table Pattern** (ADR-012):
-- **Master Table**: `crewai_flow_state_extensions` (lifecycle: running/paused/completed)
-- **Child Table**: `assessment_flows` (operational: phases, UI state, selected applications)
-
-**Why No Child Service Pattern**:
-- Assessment is analysis-focused (not data collection)
-- Linear phase progression (no auto-progression logic)
-- No questionnaire generation
-- Simpler state management than Collection/Discovery flows
-- Direct CrewAI flow works efficiently
+**Flow Progression**: Create → Architecture Standards → Tech Debt → Dependency Analysis → 6R Decisions → Accept → Export
 
 **Key Files**:
 - Backend: `backend/app/api/v1/endpoints/assessment_flow/`
-- Frontend: `src/lib/api/assessmentFlow.ts`
-- MFO Integration: `backend/app/api/v1/endpoints/assessment_flow/mfo_integration.py`
 - CrewAI Flow: `backend/app/services/crewai_flows/unified_assessment_flow.py`
 
 **Deprecated**: `/api/v1/6r/*` endpoints (HTTP 410 Gone - use Assessment Flow instead)
-
-**Migration Context**:
-- 6R Analysis implementation was removed (Oct 2025) to eliminate duplicate code paths
-- Assessment Flow is the single source of truth for 6R recommendations
-- Strategy crew integrated with Assessment Flow via MFO architecture
 
 ## Subagent Instructions and Requirements
 
@@ -540,30 +385,17 @@ Check the backend code that generates the data:
 3. If it's a bug, propose the fix approach
 4. **Wait for user approval** before implementing
 
-#### Example: Issue #795 (Adaptive Forms)
+#### Example - Issue #795 Lesson
 **Reported**: "Asset 2 shows only 3 sections instead of 7 - BUG!"
+**Reality**: Serena memory documented gap-based generation; Asset 2 had better data → fewer gaps → fewer questions. **NOT A BUG** - intelligent adaptive behavior.
+**Wrong action**: "Fixing" it to always show 7 sections would break intelligent filtering.
 
-**Investigation Revealed**:
-- ✅ Serena memory: "questions should be generated based on gaps"
-- ✅ Asset 2 has better data quality → fewer gaps → fewer questions
-- ✅ Playwright testing: System working correctly
-- ✅ Backend: Gap analysis correctly identifying missing fields only
-- ❌ **NOT A BUG** - Intelligent adaptive behavior
+#### Red Flags suggesting "Not a Bug"
+- "Fewer items displayed" in adaptive/intelligent systems
+- "Different behavior per asset" in personalized systems
+- "Questions vary by data quality" in gap-based collection
 
-**What Went Wrong**:
-- Assumed fewer sections = bug without checking intent
-- Implemented "fix" that broke intelligent filtering
-- Made system ask unnecessary questions for complete data
-
-**Correct Action**: Close as "Working as Designed"
-
-#### Red Flags That Suggest "Not a Bug"
-- 🚩 "Fewer items displayed" in an **adaptive/intelligent** system
-- 🚩 "Different behavior per asset/user" in a **personalized** system
-- 🚩 "Empty sections hidden" in a **smart UI** that shows only relevant content
-- 🚩 "Questions vary by data quality" in a **gap-based** collection system
-
-**When in doubt: CHECK SERENA MEMORIES FIRST, REPRODUCE WITH PLAYWRIGHT, PRESENT ANALYSIS**
+**When in doubt: CHECK SERENA MEMORIES → REPRODUCE WITH PLAYWRIGHT → PRESENT ANALYSIS**
 
 ### CRITICAL: API Request Body vs Query Parameters (MUST READ - Prevents 422 Errors)
 
@@ -590,49 +422,22 @@ await apiCall(`/api/endpoint`, {
 
 ### CRITICAL: JSON Sanitization Pattern (ADR-029)
 
-**LLM responses often contain malformed JSON** - always sanitize before parsing:
+**When to use**: Any code parsing JSON from LLM responses (CrewAI task outputs, direct completions, agent tool results).
 
+**Why needed**: LLMs return malformed JSON - markdown wrappers (` ```json `), trailing commas, single quotes, NaN/Infinity values, truncation at 16KB.
+
+**Pattern**: Use `safe_parse_llm_json()` instead of `json.loads()`:
 ```python
-import json
-import re
-import dirtyjson
-import math
+from app.utils.llm_json_parser import safe_parse_llm_json
 
-def safe_parse_llm_json(response: str) -> dict:
-    """Parse potentially malformed JSON from LLM responses."""
-    # Strip markdown code blocks
-    cleaned = re.sub(r'```json\s*|\s*```', '', response)
+# ❌ WRONG - Will fail on LLM output
+data = json.loads(llm_response)
 
-    # Try standard JSON first
-    try:
-        return json.loads(cleaned)
-    except:
-        # Fallback to dirtyjson for malformed responses
-        try:
-            parsed = dirtyjson.loads(cleaned)
-            # Handle NaN/Infinity (not valid JSON)
-            return sanitize_json_values(parsed)
-        except:
-            raise ValueError("Unable to parse LLM response as JSON")
-
-def sanitize_json_values(obj):
-    """Replace NaN/Infinity with None for JSON serialization."""
-    if isinstance(obj, float):
-        if math.isnan(obj) or math.isinf(obj):
-            return None
-    elif isinstance(obj, dict):
-        return {k: sanitize_json_values(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [sanitize_json_values(item) for item in obj]
-    return obj
+# ✅ CORRECT - Handles all LLM quirks
+data = safe_parse_llm_json(llm_response)
 ```
 
-**Common Issues**:
-- LLM wraps JSON in markdown: ` ```json ... ``` `
-- Trailing commas in objects/arrays
-- Single quotes instead of double quotes
-- NaN/Infinity from confidence scores
-- Truncated responses at 16KB limit (see ADR-035)
+**Never**: Call `json.loads()` directly on raw LLM output without sanitization.
 
 ### CRITICAL: API Field Naming Convention (MUST READ - Prevents Recurring Bugs)
 
@@ -694,134 +499,34 @@ Before writing ANY code that handles API responses:
 
 ### CRITICAL: Observability Enforcement (MANDATORY - November 2025)
 
-**All LLM calls and CrewAI task executions MUST be instrumented for cost tracking and performance monitoring.**
-
-See `/docs/guidelines/OBSERVABILITY_PATTERNS.md` for full documentation.
+**When to apply**: All code that calls LLMs or executes CrewAI tasks MUST be instrumented.
 
 #### LLM Call Tracking (Automatic)
+- **New code**: Use `multi_model_service.generate_response()` with tenant context
+- **Legacy code**: Auto-tracked via global LiteLLM callback (no changes needed)
+- **Tables**: `migration.llm_usage_logs`, `migration.llm_model_pricing`
 
-**All LLM calls are automatically tracked** via `litellm_tracking_callback.py` installed at app startup. No action needed for basic tracking.
+#### Agent Task Tracking (Manual - Required for CrewAI)
+**MANDATORY** - wrap all `task.execute_async()` calls with `CallbackHandlerIntegration`:
+1. Create handler with tenant context (flow_id, client_account_id, engagement_id, flow_type, phase)
+2. Call `callback_handler.setup_callbacks()`
+3. Register task start BEFORE execution via `_step_callback()`
+4. Execute task
+5. Mark completion via `_task_completion_callback()`
 
-**For new code**, use `multi_model_service` for best tenant context:
-```python
-from app.services.multi_model_service import multi_model_service, TaskComplexity
-
-response = await multi_model_service.generate_response(
-    prompt="Your prompt",
-    task_type="analysis",
-    complexity=TaskComplexity.SIMPLE,
-    client_account_id=client_account_id,
-    engagement_id=engagement_id
-)
-# ✅ Automatically logged to llm_usage_logs with costs
-```
-
-**Legacy code** with direct `litellm.completion()` calls:
-- Already tracked via global LiteLLM callback (no changes needed)
-- Add tenant context to metadata if possible:
-```python
-response = litellm.completion(
-    model="deepinfra/llama-4",
-    messages=[...],
-    metadata={
-        "feature_context": "readiness_assessment",
-        "client_account_id": 1,
-        "engagement_id": 123
-    }
-)
-```
-
-#### Agent Task Tracking (Manual Integration Required)
-
-**MANDATORY for all CrewAI task execution** (enforced by pre-commit hooks):
-
-```python
-from app.services.crewai_flows.handlers.callback_handler_integration import (
-    CallbackHandlerIntegration
-)
-
-# 1. Create callback handler with tenant context
-callback_handler = CallbackHandlerIntegration.create_callback_handler(
-    flow_id=str(master_flow.flow_id),
-    context={
-        "client_account_id": str(master_flow.client_account_id),
-        "engagement_id": str(master_flow.engagement_id),
-        "flow_type": "assessment",  # or "discovery", "collection"
-        "phase": "readiness"
-    }
-)
-callback_handler.setup_callbacks()
-
-# 2. Create task
-task = Task(
-    description="Your task description",
-    expected_output="Expected output format",
-    agent=(agent._agent if hasattr(agent, "_agent") else agent)
-)
-
-# 3. Register task start BEFORE execution
-callback_handler._step_callback({
-    "type": "starting",
-    "status": "starting",
-    "agent": "readiness_assessor",
-    "task": "readiness_assessment",
-    "content": "Starting task description"
-})
-
-# 4. Execute task
-future = task.execute_async(context=context_str)
-result = await asyncio.wrap_future(future)
-
-# 5. Mark completion with status
-callback_handler._task_completion_callback({
-    "agent": "readiness_assessor",
-    "task_name": "readiness_assessment",
-    "status": "completed" if result else "failed",
-    "task_id": "readiness_task",
-    "output": result
-})
-```
+**Full code pattern**: `/docs/guidelines/OBSERVABILITY_PATTERNS.md`
+**Reference impl**: `backend/app/services/crewai_flows/unified_assessment_flow.py`
 
 #### Pre-Commit Enforcement
+- **CRITICAL** (blocks): `task.execute_async()` without `CallbackHandler` in scope
+- **ERROR** (blocks): Direct `litellm.completion()` calls without tracking
+- **WARNING**: `crew.kickoff()` without `callbacks` parameter
 
-Pre-commit hooks will **block commits** that violate observability patterns:
+#### Viewing Data
+- **Grafana**: `http://localhost:9999` - LLM costs, agent activity, flow metrics
+- **Frontend**: `/finops/llm-costs` - Cost breakdown by model/provider
 
-**CRITICAL** (blocks commit):
-- `task.execute_async()` without `CallbackHandler` in scope
-
-**ERROR** (blocks commit):
-- Direct `litellm.completion()` calls (use `multi_model_service` instead)
-
-**WARNING** (allows commit):
-- `crew.kickoff()` without `callbacks` parameter
-
-#### Viewing Observability Data
-
-**Grafana Dashboards** (http://localhost:9999):
-- **LLM Costs**: `/d/llm-costs/` - Cost tracking by model/provider
-- **Agent Activity**: `/d/agent-activity/` - Agent performance and usage
-- **CrewAI Flows**: `/d/crewai-flows/` - Flow execution metrics
-
-**Database Tables**:
-- `migration.llm_usage_logs` - All LLM API calls with costs
-- `migration.agent_task_history` - CrewAI task execution tracking
-- `migration.llm_model_pricing` - Cost per 1K tokens by model
-
-#### Why This Matters
-
-1. **Cost Control**: Track LLM spending by model, provider, feature (average $0.50-$2.00 per flow)
-2. **Performance**: Identify slow agents and bottlenecks (target: <5s response time)
-3. **Quality**: Monitor success rates and error patterns (target: >95% success rate)
-4. **Multi-Tenant**: Understand usage per client and engagement for billing
-5. **Debugging**: Trace agent task execution flow with detailed logs
-
-#### Exemptions
-
-Observability NOT required for:
-- Test code (`backend/tests/`)
-- Migration scripts (`backend/alembic/versions/`)
-- Utility scripts (unless they call LLMs)
-- Legacy code before November 2025 (but encouraged to adopt)
+**Exemptions**: Test code, migration scripts, utility scripts (unless calling LLMs)
 
 ## Architectural Review Guidelines for AI Agents
 
@@ -863,76 +568,24 @@ Observability NOT required for:
 - docs/analysis/Notes/000-lessons.md - Critical lessons learned
 - docs/guidelines/ARCHITECTURAL_REVIEW_GUIDELINES.md - Detailed review guidelines
 
-## Key Architectural Decision Records (ADRs)
+## Key ADRs (Read Before Architectural Changes)
 
-### ADR-006: Master Flow Orchestrator
-- Single source of truth for ALL workflow operations
-- All flows MUST register with `crewai_flow_state_extensions` table
-- Centralizes flow management, state persistence, and multi-tenancy
-- "Rip and replace" strategy over phased migration
+| ADR | When to Reference | Key Rule |
+|-----|-------------------|----------|
+| **006** | Implementing ANY flow endpoint | All flows use MFO; register with `crewai_flow_state_extensions` |
+| **010** | Setting up dev environment | Docker-only development, no local services |
+| **012** | Working with flow status | Master=lifecycle (running/paused), Child=operational decisions |
+| **015** | Creating/modifying agents | Use TenantScopedAgentPool, singleton per tenant |
+| **024** | Any CrewAI memory questions | `memory=False` ALWAYS; use TenantMemoryManager for learning |
+| **025** | Adding new flow type | Collection/Discovery=Child Service, Assessment=Direct Flow |
+| **029** | Parsing LLM JSON responses | Use `safe_parse_llm_json()`, never raw `json.loads()` |
+| **030** | Questionnaire generation issues | Fewer questions = better data quality (adaptive, not bug) |
+| **035** | Large LLM responses failing | Chunk per-asset/per-section to avoid 16KB truncation |
+| **036** | Asset ↔ canonical app mapping | Use junction table; handles race conditions |
 
-### ADR-010: Docker-First Development Mandate
-- ALL development MUST occur within Docker containers
-- NO local services (Python, Node.js, PostgreSQL) on dev machines
-- Use `docker exec` for all command execution
-- Docker Compose for multi-service orchestration
+**Other ADRs**: 027 (Flow Type Config), 028 (Phase State), 031 (Observability), 032 (JWT Security), 033 (Context Service), 034 (Questionnaire Dedup)
 
-### ADR-012: Flow Status Management Separation
-- **Master Flow**: High-level lifecycle (`running`, `paused`, `completed`)
-- **Child Flow**: Operational decisions (phases, validations, UI state)
-- Frontend and agents MUST use child flow status for decisions
-- Master flow only for cross-flow coordination
-
-### ADR-015: Persistent Multi-Tenant Agent Architecture
-- TenantScopedAgentPool manages agent lifecycle per tenant
-- Agents persist without memory (memory=False per ADR-024)
-- Singleton pattern with lazy initialization per tenant
-
-### ADR-024: TenantMemoryManager Architecture (Supersedes ADR-019)
-- CrewAI memory is DISABLED entirely (memory=False everywhere)
-- TenantMemoryManager provides enterprise agent learning
-- PostgreSQL + pgvector for multi-tenant memory isolation
-- No DeepInfra patches or embedder configurations
-
-### ADR-025: Collection Flow Child Service Migration
-- Collection/Discovery flows use child service pattern
-- Assessment flow uses Direct Flow pattern (simpler lifecycle)
-- Child services handle complex data collection and auto-progression
-- See ADR for decision criteria on pattern selection
-
-## Recent Architectural Decisions (Nov 2025)
-
-### ADR-029: LLM Output JSON Sanitization Pattern
-- Strip markdown wrappers (```json) from LLM responses
-- Use dirtyjson for parsing malformed JSON
-- Handle NaN/Infinity values before serialization
-- Pattern: `safe_parse_llm_json()` utility function
-
-### ADR-030: Collection Flow Adaptive Questionnaire Architecture
-- Intelligent gap-based question generation
-- Shows fewer questions for assets with better data quality
-- Adaptive forms are a FEATURE not a bug (Issue #795 lesson)
-- Questions generated based on actual data gaps
-
-### ADR-035: Per-Asset, Per-Section Questionnaire Generation
-- Prevents JSON truncation at 16KB LLM response limit
-- Generates questionnaires in chunks (per-asset, per-section)
-- Uses Redis caching for efficient chunked generation
-- Fixes Bug #996-#998 (questionnaire generation failures)
-
-### ADR-036: Canonical Application Junction Table Architecture
-- Fixes 6R recommendation persistence (Bug #999)
-- Junction table maps assets ↔ canonical applications
-- Handles race conditions in concurrent collection flows
-- Includes migration for 110 orphaned assets
-
-### Other Important ADRs
-- **ADR-027**: Universal Flow Type Config Pattern
-- **ADR-028**: Eliminate Collection Phase State Duplication
-- **ADR-031**: Environment-Based Observability Architecture
-- **ADR-032**: JWT Refresh Token Security Architecture
-- **ADR-033**: Context Establishment Service Modularization
-- **ADR-034**: Asset-Centric Questionnaire Deduplication
+**Full documentation**: `docs/adr/*.md`
 
 ## Critical: API Endpoint Synchronization (Post-Aug 2025 Incident)
 
