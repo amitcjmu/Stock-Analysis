@@ -149,10 +149,13 @@ class PromptBuilder:
         sorted_gaps = sorted(gaps, key=lambda g: priority_order.get(g.priority, 4))
 
         for gap in sorted_gaps:
+            # ✅ Fix Bug #23: Use correct IntelligentGap attributes
+            # IntelligentGap model uses 'field_name' (not 'field_display_name')
+            # and 'confidence_score' (not 'confidence')
             lines.append(
-                f"  - {gap.field_display_name} ({gap.field_id}) - "
+                f"  - {gap.field_name} ({gap.field_id}) - "
                 f"Priority: {gap.priority.upper()}, "
-                f"Confidence: {gap.confidence:.2f}"
+                f"Confidence: {gap.confidence_score:.2f}"
             )
 
         return "\n".join(lines)

@@ -49,9 +49,7 @@ class DataLoaders:
         enrichment = {}
 
         # Tech Debt - Query by asset_id only (tenant context via FK relationship)
-        stmt_tech = select(AssetTechDebt).where(
-            AssetTechDebt.asset_id == asset_id
-        )
+        stmt_tech = select(AssetTechDebt).where(AssetTechDebt.asset_id == asset_id)
         result_tech = await self.db.execute(stmt_tech)
         tech_debt = result_tech.scalar_one_or_none()
         if tech_debt:
@@ -109,7 +107,8 @@ class DataLoaders:
             select(CanonicalApplication)
             .join(
                 CollectionFlowApplication,
-                CollectionFlowApplication.canonical_application_id == CanonicalApplication.id,
+                CollectionFlowApplication.canonical_application_id
+                == CanonicalApplication.id,
             )
             .where(
                 CollectionFlowApplication.asset_id == asset_id,

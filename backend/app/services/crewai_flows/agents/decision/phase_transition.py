@@ -112,9 +112,7 @@ class PhaseTransitionAgent(BaseDecisionAgent):
 
         # Flow-type specific analysis using modular components
         # CRITICAL FIX (Bug #1135): Add defensive logging before calling flow-specific analysis
-        logger.info(
-            f"📊 Analyzing phase '{phase}' for flow_type '{flow_type}'"
-        )
+        logger.info(f"📊 Analyzing phase '{phase}' for flow_type '{flow_type}'")
 
         if flow_type == "discovery":
             discovery_analysis = DiscoveryAnalysis.analyze_discovery_phase_results(
@@ -245,7 +243,10 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             # ✅ FIX Bug #6 (Questionnaire Generation Skipped):
             # questionnaire_generation must execute FIRST before evaluation
             # Pre-execution decision should PROCEED, post-execution evaluates results
-            if current_phase == "questionnaire_generation" and flow_type == "collection":
+            if (
+                current_phase == "questionnaire_generation"
+                and flow_type == "collection"
+            ):
                 logger.info(
                     "✅ questionnaire_generation phase - allowing execution (evaluation happens post-execution)"
                 )

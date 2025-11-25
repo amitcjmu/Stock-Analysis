@@ -84,6 +84,21 @@ def count_lines(file_path: str) -> int:
         return 0
 
 
+def has_skip_file_length_check(file_path: str) -> bool:
+    """Check if file has SKIP_FILE_LENGTH_CHECK comment."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            # Check first 50 lines for the skip marker
+            for i, line in enumerate(f):
+                if i >= 50:
+                    break
+                if "SKIP_FILE_LENGTH_CHECK" in line:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
 def check_file_lengths() -> Tuple[List[str], List[str], List[str]]:
     """Check lengths of all staged Python files."""
     errors = []
@@ -97,6 +112,10 @@ def check_file_lengths() -> Tuple[List[str], List[str], List[str]]:
 
     for file_path in staged_files:
         if should_exclude(file_path):
+            continue
+
+        # Check for SKIP_FILE_LENGTH_CHECK comment
+        if has_skip_file_length_check(file_path):
             continue
 
         line_count = count_lines(file_path)

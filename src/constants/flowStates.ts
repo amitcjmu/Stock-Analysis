@@ -264,7 +264,7 @@ export const isActiveStatus = (status: FlowStatus): boolean => {
  * Check if a flow status (as string) is in a terminal state.
  * Case-insensitive check for compatibility with various API responses.
  * This is the single source of truth for terminal state checking.
- * 
+ *
  * @param status - Flow status string (can be any case)
  * @returns true if the status is a terminal state
  */
@@ -276,7 +276,7 @@ export const isFlowTerminal = (status: string | undefined | null): boolean => {
 /**
  * Check if a FlowStatus enum value is in a terminal state.
  * Delegates to isFlowTerminal to ensure consistent logic and single source of truth.
- * 
+ *
  * @param status - FlowStatus enum value
  * @returns true if the status is a terminal state
  */

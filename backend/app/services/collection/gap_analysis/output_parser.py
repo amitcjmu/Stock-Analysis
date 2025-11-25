@@ -68,11 +68,14 @@ def parse_task_output(task_output: Any) -> Dict[str, Any]:  # noqa: C901
                     potential_json = raw_output[start : end + 1]
                     parsed = json.loads(potential_json)
                     # Store candidate with metadata for prioritization
-                    json_candidates.append({
-                        "data": parsed,
-                        "size": end - start,  # Track size to prioritize larger structures
-                        "start_pos": start
-                    })
+                    json_candidates.append(
+                        {
+                            "data": parsed,
+                            "size": end
+                            - start,  # Track size to prioritize larger structures
+                            "start_pos": start,
+                        }
+                    )
                     logger.debug(
                         f"✅ JSON candidate {len(json_candidates)}: Size={end - start}, Keys = {list(parsed.keys())}"
                     )
@@ -87,7 +90,8 @@ def parse_task_output(task_output: Any) -> Dict[str, Any]:  # noqa: C901
         json_candidates.sort(key=lambda x: x["size"], reverse=True)
 
         logger.info(
-            f"📊 Total JSON candidates extracted: {len(json_candidates)} from {extraction_attempts} attempts (sorted by size)"
+            f"📊 Total JSON candidates extracted: {len(json_candidates)} from "
+            f"{extraction_attempts} attempts (sorted by size)"
         )
 
         # ✅ FIX Bug #2: Prioritize JSON blocks that have "gaps" key with data
@@ -114,13 +118,18 @@ def parse_task_output(task_output: Any) -> Dict[str, Any]:  # noqa: C901
                             if isinstance(gap_list, list):
                                 # Validate that items are actually gap objects (have required fields)
                                 valid_gaps = [
-                                    g for g in gap_list
-                                    if isinstance(g, dict) and "field_name" in g and "asset_id" in g
+                                    g
+                                    for g in gap_list
+                                    if isinstance(g, dict)
+                                    and "field_name" in g
+                                    and "asset_id" in g
                                 ]
                                 count = len(valid_gaps)
                                 gap_count += count
                                 logger.debug(
-                                    f"    - {priority}: {count} valid gaps (raw: {len(gap_list)}, type: {type(gap_list).__name__})"
+                                    f"    - {priority}: {count} valid gaps "
+                                    f"(raw: {len(gap_list)}, "
+                                    f"type: {type(gap_list).__name__})"
                                 )
                             else:
                                 logger.debug(
@@ -149,7 +158,8 @@ def parse_task_output(task_output: Any) -> Dict[str, Any]:  # noqa: C901
                         )
                 else:
                     logger.warning(
-                        f"⚠️ Candidate {idx + 1} has 'gaps' key but value is not a dict (type: {type(gaps_value).__name__})"
+                        f"⚠️ Candidate {idx + 1} has 'gaps' key but value is "
+                        f"not a dict (type: {type(gaps_value).__name__})"
                     )
             else:
                 logger.debug("  - Missing 'gaps' key")
@@ -178,9 +188,7 @@ def parse_task_output(task_output: Any) -> Dict[str, Any]:  # noqa: C901
             logger.error(
                 f"📋 Candidate structures: {[list(c['data'].keys()) for c in json_candidates]}"
             )
-            logger.error(
-                f"📏 Candidate sizes: {[c['size'] for c in json_candidates]}"
-            )
+            logger.error(f"📏 Candidate sizes: {[c['size'] for c in json_candidates]}")
 
         # Return minimal structure with raw output
         return {

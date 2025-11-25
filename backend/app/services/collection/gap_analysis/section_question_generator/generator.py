@@ -60,8 +60,8 @@ class SectionQuestionGenerator:
         gaps: List[IntelligentGap],
         asset_data: Optional[Dict[str, Any]],
         previous_questions: List[str],
-        client_account_id: int,
-        engagement_id: int,
+        client_account_id: str = "",
+        engagement_id: str = "",
     ) -> List[Dict[str, Any]]:
         """
         Generate questions for a section based on TRUE gaps.
@@ -73,8 +73,8 @@ class SectionQuestionGenerator:
             gaps: List of IntelligentGap objects (TRUE gaps only)
             asset_data: Data map from DataAwarenessAgent
             previous_questions: Questions already generated in other sections
-            client_account_id: Multi-tenant client ID (for observability)
-            engagement_id: Multi-tenant engagement ID (for observability)
+            client_account_id: Multi-tenant client UUID string (for observability)
+            engagement_id: Multi-tenant engagement UUID string (for observability)
 
         Returns:
             List of question dicts with field_id, question_text, input_type, etc.
@@ -98,6 +98,9 @@ class SectionQuestionGenerator:
             f"(asset: {asset_name}, gaps: {len(gaps)})"
         )
 
+        # ✅ Fix Bug #19: multi_model_service.generate_response() does not accept
+        # client_account_id/engagement_id parameters - kept in method signature
+        # for potential future observability integration
         response_data = await multi_model_service.generate_response(
             prompt=prompt,
             task_type="section_question_generator",
@@ -107,20 +110,63 @@ class SectionQuestionGenerator:
                 "specific questions based on TRUE data gaps. Return ONLY valid "
                 "JSON, no markdown formatting."
             ),
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
         )
 
         # Parse LLM response with ADR-029 sanitization
-        questions = self._parse_llm_response(
-            response_data.get("content", "{}"), section_name, asset_name
+        # ✅ Fix Bug #24: multi_model_service returns "response" not "content"
+        # The service's _execute_openai_call returns {"response": content, ...}
+        # not {"content": content, ...} as originally assumed
+        llm_content = response_data.get("response") or response_data.get(
+            "content", "{}"
         )
+        questions = self._parse_llm_response(llm_content, section_name, asset_name)
 
         logger.info(
             f"Generated {len(questions)} questions for {asset_name} in {section_name}"
         )
 
         return questions
+
+    def _sanitize_escape_sequences(self, text: str) -> str:
+        """
+        Sanitize invalid escape sequences in LLM JSON responses.
+
+        Bug #26: LLMs sometimes return invalid escape sequences like \\X, \\x (lowercase
+        hex without valid hex digits), or other non-standard escapes that break JSON parsing.
+
+        Valid JSON escape sequences: \\", \\\\, \\/, \\b, \\f, \\n, \\r, \\t, \\uXXXX
+
+        Args:
+            text: Raw text that may contain invalid escape sequences
+
+        Returns:
+            Text with invalid escape sequences fixed
+        """
+        import re
+
+        # Fix invalid escape sequences by:
+        # 1. First, temporarily protect valid escape sequences
+        # 2. Then escape any remaining backslashes followed by invalid chars
+        # 3. Restore valid sequences
+
+        # Valid JSON escapes: " \ / b f n r t and uXXXX
+        # We need to handle cases like \X, \x (invalid), \. (invalid) etc.
+
+        # Pattern to find backslash followed by character that's NOT a valid escape
+        # Valid: " \ / b f n r t u (for unicode)
+        # This regex finds \X where X is not one of the valid escape chars
+        def fix_invalid_escape(match: re.Match) -> str:
+            char = match.group(1)
+            # If it's a valid escape sequence start, keep it
+            if char in r'"\\/bfnrtu':
+                return match.group(0)
+            # Otherwise, escape the backslash itself
+            return "\\\\" + char
+
+        # Match backslash followed by any character
+        result = re.sub(r"\\(.)", fix_invalid_escape, text)
+
+        return result
 
     def _parse_llm_response(
         self, response: str, section_name: str, asset_name: str
@@ -132,6 +178,7 @@ class SectionQuestionGenerator:
         - Markdown code blocks (```json)
         - Malformed JSON (trailing commas, single quotes)
         - NaN/Infinity values from confidence scores
+        - Invalid escape sequences (Bug #26: \\X, \\x, etc.)
         - Missing fields
 
         Args:
@@ -146,6 +193,10 @@ class SectionQuestionGenerator:
 
         # Strip markdown code blocks
         cleaned = re.sub(r"```json\s*|\s*```", "", response.strip())
+
+        # Bug #26: Sanitize invalid escape sequences before parsing
+        # LLMs sometimes return \X, \x, \. etc. which are not valid JSON escapes
+        cleaned = self._sanitize_escape_sequences(cleaned)
 
         try:
             # Try standard JSON first

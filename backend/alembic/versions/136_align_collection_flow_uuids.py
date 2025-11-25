@@ -19,9 +19,8 @@ Solution:
     New flows will be created with this pattern enforced (see
     collection_crud_create_commands.py).
 """
+
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = "136_align_collection_flow_uuids"
 down_revision = "135_add_import_category_to_data_imports"
@@ -37,7 +36,8 @@ def upgrade():
     This prevents UUID mismatch bugs in phase handlers and MFO integration.
     """
     # Use PostgreSQL DO block for idempotent execution
-    op.execute("""
+    op.execute(
+        """
         DO $$
         DECLARE
             rows_updated INTEGER;
@@ -50,17 +50,20 @@ def upgrade():
 
             GET DIAGNOSTICS rows_updated = ROW_COUNT;
 
-            RAISE NOTICE '✅ Migration 136: Updated % collection_flows to align flow_id with master_flow_id', rows_updated;
+            RAISE NOTICE '✅ Migration 136: Updated % collection_flows to align '
+                'flow_id with master_flow_id', rows_updated;
 
             -- Log any flows with NULL master_flow_id (should not exist per ADR-006)
             IF EXISTS (
                 SELECT 1 FROM migration.collection_flows
                 WHERE master_flow_id IS NULL
             ) THEN
-                RAISE WARNING '⚠️ Found collection flows with NULL master_flow_id (violates ADR-006). These were NOT updated.';
+                RAISE WARNING '⚠️ Found collection flows with NULL master_flow_id '
+                    '(violates ADR-006). These were NOT updated.';
             END IF;
         END $$;
-    """)
+    """
+    )
 
 
 def downgrade():
@@ -75,10 +78,12 @@ def downgrade():
     1. Restore from database backup before this migration
     2. Re-run migrations up to 135
     """
-    op.execute("""
+    op.execute(
+        """
         DO $$
         BEGIN
             RAISE WARNING '⚠️ Migration 136 downgrade: No action (original flow_id values not preserved)';
             RAISE WARNING '⚠️ To fully rollback, restore from database backup before this migration';
         END $$;
-    """)
+    """
+    )

@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState, useRef } from "react";
-import { Loader2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,11 +33,12 @@ interface QuestionnaireGenerationModalProps {
   onComplete: (questionnaire: QuestionnaireData) => void;
   onFallback: () => void;
   onRetry?: () => void;
+  onCancel?: () => void; // Bug #25: Allow user to cancel and navigate away
 }
 
 export const QuestionnaireGenerationModal: React.FC<
   QuestionnaireGenerationModalProps
-> = ({ isOpen, flowId, onComplete, onFallback, onRetry }) => {
+> = ({ isOpen, flowId, onComplete, onFallback, onRetry, onCancel }) => {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<"generating" | "ready" | "fallback">(
     "generating"
@@ -167,9 +168,20 @@ export const QuestionnaireGenerationModal: React.FC<
     return null;
   }
 
+  // Bug #25: Handle cancel - cleanup intervals and call onCancel
+  const handleCancel = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    onCancel?.();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-[500px]" hideCloseButton>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {status === "generating" && (
@@ -206,11 +218,25 @@ export const QuestionnaireGenerationModal: React.FC<
           </div>
 
           {status === "generating" && (
-            <div className="text-sm text-gray-500">
-              <p>
-                Our AI agents are analyzing your requirements and generating a
-                personalized questionnaire. This typically takes 30-60 seconds.
-              </p>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-500">
+                <p>
+                  Our AI agents are analyzing your requirements and generating a
+                  personalized questionnaire. This typically takes 30-60 seconds.
+                </p>
+              </div>
+              {/* Bug #25: Add cancel button to allow navigation away */}
+              {onCancel && (
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel and Navigate Away
+                </Button>
+              )}
             </div>
           )}
 

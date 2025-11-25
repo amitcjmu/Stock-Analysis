@@ -74,7 +74,57 @@ async def _background_generate(
                 flow_id, flow_db_id, existing_assets, context, db
             )
 
+            # ✅ Fix Bug #22: Distinguish between "no gaps" (asset ready) vs "generation failed"
+            # If _generate_questionnaires_per_section returned empty list, check if it's because
+            # the IntelligentGapScanner found no TRUE gaps (asset already has complete data)
+            # vs actual generation failure (API error, parsing error, etc.)
+
             if questionnaires:
+                # ✅ Fix Bug #22: Check for "no gaps" marker (asset already ready for assessment)
+                # This happens when IntelligentGapScanner finds no TRUE gaps - the asset has complete data
+                if (
+                    len(questionnaires) == 1
+                    and isinstance(questionnaires[0], dict)
+                    and questionnaires[0].get("_no_gaps_marker")
+                ):
+                    logger.info(
+                        f"✅ No TRUE gaps found for flow {flow_id} - marking questionnaire as completed (asset ready)"
+                    )
+                    # Mark questionnaire as "completed" with empty questions (no collection needed)
+                    await update_questionnaire_status(
+                        questionnaire_id,
+                        "completed",  # ✅ "completed" not "failed" - the asset is ready for assessment
+                        [],  # Empty questions list - no questions needed
+                        db=db,
+                    )
+
+                    # Progress flow to completed state (collection not needed, asset is ready)
+                    flow_uuid = UUID(flow_id)
+                    flow_result = await db.execute(
+                        select(CollectionFlow).where(
+                            (CollectionFlow.flow_id == flow_uuid)
+                            | (CollectionFlow.id == flow_uuid)
+                        )
+                    )
+                    current_flow = flow_result.scalar_one_or_none()
+
+                    if current_flow:
+                        await db.execute(
+                            sql_update(CollectionFlow)
+                            .where(CollectionFlow.id == current_flow.id)
+                            .values(
+                                current_phase="completed",  # Collection not needed
+                                status="completed",
+                                progress_percentage=100.0,
+                                updated_at=datetime.now(timezone.utc),
+                            )
+                        )
+                        await db.commit()
+                        logger.info(
+                            f"✅ Flow {flow_id} completed - assets already have complete data"
+                        )
+                    return  # Exit early - nothing more to do
+
                 # Extract questions from ALL questionnaire sections (not just first one)
                 # Bug fix: Previously took only questionnaires[0].questions, losing 83% of questions
                 questions = []
@@ -148,8 +198,7 @@ async def _background_generate(
                     await db.execute(
                         sql_update(CollectionFlow)
                         # MFO Two-Table Pattern: Update using PK (we have the flow object)
-                        .where(CollectionFlow.id == current_flow.id)
-                        .values(
+                        .where(CollectionFlow.id == current_flow.id).values(
                             current_phase="manual_collection",
                             status="paused",  # FIXED: Use valid enum value (awaiting user questionnaire input)
                             progress_percentage=50.0,  # Questionnaire generated = 50% progress
@@ -213,8 +262,7 @@ async def _background_generate(
                     await db.execute(
                         sql_update(CollectionFlow)
                         # MFO Two-Table Pattern: Update using PK (we have the flow object)
-                        .where(CollectionFlow.id == current_flow.id)
-                        .values(
+                        .where(CollectionFlow.id == current_flow.id).values(
                             status="failed",  # Mark flow as failed
                             current_phase="questionnaire_generation",  # Show which phase failed
                             updated_at=datetime.now(timezone.utc),
