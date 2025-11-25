@@ -94,7 +94,6 @@ class IntelligentGapScanner:
             if self.sections_to_scan and section_id not in self.sections_to_scan:
                 continue
 
-            section_name = section_meta["name"]
             section_fields = section_meta["fields"]
 
             for field_id, field_meta in section_fields.items():
@@ -116,8 +115,11 @@ class IntelligentGapScanner:
                     )
 
                 # Source 2: custom_attributes JSONB
+                # ✅ FIX Bug #9 (Asset enrichment_data AttributeError):
+                # Asset model has technical_details JSONB (NOT enrichment_data)
+                # technical_details contains technical enrichments and details
                 jsonb_value = self.data_extractors.extract_from_jsonb(
-                    asset.custom_attributes, asset.enrichment_data, field_id
+                    asset.custom_attributes, asset.technical_details, field_id
                 )
                 if jsonb_value is not None:
                     data_sources_checked.append(
@@ -189,15 +191,22 @@ class IntelligentGapScanner:
                     # Calculate confidence (1.0 for true gaps)
                     confidence = self._calculate_confidence(data_sources_checked)
 
+                    # ✅ FIX Bug #10 (IntelligentGap parameter name):
+                    # Model expects 'field_name' not 'field_display_name'
+                    # ✅ FIX Bug #12 (IntelligentGap section_name parameter):
+                    # Model expects 'section' only (NOT 'section_name')
+                    # ✅ FIX Bug #13 (IntelligentGap confidence parameter):
+                    # Model expects 'confidence_score' not 'confidence'
+                    # ✅ FIX Bug #14 (IntelligentGap data_sources parameter):
+                    # Model expects 'data_found' not 'data_sources_checked'
                     gaps.append(
                         IntelligentGap(
                             field_id=field_id,
-                            field_display_name=self._get_field_display_name(field_id),
+                            field_name=self._get_field_display_name(field_id),
                             section=section_id,
-                            section_name=section_name,
                             is_true_gap=True,
-                            confidence=confidence,
-                            data_sources_checked=data_sources_checked,
+                            confidence_score=confidence,
+                            data_found=data_sources_checked,
                             priority=field_meta.get("importance", "medium"),
                         )
                     )

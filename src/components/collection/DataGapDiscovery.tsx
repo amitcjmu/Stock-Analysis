@@ -77,6 +77,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
   const { toast } = useToast();
   const [gaps, setGaps] = useState<GapRowData[]>([]);
   const [isLoadingGaps, setIsLoadingGaps] = useState(true); // Bug #757 Fix: Track initial load state
+  const [gridApi, setGridApi] = useState<unknown | null>(null); // Store grid API for cleanup
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,6 +107,20 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
     completed: number;
     percentage: number;
   } | null>(null);
+
+  // Frontend Bug #13: Clear AG Grid cache when flow changes to prevent duplicate row warnings
+  useEffect(() => {
+    // Clear gaps when flowId changes (new flow loaded)
+    // This prevents AG Grid from showing cached data from previous flow
+    return () => {
+      // On unmount or flowId change, clear gaps to prevent stale cache
+      setGaps([]);
+      if (gridApi && typeof gridApi === 'object' && 'setGridOption' in gridApi) {
+        // Clear grid data using AG Grid 32 API
+        (gridApi as { setGridOption: (key: string, value: unknown) => void }).setGridOption('rowData', []);
+      }
+    };
+  }, [flowId, gridApi]);
 
   // Fetch existing gaps on mount, or scan if none exist
   useEffect(() => {
@@ -1191,6 +1206,9 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
 
   const onGridReady = useCallback(
     (params: GridReadyEvent) => {
+      // Frontend Bug #13: Store grid API for cleanup on flow changes
+      setGridApi(params.api);
+
       // Add click handler for save buttons
       params.api.getRenderedNodes().forEach((node) => {
         const eGui = node.eGridCell?.querySelector(".save-btn");
@@ -1208,7 +1226,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
         }
       });
     },
-    [gaps, handleSaveGap],
+    [gaps, handleSaveGap, setGridApi],
   );
 
   const onSelectionChanged = useCallback((event: unknown) => {
@@ -1516,6 +1534,7 @@ const DataGapDiscovery: React.FC<DataGapDiscoveryProps> = ({
             style={{ height: 500, width: "100%" }}
           >
             <AgGridReact
+              key={flowId}
               theme="legacy"
               rowData={gaps}
               columnDefs={columnDefs}
