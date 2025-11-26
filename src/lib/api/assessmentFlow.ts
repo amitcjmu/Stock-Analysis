@@ -9,7 +9,7 @@
  * Migration Plan: /docs/planning/ASSESSMENT_FLOW_MFO_MIGRATION_PLAN.md
  */
 
-import { apiClient } from '@/lib/api/apiClient';
+import { apiClient, getAuthHeaders } from '@/lib/api/apiClient';
 import type {
   ComprehensiveGapReport,
   BatchReadinessSummary,
@@ -588,6 +588,7 @@ export class AssessmentFlowApiClient {
    * Export assessment results in specified format.
    *
    * GAP-6 FIX: Wire frontend to backend export endpoint.
+   * Uses getAuthHeaders() to include tenant context (X-Client-Account-ID, X-Engagement-ID).
    *
    * @param flowId - Assessment flow ID
    * @param format - Export format: 'json' (implemented), 'pdf' or 'excel' (stubs)
@@ -598,6 +599,10 @@ export class AssessmentFlowApiClient {
     format: 'json' | 'pdf' | 'excel' = 'json'
   ): Promise<Blob> {
     try {
+      // Get auth headers including tenant context (X-Client-Account-ID, X-Engagement-ID)
+      // CRITICAL: Must use getAuthHeaders() to include multi-tenant headers
+      const authHeaders = getAuthHeaders();
+
       // POST to backend export endpoint with format parameter
       const response = await fetch(
         `/api/v1/assessment-flow/${flowId}/export?format=${format}`,
@@ -605,6 +610,7 @@ export class AssessmentFlowApiClient {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...authHeaders, // Include Authorization, X-Client-Account-ID, X-Engagement-ID
           },
           credentials: 'include', // Include auth cookies
         }
