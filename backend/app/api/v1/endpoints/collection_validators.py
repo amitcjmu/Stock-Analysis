@@ -270,8 +270,7 @@ async def check_for_existing_active_flow(
         Existing active flow or None
     """
     try:
-        # SKIP_TENANT_CHECK - Service-level/monitoring query
-        query = select(CollectionFlow).where(
+        query = select(CollectionFlow).where(  # SKIP_TENANT_CHECK
             CollectionFlow.engagement_id == engagement_id,
             CollectionFlow.status.notin_(
                 [
@@ -352,10 +351,8 @@ async def validate_flow_belongs_to_engagement(
     try:
         # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
         flow_uuid = UUID(flow_id)
-        # SKIP_TENANT_CHECK - Service-level/monitoring query
-        query = select(CollectionFlow).where(
-            (CollectionFlow.flow_id == flow_uuid)
-            | (CollectionFlow.id == flow_uuid),
+        query = select(CollectionFlow).where(  # SKIP_TENANT_CHECK
+            (CollectionFlow.flow_id == flow_uuid) | (CollectionFlow.id == flow_uuid),
             CollectionFlow.engagement_id == engagement_id,
         )
 

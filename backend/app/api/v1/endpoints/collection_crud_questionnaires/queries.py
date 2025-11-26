@@ -39,8 +39,7 @@ async def _get_flow_by_id(
     flow_result = await db.execute(
         select(CollectionFlow).where(
             # MFO Two-Table Pattern: Query by EITHER flow_id OR id (flexible lookup)
-            (CollectionFlow.flow_id == flow_uuid)
-            | (CollectionFlow.id == flow_uuid),
+            (CollectionFlow.flow_id == flow_uuid) | (CollectionFlow.id == flow_uuid),
             CollectionFlow.engagement_id == context.engagement_id,
             CollectionFlow.client_account_id == context.client_account_id,
         )
@@ -231,8 +230,7 @@ async def get_adaptive_questionnaires(
                         sql_update(CollectionFlow)
                         # MFO Two-Table Pattern: Update using flow.id (PK)
                         # We already have the flow object, use its PK for update
-                        .where(CollectionFlow.id == flow.id)
-                        .values(
+                        .where(CollectionFlow.id == flow.id).values(
                             current_phase="manual_collection",
                             status="paused",  # Awaiting user questionnaire input
                             progress_percentage=50.0,  # Questionnaire generated = 50% progress

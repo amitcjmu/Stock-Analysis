@@ -58,10 +58,18 @@ class PromptBuilder:
 **Previous Questions** (DO NOT DUPLICATE):
 {self._format_previous_questions(previous_questions)}
 
+**MANDATORY: MCQ FORMAT ONLY - NO FREE TEXT INPUTS**:
+ALL questions MUST be multiple-choice (MCQ) with predefined answer options.
+- NEVER use input_type "text" or "textarea" - these create free-form inputs that produce noisy, hard-to-validate data
+- ALWAYS use input_type "select" (single choice) or "radio" (single choice displayed as buttons)
+- ALWAYS provide 4-8 predefined options that cover realistic scenarios
+- ALWAYS include an "Other" option as the LAST choice for edge cases
+- For numeric questions, provide ranges as options (e.g., "1-4", "5-16", "17-64", "65+")
+
 **Question Format Requirements**:
 1. question_text: Clear, specific question (What is the...?)
-2. input_type: "text", "select", "number", "boolean"
-3. options: Array of intelligent options (use data context)
+2. input_type: MUST be "select" or "radio" (NO "text", "number", or free-form inputs)
+3. options: REQUIRED array of 4-8 predefined choices (NEVER null or empty)
 4. validation: Optional validation rules
 5. help_text: Why this data is needed
 
@@ -70,11 +78,14 @@ class PromptBuilder:
     "section": "{section_name}",
     "questions": [
         {{
-            "field_id": "cpu_count",
+            "field_id": "cpu_cores",
             "question_text": "How many CPU cores does {asset_name} have?",
-            "input_type": "number",
-            "options": null,
-            "validation": {{"min": 1, "max": 128}},
+            "input_type": "select",
+            "options": [
+                "1-2 cores", "3-4 cores", "5-8 cores", "9-16 cores",
+                "17-32 cores", "33-64 cores", "65+ cores", "Unknown"
+            ],
+            "validation": null,
             "help_text": "Required for capacity planning and cost optimization",
             "priority": "critical"
         }},
@@ -82,15 +93,39 @@ class PromptBuilder:
             "field_id": "database_type",
             "question_text": "What database technology does {asset_name} use?",
             "input_type": "select",
-            "options": ["PostgreSQL", "MySQL", "MongoDB", "Oracle", "SQL Server", "Other"],
+            "options": ["PostgreSQL", "MySQL", "MongoDB", "Oracle", "SQL Server", "No Database", "Other"],
             "validation": null,
             "help_text": "Used for migration strategy and compatibility analysis",
             "priority": "high"
+        }},
+        {{
+            "field_id": "backup_frequency",
+            "question_text": "How frequently is {asset_name} backed up?",
+            "input_type": "select",
+            "options": ["Real-time/Continuous", "Hourly", "Daily", "Weekly", "Monthly", "No Backups", "Unknown"],
+            "validation": null,
+            "help_text": "Critical for disaster recovery planning",
+            "priority": "high"
+        }},
+        {{
+            "field_id": "ha_configuration",
+            "question_text": "What high availability configuration does {asset_name} use?",
+            "input_type": "select",
+            "options": [
+                "Active-Active Cluster", "Active-Passive Cluster",
+                "Load Balanced", "Single Instance (No HA)", "Unknown"
+            ],
+            "validation": null,
+            "help_text": "Determines resilience requirements for migration",
+            "priority": "medium"
         }}
     ]
 }}
 
-**IMPORTANT**: Return ONLY valid JSON, no markdown formatting, no code blocks.
+**IMPORTANT**:
+- Return ONLY valid JSON, no markdown formatting, no code blocks
+- Every question MUST have input_type "select" or "radio" with a non-empty options array
+- NEVER return questions with input_type "text", "number", "textarea", or "boolean"
 """
         return prompt
 
@@ -149,10 +184,13 @@ class PromptBuilder:
         sorted_gaps = sorted(gaps, key=lambda g: priority_order.get(g.priority, 4))
 
         for gap in sorted_gaps:
+            # ✅ Fix Bug #23: Use correct IntelligentGap attributes
+            # IntelligentGap model uses 'field_name' (not 'field_display_name')
+            # and 'confidence_score' (not 'confidence')
             lines.append(
-                f"  - {gap.field_display_name} ({gap.field_id}) - "
+                f"  - {gap.field_name} ({gap.field_id}) - "
                 f"Priority: {gap.priority.upper()}, "
-                f"Confidence: {gap.confidence:.2f}"
+                f"Confidence: {gap.confidence_score:.2f}"
             )
 
         return "\n".join(lines)

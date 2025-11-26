@@ -70,7 +70,7 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
       // Ensure the mapping has all required properties in snake_case format
       const sourceField = (mapping as any).source_field || (mapping as any).sourceField || '';
       const targetField = (mapping as any).target_field || (mapping as any).targetAttribute || (mapping as any).targetField || null;
-      
+
       // Generate unique ID: use existing id, or create from fields, or use index as fallback
       const generateId = () => {
         if (mapping.id) {

@@ -98,7 +98,9 @@ async def persist_gaps(
                 stmt = stmt.on_conflict_do_update(
                     constraint="uq_gaps_dedup",
                     set_={
-                        "collection_flow_id": gap_record["collection_flow_id"],  # Allow gaps to move between flows
+                        "collection_flow_id": gap_record[
+                            "collection_flow_id"
+                        ],  # Allow gaps to move between flows
                         "priority": gap_record["priority"],
                         "suggested_resolution": gap_record["suggested_resolution"],
                         "description": gap_record["description"],

@@ -8,6 +8,7 @@
 
 import { useRef } from "react";
 import { collectionFlowApi } from "@/services/api/collection-flow";
+import { isFlowTerminal } from "@/constants/flowStates";
 import type { CollectionQuestionnaire } from "./types";
 import type { CollectionFlowStatusResponse } from "@/services/api/collection-flow";
 
@@ -31,12 +32,15 @@ export interface UsePollingReturn {
  * HTTP polling hook for questionnaire generation
  * CRITICAL: NO WebSockets - uses HTTP polling for Railway compatibility
  *
- * @param timeoutMs - Maximum time to wait for questionnaires (default: 30000ms)
+ * @param timeoutMs - Maximum time to wait for questionnaires (default: 120000ms / 2 minutes)
  * @param activePollingInterval - Polling interval when flow is active (default: 2000ms)
  * @param waitingPollingInterval - Polling interval when waiting (default: 5000ms)
  */
 export function usePolling({
-  timeoutMs = 30000, // 30 seconds max wait time to match backend
+  // Bug #28 Fix: Increased timeout from 30s to 120s to match actual generation time
+  // Intelligent questionnaire generation with 6-source gap analysis takes ~90s
+  // Add 30s buffer for network latency and retry handling
+  timeoutMs = 120000, // 120 seconds (2 minutes) to allow full generation
   activePollingInterval = 2000, // 2s for active processing
   waitingPollingInterval = 5000, // 5s for waiting states
 }: UsePollingProps = {}): UsePollingReturn {
@@ -63,6 +67,9 @@ export function usePolling({
     let agentQuestionnaires: CollectionQuestionnaire[] = [];
     let timeoutReached = false;
     let flowStatus: CollectionFlowStatusResponse;
+    // Bug #25: Track consecutive errors to stop polling after too many failures
+    let consecutiveErrors = 0;
+    const MAX_CONSECUTIVE_ERRORS = 5;
 
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
@@ -85,23 +92,33 @@ export function usePolling({
 
           // Check flow status to monitor phase progression
           flowStatus = await collectionFlowApi.getFlowStatus();
+          // Bug #25: Reset error counter on successful status fetch
+          consecutiveErrors = 0;
           console.log(`📊 Flow status check (${elapsed}ms elapsed):`, {
             status: flowStatus.status,
             current_phase: flowStatus.current_phase,
             message: flowStatus.message,
           });
 
-          // Handle flow errors
+          // Handle terminal flow states (completed, cancelled, failed, aborted, etc.)
+          // Use isFlowTerminal helper from flowStates.ts as single source of truth
           if (
-            flowStatus.status === "error" ||
-            flowStatus.status === "failed"
+            isFlowTerminal(flowStatus.status) &&
+            flowStatus.status !== "completed"
           ) {
-            console.error("❌ Collection flow failed:", flowStatus.message);
+            console.error(
+              `❌ Collection flow entered terminal state '${flowStatus.status}':`,
+              flowStatus.message
+            );
             if (pollingIntervalIdRef.current) {
               clearInterval(pollingIntervalIdRef.current);
               pollingIntervalIdRef.current = null;
             }
-            reject(new Error(`Collection flow failed: ${flowStatus.message}`));
+            reject(
+              new Error(
+                `Collection flow ended with status '${flowStatus.status}': ${flowStatus.message || "Please retry or contact support"}`
+              )
+            );
             return;
           }
 
@@ -162,10 +179,23 @@ export function usePolling({
             return;
           }
 
+          // Bug #25: Track consecutive errors and stop after too many
+          consecutiveErrors++;
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.log(
-            `⏳ Still waiting for questionnaires... polling error: ${errorMessage}`,
+            `⏳ Still waiting for questionnaires... polling error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${errorMessage}`,
           );
+
+          // Bug #25: Stop polling after MAX_CONSECUTIVE_ERRORS to prevent endless error loop
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            console.error(`❌ Stopping polling after ${MAX_CONSECUTIVE_ERRORS} consecutive errors`);
+            if (pollingIntervalIdRef.current) {
+              clearInterval(pollingIntervalIdRef.current);
+              pollingIntervalIdRef.current = null;
+            }
+            reject(new Error(`Polling failed after ${MAX_CONSECUTIVE_ERRORS} consecutive errors. Last error: ${errorMessage}`));
+            return;
+          }
         }
       };
 

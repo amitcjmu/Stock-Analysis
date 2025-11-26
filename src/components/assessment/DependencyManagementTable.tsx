@@ -82,6 +82,7 @@ export const DependencyManagementTable: React.FC<DependencyManagementTableProps>
         filter: false,
         resizable: true,
         editable: true,
+        singleClickEdit: true, // CC FIX: Single click to open editor (not double-click)
         cellRenderer: DependencyCellRenderer,
         cellEditor: DependencyCellEditor,
         cellEditorPopup: true, // Show as popup for better UX
@@ -150,14 +151,22 @@ export const DependencyManagementTable: React.FC<DependencyManagementTableProps>
       <CardContent>
         <div className="ag-theme-quartz" style={{ height: `${gridHeight}px`, width: '100%' }}>
           <AgGridReact<Application>
+            theme="legacy"
             rowData={applications}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             onGridReady={onGridReady}
             onCellEditingStopped={handleCellEditingStopped}
-            rowSelection="multiple"
-            suppressRowClickSelection={true}
+            // CC FIX: AG Grid v34 - Use rowSelection object format (not 'selection')
+            // Also set theme="legacy" to fix error #239 (CSS file themes conflict)
+            rowSelection={{
+              mode: 'multiRow',
+              enableClickSelection: false,
+            }}
+            // CC FIX: Required for proper row identification and popup editor positioning
+            getRowId={(params) => String(params.data.id)}
             enableCellTextSelection={true}
+            ensureDomOrder={true}
             animateRows={true}
             pagination={showPagination}
             paginationPageSize={20}

@@ -111,7 +111,7 @@ def _check_single_asset_conflict(
     return None
 
 
-async def bulk_prepare_conflicts(
+async def bulk_prepare_conflicts(  # noqa: C901
     service_instance,
     assets_data: List[Dict[str, Any]],
     client_id: uuid.UUID,
@@ -225,7 +225,9 @@ async def bulk_prepare_conflicts(
             result = await service_instance.db.execute(stmt)
             for asset in result.scalars().all():
                 existing_by_environment[asset.environment] = asset
-        logger.debug(f"  Found {len(existing_by_environment)} existing assets by environment")
+        logger.debug(
+            f"  Found {len(existing_by_environment)} existing assets by environment"
+        )
 
     # CRITICAL FIX: Query by NAME alone (matches database constraint)
     # Database constraint: ix_assets_unique_name_per_context on (client_account_id, engagement_id, name)

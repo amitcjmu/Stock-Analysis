@@ -8,7 +8,7 @@ CC Generated for Issue #1135 - Collection Flow Phase Transition Bug
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from app.services.crewai_flows.agents.decision.phase_transition import (
     PhaseTransitionAgent,
 )
@@ -52,9 +52,11 @@ class TestCollectionPhaseRouting:
         }
 
         # Mock the decision logic to verify it's called with correct flow_type
-        with patch(
-            "app.services.crewai_flows.agents.decision.phase_transition.CollectionDecisionLogic.make_collection_decision"
-        ) as mock_collection_decision:
+        patch_path = (
+            "app.services.crewai_flows.agents.decision.phase_transition."
+            "CollectionDecisionLogic.make_collection_decision"
+        )
+        with patch(patch_path) as mock_collection_decision:
             mock_collection_decision.return_value = AgentDecision(
                 action=PhaseAction.PROCEED,
                 next_phase="manual_collection",
@@ -89,9 +91,11 @@ class TestCollectionPhaseRouting:
             "flow_state": mock_flow_state,
         }
 
-        with patch(
-            "app.services.crewai_flows.agents.decision.phase_transition.CollectionDecisionLogic.make_collection_decision"
-        ) as mock_collection_decision:
+        patch_path = (
+            "app.services.crewai_flows.agents.decision.phase_transition."
+            "CollectionDecisionLogic.make_collection_decision"
+        )
+        with patch(patch_path) as mock_collection_decision:
             mock_collection_decision.return_value = AgentDecision(
                 action=PhaseAction.PROCEED,
                 next_phase="questionnaire_generation",
@@ -125,9 +129,11 @@ class TestCollectionPhaseRouting:
             "flow_state": MagicMock(flow_type="discovery"),  # Should be ignored
         }
 
-        with patch(
-            "app.services.crewai_flows.agents.decision.phase_transition.CollectionDecisionLogic.make_collection_decision"
-        ) as mock_collection_decision:
+        patch_path = (
+            "app.services.crewai_flows.agents.decision.phase_transition."
+            "CollectionDecisionLogic.make_collection_decision"
+        )
+        with patch(patch_path) as mock_collection_decision:
             mock_collection_decision.return_value = AgentDecision(
                 action=PhaseAction.PROCEED,
                 next_phase="questionnaire_generation",
@@ -142,9 +148,7 @@ class TestCollectionPhaseRouting:
             mock_collection_decision.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_flow_type_not_in_context_uses_default(
-        self, phase_transition_agent
-    ):
+    async def test_flow_type_not_in_context_uses_default(self, phase_transition_agent):
         """
         Test that when flow_type is not in agent_context, it defaults to "discovery".
 
@@ -228,9 +232,11 @@ class TestCollectionPhaseRouting:
             "flow_state": mock_state,
         }
 
-        with patch(
-            "app.services.crewai_flows.agents.decision.phase_transition.CollectionDecisionLogic.make_collection_decision"
-        ) as mock_collection_decision:
+        patch_path = (
+            "app.services.crewai_flows.agents.decision.phase_transition."
+            "CollectionDecisionLogic.make_collection_decision"
+        )
+        with patch(patch_path) as mock_collection_decision:
             mock_collection_decision.return_value = AgentDecision(
                 action=PhaseAction.PROCEED,
                 next_phase="manual_collection",
@@ -248,9 +254,7 @@ class TestCollectionPhaseRouting:
             assert decision.next_phase == "manual_collection"
 
     @pytest.mark.asyncio
-    async def test_all_collection_phases_route_correctly(
-        self, phase_transition_agent
-    ):
+    async def test_all_collection_phases_route_correctly(self, phase_transition_agent):
         """
         Test that all collection phases route to CollectionDecisionLogic.
 
@@ -279,9 +283,11 @@ class TestCollectionPhaseRouting:
                 "flow_state": mock_state,
             }
 
-            with patch(
-                "app.services.crewai_flows.agents.decision.phase_transition.CollectionDecisionLogic.make_collection_decision"
-            ) as mock_collection_decision:
+            patch_path = (
+                "app.services.crewai_flows.agents.decision.phase_transition."
+                "CollectionDecisionLogic.make_collection_decision"
+            )
+            with patch(patch_path) as mock_collection_decision:
                 mock_collection_decision.return_value = AgentDecision(
                     action=PhaseAction.PROCEED,
                     next_phase="next_phase",

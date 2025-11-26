@@ -60,8 +60,8 @@ class SectionQuestionGenerator:
         gaps: List[IntelligentGap],
         asset_data: Optional[Dict[str, Any]],
         previous_questions: List[str],
-        client_account_id: int,
-        engagement_id: int,
+        client_account_id: str = "",
+        engagement_id: str = "",
     ) -> List[Dict[str, Any]]:
         """
         Generate questions for a section based on TRUE gaps.
@@ -73,8 +73,8 @@ class SectionQuestionGenerator:
             gaps: List of IntelligentGap objects (TRUE gaps only)
             asset_data: Data map from DataAwarenessAgent
             previous_questions: Questions already generated in other sections
-            client_account_id: Multi-tenant client ID (for observability)
-            engagement_id: Multi-tenant engagement ID (for observability)
+            client_account_id: Multi-tenant client UUID string (for observability)
+            engagement_id: Multi-tenant engagement UUID string (for observability)
 
         Returns:
             List of question dicts with field_id, question_text, input_type, etc.
@@ -98,6 +98,9 @@ class SectionQuestionGenerator:
             f"(asset: {asset_name}, gaps: {len(gaps)})"
         )
 
+        # ✅ Fix Bug #19: multi_model_service.generate_response() does not accept
+        # client_account_id/engagement_id parameters - kept in method signature
+        # for potential future observability integration
         response_data = await multi_model_service.generate_response(
             prompt=prompt,
             task_type="section_question_generator",
@@ -107,20 +110,94 @@ class SectionQuestionGenerator:
                 "specific questions based on TRUE data gaps. Return ONLY valid "
                 "JSON, no markdown formatting."
             ),
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
         )
 
         # Parse LLM response with ADR-029 sanitization
-        questions = self._parse_llm_response(
-            response_data.get("content", "{}"), section_name, asset_name
+        # ✅ Fix Bug #24: multi_model_service returns "response" not "content"
+        # The service's _execute_openai_call returns {"response": content, ...}
+        # not {"content": content, ...} as originally assumed
+        llm_content = response_data.get("response") or response_data.get(
+            "content", "{}"
         )
+        questions = self._parse_llm_response(llm_content, section_name, asset_name)
 
         logger.info(
             f"Generated {len(questions)} questions for {asset_name} in {section_name}"
         )
 
         return questions
+
+    def _sanitize_escape_sequences(self, text: str) -> str:
+        """
+        Sanitize invalid escape sequences in LLM JSON responses.
+
+        Bug #26: LLMs sometimes return invalid escape sequences like \\X, \\x (lowercase
+        hex without valid hex digits), or other non-standard escapes that break JSON parsing.
+
+        Valid JSON escape sequences: \\", \\\\, \\/, \\b, \\f, \\n, \\r, \\t, \\uXXXX
+
+        Args:
+            text: Raw text that may contain invalid escape sequences
+
+        Returns:
+            Text with invalid escape sequences fixed
+        """
+        import re
+
+        # Use negative lookahead to find backslashes NOT followed by valid escape sequences.
+        # Valid sequences: " \ / b f n r t or u followed by 4 hex digits (unicode).
+        # Any other backslash-character pair gets the backslash escaped.
+        def fix_invalid_escape(match: re.Match) -> str:
+            # The matched group is the character immediately following the backslash
+            return r"\\" + match.group(1)
+
+        # Pattern: backslash NOT followed by valid escape chars or unicode sequence
+        result = re.sub(
+            r'\\(?![\\"/bfnrt]|u[0-9a-fA-F]{4})(.)', fix_invalid_escape, text
+        )
+
+        return result
+
+    def _repair_truncated_json(self, text: str) -> str:
+        """
+        Attempt to repair truncated JSON by closing open brackets and braces.
+
+        Bug #29: LLM responses sometimes get truncated mid-JSON, causing parse failures.
+        This function tries to close any unclosed structures to allow partial parsing.
+
+        Args:
+            text: Potentially truncated JSON string
+
+        Returns:
+            Repaired JSON string (may still be invalid, but worth trying)
+        """
+        # Count open vs closed brackets and braces
+        open_braces = text.count("{") - text.count("}")
+        open_brackets = text.count("[") - text.count("]")
+
+        # If we have unclosed structures, the JSON is likely truncated
+        if open_braces > 0 or open_brackets > 0:
+            logger.warning(
+                f"Detected truncated JSON: {open_braces} unclosed braces, "
+                f"{open_brackets} unclosed brackets. Attempting repair..."
+            )
+
+            # Try to find a good cut-off point (last complete object in array)
+            # Look for the last complete object ending with "}"
+
+            # Find the last complete question object (ends with })
+            # Pattern: look for "},\n" or "}\n" or just "}" followed by incomplete data
+            last_complete = text.rfind("},")
+            if last_complete > 0:
+                # Cut at the last complete object and close the array/object
+                text = text[: last_complete + 1]
+                text = text.rstrip(",")  # Remove trailing comma
+
+            # Close any open brackets/braces
+            text += "]" * open_brackets
+            text += "}" * open_braces
+
+        return text
 
     def _parse_llm_response(
         self, response: str, section_name: str, asset_name: str
@@ -132,6 +209,8 @@ class SectionQuestionGenerator:
         - Markdown code blocks (```json)
         - Malformed JSON (trailing commas, single quotes)
         - NaN/Infinity values from confidence scores
+        - Invalid escape sequences (Bug #26: \\X, \\x, etc.)
+        - Truncated JSON (Bug #29: closing unclosed brackets/braces)
         - Missing fields
 
         Args:
@@ -147,6 +226,10 @@ class SectionQuestionGenerator:
         # Strip markdown code blocks
         cleaned = re.sub(r"```json\s*|\s*```", "", response.strip())
 
+        # Bug #26: Sanitize invalid escape sequences before parsing
+        # LLMs sometimes return \X, \x, \. etc. which are not valid JSON escapes
+        cleaned = self._sanitize_escape_sequences(cleaned)
+
         try:
             # Try standard JSON first
             parsed = json.loads(cleaned)
@@ -154,12 +237,20 @@ class SectionQuestionGenerator:
             # Fallback to dirtyjson for malformed JSON
             try:
                 parsed = dirtyjson.loads(cleaned)
-            except Exception as e:
-                logger.error(
-                    f"Failed to parse LLM response for {asset_name} in {section_name}: {e}"
-                )
-                logger.error(f"Response was: {cleaned[:500]}")
-                return []
+            except Exception:
+                # Bug #29: Try repairing truncated JSON
+                try:
+                    repaired = self._repair_truncated_json(cleaned)
+                    parsed = dirtyjson.loads(repaired)
+                    logger.info(
+                        f"Successfully parsed repaired JSON for {asset_name} in {section_name}"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to parse LLM response for {asset_name} in {section_name}: {e}"
+                    )
+                    logger.error(f"Response was: {cleaned[:500]}")
+                    return []
 
         # Sanitize NaN/Infinity values (ADR-029)
         parsed = sanitize_for_json(parsed)
@@ -187,13 +278,40 @@ class SectionQuestionGenerator:
 
     def _validate_question(self, question: Dict[str, Any]) -> bool:
         """
-        Validate question has required fields.
+        Validate question has required fields and enforces MCQ format.
+
+        CRITICAL: All questions MUST be MCQ format (select/radio) with options.
+        Free-text inputs produce noisy data that's hard to validate and use
+        in assessment gap analysis.
 
         Args:
             question: Question dict from LLM
 
         Returns:
-            True if valid, False otherwise
+            True if valid MCQ question, False otherwise
         """
         required_fields = ["field_id", "question_text", "input_type"]
-        return all(field in question for field in required_fields)
+        if not all(field in question for field in required_fields):
+            return False
+
+        # ENFORCE MCQ FORMAT: Reject free-text input types
+        input_type = question.get("input_type", "").lower()
+        allowed_types = ["select", "radio", "multiselect", "multi_select"]
+
+        if input_type not in allowed_types:
+            logger.warning(
+                f"Rejecting non-MCQ question '{question.get('field_id')}' "
+                f"with input_type '{input_type}' - only select/radio allowed"
+            )
+            return False
+
+        # ENFORCE OPTIONS: MCQ questions must have predefined options
+        options = question.get("options")
+        if not options or not isinstance(options, list) or len(options) < 2:
+            logger.warning(
+                f"Rejecting question '{question.get('field_id')}' "
+                f"without valid options array (MCQ requires 2+ options)"
+            )
+            return False
+
+        return True

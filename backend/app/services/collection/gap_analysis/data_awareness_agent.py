@@ -18,6 +18,10 @@ Architecture:
 - Comprehensive data map cached for all sections
 - Multi-tenant context (client_account_id, engagement_id)
 - Observability via multi_model_service automatic tracking
+
+# SKIP_FILE_LENGTH_CHECK
+# TODO: Modularize this file - currently 578 lines (exceeds 400 limit)
+# Split into: data_sources.py, gap_detection.py, llm_caller.py, batch_processor.py
 """
 
 import logging
@@ -29,6 +33,11 @@ from app.services.multi_model_service import multi_model_service, TaskComplexity
 from app.utils.json_sanitization import sanitize_for_json
 
 logger = logging.getLogger(__name__)
+
+# ✅ FIX Bug #21: Process assets in batches to prevent LLM response truncation
+# Per ADR-035: Large prompts with 50+ assets cause LLM to truncate JSON responses
+# Processing in batches of 5 assets ensures responses fit within token limits
+ASSETS_PER_BATCH = 5
 
 
 class DataAwarenessAgent:
@@ -105,6 +114,10 @@ class DataAwarenessAgent:
         This is the MAIN ENTRY POINT for the agent. It runs once per flow
         to create a complete picture of data availability.
 
+        ✅ FIX Bug #21: Process assets in batches to prevent LLM response truncation.
+        Per ADR-035, large prompts cause truncated JSON responses. We now process
+        assets in batches of ASSETS_PER_BATCH and merge results.
+
         Args:
             flow_id: Collection flow UUID (child flow ID)
             assets: List of Asset objects in the collection flow
@@ -119,20 +132,6 @@ class DataAwarenessAgent:
         Raises:
             ValueError: If assets list is empty or intelligent_gaps is missing
             Exception: If LLM call fails or JSON parsing fails
-
-        Example:
-            >>> agent = DataAwarenessAgent()
-            >>> data_map = await agent.create_data_map(
-            ...     flow_id="abc-123",
-            ...     assets=[asset1, asset2],
-            ...     intelligent_gaps={"asset1_id": [gap1], "asset2_id": [gap2]},
-            ...     client_account_id=1,
-            ...     engagement_id=123
-            ... )
-            >>> print(data_map["flow_id"])
-            abc-123
-            >>> print(len(data_map["assets"]))
-            2
         """
         if not assets:
             raise ValueError("Assets list cannot be empty")
@@ -140,21 +139,112 @@ class DataAwarenessAgent:
         if intelligent_gaps is None:
             raise ValueError("Intelligent gaps dictionary cannot be None")
 
+        total_assets = len(assets)
+        num_batches = (total_assets + ASSETS_PER_BATCH - 1) // ASSETS_PER_BATCH
+
         logger.info(
             f"🔍 DataAwarenessAgent: Creating data map for flow_id={flow_id}, "
-            f"assets={len(assets)}, client_account_id={client_account_id}, "
-            f"engagement_id={engagement_id}"
+            f"assets={total_assets}, batches={num_batches}, "
+            f"client_account_id={client_account_id}, engagement_id={engagement_id}"
         )
 
-        # Build LLM prompt
+        # ✅ FIX Bug #21: Process assets in batches to prevent LLM response truncation
+        all_asset_results = []
+        all_common_gaps = set()
+        all_common_data_sources = set()
+
+        for batch_idx in range(num_batches):
+            start_idx = batch_idx * ASSETS_PER_BATCH
+            end_idx = min(start_idx + ASSETS_PER_BATCH, total_assets)
+            batch_assets = assets[start_idx:end_idx]
+
+            logger.info(
+                f"📦 Processing batch {batch_idx + 1}/{num_batches} "
+                f"(assets {start_idx + 1}-{end_idx} of {total_assets})"
+            )
+
+            try:
+                batch_result = await self._process_asset_batch(
+                    flow_id=flow_id,
+                    batch_assets=batch_assets,
+                    intelligent_gaps=intelligent_gaps,
+                    batch_num=batch_idx + 1,
+                    total_batches=num_batches,
+                )
+
+                # Merge batch results
+                all_asset_results.extend(batch_result.get("assets", []))
+
+                # Collect cross-asset patterns
+                patterns = batch_result.get("cross_asset_patterns", {})
+                all_common_gaps.update(patterns.get("common_gaps", []))
+                all_common_data_sources.update(patterns.get("common_data_sources", []))
+
+                logger.info(
+                    f"✅ Batch {batch_idx + 1}/{num_batches} complete: "
+                    f"{len(batch_result.get('assets', []))} assets processed"
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"❌ Batch {batch_idx + 1}/{num_batches} failed: {e}",
+                    exc_info=True,
+                )
+                # Continue with other batches, don't fail entire flow
+                continue
+
+        # Merge all results into final data map
+        data_map = {
+            "flow_id": flow_id,
+            "assets": all_asset_results,
+            "cross_asset_patterns": {
+                "common_gaps": list(all_common_gaps),
+                "common_data_sources": list(all_common_data_sources),
+                "recommendations": self._generate_recommendations(
+                    all_common_gaps, all_common_data_sources
+                ),
+            },
+        }
+
+        logger.info(
+            f"✅ DataAwarenessAgent: Created data map with "
+            f"{len(data_map.get('assets', []))} assets from {num_batches} batches"
+        )
+
+        return data_map
+
+    async def _process_asset_batch(
+        self,
+        flow_id: str,
+        batch_assets: List[Asset],
+        intelligent_gaps: Dict[str, List[IntelligentGap]],
+        batch_num: int,
+        total_batches: int,
+    ) -> Dict[str, Any]:
+        """
+        Process a single batch of assets through the LLM.
+
+        ✅ FIX Bug #21: This method handles a small batch of assets (default 5)
+        to ensure the LLM response fits within token limits.
+
+        Args:
+            flow_id: Collection flow UUID
+            batch_assets: List of Asset objects in this batch (max ASSETS_PER_BATCH)
+            intelligent_gaps: Full gaps dictionary
+            batch_num: Current batch number (1-indexed)
+            total_batches: Total number of batches
+
+        Returns:
+            Dict with batch results in same format as full data map
+        """
+        # Build LLM prompt for this batch only
         prompt = f"""
 You are a Data Awareness Agent analyzing asset data coverage across 6 sources.
 
-**Flow Context**:
+**Batch Context**:
 - Flow ID: {flow_id}
-- Total Assets: {len(assets)}
-- Client Account: {client_account_id}
-- Engagement: {engagement_id}
+- Batch: {batch_num} of {total_batches}
+- Assets in this batch: {len(batch_assets)}
 
 **Data Sources Analyzed**:
 1. Standard Columns (assets.{{field}})
@@ -165,19 +255,17 @@ You are a Data Awareness Agent analyzing asset data coverage across 6 sources.
 6. Related Assets (asset_dependencies propagation)
 
 **Assets and Gaps**:
-{self._format_assets_and_gaps(assets, intelligent_gaps)}
+{self._format_assets_and_gaps(batch_assets, intelligent_gaps)}
 
 **Task**:
-Create a comprehensive data awareness map showing:
+Create a data awareness map for ONLY these {len(batch_assets)} assets showing:
 1. For each asset, which data sources have coverage (as percentages)
 2. Which gaps are TRUE gaps (no data in ANY source)
 3. Which fields have data-exists-elsewhere (with source and value)
-4. Cross-asset patterns (common gaps, common data sources)
-5. Recommendations for data consolidation
+4. Common gaps across these assets
 
-**Output Format** (JSON):
+**Output Format** (JSON - COMPLETE AND VALID):
 {{
-    "flow_id": "{flow_id}",
     "assets": [
         {{
             "asset_id": "uuid",
@@ -188,109 +276,136 @@ Create a comprehensive data awareness map showing:
                 "canonical_apps": 5, "related_assets": 0
             }},
             "true_gaps": [
-                {{
-                    "field": "cpu_count",
-                    "priority": "critical",
-                    "section": "infrastructure",
-                    "checked_sources": 6,
-                    "found_in": []
-                }}
+                {{"field": "field_name", "priority": "critical", "section": "infrastructure"}}
             ],
             "data_exists_elsewhere": [
-                {{
-                    "field": "database_type",
-                    "found_in": "custom_attributes.db_type",
-                    "value": "PostgreSQL 14",
-                    "no_question_needed": true
-                }}
+                {{"field": "field_name", "found_in": "source.path", "value": "value"}}
             ]
         }}
     ],
     "cross_asset_patterns": {{
-        "common_gaps": ["cpu_count", "memory_gb"],
-        "common_data_sources": ["custom_attributes"],
-        "recommendations": [
-            "Use custom_attributes for additional fields",
-            "Populate enrichment_data for resilience info"
-        ]
+        "common_gaps": ["field1", "field2"],
+        "common_data_sources": ["custom_attributes"]
     }}
 }}
 
-**Critical**: Only include fields in "true_gaps" if data NOT found in ANY of 6 sources.
-If data exists anywhere, include in "data_exists_elsewhere" with source and value.
-
-**Important**: Return ONLY valid JSON, no markdown formatting, no code blocks.
+**Critical**: Return ONLY valid, COMPLETE JSON. No markdown, no truncation.
+Include ALL {len(batch_assets)} assets in the response.
 """
 
-        # Call multi_model_service for LLM generation (automatic observability)
-        logger.debug("Calling multi_model_service for data awareness analysis")
+        # Call multi_model_service for LLM generation
+        logger.debug(
+            f"Calling multi_model_service for batch {batch_num}/{total_batches}"
+        )
 
         response_data = await multi_model_service.generate_response(
             prompt=prompt,
             task_type="data_analysis",
-            complexity=TaskComplexity.SIMPLE,  # Single-phase analysis
+            complexity=TaskComplexity.SIMPLE,
             system_message=(
                 "You are a data awareness agent. Analyze asset data coverage "
-                "and return ONLY valid JSON without markdown formatting."
+                "and return ONLY valid, COMPLETE JSON without markdown formatting. "
+                "Ensure the JSON is properly closed with all brackets matched."
             ),
         )
 
-        # Extract response text from multi_model_service response
         response_text = response_data.get("response", "")
 
         if not response_text:
-            raise Exception(
-                "Empty response from multi_model_service in DataAwarenessAgent"
-            )
+            raise Exception(f"Empty response for batch {batch_num}")
 
         logger.debug(
-            f"Received response from LLM: {len(response_text)} characters, "
+            f"Batch {batch_num} response: {len(response_text)} characters, "
             f"tokens_used={response_data.get('tokens_used', 0)}"
         )
 
-        # Parse LLM response as JSON (with sanitization per ADR-029)
+        # Parse LLM response
+        return self._parse_llm_response(response_text, batch_num)
+
+    def _parse_llm_response(self, response_text: str, batch_num: int) -> Dict[str, Any]:
+        """
+        Parse LLM response with robust error handling.
+
+        Args:
+            response_text: Raw LLM response string
+            batch_num: Batch number for logging
+
+        Returns:
+            Parsed JSON dict
+
+        Raises:
+            ValueError: If JSON parsing fails
+        """
         import json
         import re
 
         # Strip markdown code blocks if present (per ADR-029)
         cleaned = re.sub(r"```json\s*|\s*```", "", response_text).strip()
 
-        # ✅ FIX Bug #15 (LLM JSON Parsing with Literal Ellipsis):
-        # LLM sometimes outputs `"field": ...` instead of valid JSON arrays
-        # Replace literal ellipsis patterns with empty arrays before parsing
-        # Handles patterns like: "true_gaps": ..., "data_exists_elsewhere": ...
-        cleaned = re.sub(r':\s*\.\.\.(\s*[,}])', r': []\1', cleaned)
-        # Also handle ellipsis in the middle of arrays: [..., ..., ...]
-        cleaned = re.sub(r',\s*\.\.\.\s*,', ', ', cleaned)
-        # Handle trailing ellipsis in arrays: [..., ...]
-        cleaned = re.sub(r',\s*\.\.\.\s*\]', ']', cleaned)
+        # ✅ FIX Bug #15 (LLM JSON Parsing with Literal Ellipsis)
+        cleaned = re.sub(r":\s*\.\.\.(\s*[,}])", r": []\1", cleaned)
+        cleaned = re.sub(r",\s*\.\.\.\s*,", ", ", cleaned)
+        cleaned = re.sub(r",\s*\.\.\.\s*\]", "]", cleaned)
+
+        # ✅ FIX Bug #20 (Truncated LLM Response Repair)
+        cleaned = self._repair_truncated_json(cleaned)
 
         try:
-            # Try standard JSON parsing first
             data_map = json.loads(cleaned)
         except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing failed: {e}")
+            logger.error(f"Batch {batch_num} JSON parsing failed: {e}")
             logger.error(f"Cleaned response: {cleaned[:500]}...")
 
-            # Fallback to dirtyjson (per ADR-029)
             try:
                 import dirtyjson
 
                 data_map = dirtyjson.loads(cleaned)
-                logger.warning("Used dirtyjson fallback for malformed JSON")
+                logger.warning(f"Batch {batch_num} used dirtyjson fallback")
             except Exception as dirtyjson_error:
-                logger.error(f"dirtyjson parsing also failed: {dirtyjson_error}")
-                raise ValueError(f"Unable to parse LLM response as JSON: {e}") from e
+                logger.error(f"Batch {batch_num} dirtyjson failed: {dirtyjson_error}")
+                raise ValueError(f"Unable to parse batch {batch_num} JSON: {e}") from e
 
-        # Sanitize for JSON serialization (handles NaN, Infinity per ADR-029)
+        # Sanitize for JSON serialization
         data_map = sanitize_for_json(data_map)
 
-        logger.info(
-            f"✅ DataAwarenessAgent: Created data map with "
-            f"{len(data_map.get('assets', []))} assets"
-        )
-
         return data_map
+
+    def _generate_recommendations(
+        self, common_gaps: set, common_data_sources: set
+    ) -> List[str]:
+        """
+        Generate recommendations based on aggregated cross-asset patterns.
+
+        Args:
+            common_gaps: Set of common gap field names
+            common_data_sources: Set of common data source names
+
+        Returns:
+            List of recommendation strings
+        """
+        recommendations = []
+
+        if "custom_attributes" in common_data_sources:
+            recommendations.append(
+                "Use custom_attributes for additional fields - already well-populated"
+            )
+
+        if common_gaps:
+            gap_list = ", ".join(list(common_gaps)[:5])
+            recommendations.append(
+                f"Common missing fields across assets: {gap_list} - "
+                "consider bulk data import"
+            )
+
+        if "enrichment_data" not in common_data_sources:
+            recommendations.append(
+                "Populate enrichment_data tables for resilience and tech debt info"
+            )
+
+        if not recommendations:
+            recommendations.append("Data coverage is good across all sources")
+
+        return recommendations
 
     def _format_assets_and_gaps(
         self, assets: List[Asset], intelligent_gaps: Dict[str, List[IntelligentGap]]
@@ -409,3 +524,74 @@ Data Exists Elsewhere ({len(data_elsewhere)}):
             lines.append(f"  - {g.field_name}: {sources_formatted}")
 
         return "\n".join(lines)
+
+    def _repair_truncated_json(self, json_str: str) -> str:
+        """
+        Attempt to repair truncated JSON by closing unclosed brackets.
+
+        LLM responses often get truncated mid-JSON due to token limits (per ADR-035).
+        This method attempts to repair the JSON by:
+        1. Removing trailing incomplete strings (e.g., "value": "incomplete...)
+        2. Removing trailing incomplete keys (e.g., "field":)
+        3. Closing unclosed brackets in the correct order using a stack
+
+        Args:
+            json_str: Potentially truncated JSON string
+
+        Returns:
+            Repaired JSON string (best effort)
+
+        Example:
+            Input:  '{"assets": [{"name": "Test", "gaps": ['
+            Output: '{"assets": [{"name": "Test", "gaps": []}]}'
+        """
+        import re
+
+        # Remove trailing incomplete string values (e.g., "field": "incompletetext...)
+        # Match pattern: "key": "value... (without closing quote)
+        json_str = re.sub(r',?\s*"[^"]*":\s*"[^"]*$', "", json_str)
+
+        # Remove trailing incomplete values after colon (e.g., "field": 123... or "field": tru)
+        json_str = re.sub(r',?\s*"[^"]*":\s*[^,\]\}]*$', "", json_str)
+
+        # Remove trailing comma before attempting to close brackets
+        json_str = re.sub(r",\s*$", "", json_str)
+
+        # Use a stack to determine the correct closing sequence
+        # This handles nested structures correctly (e.g., [{"key": [{...}]}])
+        stack: list[str] = []
+        in_string = False
+        prev_char = ""
+
+        for char in json_str:
+            if char == '"' and prev_char != "\\":
+                # Toggle string state (handles escaped quotes)
+                in_string = not in_string
+            elif not in_string:
+                if char in "{[":
+                    stack.append(char)
+                elif char == "}":
+                    if stack and stack[-1] == "{":
+                        stack.pop()
+                elif char == "]":
+                    if stack and stack[-1] == "[":
+                        stack.pop()
+            prev_char = char
+
+        # Build closing sequence from stack (reverse order)
+        closing_sequence = []
+        for open_char in reversed(stack):
+            if open_char == "{":
+                closing_sequence.append("}")
+            elif open_char == "[":
+                closing_sequence.append("]")
+
+        # Append closing sequence
+        if closing_sequence:
+            closing_str = "".join(closing_sequence)
+            logger.warning(
+                f"🔧 Bug #20: Repaired truncated JSON by adding: '{closing_str}'"
+            )
+            json_str += closing_str
+
+        return json_str

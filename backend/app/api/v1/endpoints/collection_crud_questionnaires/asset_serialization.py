@@ -181,8 +181,7 @@ async def _fetch_gaps_from_database(
     flow_uuid = UUID(flow_id)
     flow_result = await db.execute(
         select(CollectionFlow.id).where(
-            (CollectionFlow.flow_id == flow_uuid)
-            | (CollectionFlow.id == flow_uuid)
+            (CollectionFlow.flow_id == flow_uuid) | (CollectionFlow.id == flow_uuid)
         )
     )
     collection_flow_id = flow_result.scalar_one_or_none()

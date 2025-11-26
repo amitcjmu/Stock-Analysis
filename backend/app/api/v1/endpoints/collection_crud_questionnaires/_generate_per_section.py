@@ -179,9 +179,14 @@ async def _generate_questionnaires_per_section(  # noqa: C901
 
             if total_true_gaps == 0:
                 logger.info(
-                    f"No TRUE gaps found for flow {flow_id}, skipping questionnaire generation"
+                    f"✅ No TRUE gaps found for flow {flow_id} - assets are already ready for assessment"
                 )
-                return []
+                # ✅ Fix Bug #22: Return special marker indicating "no gaps" (asset ready)
+                # This is different from "generation failed" - it means the asset has complete data
+                # The background task will recognize this and mark the questionnaire as "completed"
+                return [
+                    {"_no_gaps_marker": True, "reason": "All assets have complete data"}
+                ]
 
             # Step 2: Data awareness map (ONE-TIME)
             logger.info(f"🧠 Creating data awareness map (ONE-TIME for flow {flow_id})")
@@ -221,9 +226,10 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                     continue
 
                 # Group gaps by section
+                # ✅ Fix Bug #16: true_gaps contains IntelligentGap objects, use attribute access
                 gaps_by_section = {}
                 for gap in true_gaps:
-                    section = gap["section"]
+                    section = gap.section  # ✅ Use attribute access, not subscript
                     if section not in gaps_by_section:
                         gaps_by_section[section] = []
                     gaps_by_section[section].append(gap)
@@ -238,44 +244,29 @@ async def _generate_questionnaires_per_section(  # noqa: C901
                         )
                         continue
 
-                    # Convert gap dicts back to IntelligentGap objects for generator
-                    # (IntelligentGap already imported at top of file)
-                    from app.services.collection.gap_analysis.models import DataSource
-
-                    gap_objects = []
-                    for gap_dict in section_gaps:
-                        data_sources = [
-                            DataSource(
-                                source_type=ds["source_type"],
-                                field_path=ds["field_path"],
-                                value=ds["value"],
-                                confidence=ds["confidence"],
-                            )
-                            for ds in gap_dict["data_found"]
-                        ]
-                        gap_objects.append(
-                            IntelligentGap(
-                                field_id=gap_dict["field_id"],
-                                field_name=gap_dict["field_name"],
-                                priority=gap_dict["priority"],
-                                data_found=data_sources,
-                                is_true_gap=gap_dict["is_true_gap"],
-                                confidence_score=gap_dict["confidence_score"],
-                                section=gap_dict["section"],
-                                suggested_question=gap_dict.get("suggested_question"),
-                                metadata=gap_dict.get("metadata", {}),
-                            )
-                        )
+                    # ✅ Fix Bug #16: section_gaps already contains IntelligentGap objects
+                    # They were reconstructed via IntelligentGap.from_dict() in cache handling
+                    # or created directly by IntelligentGapScanner - no conversion needed
+                    gap_objects = section_gaps
 
                     # Generate questions for this section
+                    # ✅ Fix Bug #17: Use correct parameter names matching generator signature
+                    # ✅ Fix Bug #19: Pass string IDs - context IDs are UUIDs, not integers
                     questions = await section_generator.generate_questions_for_section(
-                        asset=asset,
-                        section_id=section_id,
-                        true_gaps=gap_objects,
-                        data_map=data_map,
-                        previously_asked_questions=previously_asked,
-                        client_account_id=context.client_account_id,
-                        engagement_id=context.engagement_id,
+                        asset_name=asset.name,
+                        asset_id=str(asset.id),
+                        section_name=section_id,
+                        gaps=gap_objects,
+                        asset_data=data_map,
+                        previous_questions=previously_asked,
+                        client_account_id=(
+                            str(context.client_account_id)
+                            if context.client_account_id
+                            else ""
+                        ),
+                        engagement_id=(
+                            str(context.engagement_id) if context.engagement_id else ""
+                        ),
                     )
 
                     if questions:
