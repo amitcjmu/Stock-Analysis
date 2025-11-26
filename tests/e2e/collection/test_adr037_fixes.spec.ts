@@ -44,7 +44,7 @@ interface TestResults {
 }
 
 test.describe('ADR-037 Collection Flow Bug Fixes', () => {
-  let testResults: TestResults = {
+  const testResults: TestResults = {
     bug1135_premature_completion: 'PASS',
     bug1136_uuid_mismatch: 'PASS',
     bug_canonical_applications: 'PASS',
@@ -283,7 +283,7 @@ test.describe('ADR-037 Collection Flow Bug Fixes', () => {
     console.log('⏳ Waiting for questionnaires to generate (timeout: 90s)...');
 
     let questionnairesGenerated = false;
-    let questionnaireCount = 0;
+    const questionnaireCount = 0;
     const startTime2 = Date.now();
 
     while (Date.now() - startTime2 < QUESTIONNAIRE_GENERATION_TIMEOUT) {

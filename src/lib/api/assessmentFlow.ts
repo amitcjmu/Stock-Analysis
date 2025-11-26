@@ -9,7 +9,7 @@
  * Migration Plan: /docs/planning/ASSESSMENT_FLOW_MFO_MIGRATION_PLAN.md
  */
 
-import { apiClient } from '@/lib/api/apiClient';
+import { apiClient, getAuthHeaders } from '@/lib/api/apiClient';
 import type {
   ComprehensiveGapReport,
   BatchReadinessSummary,
@@ -73,7 +73,7 @@ export interface AssessmentFlowStatusResponse {
   current_phase: string;
   next_phase?: string;
   progress_percentage: number;
-  phase_data?: Record<string, any>;
+  phase_data?: Record<string, unknown>;
   selected_applications: number;
   assessment_complete: boolean;
   created_at: string;
@@ -408,6 +408,60 @@ export class AssessmentFlowApiClient {
   }
 
   /**
+   * GAP-5 FIX: Initiate decommission flow from assessment.
+   *
+   * Creates a linked decommission flow for applications marked as 'Retire'
+   * or 'Retain' in the 6R assessment decisions.
+   *
+   * @param flowId - Assessment flow identifier (source of 6R decisions)
+   * @param applicationIds - List of application IDs to decommission
+   * @param flowName - Optional name for the decommission flow
+   *
+   * @returns Decommission flow creation result
+   *
+   * @example
+   * // Initiate decommission for retired applications
+   * const result = await assessmentFlowApi.initiateDecommission(
+   *   'assessment-flow-uuid',
+   *   ['app-uuid-1', 'app-uuid-2'],
+   *   'Q4 2025 System Retirement'
+   * );
+   * console.log(`Decommission flow created: ${result.decommission_flow_id}`);
+   */
+  async initiateDecommission(
+    flowId: string,
+    applicationIds: string[],
+    flowName?: string
+  ): Promise<{
+    assessment_flow_id: string;
+    decommission_flow_id: string;
+    decommission_master_flow_id: string;
+    applications_to_decommission: string[];
+    skipped_applications: Array<{ application_id: string; current_strategy: string }>;
+    status: string;
+    message: string;
+  }> {
+    try {
+      const response = await apiClient.post<{
+        assessment_flow_id: string;
+        decommission_flow_id: string;
+        decommission_master_flow_id: string;
+        applications_to_decommission: string[];
+        skipped_applications: Array<{ application_id: string; current_strategy: string }>;
+        status: string;
+        message: string;
+      }>(`/master-flows/${flowId}/assessment/initiate-decommission`, {
+        application_ids: applicationIds,
+        flow_name: flowName,
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to initiate decommission from assessment:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get comprehensive gap analysis for a single asset.
    *
    * Endpoint: GET /api/v1/assessment-flow/{flow_id}/asset-readiness/{asset_id}
@@ -528,7 +582,7 @@ export class AssessmentFlowApiClient {
   ): Promise<{
     status: 'completed' | 'pending';
     phase_name: string;
-    results: Record<string, any> | null;
+    results: Record<string, unknown> | null;
     completed_at?: string;
   }> {
     try {
@@ -562,7 +616,7 @@ export class AssessmentFlowApiClient {
   ): Promise<{
     status: 'completed' | 'pending';
     phase_name: string;
-    results: Record<string, any> | null;
+    results: Record<string, unknown> | null;
     completed_at?: string;
   }> {
     const startTime = Date.now();
@@ -582,6 +636,83 @@ export class AssessmentFlowApiClient {
       `Phase ${phaseName} did not complete within ${timeoutMs}ms. ` +
         `This may indicate a backend execution failure.`
     );
+  }
+
+  /**
+   * Export assessment results in specified format.
+   *
+   * GAP-6 FIX: Wire frontend to backend export endpoint.
+   * Uses getAuthHeaders() to include tenant context (X-Client-Account-ID, X-Engagement-ID).
+   *
+   * @param flowId - Assessment flow ID
+   * @param format - Export format: 'json' (implemented), 'pdf' or 'excel' (stubs)
+   * @returns Blob containing exported data for download
+   */
+  async exportAssessment(
+    flowId: string,
+    format: 'json' | 'pdf' | 'excel' = 'json'
+  ): Promise<Blob> {
+    try {
+      // Get auth headers including tenant context (X-Client-Account-ID, X-Engagement-ID)
+      // CRITICAL: Must use getAuthHeaders() to include multi-tenant headers
+      const authHeaders = getAuthHeaders();
+
+      // POST to backend export endpoint with format parameter
+      const response = await fetch(
+        `/api/v1/assessment-flow/${flowId}/export?format=${format}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders, // Include Authorization, X-Client-Account-ID, X-Engagement-ID
+          },
+          credentials: 'include', // Include auth cookies
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Export failed: ${response.status} - ${errorText}`);
+      }
+
+      // Return blob for download
+      return await response.blob();
+    } catch (error) {
+      console.error(`Failed to export assessment as ${format}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Trigger download of exported assessment data.
+   *
+   * GAP-6 FIX: Helper to download exported blob as file.
+   *
+   * @param flowId - Assessment flow ID
+   * @param format - Export format
+   */
+  async downloadExport(
+    flowId: string,
+    format: 'json' | 'pdf' | 'excel' = 'json'
+  ): Promise<void> {
+    const blob = await this.exportAssessment(flowId, format);
+
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Set filename based on format
+    const extension = format === 'excel' ? 'xlsx' : format;
+    link.download = `assessment_${flowId}.${extension}`;
+
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 }
 

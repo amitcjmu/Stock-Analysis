@@ -74,7 +74,7 @@ async function checkBackendLogs(pattern: string): Promise<boolean> {
 }
 
 test.describe('ADR-037 Bug Fix Manual Verification', () => {
-  let results: BugVerificationResults = {
+  const results: BugVerificationResults = {
     bug1135_premature_completion: 'UNCLEAR',
     bug1136_uuid_mismatch: 'UNCLEAR',
     bug_canonical_applications: 'UNCLEAR',

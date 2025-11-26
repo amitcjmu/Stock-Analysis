@@ -245,7 +245,7 @@ export const useAdaptiveFormFlow = (
               try {
                 // Fetch responses for all questionnaires and merge them
                 const allResponsesPromises = questionnaires.map(q =>
-                  collectionFlowApi.getQuestionnaireResponses(state.flowId!, q.id)
+                  collectionFlowApi.getQuestionnaireResponses(state.flowId, q.id)
                 );
                 const allResponsesData = await Promise.all(allResponsesPromises);
 
@@ -327,7 +327,7 @@ export const useAdaptiveFormFlow = (
             try {
               // Fetch responses for all questionnaires and merge them
               const allResponsesPromises = questionnaires.map(q =>
-                collectionFlowApi.getQuestionnaireResponses(state.flowId!, q.id)
+                collectionFlowApi.getQuestionnaireResponses(state.flowId, q.id)
               );
               const allResponsesData = await Promise.all(allResponsesPromises);
 

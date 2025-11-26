@@ -12,6 +12,29 @@ from app.models.assessment_flow import AssessmentPhase
 logger = logging.getLogger(__name__)
 
 
+def _get_canonical_app_count(flow_state) -> int:
+    """Get the canonical application count from flow state.
+
+    GAP-8 FIX: Uses selected_canonical_application_ids when available,
+    falling back to selected_application_ids for backward compatibility.
+
+    Args:
+        flow_state: Assessment flow state object (SQLAlchemy model)
+
+    Returns:
+        Number of canonical applications in the assessment
+    """
+    # Prefer canonical application IDs (actual apps) over
+    # selected_application_ids (deprecated - actually contains asset UUIDs)
+    # Use hasattr to check attribute existence, not truthiness (fixes empty list case)
+    if hasattr(flow_state, "selected_canonical_application_ids"):
+        apps = getattr(flow_state, "selected_canonical_application_ids")
+        return len(apps or [])
+
+    # Backward compatibility for older flows
+    return len(getattr(flow_state, "selected_application_ids", None) or [])
+
+
 def get_next_phase_for_navigation(
     current_phase: AssessmentPhase,
 ) -> Optional[AssessmentPhase]:
@@ -126,21 +149,21 @@ def calculate_overall_readiness_score(flow_state) -> float:
         component_count = len(
             [app for app in flow_state.identified_components.values() if app]
         )
-        total_apps = len(flow_state.selected_application_ids)
+        total_apps = _get_canonical_app_count(flow_state)
         if total_apps > 0:
             score += (component_count / total_apps) * 20.0  # 20 points max
 
     # Tech debt analysis completion
     if flow_state.tech_debt_analysis:
         debt_count = len([app for app in flow_state.tech_debt_analysis.values() if app])
-        total_apps = len(flow_state.selected_application_ids)
+        total_apps = _get_canonical_app_count(flow_state)
         if total_apps > 0:
             score += (debt_count / total_apps) * 15.0  # 15 points max
 
     # 6R decisions completion
     if flow_state.sixr_decisions:
         decision_count = len([app for app in flow_state.sixr_decisions.values() if app])
-        total_apps = len(flow_state.selected_application_ids)
+        total_apps = _get_canonical_app_count(flow_state)
         if total_apps > 0:
             score += (decision_count / total_apps) * 10.0  # 10 points max
 
@@ -203,14 +226,14 @@ def calculate_phase_completion_percentage(flow_state, phase: AssessmentPhase) ->
         completed_apps = len(
             [app for app in flow_state.tech_debt_analysis.values() if app]
         )
-        total_apps = len(flow_state.selected_application_ids)
+        total_apps = _get_canonical_app_count(flow_state)
         return (completed_apps / total_apps * 100.0) if total_apps > 0 else 0.0
 
     elif phase == AssessmentPhase.COMPONENT_SIXR_STRATEGIES:
         if not flow_state.sixr_decisions:
             return 0.0
         completed_apps = len([app for app in flow_state.sixr_decisions.values() if app])
-        total_apps = len(flow_state.selected_application_ids)
+        total_apps = _get_canonical_app_count(flow_state)
         return (completed_apps / total_apps * 100.0) if total_apps > 0 else 0.0
 
     elif phase == AssessmentPhase.APP_ON_PAGE_GENERATION:
@@ -219,7 +242,7 @@ def calculate_phase_completion_percentage(flow_state, phase: AssessmentPhase) ->
         completed_apps = len(
             [app for app in flow_state.app_on_page_data.values() if app]
         )
-        total_apps = len(flow_state.selected_application_ids)
+        total_apps = _get_canonical_app_count(flow_state)
         return (completed_apps / total_apps * 100.0) if total_apps > 0 else 0.0
 
     elif phase == AssessmentPhase.FINALIZATION:
@@ -239,7 +262,7 @@ def format_assessment_summary(flow_state) -> Dict[str, Any]:
     Returns:
         Formatted summary dictionary
     """
-    total_apps = len(flow_state.selected_application_ids)
+    total_apps = _get_canonical_app_count(flow_state)
 
     summary = {
         "flow_id": flow_state.flow_id,

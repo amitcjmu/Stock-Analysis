@@ -177,43 +177,31 @@ export const assessmentFlowAPI = {
   },
 
   async getTechDebtAnalysis(flowId: string): Promise<Response> {
-    // DEPRECATED: Get this data from assessment-status endpoint instead
-    const response = await fetch(
-      `${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`,
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to get tech debt analysis: ${response.statusText}`,
-      );
-    }
-
-    return response.json();
+    // GAP-4 FIX: Use dedicated endpoint instead of deprecated assessment-status workaround
+    return apiCall(`/master-flows/${flowId}/tech-debt`, {
+      method: "GET",
+    });
   },
 
   async getApplicationComponents(flowId: string): Promise<Response> {
-    // DEPRECATED: Get this data from assessment-status endpoint instead
-    const response = await fetch(
-      `${API_BASE}/api/v1/master-flows/${flowId}/assessment-status`,
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to get application components: ${response.statusText}`,
-      );
-    }
-
-    return response.json();
+    // GAP-4 FIX: Use dedicated endpoint instead of deprecated assessment-status workaround
+    return apiCall(`/master-flows/${flowId}/components`, {
+      method: "GET",
+    });
   },
 
   async getSixRDecisions(flowId: string): Promise<Response> {
-    // Fix for Issue #7: Use dedicated endpoint with apiCall for auth headers
-    return apiCall(
-      `/master-flows/${flowId}/sixr-decisions`,
-      {
-        method: "GET",
-      }
-    );
+    // GAP-4 FIX: Use MFO endpoint for auth headers and proper tenant context
+    return apiCall(`/master-flows/${flowId}/sixr-decisions`, {
+      method: "GET",
+    });
+  },
+
+  async getComponentTreatments(flowId: string): Promise<Response> {
+    // GAP-4 FIX: New endpoint for component-level treatments
+    return apiCall(`/master-flows/${flowId}/component-treatments`, {
+      method: "GET",
+    });
   },
 
   async finalize(flowId: string, apps_to_finalize: string[]): Promise<Response> {

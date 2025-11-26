@@ -3,29 +3,51 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, Share, FileText, FileSpreadsheet, Mail } from 'lucide-react';
+import { assessmentFlowApi } from '@/lib/api/assessmentFlow';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ExportAndSharingControlsProps {
-  assessmentData: Record<string, unknown>;
+  flowId: string;
+  assessmentData?: Record<string, unknown>;
 }
 
 export const ExportAndSharingControls: React.FC<ExportAndSharingControlsProps> = ({
+  flowId,
   assessmentData
 }) => {
   const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
 
-  const handleExport = async (format: string): void => {
+  /**
+   * GAP-6 FIX: Wire export to actual backend endpoint.
+   * Calls POST /assessment-flow/{flowId}/export?format={format}
+   */
+  const handleExport = async (format: 'json' | 'pdf' | 'excel'): Promise<void> => {
+    if (!flowId) {
+      toast({
+        title: 'Export Error',
+        description: 'No assessment flow ID available for export',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsExporting(true);
     try {
-      // In real implementation, call export API
-      console.log(`Exporting assessment data as ${format}`, assessmentData);
+      // Call actual backend export API
+      await assessmentFlowApi.downloadExport(flowId, format);
 
-      // Simulate export delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // In real implementation, trigger download
-      alert(`Assessment exported as ${format.toUpperCase()}`);
+      toast({
+        title: 'Export Successful',
+        description: `Assessment exported as ${format.toUpperCase()}`,
+      });
     } catch (error) {
       console.error('Export failed:', error);
+      toast({
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive',
+      });
     } finally {
       setIsExporting(false);
     }

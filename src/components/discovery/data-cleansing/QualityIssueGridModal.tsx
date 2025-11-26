@@ -14,8 +14,8 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 interface QualityIssueGridModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedRows: Record<string, unknown>[]) => void;
-  onUpdateFields?: (updatedRows: Record<string, unknown>[]) => void;
+  onSave: (updatedRows: Array<Record<string, unknown>>) => void;
+  onUpdateFields?: (updatedRows: Array<Record<string, unknown>>) => void;
   issue: {
     id: string;
     field_name: string;
@@ -23,7 +23,7 @@ interface QualityIssueGridModalProps {
     severity?: 'low' | 'medium' | 'high' | 'critical';
     affected_records?: number;
   } | null;
-  rows: Record<string, unknown>[];
+  rows: Array<Record<string, unknown>>;
 }
 
 export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
@@ -35,7 +35,7 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
   rows,
 }) => {
   // Clone rows prop during state initialization to avoid unintended side effects
-  const [rowData, setRowData] = useState<Record<string, unknown>[]>(() => 
+  const [rowData, setRowData] = useState<Array<Record<string, unknown>>>(() =>
     (rows || []).map(r => ({ ...r }))
   );
 
@@ -74,7 +74,7 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
 
   useEffect(() => {
     // Initialize with rows and auto-populate suggestions for empty issue field values
-    const initializeWithSuggestions = (incoming: Record<string, unknown>[], issueFieldLabel?: string) => {
+    const initializeWithSuggestions = (incoming: Array<Record<string, unknown>>, issueFieldLabel?: string) => {
       const norm = (s: string) => normalizeFieldName(s);
       const resolveIssueKeyLocal = (sample: Record<string, unknown>, label?: string): string | null => {
         if (!label) return null;
@@ -132,10 +132,10 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
     return Array.from(keys);
   }, [rowData]);
 
-  const columnDefs = useMemo<ColDef<Record<string, unknown>>[]>(() => {
+  const columnDefs = useMemo<Array<ColDef<Record<string, unknown>>>>(() => {
     // Resolve the actual column key that matches the issue field name using consistent normalization
     const resolvedIssueKey = issue?.field_name ? resolveIssueKey(allKeys, issue.field_name) : null;
-    
+
     return allKeys.map((key) => {
       const header =
         key
@@ -306,4 +306,3 @@ export const QualityIssueGridModal: React.FC<QualityIssueGridModalProps> = ({
 };
 
 export default QualityIssueGridModal;
-

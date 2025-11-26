@@ -90,7 +90,7 @@ export const DependencyCellEditor = forwardRef((props: DependencyCellEditorProps
   // Calculate modal position based on cell location
   useEffect(() => {
     // Get the AG Grid cell element
-    const cellElement = props.eGridCell as HTMLElement;
+    const cellElement = props.eGridCell;
     if (!cellElement) return;
 
     cellRef.current = cellElement;

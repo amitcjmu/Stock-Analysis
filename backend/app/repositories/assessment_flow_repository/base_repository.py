@@ -422,6 +422,19 @@ class AssessmentFlowRepository(ContextAwareRepository):
         """Get 6R decisions for all applications"""
         return await self._state_queries.get_sixr_decisions(flow_id)
 
+    async def _get_component_treatments(self, flow_id: str) -> Dict[str, List[Any]]:
+        """Get component treatments grouped by application_id.
+
+        GAP-4 FIX: Exposes new method for retrieving component-level treatments.
+
+        Args:
+            flow_id: Assessment flow UUID
+
+        Returns:
+            Dict mapping application_id to list of treatment dicts
+        """
+        return await self._state_queries.get_component_treatments(flow_id)
+
     async def _update_master_flow_status(
         self,
         flow_id: str,

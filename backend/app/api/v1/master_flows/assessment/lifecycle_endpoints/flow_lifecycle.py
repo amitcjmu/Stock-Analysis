@@ -264,3 +264,137 @@ async def finalize_assessment_via_mfo(
         raise HTTPException(
             status_code=500, detail=f"Failed to finalize assessment: {str(e)}"
         )
+
+
+@router.post("/{flow_id}/assessment/initiate-decommission")
+async def initiate_decommission_from_assessment(
+    flow_id: str,
+    request_body: Dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+) -> Dict[str, Any]:
+    """
+    GAP-5 FIX: Create decommission flow for applications marked as 'Retire' in assessment.
+
+    This endpoint is the integration hook between Assessment Flow and Decommission Flow.
+    When an assessment identifies applications to retire (6R = Retire), this endpoint
+    creates a linked decommission flow for proper system retirement tracking.
+
+    Args:
+        flow_id: Assessment flow ID (source of 6R decisions)
+        request_body: Contains:
+            - application_ids: List of application IDs marked for retirement
+            - flow_name: Optional name for the decommission flow
+
+    Returns:
+        Decommission flow creation result with flow_id
+    """
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+    user_id = context.user_id
+
+    if not client_account_id or not engagement_id:
+        raise HTTPException(
+            status_code=400, detail="Client account ID and Engagement ID required"
+        )
+
+    try:
+        from uuid import UUID
+        from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+        from app.api.v1.endpoints.decommission_flow.mfo_integration.create import (
+            create_decommission_via_mfo,
+        )
+
+        # Extract application IDs to retire
+        application_ids = request_body.get("application_ids", [])
+        flow_name = request_body.get("flow_name")
+
+        if not application_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="At least one application ID is required for decommission",
+            )
+
+        # Verify assessment flow exists and applications have Retire decision
+        repo = AssessmentFlowRepository(db, client_account_id, engagement_id)
+        sixr_decisions = await repo.get_all_sixr_decisions(flow_id)
+
+        # Validate that requested applications have 'retire' 6R decision
+        retire_strategies = ["retire", "retain"]  # Both can be decommissioned
+        apps_to_decommission = []
+        invalid_apps = []
+
+        for app_id in application_ids:
+            decision = sixr_decisions.get(app_id, {})
+            strategy = (
+                decision.get("sixr_strategy", "") or decision.get("strategy", "") or ""
+            ).lower()
+
+            if strategy in retire_strategies:
+                apps_to_decommission.append(app_id)
+            else:
+                invalid_apps.append(
+                    {
+                        "application_id": app_id,
+                        "current_strategy": strategy or "not_found",
+                    }
+                )
+
+        if invalid_apps:
+            logger.warning(
+                f"Some applications don't have Retire/Retain strategy: {invalid_apps}"
+            )
+            # Continue with valid apps, warn about invalid ones
+            if not apps_to_decommission:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No applications have Retire or Retain strategy. "
+                    f"Invalid apps: {invalid_apps}",
+                )
+
+        # Convert string IDs to UUIDs
+        system_uuids = [UUID(app_id) for app_id in apps_to_decommission]
+
+        # Create decommission flow via MFO
+        decommission_result = await create_decommission_via_mfo(
+            client_account_id=UUID(client_account_id),
+            engagement_id=UUID(engagement_id),
+            system_ids=system_uuids,
+            user_id=str(user_id) if user_id else "system",
+            flow_name=flow_name or f"Decommission from Assessment {flow_id[:8]}",
+            decommission_strategy={
+                "source_assessment_flow_id": flow_id,
+                "initiated_from": "assessment_6r_retire",
+                "original_decisions": {
+                    app_id: sixr_decisions.get(app_id, {})
+                    for app_id in apps_to_decommission
+                },
+            },
+            db=db,
+        )
+
+        return sanitize_for_json(
+            {
+                "assessment_flow_id": flow_id,
+                "decommission_flow_id": decommission_result.get("flow_id"),
+                "decommission_master_flow_id": decommission_result.get(
+                    "master_flow_id"
+                ),
+                "applications_to_decommission": apps_to_decommission,
+                "skipped_applications": invalid_apps,
+                "status": "decommission_created",
+                "message": f"Created decommission flow for {len(apps_to_decommission)} applications",
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to initiate decommission from assessment {flow_id}: {str(e)}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initiate decommission from assessment: {str(e)}",
+        )

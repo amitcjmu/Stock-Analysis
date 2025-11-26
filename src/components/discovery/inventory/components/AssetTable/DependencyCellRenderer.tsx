@@ -28,7 +28,7 @@ export const DependencyCellRenderer: React.FC<DependencyCellRendererProps> = (pr
     if (api && node && colDef?.field) {
       // Use AG Grid API to start editing this cell
       api.startEditingCell({
-        rowIndex: node.rowIndex!,
+        rowIndex: node.rowIndex,
         colKey: colDef.field,
       });
       console.log('[DependencyCellRenderer] Started editing cell');

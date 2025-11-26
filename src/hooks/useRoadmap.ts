@@ -61,7 +61,7 @@ const transformRoadmapData = (backendData: BackendRoadmapResponse): RoadmapData 
     if (!waveMap.has(waveNum)) {
       waveMap.set(waveNum, []);
     }
-    waveMap.get(waveNum)!.push(phase);
+    waveMap.get(waveNum).push(phase);
   });
 
   // Transform to frontend format
@@ -75,7 +75,7 @@ const transformRoadmapData = (backendData: BackendRoadmapResponse): RoadmapData 
         end: p.planned_end_date || 'TBD',
         status: (p.status === 'completed' || p.status === 'in-progress' || p.status === 'planned'
           ? p.status
-          : 'planned') as 'completed' | 'in-progress' | 'planned'
+          : 'planned')
       }))
     }));
 
