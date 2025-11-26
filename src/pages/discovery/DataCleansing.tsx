@@ -51,7 +51,7 @@ const DataCleansing: React.FC = () => {
   // Quality issue grid (AG Grid) state
   const [showIssueGrid, setShowIssueGrid] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
-  const [currentIssueRows, setCurrentIssueRows] = useState<Record<string, unknown>[]>([]);
+  const [currentIssueRows, setCurrentIssueRows] = useState<Array<Record<string, unknown>>>([]);
 
   // Get URL flow ID from params
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
@@ -248,11 +248,11 @@ const DataCleansing: React.FC = () => {
         await Promise.all([refetchAnalysis(), refresh()]);
       } catch (refreshError) {
         // Refresh failed but action succeeded - log error but don't show failure to user
-        SecureLogger.warn('Recommendation action succeeded but refresh failed', { 
-          refreshError, 
-          recommendationId, 
-          action, 
-          flowId: effectiveFlowId 
+        SecureLogger.warn('Recommendation action succeeded but refresh failed', {
+          refreshError,
+          recommendationId,
+          action,
+          flowId: effectiveFlowId
         });
         // Action was successful, UI will update on next manual refresh or page reload
       }
@@ -341,10 +341,10 @@ const DataCleansing: React.FC = () => {
           }
         }
         if (suggestResp && Array.isArray(suggestResp.rows)) {
-          setCurrentIssueRows(suggestResp.rows as Record<string, unknown>[]);
+          setCurrentIssueRows(suggestResp.rows as Array<Record<string, unknown>>);
         } else {
           // Fallback to showing basic sample if suggestions not available
-          const fallback: Record<string, unknown>[] = [];
+          const fallback: Array<Record<string, unknown>> = [];
           if (Array.isArray(flow?.raw_data) && flow.raw_data.length > 0) {
             (flow.raw_data as unknown[]).slice(0, 50).forEach((r) => fallback.push(r as Record<string, unknown>));
           } else if (latestImportData?.data && Array.isArray(latestImportData.data)) {
@@ -387,12 +387,12 @@ const DataCleansing: React.FC = () => {
         await Promise.all([refetchAnalysis(), refresh()]);
       } catch (refreshError) {
         // Refresh failed but action succeeded - log error but don't show failure to user
-        SecureLogger.warn('Quality issue resolution succeeded but refresh failed', { 
-          refreshError, 
-          issueId, 
-          action, 
-          status, 
-          flowId: effectiveFlowId 
+        SecureLogger.warn('Quality issue resolution succeeded but refresh failed', {
+          refreshError,
+          issueId,
+          action,
+          status,
+          flowId: effectiveFlowId
         });
         // Action was successful, UI will update on next manual refresh or page reload
       }
@@ -405,16 +405,16 @@ const DataCleansing: React.FC = () => {
   };
 
   // Save handler from AG Grid modal: mark issue resolved (resolutions are already applied automatically when Update Fields is clicked)
-  const handleIssueGridSave = async (updatedRows: Record<string, unknown>[]): Promise<void> => {
+  const handleIssueGridSave = async (updatedRows: Array<Record<string, unknown>>): Promise<void> => {
     if (!effectiveFlowId || !currentIssueId) {
       setShowIssueGrid(false);
       return;
     }
     try {
-      SecureLogger.info('Marking quality issue as resolved', { 
-        flowId: effectiveFlowId, 
+      SecureLogger.info('Marking quality issue as resolved', {
+        flowId: effectiveFlowId,
         issueId: currentIssueId,
-        rowsCount: updatedRows.length 
+        rowsCount: updatedRows.length
       });
 
       // Mark the issue as resolved (resolutions were already applied when Update Fields was clicked) - this is the critical operation
@@ -428,25 +428,25 @@ const DataCleansing: React.FC = () => {
           resolution_notes: `Issue resolved via AG Grid editor with ${updatedRows.length} rows reviewed and applied to raw_import_records at ${new Date().toISOString()}`
         })
       });
-      
+
       setShowIssueGrid(false);
       setCurrentIssueId(null);
       setCurrentIssueRows([]);
-      
+
       // Refresh data to show updated state - handle refresh failures separately
       // If refresh fails, the action was still successful, so don't show error to user
       try {
         await Promise.all([refetchAnalysis(), refresh()]);
       } catch (refreshError) {
         // Refresh failed but action succeeded - log error but don't show failure to user
-        SecureLogger.warn('Issue resolution succeeded but refresh failed', { 
-          refreshError, 
-          issueId: currentIssueId, 
-          flowId: effectiveFlowId 
+        SecureLogger.warn('Issue resolution succeeded but refresh failed', {
+          refreshError,
+          issueId: currentIssueId,
+          flowId: effectiveFlowId
         });
         // Action was successful, UI will update on next manual refresh or page reload
       }
-      
+
       alert('Issue marked as resolved. Resolution values have been applied to raw_import_records.');
     } catch (error) {
       // This catch only handles PATCH failures (actual operation failures)
@@ -866,13 +866,13 @@ const DataCleansing: React.FC = () => {
                     });
                     SecureLogger.info('Resolution values stored and applied successfully', response);
                     const appliedCount = (response as { applied_to_raw_records?: number })?.applied_to_raw_records || 0;
-                    
+
                     // Mark the issue as resolved after successful update
                     SecureLogger.info('Marking quality issue as resolved after successful update', {
                       flowId: effectiveFlowId,
                       issueId: currentIssueId
                     });
-                    
+
                     await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${currentIssueId}`, {
                       method: 'PATCH',
                       headers: {
@@ -883,25 +883,25 @@ const DataCleansing: React.FC = () => {
                         resolution_notes: `Issue resolved via Update Fields with ${appliedCount} raw_import_record(s) updated at ${new Date().toISOString()}`
                       })
                     });
-                    
+
                     // Close the modal
                     setShowIssueGrid(false);
                     setCurrentIssueId(null);
                     setCurrentIssueRows([]);
-                    
+
                     // Success: Values stored and applied - modal closed
                     SecureLogger.info(`Successfully stored and applied ${appliedCount} raw_import_record(s). Issue marked as resolved.`);
-                    
+
                     // Refresh data to show updated state - handle refresh failures separately
                     // If refresh fails, the action was still successful, so don't show error to user
                     try {
                       await Promise.all([refetchAnalysis(), refresh()]);
                     } catch (refreshError) {
                       // Refresh failed but action succeeded - log error but don't show failure to user
-                      SecureLogger.warn('Resolution values stored and applied successfully but refresh failed', { 
-                        refreshError, 
-                        issueId: currentIssueId, 
-                        flowId: effectiveFlowId 
+                      SecureLogger.warn('Resolution values stored and applied successfully but refresh failed', {
+                        refreshError,
+                        issueId: currentIssueId,
+                        flowId: effectiveFlowId
                       });
                       // Action was successful, UI will update on next manual refresh or page reload
                     }

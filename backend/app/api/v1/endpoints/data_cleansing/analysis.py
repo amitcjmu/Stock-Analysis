@@ -30,32 +30,32 @@ logger = logging.getLogger(__name__)
 def _ensure_uuid(flow_id: str | UUID | None) -> UUID:
     """
     Ensure flow_id is a UUID object for database queries.
-    
+
     Converts string to UUID, validates existing UUID objects, and raises
     ValueError for invalid inputs to prevent silent query failures.
-    
+
     Args:
         flow_id: Flow ID as string, UUID object, or None
-        
+
     Returns:
         UUID object
-        
+
     Raises:
         ValueError: If flow_id is None or cannot be converted to UUID
         TypeError: If flow_id is an unsupported type
     """
     if flow_id is None:
         raise ValueError("flow_id cannot be None")
-    
+
     if isinstance(flow_id, UUID):
         return flow_id
-    
+
     if isinstance(flow_id, str):
         try:
             return UUID(flow_id)
         except (ValueError, AttributeError) as e:
             raise ValueError(f"Invalid flow_id format: {flow_id}") from e
-    
+
     raise TypeError(f"flow_id must be str or UUID, got {type(flow_id).__name__}")
 
 
@@ -318,7 +318,7 @@ async def _apply_stored_resolutions(
 
         return updated_issues
 
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to apply stored resolutions")
         # Return original issues if resolution application fails
         return quality_issues
@@ -327,26 +327,26 @@ async def _apply_stored_resolutions(
 def _generate_recommendation_key(rec: DataCleansingRecommendation) -> str:
     """
     Generate a stable key from recommendation content for de-duplication.
-    
+
     Uses category, title, and sorted fields_affected to create a consistent
     hash that identifies duplicate recommendations regardless of ID or other fields.
-    
+
     Args:
         rec: DataCleansingRecommendation instance
-        
+
     Returns:
         SHA256 hash string representing the recommendation's unique content
     """
     # Normalize fields_affected by sorting to ensure consistent key generation
     fields_affected = sorted(rec.fields_affected or [])
-    
+
     # Create a stable representation of the recommendation's identifying content
     key_data = {
         "category": rec.category.lower().strip(),
         "title": rec.title.lower().strip(),
         "fields_affected": fields_affected,
     }
-    
+
     # Generate hash from JSON representation for stability
     key_json = json.dumps(key_data, sort_keys=True)
     return hashlib.sha256(key_json.encode("utf-8")).hexdigest()
@@ -405,8 +405,10 @@ async def _load_recommendations_from_database(
         )
         return recommendations
 
-    except Exception as e:
-        logger.exception("Failed to load recommendations from database (table may not exist)")
+    except Exception:
+        logger.exception(
+            "Failed to load recommendations from database (table may not exist)"
+        )
         return []
 
 
@@ -448,7 +450,7 @@ async def _store_recommendations_to_database(
             fields_affected = db_rec.fields_affected
             if not isinstance(fields_affected, list):
                 fields_affected = [] if fields_affected is None else [fields_affected]
-            
+
             existing_rec_pydantic = DataCleansingRecommendation(
                 id=str(db_rec.id),
                 category=db_rec.category,
@@ -510,7 +512,9 @@ async def _store_recommendations_to_database(
                     engagement_id=UUID(engagement_id),
                 )
                 db_session.add(db_rec)
-                existing_keys.add(new_rec_key)  # Track this key to avoid duplicates within the same batch
+                existing_keys.add(
+                    new_rec_key
+                )  # Track this key to avoid duplicates within the same batch
                 added_count += 1
 
         await db_session.commit()
@@ -532,6 +536,8 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
     include_details: bool = True,
     execution_result: Optional[Dict[str, Any]] = None,
     db_session: Optional[AsyncSession] = None,
+    client_account_id: Optional[int] = None,
+    engagement_id: Optional[int] = None,
 ) -> DataCleansingAnalysis:
     """
     Perform data cleansing analysis on the imported data and field mappings.
@@ -571,8 +577,10 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                 logger.warning(
                     f"No database session provided, using total_records field: {total_records}"
                 )
-        except Exception as e:
-            logger.exception("Failed to get actual record count, using total_records field")
+        except Exception:
+            logger.exception(
+                "Failed to get actual record count, using total_records field"
+            )
             total_records = data_import.total_records if data_import else 0
 
     total_fields = len(field_mappings)
@@ -624,7 +632,7 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                 )
             else:
                 logger.warning(f"No raw records found for data import {data_import.id}")
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to analyze raw data for quality issues")
             # Continue with empty quality issues if analysis fails
 
@@ -632,7 +640,20 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
         try:
             # Convert flow_id to UUID if it's a string
             flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
-            flow_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+
+            # Build query with tenant filters if provided
+            flow_query = select(DiscoveryFlow).where(
+                DiscoveryFlow.flow_id == flow_uuid
+            )  # SKIP_TENANT_CHECK
+            if client_account_id is not None:
+                flow_query = flow_query.where(
+                    DiscoveryFlow.client_account_id == client_account_id
+                )
+            if engagement_id is not None:
+                flow_query = flow_query.where(
+                    DiscoveryFlow.engagement_id == engagement_id
+                )
+
             flow_result = await db_session.execute(flow_query)
             flow = flow_result.scalar_one_or_none()
 
@@ -661,7 +682,9 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                         )
                         # Only create sample recommendations if we have actual field data
                         if field_stats:
-                            actual_fields = list(field_stats.keys())[:3]  # Use first 3 actual fields
+                            actual_fields = list(field_stats.keys())[
+                                :3
+                            ]  # Use first 3 actual fields
                             new_recommendations = [
                                 DataCleansingRecommendation(
                                     id=str(uuid.uuid4()),
@@ -671,14 +694,20 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                                     priority="high",
                                     impact="Improves data consistency and query performance",
                                     effort_estimate="2-4 hours",
-                                    fields_affected=actual_fields if actual_fields else ["example_field"],
+                                    fields_affected=(
+                                        actual_fields
+                                        if actual_fields
+                                        else ["example_field"]
+                                    ),
                                     status="pending",
                                 ),
                             ]
                         else:
                             # No field data available, create generic example
                             new_recommendations = []
-                            logger.info("No field data available for creating sample recommendations")
+                            logger.info(
+                                "No field data available for creating sample recommendations"
+                            )
 
                         recommendations.extend(new_recommendations)
 
@@ -691,14 +720,14 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                                 str(flow.client_account_id),
                                 str(flow.engagement_id),
                             )
-                        except Exception as store_error:
+                        except Exception:
                             logger.exception(
                                 "Failed to store recommendations to database "
                                 "(table may not exist yet). "
                                 "Recommendations will still be returned but not persisted."
                             )
                             # Continue without storing - recommendations are still in memory
-                except Exception as load_error:
+                except Exception:
                     logger.exception(
                         "Failed to load recommendations from database (table may not exist yet). "
                         "Creating new sample recommendations instead."
@@ -763,9 +792,11 @@ async def _perform_data_cleansing_analysis(  # noqa: C901
                     ),
                 ]
                 recommendations.extend(new_recommendations)
-        except Exception as e:
+        except Exception:
             # Fallback: create sample recommendations if anything goes wrong
-            logger.exception("Error loading/creating recommendations. Creating fallback recommendations.")
+            logger.exception(
+                "Error loading/creating recommendations. Creating fallback recommendations."
+            )
             fallback_recommendations = [
                 DataCleansingRecommendation(
                     id=str(uuid.uuid4()),

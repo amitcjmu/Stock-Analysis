@@ -32,7 +32,7 @@ Usage:
 
 import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,7 +45,6 @@ from app.models.asset_enrichments import (
 from app.models.asset_resilience import (
     AssetResilience,
     AssetComplianceFlags,
-    AssetVulnerabilities,
 )
 from app.models.canonical_applications import CanonicalApplication
 from app.models.asset import AssetDependency

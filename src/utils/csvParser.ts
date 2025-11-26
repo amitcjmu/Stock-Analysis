@@ -58,7 +58,7 @@ export const CSV_CLEANSING_CONFIG = {
    * Maximum file size in bytes to prevent DoS attacks
    * Default: 10MB
    */
-  MAX_FILE_SIZE: 10 * 1024 * 1024 as number,
+  MAX_FILE_SIZE: 10 * 1024 * 1024,
 
   /**
    * Maximum number of rows to prevent resource exhaustion
@@ -70,7 +70,7 @@ export const CSV_CLEANSING_CONFIG = {
    * Maximum field length in characters to prevent large field DoS
    * Default: 100KB per field
    */
-  MAX_FIELD_LENGTH: 100 * 1024 as number,
+  MAX_FIELD_LENGTH: 100 * 1024,
 
   /**
    * Maximum number of columns to prevent column explosion attacks
@@ -455,7 +455,7 @@ export async function parseCsvFile(file: File): Promise<CsvParseResult> {
       }
     };
     reader.onerror = (e) => {
-      const error = (e.target as FileReader).error;
+      const error = (e.target).error;
       const errorMsg = error?.message || 'Unknown error';
       reject(
         new Error(
