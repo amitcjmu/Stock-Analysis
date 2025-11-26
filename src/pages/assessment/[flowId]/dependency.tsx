@@ -413,14 +413,19 @@ const DependencyPage: React.FC = () => {
           {/* Dependency Management Table - Always show to allow manual dependency addition */}
           {state.selectedApplications.length > 0 && (
             <DependencyManagementTable
-              applications={dependencyData?.applications || state.selectedApplications.map(app => ({
-                id: app.application_id,           // Required by AG Grid row identification
-                name: app.application_name,        // Required by "Application Name" column
-                application_name: app.application_name, // Required by "Display Name" column
-                business_criticality: app.business_criticality || '',
-                dependencies: null, // No dependencies yet
-                dependency_names: '' // Empty string for display
-              }))}
+              // CC FIX: Empty array [] is truthy, so use length check instead of ||
+              // This ensures fallback to selectedApplications when API returns empty array
+              applications={(dependencyData?.applications?.length ?? 0) > 0
+                ? dependencyData.applications
+                : state.selectedApplications.map(app => ({
+                    id: app.application_id,           // Required by AG Grid row identification
+                    name: app.application_name,        // Required by "Application Name" column
+                    application_name: app.application_name, // Required by "Display Name" column
+                    business_criticality: app.business_criticality || '',
+                    dependencies: null, // No dependencies yet
+                    dependency_names: '' // Empty string for display
+                  }))
+              }
               onUpdateDependencies={handleUpdateDependencies}
             />
           )}

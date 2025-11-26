@@ -67,6 +67,63 @@ class RecommendationQueriesMixin:
                     if group.get("canonical_application_id")
                 ]
 
+            # CC FIX: Third fallback - resolve selected_asset_ids to canonical applications
+            # This mirrors the logic in assessment-applications endpoint
+            if not selected_app_ids and (
+                flow.selected_asset_ids or flow.selected_application_ids
+            ):
+                asset_ids = flow.selected_asset_ids or flow.selected_application_ids
+                logger.info(
+                    f"[ISSUE-999] Resolving {len(asset_ids)} selected_asset_ids to canonical applications"
+                )
+                try:
+                    from uuid import UUID
+                    from app.services.assessment.application_resolver import (
+                        AssessmentApplicationResolver,
+                    )
+
+                    resolver = AssessmentApplicationResolver(
+                        db=self.db,
+                        client_account_id=self.client_account_id,
+                        engagement_id=self.engagement_id,
+                    )
+
+                    # Get collection_flow_id from flow metadata if available
+                    collection_flow_id = None
+                    if hasattr(flow, "flow_metadata") and flow.flow_metadata:
+                        source_collection = flow.flow_metadata.get(
+                            "source_collection", {}
+                        )
+                        coll_id = source_collection.get("collection_flow_id")
+                        if coll_id:
+                            collection_flow_id = (
+                                UUID(coll_id) if isinstance(coll_id, str) else coll_id
+                            )
+
+                    # Resolve assets to canonical applications
+                    application_groups = await resolver.resolve_assets_to_applications(
+                        asset_ids=[
+                            UUID(aid) if isinstance(aid, str) else aid
+                            for aid in asset_ids
+                        ],
+                        collection_flow_id=collection_flow_id,
+                    )
+
+                    # Extract canonical_application_ids from resolved groups
+                    selected_app_ids = [
+                        str(group.canonical_application_id)
+                        for group in application_groups
+                        if group.canonical_application_id
+                    ]
+                    logger.info(
+                        f"[ISSUE-999] Resolved {len(asset_ids)} assets to "
+                        f"{len(selected_app_ids)} canonical applications"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"[ISSUE-999] Failed to resolve assets to applications: {e}"
+                    )
+
             logger.info(
                 f"[ISSUE-999] Retrieved {len(selected_app_ids)} selected application IDs "
                 f"for recommendation generation"

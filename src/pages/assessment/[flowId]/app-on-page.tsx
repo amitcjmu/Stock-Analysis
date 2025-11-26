@@ -83,7 +83,11 @@ const AppOnPagePage: React.FC = () => {
     }
   };
 
-  const assessmentComplete = Object.keys(state.sixrDecisions).length === state.selectedApplications.length;
+  // CC FIX: Assessment is complete when ALL selected applications have 6R decisions
+  // Previous logic compared counts, but sixrDecisions may contain MORE entries (22) than selectedApplications (2)
+  // because phase_results stores decisions for all processed apps, not just selected ones
+  const assessmentComplete = state.selectedApplications.length > 0 &&
+    state.selectedApplications.every(app => state.sixrDecisions[app.application_id]);
 
   // Detect failed applications (missing 6R decisions)
   const failedApplications = state.selectedApplications.filter(
