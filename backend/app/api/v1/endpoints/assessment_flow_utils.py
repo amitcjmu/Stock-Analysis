@@ -26,11 +26,11 @@ def _get_canonical_app_count(flow_state) -> int:
     """
     # Prefer canonical application IDs (actual apps) over
     # selected_application_ids (deprecated - actually contains asset UUIDs)
-    canonical_apps = (
-        getattr(flow_state, "selected_canonical_application_ids", None) or []
-    )
-    if canonical_apps:
-        return len(canonical_apps)
+    # Use hasattr to check attribute existence, not truthiness (fixes empty list case)
+    if hasattr(flow_state, "selected_canonical_application_ids"):
+        apps = getattr(flow_state, "selected_canonical_application_ids")
+        return len(apps or [])
+
     # Backward compatibility for older flows
     return len(getattr(flow_state, "selected_application_ids", None) or [])
 
