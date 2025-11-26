@@ -81,13 +81,23 @@ async def list_assessment_flows_via_mfo(
             else:
                 created_by = "System"
 
+            # GAP-8 FIX: Use canonical application IDs for accurate count
+            # Prefer selected_canonical_application_ids (actual apps) over
+            # selected_application_ids (deprecated - actually contains asset UUIDs)
+            canonical_apps = flow.selected_canonical_application_ids or []
+            app_count = (
+                len(canonical_apps)
+                if canonical_apps
+                else len(flow.selected_application_ids or [])  # Backward compat
+            )
+
             result.append(
                 {
                     "id": str(flow.id),
                     "status": flow.status,
                     "current_phase": flow.current_phase or "initialization",
                     "progress": flow.progress or 0,
-                    "selected_applications": len(flow.selected_application_ids or []),
+                    "selected_applications": app_count,
                     "created_at": flow.created_at.isoformat(),
                     "updated_at": flow.updated_at.isoformat(),
                     "created_by": created_by,
@@ -238,6 +248,16 @@ async def get_assessment_flow_status_via_master(  # noqa: C901 - Pre-existing co
                 f"({', '.join(failed_phases_list)}) but status remains '{status_value}'"
             )
 
+        # GAP-8 FIX: Use canonical application IDs for accurate count
+        # Prefer selected_canonical_application_ids (actual apps) over
+        # selected_application_ids (deprecated - actually contains asset UUIDs)
+        canonical_apps = flow_state.selected_canonical_application_ids or []
+        app_count = (
+            len(canonical_apps)
+            if canonical_apps
+            else len(flow_state.selected_application_ids or [])  # Backward compat
+        )
+
         return sanitize_for_json(
             {
                 "flow_id": flow_id,
@@ -252,7 +272,7 @@ async def get_assessment_flow_status_via_master(  # noqa: C901 - Pre-existing co
                 ),
                 "next_phase": None,  # Will be calculated by frontend
                 "phase_data": flow_state.phase_results or {},
-                "application_count": len(flow_state.selected_application_ids or []),
+                "application_count": app_count,
                 "assessment_complete": (
                     flow_state.status == AssessmentFlowStatus.COMPLETED
                 ),

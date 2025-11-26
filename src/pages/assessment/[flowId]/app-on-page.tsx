@@ -172,6 +172,7 @@ const AppOnPagePage: React.FC = () => {
                 Print Preview
               </Button>
               <ExportAndSharingControls
+                flowId={flowId || ''}
                 assessmentData={{
                   applications: state.selectedApplicationIds,
                   decisions: state.sixrDecisions,

@@ -21,11 +21,11 @@ backend_path = (
 )
 sys.path.insert(0, str(backend_path))
 
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, and_  # noqa: E402
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from app.models.canonical_applications import CanonicalApplication
+from app.models.canonical_applications import CanonicalApplication  # noqa: E402
 
 # Database connection (same as in backend)
 DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5433/migration_db"

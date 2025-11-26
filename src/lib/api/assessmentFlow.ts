@@ -73,7 +73,7 @@ export interface AssessmentFlowStatusResponse {
   current_phase: string;
   next_phase?: string;
   progress_percentage: number;
-  phase_data?: Record<string, any>;
+  phase_data?: Record<string, unknown>;
   selected_applications: number;
   assessment_complete: boolean;
   created_at: string;
@@ -528,7 +528,7 @@ export class AssessmentFlowApiClient {
   ): Promise<{
     status: 'completed' | 'pending';
     phase_name: string;
-    results: Record<string, any> | null;
+    results: Record<string, unknown> | null;
     completed_at?: string;
   }> {
     try {
@@ -562,7 +562,7 @@ export class AssessmentFlowApiClient {
   ): Promise<{
     status: 'completed' | 'pending';
     phase_name: string;
-    results: Record<string, any> | null;
+    results: Record<string, unknown> | null;
     completed_at?: string;
   }> {
     const startTime = Date.now();
@@ -582,6 +582,77 @@ export class AssessmentFlowApiClient {
       `Phase ${phaseName} did not complete within ${timeoutMs}ms. ` +
         `This may indicate a backend execution failure.`
     );
+  }
+
+  /**
+   * Export assessment results in specified format.
+   *
+   * GAP-6 FIX: Wire frontend to backend export endpoint.
+   *
+   * @param flowId - Assessment flow ID
+   * @param format - Export format: 'json' (implemented), 'pdf' or 'excel' (stubs)
+   * @returns Blob containing exported data for download
+   */
+  async exportAssessment(
+    flowId: string,
+    format: 'json' | 'pdf' | 'excel' = 'json'
+  ): Promise<Blob> {
+    try {
+      // POST to backend export endpoint with format parameter
+      const response = await fetch(
+        `/api/v1/assessment-flow/${flowId}/export?format=${format}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include auth cookies
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Export failed: ${response.status} - ${errorText}`);
+      }
+
+      // Return blob for download
+      return await response.blob();
+    } catch (error) {
+      console.error(`Failed to export assessment as ${format}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Trigger download of exported assessment data.
+   *
+   * GAP-6 FIX: Helper to download exported blob as file.
+   *
+   * @param flowId - Assessment flow ID
+   * @param format - Export format
+   */
+  async downloadExport(
+    flowId: string,
+    format: 'json' | 'pdf' | 'excel' = 'json'
+  ): Promise<void> {
+    const blob = await this.exportAssessment(flowId, format);
+
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Set filename based on format
+    const extension = format === 'excel' ? 'xlsx' : format;
+    link.download = `assessment_${flowId}.${extension}`;
+
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 }
 

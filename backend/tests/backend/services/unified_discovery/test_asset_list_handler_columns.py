@@ -22,8 +22,8 @@ pgvector_module.sqlalchemy = pgvector_sqlalchemy_module
 sys.modules.setdefault("pgvector", pgvector_module)
 sys.modules.setdefault("pgvector.sqlalchemy", pgvector_sqlalchemy_module)
 
-from app.models.asset import Asset
-from app.services.unified_discovery_handlers.asset_list_handler import (
+from app.models.asset import Asset  # noqa: E402
+from app.services.unified_discovery_handlers.asset_list_handler import (  # noqa: E402
     INTERNAL_FIELDS,
     AssetListHandler,
 )
