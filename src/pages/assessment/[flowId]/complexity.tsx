@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
@@ -14,11 +14,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, ArrowRight, Loader2, BarChart3, Code2, TrendingUp, AlertTriangle, Save } from 'lucide-react';
 
+// CC FIX: Per-application metrics state type
+interface AppMetrics {
+  complexity_score: number;
+  architecture_type: string;
+  customization_level: string;
+}
+
 /**
  * Complexity Analysis Page
  *
  * Per ADR-027: complexity_analysis phase
  * Shows code complexity metrics, maintainability index, cyclomatic complexity
+ *
+ * CC FIX: Metrics are now stored per-application to prevent values from being
+ * shared across all applications when switching tabs.
  */
 const ComplexityPage: React.FC = () => {
   const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
@@ -28,11 +38,17 @@ const ComplexityPage: React.FC = () => {
   const [selectedApp, setSelectedApp] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Editable complexity fields (user can adjust)
-  const [complexityScore, setComplexityScore] = useState<number>(1);
-  const [architectureType, setArchitectureType] = useState<string>('Monolithic');
-  const [customizationLevel, setCustomizationLevel] = useState<string>('Medium');
+  // CC FIX: Store metrics per-application in a map (application_id -> metrics)
+  // This prevents values from being shared across applications when switching tabs
+  const [appMetricsMap, setAppMetricsMap] = useState<Record<string, AppMetrics>>({});
+
+  // Track which apps have unsaved changes
+  const [unsavedApps, setUnsavedApps] = useState<Set<string>>(new Set());
+
   const [isSaving, setIsSaving] = useState(false);
+
+  // Track previous selected app to detect tab switches
+  const prevSelectedAppRef = useRef<string>('');
 
   // Guard: redirect to overview if flowId missing
   useEffect(() => {
@@ -53,17 +69,78 @@ const ComplexityPage: React.FC = () => {
     return state.selectedApplications.find(app => app.application_id === selectedApp);
   }, [selectedApp, state.selectedApplications]);
 
-  // Initialize editable fields from currentApp data
-  useEffect(() => {
-    if (currentApp) {
-      setComplexityScore(currentApp.complexity_score || 1);
-      setArchitectureType(currentApp.application_type || 'Monolithic');
-      setCustomizationLevel(currentApp.customization_level || 'Medium');
+  // CC FIX: Get current app's metrics from the map, with fallback to API data
+  const currentMetrics = useMemo((): AppMetrics => {
+    // First check our local map (includes unsaved edits)
+    if (selectedApp && appMetricsMap[selectedApp]) {
+      return appMetricsMap[selectedApp];
     }
-  }, [currentApp]);
+    // Fall back to data from API (currentApp)
+    if (currentApp) {
+      return {
+        complexity_score: currentApp.complexity_score || 1,
+        architecture_type: currentApp.application_type || 'Monolithic',
+        customization_level: currentApp.customization_level || 'Medium',
+      };
+    }
+    // Default values
+    return {
+      complexity_score: 1,
+      architecture_type: 'Monolithic',
+      customization_level: 'Medium',
+    };
+  }, [selectedApp, appMetricsMap, currentApp]);
+
+  // CC FIX: Initialize metrics map for each app when selectedApplications loads
+  // This ensures each app has its own isolated metrics state
+  useEffect(() => {
+    if (state.selectedApplications.length > 0) {
+      setAppMetricsMap((prevMap) => {
+        const newMap = { ...prevMap };
+        let updated = false;
+
+        state.selectedApplications.forEach((app) => {
+          // Only initialize if not already in map (preserve user edits)
+          if (!newMap[app.application_id]) {
+            newMap[app.application_id] = {
+              complexity_score: app.complexity_score || 1,
+              architecture_type: app.application_type || 'Monolithic',
+              customization_level: app.customization_level || 'Medium',
+            };
+            updated = true;
+          }
+        });
+
+        return updated ? newMap : prevMap;
+      });
+    }
+  }, [state.selectedApplications]);
+
+  // CC FIX: Helper to update metrics for current app
+  const updateCurrentMetrics = useCallback((updates: Partial<AppMetrics>) => {
+    if (!selectedApp) return;
+
+    setAppMetricsMap((prevMap) => {
+      const currentAppMetrics = prevMap[selectedApp] || {
+        complexity_score: 1,
+        architecture_type: 'Monolithic',
+        customization_level: 'Medium',
+      };
+      return {
+        ...prevMap,
+        [selectedApp]: {
+          ...currentAppMetrics,
+          ...updates,
+        },
+      };
+    });
+
+    // Mark this app as having unsaved changes
+    setUnsavedApps((prev) => new Set(prev).add(selectedApp));
+  }, [selectedApp]);
 
   // Calculate architectural complexity metrics from CMDB/Discovery data - MUST be before early return
-  // Uses editable state values that user can adjust
+  // CC FIX: Uses currentMetrics (per-app state) instead of component-level state
   const complexityMetrics = useMemo(() => {
     if (!currentApp) return null;
 
@@ -80,15 +157,15 @@ const ComplexityPage: React.FC = () => {
     const integrationCount = (currentApp.dependencies?.length || 0) + (currentApp.dependents?.length || 0);
 
     return {
-      architectureType: architectureType,  // From editable state
+      architectureType: currentMetrics.architecture_type,  // CC FIX: From per-app metrics
       componentCount: componentCount,
       integrationCount: integrationCount,  // Calculated from dependencies (read-only)
-      customizationLevel: customizationLevel,  // From editable state
+      customizationLevel: currentMetrics.customization_level,  // CC FIX: From per-app metrics
       migrationGroup: currentApp.migration_group || 'Not Assigned',
       hasDatabase: hasDatabase,
-      complexityScore: complexityScore,  // From editable state
+      complexityScore: currentMetrics.complexity_score,  // CC FIX: From per-app metrics
     };
-  }, [currentApp, architectureType, customizationLevel, complexityScore]);
+  }, [currentApp, currentMetrics]);
 
   // Prevent rendering until flow is hydrated
   if (!flowId || state.status === 'idle') {
@@ -101,22 +178,30 @@ const ComplexityPage: React.FC = () => {
       return;
     }
 
-    console.log('[ComplexityPage] Saving complexity metrics...');
+    console.log('[ComplexityPage] Saving complexity metrics for app:', selectedApp, currentMetrics);
     setIsSaving(true);
 
     try {
       // CRITICAL: Use apiClient for multi-tenant security headers
       // Per CLAUDE.md - PUT requests use request body, NOT query parameters
+      // CC FIX: Use currentMetrics (per-app state) instead of component-level state
       const result = await apiClient.put(
         `/api/v1/master-flows/${flowId}/applications/${selectedApp}/complexity-metrics`,
         {
-          complexity_score: complexityScore,
-          architecture_type: architectureType,
-          customization_level: customizationLevel,
+          complexity_score: currentMetrics.complexity_score,
+          architecture_type: currentMetrics.architecture_type,
+          customization_level: currentMetrics.customization_level,
         }
       );
 
       console.log('[ComplexityPage] Metrics saved successfully', result);
+
+      // CC FIX: Remove this app from unsaved set after successful save
+      setUnsavedApps((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(selectedApp);
+        return newSet;
+      });
 
       // Refetch application data to show persisted values
       console.log('[ComplexityPage] Refreshing application data...');
@@ -306,12 +391,12 @@ const ComplexityPage: React.FC = () => {
                     {/* Overall Migration Complexity */}
                     <div className="text-center p-4 border rounded-lg">
                       <Code2 className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                      <div className={`text-3xl font-bold ${getComplexityColor(complexityScore)}`}>
-                        {complexityScore}/10
+                      <div className={`text-3xl font-bold ${getComplexityColor(currentMetrics.complexity_score)}`}>
+                        {currentMetrics.complexity_score}/10
                       </div>
                       <div className="text-sm text-gray-600 mt-1">Migration Complexity</div>
-                      <Badge variant={complexityScore >= 7 ? 'destructive' : 'secondary'} className="mt-2">
-                        {complexityScore >= 7 ? 'High' : complexityScore >= 4 ? 'Medium' : 'Low'}
+                      <Badge variant={currentMetrics.complexity_score >= 7 ? 'destructive' : 'secondary'} className="mt-2">
+                        {currentMetrics.complexity_score >= 7 ? 'High' : currentMetrics.complexity_score >= 4 ? 'Medium' : 'Low'}
                       </Badge>
                     </div>
 
@@ -403,8 +488,8 @@ const ComplexityPage: React.FC = () => {
                     <div className="space-y-2">
                       <Label htmlFor="complexity-score">Migration Complexity Score</Label>
                       <Select
-                        value={complexityScore.toString()}
-                        onValueChange={(value) => setComplexityScore(parseInt(value))}
+                        value={currentMetrics.complexity_score.toString()}
+                        onValueChange={(value) => updateCurrentMetrics({ complexity_score: parseInt(value) })}
                       >
                         <SelectTrigger id="complexity-score">
                           <SelectValue placeholder="Select complexity score" />
@@ -423,8 +508,8 @@ const ComplexityPage: React.FC = () => {
                     <div className="space-y-2">
                       <Label htmlFor="architecture-type">Architecture Type</Label>
                       <Select
-                        value={architectureType}
-                        onValueChange={setArchitectureType}
+                        value={currentMetrics.architecture_type}
+                        onValueChange={(value) => updateCurrentMetrics({ architecture_type: value })}
                       >
                         <SelectTrigger id="architecture-type">
                           <SelectValue placeholder="Select architecture type" />
@@ -444,8 +529,8 @@ const ComplexityPage: React.FC = () => {
                     <div className="space-y-2">
                       <Label htmlFor="customization-level">Customization Level</Label>
                       <Select
-                        value={customizationLevel}
-                        onValueChange={setCustomizationLevel}
+                        value={currentMetrics.customization_level}
+                        onValueChange={(value) => updateCurrentMetrics({ customization_level: value })}
                       >
                         <SelectTrigger id="customization-level">
                           <SelectValue placeholder="Select customization level" />
@@ -464,7 +549,7 @@ const ComplexityPage: React.FC = () => {
                     <Button
                       onClick={handleSaveMetrics}
                       disabled={isSaving || !selectedApp}
-                      variant="outline"
+                      variant={unsavedApps.has(selectedApp) ? "default" : "outline"}
                     >
                       {isSaving ? (
                         <>
@@ -474,7 +559,7 @@ const ComplexityPage: React.FC = () => {
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          Save Metrics
+                          Save Metrics{unsavedApps.has(selectedApp) ? ' *' : ''}
                         </>
                       )}
                     </Button>

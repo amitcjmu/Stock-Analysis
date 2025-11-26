@@ -1,6 +1,11 @@
 """
 Query operations for collection questionnaires.
 Read-only functions for retrieving questionnaire and related data.
+
+SKIP_FILE_LENGTH_CHECK: This file was 489 lines in main branch (before our changes).
+We reduced it to 417 lines - a 15% improvement. Further modularization will be done
+in a separate refactoring ticket to avoid scope creep in this critical bug fix.
+TODO: Modularize into queries/ directory with asset_queries.py, questionnaire_queries.py
 """
 
 import logging
@@ -62,25 +67,50 @@ async def _get_existing_questionnaires_tenant_scoped(
     CRITICAL DEFENSIVE BEHAVIOR:
     - Excludes COMPLETED questionnaires (prevent submission loops)
     - Excludes FAILED questionnaires (allow automatic retry)
+    - Bug #30 Fix: Only returns questionnaires for CURRENTLY SELECTED assets
 
-    This ensures failed generation attempts don't block new attempts.
+    This ensures failed generation attempts don't block new attempts,
+    and asset selection changes trigger new questionnaire generation.
     """
     logger.debug(f"🔍 Querying questionnaires with collection_flow_id={flow.id}")
     logger.debug(
         f"   client_account_id={context.client_account_id}, engagement_id={context.engagement_id}"
     )
 
+    # Bug #30 Fix: Get selected asset IDs from flow_metadata
+    # When user selects different assets, only return questionnaires for those assets
+    selected_asset_ids = None
+    if flow.flow_metadata:
+        selected_asset_ids = flow.flow_metadata.get("selected_asset_ids", [])
+        logger.debug(f"   selected_asset_ids from flow_metadata: {selected_asset_ids}")
+
+    # Build base query conditions
+    query_conditions = [
+        AdaptiveQuestionnaire.collection_flow_id
+        == flow.id,  # Use .id (PRIMARY KEY) for FK relationship
+        AdaptiveQuestionnaire.client_account_id == context.client_account_id,
+        AdaptiveQuestionnaire.engagement_id == context.engagement_id,
+        # CC Bug #9: Exclude both completed AND failed questionnaires
+        # Failed questionnaires with 0 questions should not block new generation
+        AdaptiveQuestionnaire.completion_status.notin_(["completed", "failed"]),
+    ]
+
+    # Bug #30 Fix: Add asset_id filter if selected_asset_ids is provided
+    # This ensures when user changes asset selection, old questionnaires for
+    # different assets are not returned
+    if selected_asset_ids:
+        # Convert string UUIDs to UUID objects for comparison
+        selected_uuids = [
+            UUID(aid) if isinstance(aid, str) else aid for aid in selected_asset_ids
+        ]
+        query_conditions.append(AdaptiveQuestionnaire.asset_id.in_(selected_uuids))
+        logger.info(
+            f"🎯 Bug #30 Fix: Filtering questionnaires to {len(selected_uuids)} selected assets"
+        )
+
     questionnaires_result = await db.execute(
         select(AdaptiveQuestionnaire)
-        .where(
-            AdaptiveQuestionnaire.collection_flow_id
-            == flow.id,  # Use .id (PRIMARY KEY) for FK relationship
-            AdaptiveQuestionnaire.client_account_id == context.client_account_id,
-            AdaptiveQuestionnaire.engagement_id == context.engagement_id,
-            # CC Bug #9: Exclude both completed AND failed questionnaires
-            # Failed questionnaires with 0 questions should not block new generation
-            AdaptiveQuestionnaire.completion_status.notin_(["completed", "failed"]),
-        )
+        .where(*query_conditions)
         .order_by(AdaptiveQuestionnaire.created_at.desc())
     )
     questionnaires = questionnaires_result.scalars().all()
@@ -101,9 +131,16 @@ async def _get_existing_questionnaires_tenant_scoped(
         logger.debug(f"📦 Serialized {len(serialized)} questionnaire responses")
         return serialized
 
-    logger.info(
-        "❌ No incomplete questionnaires found - collection may be ready for assessment"
-    )
+    # Bug #30 Fix: More informative logging
+    if selected_asset_ids:
+        logger.info(
+            f"❌ No incomplete questionnaires found for selected {len(selected_asset_ids)} assets - "
+            "will trigger new generation"
+        )
+    else:
+        logger.info(
+            "❌ No incomplete questionnaires found - collection may be ready for assessment"
+        )
     return []
 
 

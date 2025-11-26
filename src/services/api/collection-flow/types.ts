@@ -95,7 +95,10 @@ export interface GapTargetInfo {
 export interface QuestionnaireQuestion {
   field_id: string;  // Backend uses field_id, not question_id
   question_text: string;
-  field_type:  // Backend uses field_type, not question_type
+  // CRITICAL: Backend SectionQuestionGenerator sends 'input_type', not 'field_type'
+  // The input_type field determines how the question is rendered (select, radio, text)
+  input_type?: "text" | "select" | "radio" | "multiselect" | "multi_select" | "number" | "boolean" | "date";
+  field_type?:  // Legacy field - kept for backward compatibility
     | "text"
     | "number"
     | "boolean"
@@ -105,7 +108,7 @@ export interface QuestionnaireQuestion {
   required: boolean;
   category?: string;  // Added from backend structure
   metadata?: Record<string, unknown>;  // Added from backend structure
-  options?: string[];
+  options?: string[] | Array<{ value: string; label: string }>;  // Can be string[] or object array
   validation_rules?: ValidationRuleConfig[];
   conditional_logic?: ConditionalLogic;
   help_text?: string;

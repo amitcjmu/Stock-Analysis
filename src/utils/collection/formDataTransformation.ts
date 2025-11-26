@@ -20,8 +20,10 @@ export interface QuestionData {
   field_id?: string;
   question_text?: string;
   label?: string;
+  input_type?: string;  // Backend SectionQuestionGenerator sends this
   field_type?: string;
   question_type?: string;
+  type?: string;  // Alternative field name
   category?: string;
   critical_attribute?: string;
   required?: boolean;
@@ -30,6 +32,10 @@ export interface QuestionData {
   options?: FieldOption[] | string[]; // can be FieldOption[] or string[] from backend
   help_text?: string;
   description?: string;
+  metadata?: Record<string, unknown>;  // For asset_id and other metadata
+  question?: string;  // Alternative to question_text
+  placeholder?: string;  // Placeholder text for inputs
+  multiple?: boolean;  // For multiselect fields
 }
 
 /**
@@ -128,8 +134,16 @@ export const convertQuestionToFormField = (
   const fieldOptions = normalizeOptions(question.options) || (defaultKey ? getDefaultFieldOptions(defaultKey) : undefined);
 
   // Ensure multiselect questions have proper field type mapping
-  const questionType = question.field_type || question.question_type || question.type || 'text';
+  // CRITICAL FIX: Backend sends 'input_type' (from SectionQuestionGenerator), not 'field_type'
+  // Must check input_type first to properly render MCQ questions as select/radio instead of text
+  const questionType = question.input_type || question.field_type || question.question_type || question.type || 'text';
   const mappedFieldType = mapQuestionTypeToFieldType(questionType);
+
+  // DEBUG: Log field type determination for MCQ debugging
+  console.log(`🔍 Field type for "${question.field_id}": input_type=${question.input_type}, field_type=${question.field_type}, questionType=${questionType}, mappedFieldType=${mappedFieldType}, hasOptions=${!!question.options}`);
+  if (question.options && question.options.length > 0) {
+    console.log(`   Options[0]:`, question.options[0]);
+  }
 
   return {
     id: fieldId,
@@ -291,7 +305,10 @@ export const convertQuestionnairesToFormData = (
     console.log('🔍 Converting questionnaire with questions:', questions.map(q => ({
       field_id: q.field_id,
       question_text: q.question_text,
-      id: q.id || q.field_id
+      id: q.id || q.field_id,
+      input_type: q.input_type,  // DEBUG: Check if input_type is present
+      field_type: q.field_type,  // DEBUG: Check legacy field_type
+      options_count: q.options?.length || 0  // DEBUG: Check if options exist
     })));
 
     // Special handling for bootstrap_asset_selection questionnaire

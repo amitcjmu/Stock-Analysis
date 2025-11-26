@@ -305,6 +305,17 @@ def build_questionnaire_response(
 
     # Build base response with sanitized questions to prevent JSON serialization errors
     # (e.g., NaN, Infinity values from LLM responses)
+
+    # DEBUG: Log question fields to trace input_type through the pipeline
+    if questionnaire.questions and len(questionnaire.questions) > 0:
+        first_q = questionnaire.questions[0]
+        logger.info(
+            f"📋 DEBUG: First question from DB for questionnaire {questionnaire.id}: "
+            f"field_id={first_q.get('field_id')}, "
+            f"input_type={first_q.get('input_type')}, "
+            f"options_count={len(first_q.get('options', []))}"
+        )
+
     response = AdaptiveQuestionnaireResponse(
         id=str(questionnaire.id),
         collection_flow_id=str(questionnaire.collection_flow_id),
