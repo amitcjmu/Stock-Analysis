@@ -64,7 +64,6 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   engagementId,
   flowId,
   importCategory,
-  engagementId,
   canContinueToDataCleansing,
   onContinueToDataCleansing
 }) => {
