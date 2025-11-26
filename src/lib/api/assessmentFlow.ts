@@ -408,6 +408,60 @@ export class AssessmentFlowApiClient {
   }
 
   /**
+   * GAP-5 FIX: Initiate decommission flow from assessment.
+   *
+   * Creates a linked decommission flow for applications marked as 'Retire'
+   * or 'Retain' in the 6R assessment decisions.
+   *
+   * @param flowId - Assessment flow identifier (source of 6R decisions)
+   * @param applicationIds - List of application IDs to decommission
+   * @param flowName - Optional name for the decommission flow
+   *
+   * @returns Decommission flow creation result
+   *
+   * @example
+   * // Initiate decommission for retired applications
+   * const result = await assessmentFlowApi.initiateDecommission(
+   *   'assessment-flow-uuid',
+   *   ['app-uuid-1', 'app-uuid-2'],
+   *   'Q4 2025 System Retirement'
+   * );
+   * console.log(`Decommission flow created: ${result.decommission_flow_id}`);
+   */
+  async initiateDecommission(
+    flowId: string,
+    applicationIds: string[],
+    flowName?: string
+  ): Promise<{
+    assessment_flow_id: string;
+    decommission_flow_id: string;
+    decommission_master_flow_id: string;
+    applications_to_decommission: string[];
+    skipped_applications: Array<{ application_id: string; current_strategy: string }>;
+    status: string;
+    message: string;
+  }> {
+    try {
+      const response = await apiClient.post<{
+        assessment_flow_id: string;
+        decommission_flow_id: string;
+        decommission_master_flow_id: string;
+        applications_to_decommission: string[];
+        skipped_applications: Array<{ application_id: string; current_strategy: string }>;
+        status: string;
+        message: string;
+      }>(`/master-flows/${flowId}/assessment/initiate-decommission`, {
+        application_ids: applicationIds,
+        flow_name: flowName,
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to initiate decommission from assessment:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get comprehensive gap analysis for a single asset.
    *
    * Endpoint: GET /api/v1/assessment-flow/{flow_id}/asset-readiness/{asset_id}
