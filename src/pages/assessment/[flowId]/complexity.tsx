@@ -120,18 +120,24 @@ const ComplexityPage: React.FC = () => {
   const updateCurrentMetrics = useCallback((updates: Partial<AppMetrics>) => {
     if (!selectedApp) return;
 
-    setAppMetricsMap((prevMap) => ({
-      ...prevMap,
-      [selectedApp]: {
-        ...prevMap[selectedApp],
-        ...currentMetrics,
-        ...updates,
-      },
-    }));
+    setAppMetricsMap((prevMap) => {
+      const currentAppMetrics = prevMap[selectedApp] || {
+        complexity_score: 1,
+        architecture_type: 'Monolithic',
+        customization_level: 'Medium',
+      };
+      return {
+        ...prevMap,
+        [selectedApp]: {
+          ...currentAppMetrics,
+          ...updates,
+        },
+      };
+    });
 
     // Mark this app as having unsaved changes
     setUnsavedApps((prev) => new Set(prev).add(selectedApp));
-  }, [selectedApp, currentMetrics]);
+  }, [selectedApp]);
 
   // Calculate architectural complexity metrics from CMDB/Discovery data - MUST be before early return
   // CC FIX: Uses currentMetrics (per-app state) instead of component-level state

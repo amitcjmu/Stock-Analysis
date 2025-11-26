@@ -218,7 +218,7 @@ async def check_and_set_assessment_ready(  # noqa: C901
         pass
 
 
-async def _check_all_questionnaires_completed(
+async def _check_all_questionnaires_completed(  # noqa: C901
     flow: CollectionFlow,
     selected_asset_ids: List[str],
     db: AsyncSession,
@@ -278,7 +278,13 @@ async def _check_all_questionnaires_completed(
         if questionnaire.asset_id:
             asset_ids_for_questionnaire.add(str(questionnaire.asset_id))
 
-        # Fallback: Check questions for asset_id (legacy questionnaires stored it there)
+        # Fallback 1: Check top-level target_gaps for legacy questionnaires
+        if questionnaire.target_gaps:
+            for gap in questionnaire.target_gaps:
+                if isinstance(gap, dict) and gap.get("asset_id"):
+                    asset_ids_for_questionnaire.add(str(gap["asset_id"]))
+
+        # Fallback 2: Check questions for asset_id (very old legacy questionnaires)
         # Each question may have target_gaps array with asset_id
         if questionnaire.questions:
             for question in questionnaire.questions:
