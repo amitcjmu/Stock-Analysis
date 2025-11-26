@@ -30,7 +30,7 @@ class TechDebtAnalysis(Base):
     impact analysis, and remediation recommendations.
     """
 
-    __tablename__ = "tech_debt_analyses"
+    __tablename__ = "tech_debt_analysis"
 
     # Primary identifiers
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

@@ -123,27 +123,27 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   }, [open, hasPreSelectedApps, preSelectedApplicationIds, preSelectedApplications]);
 
   // Fetch applications with pagination and search (HTTP polling per CLAUDE.md - NO WebSockets)
+  // Uses assessed_only=true to filter on backend BEFORE pagination for correct counts
   const {
     data: applicationsData,
     isLoading: isLoadingApplications,
     error: applicationsError,
   } = useQuery({
-    queryKey: ['applications', currentPage, searchTerm],
+    queryKey: ['applications', currentPage, searchTerm, 'assessed_only'],
     queryFn: () =>
       applicationsApi.getApplications({
         page: currentPage,
         page_size: pageSize,
         search: searchTerm || undefined,
+        assessed_only: true, // Filter on backend - only apps with 6R strategies
       }),
     enabled: open && currentStep === 1, // Only fetch when dialog is open and on Step 1
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Filter applications to show only those with 6R strategies assigned
-  const assessedApplications = React.useMemo(() => {
-    if (!applicationsData?.applications) return [];
-    return applicationsData.applications.filter(app => app.six_r_strategy !== null && app.six_r_strategy !== '');
-  }, [applicationsData]);
+  // Applications are already filtered by backend (assessed_only=true)
+  // No need for frontend filtering - this fixes pagination counts
+  const assessedApplications = applicationsData?.applications || [];
 
   // =============================================================================
   // Handlers
@@ -322,12 +322,12 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
    * Step 1: Application Selection
    */
   const renderStep1 = () => {
-    const applications = assessedApplications; // Use filtered applications with 6R strategies only
+    const applications = assessedApplications; // Backend already filters for assessed apps
     const totalPages = applicationsData?.total_pages || 0;
     const currentPageIds = applications.map((app) => app.id);
     const allCurrentPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.has(id));
-    const totalApplications = applicationsData?.applications?.length || 0;
-    const assessedCount = applications.length;
+    // Total from backend represents total assessed applications (with 6R strategies)
+    const totalAssessedApplications = applicationsData?.total || 0;
 
     return (
       <div className="space-y-4">
@@ -355,7 +355,7 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
         {/* Filter Info and Selection Count */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm text-blue-800 mb-1">
-            <strong>Showing {assessedCount} of {totalApplications} applications</strong>
+            <strong>{totalAssessedApplications} application{totalAssessedApplications !== 1 ? 's' : ''} with 6R strategies assigned</strong>
           </p>
           <p className="text-xs text-blue-700">
             Only applications with 6R strategies assigned can be included in planning
@@ -422,7 +422,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
                           <Checkbox
                             checked={selectedIds.has(app.id)}
                             onCheckedChange={(checked) => {
-                              if (checked) {
+                              // Handle boolean | 'indeterminate' type from Radix UI
+                              if (checked === true) {
                                 setSelectedIds((prev) => {
                                   const newSet = new Set(prev);
                                   newSet.add(app.id);
@@ -437,6 +438,7 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
                               }
                             }}
                             id={`checkbox-${app.id}`}
+                            aria-label={`Select ${app.application_name || app.asset_name || 'application'}`}
                           />
                         </TableCell>
                         <TableCell className="font-medium">
