@@ -152,3 +152,6 @@ test-data/
 config/docker/observability/data/*
 config/docker/observability/ssl/*
 !config/docker/observability/data/.gitkeep
+
+# E2E test screenshots - runtime artifacts, not for version control
+tests/e2e/screenshots/
