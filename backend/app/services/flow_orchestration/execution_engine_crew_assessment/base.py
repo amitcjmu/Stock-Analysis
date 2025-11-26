@@ -240,7 +240,9 @@ class ExecutionEngineAssessmentCrews(
 
         # Extract flow state data
         phase_results = flow_state.phase_results or {}
-        phases_completed = flow_state.phases_completed or []
+        # CC FIX: Use getattr for phases_completed as it may not exist on older AssessmentFlowState models
+        # The is_prior_phase_completed helper can derive completion from phase_results and current_phase
+        phases_completed = getattr(flow_state, "phases_completed", None) or []
         current_phase = flow_state.current_phase
 
         # CRITICAL FIX: Check if resuming from collection flow (early return)

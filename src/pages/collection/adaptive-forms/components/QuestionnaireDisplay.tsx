@@ -71,7 +71,13 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
 
   // Use filtered questions hook (only when agent pruning is enabled)
   // Note: We'll extract child_flow_id from formData or context
-  const childFlowId = formData?.flow_id || formData?.formId || '';
+  // FIX: Validate UUID format to prevent 422 errors from dependency-change endpoint
+  const rawChildFlowId = formData?.flow_id || formData?.formId || '';
+  const isValidUUID = (str: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+  const childFlowId = isValidUUID(rawChildFlowId) ? rawChildFlowId : '';
   const assetType = selectedAsset?.asset_type || 'application';
 
   const {
@@ -105,7 +111,11 @@ export const QuestionnaireDisplay: React.FC<QuestionnaireDisplayProps> = ({
 
     // Check if this is a critical field that might trigger dependencies
     // For now, trigger on any field change - backend will determine if dependencies exist
-    if (selectedAssetId && childFlowId && formValues && formValues[fieldId] !== value) {
+    // FIX: Validate both IDs are proper UUIDs to prevent 422 errors
+    const hasValidIds = selectedAssetId && childFlowId &&
+      isValidUUID(selectedAssetId) && isValidUUID(childFlowId);
+
+    if (hasValidIds && formValues && formValues[fieldId] !== value) {
       dependencyMutation.mutate({
         child_flow_id: childFlowId,
         asset_id: selectedAssetId,

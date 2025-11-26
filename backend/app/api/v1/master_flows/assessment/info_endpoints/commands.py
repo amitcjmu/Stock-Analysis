@@ -5,8 +5,8 @@ PUT endpoints for updating assessment data (complexity metrics, etc.).
 """
 
 import logging
-from typing import Any, Dict
-from uuid import uuid4
+from typing import Any, Dict, List
+from uuid import uuid4, UUID
 
 from fastapi import Depends, HTTPException
 from sqlalchemy import select, text, update
@@ -16,6 +16,7 @@ from app.core.context import RequestContext, get_current_context_dependency
 from app.core.database import get_db
 from app.models.collection_flow.asset_custom_attributes import AssetCustomAttributes
 from ..uuid_utils import ensure_uuid
+from ..query_helpers import get_asset_ids, get_collection_flow_id
 
 from . import router
 from .schemas import ComplexityMetricsUpdate
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.put("/{flow_id}/applications/{app_id}/complexity-metrics")
-async def update_complexity_metrics(
+async def update_complexity_metrics(  # noqa: C901
     flow_id: str,
     app_id: str,
     metrics: ComplexityMetricsUpdate,
@@ -73,8 +74,54 @@ async def update_complexity_metrics(
 
         flow = await get_assessment_flow(db, flow_id, client_uuid, engagement_uuid)
 
+        # CC FIX: Compute application groups on-the-fly if not pre-computed
+        # This mirrors the logic in queries.py to handle flows created before groups were stored
+        application_groups: List[Dict[str, Any]] = []
+
+        if (
+            hasattr(flow, "application_asset_groups")
+            and flow.application_asset_groups
+            and len(flow.application_asset_groups) > 0
+        ):
+            # Use pre-computed groups from initialization
+            application_groups = flow.application_asset_groups
+            logger.info(
+                f"Using pre-computed application groups for flow {flow_id} "
+                f"({len(application_groups)} groups)"
+            )
+        else:
+            # Compute on-the-fly (fallback for old flows without pre-computed groups)
+            asset_ids = get_asset_ids(flow)
+            if asset_ids:
+                logger.info(
+                    f"Computing application groups on-the-fly for flow {flow_id} "
+                    f"({len(asset_ids)} assets)"
+                )
+
+                from app.services.assessment.application_resolver import (
+                    AssessmentApplicationResolver,
+                )
+
+                resolver = AssessmentApplicationResolver(
+                    db=db,
+                    client_account_id=client_uuid,
+                    engagement_id=engagement_uuid,
+                )
+
+                collection_flow_id = await get_collection_flow_id(flow)
+                application_groups_objs = await resolver.resolve_assets_to_applications(
+                    asset_ids=[
+                        UUID(aid) if isinstance(aid, str) else aid for aid in asset_ids
+                    ],
+                    collection_flow_id=collection_flow_id,
+                )
+
+                # Convert to dict format
+                application_groups = [
+                    group.model_dump() for group in application_groups_objs
+                ]
+
         # Find the application group that matches app_id (canonical_application_id)
-        application_groups = flow.application_asset_groups or []
         matching_group = None
 
         for group in application_groups:
@@ -91,6 +138,10 @@ async def update_complexity_metrics(
                         break
 
         if not matching_group:
+            logger.error(
+                f"Application group {app_id} not found. Available groups: "
+                f"{[g.get('canonical_application_id') for g in application_groups]}"
+            )
             raise HTTPException(
                 status_code=404, detail=f"Application group {app_id} not found in flow"
             )

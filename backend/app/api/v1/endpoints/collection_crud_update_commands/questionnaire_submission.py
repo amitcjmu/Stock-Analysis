@@ -219,6 +219,15 @@ async def submit_questionnaire_response(  # noqa: C901 - Reduced from 19 to 16, 
             asset_ids_to_reanalyze, request_data, context, db
         )
 
+        # CC FIX: Commit asset readiness updates
+        # _update_asset_readiness stages changes but does not commit (per its docstring)
+        # We must commit these changes after the main transaction is complete
+        if readiness_updated:
+            await db.commit()
+            logger.info(
+                f"✅ CC FIX: Committed asset readiness updates for {len(asset_ids_to_reanalyze)} asset(s)"
+            )
+
         logger.info(
             f"Successfully saved {len(response_records)} questionnaire responses for flow {flow_id} "
             f"by user {current_user.id}. Flow progress: {flow.progress_percentage}%, Status: {flow.status}"

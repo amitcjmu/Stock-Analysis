@@ -380,6 +380,27 @@ async def _start_agent_generation(  # noqa: C901 - Complexity needed for error h
                 f"Created pending questionnaire {questionnaire_id} for asset {asset_id} in flow {flow_id}"
             )
 
+            # ✅ Bug #31 Fix: Set questionnaire_generating flag when starting generation
+            # This allows /questionnaires/status endpoint to detect generation in progress
+            from sqlalchemy import update as sql_update
+
+            current_metadata = flow.flow_metadata or {}
+            current_metadata["questionnaire_generating"] = True
+            current_metadata["generation_started_at"] = datetime.now(
+                timezone.utc
+            ).isoformat()
+            current_metadata["questionnaire_ready"] = False
+
+            await db.execute(
+                sql_update(CollectionFlow)
+                .where(CollectionFlow.id == flow.id)
+                .values(flow_metadata=current_metadata)
+            )
+            await db.commit()
+            logger.info(
+                f"✅ Bug #31 Fix: Set questionnaire_generating=True for flow {flow_id}"
+            )
+
             # Start background generation task for this asset
             # Use dictionary for O(1) lookup instead of O(N) filtering
             target_asset = assets_by_id.get(asset_id_str)

@@ -71,6 +71,10 @@ export const useQuestionnairePolling = ({
     try {
       const questionnaires = await collectionFlowApi.getFlowQuestionnaires(flowId);
       console.log('📋 Fetched questionnaires:', questionnaires);
+      // DEBUG: Log question details to verify input_type is present
+      if (questionnaires.length > 0 && questionnaires[0].questions?.length > 0) {
+        console.log('📋 First question from API:', JSON.stringify(questionnaires[0].questions[0], null, 2));
+      }
 
       // If we have questionnaires, use them immediately
       if (questionnaires.length > 0) {

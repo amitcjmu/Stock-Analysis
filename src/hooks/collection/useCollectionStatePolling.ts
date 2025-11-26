@@ -122,9 +122,12 @@ export const useCollectionStatePolling = (
       onQuestionnaireReady?.(flowState);
     }
 
-    // Handle errors
-    if (flowState.error || flowState.status === 'error' || flowState.status === 'failed') {
-      onError?.(flowState.error || `Flow ${flowState.status}: ${flowState.message}`);
+    // Handle runtime errors only - NOT 'failed' terminal status
+    // CC FIX: 'failed' is a valid terminal state that should be handled by UI components,
+    // NOT trigger error toasts that spam the user. The UI should show an appropriate
+    // "Flow Failed" message and allow the user to retry or start a new flow.
+    if (flowState.error || flowState.status === 'error') {
+      onError?.(flowState.error || `Flow error: ${flowState.message || 'Unknown error'}`);
     }
   }, [flowState, onStatusUpdate, onQuestionnaireReady, onError]);
 

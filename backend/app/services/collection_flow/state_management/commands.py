@@ -131,7 +131,7 @@ class CollectionFlowCommandService:
             await self.db.refresh(collection_flow)
 
             logger.info(
-                f"Initialized Collection Flow {flow_id} with tier {automation_tier} "
+                f"Initialized Collection Flow {master_flow_id} with tier {automation_tier} "
                 f"(master flow: {master_flow_id})"
             )
             return collection_flow

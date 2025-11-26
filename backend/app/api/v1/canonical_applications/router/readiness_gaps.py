@@ -20,12 +20,13 @@ from app.models.canonical_applications import (
     CanonicalApplication,
     CollectionFlowApplication,
 )
+from app.models.collection_flow import AdaptiveQuestionnaire
 from app.services.assessment.asset_readiness_service import AssetReadinessService
 
 logger = logging.getLogger(__name__)
 
 
-async def get_canonical_application_readiness_gaps(
+async def get_canonical_application_readiness_gaps(  # noqa: C901
     canonical_application_id: UUID,
     update_database: bool = Query(
         False,
@@ -147,6 +148,40 @@ async def get_canonical_application_readiness_gaps(
                 "not_ready_count": 0,
             }
 
+        # CC FIX: Pre-fetch questionnaire completion status for all assets
+        # Assets with completed questionnaires or "no TRUE gaps" failures should be marked ready
+        # This aligns with IntelligentGapScanner's assessment readiness criteria
+        asset_ids = [asset.id for asset in assets]
+        questionnaire_query = select(AdaptiveQuestionnaire).where(
+            AdaptiveQuestionnaire.asset_id.in_(asset_ids),
+            AdaptiveQuestionnaire.client_account_id == client_account_uuid,
+            AdaptiveQuestionnaire.engagement_id == engagement_uuid,
+        )
+        questionnaire_result = await db.execute(questionnaire_query)
+        questionnaires = questionnaire_result.scalars().all()
+
+        # Build lookup: asset_id -> questionnaire status
+        # Asset is ready if:
+        # 1. Has a completed questionnaire, OR
+        # 2. Has a "failed" questionnaire with "No questionnaires could be generated" (no TRUE gaps)
+        assets_ready_by_questionnaire: set[UUID] = set()
+        for q in questionnaires:
+            if q.completion_status == "completed":
+                assets_ready_by_questionnaire.add(q.asset_id)
+            elif q.completion_status == "failed":
+                # CC FIX: "No questionnaires could be generated" = asset has complete data
+                description = q.description or ""
+                if (
+                    "No questionnaires could be generated" in description
+                    or "no TRUE gaps" in description.lower()
+                ):
+                    assets_ready_by_questionnaire.add(q.asset_id)
+
+        logger.info(
+            f"📋 Found {len(assets_ready_by_questionnaire)} assets ready by questionnaire completion "
+            f"(out of {len(assets)} total assets)"
+        )
+
         # Analyze readiness for each asset and collect gap fields
         readiness_service = AssetReadinessService()  # CC FIX: No db in constructor
         missing_attributes: Dict[str, list[str]] = {}
@@ -154,17 +189,39 @@ async def get_canonical_application_readiness_gaps(
         updated_count = 0
 
         for asset in assets:
-            # Run gap analysis for this asset
-            # CC FIX: Pass UUIDs as strings because analyze_asset_readiness wraps them in UUID()
-            readiness_result = await readiness_service.analyze_asset_readiness(
-                asset_id=asset.id,
-                client_account_id=str(client_account_uuid),
-                engagement_id=str(engagement_uuid),
-                db=db,  # CC FIX: Pass db to method, not constructor
-            )
+            # CC FIX: Check questionnaire completion FIRST - overrides GapAnalyzer result
+            # This ensures consistency with IntelligentGapScanner's assessment readiness criteria
+            if asset.id in assets_ready_by_questionnaire:
+                # Asset has completed questionnaire or had no TRUE gaps - mark as ready
+                is_ready = True
+                logger.debug(
+                    f"Asset {asset.id} marked ready by questionnaire completion (skipping GapAnalyzer)"
+                )
+            else:
+                # Run gap analysis for this asset
+                # CC FIX: Pass UUIDs as strings because analyze_asset_readiness wraps them in UUID()
+                readiness_result = await readiness_service.analyze_asset_readiness(
+                    asset_id=asset.id,
+                    client_account_id=str(client_account_uuid),
+                    engagement_id=str(engagement_uuid),
+                    db=db,  # CC FIX: Pass db to method, not constructor
+                )
 
-            # Determine readiness status
-            is_ready = readiness_result.is_ready_for_assessment
+                # Determine readiness status
+                is_ready = readiness_result.is_ready_for_assessment
+
+                # If asset is not ready by GapAnalyzer, collect critical/high-priority gap field names
+                if not is_ready:
+                    # critical_gaps and high_priority_gaps are List[str] of field names
+                    gap_fields = list(
+                        set(
+                            readiness_result.critical_gaps
+                            + readiness_result.high_priority_gaps
+                        )
+                    )
+                    if gap_fields:
+                        missing_attributes[str(asset.id)] = gap_fields
+
             new_readiness_status = "ready" if is_ready else "not_ready"
 
             # Update database if requested (ALWAYS update, even if value unchanged)
@@ -172,6 +229,8 @@ async def get_canonical_application_readiness_gaps(
             if update_database:
                 old_status = asset.assessment_readiness
                 asset.assessment_readiness = new_readiness_status
+                # CC FIX: Also update sixr_ready for Assessment Flow UI
+                asset.sixr_ready = new_readiness_status
                 updated_count += 1
 
                 if old_status != new_readiness_status:
@@ -183,20 +242,9 @@ async def get_canonical_application_readiness_gaps(
                         f"Confirmed asset {asset.id} readiness: {new_readiness_status} (unchanged)"
                     )
 
-            # If asset is not ready, collect critical/high-priority gap field names
-            # CC FIX: readiness_result is ComprehensiveGapReport object, not dict
+            # Track not_ready count (gap_fields already collected in the else block above)
             if not is_ready:
                 not_ready_count += 1
-                # critical_gaps and high_priority_gaps are List[str] of field names
-                gap_fields = list(
-                    set(
-                        readiness_result.critical_gaps
-                        + readiness_result.high_priority_gaps
-                    )
-                )
-
-                if gap_fields:
-                    missing_attributes[str(asset.id)] = gap_fields
 
         # Commit database changes if updates were made
         if update_database and updated_count > 0:

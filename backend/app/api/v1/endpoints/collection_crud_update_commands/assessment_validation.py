@@ -7,8 +7,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from app.core.context import RequestContext
 from app.models.asset import Asset
@@ -172,6 +173,30 @@ async def check_and_set_assessment_ready(  # noqa: C901
                     f"✅ Collection flow {flow.flow_id} is now ready for assessment! "
                     f"All required attributes collected."
                 )
+
+                # CC FIX: Also update asset-level assessment_readiness for all selected assets
+                # This ensures the "Start New Assessment" modal shows assets as ready
+                if selected_asset_ids:
+                    asset_uuids = [
+                        UUID(aid) if isinstance(aid, str) else aid
+                        for aid in selected_asset_ids
+                    ]
+                    await db.execute(
+                        update(Asset)
+                        .where(
+                            Asset.id.in_(asset_uuids),
+                            Asset.client_account_id == context.client_account_id,
+                            Asset.engagement_id == context.engagement_id,
+                        )
+                        .values(
+                            assessment_readiness="ready",
+                            sixr_ready="ready",
+                        )
+                    )
+                    logger.info(
+                        f"✅ CC FIX: Updated {len(asset_uuids)} asset(s) to assessment_readiness='ready' "
+                        f"(flow {flow.flow_id} assessment_ready=True)"
+                    )
         else:
             missing = []
             if not has_business_criticality:
@@ -200,13 +225,19 @@ async def _check_all_questionnaires_completed(
     logger: logging.Logger,
 ) -> bool:
     """
-    Check if ALL selected assets have completed questionnaires.
+    Check if ALL selected assets are ready for assessment.
+
+    Per ADR-037: Assets are ready for assessment if:
+    1. They have a completed questionnaire, OR
+    2. They have no questionnaire at all (IntelligentGapScanner found no TRUE gaps,
+       meaning the asset already has complete data in existing sources)
 
     Returns True only if:
     1. There are selected assets
-    2. Every selected asset has at least one completed questionnaire
+    2. Every selected asset either has a completed questionnaire OR has no questionnaire
+       (assets with pending/ready/failed questionnaires are NOT ready)
 
-    Returns False if any asset is missing a completed questionnaire.
+    Returns False if any asset has an incomplete questionnaire (pending/ready/failed).
     """
     if not selected_asset_ids:
         logger.warning(
@@ -220,51 +251,121 @@ async def _check_all_questionnaires_completed(
         AdaptiveQuestionnaire,
     )
 
-    # Get all completed questionnaires for this flow
-    completed_questionnaires_result = await db.execute(
+    # Get ALL questionnaires for this flow (not just completed)
+    all_questionnaires_result = await db.execute(
         select(AdaptiveQuestionnaire).where(
             AdaptiveQuestionnaire.collection_flow_id == flow.id,
-            AdaptiveQuestionnaire.completion_status == "completed",
         )
     )
-    completed_questionnaires = list(completed_questionnaires_result.scalars().all())
+    all_questionnaires = list(all_questionnaires_result.scalars().all())
 
-    # Build set of asset IDs that have completed questionnaires
-    # CC FIX: Check asset_id column FIRST (primary source), then fallback to target_gaps
-    # The asset_id column is set during questionnaire creation and is the authoritative source
-    # target_gaps may be empty in ADR-037 per-section generation flow
+    # Categorize assets by questionnaire status
     assets_with_completed_questionnaires = set()
-    for questionnaire in completed_questionnaires:
+    assets_with_incomplete_questionnaires = (
+        set()
+    )  # pending or ready (awaiting user input)
+    assets_with_no_gaps_failures = (
+        set()
+    )  # "failed" but due to no TRUE gaps (asset complete)
+
+    for questionnaire in all_questionnaires:
+        # CC FIX: Check asset_id column FIRST (primary source), then fallback to target_gaps
+        # The asset_id column is set during questionnaire creation and is the authoritative source
+        # target_gaps may be empty in ADR-037 per-section generation flow
+        asset_ids_for_questionnaire = set()
+
         # Primary: Check the questionnaire's asset_id column directly
         if questionnaire.asset_id:
-            assets_with_completed_questionnaires.add(str(questionnaire.asset_id))
+            asset_ids_for_questionnaire.add(str(questionnaire.asset_id))
 
-        # Fallback: Check target_gaps for legacy questionnaires
-        # target_gaps structure: [{"asset_id": "uuid", "field": "...", ...}, ...]
-        if questionnaire.target_gaps:
-            for gap in questionnaire.target_gaps:
-                if isinstance(gap, dict) and gap.get("asset_id"):
-                    assets_with_completed_questionnaires.add(str(gap["asset_id"]))
+        # Fallback: Check questions for asset_id (legacy questionnaires stored it there)
+        # Each question may have target_gaps array with asset_id
+        if questionnaire.questions:
+            for question in questionnaire.questions:
+                if isinstance(question, dict):
+                    question_gaps = question.get("target_gaps", [])
+                    for gap in question_gaps:
+                        if isinstance(gap, dict) and gap.get("asset_id"):
+                            asset_ids_for_questionnaire.add(str(gap["asset_id"]))
+
+        # Categorize based on completion status
+        if questionnaire.completion_status == "completed":
+            assets_with_completed_questionnaires.update(asset_ids_for_questionnaire)
+        elif questionnaire.completion_status == "failed":
+            # CC FIX: Distinguish between "no gaps" failures vs actual failures
+            # "No questionnaires could be generated" = IntelligentGapScanner found no TRUE gaps
+            # This means the asset already has complete data and is READY for assessment
+            description = questionnaire.description or ""
+            questions_count = (
+                len(questionnaire.questions) if questionnaire.questions else 0
+            )
+
+            if (
+                "No questionnaires could be generated" in description
+                or "no TRUE gaps" in description.lower()
+                or (questions_count == 0 and "generation failed" in description.lower())
+            ):
+                # Asset has complete data - treat as ready for assessment
+                assets_with_no_gaps_failures.update(asset_ids_for_questionnaire)
+                logger.debug(
+                    f"Asset(s) {asset_ids_for_questionnaire} marked as ready "
+                    f"(questionnaire failed due to no TRUE gaps)"
+                )
+            else:
+                # Genuine failure - blocks assessment
+                assets_with_incomplete_questionnaires.update(
+                    asset_ids_for_questionnaire
+                )
+        else:
+            # pending or ready - awaiting user input, blocks assessment
+            assets_with_incomplete_questionnaires.update(asset_ids_for_questionnaire)
 
     # Convert selected_asset_ids to strings for comparison
     selected_asset_ids_set = {str(aid) for aid in selected_asset_ids}
 
-    # Check if all selected assets have completed questionnaires
-    missing_questionnaires = (
-        selected_asset_ids_set - assets_with_completed_questionnaires
+    # CC FIX (ADR-037): Check for incomplete questionnaires instead of missing ones
+    # Assets WITHOUT questionnaires are considered ready (IntelligentGapScanner found no TRUE gaps)
+    # Assets WITH "no gaps" failures are also considered ready (same reason - complete data)
+    # Only assets WITH pending/ready questionnaires or genuine failures should block assessment
+
+    # Assets that are ready for assessment:
+    # - Completed questionnaires
+    # - "Failed" questionnaires due to no TRUE gaps (asset has complete data)
+    assets_ready_for_assessment = (
+        assets_with_completed_questionnaires | assets_with_no_gaps_failures
     )
 
-    if missing_questionnaires:
+    # Remove ready assets from incomplete set (in case same asset has multiple questionnaires)
+    assets_blocking_assessment = (
+        assets_with_incomplete_questionnaires - assets_ready_for_assessment
+    )
+
+    # Only check for blocking assets that are in the selected set
+    blocking_selected_assets = assets_blocking_assessment & selected_asset_ids_set
+
+    if blocking_selected_assets:
+        # Some selected assets have questionnaires that aren't completed
         logger.info(
             f"⚠️ Not all questionnaires completed for flow {flow.flow_id}. "
             f"{len(selected_asset_ids_set)} selected assets, "
-            f"{len(assets_with_completed_questionnaires)} with completed questionnaires. "
-            f"Missing: {len(missing_questionnaires)} assets"
+            f"{len(assets_with_completed_questionnaires)} with completed questionnaires, "
+            f"{len(assets_with_no_gaps_failures)} with no TRUE gaps (ready), "
+            f"{len(blocking_selected_assets)} with incomplete questionnaires blocking assessment"
         )
         return False
 
+    # Count assets in different states for logging
+    assets_with_questionnaires = (
+        assets_with_completed_questionnaires
+        | assets_with_incomplete_questionnaires
+        | assets_with_no_gaps_failures
+    )
+    assets_without_questionnaires = selected_asset_ids_set - assets_with_questionnaires
+
     logger.info(
-        f"✅ All {len(selected_asset_ids_set)} selected assets have completed questionnaires "
-        f"for flow {flow.flow_id}"
+        f"✅ All selected assets ready for assessment in flow {flow.flow_id}: "
+        f"{len(assets_with_completed_questionnaires)} completed questionnaires, "
+        f"{len(assets_with_no_gaps_failures)} had no TRUE gaps (failed=complete), "
+        f"{len(assets_without_questionnaires)} had no questionnaire at all (complete data)"
     )
     return True
