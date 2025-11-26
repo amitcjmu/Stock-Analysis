@@ -1,13 +1,131 @@
 import type React from 'react';
-import { Download, FileText, FileSpreadsheet, Package, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Download, FileText, FileSpreadsheet, Package, AlertCircle, Loader2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import PlanNavigation from '@/components/plan/PlanNavigation';
+import { useToast } from '@/hooks/use-toast';
+import { planningFlowApi } from '@/lib/api/planningFlowService';
 
 const Export = (): JSX.Element => {
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  // Get planning_flow_id from URL query parameters
+  const planning_flow_id = searchParams.get('planning_flow_id');
+
+  /**
+   * Handle export in different formats
+   * @param format - Export format (json, pdf, excel)
+   */
+  const handleExport = async (format: 'json' | 'pdf' | 'excel') => {
+    if (!planning_flow_id) {
+      toast({
+        title: 'Error',
+        description: 'No planning flow selected. Please navigate from the planning page.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setDownloading(format);
+    try {
+      // Call the export API
+      const response = await planningFlowApi.exportPlanningData(planning_flow_id, format);
+
+      // Create a blob and download file
+      const timestamp = new Date().toISOString().split('T')[0];
+      let filename = '';
+      let blob: Blob;
+
+      if (format === 'json') {
+        // For JSON, stringify the response
+        blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' });
+        filename = `migration-plan-${timestamp}.json`;
+      } else if (format === 'pdf') {
+        // PDF will be binary data
+        blob = new Blob([response], { type: 'application/pdf' });
+        filename = `migration-plan-${timestamp}.pdf`;
+      } else if (format === 'excel') {
+        // Excel will be binary data
+        blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        filename = `migration-plan-${timestamp}.xlsx`;
+      } else {
+        throw new Error('Unsupported format');
+      }
+
+      // Trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: 'Success',
+        description: `Planning data exported successfully as ${format.toUpperCase()}`,
+      });
+    } catch (error: any) {
+      console.error('Export failed:', error);
+
+      // Handle 501 Not Implemented for PDF/Excel
+      if (error?.response?.status === 501) {
+        toast({
+          title: 'Feature Not Available',
+          description: error?.response?.data?.detail || `${format.toUpperCase()} export is not yet implemented. Please use JSON format.`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Export Failed',
+          description: error?.message || 'Failed to export planning data. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  // Show error if no planning flow ID
+  if (!planning_flow_id) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64">
+            <main className="p-8">
+              <ContextBreadcrumbs showContextSelector={true} />
+              <PlanNavigation />
+
+              <div className="max-w-7xl mx-auto">
+                <Card className="p-8">
+                  <div className="flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="bg-yellow-100 p-4 rounded-full">
+                      <AlertCircle className="h-12 w-12 text-yellow-600" />
+                    </div>
+                    <h2 className="text-2xl font-semibold text-gray-900">No Planning Flow Selected</h2>
+                    <p className="text-gray-600 max-w-lg">
+                      Please navigate to this page from the planning flow to export data.
+                    </p>
+                  </div>
+                </Card>
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">
@@ -32,22 +150,22 @@ const Export = (): JSX.Element => {
                 </div>
               </div>
 
-              {/* Coming Soon Notice */}
+              {/* Export Options */}
               <Card className="p-8">
                 <div className="flex flex-col items-center justify-center text-center space-y-4">
                   <div className="bg-blue-100 p-4 rounded-full">
                     <Download className="h-12 w-12 text-blue-600" />
                   </div>
-                  <h2 className="text-2xl font-semibold text-gray-900">Export Features Coming Soon</h2>
+                  <h2 className="text-2xl font-semibold text-gray-900">Export Planning Data</h2>
                   <p className="text-gray-600 max-w-lg">
-                    Export functionality for migration plans, timelines, and resource allocations will be available in the next release.
+                    Choose your preferred format to export migration plans, timelines, and resource allocations.
                   </p>
                 </div>
               </Card>
 
-              {/* Placeholder Export Options (Preview) */}
+              {/* Export Options */}
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Planned Export Options</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Options</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card className="p-6">
                     <div className="flex items-center space-x-3 mb-4">
@@ -59,9 +177,23 @@ const Export = (): JSX.Element => {
                     <p className="text-sm text-gray-600 mb-4">
                       Complete migration plan with all waves, applications, and resource assignments
                     </p>
-                    <Button variant="outline" disabled className="w-full">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export to Excel
+                    <Button
+                      variant="outline"
+                      onClick={() => handleExport('excel')}
+                      disabled={downloading !== null}
+                      className="w-full"
+                    >
+                      {downloading === 'excel' ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export to Excel
+                        </>
+                      )}
                     </Button>
                   </Card>
 
@@ -75,9 +207,23 @@ const Export = (): JSX.Element => {
                     <p className="text-sm text-gray-600 mb-4">
                       Executive summary with key metrics, timelines, and risk analysis
                     </p>
-                    <Button variant="outline" disabled className="w-full">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export to PDF
+                    <Button
+                      variant="outline"
+                      onClick={() => handleExport('pdf')}
+                      disabled={downloading !== null}
+                      className="w-full"
+                    >
+                      {downloading === 'pdf' ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export to PDF
+                        </>
+                      )}
                     </Button>
                   </Card>
 
@@ -91,9 +237,23 @@ const Export = (): JSX.Element => {
                     <p className="text-sm text-gray-600 mb-4">
                       Complete data export in JSON format for integration with other tools
                     </p>
-                    <Button variant="outline" disabled className="w-full">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export to JSON
+                    <Button
+                      variant="outline"
+                      onClick={() => handleExport('json')}
+                      disabled={downloading !== null}
+                      className="w-full"
+                    >
+                      {downloading === 'json' ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export to JSON
+                        </>
+                      )}
                     </Button>
                   </Card>
                 </div>
@@ -105,7 +265,7 @@ const Export = (): JSX.Element => {
                   <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
                     <p className="text-blue-800 text-sm">
-                      <strong>Note:</strong> This feature is planned for issue #714. Export functionality will include customizable templates, scheduled exports, and API integration options.
+                      <strong>Note:</strong> JSON export is currently available. PDF and Excel exports will be available in a future release (issue #714). Export functionality will include customizable templates, scheduled exports, and API integration options.
                     </p>
                   </div>
                 </div>

@@ -49,6 +49,7 @@ export default function WavePlanningPage(): JSX.Element {
   const [waves, setWaves] = useState<Wave[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWave, setSelectedWave] = useState<Wave | null>(null);
+  const [applicationsMap, setApplicationsMap] = useState<Map<string, { id: string; name: string }>>(new Map());
 
   // Fetch available planning flows if no flow_id provided
   const {
@@ -101,6 +102,23 @@ export default function WavePlanningPage(): JSX.Element {
   useEffect(() => {
     if (planningStatus?.wave_plan_data?.waves) {
       setWaves(planningStatus.wave_plan_data.waves);
+
+      // Build applications map from all waves
+      // TODO: Fetch actual application details from backend
+      // For now, create placeholder entries based on application IDs in waves
+      const appMap = new Map<string, { id: string; name: string }>();
+      planningStatus.wave_plan_data.waves.forEach((wave) => {
+        wave.applications?.forEach((appId) => {
+          if (!appMap.has(appId)) {
+            // Placeholder until we fetch real application data
+            appMap.set(appId, {
+              id: appId,
+              name: `Application ${appId.substring(0, 8)}...`,
+            });
+          }
+        });
+      });
+      setApplicationsMap(appMap);
     }
   }, [planningStatus]);
 
@@ -182,6 +200,65 @@ export default function WavePlanningPage(): JSX.Element {
         description: error instanceof Error ? error.message : 'Unable to save wave',
         variant: 'destructive',
       });
+    }
+  };
+
+  /**
+   * Handle moving an application between waves.
+   * Updates wave assignments and persists via API.
+   */
+  const handleApplicationMoved = async (
+    appId: string,
+    fromWave: number,
+    toWave: number
+  ) => {
+    if (!planning_flow_id) return;
+
+    try {
+      // Update waves locally (optimistic update)
+      const updatedWaves = waves.map((wave) => {
+        // Remove from source wave
+        if (wave.wave_number === fromWave) {
+          return {
+            ...wave,
+            applications: (wave.applications || []).filter((id) => id !== appId),
+            application_count: Math.max(0, (wave.application_count || 0) - 1),
+          };
+        }
+        // Add to target wave
+        if (wave.wave_number === toWave) {
+          return {
+            ...wave,
+            applications: [...(wave.applications || []), appId],
+            application_count: (wave.application_count || 0) + 1,
+          };
+        }
+        return wave;
+      });
+
+      // Persist to backend
+      await planningFlowApi.updateWavePlan(planning_flow_id, {
+        waves: updatedWaves,
+        total_waves: updatedWaves.length,
+      });
+
+      // Update local state
+      setWaves(updatedWaves);
+      refetchPlanningData(); // Refresh data from server
+
+      toast({
+        title: 'Application Moved',
+        description: `Application moved from Wave ${fromWave} to Wave ${toWave}`,
+      });
+    } catch (error) {
+      console.error('Failed to move application:', error);
+      toast({
+        title: 'Error Moving Application',
+        description: error instanceof Error ? error.message : 'Unable to move application',
+        variant: 'destructive',
+      });
+      // Revert local state by refetching
+      refetchPlanningData();
     }
   };
 
@@ -391,8 +468,11 @@ export default function WavePlanningPage(): JSX.Element {
           {/* Wave Dashboard */}
           <WaveDashboard
             waves={waves}
+            applications={applicationsMap}
             onEditWave={handleEditWave}
             onDeleteWave={handleDeleteWave}
+            onApplicationMoved={handleApplicationMoved}
+            isDragEnabled={true}
           />
 
           {/* Wave Modal */}

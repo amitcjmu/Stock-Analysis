@@ -1,7 +1,8 @@
 """
 Mock data for Plan API endpoints.
 
-TODO: Replace with real database queries when resource_teams table is created.
+DEPRECATED: This file is being phased out. Use ResourceService instead.
+Kept for backward compatibility during migration.
 """
 
 from datetime import datetime, timedelta
@@ -9,6 +10,11 @@ from typing import Any, Dict
 
 
 def get_resource_mock_data(current_date: datetime) -> Dict[str, Any]:
+    """
+    DEPRECATED: Use ResourceService.get_resources_for_planning() instead.
+
+    This function is kept for backward compatibility only.
+    """
     """Generate resource planning mock data with teams, metrics, and recommendations."""
     return {
         "teams": [
