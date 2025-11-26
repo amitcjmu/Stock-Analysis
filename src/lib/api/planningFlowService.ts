@@ -102,6 +102,8 @@ export interface Wave {
   wave_name: string;
   /** Number of applications in this wave */
   application_count: number;
+  /** Array of application UUIDs assigned to this wave */
+  applications?: string[];
   /** Optional start date (ISO format) */
   start_date?: string;
   /** Optional end date (ISO format) */
@@ -112,6 +114,13 @@ export interface Wave {
   description?: string;
   /** Optional dependencies on other waves */
   dependencies?: number[];
+  /** Optional group metadata from CrewAI agent */
+  groups?: Array<{
+    group_id: string;
+    group_name: string;
+    application_count: number;
+    migration_strategy?: string;
+  }>;
 }
 
 // =============================================================================

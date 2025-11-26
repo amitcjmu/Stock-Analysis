@@ -11,6 +11,7 @@ import type { Application as ApplicationType } from '@/lib/api/applicationsServi
 interface Application {
   id: string;
   name: string;
+  assetName?: string | null;  // Preserve original asset_name from API
   techStack: string;
   criticality: 'High' | 'Medium' | 'Low';
   department: string;
@@ -58,6 +59,7 @@ const SixRAnalysis: React.FC = () => {
         return apps.map((app: any) => ({
           id: app.id,
           name: app.application_name || app.asset_name || 'Unknown',
+          assetName: app.asset_name,  // Preserve original asset_name for Planning Flow
           techStack: app.tech_stack || 'Unknown',
           criticality: app.criticality || 'Medium',
           department: app.department || 'IT', // Removed business_unit - doesn't exist in DB
@@ -214,7 +216,7 @@ const SixRAnalysis: React.FC = () => {
     .map((app) => ({
       id: app.id,
       application_name: app.name,
-      asset_name: null,
+      asset_name: app.assetName || null,  // Preserve asset_name from API response (no longer hardcoded to null)
       six_r_strategy: app.sixRTreatment || null,
       tech_stack: app.techStack,
       complexity_score: app.cloudReadiness || null,

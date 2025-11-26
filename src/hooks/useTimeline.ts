@@ -10,6 +10,9 @@ export interface TimelinePhase {
   status: 'Not Started' | 'In Progress' | 'Completed' | 'Delayed';
   progress: number;
   dependencies: string[];
+  wave_number?: number; // Optional wave grouping
+  phase_number?: number; // Phase sequence number
+  is_on_critical_path?: boolean; // Critical path indicator from backend
   milestones: Array<{
     name: string;
     date: string;
@@ -49,8 +52,8 @@ export const useTimeline = () => {
   return useQuery<TimelineData>({
     queryKey: ['timeline', client?.id, engagement?.id],
     queryFn: async () => {
-      // Call real backend endpoint (returns mock data currently, but structure is correct)
-      const response = await apiCall('/api/v1/plan/timeline');
+      // Use consolidated roadmap endpoint (queries real project_timelines and timeline_phases tables)
+      const response = await apiCall('/api/v1/plan/roadmap');
       return response;
     },
     enabled: isAuthenticated && !!client && !!engagement,
