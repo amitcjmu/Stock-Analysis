@@ -39,25 +39,33 @@ class ResourceService:
         self.db = db
         self.context = context
 
-        # Convert context string IDs to integers (database uses INTEGER, not UUID yet)
-        # Migration 115 will convert database to UUID, but for now we use integers
-        try:
-            self.client_account_id = (
-                int(context.client_account_id) if context.client_account_id else None
+        # Per migration 115, tenant IDs are UUIDs - NEVER convert to integers
+        from uuid import UUID
+
+        client_account_id = context.client_account_id
+        engagement_id = context.engagement_id
+
+        self.client_account_uuid = (
+            (
+                UUID(client_account_id)
+                if isinstance(client_account_id, str)
+                else client_account_id
             )
-            self.engagement_id = (
-                int(context.engagement_id) if context.engagement_id else None
-            )
-        except (ValueError, TypeError):
-            # Fallback to string if conversion fails
-            self.client_account_id = context.client_account_id
-            self.engagement_id = context.engagement_id
+            if client_account_id
+            else None
+        )
+
+        self.engagement_uuid = (
+            (UUID(engagement_id) if isinstance(engagement_id, str) else engagement_id)
+            if engagement_id
+            else None
+        )
 
         # Initialize repository with tenant scoping
         self.planning_repo = PlanningFlowRepository(
             db=db,
-            client_account_id=self.client_account_id,
-            engagement_id=self.engagement_id,
+            client_account_id=self.client_account_uuid,
+            engagement_id=self.engagement_uuid,
         )
 
     async def get_resources_for_planning(

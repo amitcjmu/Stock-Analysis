@@ -35,9 +35,13 @@ class ResourcePool(Base):
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
     )
 
-    # Multi-Tenant Scoping (INTEGER for now - migration 115 will convert to UUID)
-    client_account_id: Mapped[int] = mapped_column(nullable=False)
-    engagement_id: Mapped[int] = mapped_column(nullable=False)
+    # Multi-Tenant Scoping (UUID per migration 115)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
 
     # Resource Pool Identity
     pool_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -119,9 +123,13 @@ class ResourceAllocation(Base):
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
     )
 
-    # Multi-Tenant Scoping (INTEGER for now - migration 115 will convert to UUID)
-    client_account_id: Mapped[int] = mapped_column(nullable=False)
-    engagement_id: Mapped[int] = mapped_column(nullable=False)
+    # Multi-Tenant Scoping (UUID per migration 115)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
 
     # Planning Flow Reference
     planning_flow_id: Mapped[uuid.UUID] = mapped_column(
@@ -202,9 +210,13 @@ class ResourceSkill(Base):
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
     )
 
-    # Multi-Tenant Scoping (INTEGER for now - migration 115 will convert to UUID)
-    client_account_id: Mapped[int] = mapped_column(nullable=False)
-    engagement_id: Mapped[int] = mapped_column(nullable=False)
+    # Multi-Tenant Scoping (UUID per migration 115)
+    client_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
 
     # Wave Reference (FK to migration_waves)
     wave_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

@@ -242,9 +242,8 @@ export default function WavePlanningPage(): JSX.Element {
         total_waves: updatedWaves.length,
       });
 
-      // Update local state
-      setWaves(updatedWaves);
-      refetchPlanningData(); // Refresh data from server
+      // Refresh data from server to ensure consistency (avoid redundant local state update)
+      refetchPlanningData();
 
       toast({
         title: 'Application Moved',

@@ -156,7 +156,8 @@ async def generate_wave_plan_with_agent(
             parsed_result = json.loads(result_str)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse agent output as JSON: {e}")
-            logger.debug(f"Raw output: {result_str[:500]}")
+            # Log truncated output without sensitive data for debugging (redact potential PII)
+            logger.debug("Raw output parsing failed - check agent configuration")
             # Fallback to simple wave plan
             from .wave_logic import generate_fallback_wave_plan
 

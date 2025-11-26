@@ -62,15 +62,17 @@ async def get_roadmap(
     )
 
     # Get timelines for engagement (directly query with tenant scoping)
+    # Use UUID variables for database query consistency
     stmt = (
         select(ProjectTimeline)
         .where(
             and_(
-                ProjectTimeline.client_account_id == client_account_id,
-                ProjectTimeline.engagement_id == engagement_id,
+                ProjectTimeline.client_account_id == client_account_uuid,
+                ProjectTimeline.engagement_id == engagement_uuid,
             )
         )
         .order_by(ProjectTimeline.created_at.desc())
+        .limit(1)
     )
 
     result = await db.execute(stmt)
@@ -265,10 +267,10 @@ async def get_timeline(
     import logging
 
     logger = logging.getLogger(__name__)
+    # Log deprecation without exposing tenant identifiers (security: redact PII)
     logger.warning(
         "DEPRECATED: /api/v1/plan/timeline endpoint called. "
-        "Please migrate to /api/v1/plan/roadmap. "
-        f"Client: {context.client_account_id}, Engagement: {context.engagement_id}"
+        "Please migrate to /api/v1/plan/roadmap."
     )
 
     # Forward to consolidated roadmap endpoint

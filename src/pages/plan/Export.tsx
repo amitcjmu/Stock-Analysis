@@ -59,15 +59,18 @@ const Export = (): JSX.Element => {
         throw new Error('Unsupported format');
       }
 
-      // Trigger download
+      // Trigger download with delayed cleanup for browser compatibility
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Delay cleanup to ensure download initiates across all browsers
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 150);
 
       toast({
         title: 'Success',
