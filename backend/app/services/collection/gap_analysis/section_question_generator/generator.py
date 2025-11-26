@@ -144,29 +144,60 @@ class SectionQuestionGenerator:
         """
         import re
 
-        # Fix invalid escape sequences by:
-        # 1. First, temporarily protect valid escape sequences
-        # 2. Then escape any remaining backslashes followed by invalid chars
-        # 3. Restore valid sequences
-
-        # Valid JSON escapes: " \ / b f n r t and uXXXX
-        # We need to handle cases like \X, \x (invalid), \. (invalid) etc.
-
-        # Pattern to find backslash followed by character that's NOT a valid escape
-        # Valid: " \ / b f n r t u (for unicode)
-        # This regex finds \X where X is not one of the valid escape chars
+        # Use negative lookahead to find backslashes NOT followed by valid escape sequences.
+        # Valid sequences: " \ / b f n r t or u followed by 4 hex digits (unicode).
+        # Any other backslash-character pair gets the backslash escaped.
         def fix_invalid_escape(match: re.Match) -> str:
-            char = match.group(1)
-            # If it's a valid escape sequence start, keep it
-            if char in r'"\\/bfnrtu':
-                return match.group(0)
-            # Otherwise, escape the backslash itself
-            return "\\\\" + char
+            # The matched group is the character immediately following the backslash
+            return r"\\" + match.group(1)
 
-        # Match backslash followed by any character
-        result = re.sub(r"\\(.)", fix_invalid_escape, text)
+        # Pattern: backslash NOT followed by valid escape chars or unicode sequence
+        result = re.sub(
+            r'\\(?![\\"/bfnrt]|u[0-9a-fA-F]{4})(.)', fix_invalid_escape, text
+        )
 
         return result
+
+    def _repair_truncated_json(self, text: str) -> str:
+        """
+        Attempt to repair truncated JSON by closing open brackets and braces.
+
+        Bug #29: LLM responses sometimes get truncated mid-JSON, causing parse failures.
+        This function tries to close any unclosed structures to allow partial parsing.
+
+        Args:
+            text: Potentially truncated JSON string
+
+        Returns:
+            Repaired JSON string (may still be invalid, but worth trying)
+        """
+        # Count open vs closed brackets and braces
+        open_braces = text.count("{") - text.count("}")
+        open_brackets = text.count("[") - text.count("]")
+
+        # If we have unclosed structures, the JSON is likely truncated
+        if open_braces > 0 or open_brackets > 0:
+            logger.warning(
+                f"Detected truncated JSON: {open_braces} unclosed braces, "
+                f"{open_brackets} unclosed brackets. Attempting repair..."
+            )
+
+            # Try to find a good cut-off point (last complete object in array)
+            # Look for the last complete object ending with "}"
+
+            # Find the last complete question object (ends with })
+            # Pattern: look for "},\n" or "}\n" or just "}" followed by incomplete data
+            last_complete = text.rfind("},")
+            if last_complete > 0:
+                # Cut at the last complete object and close the array/object
+                text = text[: last_complete + 1]
+                text = text.rstrip(",")  # Remove trailing comma
+
+            # Close any open brackets/braces
+            text += "]" * open_brackets
+            text += "}" * open_braces
+
+        return text
 
     def _parse_llm_response(
         self, response: str, section_name: str, asset_name: str
@@ -179,6 +210,7 @@ class SectionQuestionGenerator:
         - Malformed JSON (trailing commas, single quotes)
         - NaN/Infinity values from confidence scores
         - Invalid escape sequences (Bug #26: \\X, \\x, etc.)
+        - Truncated JSON (Bug #29: closing unclosed brackets/braces)
         - Missing fields
 
         Args:
@@ -205,12 +237,20 @@ class SectionQuestionGenerator:
             # Fallback to dirtyjson for malformed JSON
             try:
                 parsed = dirtyjson.loads(cleaned)
-            except Exception as e:
-                logger.error(
-                    f"Failed to parse LLM response for {asset_name} in {section_name}: {e}"
-                )
-                logger.error(f"Response was: {cleaned[:500]}")
-                return []
+            except Exception:
+                # Bug #29: Try repairing truncated JSON
+                try:
+                    repaired = self._repair_truncated_json(cleaned)
+                    parsed = dirtyjson.loads(repaired)
+                    logger.info(
+                        f"Successfully parsed repaired JSON for {asset_name} in {section_name}"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to parse LLM response for {asset_name} in {section_name}: {e}"
+                    )
+                    logger.error(f"Response was: {cleaned[:500]}")
+                    return []
 
         # Sanitize NaN/Infinity values (ADR-029)
         parsed = sanitize_for_json(parsed)

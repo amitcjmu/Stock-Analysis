@@ -2,11 +2,12 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, Dict, List, cast
 from uuid import UUID
 
 from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow
+from app.models.asset import Asset
 from ..database_helpers import (
     update_questionnaire_status,
     load_assets_for_background,
@@ -99,27 +100,29 @@ async def _background_generate(
                     )
 
                     # Progress flow to completed state (collection not needed, asset is ready)
-                    flow_uuid = UUID(flow_id)
+                    # OPTIMIZATION: Use flow_db_id directly (already available from line 40)
+                    # instead of complex OR query with UUID conversion
                     flow_result = await db.execute(
-                        select(CollectionFlow).where(
-                            (CollectionFlow.flow_id == flow_uuid)
-                            | (CollectionFlow.id == flow_uuid)
-                        )
+                        select(CollectionFlow).where(CollectionFlow.id == flow_db_id)
                     )
                     current_flow = flow_result.scalar_one_or_none()
 
                     if current_flow:
                         # ✅ Bug #31 Fix: Set metadata flags for "no gaps" case too
-                        updated_metadata = current_flow.flow_metadata or {}
-                        updated_metadata["questionnaire_ready"] = True
-                        updated_metadata["agent_questionnaire_id"] = str(
+                        flow_metadata_dict: Dict[str, Any] = (
+                            cast(Dict[str, Any], current_flow.flow_metadata)
+                            if current_flow.flow_metadata
+                            else {}
+                        )
+                        flow_metadata_dict["questionnaire_ready"] = True
+                        flow_metadata_dict["agent_questionnaire_id"] = str(
                             questionnaire_id
                         )
-                        updated_metadata["questionnaire_generating"] = False
-                        updated_metadata["no_gaps_detected"] = (
+                        flow_metadata_dict["questionnaire_generating"] = False
+                        flow_metadata_dict["no_gaps_detected"] = (
                             True  # Signal asset is complete
                         )
-                        updated_metadata["generation_completed_at"] = datetime.now(
+                        flow_metadata_dict["generation_completed_at"] = datetime.now(
                             timezone.utc
                         ).isoformat()
 
@@ -130,10 +133,43 @@ async def _background_generate(
                                 current_phase="completed",  # Collection not needed
                                 status="completed",
                                 progress_percentage=100.0,
-                                flow_metadata=updated_metadata,  # ✅ Bug #31: Set metadata
+                                flow_metadata=flow_metadata_dict,  # ✅ Bug #31: Set metadata
                                 updated_at=datetime.now(timezone.utc),
                             )
                         )
+
+                        # CC FIX: Update asset-level assessment_readiness for "no gaps" case
+                        # When IntelligentGapScanner finds no TRUE gaps, the asset has complete data
+                        # and should be marked ready for assessment at the Asset level too
+                        # This ensures the "Start New Assessment" modal shows assets as ready
+                        selected_asset_ids: List[Any] = (
+                            flow_metadata_dict.get("selected_asset_ids") or []
+                        )
+
+                        if selected_asset_ids:
+                            # Convert string IDs to UUIDs
+                            asset_uuids = [
+                                UUID(aid) if isinstance(aid, str) else aid
+                                for aid in selected_asset_ids
+                            ]
+                            await db.execute(
+                                sql_update(Asset)
+                                .where(
+                                    Asset.id.in_(asset_uuids),
+                                    Asset.client_account_id
+                                    == context.client_account_id,
+                                    Asset.engagement_id == context.engagement_id,
+                                )
+                                .values(
+                                    assessment_readiness="ready",
+                                    sixr_ready="ready",  # Also update sixr_ready for Assessment UI
+                                )
+                            )
+                            logger.info(
+                                f"✅ CC FIX: Updated {len(asset_uuids)} asset(s) to assessment_readiness='ready' "
+                                f"(no TRUE gaps detected)"
+                            )
+
                         await db.commit()
                         logger.info(
                             f"✅ Flow {flow_id} completed - assets already have complete data"
@@ -223,11 +259,17 @@ async def _background_generate(
                 ]:
                     # ✅ Bug #31 Fix: Update flow_metadata with questionnaire_ready flag
                     # The /questionnaires/status endpoint checks these flags to detect completion
-                    updated_metadata = current_flow.flow_metadata or {}
-                    updated_metadata["questionnaire_ready"] = True
-                    updated_metadata["agent_questionnaire_id"] = str(questionnaire_id)
-                    updated_metadata["questionnaire_generating"] = False
-                    updated_metadata["generation_completed_at"] = datetime.now(
+                    flow_metadata_update: Dict[str, Any] = (
+                        cast(Dict[str, Any], current_flow.flow_metadata)
+                        if current_flow.flow_metadata
+                        else {}
+                    )
+                    flow_metadata_update["questionnaire_ready"] = True
+                    flow_metadata_update["agent_questionnaire_id"] = str(
+                        questionnaire_id
+                    )
+                    flow_metadata_update["questionnaire_generating"] = False
+                    flow_metadata_update["generation_completed_at"] = datetime.now(
                         timezone.utc
                     ).isoformat()
 
@@ -238,7 +280,7 @@ async def _background_generate(
                             current_phase="manual_collection",
                             status="paused",  # FIXED: Use valid enum value (awaiting user questionnaire input)
                             progress_percentage=50.0,  # Questionnaire generated = 50% progress
-                            flow_metadata=updated_metadata,  # ✅ Bug #31: Set metadata flags
+                            flow_metadata=flow_metadata_update,  # ✅ Bug #31: Set metadata flags
                             updated_at=datetime.now(timezone.utc),
                         )
                     )

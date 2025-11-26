@@ -533,7 +533,7 @@ Data Exists Elsewhere ({len(data_elsewhere)}):
         This method attempts to repair the JSON by:
         1. Removing trailing incomplete strings (e.g., "value": "incomplete...)
         2. Removing trailing incomplete keys (e.g., "field":)
-        3. Closing unclosed brackets in the correct order
+        3. Closing unclosed brackets in the correct order using a stack
 
         Args:
             json_str: Potentially truncated JSON string
@@ -557,26 +557,41 @@ Data Exists Elsewhere ({len(data_elsewhere)}):
         # Remove trailing comma before attempting to close brackets
         json_str = re.sub(r",\s*$", "", json_str)
 
-        # Count unclosed brackets
-        open_braces = json_str.count("{") - json_str.count("}")
-        open_brackets = json_str.count("[") - json_str.count("]")
+        # Use a stack to determine the correct closing sequence
+        # This handles nested structures correctly (e.g., [{"key": [{...}]}])
+        stack: list[str] = []
+        in_string = False
+        prev_char = ""
 
-        # Build closing sequence by analyzing the structure
-        # We need to close in reverse order of how they were opened
+        for char in json_str:
+            if char == '"' and prev_char != "\\":
+                # Toggle string state (handles escaped quotes)
+                in_string = not in_string
+            elif not in_string:
+                if char in "{[":
+                    stack.append(char)
+                elif char == "}":
+                    if stack and stack[-1] == "{":
+                        stack.pop()
+                elif char == "]":
+                    if stack and stack[-1] == "[":
+                        stack.pop()
+            prev_char = char
+
+        # Build closing sequence from stack (reverse order)
         closing_sequence = []
-
-        # Simple approach: close brackets then braces
-        # This works for most LLM-generated JSON structures
-        for _ in range(open_brackets):
-            closing_sequence.append("]")
-        for _ in range(open_braces):
-            closing_sequence.append("}")
+        for open_char in reversed(stack):
+            if open_char == "{":
+                closing_sequence.append("}")
+            elif open_char == "[":
+                closing_sequence.append("]")
 
         # Append closing sequence
         if closing_sequence:
+            closing_str = "".join(closing_sequence)
             logger.warning(
-                f"🔧 Bug #20: Repaired truncated JSON by adding: {''.join(closing_sequence)}"
+                f"🔧 Bug #20: Repaired truncated JSON by adding: '{closing_str}'"
             )
-            json_str = json_str + "".join(closing_sequence)
+            json_str += closing_str
 
         return json_str

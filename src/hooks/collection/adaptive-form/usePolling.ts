@@ -8,6 +8,7 @@
 
 import { useRef } from "react";
 import { collectionFlowApi } from "@/services/api/collection-flow";
+import { isFlowTerminal } from "@/constants/flowStates";
 import type { CollectionQuestionnaire } from "./types";
 import type { CollectionFlowStatusResponse } from "@/services/api/collection-flow";
 
@@ -31,12 +32,15 @@ export interface UsePollingReturn {
  * HTTP polling hook for questionnaire generation
  * CRITICAL: NO WebSockets - uses HTTP polling for Railway compatibility
  *
- * @param timeoutMs - Maximum time to wait for questionnaires (default: 30000ms)
+ * @param timeoutMs - Maximum time to wait for questionnaires (default: 120000ms / 2 minutes)
  * @param activePollingInterval - Polling interval when flow is active (default: 2000ms)
  * @param waitingPollingInterval - Polling interval when waiting (default: 5000ms)
  */
 export function usePolling({
-  timeoutMs = 30000, // 30 seconds max wait time to match backend
+  // Bug #28 Fix: Increased timeout from 30s to 120s to match actual generation time
+  // Intelligent questionnaire generation with 6-source gap analysis takes ~90s
+  // Add 30s buffer for network latency and retry handling
+  timeoutMs = 120000, // 120 seconds (2 minutes) to allow full generation
   activePollingInterval = 2000, // 2s for active processing
   waitingPollingInterval = 5000, // 5s for waiting states
 }: UsePollingProps = {}): UsePollingReturn {
@@ -96,17 +100,25 @@ export function usePolling({
             message: flowStatus.message,
           });
 
-          // Handle flow errors
+          // Handle terminal flow states (completed, cancelled, failed, aborted, etc.)
+          // Use isFlowTerminal helper from flowStates.ts as single source of truth
           if (
-            flowStatus.status === "error" ||
-            flowStatus.status === "failed"
+            isFlowTerminal(flowStatus.status) &&
+            flowStatus.status !== "completed"
           ) {
-            console.error("❌ Collection flow failed:", flowStatus.message);
+            console.error(
+              `❌ Collection flow entered terminal state '${flowStatus.status}':`,
+              flowStatus.message
+            );
             if (pollingIntervalIdRef.current) {
               clearInterval(pollingIntervalIdRef.current);
               pollingIntervalIdRef.current = null;
             }
-            reject(new Error(`Collection flow failed: ${flowStatus.message || 'Unknown error - please retry or contact support'}`));
+            reject(
+              new Error(
+                `Collection flow ended with status '${flowStatus.status}': ${flowStatus.message || "Please retry or contact support"}`
+              )
+            );
             return;
           }
 
