@@ -48,7 +48,9 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   onBulkLearnMappings,
   learnedMappings,
   clientAccountId,
-  engagementId
+  engagementId,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
   const { client, engagement } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -402,6 +404,8 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
         lastBulkOperationTime={lastBulkOperationTime}
         client={client}
         engagement={engagement}
+        canContinueToDataCleansing={canContinueToDataCleansing}
+        onContinueToDataCleansing={onContinueToDataCleansing}
       />
     </div>
   );

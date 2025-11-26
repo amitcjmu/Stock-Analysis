@@ -355,11 +355,57 @@ export const downloadCleanedData = async (flowId: string): Promise<void> => {
   }
 };
 
+/**
+ * Apply or reject a cleansing recommendation
+ */
+export const applyRecommendation = async (
+  flowId: string,
+  recommendationId: string,
+  action: 'apply' | 'reject',
+  notes?: string
+): Promise<{
+  success: boolean;
+  message: string;
+  recommendation_id: string;
+  action: string;
+  applied_at: string;
+}> => {
+  try {
+    const response = await apiCall(`/flows/${flowId}/data-cleansing/recommendations/${recommendationId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({
+        action: action,
+        notes: notes
+      })
+    });
+
+    if (!response?.success) {
+      throw new Error((response as any)?.message || 'Failed to apply recommendation');
+    }
+
+    return response as {
+      success: boolean;
+      message: string;
+      recommendation_id: string;
+      action: string;
+      applied_at: string;
+    };
+  } catch (error) {
+    console.error('Error applying recommendation:', error);
+    throw error;
+  }
+};
+
 export default {
   fetchLatestImport,
   fetchAssets,
   performAgentAnalysis,
   applyFix,
   downloadRawData,
-  downloadCleanedData
+  downloadCleanedData,
+  applyRecommendation
 };

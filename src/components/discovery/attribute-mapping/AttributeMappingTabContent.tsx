@@ -38,6 +38,8 @@ interface AttributeMappingTabContentProps {
   engagementId?: string;
   flowId?: string | null;
   importCategory?: string;
+  canContinueToDataCleansing?: boolean;
+  onContinueToDataCleansing?: () => void;
 }
 
 const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
@@ -62,6 +64,9 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   engagementId,
   flowId,
   importCategory,
+  engagementId,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
   const renderTabContent = (): JSX.Element => {
     switch (activeTab) {
@@ -91,6 +96,9 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
               clientAccountId={clientAccountId}
               engagementId={engagementId}
               sessionInfo={sessionInfo}
+              // Continue to data cleansing props
+              canContinueToDataCleansing={canContinueToDataCleansing}
+              onContinueToDataCleansing={onContinueToDataCleansing}
             />
           </FieldMappingErrorBoundary>
         );

@@ -13,11 +13,9 @@ interface AttributeMappingHeaderProps {
     critical_mapped: number;
   };
   isAgenticLoading: boolean;
-  canContinueToDataCleansing: boolean;
   onRefetch: () => void;
   onTriggerAnalysis: () => void;
   onBulkApproveNeedsReview: () => void;
-  onContinueToDataCleansing: () => void;
   onReprocessMappings?: () => void;
   flowStatus?: string;
   hasFieldMappings?: boolean;
@@ -30,11 +28,9 @@ interface AttributeMappingHeaderProps {
 export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   mappingProgress,
   isAgenticLoading,
-  canContinueToDataCleansing,
   onRefetch,
   onTriggerAnalysis,
   onBulkApproveNeedsReview,
-  onContinueToDataCleansing,
   onReprocessMappings,
   flowStatus,
   hasFieldMappings,

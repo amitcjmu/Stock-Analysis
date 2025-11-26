@@ -86,6 +86,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   sessionInfo,
   flowId,
   importCategory,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
   // ============================================================================
   // STATE & HOOKS
@@ -433,8 +435,9 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           )}
         </>
       ) : (
-        /* Tabbed View */
-        <ThreeColumnFieldMapper
+        <>
+          {/* Tabbed View */}
+          <ThreeColumnFieldMapper
           fieldMappings={safeFieldMappings}
           availableFields={availableFields}
           onMappingAction={onMappingAction}
@@ -447,7 +450,11 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           learnedMappings={learnedMappings}
           clientAccountId={clientAccountId}
           engagementId={engagementId}
+          // Continue to data cleansing props
+          canContinueToDataCleansing={canContinueToDataCleansing}
+          onContinueToDataCleansing={onContinueToDataCleansing}
         />
+        </>
       )}
     </div>
   );

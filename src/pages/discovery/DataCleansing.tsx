@@ -7,7 +7,7 @@ import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { isFlowTerminal } from '../../constants/flowStates';
 import { usePhaseAwareFlowResolver } from '../../hooks/discovery/attribute-mapping/usePhaseAwareFlowResolver';
 import { useLatestImport, useAssets, useDataCleansingStats, useDataCleansingAnalysis, useTriggerDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingQueries';
-import { downloadRawData, downloadCleanedData } from '../../services/dataCleansingService';
+import { downloadRawData, downloadCleanedData, applyRecommendation } from '../../services/dataCleansingService';
 import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
 import SecureLogger from '../../utils/secureLogger';
@@ -26,6 +26,7 @@ import AgentClarificationPanel from '../../components/discovery/AgentClarificati
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
 import AssetConflictModal from '../../components/discovery/AssetConflictModal';
+import QualityIssueGridModal from '../../components/discovery/data-cleansing/QualityIssueGridModal';
 import { AssetCreationPreviewModal } from '../../components/discovery/AssetCreationPreviewModal';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -46,6 +47,11 @@ const DataCleansing: React.FC = () => {
 
   // Asset preview state (Issue #907)
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // Quality issue grid (AG Grid) state
+  const [showIssueGrid, setShowIssueGrid] = useState(false);
+  const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
+  const [currentIssueRows, setCurrentIssueRows] = useState<Record<string, unknown>[]>([]);
 
   // Get URL flow ID from params
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
@@ -221,10 +227,137 @@ const DataCleansing: React.FC = () => {
     }
   };
 
+  // Handler for applying/rejecting recommendations
+  const handleApplyRecommendation = async (recommendationId: string, action: 'apply' | 'reject'): Promise<void> => {
+    if (!effectiveFlowId) {
+      SecureLogger.error('No flow ID available for applying recommendation');
+      return;
+    }
+
+    try {
+      SecureLogger.info('Applying/rejecting recommendation', { recommendationId, action, flowId: effectiveFlowId });
+
+      // Call backend PATCH endpoint - this is the critical operation
+      await applyRecommendation(effectiveFlowId, recommendationId, action);
+
+      SecureLogger.info('Recommendation action completed successfully', { recommendationId, action });
+
+      // Refresh data to show updated state - handle refresh failures separately
+      // If refresh fails, the action was still successful, so don't show error to user
+      try {
+        await Promise.all([refetchAnalysis(), refresh()]);
+      } catch (refreshError) {
+        // Refresh failed but action succeeded - log error but don't show failure to user
+        SecureLogger.warn('Recommendation action succeeded but refresh failed', { 
+          refreshError, 
+          recommendationId, 
+          action, 
+          flowId: effectiveFlowId 
+        });
+        // Action was successful, UI will update on next manual refresh or page reload
+      }
+
+    } catch (error) {
+      // This catch only handles applyRecommendation failures (actual operation failures)
+      SecureLogger.error('Failed to apply recommendation', { error, recommendationId, action, flowId: effectiveFlowId });
+      alert(`Failed to ${action === 'apply' ? 'apply' : 'reject'} recommendation. Please try again.`);
+    }
+  };
+
   // Handler for resolving quality issues
   const handleResolveQualityIssue = async (issueId: string, action: 'resolve' | 'ignore'): Promise<void> => {
     if (!effectiveFlowId) {
       SecureLogger.error('No flow ID available for resolving quality issue');
+      return;
+    }
+
+    // Intercept resolve to open AG Grid editor first
+    if (action === 'resolve') {
+      try {
+        // Build rows containing only records where the issue field is empty so user can fill them
+        const issue = allQualityIssues.find((i) => i.id === issueId);
+        const issueField = issue?.field_name || '';
+
+        // Columns to show: the issue field (required) + useful context fields
+        const contextColumns = ['ip_address', 'hostname', 'cpu', 'cpu_cores', 'memory_gb'];
+        const desiredColumns = new Set<string>([...contextColumns]);
+
+        // Helpers to resolve actual data key
+        const collectAllKeys = (rows: unknown[]): Set<string> => {
+          const keys = new Set<string>();
+          rows.forEach((r) => Object.keys((r as Record<string, unknown>) || {}).forEach((k) => keys.add(k)));
+          return keys;
+        };
+        const resolveIssueDataKey = (availableKeys: Set<string>, label: string): string => {
+          if (!label) return label;
+          if (availableKeys.has(label)) return label;
+          const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const labelNorm = norm(label);
+          for (const k of availableKeys) {
+            if (norm(k) === labelNorm) return k;
+          }
+          const aliasMap: Record<string, string[]> = {
+            os: ['operating_system', 'os', 'os_name'],
+            cpu: ['cpu', 'cpu_cores', 'processor', 'vcpu'],
+            ip: ['ip', 'ip_address', 'ipaddr', 'ipaddress'],
+          };
+          for (const [alias, candidates] of Object.entries(aliasMap)) {
+            if (labelNorm === alias || candidates.some((c) => norm(c) === labelNorm)) {
+              const found = candidates.find((c) => availableKeys.has(c));
+              if (found) return found;
+            }
+          }
+          const snakeGuess = label.replace(/\s+/g, '_').replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+          if (availableKeys.has(snakeGuess)) return snakeGuess;
+          return label;
+        };
+
+        // Establish available keys and resolve the actual issue data key
+        let availableKeys = new Set<string>();
+        if (Array.isArray(flow?.raw_data) && flow.raw_data.length > 0) {
+          availableKeys = collectAllKeys(flow.raw_data as unknown[]);
+        } else if (latestImportData?.data && Array.isArray(latestImportData.data)) {
+          availableKeys = collectAllKeys(latestImportData.data as unknown[]);
+        }
+        const issueDataKey = resolveIssueDataKey(availableKeys, issueField);
+        if (issueDataKey) desiredColumns.add(issueDataKey);
+
+        // Use backend agent/utility suggestions
+        let suggestResp: any = null;
+        try {
+          suggestResp = await apiCall(
+            `/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}/suggest?limit=200`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+          );
+        } catch (postErr) {
+          // Retry with GET if POST not supported
+          try {
+            suggestResp = await apiCall(
+              `/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}/suggest?limit=200`,
+              { method: 'GET' }
+            );
+          } catch (getErr) {
+            SecureLogger.error('Suggestion endpoint failed (POST and GET)', { postErr, getErr });
+          }
+        }
+        if (suggestResp && Array.isArray(suggestResp.rows)) {
+          setCurrentIssueRows(suggestResp.rows as Record<string, unknown>[]);
+        } else {
+          // Fallback to showing basic sample if suggestions not available
+          const fallback: Record<string, unknown>[] = [];
+          if (Array.isArray(flow?.raw_data) && flow.raw_data.length > 0) {
+            (flow.raw_data as unknown[]).slice(0, 50).forEach((r) => fallback.push(r as Record<string, unknown>));
+          } else if (latestImportData?.data && Array.isArray(latestImportData.data)) {
+            (latestImportData.data as unknown[]).slice(0, 50).forEach((r) => fallback.push(r as Record<string, unknown>));
+          }
+          setCurrentIssueRows(fallback);
+        }
+        setCurrentIssueId(issueId);
+        setShowIssueGrid(true);
+      } catch (e) {
+        SecureLogger.error('Failed to prepare data for issue grid', e);
+        // Fallback to direct resolve if grid cannot be opened
+      }
       return;
     }
 
@@ -234,7 +367,7 @@ const DataCleansing: React.FC = () => {
     try {
       SecureLogger.info('Resolving quality issue', { issueId, action, status, flowId: effectiveFlowId });
 
-      // Call backend PATCH endpoint with request body (NOT query params)
+      // Call backend PATCH endpoint with request body (NOT query params) - this is the critical operation
       const response = await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${issueId}`, {
         method: 'PATCH',
         headers: {
@@ -248,12 +381,77 @@ const DataCleansing: React.FC = () => {
 
       SecureLogger.info('Quality issue resolved successfully', { issueId, status });
 
-      // Refresh data to show updated state
-      await Promise.all([refetchAnalysis(), refresh()]);
+      // Refresh data to show updated state - handle refresh failures separately
+      // If refresh fails, the action was still successful, so don't show error to user
+      try {
+        await Promise.all([refetchAnalysis(), refresh()]);
+      } catch (refreshError) {
+        // Refresh failed but action succeeded - log error but don't show failure to user
+        SecureLogger.warn('Quality issue resolution succeeded but refresh failed', { 
+          refreshError, 
+          issueId, 
+          action, 
+          status, 
+          flowId: effectiveFlowId 
+        });
+        // Action was successful, UI will update on next manual refresh or page reload
+      }
 
     } catch (error) {
+      // This catch only handles PATCH failures (actual operation failures)
       SecureLogger.error('Failed to resolve quality issue', { error, issueId, action, status, flowId: effectiveFlowId });
       alert(`Failed to ${action === 'resolve' ? 'resolve' : 'ignore'} quality issue. Please try again.`);
+    }
+  };
+
+  // Save handler from AG Grid modal: mark issue resolved (resolutions are already applied automatically when Update Fields is clicked)
+  const handleIssueGridSave = async (updatedRows: Record<string, unknown>[]): Promise<void> => {
+    if (!effectiveFlowId || !currentIssueId) {
+      setShowIssueGrid(false);
+      return;
+    }
+    try {
+      SecureLogger.info('Marking quality issue as resolved', { 
+        flowId: effectiveFlowId, 
+        issueId: currentIssueId,
+        rowsCount: updatedRows.length 
+      });
+
+      // Mark the issue as resolved (resolutions were already applied when Update Fields was clicked) - this is the critical operation
+      await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${currentIssueId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: 'resolved',
+          resolution_notes: `Issue resolved via AG Grid editor with ${updatedRows.length} rows reviewed and applied to raw_import_records at ${new Date().toISOString()}`
+        })
+      });
+      
+      setShowIssueGrid(false);
+      setCurrentIssueId(null);
+      setCurrentIssueRows([]);
+      
+      // Refresh data to show updated state - handle refresh failures separately
+      // If refresh fails, the action was still successful, so don't show error to user
+      try {
+        await Promise.all([refetchAnalysis(), refresh()]);
+      } catch (refreshError) {
+        // Refresh failed but action succeeded - log error but don't show failure to user
+        SecureLogger.warn('Issue resolution succeeded but refresh failed', { 
+          refreshError, 
+          issueId: currentIssueId, 
+          flowId: effectiveFlowId 
+        });
+        // Action was successful, UI will update on next manual refresh or page reload
+      }
+      
+      alert('Issue marked as resolved. Resolution values have been applied to raw_import_records.');
+    } catch (error) {
+      // This catch only handles PATCH failures (actual operation failures)
+      SecureLogger.error('Failed to resolve issue', error);
+      alert('Failed to resolve issue. Please try again.');
     }
   };
 
@@ -636,6 +834,88 @@ const DataCleansing: React.FC = () => {
               onTriggerAnalysis={handleTriggerDataCleansingCrew}
             />
 
+            {/* Quality Issue AG Grid Modal */}
+            {currentIssueId && (
+              <QualityIssueGridModal
+                isOpen={showIssueGrid}
+                onClose={() => {
+                  setShowIssueGrid(false);
+                  setCurrentIssueId(null);
+                  setCurrentIssueRows([]);
+                }}
+                onSave={handleIssueGridSave}
+                onUpdateFields={async (updatedRows) => {
+                  if (!effectiveFlowId || !currentIssueId) {
+                    return;
+                  }
+                  try {
+                    SecureLogger.info('Storing resolution values and applying to raw_import_records', {
+                      flowId: effectiveFlowId,
+                      issueId: currentIssueId,
+                      rowsCount: updatedRows.length
+                    });
+                    const issue = allQualityIssues.find((i) => i.id === currentIssueId || '');
+                    const field_name = issue?.field_name || '';
+                    const response = await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${currentIssueId}/resolution`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        field_name,
+                        rows: updatedRows,
+                      }),
+                    });
+                    SecureLogger.info('Resolution values stored and applied successfully', response);
+                    const appliedCount = (response as { applied_to_raw_records?: number })?.applied_to_raw_records || 0;
+                    
+                    // Mark the issue as resolved after successful update
+                    SecureLogger.info('Marking quality issue as resolved after successful update', {
+                      flowId: effectiveFlowId,
+                      issueId: currentIssueId
+                    });
+                    
+                    await apiCall(`/api/v1/flows/${effectiveFlowId}/data-cleansing/quality-issues/${currentIssueId}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        status: 'resolved',
+                        resolution_notes: `Issue resolved via Update Fields with ${appliedCount} raw_import_record(s) updated at ${new Date().toISOString()}`
+                      })
+                    });
+                    
+                    // Close the modal
+                    setShowIssueGrid(false);
+                    setCurrentIssueId(null);
+                    setCurrentIssueRows([]);
+                    
+                    // Success: Values stored and applied - modal closed
+                    SecureLogger.info(`Successfully stored and applied ${appliedCount} raw_import_record(s). Issue marked as resolved.`);
+                    
+                    // Refresh data to show updated state - handle refresh failures separately
+                    // If refresh fails, the action was still successful, so don't show error to user
+                    try {
+                      await Promise.all([refetchAnalysis(), refresh()]);
+                    } catch (refreshError) {
+                      // Refresh failed but action succeeded - log error but don't show failure to user
+                      SecureLogger.warn('Resolution values stored and applied successfully but refresh failed', { 
+                        refreshError, 
+                        issueId: currentIssueId, 
+                        flowId: effectiveFlowId 
+                      });
+                      // Action was successful, UI will update on next manual refresh or page reload
+                    }
+                  } catch (err) {
+                    // This catch only handles POST/PATCH failures (actual operation failures)
+                    SecureLogger.error('Failed to store and apply resolution values', err);
+                    // Error logged - user can see issue still in list if operation failed
+                  }
+                }}
+                issue={allQualityIssues.find((i) => i.id === currentIssueId) || null}
+                rows={currentIssueRows}
+              />
+            )}
+
             <DataCleansingProgressDashboard
               progress={{
                 ...cleansingProgress,
@@ -671,10 +951,7 @@ const DataCleansing: React.FC = () => {
                 {(agentRecommendations.length > 0 || isLoadingData) && (
                   <CleansingRecommendationsPanel
                     recommendations={agentRecommendations}
-                    onApplyRecommendation={(recommendationId) => {
-                      SecureLogger.info('Applying cleansing recommendation');
-                      // Implementation for applying recommendations
-                    }}
+                    onApplyRecommendation={handleApplyRecommendation}
                     isLoading={isLoadingData}
                   />
                 )}

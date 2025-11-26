@@ -2,9 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAttributeMappingLogic } from '../../../../hooks/discovery/attribute-mapping';
 import { useAttributeMappingNavigation } from '../../../../hooks/discovery/useAttributeMappingNavigation';
-import type { AttributeMappingState, AttributeMappingActions, NavigationState, SessionInfo } from '../types';
+import type {
+  AttributeMappingState,
+  AttributeMappingActions,
+  NavigationState,
+  SessionInfo,
+} from '../types';
 
-export const useAttributeMapping = (): JSX.Element => {
+export const useAttributeMapping = () => {
   // Navigation state
   const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('mappings');
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();

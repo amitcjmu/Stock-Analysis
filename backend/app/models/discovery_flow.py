@@ -142,6 +142,14 @@ class DiscoveryFlow(Base):
         lazy="select",
     )
 
+    # Data cleansing recommendations relationship
+    recommendations = relationship(
+        "DataCleansingRecommendation",
+        primaryjoin="DiscoveryFlow.flow_id == DataCleansingRecommendation.flow_id",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+
     def __repr__(self):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"
 

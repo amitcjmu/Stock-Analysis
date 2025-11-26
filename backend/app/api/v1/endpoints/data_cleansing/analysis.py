@@ -3,19 +3,60 @@ Data Cleansing API - Analysis Module
 Core analysis logic for performing data cleansing analysis.
 """
 
+import hashlib
+import json
 import logging
+import re
 import uuid
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.data_cleansing import (
+    DataCleansingRecommendation as DBRecommendation,
+)
 from app.models.data_import.core import RawImportRecord
+from app.models.discovery_flow import DiscoveryFlow
 
 from .base import DataCleansingAnalysis, DataQualityIssue, DataCleansingRecommendation
 
 logger = logging.getLogger(__name__)
+
+
+def _ensure_uuid(flow_id: str | UUID | None) -> UUID:
+    """
+    Ensure flow_id is a UUID object for database queries.
+    
+    Converts string to UUID, validates existing UUID objects, and raises
+    ValueError for invalid inputs to prevent silent query failures.
+    
+    Args:
+        flow_id: Flow ID as string, UUID object, or None
+        
+    Returns:
+        UUID object
+        
+    Raises:
+        ValueError: If flow_id is None or cannot be converted to UUID
+        TypeError: If flow_id is an unsupported type
+    """
+    if flow_id is None:
+        raise ValueError("flow_id cannot be None")
+    
+    if isinstance(flow_id, UUID):
+        return flow_id
+    
+    if isinstance(flow_id, str):
+        try:
+            return UUID(flow_id)
+        except (ValueError, AttributeError) as e:
+            raise ValueError(f"Invalid flow_id format: {flow_id}") from e
+    
+    raise TypeError(f"flow_id must be str or UUID, got {type(flow_id).__name__}")
 
 
 def _generate_deterministic_issue_id(field_name: str, issue_type: str) -> str:
@@ -38,9 +79,6 @@ def _analyze_raw_data_quality(
 
     Returns a dict mapping field names to their quality statistics.
     """
-    import re
-    from collections import defaultdict
-
     field_stats = defaultdict(
         lambda: {
             "missing_count": 0,
@@ -216,10 +254,6 @@ async def _apply_stored_resolutions(
     and updates the quality issues with their resolution status.
     """
     try:
-        # Get the flow to check for stored resolutions
-        from app.models.discovery_flow import DiscoveryFlow
-        from sqlalchemy import select
-
         # Get the flow directly from the database using the provided session
         # First, expire any cached instances to force a fresh read from the database
         db_session.expire_all()
@@ -285,12 +319,213 @@ async def _apply_stored_resolutions(
         return updated_issues
 
     except Exception as e:
-        logger.error(f"Failed to apply stored resolutions: {e}")
+        logger.exception("Failed to apply stored resolutions")
         # Return original issues if resolution application fails
         return quality_issues
 
 
-async def _perform_data_cleansing_analysis(
+def _generate_recommendation_key(rec: DataCleansingRecommendation) -> str:
+    """
+    Generate a stable key from recommendation content for de-duplication.
+    
+    Uses category, title, and sorted fields_affected to create a consistent
+    hash that identifies duplicate recommendations regardless of ID or other fields.
+    
+    Args:
+        rec: DataCleansingRecommendation instance
+        
+    Returns:
+        SHA256 hash string representing the recommendation's unique content
+    """
+    # Normalize fields_affected by sorting to ensure consistent key generation
+    fields_affected = sorted(rec.fields_affected or [])
+    
+    # Create a stable representation of the recommendation's identifying content
+    key_data = {
+        "category": rec.category.lower().strip(),
+        "title": rec.title.lower().strip(),
+        "fields_affected": fields_affected,
+    }
+    
+    # Generate hash from JSON representation for stability
+    key_json = json.dumps(key_data, sort_keys=True)
+    return hashlib.sha256(key_json.encode("utf-8")).hexdigest()
+
+
+async def _load_recommendations_from_database(
+    flow_id: str, db_session: AsyncSession, client_account_id: str, engagement_id: str
+) -> List[DataCleansingRecommendation]:
+    """
+    Load recommendations from database for a flow.
+
+    Returns Pydantic models created from database records.
+    Returns empty list if table doesn't exist or if there's an error.
+    """
+    try:
+        # Query database for recommendations
+        # If table doesn't exist, this will raise an exception which we'll catch
+        # Ensure flow_id is a UUID object to prevent silent query failures
+        # Apply multi-tenant scoping to prevent cross-tenant data access
+        flow_uuid = _ensure_uuid(flow_id)
+        client_account_uuid = _ensure_uuid(client_account_id)
+        engagement_uuid = _ensure_uuid(engagement_id)
+        query = (
+            select(DBRecommendation)
+            .where(DBRecommendation.flow_id == flow_uuid)
+            .where(DBRecommendation.client_account_id == client_account_uuid)
+            .where(DBRecommendation.engagement_id == engagement_uuid)
+        )
+        result = await db_session.execute(query)
+        db_recommendations = result.scalars().all()
+
+        # Convert database models to Pydantic models
+        recommendations = []
+        for db_rec in db_recommendations:
+            # Ensure fields_affected is always a list
+            fields_affected = db_rec.fields_affected
+            if not isinstance(fields_affected, list):
+                fields_affected = [] if fields_affected is None else [fields_affected]
+
+            recommendations.append(
+                DataCleansingRecommendation(
+                    id=str(db_rec.id),
+                    category=db_rec.category,
+                    title=db_rec.title,
+                    description=db_rec.description,
+                    priority=db_rec.priority,
+                    impact=db_rec.impact,
+                    effort_estimate=db_rec.effort_estimate,
+                    fields_affected=fields_affected,
+                    status=db_rec.status or "pending",
+                )
+            )
+
+        logger.info(
+            f"Loaded {len(recommendations)} recommendations from database for flow {flow_id}"
+        )
+        return recommendations
+
+    except Exception as e:
+        logger.exception("Failed to load recommendations from database (table may not exist)")
+        return []
+
+
+async def _store_recommendations_to_database(
+    flow_id: str,
+    recommendations: List[DataCleansingRecommendation],
+    db_session: AsyncSession,
+    client_account_id: str,
+    engagement_id: str,
+) -> None:
+    """
+    Store recommendations to database.
+
+    Creates or updates database records for recommendations.
+    De-duplicates recommendations by generating stable keys from their content
+    (category, title, fields_affected) to prevent redundant entries.
+    """
+    try:
+        # Get existing recommendations for this flow
+        # Ensure flow_id is a UUID object to prevent silent query failures
+        # Apply multi-tenant scoping to prevent cross-tenant data access
+        flow_uuid = _ensure_uuid(flow_id)
+        client_account_uuid = _ensure_uuid(client_account_id)
+        engagement_uuid = _ensure_uuid(engagement_id)
+        query = (
+            select(DBRecommendation)
+            .where(DBRecommendation.flow_id == flow_uuid)
+            .where(DBRecommendation.client_account_id == client_account_uuid)
+            .where(DBRecommendation.engagement_id == engagement_uuid)
+        )
+        result = await db_session.execute(query)
+        existing_db_recs = result.scalars().all()
+        existing_recs = {str(rec.id): rec for rec in existing_db_recs}
+
+        # Generate stable keys for existing recommendations to check for duplicates
+        existing_keys = set()
+        for db_rec in existing_db_recs:
+            # Convert DB model to Pydantic model to generate key
+            fields_affected = db_rec.fields_affected
+            if not isinstance(fields_affected, list):
+                fields_affected = [] if fields_affected is None else [fields_affected]
+            
+            existing_rec_pydantic = DataCleansingRecommendation(
+                id=str(db_rec.id),
+                category=db_rec.category,
+                title=db_rec.title,
+                description=db_rec.description,
+                priority=db_rec.priority,
+                impact=db_rec.impact,
+                effort_estimate=db_rec.effort_estimate,
+                fields_affected=fields_affected,
+                status=db_rec.status or "pending",
+            )
+            existing_keys.add(_generate_recommendation_key(existing_rec_pydantic))
+
+        # Track which recommendations are being added vs updated
+        added_count = 0
+        updated_count = 0
+        skipped_count = 0
+
+        # Create or update recommendations
+        for rec in recommendations:
+            rec_id = UUID(rec.id) if isinstance(rec.id, str) else rec.id
+
+            if str(rec.id) in existing_recs:
+                # Update existing recommendation by ID
+                db_rec = existing_recs[str(rec.id)]
+                db_rec.category = rec.category
+                db_rec.title = rec.title
+                db_rec.description = rec.description
+                db_rec.priority = rec.priority
+                db_rec.impact = rec.impact
+                db_rec.effort_estimate = rec.effort_estimate
+                db_rec.fields_affected = rec.fields_affected
+                # Note: status is updated separately via apply_recommendation endpoint
+                updated_count += 1
+            else:
+                # Check for duplicate by content (stable key) before creating new recommendation
+                new_rec_key = _generate_recommendation_key(rec)
+                if new_rec_key in existing_keys:
+                    logger.debug(
+                        f"Skipping duplicate recommendation: {rec.title} "
+                        f"(category: {rec.category}, fields: {rec.fields_affected})"
+                    )
+                    skipped_count += 1
+                    continue
+
+                # Create new recommendation (not a duplicate)
+                db_rec = DBRecommendation(
+                    id=rec_id,
+                    flow_id=flow_uuid,
+                    category=rec.category,
+                    title=rec.title,
+                    description=rec.description,
+                    priority=rec.priority,
+                    impact=rec.impact,
+                    effort_estimate=rec.effort_estimate,
+                    fields_affected=rec.fields_affected,
+                    status=rec.status or "pending",
+                    client_account_id=UUID(client_account_id),
+                    engagement_id=UUID(engagement_id),
+                )
+                db_session.add(db_rec)
+                existing_keys.add(new_rec_key)  # Track this key to avoid duplicates within the same batch
+                added_count += 1
+
+        await db_session.commit()
+        logger.info(
+            f"Stored recommendations to database for flow {flow_id}: "
+            f"{added_count} added, {updated_count} updated, {skipped_count} skipped (duplicates)"
+        )
+
+    except Exception as e:
+        logger.exception("Failed to store recommendations to database")
+        await db_session.rollback()
+        raise RuntimeError("Failed to store recommendations to database") from e
+
+
+async def _perform_data_cleansing_analysis(  # noqa: C901
     flow_id: str,
     data_imports: List[Any],
     field_mappings: List[Any],
@@ -337,9 +572,7 @@ async def _perform_data_cleansing_analysis(
                     f"No database session provided, using total_records field: {total_records}"
                 )
         except Exception as e:
-            logger.warning(
-                f"Failed to get actual record count: {e}, using total_records field"
-            )
+            logger.exception("Failed to get actual record count, using total_records field")
             total_records = data_import.total_records if data_import else 0
 
     total_fields = len(field_mappings)
@@ -348,6 +581,7 @@ async def _perform_data_cleansing_analysis(
     quality_issues = []
     recommendations = []
     field_quality_scores = {}
+    field_stats = {}  # Initialize to empty dict to handle cases with no raw records
 
     # Analyze raw import records for quality issues (regardless of field_mappings)
     if include_details and data_import and db_session:
@@ -391,12 +625,148 @@ async def _perform_data_cleansing_analysis(
             else:
                 logger.warning(f"No raw records found for data import {data_import.id}")
         except Exception as e:
-            logger.error(f"Failed to analyze raw data for quality issues: {e}")
+            logger.exception("Failed to analyze raw data for quality issues")
             # Continue with empty quality issues if analysis fails
 
-        # Generate sample recommendations
-        recommendations.extend(
-            [
+        # Load existing recommendations from database or create new ones
+        try:
+            # Convert flow_id to UUID if it's a string
+            flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            flow_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+            flow_result = await db_session.execute(flow_query)
+            flow = flow_result.scalar_one_or_none()
+
+            if flow:
+                # Try to load existing recommendations from database
+                try:
+                    existing_recommendations = (
+                        await _load_recommendations_from_database(
+                            flow_id,
+                            db_session,
+                            str(flow.client_account_id),
+                            str(flow.engagement_id),
+                        )
+                    )
+
+                    if existing_recommendations:
+                        # Use existing recommendations from database
+                        logger.info(
+                            f"Using {len(existing_recommendations)} existing recommendations from database"
+                        )
+                        recommendations.extend(existing_recommendations)
+                    else:
+                        # No existing recommendations, create new sample recommendations
+                        logger.info(
+                            "No existing recommendations found, creating new sample recommendations"
+                        )
+                        # Only create sample recommendations if we have actual field data
+                        if field_stats:
+                            actual_fields = list(field_stats.keys())[:3]  # Use first 3 actual fields
+                            new_recommendations = [
+                                DataCleansingRecommendation(
+                                    id=str(uuid.uuid4()),
+                                    category="standardization",
+                                    title="Standardize date formats",
+                                    description="Multiple date formats detected. Standardize to ISO 8601 format",
+                                    priority="high",
+                                    impact="Improves data consistency and query performance",
+                                    effort_estimate="2-4 hours",
+                                    fields_affected=actual_fields if actual_fields else ["example_field"],
+                                    status="pending",
+                                ),
+                            ]
+                        else:
+                            # No field data available, create generic example
+                            new_recommendations = []
+                            logger.info("No field data available for creating sample recommendations")
+
+                        recommendations.extend(new_recommendations)
+
+                        # Try to store new recommendations to database (gracefully handle if table doesn't exist)
+                        try:
+                            await _store_recommendations_to_database(
+                                flow_id,
+                                new_recommendations,
+                                db_session,
+                                str(flow.client_account_id),
+                                str(flow.engagement_id),
+                            )
+                        except Exception as store_error:
+                            logger.exception(
+                                "Failed to store recommendations to database "
+                                "(table may not exist yet). "
+                                "Recommendations will still be returned but not persisted."
+                            )
+                            # Continue without storing - recommendations are still in memory
+                except Exception as load_error:
+                    logger.exception(
+                        "Failed to load recommendations from database (table may not exist yet). "
+                        "Creating new sample recommendations instead."
+                    )
+                    # Create sample recommendations as fallback
+                    new_recommendations = [
+                        DataCleansingRecommendation(
+                            id=str(uuid.uuid4()),
+                            category="standardization",
+                            title="Standardize date formats",
+                            description="Multiple date formats detected. Standardize to ISO 8601 format",
+                            priority="high",
+                            impact="Improves data consistency and query performance",
+                            effort_estimate="2-4 hours",
+                            fields_affected=[
+                                "created_date",
+                                "modified_date",
+                                "last_seen",
+                            ],
+                            status="pending",
+                        ),
+                        DataCleansingRecommendation(
+                            id=str(uuid.uuid4()),
+                            category="validation",
+                            title="Validate server names",
+                            description="Some server names contain invalid characters or inconsistent naming",
+                            priority="medium",
+                            impact="Ensures proper asset identification",
+                            effort_estimate="1-2 hours",
+                            fields_affected=["server_name", "hostname"],
+                            status="pending",
+                        ),
+                    ]
+                    recommendations.extend(new_recommendations)
+            else:
+                # Flow not found, create sample recommendations anyway
+                logger.warning(
+                    f"Flow {flow_id} not found, creating sample recommendations"
+                )
+                new_recommendations = [
+                    DataCleansingRecommendation(
+                        id=str(uuid.uuid4()),
+                        category="standardization",
+                        title="Standardize date formats",
+                        description="Multiple date formats detected. Standardize to ISO 8601 format",
+                        priority="high",
+                        impact="Improves data consistency and query performance",
+                        effort_estimate="2-4 hours",
+                        fields_affected=["created_date", "modified_date", "last_seen"],
+                        status="pending",
+                    ),
+                    DataCleansingRecommendation(
+                        id=str(uuid.uuid4()),
+                        category="validation",
+                        title="Validate server names",
+                        description="Some server names contain invalid characters or inconsistent naming",
+                        priority="medium",
+                        impact="Ensures proper asset identification",
+                        effort_estimate="1-2 hours",
+                        fields_affected=["server_name", "hostname"],
+                        status="pending",
+                    ),
+                ]
+                recommendations.extend(new_recommendations)
+        except Exception as e:
+            # Fallback: create sample recommendations if anything goes wrong
+            logger.exception("Error loading/creating recommendations. Creating fallback recommendations.")
+            fallback_recommendations = [
                 DataCleansingRecommendation(
                     id=str(uuid.uuid4()),
                     category="standardization",
@@ -438,7 +808,7 @@ async def _perform_data_cleansing_analysis(
                     ],
                 ),
             ]
-        )
+            recommendations.extend(fallback_recommendations)
 
     # Calculate overall quality score
     quality_score = 85.0  # Mock score

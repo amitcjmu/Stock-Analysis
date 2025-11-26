@@ -32,6 +32,9 @@ export interface ThreeColumnFieldMapperProps {
   learnedMappings?: Set<string>;
   clientAccountId?: string;
   engagementId?: string;
+  // Continue to data cleansing props
+  canContinueToDataCleansing?: boolean;
+  onContinueToDataCleansing?: () => void;
 }
 
 export interface MappingBuckets {
@@ -120,6 +123,8 @@ export interface BulkActionsProps {
   maxBulkOperations?: number;
   confirmationRequired?: boolean;
   onConfirmation?: (action: 'approve' | 'reject', count: number) => Promise<boolean>;
+  canContinueToDataCleansing?: boolean;
+  onContinueToDataCleansing?: () => void;
 }
 
 // Auth context types

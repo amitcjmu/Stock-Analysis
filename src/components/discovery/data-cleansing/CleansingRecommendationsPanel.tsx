@@ -4,15 +4,17 @@ import { Brain } from 'lucide-react';
 
 interface CleansingRecommendation {
   id: string;
-  type: string;
+  category?: string; // 'standardization' | 'validation' | 'enrichment' | 'deduplication'
+  type?: string; // Legacy field for backward compatibility
   title: string;
   description: string;
-  confidence: number;
+  confidence?: number; // Optional, may not be provided by backend
   priority: 'high' | 'medium' | 'low';
-  fields: string[];
-  agent_source: string;
-  implementation_steps: string[];
-  status: 'pending' | 'applied' | 'rejected';
+  fields_affected?: string[]; // Backend field name
+  fields?: string[]; // Legacy field for backward compatibility
+  agent_source?: string; // Optional, may not be provided by backend
+  implementation_steps?: string[]; // Optional, may not be provided by backend
+  status?: 'pending' | 'applied' | 'rejected'; // Optional, defaults to 'pending'
 }
 
 interface CleansingRecommendationsPanelProps {
@@ -26,6 +28,8 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
   onApplyRecommendation,
   isLoading = false
 }) => {
+  // Ensure recommendations is always an array to prevent runtime errors
+  const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
   const getPriorityBadgeClass = (priority: 'high' | 'medium' | 'low'): unknown => {
     switch (priority) {
       case 'high':
@@ -82,65 +86,77 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
       <div className="px-6 py-4 border-b border-gray-200">
         <h3 className="text-lg font-medium text-gray-900">Cleansing Recommendations</h3>
         <p className="text-sm text-gray-600">
-          {recommendations.length} improvement recommendations from the Data Standardization Specialist
+          {safeRecommendations.length} improvement recommendations from the Data Standardization Specialist
         </p>
       </div>
       <div className="p-6">
-        {recommendations.length === 0 ? (
+        {safeRecommendations.length === 0 ? (
           <div className="text-center py-8">
             <Brain className="h-12 w-12 text-blue-600 mx-auto mb-4" />
             <p className="text-gray-600">No recommendations yet. Trigger analysis to get AI-powered suggestions.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {recommendations.map((rec) => (
-              <div key={rec.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeClass(rec.priority)}`}>
-                        {rec.priority.toUpperCase()}
-                      </span>
-                      <span className="text-sm font-medium text-gray-900">{rec.title}</span>
-                      <span className="text-xs text-gray-500">
-                        ({rec.confidence !== undefined && rec.confidence !== null
-                          ? `${Math.round(rec.confidence * 100)}%`
-                          : 'N/A'} confidence)
-                      </span>
+            {safeRecommendations.map((rec) => {
+              // Default status to 'pending' to ensure consistent button states
+              const status = rec.status || 'pending';
+              
+              return (
+                <div key={rec.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeClass(rec.priority)}`}>
+                          {rec.priority.toUpperCase()}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">{rec.title}</span>
+                        <span className="text-xs text-gray-500">
+                          ({rec.confidence !== undefined && rec.confidence !== null
+                            ? `${Math.round(rec.confidence * 100)}%`
+                            : 'N/A'} confidence)
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">{rec.description}</p>
+                      <div className="text-xs text-gray-600">
+                        <p><strong>Fields:</strong> {(rec.fields_affected || rec.fields || []).join(', ') || 'N/A'}</p>
+                        {rec.implementation_steps && rec.implementation_steps.length > 0 && (
+                          <>
+                            <p><strong>Steps:</strong></p>
+                            <ul className="list-disc list-inside ml-2 space-y-1">
+                              {rec.implementation_steps.map((step, idx) => (
+                                <li key={idx}>{step}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                      </div>
+                      {rec.agent_source && (
+                        <p className="text-xs text-blue-600 mt-1">Source: {rec.agent_source}</p>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-700 mb-2">{rec.description}</p>
-                    <div className="text-xs text-gray-600">
-                      <p><strong>Fields:</strong> {rec.fields_affected?.join(', ') || 'N/A'}</p>
-                      <p><strong>Steps:</strong></p>
-                      <ul className="list-disc list-inside ml-2 space-y-1">
-                        {rec.implementation_steps?.map((step, idx) => (
-                          <li key={idx}>{step}</li>
-                        )) || <li>No implementation steps available</li>}
-                      </ul>
+                    <div className="flex space-x-2 ml-4">
+                      <Button
+                        size="sm"
+                        onClick={() => onApplyRecommendation(rec.id, 'apply')}
+                        disabled={status === 'applied' || status === 'rejected'}
+                        className={status === 'applied' ? 'bg-green-600 hover:bg-green-700' : ''}
+                      >
+                        {status === 'applied' ? 'Applied' : 'Apply'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onApplyRecommendation(rec.id, 'reject')}
+                        disabled={status === 'applied' || status === 'rejected'}
+                        className={status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' : ''}
+                      >
+                        {status === 'rejected' ? 'Rejected' : 'Reject'}
+                      </Button>
                     </div>
-                    <p className="text-xs text-blue-600 mt-1">Source: {rec.agent_source}</p>
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    <Button
-                      size="sm"
-                      onClick={() => onApplyRecommendation(rec.id, 'apply')}
-                      disabled={rec.status !== 'pending'}
-                      className={rec.status === 'applied' ? 'bg-green-600' : ''}
-                    >
-                      {rec.status === 'applied' ? 'Applied' : 'Apply'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onApplyRecommendation(rec.id, 'reject')}
-                      disabled={rec.status !== 'pending'}
-                    >
-                      {rec.status === 'rejected' ? 'Rejected' : 'Reject'}
-                    </Button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

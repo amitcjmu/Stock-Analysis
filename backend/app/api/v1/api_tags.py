@@ -92,6 +92,11 @@ class APITags:
     LEGACY_UPLOAD = "Legacy Upload"
     QUALITY_ANALYSIS = "Quality Analysis"
 
+    # Data Cleansing
+    DATA_CLEANSING_OPERATIONS = "Data Cleansing Operations"
+    DATA_CLEANSING_RESOLUTION = "Data Cleansing Resolution"
+    DATA_CLEANSING_SUGGESTIONS = "Data Cleansing Suggestions"
+
     # Asset Management
     ASSETS = "Assets"
 
