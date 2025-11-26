@@ -6,6 +6,7 @@ an existing assessment flow context.
 """
 
 import logging
+from collections import defaultdict
 from typing import Any, Dict
 from uuid import UUID
 
@@ -161,21 +162,33 @@ async def get_canonical_application_readiness_gaps(  # noqa: C901
         questionnaires = questionnaire_result.scalars().all()
 
         # Build lookup: asset_id -> questionnaire status
-        # Asset is ready if:
-        # 1. Has a completed questionnaire, OR
-        # 2. Has a "failed" questionnaire with "No questionnaires could be generated" (no TRUE gaps)
-        assets_ready_by_questionnaire: set[UUID] = set()
+        # CC FIX (Qodo Bot): Asset is ready only if ALL its questionnaires are either:
+        # 1. 'completed', OR
+        # 2. 'failed' with "No questionnaires could be generated" (no TRUE gaps)
+        # Group questionnaires by asset first
+        questionnaires_by_asset: dict[UUID, list] = defaultdict(list)
         for q in questionnaires:
-            if q.completion_status == "completed":
-                assets_ready_by_questionnaire.add(q.asset_id)
-            elif q.completion_status == "failed":
-                # CC FIX: "No questionnaires could be generated" = asset has complete data
+            if q.asset_id:
+                questionnaires_by_asset[q.asset_id].append(q)
+
+        assets_ready_by_questionnaire: set[UUID] = set()
+        for asset_id, q_list in questionnaires_by_asset.items():
+            all_questionnaires_finished = True
+            for q in q_list:
+                is_completed = q.completion_status == "completed"
+
                 description = q.description or ""
-                if (
+                is_no_gaps_failure = q.completion_status == "failed" and (
                     "No questionnaires could be generated" in description
                     or "no TRUE gaps" in description.lower()
-                ):
-                    assets_ready_by_questionnaire.add(q.asset_id)
+                )
+
+                if not (is_completed or is_no_gaps_failure):
+                    all_questionnaires_finished = False
+                    break
+
+            if all_questionnaires_finished:
+                assets_ready_by_questionnaire.add(asset_id)
 
         logger.info(
             f"📋 Found {len(assets_ready_by_questionnaire)} assets ready by questionnaire completion "
