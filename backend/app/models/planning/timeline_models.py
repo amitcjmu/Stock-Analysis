@@ -246,28 +246,24 @@ class TimelineMilestone(Base):
         ForeignKey("migration.timeline_phases.id", ondelete="SET NULL"),
     )
 
-    # Wave Reference (optional)
-    wave_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True))
-
     # Milestone Identity
-    milestone_number: Mapped[int] = mapped_column(Integer, nullable=False)
     milestone_name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
 
-    # Milestone Type
-    milestone_type: Mapped[str] = mapped_column(String(50), default="deliverable")
+    # Milestone Type (matches DB constraint: phase_completion, deliverable, gate_review, dependency, custom)
+    milestone_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="custom"
+    )
 
-    # Dates
-    planned_date: Mapped[datetime] = mapped_column(
+    # Dates (DB column is 'target_date' not 'planned_date')
+    target_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
     actual_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     baseline_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
-    # Status
-    status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="not_started"
-    )
+    # Status (matches DB constraint: pending, at_risk, achieved, missed)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     is_critical: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
 
     # Deliverables
@@ -275,20 +271,15 @@ class TimelineMilestone(Base):
         JSONB, server_default=text("'[]'::jsonb")
     )
 
-    # Dependencies
-    predecessor_milestone_ids: Mapped[List[uuid.UUID]] = mapped_column(
+    # Dependencies (DB column is 'depends_on_milestone_ids' not 'predecessor_milestone_ids')
+    depends_on_milestone_ids: Mapped[List[uuid.UUID]] = mapped_column(
         JSONB, server_default=text("'[]'::jsonb")
     )
 
-    # Notifications
-    notification_days_before: Mapped[int] = mapped_column(
-        Integer, server_default=text("7")
-    )
+    # Notifications (DB column is 'notify_days_before' not 'notification_days_before')
+    notify_days_before: Mapped[int] = mapped_column(Integer, server_default=text("7"))
     notification_sent: Mapped[bool] = mapped_column(
         Boolean, server_default=text("false")
-    )
-    notification_sent_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
     )
 
     # Audit Fields
@@ -305,6 +296,6 @@ class TimelineMilestone(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<TimelineMilestone(milestone_number={self.milestone_number}, "
+            f"<TimelineMilestone(id={self.id}, "
             f"milestone_name='{self.milestone_name}', status='{self.status}')>"
         )

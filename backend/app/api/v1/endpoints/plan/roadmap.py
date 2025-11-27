@@ -143,9 +143,9 @@ async def get_roadmap(
         if phase_id not in milestones_by_phase:
             milestones_by_phase[phase_id] = []
 
-        # Use actual_date if available, otherwise planned_date
+        # Use actual_date if available, otherwise target_date
         milestone_date = (
-            milestone.actual_date if milestone.actual_date else milestone.planned_date
+            milestone.actual_date if milestone.actual_date else milestone.target_date
         )
 
         milestones_by_phase[phase_id].append(

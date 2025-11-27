@@ -82,13 +82,13 @@ class ResourceService:
         """
         try:
             logger.info(
-                f"Retrieving resource planning data for engagement: {self.engagement_id}"
+                f"Retrieving resource planning data for engagement: {self.engagement_uuid}"
             )
 
             # Get resource pools (multi-tenant scoped)
             resource_pools = await self.planning_repo.list_resource_pools(
-                client_account_id=self.client_account_id,
-                engagement_id=self.engagement_id,
+                client_account_id=self.client_account_uuid,
+                engagement_id=self.engagement_uuid,
                 is_active=True,
             )
 
@@ -98,8 +98,8 @@ class ResourceService:
                 allocations = (
                     await self.planning_repo.list_allocations_by_planning_flow(
                         planning_flow_id=planning_flow_id,
-                        client_account_id=self.client_account_id,
-                        engagement_id=self.engagement_id,
+                        client_account_id=self.client_account_uuid,
+                        engagement_id=self.engagement_uuid,
                     )
                 )
 
