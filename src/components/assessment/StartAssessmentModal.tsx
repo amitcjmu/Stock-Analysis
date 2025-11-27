@@ -687,13 +687,29 @@ export const StartAssessmentModal: React.FC<StartAssessmentModalProps> = ({
                           <span>Confidence: {(app.confidence_score * 100).toFixed(0)}%</span>
                         </div>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={selectedAppIds.has(app.id)}
-                        onChange={() => toggleAppSelection(app.id)}
-                        className="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      <div className="flex items-center gap-3">
+                        {/* Collect Missing Data button for partial apps */}
+                        {app.readiness_status === "partial" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartCollection(app);
+                            }}
+                            disabled={startingCollection === app.id}
+                            className="px-3 py-1.5 text-xs bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-md transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed border border-orange-300"
+                            title={`Collect data for ${app.not_ready_asset_count} not-ready asset(s)`}
+                          >
+                            {startingCollection === app.id ? 'Starting...' : 'Collect Missing Data'}
+                          </button>
+                        )}
+                        <input
+                          type="checkbox"
+                          checked={selectedAppIds.has(app.id)}
+                          onChange={() => toggleAppSelection(app.id)}
+                          className="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
