@@ -211,7 +211,9 @@ const SixRAnalysis: React.FC = () => {
   };
 
   // Transform selected applications to match ApplicationType interface for wizard
-  const selectedApplications: ApplicationType[] = filteredApplications
+  // Use ALL applications (not filtered) to ensure all selected apps are included
+  // regardless of current filter state
+  const selectedApplications: ApplicationType[] = applications
     .filter((app) => selectedAppIds.has(app.id))
     .map((app) => ({
       id: app.id,

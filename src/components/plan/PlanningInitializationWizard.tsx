@@ -100,25 +100,37 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const pageSize = 10;
 
-  // Initialize wizard state when modal opens with pre-selected applications
+  // Track if we've initialized state for the current dialog open
+  const hasInitializedRef = React.useRef(false);
+
+  // Initialize wizard state ONLY when modal first opens (not on every re-render)
+  // This fixes a bug where default [] arrays in props caused useEffect to reset state on every render
   React.useEffect(() => {
-    if (open && hasPreSelectedApps && preSelectedApplicationIds.length > 0) {
-      // Set currentStep to 2 to skip application selection
-      setCurrentStep(2);
-      // Initialize selectedIds for consistency (though not used when skipping Step 1)
-      setSelectedIds(new Set(preSelectedApplicationIds));
-      // Ensure formData has the pre-selected apps
-      setFormData({
-        selected_application_ids: preSelectedApplicationIds,
-        selected_applications: preSelectedApplications,
-        max_apps_per_wave: 50,
-        wave_duration_limit_days: 90,
-        contingency_percentage: 20,
-      });
-    } else if (open && !hasPreSelectedApps) {
-      // Reset to Step 1 when opening without pre-selected apps
-      setCurrentStep(1);
-      setSelectedIds(new Set());
+    if (open && !hasInitializedRef.current) {
+      // Mark as initialized for this dialog session
+      hasInitializedRef.current = true;
+
+      if (hasPreSelectedApps && preSelectedApplicationIds.length > 0) {
+        // Set currentStep to 2 to skip application selection
+        setCurrentStep(2);
+        // Initialize selectedIds for consistency (though not used when skipping Step 1)
+        setSelectedIds(new Set(preSelectedApplicationIds));
+        // Ensure formData has the pre-selected apps
+        setFormData({
+          selected_application_ids: preSelectedApplicationIds,
+          selected_applications: preSelectedApplications,
+          max_apps_per_wave: 50,
+          wave_duration_limit_days: 90,
+          contingency_percentage: 20,
+        });
+      } else {
+        // Reset to Step 1 when opening without pre-selected apps
+        setCurrentStep(1);
+        setSelectedIds(new Set());
+      }
+    } else if (!open) {
+      // Reset initialization flag when dialog closes
+      hasInitializedRef.current = false;
     }
   }, [open, hasPreSelectedApps, preSelectedApplicationIds, preSelectedApplications]);
 
@@ -653,8 +665,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl" hideCloseButton={isLoading}>
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col" hideCloseButton={isLoading}>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Initialize Planning Flow</DialogTitle>
           <DialogDescription>
             {hasPreSelectedApps && (
@@ -671,15 +683,15 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
           </DialogDescription>
         </DialogHeader>
 
-        {/* Step Content */}
-        <div className="py-4">
+        {/* Step Content - Scrollable */}
+        <div className="py-4 flex-1 overflow-y-auto min-h-0">
           {currentStep === 1 && !hasPreSelectedApps && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
         </div>
 
-        {/* Step Progress Indicator */}
-        <div className="flex justify-center space-x-2 mb-4">
+        {/* Step Progress Indicator - Fixed at bottom */}
+        <div className="flex justify-center space-x-2 mb-4 flex-shrink-0">
           {hasPreSelectedApps ? (
             // 2-step indicator when apps are pre-selected
             [2, 3].map((step) => (
@@ -711,8 +723,8 @@ export const PlanningInitializationWizard: React.FC<PlanningInitializationWizard
           )}
         </div>
 
-        {/* Footer Actions */}
-        <DialogFooter>
+        {/* Footer Actions - Fixed at bottom */}
+        <DialogFooter className="flex-shrink-0">
           <div className="flex justify-between w-full">
             <div>
               {/* Show Back button only if we can go back (not on first step) */}
