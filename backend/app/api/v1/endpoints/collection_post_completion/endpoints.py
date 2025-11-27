@@ -1,5 +1,5 @@
 """
-Collection Post-Completion Endpoints
+Collection Post-Completion API Endpoints
 
 Provides API endpoints for resolving unmapped assets to canonical applications
 after collection flow completion, enabling seamless transition to Assessment.
@@ -13,12 +13,11 @@ Per ADR-016, Collection Flow owns data enrichment including asset resolution.
 """
 
 import logging
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -31,60 +30,15 @@ from app.models.canonical_applications import (
 )
 from app.models.asset import Asset
 
+from .schemas import (
+    LinkAssetRequest,
+    UnmappedAssetResponse,
+    LinkAssetResponse,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-# ========================================
-# REQUEST/RESPONSE MODELS
-# ========================================
-
-
-class LinkAssetRequest(BaseModel):
-    """Request model for linking asset to canonical application"""
-
-    asset_id: str = Field(..., description="UUID of the asset to link")
-    canonical_application_id: str = Field(
-        ..., description="UUID of the canonical application to map to"
-    )
-    deduplication_method: Optional[str] = Field(
-        "user_manual",
-        description="Method used for mapping (user_manual, fuzzy_match, etc.)",
-    )
-    match_confidence: Optional[float] = Field(
-        1.0, description="Confidence score for the mapping (0.0-1.0)", ge=0.0, le=1.0
-    )
-
-
-class UnmappedAssetResponse(BaseModel):
-    """Response model for unmapped asset details"""
-
-    collection_app_id: str = Field(
-        ..., description="UUID of the collection_flow_application record"
-    )
-    asset_id: str = Field(..., description="UUID of the asset")
-    asset_name: str = Field(..., description="Name of the asset")
-    asset_type: str = Field(..., description="Type of asset (server, database, etc.)")
-    application_name: str = Field(
-        ..., description="Original application name from collection"
-    )
-
-
-class LinkAssetResponse(BaseModel):
-    """Response model for successful asset-to-application link"""
-
-    success: bool = Field(..., description="Whether the operation succeeded")
-    collection_app_id: str = Field(
-        ..., description="UUID of the updated collection_flow_application"
-    )
-    asset_id: str = Field(..., description="UUID of the linked asset")
-    canonical_application_id: str = Field(
-        ..., description="UUID of the canonical application"
-    )
-    canonical_name: str = Field(..., description="Name of the canonical application")
-    deduplication_method: str = Field(..., description="Method used for deduplication")
-    match_confidence: float = Field(..., description="Confidence score (0.0-1.0)")
 
 
 # ========================================
@@ -395,11 +349,15 @@ async def get_unmapped_assets_for_assessment(
 
     try:
         # Step 1: Get assessment flow and extract collection_flow_id from metadata
+        # MFO Pattern: Check both master_flow_id AND id for compatibility
         from app.models.assessment_flow import AssessmentFlow
 
         assessment_stmt = select(AssessmentFlow).where(
             and_(
-                AssessmentFlow.id == assessment_uuid,
+                or_(
+                    AssessmentFlow.master_flow_id == assessment_uuid,
+                    AssessmentFlow.id == assessment_uuid,
+                ),
                 AssessmentFlow.client_account_id == UUID(context.client_account_id),
                 AssessmentFlow.engagement_id == UUID(context.engagement_id),
             )
@@ -494,7 +452,3 @@ async def get_unmapped_assets_for_assessment(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch unmapped assets: {str(e)}",
         )
-
-
-# Export router for registration
-__all__ = ["router"]
