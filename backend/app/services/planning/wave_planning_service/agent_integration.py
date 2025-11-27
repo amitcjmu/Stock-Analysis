@@ -191,6 +191,12 @@ async def generate_wave_plan_with_agent(
                 from .wave_logic import generate_fallback_wave_plan
 
                 parsed_result = generate_fallback_wave_plan(applications, config)
+            else:
+                # ADR-035: Validate and enrich waves with applications if missing
+                # LLM output may be truncated (16KB limit) or missing applications
+                parsed_result = _validate_and_enrich_wave_applications(
+                    parsed_result, applications
+                )
         except Exception as e:
             logger.error(f"Failed to parse agent output as JSON: {e}")
             logger.debug(f"Raw output (truncated): {result_str[:500]}...")
@@ -251,6 +257,133 @@ async def generate_wave_plan_with_agent(
         from .wave_logic import generate_fallback_wave_plan
 
         return generate_fallback_wave_plan(applications, config)
+
+
+def _validate_and_enrich_wave_applications(
+    parsed_result: Dict[str, Any],
+    applications: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Validate and enrich wave applications if missing or incomplete.
+
+    Per ADR-035, LLM output may be truncated due to 16KB limit, causing
+    the applications array within waves to be missing or incomplete.
+    This function:
+    1. Checks if each wave has an applications array
+    2. If missing, distributes input applications across waves using application_count
+    3. Enriches application data with name, criticality, complexity, migration_strategy
+
+    Args:
+        parsed_result: Parsed LLM output with waves structure
+        applications: Input applications list from planning flow
+
+    Returns:
+        Enriched wave plan with applications populated in each wave
+    """
+    waves = parsed_result.get("waves", [])
+
+    # Check if any wave is missing applications
+    waves_missing_apps = [
+        w
+        for w in waves
+        if not w.get("applications") or len(w.get("applications", [])) == 0
+    ]
+
+    if not waves_missing_apps:
+        logger.info("All waves have applications - no enrichment needed")
+        return parsed_result
+
+    logger.warning(
+        f"{len(waves_missing_apps)} of {len(waves)} waves missing applications - enriching"
+    )
+
+    # Track which apps have been assigned
+    assigned_app_ids = set()
+
+    # First pass: collect already-assigned apps from waves that have them
+    for wave in waves:
+        wave_apps = wave.get("applications", [])
+        for app in wave_apps:
+            app_id = app.get("application_id") or app.get("id")
+            if app_id:
+                assigned_app_ids.add(str(app_id))
+
+    # Get unassigned applications
+    unassigned_apps = [
+        app for app in applications if str(app.get("id", "")) not in assigned_app_ids
+    ]
+
+    # Distribute unassigned apps to waves missing applications
+    app_index = 0
+    for wave in waves:
+        if not wave.get("applications") or len(wave.get("applications", [])) == 0:
+            # Use application_count from wave metadata, or estimate
+            app_count = wave.get("application_count", 0)
+            if app_count == 0:
+                # Estimate based on remaining apps and remaining waves
+                remaining_waves_missing = len(
+                    [w for w in waves if not w.get("applications")]
+                )
+                app_count = max(
+                    1, len(unassigned_apps) // max(1, remaining_waves_missing)
+                )
+
+            # Assign apps to this wave
+            wave_applications = []
+            for _ in range(min(app_count, len(unassigned_apps) - app_index)):
+                if app_index >= len(unassigned_apps):
+                    break
+
+                app = unassigned_apps[app_index]
+                app_id = str(app.get("id", ""))
+
+                wave_applications.append(
+                    {
+                        "application_id": app_id,
+                        "application_name": app.get("name")
+                        or app.get("application_name")
+                        or f"App {app_id[:8]}...",
+                        "rationale": f"Assigned to wave {wave.get('wave_number', 'N/A')} during enrichment",
+                        "criticality": app.get("business_criticality", "medium"),
+                        "complexity": app.get("complexity", "medium"),
+                        "migration_strategy": app.get("migration_strategy")
+                        or app.get("six_r_strategy", "rehost"),
+                        "dependency_depth": 0,
+                    }
+                )
+                app_index += 1
+
+            wave["applications"] = wave_applications
+            wave["application_count"] = len(wave_applications)
+
+            logger.info(
+                f"Enriched wave {wave.get('wave_number')} with {len(wave_applications)} applications"
+            )
+
+    # Handle any remaining apps by adding to the last wave
+    if app_index < len(unassigned_apps) and waves:
+        last_wave = waves[-1]
+        if "applications" not in last_wave:
+            last_wave["applications"] = []
+        for app in unassigned_apps[app_index:]:
+            app_id = str(app.get("id", ""))
+            last_wave["applications"].append(
+                {
+                    "application_id": app_id,
+                    "application_name": app.get("name")
+                    or app.get("application_name")
+                    or f"App {app_id[:8]}...",
+                    "rationale": "Assigned to final wave during enrichment",
+                    "criticality": app.get("business_criticality", "medium"),
+                    "complexity": app.get("complexity", "medium"),
+                    "migration_strategy": app.get("migration_strategy")
+                    or app.get("six_r_strategy", "rehost"),
+                    "dependency_depth": 0,
+                }
+            )
+        last_wave["application_count"] = len(last_wave["applications"])
+
+    return parsed_result
 
 
 async def _store_wave_planning_learnings(

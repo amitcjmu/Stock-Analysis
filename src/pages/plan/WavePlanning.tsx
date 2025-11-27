@@ -116,17 +116,29 @@ export default function WavePlanningPage(): JSX.Element {
       setWaves(planningStatus.wave_plan_data.waves);
 
       // Build applications map from all waves
-      // TODO: Fetch actual application details from backend
-      // For now, create placeholder entries based on application IDs in waves
+      // Backend returns objects with application_id, application_name, migration_strategy, etc.
+      // The map is used as a fallback for legacy string-based application arrays
       const appMap = new Map<string, { id: string; name: string }>();
       planningStatus.wave_plan_data.waves.forEach((wave) => {
-        wave.applications?.forEach((appId) => {
-          if (!appMap.has(appId)) {
-            // Placeholder until we fetch real application data
-            appMap.set(appId, {
-              id: appId,
-              name: `Application ${appId.substring(0, 8)}...`,
-            });
+        wave.applications?.forEach((app: unknown) => {
+          // Handle new object format from backend (with application_id)
+          if (typeof app === 'object' && app !== null && 'application_id' in app) {
+            const appObj = app as { application_id: string; application_name?: string };
+            if (!appMap.has(appObj.application_id)) {
+              appMap.set(appObj.application_id, {
+                id: appObj.application_id,
+                name: appObj.application_name || `App ${appObj.application_id.substring(0, 8)}...`,
+              });
+            }
+          }
+          // Handle legacy string format (UUID only)
+          else if (typeof app === 'string') {
+            if (!appMap.has(app)) {
+              appMap.set(app, {
+                id: app,
+                name: `Application ${app.substring(0, 8)}...`,
+              });
+            }
           }
         });
       });
