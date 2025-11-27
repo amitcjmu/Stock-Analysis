@@ -11,7 +11,6 @@ ADR Compliance:
 - ADR-031: CallbackHandlerIntegration for observability tracking
 """
 
-import json
 import logging
 import time
 from datetime import datetime, timezone
@@ -20,7 +19,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.agent_registry import agent_registry
 from app.services.crewai_flows.handlers.callback_handler_integration import (
     CallbackHandlerIntegration,
 )
@@ -38,11 +36,12 @@ logger = logging.getLogger(__name__)
 
 
 async def generate_wave_plan_with_agent(
-    agent_pool: TenantScopedAgentPool,
+    agent_pool: type,  # TenantScopedAgentPool class reference (has class methods)
     applications: List[Dict[str, Any]],
     dependencies: List[Dict[str, Any]],
     config: Dict[str, Any],
-    planning_flow_id: UUID,
+    master_flow_id: UUID,  # CRITICAL: FK to crewai_flow_state_extensions for agent_task_history
+    planning_flow_id: UUID,  # Child flow ID for context/logging only
     client_account_uuid: UUID,
     engagement_uuid: UUID,
     db: AsyncSession,
@@ -55,11 +54,12 @@ async def generate_wave_plan_with_agent(
     performance degradation.
 
     Args:
-        agent_pool: TenantScopedAgentPool instance (persistent agents)
+        agent_pool: TenantScopedAgentPool class reference (has class methods)
         applications: List of application metadata
         dependencies: List of application dependencies
         config: Wave planning configuration
-        planning_flow_id: Planning flow UUID for context
+        master_flow_id: Master flow UUID (FK to crewai_flow_state_extensions)
+        planning_flow_id: Planning flow UUID for context/logging
         client_account_uuid: Tenant client account ID
         engagement_uuid: Tenant engagement ID
         db: Database session for TenantMemoryManager
@@ -68,28 +68,45 @@ async def generate_wave_plan_with_agent(
         Wave plan data structure
 
     ADR Compliance:
-    - ADR-015: Uses agent_pool.get_agent() instead of creating crews directly
+    - ADR-015: Uses TenantScopedAgentPool.get_or_create_agent() class method
     - ADR-024: memory=False, use TenantMemoryManager for learning
     - ADR-029: sanitize_for_json on parsed result
     - ADR-031: CallbackHandlerIntegration wrapping
     """
-    # Step 1: Get agent from agent_registry (legacy check)
-    # NOTE: In future iterations, we should fully migrate to agent_pool.get_agent()
-    agent = agent_registry.get_agent("wave_planning_specialist")
-    if not agent:
+    # Step 1: Get CrewAI agent from TenantScopedAgentPool (ADR-015 compliant)
+    # Use class method to get persistent agent instead of agent_registry metadata
+    try:
+        agent = await TenantScopedAgentPool.get_or_create_agent(
+            client_id=str(client_account_uuid),
+            engagement_id=str(engagement_uuid),
+            agent_type="wave_planning_specialist",
+            context_info={
+                "flow_id": str(planning_flow_id),
+                "flow_type": "planning",
+            },
+        )
+        logger.info(
+            f"Retrieved wave_planning_specialist agent from TenantScopedAgentPool "
+            f"for client {client_account_uuid}"
+        )
+    except Exception as e:
         logger.warning(
-            "wave_planning_specialist agent not found in registry, using fallback logic"
+            f"Failed to get agent from TenantScopedAgentPool: {e}, using fallback logic"
         )
         from .wave_logic import generate_fallback_wave_plan
 
         return generate_fallback_wave_plan(applications, config)
 
     # Step 2: Create callback handler for observability (ADR-031)
+    # CRITICAL: Use master_flow_id (not planning_flow_id) for agent_task_history FK constraint
+    # The FK requires flow_id to exist in crewai_flow_state_extensions (master flow table)
     callback_handler = CallbackHandlerIntegration.create_callback_handler(
-        flow_id=str(planning_flow_id),
-        context={
+        flow_id=str(master_flow_id),  # FK to crewai_flow_state_extensions
+        context=None,  # No RequestContext available in this context
+        metadata={
             "client_account_id": str(client_account_uuid),
             "engagement_id": str(engagement_uuid),
+            "planning_flow_id": str(planning_flow_id),  # Child flow ID for reference
             "flow_type": "planning",
             "phase": "wave_planning",
             "app_count": len(applications),
@@ -106,13 +123,27 @@ async def generate_wave_plan_with_agent(
         config=config,
     )
 
-    # Step 4: CRITICAL - Use TenantScopedAgentPool pattern (ADR-015)
-    # This is the FIX for the legacy crew instance creation issue
-    # Instead of: crew = Crew(agents=[agent], tasks=[task], memory=False)
-    # We execute the task directly with the persistent agent from the pool
+    # Step 4: Create Crew using factory (ADR-015 + ADR-024 compliant)
+    # ADR-015: Agent comes from TenantScopedAgentPool (persistent, not created per call)
+    # ADR-024: create_crew() sets memory=False by default (use TenantMemoryManager instead)
+    # CRITICAL: Use create_crew() from factory, NOT direct Crew() instantiation
+    from app.services.crewai_flows.config.crew_factory import create_crew
+
+    # Unwrap AgentWrapper to get the actual CrewAI Agent (ADR-015)
+    # TenantScopedAgentPool returns AgentWrapper for Pydantic v2 compatibility,
+    # but Crew expects BaseAgent instances
+    actual_agent = agent._agent if hasattr(agent, "_agent") else agent
+
+    # Use factory-created crew which applies ADR-024 defaults (memory=False)
+    crew = create_crew(
+        agents=[actual_agent],
+        tasks=[task],
+        verbose=True,
+    )
 
     # Step 5: Register task start
-    task_id = f"wave_planning_{planning_flow_id}"
+    # Use master_flow_id for task tracking (consistent with callback handler)
+    task_id = f"wave_planning_{master_flow_id}"
     callback_handler._step_callback(
         {
             "type": "starting",
@@ -124,40 +155,45 @@ async def generate_wave_plan_with_agent(
         }
     )
 
-    # Step 6: Execute task using persistent agent
+    # Step 6: Execute crew using persistent agent
     try:
         start_time = time.time()
 
-        # Execute task with the agent from the pool
-        # This is the ADR-015 compliant pattern
-        result = await task.execute_async()
+        # Execute crew synchronously in a thread (CrewAI kickoff is blocking)
+        # This is the correct async pattern used throughout the codebase
+        import asyncio
+
+        result = await asyncio.to_thread(crew.kickoff)
 
         execution_time = time.time() - start_time
 
         # Step 7: Extract and parse result (ADR-029)
-        from crewai import TaskOutput
-
-        if isinstance(result, TaskOutput):
-            result_str = result.raw if hasattr(result, "raw") else str(result)
+        # CrewOutput has .raw attribute with the final answer text
+        if hasattr(result, "raw"):
+            result_str = result.raw
+        elif hasattr(result, "result"):
+            result_str = result.result
         else:
             result_str = str(result) if not isinstance(result, str) else result
 
-        # Parse JSON from LLM output
-        try:
-            # Remove markdown wrappers if present
-            if result_str.strip().startswith("```"):
-                lines = result_str.strip().split("\n")
-                # Remove first and last lines (``` markers)
-                result_str = "\n".join(lines[1:-1])
-                # Remove json language marker if present
-                if result_str.strip().startswith("json"):
-                    result_str = "\n".join(result_str.split("\n")[1:])
+        logger.info(
+            f"Wave planning agent completed. Output length: {len(result_str)} chars"
+        )
 
-            parsed_result = json.loads(result_str)
-        except json.JSONDecodeError as e:
+        # Parse JSON from LLM output using ADR-029 compliant parser
+        try:
+            from app.utils.json_sanitization import safe_parse_llm_json
+
+            parsed_result = safe_parse_llm_json(result_str)
+
+            if not parsed_result or "waves" not in parsed_result:
+                logger.warning("Agent output missing 'waves' key, using fallback")
+                from .wave_logic import generate_fallback_wave_plan
+
+                parsed_result = generate_fallback_wave_plan(applications, config)
+        except Exception as e:
             logger.error(f"Failed to parse agent output as JSON: {e}")
-            # Log truncated output without sensitive data for debugging (redact potential PII)
-            logger.debug("Raw output parsing failed - check agent configuration")
+            logger.debug(f"Raw output (truncated): {result_str[:500]}...")
             # Fallback to simple wave plan
             from .wave_logic import generate_fallback_wave_plan
 
@@ -238,13 +274,9 @@ async def _store_wave_planning_learnings(
         db: Database session
     """
     try:
-        # Initialize TenantMemoryManager
-        from app.services.crewai_service import CrewAIService
-
-        crewai_service = CrewAIService()
-        memory_manager = TenantMemoryManager(
-            crewai_service=crewai_service, database_session=db
-        )
+        # Initialize TenantMemoryManager (ADR-024)
+        # crewai_service can be None when not using CrewAI built-in memory
+        memory_manager = TenantMemoryManager(crewai_service=None, database_session=db)
 
         # Extract key learnings from wave plan
         summary = wave_plan.get("summary", {})
@@ -270,7 +302,7 @@ async def _store_wave_planning_learnings(
             client_account_id=client_account_uuid,
             engagement_id=engagement_uuid,
             scope=LearningScope.ENGAGEMENT,
-            pattern_type="wave_planning_optimization",
+            pattern_type="WAVE_PLANNING_OPTIMIZATION",
             pattern_data=learning_data,
         )
 

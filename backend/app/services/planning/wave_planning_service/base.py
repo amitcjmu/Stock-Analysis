@@ -66,12 +66,10 @@ class WavePlanningService:
             engagement_id=engagement_uuid,
         )
 
-        # Initialize agent pool for singleton agents (ADR-015)
+        # Store reference to TenantScopedAgentPool class for singleton agents (ADR-015)
+        # TenantScopedAgentPool is a class with class methods, not instantiated
         # This replaces direct crew instance creation per call
-        self.agent_pool = TenantScopedAgentPool(
-            client_account_id=str(client_account_uuid),
-            engagement_id=str(engagement_uuid),
-        )
+        self.agent_pool_class = TenantScopedAgentPool
 
     async def execute_wave_planning(
         self, planning_flow_id: UUID, planning_config: Dict[str, Any]
@@ -122,8 +120,10 @@ class WavePlanningService:
                 fetch_application_dependencies,
             )
 
-            # Fetch application details and dependencies
-            applications = await fetch_application_details(planning_flow)
+            # Fetch application details and dependencies with real data from DB
+            applications = await fetch_application_details(
+                planning_flow, self.db, self.client_account_uuid, self.engagement_uuid
+            )
             dependencies = await fetch_application_dependencies(planning_flow)
 
             logger.info(
@@ -135,12 +135,15 @@ class WavePlanningService:
             from .agent_integration import generate_wave_plan_with_agent
 
             # Generate wave plan using CrewAI agent (ADR-015 compliant)
+            # CRITICAL: Pass master_flow_id (not planning_flow_id) for agent_task_history FK
+            # The FK constraint requires flow_id to exist in crewai_flow_state_extensions
             wave_plan = await generate_wave_plan_with_agent(
-                agent_pool=self.agent_pool,
+                agent_pool=self.agent_pool_class,
                 applications=applications,
                 dependencies=dependencies,
                 config=planning_config,
-                planning_flow_id=planning_flow_id,
+                master_flow_id=planning_flow.master_flow_id,  # FK to crewai_flow_state_extensions
+                planning_flow_id=planning_flow_id,  # For context/logging
                 client_account_uuid=self.client_account_uuid,
                 engagement_uuid=self.engagement_uuid,
                 db=self.db,

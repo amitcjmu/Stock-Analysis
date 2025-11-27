@@ -33,6 +33,15 @@ class PatternType(str, Enum):
     FIELD_MAPPING_APPROVAL = "field_mapping_approval"
     FIELD_MAPPING_REJECTION = "field_mapping_rejection"
     FIELD_MAPPING_SUGGESTION = "field_mapping_suggestion"
+    # Enrichment pattern types (added in migration 097)
+    PRODUCT_MATCHING = "product_matching"
+    COMPLIANCE_ANALYSIS = "compliance_analysis"
+    LICENSING_ANALYSIS = "licensing_analysis"
+    VULNERABILITY_ANALYSIS = "vulnerability_analysis"
+    RESILIENCE_ANALYSIS = "resilience_analysis"
+    DEPENDENCY_ANALYSIS = "dependency_analysis"
+    # Wave planning pattern types (added in migration 141)
+    WAVE_PLANNING_OPTIMIZATION = "wave_planning_optimization"
 
 
 class AgentDiscoveredPattern(Base):
@@ -49,7 +58,9 @@ class AgentDiscoveredPattern(Base):
     engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
     # Pattern details
-    pattern_type = Column(SQLEnum(PatternType), nullable=False, index=True)
+    pattern_type: Column[PatternType] = Column(
+        SQLEnum(PatternType), nullable=False, index=True
+    )
     pattern_name = Column(String(255), nullable=False)
     pattern_description = Column(Text, nullable=False)
 
