@@ -61,21 +61,28 @@ async def continue_assessment_flow(
                     CrewAIFlowStateExtensionsRepository,
                 )
                 from app.models.assessment_flow import AssessmentFlow
-                from sqlalchemy import select
+                from sqlalchemy import or_, select
 
-                # Query assessment flow to get master_flow_id
+                # MFO Pattern: flow_id can be either AssessmentFlow.id OR master_flow_id
+                # Frontend URLs use master_flow_id, so we must check both
                 result = await db.execute(
-                    select(AssessmentFlow.master_flow_id).where(
-                        AssessmentFlow.id == flow_id
+                    select(AssessmentFlow.id, AssessmentFlow.master_flow_id).where(
+                        or_(
+                            AssessmentFlow.id == flow_id,
+                            AssessmentFlow.master_flow_id == flow_id,
+                        )
                     )
                 )
-                master_flow_id = result.scalar_one_or_none()
+                row = result.first()
 
-                if not master_flow_id:
+                if not row or not row.master_flow_id:
                     logger.error(
                         f"Assessment flow {flow_id} not found or has no master_flow_id"
                     )
                     return
+
+                child_flow_id = str(row.id)
+                master_flow_id = row.master_flow_id
 
                 # Get master flow state and initialize repositories
                 from app.repositories.assessment_flow_repository import (
@@ -125,9 +132,10 @@ async def continue_assessment_flow(
                 execution_engine = ExecutionEngineAssessmentCrews(crew_utils)
 
                 # Get assessment flow data for selected applications
+                # Use child_flow_id (resolved earlier via MFO pattern)
                 assessment_result = await db.execute(
                     select(AssessmentFlow.selected_application_ids).where(
-                        AssessmentFlow.id == flow_id
+                        AssessmentFlow.id == child_flow_id
                     )
                 )
                 selected_app_ids = assessment_result.scalar_one_or_none() or []
@@ -136,7 +144,7 @@ async def continue_assessment_flow(
                 phase_input = {
                     "selected_application_ids": selected_app_ids,
                     "user_input": {},
-                    "flow_id": flow_id,
+                    "flow_id": child_flow_id,  # Use child flow ID for persistence
                 }
 
                 # Execute the phase with CrewAI agents
@@ -165,7 +173,7 @@ async def continue_assessment_flow(
                     # Keep flow in progress (phase failed but flow continues)
                     # Note: Using "in_progress" not "error" - AssessmentFlowStatus enum
                     await assessment_repo.update_flow_status(
-                        flow_id,
+                        child_flow_id,
                         "in_progress",
                     )
                     return  # Exit without logging success
@@ -174,7 +182,7 @@ async def continue_assessment_flow(
                     safe_log_format(
                         "[ISSUE-999] ✅ BACKGROUND TASK COMPLETED: Assessment flow {flow_id} "
                         "phase {phase_value} completed successfully. Agents executed and results stored.",
-                        flow_id=flow_id,
+                        flow_id=child_flow_id,
                         phase_value=phase.value,
                     )
                 )
@@ -183,7 +191,7 @@ async def continue_assessment_flow(
                 # Final phase (recommendation_generation) completes agent work,
                 # but flow status stays in_progress awaiting user confirmation
                 await assessment_repo.update_flow_status(
-                    flow_id,
+                    child_flow_id,
                     "in_progress",
                 )
 
@@ -192,7 +200,7 @@ async def continue_assessment_flow(
                         safe_log_format(
                             "[ISSUE-999] 📋 Assessment flow {flow_id} recommendations ready "
                             "- awaiting user finalization",
-                            flow_id=flow_id,
+                            flow_id=child_flow_id,
                         )
                     )
 
@@ -208,7 +216,7 @@ async def continue_assessment_flow(
                 # Keep flow in progress (agent execution failed)
                 try:
                     await assessment_repo.update_flow_status(
-                        flow_id,
+                        child_flow_id,
                         "in_progress",
                     )
                 except Exception:

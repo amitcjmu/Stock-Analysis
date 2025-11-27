@@ -18,6 +18,7 @@ import type {
   ApplicationComponent,
   TechDebtItem,
   SixRDecision,
+  ComponentTreatment,
   UserInput,
   AssessmentApplication,
 } from "./types";
@@ -119,10 +120,33 @@ export const useAssessmentFlow = (
             const decisionsData = await assessmentFlowAPI.getSixRDecisions(
               state.flowId,
             );
-            // Backend returns decisions as a dictionary already, not an array
+            // Backend returns decisions as a dictionary keyed by application ID
+            // API response from /master-flows/{flowId}/sixr-decisions returns "decisions" key
+            // Transform backend field names to frontend expected names
+            const rawDecisions = decisionsData.decisions || {};
+            const transformedDecisions: Record<string, SixRDecision> = {};
+            for (const [appId, decision] of Object.entries(rawDecisions)) {
+              const d = decision as Record<string, unknown>;
+              transformedDecisions[appId] = {
+                application_id: (d.application_id as string) || appId,
+                application_name: (d.application_name as string) || "Unknown",
+                // Map backend field names to frontend expected names
+                overall_strategy: (d.six_r_strategy as string) || (d.overall_strategy as string) || "unknown",
+                confidence_score: (d.confidence_score as number) || 0,
+                rationale: (d.reasoning as string) || (d.rationale as string) || "",
+                // Optional fields with defaults
+                component_treatments: (d.component_treatments as ComponentTreatment[]) || [],
+                architecture_exceptions: (d.architecture_exceptions as string[]) || [],
+                risk_factors: (d.risk_factors as string[]) || [],
+                move_group_hints: (d.move_group_hints as string[]) || [],
+                tech_debt_score: d.tech_debt_score as number | undefined,
+                user_modifications: d.user_modifications as Record<string, string | number | boolean> | undefined,
+                app_on_page_data: d.app_on_page_data as Record<string, string | number | boolean> | undefined,
+              };
+            }
             setState((prev) => ({
               ...prev,
-              sixrDecisions: decisionsData.decisions || {},
+              sixrDecisions: transformedDecisions,
             }));
             break;
           }

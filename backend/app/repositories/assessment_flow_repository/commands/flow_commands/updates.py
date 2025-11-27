@@ -6,7 +6,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, or_, select, update
+from uuid import UUID
 
 from app.models.assessment_flow import AssessmentFlow
 
@@ -32,11 +33,17 @@ async def update_flow_phase(
     if status:
         update_data["status"] = status
 
+    # MFO Pattern: flow_id can be either AssessmentFlow.id OR master_flow_id
+    flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
     await self.db.execute(
         update(AssessmentFlow)
         .where(
             and_(
-                AssessmentFlow.id == flow_id,
+                or_(
+                    AssessmentFlow.id == flow_uuid,
+                    AssessmentFlow.master_flow_id == flow_uuid,
+                ),
                 AssessmentFlow.client_account_id == self.client_account_id,
             )
         )
@@ -54,11 +61,17 @@ async def save_user_input(self, flow_id: str, phase: str, user_input: Dict[str, 
     Uses PostgreSQL's || operator to prevent race conditions (Qodo review fix).
     This is safer than read-modify-write as it's atomic at the database level.
     """
+    # MFO Pattern: flow_id can be either AssessmentFlow.id OR master_flow_id
+    flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
+
     await self.db.execute(
         update(AssessmentFlow)
         .where(
             and_(
-                AssessmentFlow.id == flow_id,
+                or_(
+                    AssessmentFlow.id == flow_uuid,
+                    AssessmentFlow.master_flow_id == flow_uuid,
+                ),
                 AssessmentFlow.client_account_id == self.client_account_id,
             )
         )
@@ -76,12 +89,17 @@ async def save_agent_insights(
     self, flow_id: str, phase: str, insights: List[Dict[str, Any]]
 ):
     """Save agent insights for specific phase and log to master flow"""
+    # MFO Pattern: flow_id can be either AssessmentFlow.id OR master_flow_id
+    flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
 
     # Get current agent insights
     result = await self.db.execute(
         select(AssessmentFlow.agent_insights).where(
             and_(
-                AssessmentFlow.id == flow_id,
+                or_(
+                    AssessmentFlow.id == flow_uuid,
+                    AssessmentFlow.master_flow_id == flow_uuid,
+                ),
                 AssessmentFlow.client_account_id == self.client_account_id,
             )
         )
@@ -99,7 +117,10 @@ async def save_agent_insights(
         update(AssessmentFlow)
         .where(
             and_(
-                AssessmentFlow.id == flow_id,
+                or_(
+                    AssessmentFlow.id == flow_uuid,
+                    AssessmentFlow.master_flow_id == flow_uuid,
+                ),
                 AssessmentFlow.client_account_id == self.client_account_id,
             )
         )

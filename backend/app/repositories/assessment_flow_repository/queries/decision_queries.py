@@ -13,7 +13,7 @@ import logging
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment_flow import AssessmentFlow
@@ -68,10 +68,15 @@ class DecisionQueries:
             flow_uuid = UUID(flow_id) if isinstance(flow_id, str) else flow_id
 
             # Get assessment flow with proper tenant scoping
+            # MFO Pattern: flow_id can be either AssessmentFlow.id OR master_flow_id
+            # Frontend URLs use master_flow_id, so we must check both
             result = await self.db.execute(
                 select(AssessmentFlow).where(
                     and_(
-                        AssessmentFlow.id == flow_uuid,
+                        or_(
+                            AssessmentFlow.id == flow_uuid,
+                            AssessmentFlow.master_flow_id == flow_uuid,
+                        ),
                         AssessmentFlow.client_account_id == self.client_account_id,
                         # Add engagement_id scoping if provided
                         (
@@ -128,27 +133,37 @@ class DecisionQueries:
         """
         Extract 6R decisions from phase_results JSON field.
 
-        Expected structure (written by Iteration 4):
+        Actual structure (written by agent via phase_result_persistence):
         {
             "recommendation_generation": {
-                "applications": [
-                    {
-                        "application_id": "uuid",
-                        "application_name": "string",
-                        "six_r_strategy": "rehost",
-                        "confidence_score": 0.85,
-                        "reasoning": "...",
-                        "estimated_effort": "medium",
-                        "risk_level": "low"
+                "results": {
+                    "recommendation_generation": {
+                        "applications": [
+                            {
+                                "application_id": "uuid",
+                                "application_name": "string",
+                                "six_r_strategy": "rehost",
+                                "confidence_score": 0.85,
+                                "reasoning": "...",
+                                "estimated_effort": "medium",
+                                "risk_level": "low"
+                            }
+                        ]
                     }
-                ]
+                }
             }
         }
         """
         try:
             phase_results = flow.phase_results or {}
             recommendation_gen = phase_results.get("recommendation_generation", {})
-            applications = recommendation_gen.get("applications", [])
+
+            # Navigate to nested structure where applications data lives:
+            # recommendation_generation -> results -> recommendation_generation -> applications
+            # This structure matches what the agent writes via phase_result_persistence
+            results = recommendation_gen.get("results", {})
+            inner_rec_gen = results.get("recommendation_generation", {})
+            applications = inner_rec_gen.get("applications", [])
 
             if not applications:
                 return {}
