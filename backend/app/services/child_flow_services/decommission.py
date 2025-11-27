@@ -6,10 +6,14 @@ Implements safe system decommissioning with data preservation and compliance.
 
 Reference:
 - ADR-025: Child Flow Service Pattern
+- ADR-015: TenantScopedAgentPool for persistent agents
+- ADR-024: memory=False in crew, use TenantMemoryManager
+- ADR-031: CallbackHandlerIntegration for observability
 - /docs/planning/DECOMMISSION_FLOW_SOLUTION.md Section 4.0
-- Pattern: backend/app/services/child_flow_services/collection.py
+- Pattern: backend/app/services/planning/wave_planning_service/agent_integration.py
 
 Created: Issue #937 (Phase 3 of Decommission Flow Implementation)
+Updated: November 2025 - ADR-015/024/031 compliance
 """
 
 import logging
@@ -21,6 +25,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.repositories.decommission_flow_repository import DecommissionFlowRepository
 from app.services.child_flow_services.base import BaseChildFlowService
+from app.services.child_flow_services.decommission_agent_integration import (
+    execute_decommission_planning_with_agents,
+    execute_data_migration_with_agents,
+    execute_system_shutdown_with_agents,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +43,11 @@ class DecommissionChildFlowService(BaseChildFlowService):
     2. data_migration: Data retention policies, archival jobs
     3. system_shutdown: Pre-validation, shutdown, post-validation, cleanup
 
-    NO crew_class usage (deprecated per ADR-025) - uses TenantScopedAgentPool instead.
+    ADR Compliance:
+    - ADR-015: Uses TenantScopedAgentPool for persistent agents
+    - ADR-024: memory=False in crew, use TenantMemoryManager for learning
+    - ADR-025: Child Flow Service pattern
+    - ADR-031: CallbackHandlerIntegration for observability
     """
 
     def __init__(self, db: AsyncSession, context: RequestContext):
@@ -170,10 +183,10 @@ class DecommissionChildFlowService(BaseChildFlowService):
         phase_input: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Execute decommission planning phase.
+        Execute decommission planning phase using TenantScopedAgentPool (ADR-015).
 
         Analyzes system dependencies, assesses risks, and calculates cost savings.
-        Uses DecommissionAgentPool for planning crew.
+        Uses TenantScopedAgentPool + create_crew() pattern per ADR-015/024.
 
         Args:
             child_flow: DecommissionFlow entity
@@ -194,47 +207,59 @@ class DecommissionChildFlowService(BaseChildFlowService):
                 phase_status="running",
             )
 
-            # TODO: Call DecommissionAgentPool for planning crew
-            # agent_pool = DecommissionAgentPool()
-            # result = await agent_pool.execute_decommission_planning_crew(
-            #     client_account_id=self.context.client_account_id,
-            #     engagement_id=self.context.engagement_id,
-            #     system_ids=child_flow.selected_system_ids,
-            # )
-
-            # STUB: Return placeholder for now
-            logger.warning(
-                "DecommissionAgentPool not yet integrated - returning placeholder"
+            # Convert tenant IDs to UUIDs
+            client_account_uuid = (
+                UUID(self.context.client_account_id)
+                if isinstance(self.context.client_account_id, str)
+                else self.context.client_account_id
+            )
+            engagement_uuid = (
+                UUID(self.context.engagement_id)
+                if isinstance(self.context.engagement_id, str)
+                else self.context.engagement_id
             )
 
-            # Update phase status to completed
+            # Get system IDs (handle ARRAY type)
+            system_ids = child_flow.selected_system_ids or []
+            system_ids_list = [str(sys_id) for sys_id in system_ids]
+
+            # Execute using ADR-015 compliant agent integration
+            result = await execute_decommission_planning_with_agents(
+                master_flow_id=child_flow.master_flow_id,
+                child_flow_id=child_flow.flow_id,
+                client_account_uuid=client_account_uuid,
+                engagement_uuid=engagement_uuid,
+                system_ids=system_ids_list,
+                decommission_strategy=child_flow.decommission_strategy,
+                db=self.db,
+            )
+
+            # Update phase status based on result
+            phase_status = (
+                "completed" if result.get("status") == "success" else "failed"
+            )
             await self.repository.update_phase_status(
                 flow_id=child_flow.flow_id,
                 phase_name="decommission_planning",
-                phase_status="completed",
+                phase_status=phase_status,
             )
 
-            # Update flow status to data_migration
-            await self.repository.update_status(
-                flow_id=child_flow.flow_id,
-                status="data_migration",
-                current_phase="data_migration",
-            )
+            # If successful, advance to next phase
+            if result.get("status") == "success":
+                await self.repository.update_status(
+                    flow_id=child_flow.flow_id,
+                    status="data_migration",
+                    current_phase="data_migration",
+                )
+                result["next_phase"] = "data_migration"
 
-            return {
-                "status": "success",
-                "phase": "decommission_planning",
-                "execution_type": "stub",
-                "message": "Planning phase pending agent integration",
-                "next_phase": "data_migration",
-            }
+            return result
 
         except Exception as e:
             logger.error(
                 f"Error in decommission_planning phase: {e}",
                 exc_info=True,
             )
-            # Try to mark phase as failed (but don't fail if this fails)
             try:
                 await self.repository.update_phase_status(
                     flow_id=child_flow.flow_id,
@@ -256,10 +281,10 @@ class DecommissionChildFlowService(BaseChildFlowService):
         phase_input: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Execute data migration phase.
+        Execute data migration phase using TenantScopedAgentPool (ADR-015).
 
         Creates data retention policies and initiates archival jobs.
-        Uses DecommissionAgentPool for data migration crew.
+        Uses TenantScopedAgentPool + create_crew() pattern per ADR-015/024.
 
         Args:
             child_flow: DecommissionFlow entity
@@ -278,47 +303,58 @@ class DecommissionChildFlowService(BaseChildFlowService):
                 phase_status="running",
             )
 
-            # TODO: Call DecommissionAgentPool for data migration crew
-            # agent_pool = DecommissionAgentPool()
-            # result = await agent_pool.execute_data_migration_crew(
-            #     client_account_id=self.context.client_account_id,
-            #     engagement_id=self.context.engagement_id,
-            #     flow_id=child_flow.flow_id,
-            # )
-
-            # STUB: Return placeholder for now
-            logger.warning(
-                "DecommissionAgentPool not yet integrated - returning placeholder"
+            # Convert tenant IDs to UUIDs
+            client_account_uuid = (
+                UUID(self.context.client_account_id)
+                if isinstance(self.context.client_account_id, str)
+                else self.context.client_account_id
+            )
+            engagement_uuid = (
+                UUID(self.context.engagement_id)
+                if isinstance(self.context.engagement_id, str)
+                else self.context.engagement_id
             )
 
-            # Update phase status to completed
+            # Get system IDs (handle ARRAY type)
+            system_ids = child_flow.selected_system_ids or []
+            system_ids_list = [str(sys_id) for sys_id in system_ids]
+
+            # Execute using ADR-015 compliant agent integration
+            result = await execute_data_migration_with_agents(
+                master_flow_id=child_flow.master_flow_id,
+                child_flow_id=child_flow.flow_id,
+                client_account_uuid=client_account_uuid,
+                engagement_uuid=engagement_uuid,
+                system_ids=system_ids_list,
+                db=self.db,
+            )
+
+            # Update phase status based on result
+            phase_status = (
+                "completed" if result.get("status") == "success" else "failed"
+            )
             await self.repository.update_phase_status(
                 flow_id=child_flow.flow_id,
                 phase_name="data_migration",
-                phase_status="completed",
+                phase_status=phase_status,
             )
 
-            # Update flow status to system_shutdown
-            await self.repository.update_status(
-                flow_id=child_flow.flow_id,
-                status="system_shutdown",
-                current_phase="system_shutdown",
-            )
+            # If successful, advance to next phase
+            if result.get("status") == "success":
+                await self.repository.update_status(
+                    flow_id=child_flow.flow_id,
+                    status="system_shutdown",
+                    current_phase="system_shutdown",
+                )
+                result["next_phase"] = "system_shutdown"
 
-            return {
-                "status": "success",
-                "phase": "data_migration",
-                "execution_type": "stub",
-                "message": "Data migration phase pending agent integration",
-                "next_phase": "system_shutdown",
-            }
+            return result
 
         except Exception as e:
             logger.error(
                 f"Error in data_migration phase: {e}",
                 exc_info=True,
             )
-            # Try to mark phase as failed (but don't fail if this fails)
             try:
                 await self.repository.update_phase_status(
                     flow_id=child_flow.flow_id,
@@ -340,10 +376,10 @@ class DecommissionChildFlowService(BaseChildFlowService):
         phase_input: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Execute system shutdown phase.
+        Execute system shutdown phase using TenantScopedAgentPool (ADR-015).
 
         Performs pre-validation, shutdown, post-validation, and cleanup.
-        Uses DecommissionAgentPool for shutdown crew.
+        Uses TenantScopedAgentPool + create_crew() pattern per ADR-015/024.
 
         Args:
             child_flow: DecommissionFlow entity
@@ -362,47 +398,58 @@ class DecommissionChildFlowService(BaseChildFlowService):
                 phase_status="running",
             )
 
-            # TODO: Call DecommissionAgentPool for shutdown crew
-            # agent_pool = DecommissionAgentPool()
-            # result = await agent_pool.execute_system_shutdown_crew(
-            #     client_account_id=self.context.client_account_id,
-            #     engagement_id=self.context.engagement_id,
-            #     flow_id=child_flow.flow_id,
-            # )
-
-            # STUB: Return placeholder for now
-            logger.warning(
-                "DecommissionAgentPool not yet integrated - returning placeholder"
+            # Convert tenant IDs to UUIDs
+            client_account_uuid = (
+                UUID(self.context.client_account_id)
+                if isinstance(self.context.client_account_id, str)
+                else self.context.client_account_id
+            )
+            engagement_uuid = (
+                UUID(self.context.engagement_id)
+                if isinstance(self.context.engagement_id, str)
+                else self.context.engagement_id
             )
 
-            # Update phase status to completed
+            # Get system IDs (handle ARRAY type)
+            system_ids = child_flow.selected_system_ids or []
+            system_ids_list = [str(sys_id) for sys_id in system_ids]
+
+            # Execute using ADR-015 compliant agent integration
+            result = await execute_system_shutdown_with_agents(
+                master_flow_id=child_flow.master_flow_id,
+                child_flow_id=child_flow.flow_id,
+                client_account_uuid=client_account_uuid,
+                engagement_uuid=engagement_uuid,
+                system_ids=system_ids_list,
+                db=self.db,
+            )
+
+            # Update phase status based on result
+            phase_status = (
+                "completed" if result.get("status") == "success" else "failed"
+            )
             await self.repository.update_phase_status(
                 flow_id=child_flow.flow_id,
                 phase_name="system_shutdown",
-                phase_status="completed",
+                phase_status=phase_status,
             )
 
-            # Update flow status to completed
-            await self.repository.update_status(
-                flow_id=child_flow.flow_id,
-                status="completed",
-                current_phase="completed",
-            )
+            # If successful, mark flow as completed
+            if result.get("status") == "success":
+                await self.repository.update_status(
+                    flow_id=child_flow.flow_id,
+                    status="completed",
+                    current_phase="completed",
+                )
+                result["next_phase"] = "completed"
 
-            return {
-                "status": "success",
-                "phase": "system_shutdown",
-                "execution_type": "stub",
-                "message": "Shutdown phase pending agent integration",
-                "next_phase": "completed",
-            }
+            return result
 
         except Exception as e:
             logger.error(
                 f"Error in system_shutdown phase: {e}",
                 exc_info=True,
             )
-            # Try to mark phase as failed (but don't fail if this fails)
             try:
                 await self.repository.update_phase_status(
                     flow_id=child_flow.flow_id,
