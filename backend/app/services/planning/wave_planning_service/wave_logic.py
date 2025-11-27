@@ -210,6 +210,19 @@ def generate_fallback_wave_plan(
                 }
             )
 
+        # Compute predominant strategy from apps in this wave
+        strategy_counts: Dict[str, int] = {}
+        for app in wave_apps:
+            strategy = app.get("migration_strategy", "rehost").lower()
+            strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
+
+        # Use most common strategy as group default
+        predominant_strategy = (
+            max(strategy_counts.keys(), key=lambda s: strategy_counts[s])
+            if strategy_counts
+            else "rehost"
+        )
+
         wave = {
             "wave_id": f"wave_{wave_num}",
             "wave_number": wave_num,
@@ -227,7 +240,7 @@ def generate_fallback_wave_plan(
                     "group_id": f"wave_{wave_num}_group_1",
                     "group_name": f"{wave_name.split(' - ')[1]} Group",
                     "application_count": apps_in_wave,
-                    "migration_strategy": "Rehost",
+                    "migration_strategy": predominant_strategy,
                     "parallel_execution": True,
                 }
             ],
