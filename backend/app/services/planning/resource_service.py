@@ -2,13 +2,14 @@
 Resource Planning Service for Planning Flow.
 
 Provides business logic for resource pools, allocations, and skill gap analysis.
-Aggregates data from repository layer for UI display.
+6R-based estimation logic is in sixr_estimation.py module.
 """
 
 import logging
-from typing import List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -21,12 +22,13 @@ from app.schemas.planning.resource import (
     ResourceRecommendation,
     UpcomingNeed,
 )
+from app.services.planning.sixr_estimation import estimate_resources_from_6r
 
 logger = logging.getLogger(__name__)
 
 
 class ResourceService:
-    """Service for resource planning operations."""
+    """Service for resource planning operations with 6R-based estimation."""
 
     def __init__(self, db: AsyncSession, context: RequestContext):
         """
@@ -40,8 +42,6 @@ class ResourceService:
         self.context = context
 
         # Per migration 115, tenant IDs are UUIDs - NEVER convert to integers
-        from uuid import UUID
-
         client_account_id = context.client_account_id
         engagement_id = context.engagement_id
 
@@ -68,14 +68,54 @@ class ResourceService:
             engagement_id=self.engagement_uuid,
         )
 
+    async def _get_wave_plan_data(
+        self, planning_flow_id: Optional[UUID]
+    ) -> Dict[str, Any]:
+        """
+        Retrieve wave_plan_data from planning_flows table.
+
+        Args:
+            planning_flow_id: Optional specific planning flow UUID
+
+        Returns:
+            wave_plan_data dict or empty dict if not found
+        """
+        from app.models.planning import PlanningFlow
+
+        conditions = [
+            PlanningFlow.client_account_id == self.client_account_uuid,
+            PlanningFlow.engagement_id == self.engagement_uuid,
+        ]
+
+        if planning_flow_id:
+            conditions.append(PlanningFlow.planning_flow_id == planning_flow_id)
+
+        stmt = (
+            select(PlanningFlow)
+            .where(and_(*conditions))
+            .order_by(PlanningFlow.created_at.desc())
+            .limit(1)
+        )
+
+        result = await self.db.execute(stmt)
+        planning_flow = result.scalar_one_or_none()
+
+        if planning_flow and planning_flow.wave_plan_data:
+            return planning_flow.wave_plan_data
+        return {}
+
     async def get_resources_for_planning(
-        self, planning_flow_id: UUID = None
+        self, planning_flow_id: Optional[UUID] = None
     ) -> ResourcePlanningResponse:
         """
         Get aggregated resource planning data for UI display.
 
+        If planning_flow_id is provided and wave data exists, uses 6R-based
+        estimation from wave applications. Falls back to resource_pools table
+        if configured manually.
+
         Args:
-            planning_flow_id: Optional planning flow UUID to filter by
+            planning_flow_id: Optional planning flow UUID for 6R estimation
 
         Returns:
             ResourcePlanningResponse with teams, metrics, recommendations, and upcoming needs
@@ -85,7 +125,22 @@ class ResourceService:
                 f"Retrieving resource planning data for engagement: {self.engagement_uuid}"
             )
 
-            # Get resource pools (multi-tenant scoped)
+            # First, try 6R-based estimation from wave_plan_data
+            if planning_flow_id:
+                wave_plan_data = await self._get_wave_plan_data(planning_flow_id)
+                if wave_plan_data.get("waves"):
+                    logger.info(
+                        f"Using 6R-based estimation for {len(wave_plan_data['waves'])} waves"
+                    )
+                    estimation = estimate_resources_from_6r(wave_plan_data)
+                    return ResourcePlanningResponse(
+                        teams=estimation["teams"],
+                        metrics=estimation["metrics"],
+                        recommendations=estimation["recommendations"],
+                        upcoming_needs=estimation["upcoming_needs"],
+                    )
+
+            # Fall back to resource_pools table (manual configuration)
             resource_pools = await self.planning_repo.list_resource_pools(
                 client_account_id=self.client_account_uuid,
                 engagement_id=self.engagement_uuid,
@@ -102,6 +157,21 @@ class ResourceService:
                         engagement_id=self.engagement_uuid,
                     )
                 )
+
+            # If no pools, try to get wave data without specific flow ID
+            if not resource_pools:
+                wave_plan_data = await self._get_wave_plan_data(None)
+                if wave_plan_data.get("waves"):
+                    logger.info(
+                        "No resource pools - using 6R estimation from latest wave data"
+                    )
+                    estimation = estimate_resources_from_6r(wave_plan_data)
+                    return ResourcePlanningResponse(
+                        teams=estimation["teams"],
+                        metrics=estimation["metrics"],
+                        recommendations=estimation["recommendations"],
+                        upcoming_needs=estimation["upcoming_needs"],
+                    )
 
             # Transform resource pools to teams
             teams = self._transform_pools_to_teams(resource_pools, allocations)

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { LayoutDashboard, Calendar, Users, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +18,18 @@ const planTabs: PlanTab[] = [
 
 export const PlanNavigation: React.FC = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Preserve planning_flow_id when navigating between Plan tabs
+  const planningFlowId = searchParams.get('planning_flow_id');
+
+  // Build URL with preserved query params
+  const buildUrl = (href: string): string => {
+    if (planningFlowId) {
+      return `${href}?planning_flow_id=${planningFlowId}`;
+    }
+    return href;
+  };
 
   // Determine active tab based on current path
   const isActive = (href: string): boolean => {
@@ -39,7 +51,7 @@ export const PlanNavigation: React.FC = () => {
           return (
             <Link
               key={tab.name}
-              to={tab.href}
+              to={buildUrl(tab.href)}
               className={cn(
                 'flex items-center space-x-2 px-1 py-4 border-b-2 text-sm font-medium transition-colors',
                 active

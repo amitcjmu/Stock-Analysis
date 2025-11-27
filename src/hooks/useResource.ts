@@ -41,13 +41,23 @@ export interface ResourceData {
   }>;
 }
 
-export const useResource = (): JSX.Element => {
+/**
+ * Fetch resource planning data with AI-estimated teams based on 6R strategies.
+ *
+ * @param planning_flow_id - Optional planning flow UUID for 6R-based resource estimation.
+ *   When provided, analyzes wave applications by migration strategy to estimate staffing needs.
+ */
+export const useResource = (planning_flow_id?: string) => {
   const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<ResourceData>({
-    queryKey: ['resources'],
+    queryKey: ['resources', planning_flow_id, client?.id, engagement?.id],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/plan/resources');
+      // Pass planning_flow_id for 6R-based resource estimation from wave data
+      const url = planning_flow_id
+        ? `/api/v1/plan/resources?planning_flow_id=${planning_flow_id}`
+        : '/api/v1/plan/resources';
+      const response = await apiCall(url);
       return response;
     },
     enabled: isAuthenticated && !!client && !!engagement,

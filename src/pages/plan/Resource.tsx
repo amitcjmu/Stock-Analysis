@@ -9,6 +9,7 @@
  */
 
 import type React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Users,
   Loader2,
@@ -34,7 +35,11 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import PlanNavigation from '@/components/plan/PlanNavigation';
 
 const Resource = (): JSX.Element => {
-  const { data, isLoading, isError, error } = useResource();
+  // Extract planning_flow_id from URL search params for 6R-based resource estimation
+  const [searchParams] = useSearchParams();
+  const planningFlowId = searchParams.get('planning_flow_id') || undefined;
+
+  const { data, isLoading, isError, error } = useResource(planningFlowId);
 
   if (isLoading) {
     return (

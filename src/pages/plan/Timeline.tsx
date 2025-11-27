@@ -8,6 +8,7 @@
  */
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Flag,
   Calendar,
@@ -81,7 +82,11 @@ const HealthRing = ({ percentage, status }: { percentage: number; status: string
 };
 
 const Timeline = (): JSX.Element => {
-  const { data, isLoading, isError, error } = useTimeline();
+  // Extract planning_flow_id from URL search params for wave-based timeline derivation
+  const [searchParams] = useSearchParams();
+  const planningFlowId = searchParams.get('planning_flow_id') || undefined;
+
+  const { data, isLoading, isError, error } = useTimeline(planningFlowId);
   const [viewMode, setViewMode] = useState<'list' | 'gantt'>('gantt');
 
   if (isLoading) {
