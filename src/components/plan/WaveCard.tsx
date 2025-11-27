@@ -55,41 +55,58 @@ interface WaveCardProps {
 }
 
 /**
- * Get gradient and config based on wave status.
+ * Wave gradient colors - cycles through visually distinct colors for each wave.
+ */
+const WAVE_GRADIENTS = [
+  'from-rose-400 to-orange-400',      // Wave 1: Coral/Orange
+  'from-blue-500 to-indigo-500',      // Wave 2: Blue
+  'from-teal-500 to-emerald-500',     // Wave 3: Teal
+  'from-violet-500 to-purple-500',    // Wave 4: Purple
+  'from-pink-500 to-rose-500',        // Wave 5: Pink
+  'from-cyan-500 to-blue-500',        // Wave 6: Cyan
+  'from-amber-500 to-yellow-500',     // Wave 7: Amber
+  'from-green-500 to-emerald-500',    // Wave 8: Green
+];
+
+/**
+ * Get gradient color based on wave number (cycles through colors).
+ */
+const getWaveGradient = (waveNumber: number): string => {
+  const index = (waveNumber - 1) % WAVE_GRADIENTS.length;
+  return WAVE_GRADIENTS[index];
+};
+
+/**
+ * Get status config for badges and icons.
  */
 const getStatusConfig = (status: string) => {
   switch (status) {
     case 'planned':
       return {
-        gradient: 'from-blue-500 to-indigo-500',
         badge: 'bg-blue-100 text-blue-700 border-blue-200',
         icon: Clock,
         label: 'Planned'
       };
     case 'in_progress':
       return {
-        gradient: 'from-amber-500 to-orange-500',
         badge: 'bg-amber-100 text-amber-700 border-amber-200',
         icon: Layers,
         label: 'In Progress'
       };
     case 'completed':
       return {
-        gradient: 'from-emerald-500 to-teal-500',
         badge: 'bg-emerald-100 text-emerald-700 border-emerald-200',
         icon: CheckCircle2,
         label: 'Completed'
       };
     case 'blocked':
       return {
-        gradient: 'from-red-500 to-rose-500',
         badge: 'bg-red-100 text-red-700 border-red-200',
         icon: AlertCircle,
         label: 'Blocked'
       };
     default:
       return {
-        gradient: 'from-slate-400 to-slate-500',
         badge: 'bg-slate-100 text-slate-700 border-slate-200',
         icon: Clock,
         label: status.replace('_', ' ')
@@ -305,8 +322,8 @@ export default function WaveCard({
         ${isOver ? 'ring-2 ring-blue-500 shadow-xl scale-[1.02]' : 'hover:shadow-lg'}
       `}
     >
-      {/* Header with gradient */}
-      <div className={`bg-gradient-to-r ${statusConfig.gradient} p-4`}>
+      {/* Header with wave-number-based gradient */}
+      <div className={`bg-gradient-to-r ${getWaveGradient(wave.wave_number)} p-4`}>
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
