@@ -141,21 +141,26 @@ class ResourceService:
                     )
 
             # Fall back to resource_pools table (manual configuration)
-            resource_pools = await self.planning_repo.list_resource_pools(
-                client_account_id=self.client_account_uuid,
-                engagement_id=self.engagement_uuid,
-                is_active=True,
-            )
-
-            # Get resource allocations if planning_flow_id provided
+            # Wrapped in try/except due to potential UUID/integer type mismatches
+            resource_pools = []
             allocations = []
-            if planning_flow_id:
-                allocations = (
-                    await self.planning_repo.list_allocations_by_planning_flow(
-                        planning_flow_id=planning_flow_id,
-                        client_account_id=self.client_account_uuid,
-                        engagement_id=self.engagement_uuid,
+            try:
+                resource_pools = await self.planning_repo.list_resource_pools(
+                    client_account_id=self.client_account_uuid,
+                    engagement_id=self.engagement_uuid,
+                    is_active=True,
+                )
+                if planning_flow_id:
+                    allocations = (
+                        await self.planning_repo.list_allocations_by_planning_flow(
+                            planning_flow_id=planning_flow_id,
+                            client_account_id=self.client_account_uuid,
+                            engagement_id=self.engagement_uuid,
+                        )
                     )
+            except Exception as pool_error:
+                logger.warning(
+                    f"Resource pools query failed (using 6R estimation): {pool_error}"
                 )
 
             # If no pools, try to get wave data without specific flow ID

@@ -1,9 +1,9 @@
-"""6R Strategy Resource Estimation Module - estimates FTEs based on migration strategies."""
+"""6R Strategy Resource Estimation Module - wave-aware FTE estimation based on migration strategies."""
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 from app.schemas.planning.resource import (
     ResourceTeam,
@@ -16,225 +16,306 @@ from app.schemas.planning.resource import (
 logger = logging.getLogger(__name__)
 
 # 6R Strategy effort multipliers (person-days per application)
-# These represent TOTAL effort including:
-# - Discovery, assessment, design phases
-# - Build/configure, data migration, testing
-# - Cutover coordination, rehearsals, actual cutover
-# - PMO, stakeholder management, risk management
-# - Cloud environment setup, security, networking
-# - Training, documentation, hypercare support
+# These represent TOTAL effort including all migration phases
 STRATEGY_EFFORT = {
     "rehost": {
-        "days_per_app": 25,  # Lift-and-shift still requires planning, testing, cutover
-        "skills": [
-            "Cloud Operations",
-            "DevOps",
-            "Data Migration",
-            "PMO",
-            "QA Engineering",
-        ],
+        "days_per_app": 25,
+        "skills": {
+            "Cloud Operations": 0.25,
+            "DevOps": 0.20,
+            "Data Migration": 0.20,
+            "PMO": 0.15,
+            "QA Engineering": 0.20,
+        },
     },
     "replatform": {
-        "days_per_app": 45,  # Platform changes require more testing and validation
-        "skills": [
-            "Cloud Operations",
-            "Backend Development",
-            "DevOps",
-            "Data Migration",
-            "QA Engineering",
-            "PMO",
-        ],
+        "days_per_app": 45,
+        "skills": {
+            "Cloud Operations": 0.15,
+            "Backend Development": 0.25,
+            "DevOps": 0.15,
+            "Data Migration": 0.15,
+            "QA Engineering": 0.15,
+            "PMO": 0.15,
+        },
     },
     "refactor": {
-        "days_per_app": 90,  # Significant code changes, extensive testing
-        "skills": [
-            "Backend Development",
-            "Frontend Development",
-            "Cloud Architecture",
-            "DevOps",
-            "QA Engineering",
-            "Data Migration",
-            "PMO",
-        ],
+        "days_per_app": 90,
+        "skills": {
+            "Backend Development": 0.25,
+            "Frontend Development": 0.15,
+            "Cloud Architecture": 0.10,
+            "DevOps": 0.10,
+            "QA Engineering": 0.20,
+            "Data Migration": 0.10,
+            "PMO": 0.10,
+        },
     },
     "repurchase": {
-        "days_per_app": 30,  # SaaS evaluation, data migration, training
-        "skills": [
-            "Business Analysis",
-            "Procurement",
-            "Change Management",
-            "Data Migration",
-            "Training",
-            "PMO",
-        ],
+        "days_per_app": 30,
+        "skills": {
+            "Business Analysis": 0.20,
+            "Procurement": 0.15,
+            "Change Management": 0.20,
+            "Data Migration": 0.15,
+            "Training": 0.15,
+            "PMO": 0.15,
+        },
     },
     "retain": {
-        "days_per_app": 5,  # Minimal effort - documentation and monitoring
-        "skills": ["Operations", "PMO"],
+        "days_per_app": 5,
+        "skills": {"Operations": 0.60, "PMO": 0.40},
     },
     "retire": {
-        "days_per_app": 15,  # Data archival, dependency cleanup, decommission
-        "skills": ["Operations", "Data Migration", "PMO"],
+        "days_per_app": 15,
+        "skills": {"Operations": 0.40, "Data Migration": 0.40, "PMO": 0.20},
     },
-    # Fallback for unknown strategies
     "default": {
         "days_per_app": 35,
-        "skills": [
-            "Cloud Operations",
-            "Backend Development",
-            "DevOps",
-            "QA Engineering",
-            "PMO",
-        ],
+        "skills": {
+            "Cloud Operations": 0.20,
+            "Backend Development": 0.25,
+            "DevOps": 0.20,
+            "QA Engineering": 0.20,
+            "PMO": 0.15,
+        },
     },
 }
 
-# Default project duration in working days (3 months)
-DEFAULT_PROJECT_DURATION_DAYS = 60
+# Minimum baseline FTEs per skill (always need at least this many)
+BASELINE_FTES = {
+    "Cloud Operations": 1,
+    "Backend Development": 1,
+    "Frontend Development": 1,
+    "Cloud Architecture": 1,
+    "DevOps": 1,
+    "QA Engineering": 1,
+    "Data Migration": 1,
+    "PMO": 1,
+    "Operations": 1,
+    "Business Analysis": 1,
+    "Procurement": 1,
+    "Change Management": 1,
+    "Training": 1,
+}
 
 
-def _aggregate_effort_by_skill(
+def _parse_date(date_str: str) -> datetime:
+    """Parse date string to datetime."""
+    if not date_str:
+        return datetime.now()
+    try:
+        return datetime.strptime(date_str[:10], "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return datetime.now()
+
+
+def _calculate_working_days(start_date: datetime, end_date: datetime) -> int:
+    """Calculate working days between two dates (excluding weekends)."""
+    if end_date <= start_date:
+        return 20  # Default to 1 month
+    total_days = (end_date - start_date).days
+    # Roughly 5/7 of days are working days
+    working_days = int(total_days * 5 / 7)
+    return max(working_days, 10)  # Minimum 2 weeks
+
+
+def _get_wave_default_strategy(wave: Dict[str, Any]) -> str:
+    """
+    Extract default migration strategy from wave's groups array.
+
+    Wave plan data structure stores migration_strategy at the GROUP level,
+    not the individual application level. This function extracts it.
+    """
+    groups = wave.get("groups", [])
+    if groups and len(groups) > 0:
+        # Use first group's strategy as wave default
+        group_strategy = groups[0].get("migration_strategy", "")
+        if group_strategy:
+            return group_strategy.lower()
+    return "default"
+
+
+def _calculate_wave_effort(wave: Dict[str, Any]) -> Dict[str, float]:
+    """Calculate total effort days by skill for a single wave."""
+    skill_effort: Dict[str, float] = defaultdict(float)
+    applications = wave.get("applications", [])
+
+    # Get wave-level default strategy from groups (wave_plan_data stores strategy at group level)
+    wave_default_strategy = _get_wave_default_strategy(wave)
+
+    for app in applications:
+        # Priority: app.migration_strategy > app.six_r_strategy > wave default > "default"
+        strategy = (
+            app.get("migration_strategy")
+            or app.get("six_r_strategy")
+            or wave_default_strategy
+            or "default"
+        ).lower()
+        effort_config = STRATEGY_EFFORT.get(strategy, STRATEGY_EFFORT["default"])
+        total_days = effort_config["days_per_app"]
+        skill_weights = effort_config["skills"]
+
+        for skill, weight in skill_weights.items():
+            skill_effort[skill] += total_days * weight
+
+    return dict(skill_effort)
+
+
+def _analyze_waves(
     waves: List[Dict[str, Any]],
-) -> tuple[Dict[str, float], Dict[str, int], int]:
+) -> Tuple[List[Dict], Dict[str, int], int]:
     """
-    Aggregate effort by skill across all waves.
+    Analyze all waves and calculate per-wave resource requirements.
 
-    Args:
-        waves: List of wave dictionaries with applications
-
-    Returns:
-        Tuple of (skill_effort_days, strategy_counts, total_apps)
+    Returns: (wave_analysis, strategy_counts, total_apps)
     """
-    skill_effort_days: Dict[str, float] = defaultdict(float)
+    wave_analysis = []
     strategy_counts: Dict[str, int] = defaultdict(int)
     total_apps = 0
 
     for wave in waves:
+        wave_name = (
+            wave.get("wave_name")
+            or wave.get("name")
+            or f"Wave {len(wave_analysis) + 1}"
+        )
+        start_date = _parse_date(wave.get("start_date", ""))
+        end_date = _parse_date(wave.get("end_date", ""))
         applications = wave.get("applications", [])
+
+        # Get wave-level default strategy from groups
+        wave_default_strategy = _get_wave_default_strategy(wave)
+
+        # Count strategies (using same resolution logic as effort calculation)
+        wave_strategies: Dict[str, int] = defaultdict(int)
+        for app in applications:
+            strategy = (
+                app.get("migration_strategy")
+                or app.get("six_r_strategy")
+                or wave_default_strategy
+                or "default"
+            ).lower()
+            strategy_counts[strategy] += 1
+            wave_strategies[strategy] += 1
+
         total_apps += len(applications)
 
-        for app in applications:
-            strategy = (app.get("migration_strategy") or "default").lower()
-            strategy_counts[strategy] += 1
+        # Calculate effort by skill for this wave
+        skill_effort = _calculate_wave_effort(wave)
+        working_days = _calculate_working_days(start_date, end_date)
 
-            effort_config = STRATEGY_EFFORT.get(strategy, STRATEGY_EFFORT["default"])
-            days_per_app = effort_config["days_per_app"]
-            skills = effort_config["skills"]
+        # Calculate FTEs needed for this wave (effort / duration)
+        skill_ftes: Dict[str, float] = {}
+        for skill, effort_days in skill_effort.items():
+            ftes_needed = effort_days / working_days
+            skill_ftes[skill] = round(ftes_needed, 1)
 
-            days_per_skill = days_per_app / len(skills) if skills else days_per_app
-            for skill in skills:
-                skill_effort_days[skill] += days_per_skill
+        wave_analysis.append(
+            {
+                "name": wave_name,
+                "start_date": start_date.strftime("%Y-%m-%d"),
+                "end_date": end_date.strftime("%Y-%m-%d"),
+                "app_count": len(applications),
+                "working_days": working_days,
+                "skill_effort": skill_effort,
+                "skill_ftes": skill_ftes,
+                "strategies": dict(wave_strategies),
+            }
+        )
 
-    return skill_effort_days, strategy_counts, total_apps
-
-
-def _extract_date_range(waves: List[Dict[str, Any]]) -> tuple[str, str]:
-    """
-    Extract date range from waves for assignment dates.
-
-    Args:
-        waves: List of wave dictionaries
-
-    Returns:
-        Tuple of (start_date, end_date) as ISO format strings
-    """
-    all_start_dates = []
-    all_end_dates = []
-
-    for wave in waves:
-        if wave.get("start_date"):
-            try:
-                all_start_dates.append(wave["start_date"])
-            except (ValueError, TypeError):
-                pass
-        if wave.get("end_date"):
-            try:
-                all_end_dates.append(wave["end_date"])
-            except (ValueError, TypeError):
-                pass
-
-    if all_start_dates:
-        assignment_start = min(all_start_dates)
-    else:
-        assignment_start = datetime.now().strftime("%Y-%m-%d")
-
-    if all_end_dates:
-        assignment_end = max(all_end_dates)
-    else:
-        assignment_end = (datetime.now() + timedelta(days=180)).strftime("%Y-%m-%d")
-
-    return assignment_start, assignment_end
+    return wave_analysis, dict(strategy_counts), total_apps
 
 
-def _build_teams_from_effort(
-    skill_effort_days: Dict[str, float],
-    assignment_start: str,
-    assignment_end: str,
-    project_duration_days: int = DEFAULT_PROJECT_DURATION_DAYS,
-) -> tuple[List[ResourceTeam], int]:
-    """
-    Build ResourceTeam objects from skill effort calculations.
+def _build_teams_from_waves(
+    wave_analysis: List[Dict],
+) -> Tuple[List[ResourceTeam], int]:
+    """Build teams with per-wave assignments showing actual demand."""
+    # Aggregate all skills across waves
+    all_skills: set = set()
+    for wave in wave_analysis:
+        all_skills.update(wave["skill_ftes"].keys())
 
-    Args:
-        skill_effort_days: Dict mapping skills to total effort days
-        assignment_start: Start date for assignments
-        assignment_end: End date for assignments
-        project_duration_days: Project duration in working days
-
-    Returns:
-        Tuple of (teams list, total_ftes)
-    """
     teams = []
     total_ftes = 0
 
-    for skill, effort_days in skill_effort_days.items():
-        ftes_needed = effort_days / project_duration_days
-        ftes_rounded = max(1, round(ftes_needed))
-        total_ftes += ftes_rounded
+    for skill in sorted(all_skills):
+        # Find peak demand and calculate assignments per wave
+        assignments = []
+        peak_ftes = 0.0
+        total_effort_days = 0.0
+        total_working_days = 0
 
-        utilization = min(
-            100, (effort_days / (ftes_rounded * project_duration_days)) * 100
+        for wave in wave_analysis:
+            ftes_needed = wave["skill_ftes"].get(skill, 0)
+            effort_days = wave["skill_effort"].get(skill, 0)
+
+            if ftes_needed > 0:
+                peak_ftes = max(peak_ftes, ftes_needed)
+                total_effort_days += effort_days
+                total_working_days += wave["working_days"]
+
+                # Create assignment for this wave
+                assignments.append(
+                    TeamAssignment(
+                        project=wave["name"],
+                        allocation=round(
+                            min(100, ftes_needed * 100 / max(1, peak_ftes)), 1
+                        ),
+                        start_date=wave["start_date"],
+                        end_date=wave["end_date"],
+                    )
+                )
+
+        if not assignments:
+            continue
+
+        # Team size = peak FTEs rounded up, minimum from baseline
+        baseline = BASELINE_FTES.get(skill, 1)
+        team_size = max(baseline, int(peak_ftes + 0.5))  # Round to nearest
+        total_ftes += team_size
+
+        # Calculate actual utilization based on total effort vs capacity
+        total_capacity_days = (
+            team_size * total_working_days if total_working_days > 0 else 1
         )
+        utilization = min(100, (total_effort_days / total_capacity_days) * 100)
 
         teams.append(
             ResourceTeam(
                 id=skill.lower().replace(" ", "-"),
                 name=f"{skill} Team",
-                size=ftes_rounded,
+                size=team_size,
                 skills=[skill],
-                availability=100 - utilization,
+                availability=round(100 - utilization, 1),
                 utilization=round(utilization, 1),
-                assignments=[
-                    TeamAssignment(
-                        project="Migration Waves",
-                        allocation=round(utilization, 1),
-                        start_date=assignment_start,
-                        end_date=assignment_end,
-                    )
-                ],
+                assignments=assignments,
             )
         )
+
+    # Sort teams by utilization (highest first)
+    teams.sort(key=lambda t: t.utilization, reverse=True)
 
     return teams, total_ftes
 
 
 def _build_metrics(
-    teams: List[ResourceTeam],
-    skill_effort_days: Dict[str, float],
-    total_ftes: int,
+    teams: List[ResourceTeam], total_ftes: int, wave_analysis: List[Dict]
 ) -> ResourceMetrics:
-    """
-    Build ResourceMetrics from teams and skill data.
+    """Build metrics from wave-aware analysis."""
+    # Calculate skill coverage based on demand vs capacity
+    skill_coverage = {}
+    for team in teams:
+        skill = team.skills[0] if team.skills else team.name
+        # Coverage = (team_size / peak_demand) * 100, capped at 100
+        total_demand = sum(w["skill_ftes"].get(skill, 0) for w in wave_analysis)
+        avg_demand = total_demand / len(wave_analysis) if wave_analysis else 0
+        if avg_demand > 0:
+            coverage = min(100, (team.size / avg_demand) * 100)
+        else:
+            coverage = 100
+        skill_coverage[skill] = round(coverage, 1)
 
-    Args:
-        teams: List of ResourceTeam objects
-        skill_effort_days: Dict mapping skills to effort days
-        total_ftes: Total FTE count
-
-    Returns:
-        ResourceMetrics object
-    """
-    skill_coverage = {skill: 100.0 for skill in skill_effort_days.keys()}
     avg_utilization = sum(t.utilization for t in teams) / len(teams) if teams else 0
 
     return ResourceMetrics(
@@ -245,93 +326,115 @@ def _build_metrics(
     )
 
 
-def _identify_upcoming_needs(teams: List[ResourceTeam]) -> List[UpcomingNeed]:
-    """
-    Identify skill gaps from teams with high utilization.
-
-    Args:
-        teams: List of ResourceTeam objects
-
-    Returns:
-        List of UpcomingNeed objects
-    """
+def _identify_upcoming_needs(
+    teams: List[ResourceTeam], wave_analysis: List[Dict]
+) -> List[UpcomingNeed]:
+    """Identify resource gaps based on wave demands."""
     upcoming_needs = []
+
     for team in teams:
-        if team.utilization > 80:
+        skill = team.skills[0] if team.skills else team.name
+
+        # Find waves where demand exceeds team size
+        for wave in wave_analysis:
+            ftes_needed = wave["skill_ftes"].get(skill, 0)
+            if ftes_needed > team.size:
+                gap = int(ftes_needed - team.size + 0.5)
+                upcoming_needs.append(
+                    UpcomingNeed(
+                        skill=skill,
+                        demand=team.size + gap,
+                        timeline=f"{wave['name']} ({wave['start_date']})",
+                    )
+                )
+                break  # Only report first gap per skill
+
+        # Also flag high utilization teams
+        if team.utilization > 85 and skill not in [n.skill for n in upcoming_needs]:
             upcoming_needs.append(
                 UpcomingNeed(
-                    skill=team.skills[0] if team.skills else team.name,
+                    skill=skill,
                     demand=team.size + 1,
-                    timeline="Next 30 days",
+                    timeline="High utilization - add capacity",
                 )
             )
-    return upcoming_needs
+
+    return upcoming_needs[:6]  # Limit to top 6 needs
 
 
 def generate_6r_recommendations(
     teams: List[ResourceTeam],
     strategy_counts: Dict[str, int],
     total_apps: int,
+    wave_analysis: List[Dict],
 ) -> List[ResourceRecommendation]:
-    """
-    Generate recommendations based on 6R strategy analysis.
-
-    Args:
-        teams: Estimated teams from 6R analysis
-        strategy_counts: Count of apps by strategy
-        total_apps: Total applications being migrated
-
-    Returns:
-        List of ResourceRecommendation schemas
-    """
+    """Generate actionable recommendations based on wave analysis."""
     recommendations = []
 
-    # High utilization warnings
-    high_util_teams = [t for t in teams if t.utilization > 80]
-    if high_util_teams:
-        team_names = ", ".join(t.name for t in high_util_teams[:3])
+    # Find overloaded teams
+    overloaded = [t for t in teams if t.utilization > 90]
+    if overloaded:
+        names = ", ".join(t.name for t in overloaded[:3])
         recommendations.append(
             ResourceRecommendation(
                 type="capacity",
-                description=f"{team_names} will be at high utilization. "
-                f"Consider adding capacity or extending timeline.",
+                description=f"{names} at >90% utilization. Add FTEs or extend wave timelines to reduce risk.",
                 impact="High",
             )
         )
 
-    # Strategy mix insights
-    refactor_count = strategy_counts.get("refactor", 0)
-    if refactor_count > 0 and total_apps > 0:
-        refactor_pct = (refactor_count / total_apps) * 100
-        if refactor_pct > 30:
+    # Identify waves with highest demand
+    if wave_analysis:
+        heaviest_wave = max(wave_analysis, key=lambda w: w["app_count"])
+        if heaviest_wave["app_count"] > 5:
+            wave_name = heaviest_wave["name"]
+            app_count = heaviest_wave["app_count"]
             recommendations.append(
                 ResourceRecommendation(
                     type="planning",
-                    description=f"{refactor_pct:.0f}% of applications require Refactoring. "
-                    f"This is resource-intensive - ensure adequate dev resources.",
+                    description=f"{wave_name} has {app_count} apps. Consider splitting "
+                    f"into smaller waves for better resource distribution.",
+                    impact="Medium",
+                )
+            )
+
+    # Strategy-specific recommendations
+    refactor_count = strategy_counts.get("refactor", 0)
+    if refactor_count > 0 and total_apps > 0:
+        refactor_pct = (refactor_count / total_apps) * 100
+        if refactor_pct > 20:
+            recommendations.append(
+                ResourceRecommendation(
+                    type="planning",
+                    description=f"{refactor_pct:.0f}% of apps require Refactoring "
+                    f"({refactor_count} apps × 90 days). Ensure Backend/Frontend dev capacity.",
                     impact="High",
                 )
             )
 
-    # Rehost opportunity
+    # Quick wins recommendation
     rehost_count = strategy_counts.get("rehost", 0)
-    if rehost_count > 0:
+    if rehost_count >= 3:
         recommendations.append(
             ResourceRecommendation(
                 type="optimization",
-                description=f"{rehost_count} applications can be Rehosted quickly. "
-                f"Consider parallelizing these for quick wins.",
+                description=f"{rehost_count} Rehost apps can be parallelized for quick wins. "
+                f"Group them in early waves to build momentum.",
                 impact="Medium",
             )
         )
 
-    # General recommendation
+    # Summary recommendation
     if teams:
+        total_ftes = sum(t.size for t in teams)
+        high_util = len([t for t in teams if t.utilization > 75])
+        num_teams = len(teams)
+        num_waves = len(wave_analysis)
         recommendations.append(
             ResourceRecommendation(
                 type="planning",
-                description=f"Estimated {sum(t.size for t in teams)} FTEs needed across "
-                f"{len(teams)} skill areas for {total_apps} applications.",
+                description=f"Total: {total_ftes} FTEs across {num_teams} teams "
+                f"for {total_apps} apps in {num_waves} waves. {high_util} teams at high utilization.",
                 impact="Medium",
             )
         )
@@ -341,53 +444,45 @@ def generate_6r_recommendations(
 
 def estimate_resources_from_6r(wave_plan_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Estimate resource requirements based on 6R strategies in wave applications.
+    Wave-aware resource estimation based on 6R strategies.
 
-    Analyzes each application's migration_strategy and calculates:
-    - Total effort days by skill
-    - FTE requirements
-    - Team composition recommendations
-
-    Args:
-        wave_plan_data: Wave plan data with waves and applications
-
-    Returns:
-        Dict with teams, metrics, recommendations, upcoming_needs
+    Analyzes each wave independently to calculate:
+    - Per-wave effort by skill based on app strategies
+    - Peak demand per skill across waves
+    - Per-wave team assignments showing when skills are needed
+    - Resource gaps where demand exceeds capacity
     """
     waves = wave_plan_data.get("waves", [])
 
     if not waves:
         return {
             "teams": [],
-            "metrics": {
-                "total_teams": 0,
-                "total_resources": 0,
-                "average_utilization": 0,
-                "skill_coverage": {},
-            },
+            "metrics": ResourceMetrics(
+                total_teams=0,
+                total_resources=0,
+                average_utilization=0,
+                skill_coverage={},
+            ),
             "recommendations": [],
             "upcoming_needs": [],
         }
 
-    # Step 1: Aggregate effort by skill
-    skill_effort_days, strategy_counts, total_apps = _aggregate_effort_by_skill(waves)
+    # Analyze all waves
+    wave_analysis, strategy_counts, total_apps = _analyze_waves(waves)
 
-    # Step 2: Extract date range
-    assignment_start, assignment_end = _extract_date_range(waves)
+    # Build teams with per-wave assignments
+    teams, total_ftes = _build_teams_from_waves(wave_analysis)
 
-    # Step 3: Build teams from effort
-    teams, total_ftes = _build_teams_from_effort(
-        skill_effort_days, assignment_start, assignment_end
+    # Build metrics
+    metrics = _build_metrics(teams, total_ftes, wave_analysis)
+
+    # Generate recommendations
+    recommendations = generate_6r_recommendations(
+        teams, strategy_counts, total_apps, wave_analysis
     )
 
-    # Step 4: Build metrics
-    metrics = _build_metrics(teams, skill_effort_days, total_ftes)
-
-    # Step 5: Generate recommendations
-    recommendations = generate_6r_recommendations(teams, strategy_counts, total_apps)
-
-    # Step 6: Identify upcoming needs
-    upcoming_needs = _identify_upcoming_needs(teams)
+    # Identify resource gaps
+    upcoming_needs = _identify_upcoming_needs(teams, wave_analysis)
 
     return {
         "teams": teams,
