@@ -184,6 +184,8 @@ const AttributeMappingContainer: React.FC = () => {
                   flowStatus={flowState?.status}
                   hasFieldMappings={fieldMappings && fieldMappings.length > 0}
                   fieldMappings={fieldMappings}
+                  canContinueToDataCleansing={canContinueToDataCleansing()}
+                  onContinueToDataCleansing={handleContinueToDataCleansing}
                 />
 
                 {/* Main Content */}

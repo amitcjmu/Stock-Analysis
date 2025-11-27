@@ -23,6 +23,9 @@ interface AttributeMappingHeaderProps {
   // NEW AGENTIC PROPS: SSE connection status
   isSSEConnected?: boolean;
   connectionType?: 'sse' | 'polling' | 'disconnected';
+  // Continue to data cleansing props
+  canContinueToDataCleansing?: boolean;
+  onContinueToDataCleansing?: () => void;
 }
 
 export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
@@ -36,7 +39,9 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   hasFieldMappings,
   fieldMappings,
   isSSEConnected,
-  connectionType
+  connectionType,
+  canContinueToDataCleansing,
+  onContinueToDataCleansing
 }) => {
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
 
