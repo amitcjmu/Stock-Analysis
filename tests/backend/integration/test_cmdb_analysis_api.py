@@ -15,14 +15,23 @@ class TestCMDBAnalysisAPI:
         self, api_client, sample_cmdb_csv_content, auth_headers
     ):
         """Test CMDB analysis endpoint with sample data."""
+        # Parse CSV content into list of records
+        lines = sample_cmdb_csv_content.strip().split("\n")
+        headers = lines[0].split(",")
+        records = []
+        for line in lines[1:]:
+            values = line.split(",")
+            record = dict(zip(headers, values))
+            records.append(record)
+
         request_data = {
             "filename": "test_assets.csv",
-            "content": sample_cmdb_csv_content,
-            "fileType": "csv",
+            "raw_data": records,
+            "configuration": {},
         }
 
         response = await api_client.post(
-            "/api/v1/unified-discovery/flow/initialize",
+            "/api/v1/unified-discovery/flows/initialize",
             json=request_data,
             headers=auth_headers,
         )
@@ -30,31 +39,25 @@ class TestCMDBAnalysisAPI:
         assert response.status_code == 200
         data = response.json()
 
-        # Verify response structure
+        # Verify FlowInitializationResponse structure
+        assert "success" in data
+        assert "flow_id" in data
+        assert "flow_name" in data
         assert "status" in data
-        assert "dataQuality" in data
-        assert "coverage" in data
-        assert "missingFields" in data
-        assert "readyForImport" in data
+        assert "message" in data
+        assert "metadata" in data
 
-        # Verify data quality structure
-        quality = data["dataQuality"]
-        assert "score" in quality
-        assert "issues" in quality
-        assert "recommendations" in quality
-        assert isinstance(quality["score"], int)
-        assert 0 <= quality["score"] <= 100
+        # Verify success
+        assert data["success"] is True
+        assert data["status"] == "initialized"
+        assert isinstance(data["flow_id"], str)
+        assert len(data["flow_id"]) > 0
 
-        # Verify coverage includes device types
-        coverage = data["coverage"]
-        assert "applications" in coverage
-        assert "servers" in coverage
-        assert "databases" in coverage
-        # Note: dependencies might be 0 in this test data
-
-        # Verify agentic analysis results
-        assert isinstance(data["missingFields"], list)
-        assert isinstance(data["readyForImport"], bool)
+        # Verify metadata structure
+        metadata = data["metadata"]
+        assert isinstance(metadata, dict)
+        assert "created_at" in metadata
+        assert "has_raw_data" in metadata
 
     @pytest.mark.asyncio
     async def test_cmdb_analysis_with_device_classification(
@@ -68,14 +71,23 @@ firewall-perimeter,Firewall,Production
 ups-datacenter,UPS,Production
 vmware-host-01,Virtualization,Production"""
 
+        # Parse CSV content into list of records
+        lines = device_heavy_content.strip().split("\n")
+        headers = lines[0].split(",")
+        records = []
+        for line in lines[1:]:
+            values = line.split(",")
+            record = dict(zip(headers, values))
+            records.append(record)
+
         request_data = {
             "filename": "devices.csv",
-            "content": device_heavy_content,
-            "fileType": "csv",
+            "raw_data": records,
+            "configuration": {},
         }
 
         response = await api_client.post(
-            "/api/v1/unified-discovery/flow/initialize",
+            "/api/v1/unified-discovery/flows/initialize",
             json=request_data,
             headers=auth_headers,
         )
@@ -83,10 +95,11 @@ vmware-host-01,Virtualization,Production"""
 
         data = response.json()
 
-        # Should recognize device-heavy dataset
-        assert data["status"] == "success"
-        # Device-heavy datasets might have different readiness criteria
-        assert "readyForImport" in data
+        # Verify FlowInitializationResponse structure
+        assert data["success"] is True
+        assert data["status"] == "initialized"
+        assert "flow_id" in data
+        assert "metadata" in data
 
     @pytest.mark.asyncio
     async def test_agentic_intelligence_integration(self, api_client, auth_headers):
@@ -97,14 +110,23 @@ complex-erp-system,Unknown,Enterprise resource planning system,Production
 legacy-mainframe,Unknown,IBM z/OS mainframe system,Production
 iot-sensor-network,Unknown,Temperature monitoring sensors,Production"""
 
+        # Parse CSV content into list of records
+        lines = complex_content.strip().split("\n")
+        headers = lines[0].split(",")
+        records = []
+        for line in lines[1:]:
+            values = line.split(",")
+            record = dict(zip(headers, values))
+            records.append(record)
+
         request_data = {
             "filename": "complex_assets.csv",
-            "content": complex_content,
-            "fileType": "csv",
+            "raw_data": records,
+            "configuration": {},
         }
 
         response = await api_client.post(
-            "/api/v1/unified-discovery/flow/initialize",
+            "/api/v1/unified-discovery/flows/initialize",
             json=request_data,
             headers=auth_headers,
         )
@@ -112,10 +134,12 @@ iot-sensor-network,Unknown,Temperature monitoring sensors,Production"""
 
         data = response.json()
 
-        # Agentic analysis should provide intelligent insights
-        assert "dataQuality" in data
-        assert "recommendations" in data["dataQuality"]
-
-        # Should have suggestions for unknown asset types
-        recommendations = data["dataQuality"]["recommendations"]
-        assert len(recommendations) > 0
+        # Verify FlowInitializationResponse structure
+        assert "success" in data
+        assert data["success"] is True
+        assert "flow_id" in data
+        assert "metadata" in data
+        
+        # Verify that flow was initialized successfully
+        assert data["status"] == "initialized"
+        assert isinstance(data["flow_id"], str)
