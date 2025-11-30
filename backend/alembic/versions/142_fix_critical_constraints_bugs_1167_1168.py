@@ -90,10 +90,23 @@ def downgrade() -> None:
     """Revert fixes for Bug #1167 and Bug #1168."""
 
     # Revert Bug #1167: Remove 'environment' from allowed conflict types
+    # Per Qodo Bot: Delete records with conflict_type='environment' first to prevent
+    # constraint violation during downgrade
     op.execute(
         """
         DO $$
+        DECLARE
+            deleted_count INTEGER;
         BEGIN
+            -- Per Qodo Bot: Delete environment records before reverting constraint
+            DELETE FROM migration.asset_conflict_resolutions
+            WHERE conflict_type = 'environment';
+
+            GET DIAGNOSTICS deleted_count = ROW_COUNT;
+            IF deleted_count > 0 THEN
+                RAISE NOTICE 'Deleted % environment conflict records for downgrade', deleted_count;
+            END IF;
+
             IF EXISTS (
                 SELECT 1 FROM information_schema.table_constraints
                 WHERE constraint_name = 'ck_asset_conflicts_type'
