@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
 from app.models.agent_task_history import AgentTaskHistory
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +113,43 @@ class PersistenceMixin:
             self._db_write_queue.append((operation, data))
 
     async def _persist_task_start(self, db: AsyncSession, data: Dict[str, Any]):
-        """Persist task start to database."""
+        """Persist task start to database.
+
+        Bug #1168 Fix: Validates flow_id against crewai_flow_state_extensions before inserting.
+        If the flow_id doesn't exist in the master flow table (common when child flow IDs
+        are passed instead of master flow IDs per MFO two-table pattern), we set it to None
+        rather than failing the insert.
+        """
+        flow_id = data.get("flow_id")
+
+        # Bug #1168 Fix: Validate flow_id exists in master flow table
+        if flow_id:
+            try:
+                from uuid import UUID as PyUUID
+
+                flow_uuid = (
+                    PyUUID(str(flow_id)) if isinstance(flow_id, str) else flow_id
+                )
+                stmt = select(CrewAIFlowStateExtensions.flow_id).where(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid
+                )
+                result = await db.execute(stmt)
+                exists = result.scalar_one_or_none()
+
+                if not exists:
+                    logger.warning(
+                        f"Bug #1168: flow_id {flow_id} not found in crewai_flow_state_extensions. "
+                        f"This is likely a child flow ID (MFO two-table pattern). Setting to None."
+                    )
+                    flow_id = None
+            except Exception as e:
+                logger.warning(
+                    f"Bug #1168: Error validating flow_id {flow_id}: {e}. Setting to None."
+                )
+                flow_id = None
+
         task_history = AgentTaskHistory(
-            flow_id=data.get("flow_id"),
+            flow_id=flow_id,
             agent_name=data["agent_name"],
             agent_type=data.get("agent_type", "individual"),
             task_id=data["task_id"],

@@ -44,12 +44,14 @@ class AgentTaskHistory(Base):
     )
 
     # Task identification
+    # Bug #1168 Fix: Made nullable to allow task history when flow context is ambiguous
+    # (child flow ID vs master flow ID per MFO two-table pattern)
     flow_id = Column(
         UUID(as_uuid=True),
         ForeignKey("crewai_flow_state_extensions.flow_id"),
-        nullable=False,
+        nullable=True,  # Changed from False to True - Bug #1168
         index=True,
-        comment="Reference to the CrewAI flow this task belongs to",
+        comment="Reference to the CrewAI flow this task belongs to (nullable for ambiguous flow contexts)",
     )
     agent_name = Column(
         String(100),
