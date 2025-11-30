@@ -260,14 +260,16 @@ Base recommendations on EVIDENCE from the assessment results, not assumptions.
             # CC Phase 3: Setup callback handler for observability
             from app.core.context import RequestContext
 
-            # CRITICAL (ISSUE-999): Use assessment flow ID for callbacks/observability
+            # Bug #1168 Fix: Use master_flow.flow_id (NOT assessment_flow_id) for callbacks
+            # The master_flow.flow_id is the FK-valid ID for agent_task_history table.
+            # Other executors (readiness, complexity, dependency, tech_debt, risk) already use this pattern.
             callback_context = RequestContext(
                 client_account_id=str(master_flow.client_account_id),
                 engagement_id=str(master_flow.engagement_id),
-                flow_id=str(assessment_flow_id),
+                flow_id=str(master_flow.flow_id),
             )
             callback_handler = CallbackHandlerIntegration.create_callback_handler(
-                flow_id=str(assessment_flow_id),
+                flow_id=str(master_flow.flow_id),
                 context=callback_context,
             )
             callback_handler.setup_callbacks()

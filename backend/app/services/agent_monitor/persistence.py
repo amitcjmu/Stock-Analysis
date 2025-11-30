@@ -16,6 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
 from app.models.agent_task_history import AgentTaskHistory
+from app.models.assessment_flow.core_models import AssessmentFlow
+from app.models.collection_flow.collection_flow_model import CollectionFlow
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +116,58 @@ class PersistenceMixin:
             self._db_write_queue.append((operation, data))
 
     async def _persist_task_start(self, db: AsyncSession, data: Dict[str, Any]):
-        """Persist task start to database."""
+        """Persist task start to database.
+
+        Bug #1168 Defense-in-Depth: Validates flow_id against crewai_flow_state_extensions.
+        ROOT CAUSE FIX: recommendation_executor.py now correctly uses master_flow.flow_id.
+        This validation is a SAFETY NET to prevent FK violations if a developer accidentally
+        passes a child flow ID instead of master flow ID in the future.
+
+        Per Qodo Bot review: Instead of setting to None, we resolve child flow ID to master
+        flow ID by checking child flow tables (Assessment, Discovery, Collection).
+        """
+        flow_id = data.get("flow_id")
+        master_flow_id = flow_id  # Start with provided ID, may be resolved
+
+        # Bug #1168 Fix: Validate flow_id exists in master flow table
+        if flow_id:
+            try:
+                from uuid import UUID as PyUUID
+
+                flow_uuid = (
+                    PyUUID(str(flow_id)) if isinstance(flow_id, str) else flow_id
+                )
+                stmt = select(CrewAIFlowStateExtensions.flow_id).where(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid
+                )
+                result = await db.execute(stmt)
+                exists = result.scalar_one_or_none()
+
+                if not exists:
+                    # Per Qodo Bot: Resolve child flow ID to master flow ID
+                    logger.warning(
+                        f"Bug #1168: flow_id {flow_id} not found in master table. "
+                        f"Attempting to resolve from child flow tables..."
+                    )
+                    master_flow_id = await self._resolve_to_master_flow_id(
+                        db, flow_uuid
+                    )
+                    if master_flow_id:
+                        logger.info(
+                            f"Bug #1168: Resolved child flow {flow_id} to master flow {master_flow_id}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Bug #1168: Could not resolve flow_id {flow_id}. Setting to None."
+                        )
+            except Exception as e:
+                logger.warning(
+                    f"Bug #1168: Error validating flow_id {flow_id}: {e}. Setting to None."
+                )
+                master_flow_id = None
+
         task_history = AgentTaskHistory(
-            flow_id=data.get("flow_id"),
+            flow_id=master_flow_id,  # Use resolved master flow ID
             agent_name=data["agent_name"],
             agent_type=data.get("agent_type", "individual"),
             task_id=data["task_id"],
@@ -126,6 +179,50 @@ class PersistenceMixin:
             engagement_id=data.get("engagement_id"),
         )
         db.add(task_history)
+
+    async def _resolve_to_master_flow_id(
+        self, db: AsyncSession, child_flow_uuid: Any
+    ) -> Optional[Any]:
+        """Resolve a child flow ID to its master flow ID.
+
+        Per Qodo Bot review: Instead of nullifying, attempt to resolve child→master.
+        Checks Assessment, Discovery, and Collection flow tables.
+
+        Args:
+            db: Database session
+            child_flow_uuid: UUID of the child flow
+
+        Returns:
+            The master_flow_id if found, None otherwise
+        """
+        # Check AssessmentFlow
+        stmt = select(AssessmentFlow.master_flow_id).where(
+            AssessmentFlow.id == child_flow_uuid
+        )
+        result = await db.execute(stmt)
+        master_id = result.scalar_one_or_none()
+        if master_id:
+            return master_id
+
+        # Check DiscoveryFlow
+        stmt = select(DiscoveryFlow.master_flow_id).where(
+            DiscoveryFlow.id == child_flow_uuid
+        )
+        result = await db.execute(stmt)
+        master_id = result.scalar_one_or_none()
+        if master_id:
+            return master_id
+
+        # Check CollectionFlow
+        stmt = select(CollectionFlow.master_flow_id).where(
+            CollectionFlow.id == child_flow_uuid
+        )
+        result = await db.execute(stmt)
+        master_id = result.scalar_one_or_none()
+        if master_id:
+            return master_id
+
+        return None
 
     async def _persist_task_update(self, db: AsyncSession, data: Dict[str, Any]):
         """Update task in database."""
