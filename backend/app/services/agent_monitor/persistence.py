@@ -115,10 +115,11 @@ class PersistenceMixin:
     async def _persist_task_start(self, db: AsyncSession, data: Dict[str, Any]):
         """Persist task start to database.
 
-        Bug #1168 Fix: Validates flow_id against crewai_flow_state_extensions before inserting.
-        If the flow_id doesn't exist in the master flow table (common when child flow IDs
-        are passed instead of master flow IDs per MFO two-table pattern), we set it to None
-        rather than failing the insert.
+        Bug #1168 Defense-in-Depth: Validates flow_id against crewai_flow_state_extensions.
+        ROOT CAUSE FIX: recommendation_executor.py now correctly uses master_flow.flow_id.
+        This validation is a SAFETY NET to prevent FK violations if a developer accidentally
+        passes a child flow ID instead of master flow ID in the future. It logs a warning
+        and sets flow_id to None rather than crashing the insert.
         """
         flow_id = data.get("flow_id")
 
