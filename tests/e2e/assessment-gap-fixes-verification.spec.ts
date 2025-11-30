@@ -796,7 +796,7 @@ test.describe('Assessment Flow GAP Fixes Verification', () => {
       { headers: TENANT_HEADERS }
     );
 
-    let retireApplicationIds: string[] = [];
+    const retireApplicationIds: string[] = [];
 
     if (sixrResponse.ok()) {
       const sixrData = await sixrResponse.json();

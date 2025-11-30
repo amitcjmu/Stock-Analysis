@@ -215,7 +215,7 @@ export const TimelineGantt: React.FC<TimelineGanttProps> = ({
       if (!grouped.has(wave)) {
         grouped.set(wave, []);
       }
-      grouped.get(wave)!.push(phase);
+      grouped.get(wave).push(phase);
     });
     return grouped;
   }, [data.phases]);
@@ -229,7 +229,7 @@ export const TimelineGantt: React.FC<TimelineGanttProps> = ({
     const sortedWaves = Array.from(phasesByWave.keys()).sort((a, b) => a - b);
 
     sortedWaves.forEach((waveNum) => {
-      const wavePhasesData = phasesByWave.get(waveNum)!;
+      const wavePhasesData = phasesByWave.get(waveNum);
 
       // Add wave separator group (visual only)
       if (waveNum > 0) {

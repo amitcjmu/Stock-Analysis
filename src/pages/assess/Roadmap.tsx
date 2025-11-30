@@ -124,7 +124,7 @@ const Roadmap = (): JSX.Element => {
     error
   } = useQuery({
     queryKey: ['planning-status', planning_flow_id],
-    queryFn: () => planningFlowApi.getPlanningStatus(planning_flow_id!),
+    queryFn: () => planningFlowApi.getPlanningStatus(planning_flow_id),
     enabled: !!planning_flow_id && isAuthenticated,
     staleTime: 30000
   });
